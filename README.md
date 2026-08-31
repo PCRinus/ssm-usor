@@ -1,0 +1,39 @@
+# SSM Ușor
+
+A product concept for a multi-client SaaS operating system for Romanian external SSM services.
+
+Start with the [working product scope](docs/product-scope.md).
+
+The [pre-launch go-to-market validation plan](docs/go-to-market-validation.md) defines the landing page, provider acquisition channels, and paid-validation gates.
+
+The [technical architecture](docs/technical-architecture.md) records the proposed Astro/React/TypeScript monorepo, application boundaries, rendering strategy, and staged implementation path.
+
+[ADR 001](docs/architecture/adr-001-web-applications-and-cloudflare.md) records the accepted decision to use a static Astro marketing site, a client-only React/Vite dashboard, a shared Worker API, and Cloudflare-first deployment.
+
+## Workspace
+
+The pnpm/Turborepo workspace contains:
+
+- `apps/marketing` — the static Astro acquisition site and landing-page concepts;
+- `apps/dashboard` — the client-only React/Vite application shell;
+- `apps/api` — the Cloudflare Worker API;
+- `packages/contracts` — runtime schemas and shared transport types.
+
+Use Node.js 24 or newer. The `.nvmrc` tracks the Node 24 major line, so with nvm run `nvm use`, then:
+
+```bash
+pnpm install
+pnpm dev:marketing
+```
+
+The design gallery is available at `http://localhost:4321/`. Common commands:
+
+```bash
+pnpm dev
+pnpm typecheck
+pnpm build
+pnpm lint
+pnpm deploy:dry-run
+```
+
+The three `deploy:*` scripts publish the corresponding application with Wrangler after Cloudflare authentication and domain configuration are in place.
