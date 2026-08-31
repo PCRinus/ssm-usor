@@ -10,6 +10,9 @@ The [technical architecture](docs/technical-architecture.md) records the propose
 
 [ADR 001](docs/architecture/adr-001-web-applications-and-cloudflare.md) records the accepted decision to use a static Astro marketing site, a client-only React/Vite dashboard, a shared Worker API, and Cloudflare-first deployment.
 
+The [deployment guide](docs/deployment.md) covers the protected Cloudflare marketing preview,
+required GitHub secrets, and local Wrangler commands.
+
 ## Workspace
 
 The pnpm/Turborepo workspace contains:
@@ -24,6 +27,7 @@ Use Node.js 24 or newer. The `.nvmrc` tracks the Node 24 major line, so with nvm
 ```bash
 pnpm install
 pnpm dev:marketing
+pnpm preview:marketing
 ```
 
 The design gallery is available at `http://localhost:4321/`. Common commands:
