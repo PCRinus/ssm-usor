@@ -1,0 +1,21 @@
+{
+  "name": "@ssm-usor/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "wrangler dev --port 8787",
+    "typecheck": "tsc --noEmit",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@ssm-usor/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260828.1",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.127.1"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@ssm-usor/marketing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev --port 4321",
+    "preview": "astro preview --port 4322",
+    "typecheck": "astro check",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "pnpm build && wrangler deploy"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/react": "^6.0.4",
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^7.2.9",
+    "lucide-react": "^1.37.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.127.1"
+  }
+}
