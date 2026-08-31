@@ -1,0 +1,56 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+      timezone: Europe/Bucharest
+    open-pull-requests-limit: 10
+    rebase-strategy: auto
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      astro:
+        patterns:
+          - '@astrojs/*'
+          - astro
+      cloudflare:
+        patterns:
+          - '@cloudflare/*'
+          - wrangler
+      react:
+        patterns:
+          - '@types/react*'
+          - '@vitejs/plugin-react'
+          - eslint-plugin-react-*
+          - react
+          - react-dom
+      repository-tooling:
+        patterns:
+          - '@eslint/*'
+          - '@typescript-eslint/*'
+          - eslint
+          - eslint-*
+          - lefthook
+          - prettier
+          - prettier-*
+          - turbo
+          - typescript
+          - typescript-eslint
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:30'
+      timezone: Europe/Bucharest
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: chore(actions)
