@@ -9,24 +9,82 @@ for the future SaaS application and should be removed before the public landing 
 
 ## GitHub environment
 
-Create a GitHub Actions environment named `design-preview` under **Settings → Environments**. Add
-these four environment secrets:
+Create a GitHub Actions environment named `design-preview` under **Settings → Environments**.
+
+Add this environment variable under **Environment variables**:
+
+| Variable              | Purpose                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `BASIC_AUTH_USERNAME` | Non-sensitive username deployed as a plain Worker variable. |
+
+Add these values under **Environment secrets**:
 
 | Secret                  | Purpose                                                                  |
 | ----------------------- | ------------------------------------------------------------------------ |
 | `CLOUDFLARE_API_TOKEN`  | Allows Wrangler to deploy the marketing Worker and its static assets.    |
 | `CLOUDFLARE_ACCOUNT_ID` | Selects the Cloudflare account that owns the Worker.                     |
-| `BASIC_AUTH_USERNAME`   | Username uploaded to the Worker as an encrypted secret.                  |
 | `BASIC_AUTH_PASSWORD`   | Strong temporary password uploaded to the Worker as an encrypted secret. |
 
-Create the Cloudflare token from the **Edit Cloudflare Workers** template and restrict it to the
-single account used by this project. The initial deployment uses the generated `workers.dev`
-hostname, so a zone ID and DNS permissions are not required. A custom hostname can be added later
-once its exact domain is chosen.
+`CLOUDFLARE_ACCOUNT_ID` is an identifier rather than a credential, but the workflow keeps it in the
+Secrets section alongside the token. It can be moved to an environment variable later if desired.
+
+## Create the Cloudflare API token
+
+The simplest supported setup is:
+
+1. In Cloudflare, open **My Profile → API Tokens**.
+2. Select **Create Token**.
+3. Find **Edit Cloudflare Workers** and select **Use template**.
+4. Name it `ssm-usor-github-actions`.
+5. Under **Account Resources**, include only the account that owns this project.
+6. After `ssmusor.ro` has been added to Cloudflare, restrict **Zone Resources** to that zone rather
+   than all zones.
+7. Do not add an IP-address restriction because GitHub-hosted runners do not have one stable egress
+   IP. An expiry date is optional; if one is added, schedule token rotation before it expires.
+8. Create the token and copy its value immediately into the GitHub environment secret
+   `CLOUDFLARE_API_TOKEN`. Cloudflare displays it only once.
+
+The template includes more storage permissions than the current site uses. A tighter custom token
+can use these permissions:
+
+- **Account → Workers Scripts → Edit** for the one project account;
+- **Account → Account Settings → Read** for that account;
+- **Zone → Workers Routes → Edit** for `ssmusor.ro`, required when Wrangler creates the custom
+  Worker hostname.
+
+The official template also grants **User Details → Read** and **Memberships → Read**, which improve
+Wrangler's account discovery and diagnostics. Because this workflow passes an explicit account ID,
+start without those user scopes and add them only if Wrangler reports an account-discovery error.
+
+The marketing site does not currently need Workers KV, R2, D1, DNS Edit, or Zone Settings Edit.
+Start with the official template if the custom-token UI or the first deployment rejects the minimal
+set, then tighten the token after deployment is working.
 
 The deployment workflow runs after the `CI` workflow succeeds for a push to `main`. It can also be
-started manually from the Actions tab. GitHub passes the two Basic Auth values to the official
-Wrangler action, which creates or replaces the corresponding Cloudflare Worker secrets.
+started manually from the Actions tab. GitHub passes the Basic Auth username as a plain Worker
+variable and the password as an encrypted Worker secret.
+
+## Connect `ssmusor.ro` to Cloudflare
+
+The domain remains registered with RoTLD. Connecting it to Cloudflare changes only its authoritative
+DNS provider; it does not transfer ownership or registration away from RoTLD.
+
+1. In Cloudflare, open **Domains**, select **Onboard a domain**, and enter `ssmusor.ro`.
+2. Choose the Free plan for the current preview unless another Cloudflare plan is already needed.
+3. Review Cloudflare's DNS scan. Before changing nameservers, manually recreate any missing website,
+   mail, verification, SPF, DKIM, DMARC, or CAA records. This is especially important if email is
+   added before the nameserver change.
+4. Confirm DNSSEC is disabled at RoTLD before changing nameservers. After Cloudflare activates the
+   zone, DNSSEC can be enabled in Cloudflare and its DS record added through RoTLD.
+5. Copy the two authoritative nameservers assigned by Cloudflare. They are unique to the zone.
+6. Open RoTLD's **Domenii .ro → Administrare On-Line** interface, select `ssmusor.ro`, and replace
+   its nameservers with the two Cloudflare values exactly as provided.
+7. Return to Cloudflare and wait for the zone status to become **Active**. Cloudflare advises that a
+   nameserver update can take up to 24 hours.
+
+Once the zone is active, the protected design Worker can be attached to
+`preview.ssmusor.ro` as a Cloudflare Worker Custom Domain. The final public landing page can later
+move to `ssmusor.ro` without using the preview hostname or Basic Auth.
 
 ## Local development and preview
 
@@ -72,15 +130,17 @@ pnpm --filter @ssm-usor/marketing build
 pnpm --filter @ssm-usor/marketing deploy:dry-run
 ```
 
-For the first local deployment, code, assets, and the values from the gitignored `.dev.vars` file
-can be uploaded together:
+For the first local deployment, set the remote password interactively, then deploy the username as a
+non-secret Worker variable:
 
 ```bash
 pnpm --filter @ssm-usor/marketing build
-pnpm --filter @ssm-usor/marketing exec wrangler deploy --secrets-file .dev.vars
+pnpm --filter @ssm-usor/marketing exec wrangler secret put BASIC_AUTH_PASSWORD
+pnpm --filter @ssm-usor/marketing exec wrangler deploy --var BASIC_AUTH_USERNAME:designer
 ```
 
-After the Worker secrets exist remotely, ordinary deployments preserve them:
+Replace `designer` with the same value configured in the GitHub environment. The Wrangler
+configuration keeps remotely managed variables, so later local deployments preserve both values:
 
 ```bash
 pnpm deploy:marketing
