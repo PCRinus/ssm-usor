@@ -1,0 +1,746 @@
+---
+import {
+  ArrowRight,
+  Check,
+  ClipboardCheck,
+  Coffee,
+  FolderHeart,
+  UsersRound,
+} from "lucide-react";
+import ConceptSwitcher from "../../components/ConceptSwitcher.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="SSM Ușor — Mai mult timp cu clienții, mai puțin cu fișierele"
+  description="Platforma care îi ajută pe furnizorii externi SSM să rămână aproape de clienți, fără munca administrativă repetitivă."
+  themeColor="#f4f0e4"
+>
+  <div class="page">
+    <ConceptSwitcher active="aproape" />
+    <header class="nav wrap">
+      <a class="brand" href="/designs/aproape/"><span>ssm</span>ușor</a>
+      <nav aria-label="Navigație principală">
+        <a href="#beneficii">Pentru tine</a><a href="#clienti">Pentru clienți</a
+        ><a href="#pilot">Hai să vorbim</a>
+      </nav>
+      <a class="nav-cta" href="#pilot">Devino partener pilot</a>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span>●</span> Făcut pentru serviciile externe SSM din România
+          </p>
+          <h1>
+            Mai mult timp cu clienții.<br /><em>Mai puțin cu fișierele.</em>
+          </h1>
+          <p>
+            SSM Ușor adună documentele, oamenii, termenele și conversațiile
+            într-un singur loc. Ca tu să poți reveni la munca pentru care te
+            aleg clienții: să-i ții în siguranță.
+          </p>
+          <div class="actions">
+            <a class="primary" href="#pilot"
+              >Vreau să fac parte din pilot <ArrowRight size={18} /></a
+            ><span>Primele discuții sunt deja deschise.</span>
+          </div>
+        </div>
+        <div
+          class="orbit"
+          aria-label="Relația dintre consultant și portofoliul său de clienți"
+        >
+          <div class="sun">
+            <span>Portofoliul tău</span><strong>24</strong><small
+              >clienți organizați</small
+            >
+          </div>
+          <div class="client client-a">
+            <b>NT</b><span>Nord Tehnic<small>Totul în regulă</small></span><i
+              >✓</i
+            >
+          </div>
+          <div class="client client-b">
+            <b>MV</b><span>Medica Verde<small>Document primit</small></span><i
+              >✓</i
+            >
+          </div>
+          <div class="client client-c">
+            <b>AC</b><span>Atelier Central<small>Răspuns necesar</small></span
+            ><i>2</i>
+          </div>
+          <div class="client client-d">
+            <b>R7</b><span>Retail 7<small>Instruire vineri</small></span><i>→</i
+            >
+          </div>
+          <svg viewBox="0 0 600 520" aria-hidden="true"
+            ><path
+              d="M295 260C199 117 108 105 55 147M301 260C419 123 500 123 548 174M300 270C183 378 109 398 54 374M302 270C421 390 496 389 549 354"
+            ></path></svg
+          >
+        </div>
+      </section>
+
+      <section class="promise">
+        <div class="wrap">
+          <p>Un instrument bun nu te face să lucrezi ca el.</p><h2>
+            Învață felul în care lucrezi tu.
+          </h2>
+        </div>
+      </section>
+
+      <section class="benefits wrap" id="beneficii">
+        <div class="section-intro">
+          <p class="eyebrow">O zi mai așezată</p><h2>
+            Tot ce ai de făcut, fără zgomotul din jur.
+          </h2><p>
+            Nu încercăm să transformăm consultanța într-o linie de producție.
+            Organizăm partea repetitivă, ca tu să rămâi atent la oameni și la
+            context.
+          </p>
+        </div>
+        <div class="benefit-list">
+          <article>
+            <span><FolderHeart size={26} /></span><div>
+              <h3>Fiecare client are locul lui</h3><p>
+                Date, angajați, documente și termene — ordonate după relația
+                reală, nu după structura unui folder.
+              </p>
+            </div><b>01</b>
+          </article>
+          <article>
+            <span><ClipboardCheck size={26} /></span><div>
+              <h3>Pașii repetitivi merg singuri</h3><p>
+                Ceri informația, urmărești răspunsul și pregătești documentul
+                fără să recreezi același proces.
+              </p>
+            </div><b>02</b>
+          </article>
+          <article>
+            <span><UsersRound size={26} /></span><div>
+              <h3>Clientul știe ce are de făcut</h3><p>
+                Primește cereri clare, vede ce lipsește și confirmă direct —
+                fără conversații rupte în zece emailuri.
+              </p>
+            </div><b>03</b>
+          </article>
+        </div>
+      </section>
+
+      <section class="client-view" id="clienti">
+        <div class="wrap client-grid">
+          <div class="phone-card">
+            <header>
+              <span>SSM UȘOR</span><b>Bună, Andrei!</b><small
+                >Ai 2 lucruri de rezolvat săptămâna aceasta.</small
+              >
+            </header>
+            <div class="task">
+              <i>1</i><div>
+                <strong>Confirmă lista angajaților</strong><span
+                  >Necesare 2 actualizări</span
+                >
+              </div><b>5 min</b>
+            </div>
+            <div class="task">
+              <i>2</i><div>
+                <strong>Semnează fișa de instruire</strong><span
+                  >Pregătită de consultantul tău</span
+                >
+              </div><b>2 min</b>
+            </div>
+            <div class="complete">
+              <Check size={17} /> Evaluarea de risc a fost arhivată
+            </div>
+          </div>
+          <div class="client-copy">
+            <p class="eyebrow">Și pentru client este mai simplu</p><h2>
+              Cereri clare. Răspunsuri la timp. Mai puține reveniri.
+            </h2><p>
+              Clientul nu trebuie să învețe un sistem complicat. Primește un pas
+              concret, îl rezolvă și merge mai departe. Tu vezi imediat
+              progresul.
+            </p><ul>
+              <li><Check size={16} /> fără conturi greu de folosit</li><li>
+                <Check size={16} /> fără atașamente greșite
+              </li><li><Check size={16} /> fără „ai primit ultimul email?”</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="pilot wrap" id="pilot">
+        <div class="cup">
+          <Coffee size={42} /><span
+            >O conversație,<br />nu un demo de vânzări.</span
+          >
+        </div>
+        <div>
+          <p class="eyebrow">Programul partenerilor pilot</p><h2>
+            Povestește-ne ce te încetinește.
+          </h2><p>
+            Începem cu fluxul tău real, cu documentele și frustrările de astăzi.
+            Dacă putem ajuta, vei influența direct primele versiuni ale
+            produsului.
+          </p>
+        </div>
+        <a
+          class="primary dark"
+          href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
+          >Stabilim o discuție <ArrowRight size={18} /></a
+        >
+      </section>
+    </main>
+    <footer class="wrap">
+      <a class="brand" href="/"><span>ssm</span>ușor</a><p>
+        Creat în România pentru profesioniștii care au grijă de oameni.
+      </p><span>Concept 04 · Aproape</span>
+    </footer>
+  </div>
+</BaseLayout>
+
+<style>
+  :global(body) {
+    color: #173b35;
+    background: #f4f0e4;
+    font-family:
+      ui-rounded, "SF Pro Rounded", ui-sans-serif, system-ui, sans-serif;
+  }
+  .page {
+    overflow: hidden;
+  }
+  .wrap {
+    width: min(1160px, calc(100% - 48px));
+    margin-inline: auto;
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 25px 0;
+  }
+  .brand {
+    font-size: 1.28rem;
+    font-weight: 850;
+    letter-spacing: -0.05em;
+    text-decoration: none;
+  }
+  .brand span {
+    color: #e26743;
+  }
+  .nav nav {
+    display: flex;
+    gap: 30px;
+  }
+  .nav nav a {
+    color: #47635e;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .nav-cta {
+    padding: 11px 17px;
+    border: 1px solid #b6b6a5;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 820;
+    text-decoration: none;
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 70px;
+    align-items: center;
+    min-height: 760px;
+    padding: 70px 0 115px;
+  }
+  .eyebrow {
+    color: #517169;
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+  }
+  .eyebrow span {
+    color: #e26743;
+  }
+  .hero h1 {
+    max-width: 760px;
+    margin: 25px 0;
+    font-size: clamp(4rem, 7.3vw, 7.8rem);
+    line-height: 0.9;
+    letter-spacing: -0.075em;
+  }
+  .hero h1 em {
+    position: relative;
+    color: #e26743;
+    font-style: normal;
+  }
+  .hero-copy > p:not(.eyebrow) {
+    max-width: 620px;
+    color: #60746f;
+    font-size: 1.03rem;
+    line-height: 1.72;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 34px;
+  }
+  .primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 22px;
+    border-radius: 999px;
+    color: #f7f2e8;
+    background: #173b35;
+    text-decoration: none;
+    font-size: 0.76rem;
+    font-weight: 850;
+  }
+  .actions span {
+    max-width: 140px;
+    color: #7b8985;
+    font-size: 0.62rem;
+    line-height: 1.5;
+  }
+  .orbit {
+    position: relative;
+    min-height: 560px;
+  }
+  .orbit::before {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px dashed #b8bfaf;
+    border-radius: 50%;
+    transform: rotate(-8deg);
+  }
+  .orbit svg {
+    position: absolute;
+    inset: 20px;
+    width: calc(100% - 40px);
+    height: calc(100% - 40px);
+  }
+  .orbit path {
+    fill: none;
+    stroke: #c6c8b7;
+    stroke-width: 1.5;
+    stroke-dasharray: 5 7;
+  }
+  .sun {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    color: #f8f3e8;
+    background: #173b35;
+    box-shadow: 0 22px 55px rgb(23 59 53 / 22%);
+    transform: translate(-50%, -50%);
+  }
+  .sun span,
+  .sun small {
+    font-size: 0.57rem;
+  }
+  .sun strong {
+    margin: -7px 0;
+    font-size: 3.8rem;
+    letter-spacing: -0.08em;
+  }
+  .sun small {
+    color: #adc0ba;
+  }
+  .client {
+    position: absolute;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: 40px 1fr 28px;
+    align-items: center;
+    gap: 10px;
+    min-width: 190px;
+    padding: 12px;
+    border: 1px solid #d1d0c1;
+    border-radius: 15px;
+    background: #fffcf5;
+    box-shadow: 0 12px 30px rgb(64 72 60 / 9%);
+  }
+  .client > b {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    color: #173b35;
+    background: #e4dfc7;
+    font-size: 0.62rem;
+  }
+  .client span {
+    font-size: 0.66rem;
+    font-weight: 800;
+  }
+  .client small {
+    display: block;
+    margin-top: 3px;
+    color: #778781;
+    font-size: 0.51rem;
+    font-weight: 550;
+  }
+  .client > i {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    color: #fff;
+    background: #5aa774;
+    font-size: 0.6rem;
+    font-style: normal;
+  }
+  .client-a {
+    top: 65px;
+    left: 0;
+  }
+  .client-b {
+    top: 90px;
+    right: -15px;
+  }
+  .client-c {
+    bottom: 105px;
+    left: -10px;
+  }
+  .client-d {
+    right: 5px;
+    bottom: 65px;
+  }
+  .client-c > i {
+    background: #e26743;
+  }
+  .client-d > i {
+    background: #d7a12c;
+  }
+  .promise {
+    padding: 100px 0;
+    color: #f4f0e4;
+    background: #e26743;
+  }
+  .promise p {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .promise h2 {
+    max-width: 1000px;
+    margin: 20px 0 0;
+    font-size: clamp(3.6rem, 7vw, 7.2rem);
+    line-height: 0.92;
+    letter-spacing: -0.07em;
+  }
+  .benefits {
+    display: grid;
+    grid-template-columns: 0.82fr 1.18fr;
+    gap: 100px;
+    padding: 140px 0;
+  }
+  .section-intro {
+    position: sticky;
+    top: 40px;
+    align-self: start;
+  }
+  .section-intro h2,
+  .client-copy h2,
+  .pilot h2 {
+    margin: 20px 0 25px;
+    font-size: clamp(3rem, 5vw, 5.3rem);
+    line-height: 0.96;
+    letter-spacing: -0.065em;
+  }
+  .section-intro > p:last-child,
+  .client-copy > p {
+    color: #6a7a75;
+    font-size: 0.86rem;
+    line-height: 1.78;
+  }
+  .benefit-list {
+    border-top: 1px solid #c9cbbb;
+  }
+  .benefit-list article {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 20px;
+    padding: 36px 0;
+    border-bottom: 1px solid #c9cbbb;
+  }
+  .benefit-list article > span {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    color: #173b35;
+    background: #ebc95d;
+  }
+  .benefit-list h3 {
+    margin: 4px 0 12px;
+    font-size: 1.25rem;
+    letter-spacing: -0.035em;
+  }
+  .benefit-list p {
+    max-width: 530px;
+    margin: 0;
+    color: #6a7a75;
+    font-size: 0.77rem;
+    line-height: 1.7;
+  }
+  .benefit-list article > b {
+    color: #9ca49d;
+    font-size: 0.6rem;
+  }
+  .client-view {
+    padding: 140px 0;
+    background: #e9e5d6;
+  }
+  .client-grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 110px;
+    align-items: center;
+  }
+  .phone-card {
+    overflow: hidden;
+    border: 1px solid #cac8b9;
+    border-radius: 28px;
+    background: #fffdf7;
+    box-shadow: 0 30px 70px rgb(53 70 61 / 12%);
+  }
+  .phone-card header {
+    padding: 32px;
+    color: #fff;
+    background: #173b35;
+  }
+  .phone-card header span,
+  .phone-card header b,
+  .phone-card header small {
+    display: block;
+  }
+  .phone-card header span {
+    color: #ebc95d;
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+  }
+  .phone-card header b {
+    margin: 28px 0 8px;
+    font-size: 1.55rem;
+  }
+  .phone-card header small {
+    color: #b7c8c3;
+    font-size: 0.68rem;
+  }
+  .task {
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    margin: 18px;
+    padding: 17px;
+    border: 1px solid #deddd3;
+    border-radius: 14px;
+  }
+  .task > i {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: #173b35;
+    background: #ebc95d;
+    font-size: 0.62rem;
+    font-style: normal;
+    font-weight: 900;
+  }
+  .task strong,
+  .task span {
+    display: block;
+  }
+  .task strong {
+    font-size: 0.7rem;
+  }
+  .task span {
+    margin-top: 4px;
+    color: #788681;
+    font-size: 0.55rem;
+  }
+  .task > b {
+    color: #e26743;
+    font-size: 0.52rem;
+  }
+  .complete {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 25px 18px;
+    padding-top: 20px;
+    border-top: 1px solid #deddd3;
+    color: #5b766d;
+    font-size: 0.6rem;
+  }
+  .complete svg {
+    color: #55a574;
+  }
+  .client-copy {
+    max-width: 680px;
+  }
+  .client-copy ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 28px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .client-copy li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 11px;
+    border: 1px solid #c7c7b8;
+    border-radius: 999px;
+    color: #5c716b;
+    font-size: 0.62rem;
+  }
+  .client-copy svg {
+    color: #e26743;
+  }
+  .pilot {
+    display: grid;
+    grid-template-columns: 0.34fr 1fr auto;
+    gap: 60px;
+    align-items: end;
+    padding: 130px 0;
+  }
+  .cup {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #b87f21;
+  }
+  .cup span {
+    color: #657772;
+    font-size: 0.67rem;
+    line-height: 1.5;
+  }
+  .pilot > div:nth-child(2) > p:last-child {
+    max-width: 650px;
+    color: #667973;
+    font-size: 0.82rem;
+    line-height: 1.75;
+  }
+  .primary.dark {
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 40px;
+    align-items: center;
+    padding: 38px 0;
+    border-top: 1px solid #c8c9b9;
+    color: #77847f;
+    font-size: 0.62rem;
+  }
+  footer p {
+    text-align: center;
+  }
+  @media (max-width: 980px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .orbit {
+      width: min(620px, 100%);
+      margin: auto;
+    }
+    .benefits {
+      grid-template-columns: 1fr;
+      gap: 60px;
+    }
+    .section-intro {
+      position: static;
+    }
+    .client-grid {
+      gap: 60px;
+    }
+    .pilot {
+      grid-template-columns: 0.25fr 1fr;
+    }
+    .pilot > a {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+  @media (max-width: 680px) {
+    .wrap {
+      width: min(100% - 24px, 1160px);
+    }
+    .nav nav {
+      display: none;
+    }
+    .hero {
+      padding: 55px 0 80px;
+    }
+    .actions {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .orbit {
+      width: 570px;
+      transform: scale(0.65);
+      transform-origin: left top;
+      margin-bottom: -170px;
+    }
+    .client-view {
+      padding: 90px 0;
+    }
+    .client-grid {
+      grid-template-columns: 1fr;
+    }
+    .phone-card {
+      order: 2;
+    }
+    .pilot {
+      grid-template-columns: 1fr;
+      gap: 30px;
+      padding: 90px 0;
+    }
+    .pilot > a {
+      grid-column: auto;
+    }
+    .cup {
+      display: none;
+    }
+    footer {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    footer p {
+      text-align: left;
+    }
+    .promise,
+    .benefits {
+      padding-top: 90px;
+      padding-bottom: 90px;
+    }
+  }
+</style>

@@ -1,0 +1,956 @@
+---
+import {
+  ArrowRight,
+  Check,
+  CircleCheck,
+  Clock3,
+  FilePenLine,
+  LayoutDashboard,
+  ShieldCheck,
+} from "lucide-react";
+import ConceptSwitcher from "../../components/ConceptSwitcher.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="SSM Ușor — Toți clienții tăi SSM într-un singur loc"
+  description="Creezi documente, urmărești termene și colaborezi cu toți clienții tăi SSM fără Word, PDF-uri și emailuri împrăștiate."
+  themeColor="#102b25"
+>
+  <div class="site-shell">
+    <ConceptSwitcher active="claritate" inverted />
+
+    <header class="nav wrap">
+      <a class="brand" href="/designs/claritate/" aria-label="SSM Ușor — Acasă">
+        <span>SSM</span>ușor
+      </a>
+      <nav aria-label="Navigație principală">
+        <a href="#avantaje">Avantaje</a>
+        <a href="#cum-functioneaza">Cum funcționează</a>
+        <a class="nav-cta" href="#pilot">Devino partener pilot</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <div class="status">
+            <span></span> Platformă în dezvoltare · căutăm parteneri pilot
+          </div>
+          <h1>Toți clienții tăi SSM.<br /><em>Un singur loc de lucru.</em></h1>
+          <p class="lede">
+            Creezi și editezi documente, colectezi date, organizezi instruiri și
+            urmărești toate termenele—fără să muți fișiere între Word, PDF,
+            email și alte aplicații.
+          </p>
+          <div class="hero-actions">
+            <a class="primary" href="#pilot"
+              >Devino partener pilot <ArrowRight size={18} /></a
+            >
+            <a class="secondary" href="#produs">Vezi cum ar funcționa</a>
+          </div>
+          <ul class="micro-proof" aria-label="Beneficii program pilot">
+            <li><Check size={15} /> Acces prioritar</li>
+            <li><Check size={15} /> Influențezi produsul</li>
+            <li><Check size={15} /> Fără angajament</li>
+          </ul>
+        </div>
+
+        <div
+          class="product-stage"
+          id="produs"
+          aria-label="Previzualizare interfață SSM Ușor"
+        >
+          <div class="glow"></div>
+          <div class="app-window">
+            <div class="app-topbar">
+              <div class="app-mark">S</div>
+              <span class="crumb">Portofoliu / Toți clienții</span>
+              <span class="avatar">MP</span>
+            </div>
+            <div class="app-body">
+              <aside>
+                <div class="active">
+                  <LayoutDashboard size={15} /> Portofoliu
+                </div>
+                <div><FilePenLine size={15} /> Documente</div>
+                <div><Clock3 size={15} /> Termene</div>
+                <div><ShieldCheck size={15} /> Legislație</div>
+              </aside>
+              <div class="workspace">
+                <div class="workspace-head">
+                  <div>
+                    <span>PORTOFOLIU</span>
+                    <h2>Bună dimineața, Mircea.</h2>
+                  </div>
+                  <button type="button">+ Client nou</button>
+                </div>
+                <div class="metrics">
+                  <div>
+                    <span>Clienți activi</span><strong>42</strong><small
+                      >+3 luna aceasta</small
+                    >
+                  </div>
+                  <div>
+                    <span>Acțiuni necesare</span><strong>08</strong><small
+                      class="warn">În următoarele 7 zile</small
+                    >
+                  </div>
+                  <div>
+                    <span>Conformitate</span><strong>94%</strong><small
+                      >Portofoliu sănătos</small
+                    >
+                  </div>
+                </div>
+                <div class="client-list">
+                  <div class="list-head">
+                    <span>Client</span><span>Status</span><span
+                      >Următorul termen</span
+                    >
+                  </div>
+                  <div class="client-row">
+                    <span><b>NT</b>Nord Tehnic SRL</span><span
+                      ><i class="ok"></i>În regulă</span
+                    ><span>14 sept.</span>
+                  </div>
+                  <div class="client-row">
+                    <span><b>AC</b>Atelier Central</span><span
+                      ><i class="soon"></i>2 acțiuni</span
+                    ><span>03 sept.</span>
+                  </div>
+                  <div class="client-row">
+                    <span><b>MV</b>Medica Verde</span><span
+                      ><i class="ok"></i>În regulă</span
+                    ><span>21 sept.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="floating-card">
+            <CircleCheck size={22} />
+            <div>
+              <strong>Document semnat</strong><span
+                >Nord Tehnic · acum 2 min.</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-bar">
+        <div class="wrap">
+          <p>Construit special pentru <strong>servicii externe SSM</strong></p>
+          <span>Multi-client</span><span>Documente versionate</span><span
+            >Termene vizibile</span
+          ><span>Istoric complet</span>
+        </div>
+      </section>
+
+      <section class="advantages wrap" id="avantaje">
+        <div class="section-heading">
+          <p>Mai puține unelte. Mai mult control.</p>
+          <h2>Munca ta nu ar trebui să fie o vânătoare de fișiere.</h2>
+        </div>
+        <div class="advantage-grid">
+          <article class="featured">
+            <span class="icon"><FilePenLine size={22} /></span>
+            <p class="number">01</p>
+            <h3>Documente vii, nu copii fără sfârșit.</h3>
+            <p>
+              Editezi din șabloane controlate, generezi versiunea finală și
+              păstrezi istoricul fără denumiri precum „final_final_3.pdf”.
+            </p>
+            <div class="document-stack" aria-hidden="true">
+              <div>
+                <span>IPSSM-07</span><b>Instrucțiuni proprii</b><i
+                  >Versiunea 4 · actualizată</i
+                >
+              </div>
+              <div>
+                <span>FIȘĂ</span><b>Instruire periodică</b><i
+                  >Pregătită pentru semnare</i
+                >
+              </div>
+            </div>
+          </article>
+          <article>
+            <span class="icon"><Clock3 size={22} /></span>
+            <p class="number">02</p>
+            <h3>Știi ce urmează înainte să devină urgent.</h3>
+            <p>
+              Termenele, instruirile și documentele lipsă apar într-o singură
+              listă de lucru pentru întregul portofoliu.
+            </p>
+          </article>
+          <article>
+            <span class="icon"><ShieldCheck size={22} /></span>
+            <p class="number">03</p>
+            <h3>Poți demonstra ce s-a întâmplat.</h3>
+            <p>
+              Fiecare trimitere, modificare, confirmare și semnătură lasă o urmă
+              clară, ușor de găsit când contează.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="steps" id="cum-functioneaza">
+        <div class="wrap">
+          <div class="section-heading compact">
+            <p>O zi de lucru mai simplă</p>
+            <h2>De la cerere la document semnat, într-un singur flux.</h2>
+          </div>
+          <ol>
+            <li>
+              <span>1</span><div>
+                <strong>Colectezi informația</strong><p>
+                  Clientul completează exact datele de care ai nevoie.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span>2</span><div>
+                <strong>Pregătești documentul</strong><p>
+                  Lucrezi din șablon și reutilizezi datele deja validate.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span>3</span><div>
+                <strong>Trimiți și urmărești</strong><p>
+                  Semnarea, confirmările și reminderele rămân în același loc.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="pilot wrap" id="pilot">
+        <div>
+          <p class="pilot-label">Program pilot · locuri limitate</p>
+          <h2>
+            Ajută-ne să construim instrumentul pe care ai vrea să-l deschizi în
+            fiecare dimineață.
+          </h2>
+        </div>
+        <div class="pilot-action">
+          <p>
+            Căutăm furnizori externi SSM care gestionează mai mulți clienți și
+            vor să testeze primele fluxuri alături de noi.
+          </p>
+          <a
+            class="primary light"
+            href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
+            >Vreau să discutăm <ArrowRight size={18} /></a
+          >
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <a class="brand" href="/"><span>SSM</span>ușor</a>
+      <p>Instrumentul de lucru pentru serviciile externe SSM.</p>
+      <span>Concept vizual 01 · Claritate operațională</span>
+    </footer>
+  </div>
+</BaseLayout>
+
+<style>
+  :global(body) {
+    color: #eef6f2;
+    background: #102b25;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+  .site-shell {
+    overflow: hidden;
+  }
+  .wrap {
+    width: min(1200px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0;
+  }
+  .brand {
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 880;
+    letter-spacing: -0.045em;
+    text-decoration: none;
+  }
+  .brand span {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 4px 7px;
+    border-radius: 7px;
+    color: #102b25;
+    background: #b8f34a;
+    letter-spacing: -0.02em;
+  }
+  .nav nav {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    font-size: 0.78rem;
+    font-weight: 680;
+  }
+  .nav nav a {
+    color: #d8e5e0;
+    text-decoration: none;
+  }
+  .nav .nav-cta {
+    padding: 12px 17px;
+    border: 1px solid #547067;
+    border-radius: 999px;
+    color: #fff;
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 56px;
+    align-items: center;
+    min-height: 760px;
+    padding: 76px 0 110px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    border: 1px solid #3e5c53;
+    border-radius: 999px;
+    color: #cbdad5;
+    background: #173a33;
+    font-size: 0.68rem;
+    font-weight: 720;
+  }
+  .status span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #b8f34a;
+    box-shadow: 0 0 0 5px rgb(184 243 74 / 11%);
+  }
+  h1 {
+    max-width: 680px;
+    margin: 28px 0 24px;
+    font-size: clamp(3.65rem, 6.4vw, 6.65rem);
+    line-height: 0.9;
+    letter-spacing: -0.07em;
+  }
+  h1 em {
+    color: #b8f34a;
+    font-style: normal;
+  }
+  .lede {
+    max-width: 610px;
+    margin: 0;
+    color: #b9cbc5;
+    font-size: clamp(1rem, 1.6vw, 1.23rem);
+    line-height: 1.68;
+  }
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 34px;
+  }
+  .primary,
+  .secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 50px;
+    padding: 0 22px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 820;
+    text-decoration: none;
+  }
+  .primary {
+    color: #102b25;
+    background: #b8f34a;
+    box-shadow: 0 12px 40px rgb(184 243 74 / 14%);
+  }
+  .secondary {
+    border: 1px solid #436058;
+    color: #eff8f4;
+  }
+  .micro-proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 19px;
+    margin: 23px 0 0;
+    padding: 0;
+    color: #91aaa2;
+    font-size: 0.69rem;
+    list-style: none;
+  }
+  .micro-proof li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .product-stage {
+    position: relative;
+    min-width: 660px;
+    transform: perspective(1500px) rotateY(-3deg) rotateX(1deg);
+  }
+  .glow {
+    position: absolute;
+    inset: 10% 8% 0;
+    border-radius: 50%;
+    background: #8bcf47;
+    filter: blur(95px);
+    opacity: 0.18;
+  }
+  .app-window {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #3e5c53;
+    border-radius: 20px;
+    color: #15251f;
+    background: #f2f5ee;
+    box-shadow: 0 55px 120px rgb(0 0 0 / 35%);
+  }
+  .app-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 55px;
+    padding: 0 18px;
+    border-bottom: 1px solid #dce2da;
+    background: #fbfcf9;
+  }
+  .app-mark {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    color: #173a33;
+    background: #b8f34a;
+    font-size: 0.77rem;
+    font-weight: 900;
+  }
+  .crumb {
+    flex: 1;
+    color: #77827d;
+    font-size: 0.64rem;
+  }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #fff;
+    background: #173a33;
+    font-size: 0.52rem;
+    font-weight: 800;
+  }
+  .app-body {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    min-height: 440px;
+  }
+  aside {
+    padding: 18px 10px;
+    border-right: 1px solid #dce2da;
+    background: #e8ede5;
+  }
+  aside div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    padding: 10px 9px;
+    border-radius: 7px;
+    color: #79827e;
+    font-size: 0.58rem;
+    font-weight: 700;
+  }
+  aside .active {
+    color: #163a32;
+    background: #fff;
+    box-shadow: 0 4px 12px rgb(31 49 43 / 6%);
+  }
+  .workspace {
+    padding: 29px 27px;
+  }
+  .workspace-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+  }
+  .workspace-head span {
+    color: #758078;
+    font-size: 0.48rem;
+    font-weight: 840;
+    letter-spacing: 0.12em;
+  }
+  .workspace-head h2 {
+    margin: 5px 0 0;
+    font-size: 1.38rem;
+    letter-spacing: -0.04em;
+  }
+  .workspace-head button {
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    background: #173a33;
+    font-size: 0.55rem;
+    font-weight: 800;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 25px;
+  }
+  .metrics > div {
+    padding: 15px;
+    border: 1px solid #dce2da;
+    border-radius: 10px;
+    background: #fbfcf9;
+  }
+  .metrics span,
+  .metrics small {
+    display: block;
+    color: #738078;
+    font-size: 0.48rem;
+  }
+  .metrics strong {
+    display: block;
+    margin: 7px 0 5px;
+    font-size: 1.42rem;
+    letter-spacing: -0.05em;
+  }
+  .metrics small {
+    color: #4c865b;
+  }
+  .metrics .warn {
+    color: #ad6c27;
+  }
+  .client-list {
+    overflow: hidden;
+    margin-top: 18px;
+    border: 1px solid #dce2da;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .list-head,
+  .client-row {
+    display: grid;
+    grid-template-columns: 1.35fr 0.8fr 0.7fr;
+    align-items: center;
+    padding: 12px 14px;
+    font-size: 0.52rem;
+  }
+  .list-head {
+    color: #808b85;
+    background: #f3f5f1;
+    font-weight: 760;
+  }
+  .client-row {
+    border-top: 1px solid #e4e8e2;
+    color: #4b5953;
+  }
+  .client-row > span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #263832;
+    font-weight: 760;
+  }
+  .client-row b {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border-radius: 6px;
+    color: #315047;
+    background: #e1e9df;
+    font-size: 0.45rem;
+  }
+  .client-row i {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    border-radius: 50%;
+  }
+  .client-row .ok {
+    background: #48a560;
+  }
+  .client-row .soon {
+    background: #e4a442;
+  }
+  .floating-card {
+    position: absolute;
+    right: -25px;
+    bottom: 38px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 14px 18px;
+    border: 1px solid #506d63;
+    border-radius: 12px;
+    color: #163a32;
+    background: #b8f34a;
+    box-shadow: 0 24px 65px rgb(0 0 0 / 24%);
+    transform: rotateY(3deg);
+  }
+  .floating-card div {
+    display: grid;
+    gap: 2px;
+  }
+  .floating-card strong {
+    font-size: 0.65rem;
+  }
+  .floating-card span {
+    font-size: 0.52rem;
+    opacity: 0.7;
+  }
+  .proof-bar {
+    border-top: 1px solid #294a41;
+    border-bottom: 1px solid #294a41;
+    background: #15362f;
+  }
+  .proof-bar .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 26px;
+    min-height: 82px;
+    color: #8da69e;
+    font-size: 0.7rem;
+  }
+  .proof-bar p {
+    color: #c9d8d3;
+  }
+  .proof-bar strong {
+    color: #b8f34a;
+  }
+  .proof-bar span {
+    white-space: nowrap;
+  }
+  .advantages {
+    padding: 140px 0;
+    color: #142a24;
+  }
+  .advantages::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    height: 1050px;
+    margin-top: -140px;
+    background: #eef3ec;
+  }
+  .section-heading {
+    display: grid;
+    grid-template-columns: 0.45fr 1fr;
+    gap: 50px;
+    align-items: start;
+    margin-bottom: 60px;
+  }
+  .section-heading > p {
+    margin: 9px 0 0;
+    color: #65736d;
+    font-size: 0.7rem;
+    font-weight: 830;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .section-heading h2 {
+    max-width: 780px;
+    margin: 0;
+    font-size: clamp(2.5rem, 5vw, 4.9rem);
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+  }
+  .advantage-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 16px;
+  }
+  .advantage-grid article {
+    position: relative;
+    min-height: 400px;
+    padding: 30px;
+    border: 1px solid #ccd6ce;
+    border-radius: 20px;
+    background: #f8faf6;
+  }
+  .advantage-grid .featured {
+    min-height: 520px;
+    color: #eff7f3;
+    background: #173a33;
+  }
+  .icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+    color: #173a33;
+    background: #b8f34a;
+  }
+  .number {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    margin: 0;
+    color: #849189;
+    font-size: 0.65rem;
+    font-weight: 850;
+  }
+  .advantage-grid h3 {
+    margin: 84px 0 18px;
+    font-size: clamp(1.65rem, 3vw, 2.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.045em;
+  }
+  .advantage-grid article > p:last-of-type {
+    color: #65736d;
+    font-size: 0.87rem;
+    line-height: 1.75;
+  }
+  .advantage-grid .featured > p:last-of-type {
+    color: #adc1ba;
+  }
+  .document-stack {
+    position: absolute;
+    right: 28px;
+    bottom: 28px;
+    left: 28px;
+    display: grid;
+    gap: 8px;
+  }
+  .document-stack div {
+    display: grid;
+    grid-template-columns: 50px 1fr;
+    gap: 3px 14px;
+    padding: 13px 15px;
+    border: 1px solid #45635a;
+    border-radius: 10px;
+    background: #20473e;
+  }
+  .document-stack span {
+    grid-row: span 2;
+    align-self: center;
+    color: #b8f34a;
+    font-size: 0.52rem;
+    font-weight: 850;
+  }
+  .document-stack b {
+    font-size: 0.67rem;
+  }
+  .document-stack i {
+    color: #85a198;
+    font-size: 0.52rem;
+    font-style: normal;
+  }
+  .steps {
+    padding: 130px 0;
+    color: #eef6f2;
+    background: #0d241f;
+  }
+  .section-heading.compact {
+    margin-bottom: 68px;
+  }
+  .steps .section-heading > p {
+    color: #88a39a;
+  }
+  .steps .section-heading h2 {
+    max-width: 820px;
+  }
+  .steps ol {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: #355148;
+  }
+  .steps li {
+    min-height: 250px;
+    padding: 28px;
+    background: #0d241f;
+  }
+  .steps li > span {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #4b665e;
+    border-radius: 50%;
+    color: #b8f34a;
+    font-size: 0.7rem;
+    font-weight: 850;
+  }
+  .steps li div {
+    margin-top: 72px;
+  }
+  .steps strong {
+    font-size: 1.2rem;
+  }
+  .steps li p {
+    max-width: 280px;
+    color: #8da69e;
+    font-size: 0.83rem;
+    line-height: 1.65;
+  }
+  .pilot {
+    display: grid;
+    grid-template-columns: 1.35fr 0.65fr;
+    gap: 100px;
+    align-items: end;
+    padding: 120px 0;
+  }
+  .pilot-label {
+    color: #b8f34a;
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .pilot h2 {
+    max-width: 800px;
+    margin: 18px 0 0;
+    font-size: clamp(2.7rem, 5vw, 5rem);
+    line-height: 0.97;
+    letter-spacing: -0.06em;
+  }
+  .pilot-action p {
+    color: #a9bdb6;
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+  .primary.light {
+    margin-top: 18px;
+  }
+  footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 30px;
+    align-items: center;
+    padding: 40px 0;
+    border-top: 1px solid #294a41;
+    color: #78958c;
+    font-size: 0.65rem;
+  }
+  footer .brand {
+    font-size: 1rem;
+  }
+  footer p {
+    text-align: center;
+  }
+  @media (max-width: 1050px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .product-stage {
+      min-width: 0;
+      width: min(760px, 100%);
+      transform: none;
+    }
+    .hero-copy {
+      max-width: 780px;
+    }
+    .advantage-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .advantage-grid .featured {
+      grid-column: span 2;
+    }
+    .proof-bar span:nth-last-child(-n + 2) {
+      display: none;
+    }
+  }
+  @media (max-width: 720px) {
+    .wrap {
+      width: min(100% - 24px, 1200px);
+    }
+    .nav nav > a:not(.nav-cta) {
+      display: none;
+    }
+    .hero {
+      min-height: auto;
+      padding: 54px 0 80px;
+    }
+    .status {
+      font-size: 0.6rem;
+    }
+    .hero-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .product-stage {
+      width: 760px;
+      transform: scale(0.63);
+      transform-origin: left top;
+      margin-bottom: -165px;
+    }
+    .floating-card {
+      right: 12px;
+    }
+    .proof-bar .wrap {
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    .proof-bar span {
+      display: none;
+    }
+    .section-heading {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    .advantages {
+      padding: 95px 0;
+    }
+    .advantages::before {
+      height: 1450px;
+      margin-top: -95px;
+    }
+    .advantage-grid {
+      grid-template-columns: 1fr;
+    }
+    .advantage-grid .featured {
+      grid-column: auto;
+    }
+    .steps {
+      padding: 90px 0;
+    }
+    .steps ol {
+      grid-template-columns: 1fr;
+    }
+    .steps li {
+      min-height: 210px;
+    }
+    .steps li div {
+      margin-top: 45px;
+    }
+    .pilot {
+      grid-template-columns: 1fr;
+      gap: 40px;
+      padding: 90px 0;
+    }
+    footer {
+      grid-template-columns: 1fr;
+    }
+    footer p {
+      text-align: left;
+    }
+  }
+</style>
