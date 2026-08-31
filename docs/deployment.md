@@ -11,22 +11,19 @@ for the future SaaS application and should be removed before the public landing 
 
 Create a GitHub Actions environment named `design-preview` under **Settings → Environments**.
 
-Add this environment variable under **Environment variables**:
+Add these environment variables under **Environment variables**:
 
-| Variable              | Purpose                                                     |
-| --------------------- | ----------------------------------------------------------- |
-| `BASIC_AUTH_USERNAME` | Non-sensitive username deployed as a plain Worker variable. |
+| Variable                | Purpose                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| `BASIC_AUTH_USERNAME`   | Non-sensitive username deployed as a plain Worker variable. |
+| `CLOUDFLARE_ACCOUNT_ID` | Selects the Cloudflare account that owns the Worker.        |
 
 Add these values under **Environment secrets**:
 
-| Secret                  | Purpose                                                                  |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `CLOUDFLARE_API_TOKEN`  | Allows Wrangler to deploy the marketing Worker and its static assets.    |
-| `CLOUDFLARE_ACCOUNT_ID` | Selects the Cloudflare account that owns the Worker.                     |
-| `BASIC_AUTH_PASSWORD`   | Strong temporary password uploaded to the Worker as an encrypted secret. |
-
-`CLOUDFLARE_ACCOUNT_ID` is an identifier rather than a credential, but the workflow keeps it in the
-Secrets section alongside the token. It can be moved to an environment variable later if desired.
+| Secret                 | Purpose                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN` | Allows Wrangler to deploy the marketing Worker and its static assets.    |
+| `BASIC_AUTH_PASSWORD`  | Strong temporary password uploaded to the Worker as an encrypted secret. |
 
 ## Create the Cloudflare API token
 
@@ -82,9 +79,24 @@ DNS provider; it does not transfer ownership or registration away from RoTLD.
 7. Return to Cloudflare and wait for the zone status to become **Active**. Cloudflare advises that a
    nameserver update can take up to 24 hours.
 
-Once the zone is active, the protected design Worker can be attached to
-`preview.ssmusor.ro` as a Cloudflare Worker Custom Domain. The final public landing page can later
-move to `ssmusor.ro` without using the preview hostname or Basic Auth.
+The protected design Worker is attached to `preview.ssmusor.ro` as a Cloudflare Workers Custom
+Domain from `apps/marketing/wrangler.jsonc`. Wrangler creates the corresponding DNS record and
+Cloudflare provisions TLS, so do not create a competing `A`, `AAAA`, or `CNAME` record for that
+hostname manually. The final public landing page can later move to `ssmusor.ro` without using the
+preview hostname or Basic Auth.
+
+## First deployment
+
+1. Confirm the `design-preview` GitHub environment contains both variables and both secrets listed
+   above.
+2. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
+   automatically after CI succeeds.
+3. Follow **Actions → Deploy marketing preview** until the deployment completes.
+4. Open `https://preview.ssmusor.ro` and authenticate with the configured Basic Auth credentials.
+
+The first Custom Domain certificate can take a few minutes to become available. Before the initial
+deployment, Cloudflare showing **No Workers connected** for the zone is expected; the workflow
+creates the Worker, so no Worker needs to be created manually in the dashboard.
 
 ## Local development and preview
 
