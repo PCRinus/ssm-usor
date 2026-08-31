@@ -61,9 +61,10 @@ jobs:
           packageManager: pnpm
           command: deploy
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          secrets: |
+          vars: |
             BASIC_AUTH_USERNAME
+          secrets: |
             BASIC_AUTH_PASSWORD
         env:
-          BASIC_AUTH_USERNAME: ${{ secrets.BASIC_AUTH_USERNAME }}
+          BASIC_AUTH_USERNAME: ${{ vars.BASIC_AUTH_USERNAME }}
           BASIC_AUTH_PASSWORD: ${{ secrets.BASIC_AUTH_PASSWORD }}
