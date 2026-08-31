@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: false
+  commands:
+    eslint:
+      glob: '*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,astro}'
+      run: >-
+        bash -lc 'source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" &&
+        nvm use --silent &&
+        corepack pnpm exec eslint --fix {staged_files}'
+      stage_fixed: true
+    prettier:
+      glob: '*.{astro,css,html,js,mjs,cjs,jsx,json,jsonc,md,ts,mts,cts,tsx,yaml,yml}'
+      run: >-
+        bash -lc 'source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" &&
+        nvm use --silent &&
+        corepack pnpm exec prettier --write {staged_files}'
+      stage_fixed: true

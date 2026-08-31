@@ -1,14 +1,8 @@
 ---
-import {
-  ArrowUpRight,
-  Check,
-  FileCheck2,
-  FilePenLine,
-  Send,
-  Sparkles,
-} from "lucide-react";
-import ConceptSwitcher from "../../components/ConceptSwitcher.astro";
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ArrowUpRight, Check, FileCheck2, FilePenLine, Send, Sparkles } from 'lucide-react';
+
+import ConceptSwitcher from '../../components/ConceptSwitcher.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
@@ -21,13 +15,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <header class="nav frame">
       <a class="brand" href="/designs/atelier/"><b>SSM</b> Ușor</a>
       <nav aria-label="Navigație principală">
-        <a href="#problema">De ce</a><a href="#atelier">Atelierul</a><a
-          href="#pilot">Program pilot</a
+        <a href="#problema">De ce</a><a href="#atelier">Atelierul</a><a href="#pilot"
+          >Program pilot</a
         >
       </nav>
-      <a class="small-cta" href="#pilot"
-        >Vreau acces <ArrowUpRight size={15} /></a
-      >
+      <a class="small-cta" href="#pilot">Vreau acces <ArrowUpRight size={15} /></a>
     </header>
 
     <main>
@@ -38,21 +30,16 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           </p>
           <h1>Documentele SSM,<br /><em>fără drumul lung.</em></h1>
           <p class="lede">
-            Din datele clientului direct într-un document pregătit, trimis și
-            urmărit. Fără să mai jonglezi între Word, PDF, email și foldere.
+            Din datele clientului direct într-un document pregătit, trimis și urmărit. Fără să mai
+            jonglezi între Word, PDF, email și foldere.
           </p>
           <div class="actions">
-            <a class="primary" href="#pilot"
-              >Devino partener pilot <ArrowUpRight size={18} /></a
-            >
+            <a class="primary" href="#pilot">Devino partener pilot <ArrowUpRight size={18} /></a>
             <span>15 minute pentru o primă discuție</span>
           </div>
         </div>
 
-        <div
-          class="desk"
-          aria-label="Previzualizare a atelierului de documente"
-        >
+        <div class="desk" aria-label="Previzualizare a atelierului de documente">
           <div class="note note-one">
             Datele clientului<br /><b>completate ✓</b>
           </div>
@@ -67,18 +54,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
               <div class="doc-kicker">INSTRUCȚIUNI PROPRII DE SECURITATE</div>
               <h2>Activitatea de prelucrare mecanică</h2>
               <p>
-                Document generat din șablonul organizației și adaptat pe baza
-                activităților declarate.
+                Document generat din șablonul organizației și adaptat pe baza activităților
+                declarate.
               </p>
               <div class="doc-field">
-                <span>Unitate</span><b>Atelier Central SRL</b><Check
-                  size={15}
-                />
+                <span>Unitate</span><b>Atelier Central SRL</b><Check size={15} />
               </div>
               <div class="doc-field">
-                <span>Punct de lucru</span><b>Brașov, Str. Fabricii 12</b><Check
-                  size={15}
-                />
+                <span>Punct de lucru</span><b>Brașov, Str. Fabricii 12</b><Check size={15} />
               </div>
               <div class="doc-lines"><i></i><i></i><i></i><i></i></div>
               <div class="doc-footer">
@@ -97,12 +80,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <h2>Șapte pași pentru ceva ce ar trebui să fie unul singur.</h2>
           </div>
           <div class="trail" aria-label="Fluxul actual de documente">
-            <span>Word</span><b>→</b><span>Email</span><b>→</b><span>PDF</span
-            ><b>→</b><span>Semnare</span><b>→</b><span>Folder</span>
+            <span>Word</span><b>→</b><span>Email</span><b>→</b><span>PDF</span><b>→</b><span
+              >Semnare</span
+            ><b>→</b><span>Folder</span>
           </div>
           <blockquote>
-            „Unde este ultima versiune?” nu ar trebui să facă parte din munca
-            ta.
+            „Unde este ultima versiune?” nu ar trebui să facă parte din munca ta.
           </blockquote>
         </div>
       </section>
@@ -117,8 +100,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <span class="step">01</span><FilePenLine size={27} />
             <h3>Construiești din șabloane controlate</h3>
             <p>
-              Păstrezi structura ta profesională și completezi automat datele
-              deja validate ale clientului.
+              Păstrezi structura ta profesională și completezi automat datele deja validate ale
+              clientului.
             </p>
             <small>DATE → DOCUMENT</small>
           </article>
@@ -126,8 +109,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <span class="step">02</span><Send size={27} />
             <h3>Trimiți fără exporturi intermediare</h3>
             <p>
-              Clientul primește exact versiunea aprobată, iar tu vezi imediat ce
-              a deschis și ce lipsește.
+              Clientul primește exact versiunea aprobată, iar tu vezi imediat ce a deschis și ce
+              lipsește.
             </p>
             <small>DOCUMENT → CLIENT</small>
           </article>
@@ -135,8 +118,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <span class="step">03</span><FileCheck2 size={27} />
             <h3>Păstrezi dovada lângă muncă</h3>
             <p>
-              Versiunile, aprobările și semnăturile rămân legate de client și de
-              documentul corect.
+              Versiunile, aprobările și semnăturile rămân legate de client și de documentul corect.
             </p>
             <small>SEMNĂTURĂ → ISTORIC</small>
           </article>
@@ -148,8 +130,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <span>NU ÎNLOCUIM EXPERTUL.</span>
           <h2>Îi scoatem din cale munca repetitivă.</h2>
           <p>
-            Tu păstrezi judecata profesională. SSM Ușor organizează datele,
-            versiunile și pașii care se repetă pentru fiecare client.
+            Tu păstrezi judecata profesională. SSM Ușor organizează datele, versiunile și pașii care
+            se repetă pentru fiecare client.
           </p>
         </div>
       </section>
@@ -158,9 +140,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <div class="pilot-index">PILOT / 2026</div>
         <div>
           <p class="section-label">Pentru furnizori externi SSM</p>
-          <h2>
-            Arată-ne cum lucrezi astăzi. Construim împreună drumul mai scurt.
-          </h2>
+          <h2>Arată-ne cum lucrezi astăzi. Construim împreună drumul mai scurt.</h2>
         </div>
         <div class="pilot-side">
           <ul>
@@ -168,17 +148,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
               <Check size={16} /> Prioritate pentru nevoile tale
             </li><li><Check size={16} /> Fără obligație de cumpărare</li>
           </ul>
-          <a
-            class="primary"
-            href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
+          <a class="primary" href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
             >Programează o discuție <ArrowUpRight size={18} /></a
           >
         </div>
       </section>
     </main>
     <footer class="frame">
-      <a class="brand" href="/"><b>SSM</b> Ușor</a><span
-        >Concept 02 · Atelier de documente</span
+      <a class="brand" href="/"><b>SSM</b> Ușor</a><span>Concept 02 · Atelier de documente</span
       ><span>România · 2026</span>
     </footer>
   </div>

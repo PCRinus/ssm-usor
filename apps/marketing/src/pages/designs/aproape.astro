@@ -1,14 +1,8 @@
 ---
-import {
-  ArrowRight,
-  Check,
-  ClipboardCheck,
-  Coffee,
-  FolderHeart,
-  UsersRound,
-} from "lucide-react";
-import ConceptSwitcher from "../../components/ConceptSwitcher.astro";
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ArrowRight, Check, ClipboardCheck, Coffee, FolderHeart, UsersRound } from 'lucide-react';
+
+import ConceptSwitcher from '../../components/ConceptSwitcher.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
@@ -21,8 +15,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <header class="nav wrap">
       <a class="brand" href="/designs/aproape/"><span>ssm</span>ușor</a>
       <nav aria-label="Navigație principală">
-        <a href="#beneficii">Pentru tine</a><a href="#clienti">Pentru clienți</a
-        ><a href="#pilot">Hai să vorbim</a>
+        <a href="#beneficii">Pentru tine</a><a href="#clienti">Pentru clienți</a><a href="#pilot"
+          >Hai să vorbim</a
+        >
       </nav>
       <a class="nav-cta" href="#pilot">Devino partener pilot</a>
     </header>
@@ -37,9 +32,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             Mai mult timp cu clienții.<br /><em>Mai puțin cu fișierele.</em>
           </h1>
           <p>
-            SSM Ușor adună documentele, oamenii, termenele și conversațiile
-            într-un singur loc. Ca tu să poți reveni la munca pentru care te
-            aleg clienții: să-i ții în siguranță.
+            SSM Ușor adună documentele, oamenii, termenele și conversațiile într-un singur loc. Ca
+            tu să poți reveni la munca pentru care te aleg clienții: să-i ții în siguranță.
           </p>
           <div class="actions">
             <a class="primary" href="#pilot"
@@ -47,32 +41,21 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             ><span>Primele discuții sunt deja deschise.</span>
           </div>
         </div>
-        <div
-          class="orbit"
-          aria-label="Relația dintre consultant și portofoliul său de clienți"
-        >
+        <div class="orbit" aria-label="Relația dintre consultant și portofoliul său de clienți">
           <div class="sun">
-            <span>Portofoliul tău</span><strong>24</strong><small
-              >clienți organizați</small
-            >
+            <span>Portofoliul tău</span><strong>24</strong><small>clienți organizați</small>
           </div>
           <div class="client client-a">
-            <b>NT</b><span>Nord Tehnic<small>Totul în regulă</small></span><i
-              >✓</i
-            >
+            <b>NT</b><span>Nord Tehnic<small>Totul în regulă</small></span><i>✓</i>
           </div>
           <div class="client client-b">
-            <b>MV</b><span>Medica Verde<small>Document primit</small></span><i
-              >✓</i
-            >
+            <b>MV</b><span>Medica Verde<small>Document primit</small></span><i>✓</i>
           </div>
           <div class="client client-c">
-            <b>AC</b><span>Atelier Central<small>Răspuns necesar</small></span
-            ><i>2</i>
+            <b>AC</b><span>Atelier Central<small>Răspuns necesar</small></span><i>2</i>
           </div>
           <div class="client client-d">
-            <b>R7</b><span>Retail 7<small>Instruire vineri</small></span><i>→</i
-            >
+            <b>R7</b><span>Retail 7<small>Instruire vineri</small></span><i>→</i>
           </div>
           <svg viewBox="0 0 600 520" aria-hidden="true"
             ><path
@@ -95,33 +78,32 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <p class="eyebrow">O zi mai așezată</p><h2>
             Tot ce ai de făcut, fără zgomotul din jur.
           </h2><p>
-            Nu încercăm să transformăm consultanța într-o linie de producție.
-            Organizăm partea repetitivă, ca tu să rămâi atent la oameni și la
-            context.
+            Nu încercăm să transformăm consultanța într-o linie de producție. Organizăm partea
+            repetitivă, ca tu să rămâi atent la oameni și la context.
           </p>
         </div>
         <div class="benefit-list">
           <article>
             <span><FolderHeart size={26} /></span><div>
               <h3>Fiecare client are locul lui</h3><p>
-                Date, angajați, documente și termene — ordonate după relația
-                reală, nu după structura unui folder.
+                Date, angajați, documente și termene — ordonate după relația reală, nu după
+                structura unui folder.
               </p>
             </div><b>01</b>
           </article>
           <article>
             <span><ClipboardCheck size={26} /></span><div>
               <h3>Pașii repetitivi merg singuri</h3><p>
-                Ceri informația, urmărești răspunsul și pregătești documentul
-                fără să recreezi același proces.
+                Ceri informația, urmărești răspunsul și pregătești documentul fără să recreezi
+                același proces.
               </p>
             </div><b>02</b>
           </article>
           <article>
             <span><UsersRound size={26} /></span><div>
               <h3>Clientul știe ce are de făcut</h3><p>
-                Primește cereri clare, vede ce lipsește și confirmă direct —
-                fără conversații rupte în zece emailuri.
+                Primește cereri clare, vede ce lipsește și confirmă direct — fără conversații rupte
+                în zece emailuri.
               </p>
             </div><b>03</b>
           </article>
@@ -138,15 +120,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             </header>
             <div class="task">
               <i>1</i><div>
-                <strong>Confirmă lista angajaților</strong><span
-                  >Necesare 2 actualizări</span
-                >
+                <strong>Confirmă lista angajaților</strong><span>Necesare 2 actualizări</span>
               </div><b>5 min</b>
             </div>
             <div class="task">
               <i>2</i><div>
-                <strong>Semnează fișa de instruire</strong><span
-                  >Pregătită de consultantul tău</span
+                <strong>Semnează fișa de instruire</strong><span>Pregătită de consultantul tău</span
                 >
               </div><b>2 min</b>
             </div>
@@ -158,9 +137,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <p class="eyebrow">Și pentru client este mai simplu</p><h2>
               Cereri clare. Răspunsuri la timp. Mai puține reveniri.
             </h2><p>
-              Clientul nu trebuie să învețe un sistem complicat. Primește un pas
-              concret, îl rezolvă și merge mai departe. Tu vezi imediat
-              progresul.
+              Clientul nu trebuie să învețe un sistem complicat. Primește un pas concret, îl rezolvă
+              și merge mai departe. Tu vezi imediat progresul.
             </p><ul>
               <li><Check size={16} /> fără conturi greu de folosit</li><li>
                 <Check size={16} /> fără atașamente greșite
@@ -172,22 +150,17 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
       <section class="pilot wrap" id="pilot">
         <div class="cup">
-          <Coffee size={42} /><span
-            >O conversație,<br />nu un demo de vânzări.</span
-          >
+          <Coffee size={42} /><span>O conversație,<br />nu un demo de vânzări.</span>
         </div>
         <div>
           <p class="eyebrow">Programul partenerilor pilot</p><h2>
             Povestește-ne ce te încetinește.
           </h2><p>
-            Începem cu fluxul tău real, cu documentele și frustrările de astăzi.
-            Dacă putem ajuta, vei influența direct primele versiuni ale
-            produsului.
+            Începem cu fluxul tău real, cu documentele și frustrările de astăzi. Dacă putem ajuta,
+            vei influența direct primele versiuni ale produsului.
           </p>
         </div>
-        <a
-          class="primary dark"
-          href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
+        <a class="primary dark" href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
           >Stabilim o discuție <ArrowRight size={18} /></a
         >
       </section>
@@ -204,8 +177,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   :global(body) {
     color: #173b35;
     background: #f4f0e4;
-    font-family:
-      ui-rounded, "SF Pro Rounded", ui-sans-serif, system-ui, sans-serif;
+    font-family: ui-rounded, 'SF Pro Rounded', ui-sans-serif, system-ui, sans-serif;
   }
   .page {
     overflow: hidden;
@@ -314,7 +286,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     min-height: 560px;
   }
   .orbit::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 18px;
     border: 1px dashed #b8bfaf;

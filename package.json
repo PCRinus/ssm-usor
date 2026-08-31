@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.24.0",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.16.0"
   },
   "scripts": {
     "build": "turbo build",
@@ -13,16 +13,31 @@
     "dev:dashboard": "pnpm --filter @ssm-usor/dashboard dev",
     "dev:api": "pnpm --filter @ssm-usor/api dev",
     "typecheck": "turbo typecheck",
-    "lint": "prettier --check .",
+    "lint": "pnpm lint:eslint && pnpm lint:format",
+    "lint:eslint": "eslint .",
+    "lint:format": "prettier --check .",
+    "lint:fix": "eslint . --fix && prettier --write .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "deploy:dry-run": "turbo deploy:dry-run",
     "deploy:marketing": "pnpm --filter @ssm-usor/marketing deploy",
     "deploy:dashboard": "pnpm --filter @ssm-usor/dashboard deploy",
-    "deploy:api": "pnpm --filter @ssm-usor/api deploy"
+    "deploy:api": "pnpm --filter @ssm-usor/api deploy",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/parser": "^8.68.0",
+    "eslint": "^10.9.1",
+    "eslint-plugin-astro": "^3.1.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.5",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "globals": "^17.11.0",
+    "lefthook": "^2.1.12",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
-    "turbo": "^2.10.12"
+    "turbo": "^2.10.12",
+    "typescript-eslint": "^8.68.0"
   }
 }

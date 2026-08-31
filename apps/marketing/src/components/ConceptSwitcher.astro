@@ -1,30 +1,27 @@
 ---
 interface Props {
-  active: "claritate" | "atelier" | "siguranta" | "aproape";
+  active: 'claritate' | 'atelier' | 'siguranta' | 'aproape';
   inverted?: boolean;
 }
 
 const { active, inverted = false } = Astro.props;
 const concepts = [
-  { id: "claritate", label: "01 Claritate", href: "/designs/claritate/" },
-  { id: "atelier", label: "02 Atelier", href: "/designs/atelier/" },
-  { id: "siguranta", label: "03 Siguranță", href: "/designs/siguranta/" },
-  { id: "aproape", label: "04 Aproape", href: "/designs/aproape/" },
+  { id: 'claritate', label: '01 Claritate', href: '/designs/claritate/' },
+  { id: 'atelier', label: '02 Atelier', href: '/designs/atelier/' },
+  { id: 'siguranta', label: '03 Siguranță', href: '/designs/siguranta/' },
+  { id: 'aproape', label: '04 Aproape', href: '/designs/aproape/' },
 ];
 ---
 
-<nav
-  class:list={["concept-switcher", { inverted }]}
-  aria-label="Concepte vizuale"
->
+<nav class:list={['concept-switcher', { inverted }]} aria-label="Concepte vizuale">
   <a class="back" href="/">Toate conceptele</a>
   <div class="concept-links">
     {
       concepts.map((concept) => (
         <a
-          class:list={["concept-link", { active: concept.id === active }]}
+          class:list={['concept-link', { active: concept.id === active }]}
           href={concept.href}
-          aria-current={concept.id === active ? "page" : undefined}
+          aria-current={concept.id === active ? 'page' : undefined}
         >
           {concept.label}
         </a>

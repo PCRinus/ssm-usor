@@ -4,8 +4,8 @@ export default function App() {
       <p className="eyebrow">SSM Ușor</p>
       <h1>Aplicația va fi construită aici.</h1>
       <p>
-        Acest workspace este rezervat aplicației React/Vite autentificate.
-        Dezvoltarea produsului începe după validarea funnelului.
+        Acest workspace este rezervat aplicației React/Vite autentificate. Dezvoltarea produsului
+        începe după validarea funnelului.
       </p>
     </main>
   );

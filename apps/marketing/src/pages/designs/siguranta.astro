@@ -1,14 +1,8 @@
 ---
-import {
-  ArrowRight,
-  Check,
-  FileClock,
-  Radar,
-  ScanSearch,
-  ShieldCheck,
-} from "lucide-react";
-import ConceptSwitcher from "../../components/ConceptSwitcher.astro";
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ArrowRight, Check, FileClock, Radar, ScanSearch, ShieldCheck } from 'lucide-react';
+
+import ConceptSwitcher from '../../components/ConceptSwitcher.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
@@ -21,13 +15,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <header class="nav grid">
       <a class="brand" href="/designs/siguranta/"><span>S+</span> SSM UȘOR</a>
       <nav aria-label="Navigație principală">
-        <a href="#control">Control</a><a href="#dovezi">Trasabilitate</a><a
-          href="#pilot">Acces pilot</a
+        <a href="#control">Control</a><a href="#dovezi">Trasabilitate</a><a href="#pilot"
+          >Acces pilot</a
         >
       </nav>
-      <a class="nav-cta" href="#pilot"
-        >SOLICITĂ ACCES <ArrowRight size={14} /></a
-      >
+      <a class="nav-cta" href="#pilot">SOLICITĂ ACCES <ArrowRight size={14} /></a>
     </header>
 
     <main>
@@ -38,20 +30,17 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           </div>
           <h1>Conformitate pe care o poți <em>demonstra.</em></h1>
           <p>
-            Controlezi termenele, versiunile și dovezile pentru fiecare client
-            dintr-o singură vedere. Când apare o întrebare, răspunsul este deja
-            organizat.
+            Controlezi termenele, versiunile și dovezile pentru fiecare client dintr-o singură
+            vedere. Când apare o întrebare, răspunsul este deja organizat.
           </p>
           <div class="actions">
-            <a class="primary" href="#pilot"
-              >Devino partener pilot <ArrowRight size={18} /></a
-            ><a class="text-link" href="#control">Explorează sistemul ↓</a>
+            <a class="primary" href="#pilot">Devino partener pilot <ArrowRight size={18} /></a><a
+              class="text-link"
+              href="#control">Explorează sistemul ↓</a
+            >
           </div>
         </div>
-        <div
-          class="control-panel"
-          aria-label="Panou de control al conformității"
-        >
+        <div class="control-panel" aria-label="Panou de control al conformității">
           <div class="panel-top">
             <span>PORTOFOLIU / CONTROL</span><span>31 AUG 2026 · 09:42</span>
           </div>
@@ -62,9 +51,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
               >
             </div>
             <div class="radar">
-              <Radar size={38} /><i></i><i></i><i></i><b>42</b><span
-                >clienți monitorizați</span
-              >
+              <Radar size={38} /><i></i><i></i><i></i><b>42</b><span>clienți monitorizați</span>
             </div>
           </div>
           <div class="alerts">
@@ -74,20 +61,17 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
               >
             </div>
             <div class="alert">
-              <b>DE REVIZUIT</b><strong>Evaluare riscuri</strong><span
-                >Nord Tehnic · în 9 zile</span
+              <b>DE REVIZUIT</b><strong>Evaluare riscuri</strong><span>Nord Tehnic · în 9 zile</span
               >
             </div>
             <div class="alert done">
-              <b>CONFIRMAT</b><strong>Fișe individuale</strong><span
-                >Medica Verde · astăzi</span
-              >
+              <b>CONFIRMAT</b><strong>Fișe individuale</strong><span>Medica Verde · astăzi</span>
             </div>
           </div>
           <div class="audit-line">
-            <span>ULTIMA ACTIVITATE</span><b
-              >Documentul IPSSM-04 a fost semnat de ambele părți</b
-            ><i>09:38</i>
+            <span>ULTIMA ACTIVITATE</span><b>Documentul IPSSM-04 a fost semnat de ambele părți</b><i
+              >09:38</i
+            >
           </div>
         </div>
       </section>
@@ -106,8 +90,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <p class="label">PRIORITĂȚI VIZIBILE</p><h2>
             Nu mai descoperi problema după ce termenul a trecut.
           </h2><p>
-            SSM Ușor aduce excepțiile în față. Vezi unde lipsește o acțiune,
-            cine trebuie să răspundă și ce document susține fiecare decizie.
+            SSM Ușor aduce excepțiile în față. Vezi unde lipsește o acțiune, cine trebuie să
+            răspundă și ce document susține fiecare decizie.
           </p>
         </div>
         <div class="control-list">
@@ -121,8 +105,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <article>
             <ScanSearch size={24} /><div>
               <strong>Documentul corect, instant</strong><p>
-                Cauți după client, tip, stare sau versiune, nu după numele
-                folderului.
+                Cauți după client, tip, stare sau versiune, nu după numele folderului.
               </p>
             </div><span>02</span>
           </article>
@@ -146,9 +129,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <ol>
               <li class="done">
                 <i></i><span>28 AUG · 10:14</span><div>
-                  <strong>Date validate</strong><p>
-                    Confirmate de Andrei Pop · client
-                  </p>
+                  <strong>Date validate</strong><p>Confirmate de Andrei Pop · client</p>
                 </div>
               </li>
               <li class="done">
@@ -160,9 +141,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
               </li>
               <li class="done">
                 <i></i><span>31 AUG · 09:38</span><div>
-                  <strong>Semnături complete</strong><p>
-                    Document închis și arhivat
-                  </p>
+                  <strong>Semnături complete</strong><p>Document închis și arhivat</p>
                 </div>
               </li>
             </ol>
@@ -171,14 +150,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <p class="label">TRASABILITATE NATIVĂ</p><h2>
               Istoricul nu se reconstruiește. Se creează odată cu munca.
             </h2><p>
-              Fiecare acțiune importantă intră automat în jurnalul clientului.
-              Ai contextul complet fără să cauți conversații și atașamente.
+              Fiecare acțiune importantă intră automat în jurnalul clientului. Ai contextul complet
+              fără să cauți conversații și atașamente.
             </p><div class="evidence-checks">
-              <span><Check size={16} /> cine</span><span
-                ><Check size={16} /> ce</span
-              ><span><Check size={16} /> când</span><span
-                ><Check size={16} /> pe ce versiune</span
-              >
+              <span><Check size={16} /> cine</span><span><Check size={16} /> ce</span><span
+                ><Check size={16} /> când</span
+              ><span><Check size={16} /> pe ce versiune</span>
             </div>
           </div>
         </div>
@@ -193,8 +170,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         </div>
         <div class="pilot-side">
           <p>
-            Începem cu o discuție despre fluxul tău actual. Fără prezentări
-            generale și fără obligații.
+            Începem cu o discuție despre fluxul tău actual. Fără prezentări generale și fără
+            obligații.
           </p><a
             class="primary"
             href="mailto:pilot@ssmusor.ro?subject=Partener%20pilot%20SSM%20Ușor"
@@ -442,7 +419,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     border: 0;
   }
   .alert::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     right: 0;
