@@ -12,6 +12,7 @@
     "dev:marketing": "pnpm --filter @ssm-usor/marketing dev",
     "dev:dashboard": "pnpm --filter @ssm-usor/dashboard dev",
     "dev:api": "pnpm --filter @ssm-usor/api dev",
+    "preview:marketing": "pnpm --filter @ssm-usor/marketing preview:cloudflare",
     "typecheck": "turbo typecheck",
     "lint": "pnpm lint:eslint && pnpm lint:format",
     "lint:eslint": "eslint .",

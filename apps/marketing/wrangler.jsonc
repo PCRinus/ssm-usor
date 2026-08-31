@@ -1,11 +1,17 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "ssm-usor-marketing",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-08-31",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash",
+    "run_worker_first": true,
+  },
+  "secrets": {
+    "required": ["BASIC_AUTH_USERNAME", "BASIC_AUTH_PASSWORD"],
   },
   "observability": {
     "enabled": true,
