@@ -1,0 +1,298 @@
+---
+import {
+  Building2,
+  CalendarClock,
+  ClipboardCheck,
+  FileStack,
+  GraduationCap,
+  ShieldCheck,
+} from 'lucide-react';
+
+const pillars = [
+  {
+    icon: Building2,
+    title: 'Portofoliu multi-client',
+    text: 'Organizații, puncte de lucru, contacte, responsabili și servicii contractate într-o singură structură, cu priorități vizibile pentru întreaga echipă.',
+    detail: 'de făcut · întârziat · blocat · așteaptă clientul',
+  },
+  {
+    icon: FileStack,
+    title: 'Studio de documente',
+    text: 'Importi sursele existente, lucrezi din șabloane și clauze controlate, reutilizezi datele clientului și păstrezi fiecare revizie.',
+    detail: 'editare · revizuire · aprobare · PDF/DOCX',
+  },
+  {
+    icon: CalendarClock,
+    title: 'Date, oameni și obligații',
+    text: 'Importuri de angajați cu validare, schimbări de rol sau punct de lucru și sarcini recurente cu responsabil, termen și dependențe clare.',
+    detail: 'import · reconciliere · termene · remindere',
+  },
+  {
+    icon: GraduationCap,
+    title: 'Instruire, testare și semnare',
+    text: 'Programe adaptate pe grupuri, sesiuni cu termen și remindere, testare online și fișa corectă pregătită pentru fluxul de semnare.',
+    detail: 'mobil · progres · rezultat · semnătură',
+  },
+  {
+    icon: ClipboardCheck,
+    title: 'Vizite și măsuri corective',
+    text: 'Planifici vizita, notezi observațiile și fotografiile, atribui măsuri și urmărești dovada remedierii până la închidere.',
+    detail: 'constatare · responsabil · termen · dovadă',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Dovezi și rapoarte',
+    text: 'Versiuni, aprobări, semnături și activități rămân legate. Exporți dosare și pachete structurate fără să reconstruiești istoricul.',
+    detail: 'jurnal · dosar angajat · raport client · export',
+  },
+];
+
+const outcomes = [
+  [
+    '01',
+    'Preiei un client nou',
+    'Importi structura, oamenii și documentele existente; apoi aplici responsabilitățile și serviciile convenite.',
+  ],
+  [
+    '02',
+    'Procesezi un angajat nou',
+    'Datele validate pornesc documentele, instruirea, testarea și semnarea potrivite rolului său.',
+  ],
+  [
+    '03',
+    'Rulezi instruirea periodică',
+    'Atribui materialul, urmărești progresul și păstrezi rezultatul lângă versiunea folosită.',
+  ],
+  [
+    '04',
+    'Închizi o măsură corectivă',
+    'Clientul trimite dovada, specialistul o verifică, iar raportul și istoricul rămân împreună.',
+  ],
+];
+---
+
+<section class="product-capabilities" id="capabilitati">
+  <div class="inner">
+    <header class="section-intro">
+      <div>
+        <p>Capabilități planificate pentru pilot</p>
+        <h2>Un singur sistem pentru întregul serviciu extern.</h2>
+      </div>
+      <p>
+        Modulele cresc treptat, dar folosesc aceleași date despre client, oameni, documente,
+        responsabilități și dovezi. Specialistul păstrează controlul profesional la fiecare pas.
+      </p>
+    </header>
+
+    <div class="pillar-grid">
+      {
+        pillars.map(({ icon: Icon, title, text, detail }, index) => (
+          <article>
+            <div class="pillar-top">
+              <span class="pillar-icon">
+                <Icon size={23} strokeWidth={1.8} />
+              </span>
+              <span class="pillar-number">0{index + 1}</span>
+            </div>
+            <h3>{title}</h3>
+            <p>{text}</p>
+            <small>{detail}</small>
+          </article>
+        ))
+      }
+    </div>
+
+    <div class="outcomes">
+      <div class="outcome-heading">
+        <p>Fluxuri complete, nu funcții izolate</p>
+        <h2>Patru rezultate concrete pe care vrem să le validăm.</h2>
+      </div>
+      <ol>
+        {
+          outcomes.map(([number, title, text]) => (
+            <li>
+              <span>{number}</span>
+              <div>
+                <>
+                  <strong>{title}</strong>
+                  <p>{text}</p>
+                </>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  .product-capabilities {
+    --section-bg: #f5f7f3;
+    --card-bg: #fff;
+    --ink: #17362f;
+    --muted: #65766f;
+    --accent: #aecd72;
+    --border: #d4ddd5;
+    color: var(--ink);
+    background: var(--section-bg);
+  }
+  .inner {
+    width: min(1200px, calc(100% - 48px));
+    margin-inline: auto;
+    padding: 130px 0;
+  }
+  .section-intro {
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 80px;
+    align-items: end;
+    margin-bottom: 58px;
+  }
+  .section-intro p,
+  .outcome-heading > p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.69rem;
+    font-weight: 820;
+    letter-spacing: 0.1em;
+    line-height: 1.7;
+    text-transform: uppercase;
+  }
+  .section-intro h2,
+  .outcome-heading h2 {
+    max-width: 820px;
+    margin: 17px 0 0;
+    font-size: clamp(2.7rem, 5vw, 5rem);
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+  }
+  .section-intro > p {
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.75;
+    text-transform: none;
+  }
+  .pillar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .pillar-grid article {
+    display: flex;
+    min-height: 330px;
+    padding: 26px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--card-bg);
+    flex-direction: column;
+  }
+  .pillar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pillar-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    color: var(--ink);
+    border-radius: 13px;
+    background: var(--accent);
+  }
+  .pillar-number {
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 850;
+  }
+  .pillar-grid h3 {
+    margin: 52px 0 15px;
+    font-size: 1.6rem;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+  }
+  .pillar-grid p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.72;
+  }
+  .pillar-grid small {
+    margin-top: auto;
+    padding-top: 24px;
+    color: var(--muted);
+    font-size: 0.57rem;
+    font-weight: 780;
+    letter-spacing: 0.06em;
+  }
+  .outcomes {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 70px;
+    margin-top: 100px;
+    padding-top: 90px;
+    border-top: 1px solid var(--border);
+  }
+  .outcome-heading h2 {
+    font-size: clamp(2.25rem, 4vw, 3.9rem);
+  }
+  .outcomes ol {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .outcomes li {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 18px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .outcomes li:first-child {
+    padding-top: 0;
+  }
+  .outcomes li > span {
+    color: var(--accent);
+    font-size: 0.67rem;
+    font-weight: 880;
+  }
+  .outcomes strong {
+    font-size: 1.05rem;
+  }
+  .outcomes li p {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+  @media (max-width: 900px) {
+    .section-intro,
+    .outcomes {
+      grid-template-columns: 1fr;
+      gap: 35px;
+    }
+    .pillar-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 620px) {
+    .inner {
+      width: min(100% - 24px, 1200px);
+      padding: 90px 0;
+    }
+    .pillar-grid {
+      grid-template-columns: 1fr;
+    }
+    .pillar-grid article {
+      min-height: 295px;
+    }
+    .outcomes {
+      margin-top: 70px;
+      padding-top: 70px;
+    }
+  }
+</style>

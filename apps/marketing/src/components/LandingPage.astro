@@ -1,33 +1,24 @@
 ---
-import {
-  ArrowRight,
-  Check,
-  CircleCheck,
-  Clock3,
-  FilePenLine,
-  LayoutDashboard,
-  ShieldCheck,
-} from 'lucide-react';
+import { ArrowRight, Check, Clock3, FilePenLine, ShieldCheck } from 'lucide-react';
 
-import ConceptSwitcher from '../../components/ConceptSwitcher.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProductPillars from './ProductPillars.astro';
 ---
 
 <BaseLayout
   title="SSM Ușor — Toți clienții tăi SSM într-un singur loc"
   description="Creezi documente, urmărești termene și colaborezi cu toți clienții tăi SSM fără Word, PDF-uri și emailuri împrăștiate."
-  themeColor="#102b25"
+  themeColor="#18342e"
 >
   <div class="site-shell">
-    <ConceptSwitcher active="claritate" inverted />
-
     <header class="nav wrap">
-      <a class="brand" href="/designs/claritate/" aria-label="SSM Ușor — Acasă">
-        <span>SSM</span>ușor
+      <a class="brand" href="/" aria-label="SSM Ușor — Acasă">
+        <img src="/brand/logo.png" alt="SSM Ușor" />
       </a>
       <nav aria-label="Navigație principală">
         <a href="#avantaje">Avantaje</a>
         <a href="#cum-functioneaza">Cum funcționează</a>
+        <a href="#capabilitati">Capabilități</a>
         <a class="nav-cta" href="#pilot">Devino partener pilot</a>
       </nav>
     </header>
@@ -54,71 +45,33 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           </ul>
         </div>
 
-        <div class="product-stage" id="produs" aria-label="Previzualizare interfață SSM Ușor">
-          <div class="glow"></div>
-          <div class="app-window">
-            <div class="app-topbar">
-              <div class="app-mark">S</div>
-              <span class="crumb">Portofoliu / Toți clienții</span>
-              <span class="avatar">MP</span>
-            </div>
-            <div class="app-body">
-              <aside>
-                <div class="active">
-                  <LayoutDashboard size={15} /> Portofoliu
-                </div>
-                <div><FilePenLine size={15} /> Documente</div>
-                <div><Clock3 size={15} /> Termene</div>
-                <div><ShieldCheck size={15} /> Legislație</div>
-              </aside>
-              <div class="workspace">
-                <div class="workspace-head">
-                  <div>
-                    <span>PORTOFOLIU</span>
-                    <h2>Bună dimineața, Mircea.</h2>
-                  </div>
-                  <button type="button">+ Client nou</button>
-                </div>
-                <div class="metrics">
-                  <div>
-                    <span>Clienți activi</span><strong>42</strong><small>+3 luna aceasta</small>
-                  </div>
-                  <div>
-                    <span>Acțiuni necesare</span><strong>08</strong><small class="warn"
-                      >În următoarele 7 zile</small
-                    >
-                  </div>
-                  <div>
-                    <span>Conformitate</span><strong>94%</strong><small>Portofoliu sănătos</small>
-                  </div>
-                </div>
-                <div class="client-list">
-                  <div class="list-head">
-                    <span>Client</span><span>Status</span><span>Următorul termen</span>
-                  </div>
-                  <div class="client-row">
-                    <span><b>NT</b>Nord Tehnic SRL</span><span><i class="ok"></i>În regulă</span
-                    ><span>14 sept.</span>
-                  </div>
-                  <div class="client-row">
-                    <span><b>AC</b>Atelier Central</span><span><i class="soon"></i>2 acțiuni</span
-                    ><span>03 sept.</span>
-                  </div>
-                  <div class="client-row">
-                    <span><b>MV</b>Medica Verde</span><span><i class="ok"></i>În regulă</span><span
-                      >21 sept.</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div class="workflow-map" id="produs" aria-label="Fluxul de lucru SSM Ușor">
+          <p class="flow-label">Flux de produs · interfața finală este în dezvoltare</p>
+          <div class="map-ring ring-one"></div>
+          <div class="map-ring ring-two"></div>
+          <div class="map-core">
+            <span>UN SINGUR SISTEM</span>
+            <strong>Portofoliul tău</strong>
+            <small>aceleași date alimentează fiecare pas</small>
           </div>
-          <div class="floating-card">
-            <CircleCheck size={22} />
-            <div>
-              <strong>Document semnat</strong><span>Nord Tehnic · acum 2 min.</span>
-            </div>
+          <div class="map-node node-data">
+            <b>01</b><span><strong>Date client</strong><small>o singură sursă</small></span>
           </div>
+          <div class="map-node node-docs">
+            <b>02</b><span><strong>Documente</strong><small>controlate și versionate</small></span>
+          </div>
+          <div class="map-node node-work">
+            <b>03</b><span><strong>Acțiuni</strong><small>responsabil și termen</small></span>
+          </div>
+          <div class="map-node node-proof">
+            <b>04</b><span><strong>Dovezi</strong><small>legate de munca reală</small></span>
+          </div>
+          <svg viewBox="0 0 650 560" aria-hidden="true">
+            <path d="M320 276C214 150 157 118 70 123"></path>
+            <path d="M328 274C438 142 493 121 582 136"></path>
+            <path d="M319 286C212 390 153 428 67 418"></path>
+            <path d="M330 286C435 400 497 426 586 409"></path>
+          </svg>
         </div>
       </section>
 
@@ -206,6 +159,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
       </section>
 
+      <ProductPillars />
+
       <section class="pilot wrap" id="pilot">
         <div>
           <p class="pilot-label">Program pilot · locuri limitate</p>
@@ -228,9 +183,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </main>
 
     <footer class="wrap">
-      <a class="brand" href="/"><span>SSM</span>ușor</a>
+      <a class="brand" href="/" aria-label="SSM Ușor — Acasă">
+        <img src="/brand/logo.png" alt="SSM Ușor" />
+      </a>
       <p>Instrumentul de lucru pentru serviciile externe SSM.</p>
-      <span>Concept vizual 01 · Claritate operațională</span>
+      <span>Creat în România · Pentru servicii externe SSM</span>
     </footer>
   </div>
 </BaseLayout>
@@ -238,7 +195,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <style>
   :global(body) {
     color: #eef6f2;
-    background: #102b25;
+    background: #18342e;
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   }
   .site-shell {
@@ -255,20 +212,18 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 28px 0;
   }
   .brand {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 12px;
     color: #fff;
-    font-size: 1.25rem;
-    font-weight: 880;
-    letter-spacing: -0.045em;
+    background: #f8f7f1;
     text-decoration: none;
   }
-  .brand span {
-    display: inline-block;
-    margin-right: 4px;
-    padding: 4px 7px;
-    border-radius: 7px;
-    color: #102b25;
-    background: #b8f34a;
-    letter-spacing: -0.02em;
+  .brand img {
+    display: block;
+    width: 178px;
+    height: auto;
   }
   .nav nav {
     display: flex;
@@ -303,7 +258,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     border: 1px solid #3e5c53;
     border-radius: 999px;
     color: #cbdad5;
-    background: #173a33;
+    background: #21453c;
     font-size: 0.68rem;
     font-weight: 720;
   }
@@ -311,8 +266,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #b8f34a;
-    box-shadow: 0 0 0 5px rgb(184 243 74 / 11%);
+    background: #b6d86f;
+    box-shadow: 0 0 0 5px rgb(182 216 111 / 11%);
   }
   h1 {
     max-width: 680px;
@@ -322,7 +277,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     letter-spacing: -0.07em;
   }
   h1 em {
-    color: #b8f34a;
+    color: #b6d86f;
     font-style: normal;
   }
   .lede {
@@ -352,9 +307,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     text-decoration: none;
   }
   .primary {
-    color: #102b25;
-    background: #b8f34a;
-    box-shadow: 0 12px 40px rgb(184 243 74 / 14%);
+    color: #18342e;
+    background: #b6d86f;
+    box-shadow: 0 12px 40px rgb(182 216 111 / 12%);
   }
   .secondary {
     border: 1px solid #436058;
@@ -375,232 +330,141 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     align-items: center;
     gap: 6px;
   }
-  .product-stage {
+  .workflow-map {
     position: relative;
-    min-width: 660px;
-    transform: perspective(1500px) rotateY(-3deg) rotateX(1deg);
+    min-width: 620px;
+    min-height: 560px;
   }
-  .glow {
+  .flow-label {
     position: absolute;
-    inset: 10% 8% 0;
+    top: 16px;
+    right: 22px;
+    z-index: 3;
+    margin: 0;
+    color: #88a098;
+    font-size: 0.57rem;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .map-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border: 1px solid #436158;
     border-radius: 50%;
-    background: #8bcf47;
-    filter: blur(95px);
-    opacity: 0.18;
+    transform: translate(-50%, -50%);
   }
-  .app-window {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid #3e5c53;
-    border-radius: 20px;
-    color: #15251f;
-    background: #f2f5ee;
-    box-shadow: 0 55px 120px rgb(0 0 0 / 35%);
+  .ring-one {
+    width: 350px;
+    height: 350px;
   }
-  .app-topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    height: 55px;
-    padding: 0 18px;
-    border-bottom: 1px solid #dce2da;
-    background: #fbfcf9;
+  .ring-two {
+    width: 500px;
+    height: 500px;
+    border-style: dashed;
+    opacity: 0.55;
   }
-  .app-mark {
+  .map-core {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    color: #173a33;
-    background: #b8f34a;
-    font-size: 0.77rem;
-    font-weight: 900;
-  }
-  .crumb {
-    flex: 1;
-    color: #77827d;
-    font-size: 0.64rem;
-  }
-  .avatar {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 190px;
+    height: 190px;
+    padding: 22px;
+    border: 1px solid #58756c;
     border-radius: 50%;
-    color: #fff;
-    background: #173a33;
+    color: #19372f;
+    background: #b6d86f;
+    box-shadow: 0 30px 80px rgb(0 0 0 / 18%);
+    text-align: center;
+    transform: translate(-50%, -50%);
+  }
+  .map-core span {
+    align-self: end;
     font-size: 0.52rem;
-    font-weight: 800;
+    font-weight: 880;
+    letter-spacing: 0.11em;
   }
-  .app-body {
-    display: grid;
-    grid-template-columns: 130px 1fr;
-    min-height: 440px;
-  }
-  aside {
-    padding: 18px 10px;
-    border-right: 1px solid #dce2da;
-    background: #e8ede5;
-  }
-  aside div {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-    padding: 10px 9px;
-    border-radius: 7px;
-    color: #79827e;
-    font-size: 0.58rem;
-    font-weight: 700;
-  }
-  aside .active {
-    color: #163a32;
-    background: #fff;
-    box-shadow: 0 4px 12px rgb(31 49 43 / 6%);
-  }
-  .workspace {
-    padding: 29px 27px;
-  }
-  .workspace-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-  }
-  .workspace-head span {
-    color: #758078;
-    font-size: 0.48rem;
-    font-weight: 840;
-    letter-spacing: 0.12em;
-  }
-  .workspace-head h2 {
-    margin: 5px 0 0;
-    font-size: 1.38rem;
+  .map-core strong {
+    font-size: 1.3rem;
     letter-spacing: -0.04em;
   }
-  .workspace-head button {
-    padding: 9px 12px;
-    border: 0;
-    border-radius: 7px;
-    color: #fff;
-    background: #173a33;
-    font-size: 0.55rem;
-    font-weight: 800;
+  .map-core small {
+    align-self: start;
+    max-width: 125px;
+    color: #3f5e50;
+    font-size: 0.57rem;
+    line-height: 1.4;
   }
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 25px;
-  }
-  .metrics > div {
-    padding: 15px;
-    border: 1px solid #dce2da;
-    border-radius: 10px;
-    background: #fbfcf9;
-  }
-  .metrics span,
-  .metrics small {
-    display: block;
-    color: #738078;
-    font-size: 0.48rem;
-  }
-  .metrics strong {
-    display: block;
-    margin: 7px 0 5px;
-    font-size: 1.42rem;
-    letter-spacing: -0.05em;
-  }
-  .metrics small {
-    color: #4c865b;
-  }
-  .metrics .warn {
-    color: #ad6c27;
-  }
-  .client-list {
-    overflow: hidden;
-    margin-top: 18px;
-    border: 1px solid #dce2da;
-    border-radius: 10px;
-    background: #fff;
-  }
-  .list-head,
-  .client-row {
-    display: grid;
-    grid-template-columns: 1.35fr 0.8fr 0.7fr;
-    align-items: center;
-    padding: 12px 14px;
-    font-size: 0.52rem;
-  }
-  .list-head {
-    color: #808b85;
-    background: #f3f5f1;
-    font-weight: 760;
-  }
-  .client-row {
-    border-top: 1px solid #e4e8e2;
-    color: #4b5953;
-  }
-  .client-row > span:first-child {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #263832;
-    font-weight: 760;
-  }
-  .client-row b {
-    display: grid;
-    place-items: center;
-    width: 23px;
-    height: 23px;
-    border-radius: 6px;
-    color: #315047;
-    background: #e1e9df;
-    font-size: 0.45rem;
-  }
-  .client-row i {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-right: 5px;
-    border-radius: 50%;
-  }
-  .client-row .ok {
-    background: #48a560;
-  }
-  .client-row .soon {
-    background: #e4a442;
-  }
-  .floating-card {
+  .map-node {
     position: absolute;
-    right: -25px;
-    bottom: 38px;
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 14px 18px;
-    border: 1px solid #506d63;
-    border-radius: 12px;
-    color: #163a32;
-    background: #b8f34a;
-    box-shadow: 0 24px 65px rgb(0 0 0 / 24%);
-    transform: rotateY(3deg);
+    width: 195px;
+    padding: 13px 14px;
+    border: 1px solid #4a685f;
+    border-radius: 14px;
+    color: #eaf1ed;
+    background: #23483f;
+    box-shadow: 0 18px 45px rgb(0 0 0 / 15%);
   }
-  .floating-card div {
+  .map-node > b {
     display: grid;
-    gap: 2px;
+    place-items: center;
+    width: 31px;
+    height: 31px;
+    border-radius: 9px;
+    color: #213a32;
+    background: #b6d86f;
+    font-size: 0.55rem;
   }
-  .floating-card strong {
-    font-size: 0.65rem;
+  .map-node span {
+    display: grid;
+    gap: 3px;
   }
-  .floating-card span {
+  .map-node strong {
+    font-size: 0.68rem;
+  }
+  .map-node small {
+    color: #9fb4ad;
     font-size: 0.52rem;
-    opacity: 0.7;
+  }
+  .node-data {
+    top: 76px;
+    left: 12px;
+  }
+  .node-docs {
+    top: 90px;
+    right: 0;
+  }
+  .node-work {
+    bottom: 70px;
+    left: 0;
+  }
+  .node-proof {
+    right: 4px;
+    bottom: 82px;
+  }
+  .workflow-map svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: #6e8a80;
+    stroke-dasharray: 4 6;
+    stroke-width: 1.2;
   }
   .proof-bar {
     border-top: 1px solid #294a41;
     border-bottom: 1px solid #294a41;
-    background: #15362f;
+    background: #1e4038;
   }
   .proof-bar .wrap {
     display: flex;
@@ -615,7 +479,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: #c9d8d3;
   }
   .proof-bar strong {
-    color: #b8f34a;
+    color: #b6d86f;
   }
   .proof-bar span {
     white-space: nowrap;
@@ -632,7 +496,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     z-index: -1;
     height: 1050px;
     margin-top: -140px;
-    background: #eef3ec;
+    background: #edf0eb;
   }
   .section-heading {
     display: grid;
@@ -672,7 +536,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .advantage-grid .featured {
     min-height: 520px;
     color: #eff7f3;
-    background: #173a33;
+    background: #21453c;
   }
   .icon {
     display: grid;
@@ -680,8 +544,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     width: 46px;
     height: 46px;
     border-radius: 13px;
-    color: #173a33;
-    background: #b8f34a;
+    color: #21453c;
+    background: #b6d86f;
   }
   .number {
     position: absolute;
@@ -726,7 +590,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .document-stack span {
     grid-row: span 2;
     align-self: center;
-    color: #b8f34a;
+    color: #b6d86f;
     font-size: 0.52rem;
     font-weight: 850;
   }
@@ -741,7 +605,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .steps {
     padding: 130px 0;
     color: #eef6f2;
-    background: #0d241f;
+    background: #142f29;
   }
   .section-heading.compact {
     margin-bottom: 68px;
@@ -764,7 +628,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .steps li {
     min-height: 250px;
     padding: 28px;
-    background: #0d241f;
+    background: #142f29;
   }
   .steps li > span {
     display: grid;
@@ -773,7 +637,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     height: 36px;
     border: 1px solid #4b665e;
     border-radius: 50%;
-    color: #b8f34a;
+    color: #b6d86f;
     font-size: 0.7rem;
     font-weight: 850;
   }
@@ -797,7 +661,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 120px 0;
   }
   .pilot-label {
-    color: #b8f34a;
+    color: #b6d86f;
     font-size: 0.7rem;
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -838,10 +702,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     .hero {
       grid-template-columns: 1fr;
     }
-    .product-stage {
+    .workflow-map {
       min-width: 0;
-      width: min(760px, 100%);
-      transform: none;
+      width: min(650px, 100%);
     }
     .hero-copy {
       max-width: 780px;
@@ -860,6 +723,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     .wrap {
       width: min(100% - 24px, 1200px);
     }
+    .brand img {
+      width: 145px;
+    }
     .nav nav > a:not(.nav-cta) {
       display: none;
     }
@@ -874,14 +740,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       align-items: stretch;
       flex-direction: column;
     }
-    .product-stage {
-      width: 760px;
-      transform: scale(0.63);
+    .workflow-map {
+      width: 620px;
+      transform: scale(0.58);
       transform-origin: left top;
-      margin-bottom: -165px;
-    }
-    .floating-card {
-      right: 12px;
+      margin-bottom: -220px;
     }
     .proof-bar .wrap {
       justify-content: flex-start;

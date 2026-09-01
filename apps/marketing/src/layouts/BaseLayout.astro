@@ -7,7 +7,7 @@ interface Props {
   themeColor?: string;
 }
 
-const { title, description, themeColor = '#102b25' } = Astro.props;
+const { title, description, themeColor = '#18342e' } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -20,7 +20,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="theme-color" content={themeColor} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/brand/favicon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ro_RO" />
     <meta property="og:title" content={title} />
