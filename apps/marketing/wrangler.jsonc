@@ -10,10 +10,6 @@
       "pattern": "ssmusor.ro",
       "custom_domain": true,
     },
-    {
-      "pattern": "preview.ssmusor.ro",
-      "custom_domain": true,
-    },
   ],
   "assets": {
     "directory": "./dist",

@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: design-preview
-      url: ${{ steps.deploy.outputs.deployment-url }}
+      url: https://ssmusor.ro
 
     steps:
       - name: Check out validated revision

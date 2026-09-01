@@ -80,10 +80,10 @@ DNS provider; it does not transfer ownership or registration away from RoTLD.
 7. Return to Cloudflare and wait for the zone status to become **Active**. Cloudflare advises that a
    nameserver update can take up to 24 hours.
 
-The protected marketing Worker is attached to `ssmusor.ro` as its primary Cloudflare Workers Custom
-Domain. `preview.ssmusor.ro` remains attached as a temporary alias. Wrangler creates the
-corresponding DNS records and Cloudflare provisions TLS, so do not create competing `A`, `AAAA`, or
-`CNAME` records for either hostname manually.
+The protected marketing Worker is attached to `ssmusor.ro` as a Cloudflare Workers Custom Domain.
+Wrangler creates the corresponding DNS records and Cloudflare provisions TLS, so do not create a
+competing `A`, `AAAA`, or `CNAME` record for that hostname manually. The future dashboard can use
+`app.ssmusor.ro` when it is ready for deployment.
 
 ## First deployment
 
