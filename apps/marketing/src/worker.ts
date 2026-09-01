@@ -15,7 +15,7 @@ const unauthorized = () =>
     status: 401,
     headers: {
       'Cache-Control': 'private, no-store',
-      'WWW-Authenticate': 'Basic realm="SSM Usor design preview", charset="UTF-8"',
+      'WWW-Authenticate': 'Basic realm="SSM Usor", charset="UTF-8"',
       'X-Robots-Tag': 'noindex, nofollow, noarchive',
     },
   });
@@ -52,7 +52,7 @@ const decodeCredentials = (authorization: string | null) => {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!env.BASIC_AUTH_USERNAME || !env.BASIC_AUTH_PASSWORD) {
-      return new Response('Preview authentication is not configured.', {
+      return new Response('Marketing site authentication is not configured.', {
         status: 503,
         headers: {
           'Cache-Control': 'private, no-store',

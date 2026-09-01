@@ -1,11 +1,12 @@
-# Deployment and Wrangler
+# Marketing deployment and Wrangler
 
-The marketing preview is deployed as a Cloudflare Worker with Static Assets. Astro generates the
+The marketing site is deployed as a Cloudflare Worker with Static Assets. Astro generates the
 files in `apps/marketing/dist`, while `apps/marketing/src/worker.ts` runs before every asset request
 and requires temporary HTTP Basic Auth credentials.
 
-The Basic Auth layer is only for hiding unfinished design work. It is not the authentication model
-for the future SaaS application and should be removed before the public landing page launches.
+The Basic Auth layer temporarily protects the pre-launch marketing site. It is not the
+authentication model for the future SaaS application and should be removed when the landing page
+is ready for public access.
 
 ## GitHub environment
 
@@ -67,7 +68,7 @@ The domain remains registered with RoTLD. Connecting it to Cloudflare changes on
 DNS provider; it does not transfer ownership or registration away from RoTLD.
 
 1. In Cloudflare, open **Domains**, select **Onboard a domain**, and enter `ssmusor.ro`.
-2. Choose the Free plan for the current preview unless another Cloudflare plan is already needed.
+2. Choose the Free plan unless another Cloudflare plan is already needed.
 3. Review Cloudflare's DNS scan. Before changing nameservers, manually recreate any missing website,
    mail, verification, SPF, DKIM, DMARC, or CAA records. This is especially important if email is
    added before the nameserver change.
@@ -79,11 +80,10 @@ DNS provider; it does not transfer ownership or registration away from RoTLD.
 7. Return to Cloudflare and wait for the zone status to become **Active**. Cloudflare advises that a
    nameserver update can take up to 24 hours.
 
-The protected design Worker is attached to `preview.ssmusor.ro` as a Cloudflare Workers Custom
-Domain from `apps/marketing/wrangler.jsonc`. Wrangler creates the corresponding DNS record and
-Cloudflare provisions TLS, so do not create a competing `A`, `AAAA`, or `CNAME` record for that
-hostname manually. The final public landing page can later move to `ssmusor.ro` without using the
-preview hostname or Basic Auth.
+The protected marketing Worker is attached to `ssmusor.ro` as its primary Cloudflare Workers Custom
+Domain. `preview.ssmusor.ro` remains attached as a temporary alias. Wrangler creates the
+corresponding DNS records and Cloudflare provisions TLS, so do not create competing `A`, `AAAA`, or
+`CNAME` records for either hostname manually.
 
 ## First deployment
 
@@ -91,8 +91,8 @@ preview hostname or Basic Auth.
    above.
 2. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
    automatically after CI succeeds.
-3. Follow **Actions → Deploy marketing preview** until the deployment completes.
-4. Open `https://preview.ssmusor.ro` and authenticate with the configured Basic Auth credentials.
+3. Follow **Actions → Deploy marketing site** until the deployment completes.
+4. Open `https://ssmusor.ro` and authenticate with the configured Basic Auth credentials.
 
 The first Custom Domain certificate can take a few minutes to become available. Before the initial
 deployment, Cloudflare showing **No Workers connected** for the zone is expected; the workflow

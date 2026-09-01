@@ -7,6 +7,10 @@
   "workers_dev": false,
   "routes": [
     {
+      "pattern": "ssmusor.ro",
+      "custom_domain": true,
+    },
+    {
       "pattern": "preview.ssmusor.ro",
       "custom_domain": true,
     },

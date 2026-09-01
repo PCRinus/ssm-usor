@@ -1,4 +1,4 @@
-name: Deploy marketing preview
+name: Deploy marketing site
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ permissions:
   deployments: write
 
 concurrency:
-  group: cloudflare-marketing-preview
+  group: cloudflare-marketing
   cancel-in-progress: true
 
 jobs:
