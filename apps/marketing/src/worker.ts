@@ -51,6 +51,13 @@ const decodeCredentials = (authorization: string | null) => {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:';
+      return Response.redirect(url, 308);
+    }
+
     if (!env.BASIC_AUTH_USERNAME || !env.BASIC_AUTH_PASSWORD) {
       return new Response('Marketing site authentication is not configured.', {
         status: 503,
