@@ -19,12 +19,16 @@ Add these environment variables under **Environment variables**:
 | `BASIC_AUTH_USERNAME`   | Non-sensitive username deployed as a plain Worker variable. |
 | `CLOUDFLARE_ACCOUNT_ID` | Selects the Cloudflare account that owns the Worker.        |
 
-Add these values under **Environment secrets**:
+Add this value under **Environment secrets**:
 
-| Secret                 | Purpose                                                                  |
-| ---------------------- | ------------------------------------------------------------------------ |
-| `CLOUDFLARE_API_TOKEN` | Allows Wrangler to deploy the marketing Worker and its static assets.    |
-| `BASIC_AUTH_PASSWORD`  | Strong temporary password uploaded to the Worker as an encrypted secret. |
+| Secret                 | Purpose                                                               |
+| ---------------------- | --------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN` | Allows Wrangler to deploy the marketing Worker and its static assets. |
+
+Set `BASIC_AUTH_PASSWORD` directly as an encrypted Worker secret before the first deployment. The
+deployment pipeline deliberately does not upload it again on every run: Wrangler preserves remote
+secrets, and avoiding redundant secret updates prevents an extra secret-only Worker version from
+appearing beside each code deployment.
 
 ## Create the Cloudflare API token
 
@@ -60,7 +64,11 @@ set, then tighten the token after deployment is working.
 
 The deployment workflow runs after the `CI` workflow succeeds for a push to `main`. It can also be
 started manually from the Actions tab. GitHub passes the Basic Auth username as a plain Worker
-variable and the password as an encrypted Worker secret.
+variable; the independently managed password remains encrypted in Cloudflare.
+
+Each deployment is annotated with the sanitized commit subject and short commit SHA. Cloudflare
+uses the subject as the version/deployment message and the SHA as the version tag, making CI
+deployments identifiable in the Worker version history.
 
 ## Connect `ssmusor.ro` to Cloudflare
 
@@ -87,12 +95,14 @@ competing `A`, `AAAA`, or `CNAME` record for that hostname manually. The future 
 
 ## First deployment
 
-1. Confirm the `design-preview` GitHub environment contains both variables and both secrets listed
-   above.
-2. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
+1. Confirm the `design-preview` GitHub environment contains both variables and the API token secret
+   listed above.
+2. Set the encrypted Worker password once with
+   `pnpm --filter @ssm-usor/marketing exec wrangler secret put BASIC_AUTH_PASSWORD`.
+3. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
    automatically after CI succeeds.
-3. Follow **Actions → Deploy marketing site** until the deployment completes.
-4. Open `https://ssmusor.ro` and authenticate with the configured Basic Auth credentials.
+4. Follow **Actions → Deploy marketing site** until the deployment completes.
+5. Open `https://ssmusor.ro` and authenticate with the configured Basic Auth credentials.
 
 The first Custom Domain certificate can take a few minutes to become available. Before the initial
 deployment, Cloudflare showing **No Workers connected** for the zone is expected; the workflow
