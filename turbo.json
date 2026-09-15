@@ -13,6 +13,10 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
     "deploy:dry-run": {
       "dependsOn": ["build"],
       "cache": false,

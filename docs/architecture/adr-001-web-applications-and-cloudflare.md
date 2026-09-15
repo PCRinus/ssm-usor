@@ -22,7 +22,7 @@ Deploy its generated assets with Cloudflare Workers Static Assets. Do not add an
 
 ### Authenticated dashboard
 
-Build `apps/dashboard` as a plain React single-page application with Vite and TypeScript.
+Build `apps/app` as a plain React single-page application with Vite and TypeScript.
 
 The dashboard will not use Astro, Next.js, React Server Components, or server-side rendering. Cloudflare serves its production build as static assets with SPA fallback routing. All authoritative validation, authentication, tenant authorization, persistence, and business logic remains in the API.
 

@@ -1,0 +1,66 @@
+name: Deploy app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-app
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy SPA to app.ssmusor.ro
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: app-production
+      url: https://app.ssmusor.ro
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Check out selected revision
+        uses: actions/checkout@v7
+
+      - name: Check public app configuration
+        shell: bash
+        run: |
+          : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
+          : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Set VITE_SUPABASE_PUBLISHABLE_KEY in GitHub variables}"
+          if [[ "$VITE_SUPABASE_URL" != https://* || "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
+            echo "Set an HTTPS Supabase URL and an sb_publishable_ key."
+            exit 1
+          fi
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v2
+        with:
+          runtime: node@24
+          cache: true
+          install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate app
+        run: |
+          pnpm --filter @ssm-usor/app typecheck
+          pnpm --filter @ssm-usor/app test
+
+      - name: Build app with public Supabase configuration
+        run: pnpm --filter @ssm-usor/app build
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/app
+          packageManager: pnpm
+          command: deploy
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

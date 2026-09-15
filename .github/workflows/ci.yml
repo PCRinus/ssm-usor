@@ -43,5 +43,8 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Test
+        run: pnpm test
+
       - name: Validate Cloudflare deployments
         run: pnpm deploy:dry-run

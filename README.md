@@ -18,7 +18,7 @@ required GitHub secrets, and local Wrangler commands.
 The pnpm/Turborepo workspace contains:
 
 - `apps/marketing` — the static Astro acquisition site and landing-page concepts;
-- `apps/dashboard` — the client-only React/Vite application shell;
+- `apps/app` — the client-only React/Vite application shell;
 - `apps/api` — the Cloudflare Worker API;
 - `packages/contracts` — runtime schemas and shared transport types.
 - `packages/design-tokens` — shared brand colors, typography, radii, and Tailwind theme;
@@ -26,6 +26,9 @@ The pnpm/Turborepo workspace contains:
 
 See [shared UI and styling](docs/shared-ui.md) for component imports, Astro usage, and adding
 components with `pnpm ui:add <component>`.
+
+See [dashboard setup and authentication](docs/app.md) for Supabase browser configuration,
+routes, session handling, and tests.
 
 Use Node.js 24 or newer. The `.nvmrc` tracks the Node 24 major line, so with nvm run `nvm use`, then:
 

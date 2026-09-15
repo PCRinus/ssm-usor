@@ -29,7 +29,7 @@ Astro pre-renders routes at build time by default and supports selectively optin
 ssm-usor/
 ├── apps/
 │   ├── marketing/          # Astro: website, landing pages, content and funnel UI
-│   ├── dashboard/          # React + Vite: authenticated SaaS application (later)
+│   ├── app/          # React + Vite: authenticated SaaS application (later)
 │   └── api/                # Node.js + TypeScript: leads first, product API later
 ├── packages/
 │   ├── contracts/          # Shared schemas and API types; browser-safe
@@ -53,7 +53,7 @@ Only create a package once code genuinely needs to be shared. The directory tree
 | Application      | Initial responsibility                                                   | Rendering                                            | Likely deployment                        |
 | ---------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------- |
 | `apps/marketing` | Positioning, qualification funnel, provider applications, articles       | Static Astro pages with isolated React interactivity | Static CDN at the main domain            |
-| `apps/dashboard` | Authenticated multi-client SSM workspace                                 | Client-side React application; SEO is irrelevant     | Static assets at `app.<domain>`          |
+| `apps/app`       | Authenticated multi-client SSM workspace                                 | Client-side React application; SEO is irrelevant     | Static assets at `app.<domain>`          |
 | `apps/api`       | Lead ingestion, then authentication, business workflows and integrations | Cloudflare Worker                                    | Independently deployed at `api.<domain>` |
 
 The marketing site must not import database code or server implementation details. The dashboard and marketing site may depend on browser-safe contracts. Only the API and server-side workers may depend on database and document-processing packages.
@@ -149,7 +149,7 @@ Keep the deployment units separate even though the source is in one repository:
 
 ```text
 www.<domain> / <domain>  -> apps/marketing -> Cloudflare Workers Static Assets
-app.<domain>             -> apps/dashboard -> Cloudflare Workers Static Assets
+app.<domain>             -> apps/app -> Cloudflare Workers Static Assets
 api.<domain>             -> apps/api       -> Cloudflare Worker
 background jobs          -> queues/workflows -> portable processing workers
 ```
@@ -177,7 +177,7 @@ Add interactive product demonstrations or a disposable prototype. Keep prototype
 
 ### Stage 3 — SaaS foundation
 
-Add `apps/dashboard`, authentication, multi-tenant authorization, PostgreSQL, audit logging, file storage, and the first narrow workflow selected by customer research. Expand `apps/api`; do not embed product logic in the marketing application.
+Add `apps/app`, authentication, multi-tenant authorization, PostgreSQL, audit logging, file storage, and the first narrow workflow selected by customer research. Expand `apps/api`; do not embed product logic in the marketing application.
 
 ### Stage 4 — document and compliance platform
 

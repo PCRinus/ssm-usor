@@ -27,7 +27,7 @@ Each app imports `@ssm-usor/ui/globals.css` once in its CSS entry point and adds
 `@source` directory, relative to that CSS file:
 
 ```css
-/* apps/dashboard/src/styles.css */
+/* apps/app/src/styles.css */
 @import '@ssm-usor/ui/globals.css';
 @source './';
 ```

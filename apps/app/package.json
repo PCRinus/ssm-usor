@@ -1,5 +1,5 @@
 {
-  "name": "@ssm-usor/dashboard",
+  "name": "@ssm-usor/app",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,24 +7,35 @@
     "build": "tsc -b && vite build",
     "dev": "vite --port 5173",
     "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
     "preview": "vite preview --port 4173",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "@ssm-usor/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.116.0",
+    "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-router": "^1.170.36",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.88.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.0.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "vite": "^8.2.2",
+    "vitest": "^5.0.0",
     "wrangler": "^4.127.1"
   }
 }
