@@ -1,4 +1,6 @@
 ---
+import { Badge } from '@ssm-usor/ui/components/badge';
+import { buttonVariants } from '@ssm-usor/ui/components/button';
 import { ArrowRight, Check, Clock3, FilePenLine, ShieldCheck } from 'lucide-react';
 
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -26,16 +28,22 @@ import ProductPillars from './ProductPillars.astro';
     <main>
       <section class="hero wrap">
         <div class="hero-copy">
-          <div class="status">
-            <span></span> Platformă în dezvoltare · căutăm parteneri pilot
-          </div>
+          <Badge
+            variant="outline"
+            className="gap-2.5 whitespace-normal border-brand-lime/25 bg-brand-forest px-3 py-2 text-[0.68rem] font-bold text-primary-foreground"
+          >
+            <span class="size-1.5 shrink-0 rounded-full bg-brand-lime" aria-hidden="true"></span>
+            Platformă în dezvoltare · căutăm parteneri pilot
+          </Badge>
           <h1>Toți clienții tăi SSM.<br /><em>Un singur loc de lucru.</em></h1>
           <p class="lede">
             Creezi și editezi documente, colectezi date, organizezi instruiri și urmărești toate
             termenele—fără să muți fișiere între Word, PDF, email și alte aplicații.
           </p>
           <div class="hero-actions">
-            <a class="primary" href="#pilot">Devino partener pilot <ArrowRight size={18} /></a>
+            <a class={buttonVariants({ className: 'primary' })} href="#pilot">
+              Devino partener pilot <ArrowRight size={18} />
+            </a>
             <a class="secondary" href="#produs">Vezi cum ar funcționa</a>
           </div>
           <ul class="micro-proof" aria-label="Beneficii program pilot">
@@ -195,8 +203,8 @@ import ProductPillars from './ProductPillars.astro';
 <style>
   :global(body) {
     color: #eef6f2;
-    background: #18342e;
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    background: var(--brand-forest);
+    font-family: var(--font-body);
   }
   .site-shell {
     overflow: hidden;
@@ -217,7 +225,7 @@ import ProductPillars from './ProductPillars.astro';
     padding: 5px 9px;
     border-radius: 12px;
     color: #fff;
-    background: #f8f7f1;
+    background: var(--brand-cream);
     text-decoration: none;
   }
   .brand img {
@@ -250,25 +258,6 @@ import ProductPillars from './ProductPillars.astro';
     min-height: 760px;
     padding: 76px 0 110px;
   }
-  .status {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 12px;
-    border: 1px solid #3e5c53;
-    border-radius: 999px;
-    color: #cbdad5;
-    background: #21453c;
-    font-size: 0.68rem;
-    font-weight: 720;
-  }
-  .status span {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #b6d86f;
-    box-shadow: 0 0 0 5px rgb(182 216 111 / 11%);
-  }
   h1 {
     max-width: 680px;
     margin: 28px 0 24px;
@@ -277,7 +266,7 @@ import ProductPillars from './ProductPillars.astro';
     letter-spacing: -0.07em;
   }
   h1 em {
-    color: #b6d86f;
+    color: var(--brand-lime);
     font-style: normal;
   }
   .lede {
@@ -307,8 +296,8 @@ import ProductPillars from './ProductPillars.astro';
     text-decoration: none;
   }
   .primary {
-    color: #18342e;
-    background: #b6d86f;
+    color: var(--brand-forest);
+    background: var(--brand-lime);
     box-shadow: 0 12px 40px rgb(182 216 111 / 12%);
   }
   .secondary {
@@ -378,7 +367,7 @@ import ProductPillars from './ProductPillars.astro';
     border: 1px solid #58756c;
     border-radius: 50%;
     color: #19372f;
-    background: #b6d86f;
+    background: var(--brand-lime);
     box-shadow: 0 30px 80px rgb(0 0 0 / 18%);
     text-align: center;
     transform: translate(-50%, -50%);
@@ -421,7 +410,7 @@ import ProductPillars from './ProductPillars.astro';
     height: 31px;
     border-radius: 9px;
     color: #213a32;
-    background: #b6d86f;
+    background: var(--brand-lime);
     font-size: 0.55rem;
   }
   .map-node span {
@@ -479,7 +468,7 @@ import ProductPillars from './ProductPillars.astro';
     color: #c9d8d3;
   }
   .proof-bar strong {
-    color: #b6d86f;
+    color: var(--brand-lime);
   }
   .proof-bar span {
     white-space: nowrap;
@@ -545,7 +534,7 @@ import ProductPillars from './ProductPillars.astro';
     height: 46px;
     border-radius: 13px;
     color: #21453c;
-    background: #b6d86f;
+    background: var(--brand-lime);
   }
   .number {
     position: absolute;
@@ -590,7 +579,7 @@ import ProductPillars from './ProductPillars.astro';
   .document-stack span {
     grid-row: span 2;
     align-self: center;
-    color: #b6d86f;
+    color: var(--brand-lime);
     font-size: 0.52rem;
     font-weight: 850;
   }
@@ -637,7 +626,7 @@ import ProductPillars from './ProductPillars.astro';
     height: 36px;
     border: 1px solid #4b665e;
     border-radius: 50%;
-    color: #b6d86f;
+    color: var(--brand-lime);
     font-size: 0.7rem;
     font-weight: 850;
   }
@@ -661,7 +650,7 @@ import ProductPillars from './ProductPillars.astro';
     padding: 120px 0;
   }
   .pilot-label {
-    color: #b6d86f;
+    color: var(--brand-lime);
     font-size: 0.7rem;
     font-weight: 850;
     letter-spacing: 0.1em;

@@ -16,14 +16,17 @@
     "@astrojs/check": "^0.9.10",
     "@astrojs/react": "^6.0.4",
     "@astrojs/sitemap": "^3.7.3",
+    "@ssm-usor/ui": "workspace:*",
     "astro": "^7.2.9",
     "lucide-react": "^1.37.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "wrangler": "^4.127.1"
   }

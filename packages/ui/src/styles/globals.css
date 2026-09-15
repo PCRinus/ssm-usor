@@ -1,0 +1,19 @@
+@import 'tailwindcss' source(none);
+@import '@ssm-usor/design-tokens/theme.css';
+@import 'tw-animate-css';
+
+/* Each app registers its own source directory in its CSS entry point. */
+@source '../';
+
+/* Dark variants are opt-in; the shared palette is currently a light theme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+}

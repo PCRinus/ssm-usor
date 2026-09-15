@@ -1,0 +1,29 @@
+/* Framework-neutral brand and semantic tokens shared by all web applications. */
+@layer base {
+  :root {
+    --brand-forest: #18342e;
+    --brand-lime: #b6d86f;
+    --brand-cream: #f8f7f1;
+    --font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+    --radius: 0.75rem;
+
+    --background: var(--brand-cream);
+    --foreground: var(--brand-forest);
+    --card: #ffffff;
+    --card-foreground: var(--brand-forest);
+    --popover: #ffffff;
+    --popover-foreground: var(--brand-forest);
+    --primary: var(--brand-forest);
+    --primary-foreground: #eef6f2;
+    --secondary: #edf0eb;
+    --secondary-foreground: var(--brand-forest);
+    --muted: #edf0eb;
+    --muted-foreground: #65736d;
+    --accent: var(--brand-lime);
+    --accent-foreground: var(--brand-forest);
+    --destructive: #b42318;
+    --border: #d4ddd5;
+    --input: #ccd6ce;
+    --ring: #547067;
+  }
+}

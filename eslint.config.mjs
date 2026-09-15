@@ -8,7 +8,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const scriptFiles = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'];
-const reactFiles = ['apps/dashboard/**/*.{js,jsx,ts,tsx}'];
+const reactFiles = ['apps/dashboard/**/*.{js,jsx,ts,tsx}', 'packages/ui/**/*.{js,jsx,ts,tsx}'];
 
 const orderedImports = {
   plugins: {
@@ -43,6 +43,15 @@ export default defineConfig([
     extends: [reactHooks.configs.flat['recommended-latest'], reactRefresh.configs.vite],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    files: ['packages/ui/**/*.{jsx,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        { allowConstantExport: true, allowExportNames: ['buttonVariants', 'badgeVariants'] },
+      ],
     },
   },
   {

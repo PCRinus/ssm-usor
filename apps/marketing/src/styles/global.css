@@ -1,55 +1,61 @@
-:root {
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-}
+@import '@ssm-usor/ui/globals.css';
 
-* {
-  box-sizing: border-box;
-}
+@source '../';
 
-html {
-  scroll-behavior: smooth;
-}
+@layer base {
+  :root {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
 
-body {
-  min-width: 320px;
-  margin: 0;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-a {
-  color: inherit;
-}
+  body {
+    min-width: 320px;
+    margin: 0;
+  }
 
-img,
-svg {
-  display: block;
-  max-width: 100%;
-}
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
+  a {
+    color: inherit;
+  }
 
-:focus-visible {
-  outline: 3px solid currentColor;
-  outline-offset: 4px;
-}
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

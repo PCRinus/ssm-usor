@@ -12,6 +12,7 @@
     "dev:marketing": "pnpm --filter @ssm-usor/marketing dev",
     "dev:dashboard": "pnpm --filter @ssm-usor/dashboard dev",
     "dev:api": "pnpm --filter @ssm-usor/api dev",
+    "ui:add": "shadcn add --cwd apps/dashboard",
     "preview:marketing": "pnpm --filter @ssm-usor/marketing preview:cloudflare",
     "typecheck": "turbo typecheck",
     "lint": "pnpm lint:eslint && pnpm lint:format",
@@ -38,6 +39,7 @@
     "lefthook": "^2.1.12",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
+    "shadcn": "^4.21.0",
     "turbo": "^2.10.12",
     "typescript-eslint": "^8.68.0"
   }
