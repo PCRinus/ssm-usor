@@ -53,7 +53,7 @@ function AppNavigation({
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
   return (
-    <Sidebar collapsible="icon" className="top-16 h-[calc(100svh-4rem)]">
+    <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
