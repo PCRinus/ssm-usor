@@ -16,3 +16,21 @@ export const apiHealthSchema = z.object({
 });
 
 export type ApiHealth = z.infer<typeof apiHealthSchema>;
+
+export const currentUserSchema = z.object({
+  id: z.uuid(),
+  email: z.email().nullable(),
+});
+
+export type CurrentUser = z.infer<typeof currentUserSchema>;
+
+export const meResponseSchema = z.object({ user: currentUserSchema });
+
+export type MeResponse = z.infer<typeof meResponseSchema>;
+
+export const apiErrorResponseSchema = z.object({
+  error: z.enum(['unauthorized', 'service_unavailable', 'not_found', 'internal_error']),
+  message: z.string(),
+});
+
+export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

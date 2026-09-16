@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local Wrangler development.
+# Use the same project URL and publishable key as apps/app/.env.local (without VITE_).
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173

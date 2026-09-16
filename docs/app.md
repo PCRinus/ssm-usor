@@ -64,7 +64,7 @@ For local deployment after Cloudflare authentication, `pnpm deploy:app` builds u
 local environment and publishes it. For packaging validation without publishing, run
 `pnpm --filter @ssm-usor/app build` followed by `pnpm --filter @ssm-usor/app deploy:dry-run`.
 
-When Hono is connected, its origin allowlist must include `https://app.ssmusor.ro`. Email/password
+The Hono API's production origin allowlist includes `https://app.ssmusor.ro`. Email/password
 login does not require a redirect callback; configure Supabase's Site URL and allowed redirect
 URLs for this domain when adding confirmation, password reset, or OAuth flows.
 
@@ -115,9 +115,10 @@ handwritten API client is introduced here.
   alone. If logout fails, the app reports the failure without pretending the session ended.
 - Login credentials are submitted directly through the SDK, not stored as TanStack mutation data.
 
-These browser guards control navigation only. The Hono API must independently verify bearer
-tokens and enforce application permissions in the next step. Being signed in does not itself
-make a user an administrator. The current landing page contains no API-backed business data.
+These browser guards control navigation only. The [Hono API](api.md) independently verifies bearer
+tokens for `/me`. Application permissions belong in API handlers as business routes are added;
+being signed in does not itself make a user an administrator. The current landing page contains
+no API-backed business data; the generated API client arrives in the OpenAPI/Orval step.
 
 ## Verification
 

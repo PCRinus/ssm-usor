@@ -30,6 +30,9 @@ components with `pnpm ui:add <component>`.
 See [dashboard setup and authentication](docs/app.md) for Supabase browser configuration,
 routes, session handling, and tests.
 
+See [API setup and authentication](docs/api.md) for the Hono Worker, local Supabase bindings,
+bearer-token verification, and the `/health` and `/me` routes.
+
 Use Node.js 24 or newer. The `.nvmrc` tracks the Node 24 major line, so with nvm run `nvm use`, then:
 
 ```bash
