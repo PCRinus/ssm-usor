@@ -100,5 +100,5 @@ pnpm --filter @ssm-usor/api deploy:dry-run
 
 API tests exercise Hono and the real Supabase SDK with mocked HTTP responses: token forwarding,
 identity isolation, response filtering, invalid credentials, anonymous users, configuration
-errors, upstream failures, CORS, and JSON errors. They do not create Supabase users. A live
-successful login-to-API check belongs with the admin seed step.
+errors, upstream failures, CORS, and JSON errors. They do not create Supabase users. The [development admin guide](development-admin.md) covers
+the seed command and completed live login-to-API verification.

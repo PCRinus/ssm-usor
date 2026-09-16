@@ -4,3 +4,6 @@
 **/.wrangler
 node_modules
 pnpm-lock.yaml
+
+**/supabase/.temp
+**/supabase/.branches

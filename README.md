@@ -15,6 +15,8 @@ required GitHub secrets, and local Wrangler commands.
 
 See the [API client guide](docs/api-client.md) for OpenAPI generation, Orval, and `VITE_API_URL`.
 
+See the [development admin guide](docs/development-admin.md) for local login credentials and `pnpm seed:admin`.
+
 ## Workspace
 
 The pnpm/Turborepo workspace contains:

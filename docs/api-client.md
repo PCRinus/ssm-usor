@@ -95,5 +95,5 @@ pnpm dev:app
 
 The dashboard now loads the verified account through the generated `/me` query and displays
 loading, success, and recoverable error states. Tests cover the real generated client against
-mock HTTP responses, token refresh, cancellation, and query error behavior. A successful live
-Supabase login-to-API check remains part of the admin seed step.
+mock HTTP responses, token refresh, cancellation, and query error behavior. The [development admin guide](development-admin.md) records the completed live Supabase
+login-to-API and token-refresh checks.

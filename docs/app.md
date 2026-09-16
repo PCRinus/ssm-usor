@@ -27,9 +27,10 @@ ignored by Git. Restart Vite after changing configuration if it has not restarte
 pnpm dev:app
 ```
 
-Open `http://localhost:5173/`. An existing Supabase email/password user can sign in. This step
-does not create users, expose registration, or grant administrator privileges; the admin seed
-is a later step. Missing configuration produces an unavailable screen instead of a broken form.
+Open `http://localhost:5173/`. An existing Supabase email/password user can sign in.
+The [development admin guide](development-admin.md) documents the seeded account and how to
+rerun the seed. Registration is not exposed. Missing configuration produces an unavailable
+screen instead of a broken form.
 
 For deployment, supply the same public variables when **building** the SPA. Setting Worker
 runtime variables alone cannot change an already-built static bundle. Turbo includes the public
@@ -135,5 +136,5 @@ pnpm deploy:dry-run
 Vitest and Testing Library exercise real route transitions and form interactions against a mocked
 Supabase auth boundary. Tests cover restored sessions, invalid credentials, successful login and
 logout, remote sign-out, failed logout, account/cache isolation, cancellation, initialization races,
-missing configuration, and not-found routes. They do not create remote users or prove that a seeded
-admin can sign in; that live check belongs with the seed step.
+missing configuration, and not-found routes. They do not create remote users. The [development admin guide](development-admin.md) records
+the separate live login, API, session-restoration, and logout checks.
