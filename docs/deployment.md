@@ -12,7 +12,10 @@ is ready for public access.
 
 ## GitHub environment
 
-Create a GitHub Actions environment named `design-preview` under **Settings → Environments**.
+Use the GitHub Actions environment named `production` under **Settings → Environments**.
+It is shared with the API and SPA deployment workflow, including the Cloudflare account ID,
+deployment token, and environment protection rules. The workflows keep separate triggers and
+concurrency groups; sharing the environment does not require deploying them together.
 
 Add these environment variables under **Environment variables**:
 
@@ -97,7 +100,7 @@ competing `A`, `AAAA`, or `CNAME` record for that hostname manually. The future 
 
 ## First deployment
 
-1. Confirm the `design-preview` GitHub environment contains both variables and the API token secret
+1. Confirm the `production` GitHub environment contains both variables and the API token secret
    listed above.
 2. Set the encrypted Worker password once with
    `pnpm --filter @ssm-usor/marketing exec wrangler secret put BASIC_AUTH_PASSWORD`.

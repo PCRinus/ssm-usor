@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      name: app-production
+      name: production
       url: https://app.ssmusor.ro
     env:
       VITE_API_URL: https://api.ssmusor.ro

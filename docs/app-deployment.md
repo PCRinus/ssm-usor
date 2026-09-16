@@ -15,7 +15,8 @@ and Basic Auth settings are independent; see the [marketing deployment guide](de
 
 ## One-time GitHub configuration
 
-In **Settings → Environments**, create `app-production`. Add these environment values:
+In **Settings → Environments**, use the shared `production` environment. Both deployment
+workflows use its variables, secrets, and protection rules. Add these values for the API and SPA:
 
 | Name                            | Kind     | Value                                                                                            |
 | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
@@ -26,11 +27,15 @@ In **Settings → Environments**, create `app-production`. Add these environment
 | `E2E_EMAIL`                     | Secret   | Email of an existing Supabase test user.                                                         |
 | `E2E_PASSWORD`                  | Secret   | Password for that test user.                                                                     |
 
-Repository-level variables and secrets also work. Values scoped only to marketing's
-`design-preview` environment are unavailable to `app-production`. GitHub cannot reveal an
-existing secret for copying; use the original Cloudflare token or create another suitable
-token. The Cloudflare **Edit Cloudflare Workers** token template is a starting point; scope it
-to the account and zone hosting this project, as described in the marketing deployment guide.
+The Cloudflare account ID and deployment token are shared with marketing. Its
+`BASIC_AUTH_USERNAME` variable also lives in `production`; see the marketing deployment guide.
+Marketing deploys automatically after successful CI on `main`, while **Deploy app** remains
+manual. Each workflow has its own concurrency group so they can deploy independently.
+
+Repository-level variables and secrets also work, but values scoped to other environments
+are unavailable here. The Cloudflare **Edit Cloudflare Workers** token template is a starting
+point; scope it to the account and zone hosting this project, as described in the marketing
+deployment guide.
 
 The workflow fixes `VITE_API_URL` to `https://api.ssmusor.ro`; no GitHub variable is needed
 for it. It builds the public Supabase settings into the SPA and passes the same settings to
