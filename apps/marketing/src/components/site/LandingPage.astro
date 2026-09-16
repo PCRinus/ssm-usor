@@ -1,10 +1,8 @@
 ---
 import FluxLayout from '../../layouts/FluxLayout.astro';
-import PhoneFlow from '../site/PhoneFlow.astro';
-import ShowcasePanels from '../site/ShowcasePanels.astro';
-import { compact } from './compact';
-import ConceptSwitcher from './ConceptSwitcher.astro';
-import { cta, links, status } from './content';
+import { copy, cta, links, status } from './copy';
+import PhoneFlow from './PhoneFlow.astro';
+import ShowcasePanels from './ShowcasePanels.astro';
 
 const scattered = [
   { label: 'Word', x: 6, y: 8, r: -6 },
@@ -21,12 +19,11 @@ const scattered = [
 <FluxLayout
   title="SSM Ușor — Word, PDF, email, semnare, arhivă. Sau un singur flux."
   description="Adaugi clientul și angajații, creezi documentele și testele, semnezi cu toată lumea. Într-un singur loc. Pentru servicii externe SSM din România."
-  noindex
 >
   <section class="hero wrap">
     <p class="status">{status.short}</p>
     <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
-    <p class="lede">{compact.lede}</p>
+    <p class="lede">{copy.lede}</p>
     <div class="actions">
       <a class="button primary" href={links.login}>{cta.login}</a>
       <span class="button quiet soon" aria-disabled="true">
@@ -61,7 +58,7 @@ const scattered = [
       <div class="after">
         <p class="panel-title">În SSM Ușor</p>
         <ol class="line">
-          {compact.steps.map((step, index) => <li style={`--i:${index}`}>{step.title}</li>)}
+          {copy.steps.map((step, index) => <li style={`--i:${index}`}>{step.title}</li>)}
         </ol>
       </div>
     </figure>
@@ -71,7 +68,7 @@ const scattered = [
     <h2>Patru pași, pentru fiecare client.</h2>
     <ol class="steps">
       {
-        compact.steps.map((step, index) => (
+        copy.steps.map((step, index) => (
           <li>
             <span class="n">{index + 1}</span>
             <h3>{step.title}</h3>
@@ -88,11 +85,11 @@ const scattered = [
     <div class="wrap">
       <div class="section-head">
         <h2>Ce poți face în platformă.</h2>
-        <p>{compact.documentsNote}</p>
+        <p>{copy.documentsNote}</p>
       </div>
       <div class="doc-groups">
         {
-          compact.documents.map((group) => (
+          copy.documents.map((group) => (
             <div>
               <h3>{group.title}</h3>
               <ul>
@@ -110,11 +107,11 @@ const scattered = [
   <section class="signers-section wrap" id="semnaturi">
     <div class="section-head">
       <h2>Cine semnează ce.</h2>
-      <p>{compact.signatureNote}</p>
+      <p>{copy.signatureNote}</p>
     </div>
     <ul class="signers">
       {
-        compact.signers.map((signer) => (
+        copy.signers.map((signer) => (
           <li>
             <h3>{signer.who}</h3>
             <p>{signer.signs}</p>
@@ -130,7 +127,7 @@ const scattered = [
     <h2>Și restul, când ai nevoie.</h2>
     <ul class="also-list">
       {
-        compact.also.map((item) => (
+        copy.also.map((item) => (
           <li>
             <h3>{item.title}</h3>
             <p>{item.text}</p>
@@ -150,7 +147,7 @@ const scattered = [
         </div>
       </div>
       <ul class="trust">
-        {compact.trust.map((item) => <li>{item}</li>)}
+        {copy.trust.map((item) => <li>{item}</li>)}
       </ul>
     </div>
   </section>
@@ -159,7 +156,7 @@ const scattered = [
     <h2>Întrebări frecvente</h2>
     <div class="faq-list">
       {
-        compact.faq.map((item) => (
+        copy.faq.map((item) => (
           <details>
             <summary>{item.q}</summary>
             <p>{item.a}</p>
@@ -168,8 +165,6 @@ const scattered = [
       }
     </div>
   </section>
-
-  <ConceptSwitcher current="fluxul" />
 </FluxLayout>
 
 <script>

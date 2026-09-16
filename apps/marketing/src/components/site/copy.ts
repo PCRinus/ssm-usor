@@ -1,10 +1,52 @@
-import type { DocumentGroup, Faq, Signer, Step } from './content';
-
 /**
- * Compact copy for the merged concept (/concepte/fluxul). Same story as content.ts, far fewer
- * words: one short line per item, no paragraphs outside the hero.
+ * Copy for the landing page and the shared header and footer.
+ *
+ * Narrative: an external SSM service adds a client, adds its employees, creates the documents,
+ * contracts and tests for them, and gets everything signed by the right people, in one place.
+ * Portfolio, deadlines, visits and evidence exist but stay secondary.
+ *
+ * Romanian, sentence case, with diacritics; one short line per item outside the hero.
  */
-export const compact = {
+
+export const links = {
+  login: 'https://app.ssmusor.ro/login',
+  email: 'contact@ssmusor.ro',
+  notifyHref:
+    'mailto:contact@ssmusor.ro?subject=Anun%C8%9B%C4%83-m%C4%83%20c%C3%A2nd%20se%20deschid%20conturile&body=Bun%C4%83%2C%0A%0AVreau%20s%C4%83%20fiu%20anun%C8%9Bat%20c%C3%A2nd%20pot%20crea%20un%20cont%20SSM%20U%C8%99or.%0A%0AFirma%3A%20%0ANum%C4%83r%20de%20clien%C8%9Bi%3A%20',
+};
+
+export const cta = {
+  login: 'Intră în cont',
+  signup: 'Creează un cont',
+  signupNote: 'în curând',
+  notify: 'Anunță-mă când se deschid conturile',
+};
+
+export const status = {
+  short: 'Platformă în dezvoltare. Conturile noi se deschid în curând.',
+};
+
+export interface Step {
+  title: string;
+  text: string;
+}
+
+export interface DocumentGroup {
+  title: string;
+  items: string[];
+}
+
+export interface Signer {
+  who: string;
+  signs: string;
+}
+
+export interface Faq {
+  q: string;
+  a: string;
+}
+
+export const copy = {
   lede: 'Adaugi clientul și angajații, creezi documentele și testele, semnezi cu toată lumea. Într-un singur loc.',
   steps: [
     { title: 'Adaugi clientul', text: 'Firma, punctele de lucru și contractul de servicii.' },
