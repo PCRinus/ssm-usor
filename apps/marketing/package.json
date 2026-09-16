@@ -19,7 +19,7 @@
     "@astrojs/sitemap": "^3.7.3",
     "@ssm-usor/ui": "workspace:*",
     "astro": "^7.2.9",
-    "lucide-react": "^1.37.0",
+    "lucide-react": "^1.45.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
