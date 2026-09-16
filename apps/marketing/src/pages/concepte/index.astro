@@ -1,0 +1,196 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const concepts = [
+  {
+    letter: 'A',
+    name: 'Documentul',
+    href: '/concepte/documentul/',
+    premise: 'Studioul de documente este pana de intrare. Pagina pornește de la documentul însuși.',
+    hero: 'O fișă de instruire randată în HTML, cu câmpurile preluate din datele clientului evidențiate, o filă de revizie și banda de semnătură.',
+    type: 'IBM Plex Sans, o singură familie.',
+    tone: 'Luminos, tehnic, editorial. Crem dominant, verde pădure ca cerneală, lime doar pentru acțiune și stare „semnat”.',
+  },
+  {
+    letter: 'B',
+    name: 'Portofoliul',
+    href: '/concepte/portofoliul/',
+    premise:
+      'Cumpărătorul este proprietarul serviciului extern. Pagina răspunde la „ce trebuie făcut săptămâna asta?”.',
+    hero: 'Un tablou de portofoliu pe hârtie crem, pe fundal verde pădure: clienți, sarcini, responsabili, termene și stări.',
+    type: 'Bricolage Grotesque, cu axă optică pentru titluri și text.',
+    tone: 'Dens, operațional, sigur pe el. Hero închis, corp luminos, bandă închisă la final.',
+  },
+  {
+    letter: 'C',
+    name: 'Un singur flux',
+    href: '/concepte/un-singur-flux/',
+    premise: 'Promisiunea este eliminarea fragmentării Word, PDF, email, semnare, arhivă.',
+    hero: 'Înainte și după: unelte împrăștiate, legate de linii încurcate, față în față cu o singură linie lime prin cinci pași. Linia continuă apoi de-a lungul paginii.',
+    type: 'Newsreader pentru titluri, Source Sans 3 pentru text.',
+    tone: 'Calm, narativ, coloană îngustă de citit. Alb, verde pădure, un singur fir lime.',
+  },
+];
+---
+
+<BaseLayout
+  title="Concepte de design pentru pagina SSM Ușor"
+  description="Galerie locală cu direcțiile de design propuse pentru pagina de prezentare."
+  noindex
+>
+  <main class="gallery">
+    <header>
+      <img src="/brand/logo.png" alt="SSM Ușor" width="160" />
+      <h1>Trei direcții pentru pagina de prezentare</h1>
+      <p>
+        Toate păstrează paleta, logo-ul și resursele existente. Diferă în ceea ce pun în prim-plan,
+        în tipografie și în structura paginii. Copy-ul este rescris pornind de la documentele de
+        produs și de la planul de validare. Pagina actuală rămâne pe <a href="/">rădăcină</a>.
+      </p>
+    </header>
+
+    <ol>
+      {
+        concepts.map((concept) => (
+          <li>
+            <a class="card" href={concept.href}>
+              <span class="letter">{concept.letter}</span>
+              <div>
+                <h2>{concept.name}</h2>
+                <p class="premise">{concept.premise}</p>
+                <dl>
+                  <dt>Hero</dt>
+                  <dd>{concept.hero}</dd>
+                  <dt>Tipografie</dt>
+                  <dd>{concept.type}</dd>
+                  <dt>Ton</dt>
+                  <dd>{concept.tone}</dd>
+                </dl>
+                <span class="open">Deschide conceptul</span>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+
+    <footer>
+      <p>
+        Galeria și conceptele nu sunt indexate și nu apar în sitemap. Pentru comparație rapidă,
+        fiecare concept are în colțul din stânga jos o bară de navigare între variante.
+      </p>
+    </footer>
+  </main>
+</BaseLayout>
+
+<style>
+  .gallery {
+    width: min(960px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 56px 0 80px;
+    color: #18342e;
+    font-family: var(--font-body);
+  }
+  header {
+    max-width: 640px;
+    margin-bottom: 40px;
+  }
+  header img {
+    margin-bottom: 28px;
+  }
+  h1 {
+    margin: 0 0 14px;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    margin: 0;
+    color: #5b6b64;
+    line-height: 1.6;
+  }
+  header a {
+    color: #18342e;
+  }
+  ol {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .card {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 20px;
+    padding: 24px 28px 24px 20px;
+    border: 1px solid #d7ddd4;
+    border-radius: 14px;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+  }
+  .card:hover {
+    border-color: #18342e;
+  }
+  .letter {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: #18342e;
+    color: #b6d86f;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  h2 {
+    margin: 8px 0 6px;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+  }
+  .premise {
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+  dl {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 6px 16px;
+    margin: 0 0 18px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  dt {
+    color: #5b6b64;
+  }
+  dd {
+    margin: 0;
+  }
+  .open {
+    display: inline-block;
+    padding: 9px 14px;
+    border-radius: 8px;
+    background: #b6d86f;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  footer {
+    margin-top: 40px;
+    color: #5b6b64;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  @media (max-width: 600px) {
+    .card {
+      grid-template-columns: 1fr;
+    }
+    dl {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+    dt {
+      margin-top: 8px;
+    }
+  }
+</style>

@@ -1,0 +1,81 @@
+---
+/**
+ * Small fixed bar for previewing landing-page concepts locally.
+ * Rendered only on /concepte pages; those pages are noindex and excluded from the sitemap.
+ */
+interface Props {
+  current: 'actual' | 'documentul' | 'portofoliul' | 'un-singur-flux';
+}
+
+const { current } = Astro.props;
+
+const items = [
+  { key: 'actual', label: 'Actual', href: '/' },
+  { key: 'documentul', label: 'A. Documentul', href: '/concepte/documentul/' },
+  { key: 'portofoliul', label: 'B. Portofoliul', href: '/concepte/portofoliul/' },
+  { key: 'un-singur-flux', label: 'C. Un singur flux', href: '/concepte/un-singur-flux/' },
+] as const;
+---
+
+<nav class="concept-switcher" aria-label="Concepte de design">
+  <a class="all" href="/concepte/">Concepte</a>
+  {
+    items.map((item) => (
+      <a href={item.href} aria-current={item.key === current ? 'page' : undefined}>
+        {item.label}
+      </a>
+    ))
+  }
+</nav>
+
+<style>
+  .concept-switcher {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    z-index: 50;
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #18342e;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .concept-switcher a {
+    padding: 8px 10px;
+    border-radius: 7px;
+    color: #cfdad5;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .concept-switcher a:hover {
+    background: #2a5045;
+    color: #fff;
+  }
+  .concept-switcher a[aria-current='page'] {
+    background: #b6d86f;
+    color: #18342e;
+    font-weight: 600;
+  }
+  .concept-switcher .all {
+    color: #9fb39c;
+    border-right: 1px solid #2a5045;
+    border-radius: 7px 0 0 7px;
+    margin-right: 2px;
+  }
+  @media (max-width: 720px) {
+    .concept-switcher {
+      right: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+  }
+  @media print {
+    .concept-switcher {
+      display: none;
+    }
+  }
+</style>

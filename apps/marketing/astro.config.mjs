@@ -6,7 +6,13 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://ssmusor.ro',
   output: 'static',
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    sitemap({
+      // Local design concepts under /concepte are previews, not public pages.
+      filter: (page) => !page.includes('/concepte'),
+    }),
+  ],
   vite: {
     plugins: [tailwindcss()],
   },

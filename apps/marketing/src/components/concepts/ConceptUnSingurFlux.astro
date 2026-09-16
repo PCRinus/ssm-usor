@@ -1,0 +1,826 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ConceptSwitcher from './ConceptSwitcher.astro';
+import {
+  audience,
+  contact,
+  cta,
+  faq,
+  outcomes,
+  pillars,
+  pilotOffer,
+  platformFlow,
+  principles,
+  status,
+  trust,
+} from './content';
+
+const scattered = [
+  { label: 'Word', x: 6, y: 8, r: -6 },
+  { label: 'Excel', x: 58, y: 2, r: 4 },
+  { label: 'PDF', x: 30, y: 30, r: 3 },
+  { label: 'Email', x: 70, y: 40, r: -5 },
+  { label: 'Aplicație de semnare', x: 4, y: 58, r: 5 },
+  { label: 'WhatsApp', x: 52, y: 72, r: -3 },
+  { label: 'Dosar fizic', x: 22, y: 80, r: 2 },
+  { label: 'Calendar', x: 72, y: 82, r: 6 },
+];
+
+const moments = [
+  {
+    title: 'Lista de angajați nu mai seamănă cu cea de la client',
+    text: 'HR a modificat două funcții și a scos un om, dar fișele au fost generate din varianta veche. Nimeni nu știe care listă e cea bună.',
+  },
+  {
+    title: 'Aceleași date, scrise de mână a cincea oară',
+    text: 'Denumirea firmei, adresa punctului de lucru, numele conducătorului. În fiecare document, de fiecare dată, cu riscul unei greșeli de fiecare dată.',
+  },
+  {
+    title: 'Șablonul are trei versiuni și niciuna nu e sigur cea bună',
+    text: 'O clauză a fost schimbată pentru un client, apoi copiată în alt fișier. Șablonul comun a rămas în urmă. Documentele emise nu mai au legătură cu el.',
+  },
+  {
+    title: 'Cine trebuie să semneze acum?',
+    text: 'Fișa a plecat pe email, clientul a răspuns cu o poză, semnătura conducătorului lipsește, iar termenul de instruire a trecut.',
+  },
+  {
+    title: 'Controlul vine marți',
+    text: 'Dosarul se reconstruiește din foldere, fire de email și un dosar cu șină. Ce nu se găsește în două ore nu există.',
+  },
+];
+---
+
+<BaseLayout
+  title="SSM Ușor — Word, PDF, email, semnare, arhivă. Sau un singur flux."
+  description="SSM Ușor înlocuiește fluxul fragmentat al serviciului extern SSM cu un singur sistem de lucru pentru toți clienții: date, documente, revizuire, semnare și dovezi."
+  themeColor="#ffffff"
+  noindex
+>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Sans+3:wght@400;500;600&display=swap"
+    />
+  </Fragment>
+
+  <div class="flux">
+    <header class="top">
+      <div class="wrap bar">
+        <a class="brand" href="/concepte/un-singur-flux/" aria-label="SSM Ușor">
+          <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
+        </a>
+        <nav aria-label="Secțiuni">
+          <a href="#problema">Problema</a>
+          <a href="#sistem">Sistemul</a>
+          <a href="#principii">Principii</a>
+          <a href="#pilot">Program pilot</a>
+        </nav>
+        <a class="button primary small" href={contact.pilotHref}>{cta.pilot}</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <p class="status">{status.short}</p>
+        <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
+        <p class="lede">
+          SSM Ușor este sistemul de lucru al serviciului extern de prevenire și protecție. Creezi și
+          editezi documente, colectezi date de la clienți, organizezi instruiri și testări, semnezi
+          electronic și urmărești toate termenele fără să muți fișiere între aplicații.
+        </p>
+        <div class="actions">
+          <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
+          <a class="button quiet" href={contact.launchHref}>{cta.launch}</a>
+        </div>
+
+        <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
+          <div class="before">
+            <p class="panel-title">Azi</p>
+            <div class="scatter" aria-hidden="true">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M12 14 C 40 5, 45 45, 66 44"></path>
+                <path d="M66 44 C 80 60, 30 60, 12 62"></path>
+                <path d="M12 62 C 5 80, 40 70, 58 76"></path>
+                <path d="M58 76 C 70 90, 40 100, 28 92"></path>
+                <path d="M34 34 C 20 20, 60 10, 62 6"></path>
+                <path d="M34 34 C 50 50, 60 90, 80 96"></path>
+                <path d="M62 6 C 90 20, 85 40, 66 44"></path>
+              </svg>
+              {
+                scattered.map((tile) => (
+                  <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg`}>
+                    {tile.label}
+                  </span>
+                ))
+              }
+            </div>
+            <p class="panel-note">
+              Fiecare unealtă are propria copie a datelor. Fiecare trecere pierde context.
+            </p>
+          </div>
+          <div class="after">
+            <p class="panel-title">În SSM Ușor</p>
+            <ol class="line">
+              {
+                platformFlow.map((item) => (
+                  <li>
+                    <b>{item.step}</b>
+                    <span>{item.text}</span>
+                  </li>
+                ))
+              }
+            </ol>
+          </div>
+        </figure>
+        <p class="audience">{audience}</p>
+      </section>
+
+      <div class="thread">
+        <section class="reading" id="problema">
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Unde se pierde timpul.</h2>
+          <p class="intro">
+            Munca unui serviciu extern este recurentă, împărțită între furnizor și angajator și grea
+            în dovezi. Nu instrumentele sunt problema, ci trecerea între ele. Câteva momente pe care
+            le știi.
+          </p>
+          <ul class="moments">
+            {
+              moments.map((moment) => (
+                <li>
+                  <h3>{moment.title}</h3>
+                  <p>{moment.text}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+
+        <section class="reading" id="sistem">
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Un singur sistem de lucru.</h2>
+          <p class="intro">
+            Nu un generator de documente cu semnătură lipită la final, ci stratul de operare din
+            jurul lor: clienți, oameni, obligații, documente, instruiri, vizite și dovezi care
+            folosesc aceleași date.
+          </p>
+          <dl class="pillars">
+            {
+              pillars.map((pillar) => (
+                <div>
+                  <dt>{pillar.title}</dt>
+                  <dd>{pillar.text}</dd>
+                </div>
+              ))
+            }
+          </dl>
+        </section>
+
+        <section class="reading" id="principii">
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Cum îl construim.</h2>
+          <p class="intro">
+            Cinci reguli pe care le respectăm chiar și atunci când ar fi mai comod să nu o facem.
+          </p>
+          <ol class="principles">
+            {
+              principles.map((principle) => (
+                <li>
+                  <h3>{principle.title}</h3>
+                  <p>{principle.text}</p>
+                </li>
+              ))
+            }
+          </ol>
+        </section>
+
+        <section class="reading wide" id="rezultate">
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Patru lucruri pe care le validăm în pilot.</h2>
+          <ul class="outcomes">
+            {
+              outcomes.map((item) => (
+                <li>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+
+        <section class="reading" id="pilot">
+          <span class="dot end" aria-hidden="true"></span>
+          <h2>Program pilot pentru 2–3 servicii externe.</h2>
+          <p class="intro">{status.long}</p>
+          <div class="offer">
+            <div>
+              <h3>Ce primești</h3>
+              <ul>
+                {pilotOffer.give.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+            <div>
+              <h3>Ce așteptăm de la tine</h3>
+              <ul>
+                {pilotOffer.ask.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          </div>
+          <div class="actions">
+            <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
+            <a class="button quiet" href={contact.launchHref}>{cta.launch}</a>
+          </div>
+        </section>
+      </div>
+
+      <section class="trust">
+        <div class="wrap">
+          <h2>Pe ce te poți baza.</h2>
+          <ul>
+            {
+              trust.map((item) => (
+                <li>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </section>
+
+      <section class="faq wrap" id="intrebari">
+        <h2>Întrebări frecvente</h2>
+        <div class="faq-list">
+          {
+            faq.map((item) => (
+              <details>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
+        <p>
+          Sistemul de lucru pentru servicii externe de prevenire și protecție. Scrie-ne la
+          <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+        </p>
+        <p class="fine">
+          SSM Ușor nu oferă consultanță juridică și nu înlocuiește responsabilitatea specialistului
+          autorizat. Exemplele de pe această pagină sunt ilustrative.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <ConceptSwitcher current="un-singur-flux" />
+</BaseLayout>
+
+<style>
+  :global(body) {
+    background: #ffffff;
+  }
+  .flux {
+    --ink: #18342e;
+    --ink-2: #5b6b64;
+    --cream: #f8f7f1;
+    --line: #d7ddd4;
+    --lime: #b6d86f;
+    --lime-soft: #e6f0cf;
+    --sage: #9fb39c;
+    --moss: #2a5045;
+    --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 18px;
+    line-height: 1.55;
+    overflow-x: clip;
+  }
+  .wrap {
+    width: min(1120px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    font-family: var(--serif);
+    font-optical-sizing: auto;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  p {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 22px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .button.primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .button.primary:hover {
+    background: var(--moss);
+  }
+  .button.quiet {
+    border-color: var(--line);
+  }
+  .button.quiet:hover {
+    border-color: var(--ink);
+  }
+  .button.small {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 0.92rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .top {
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 76px;
+  }
+  .brand img {
+    width: 150px;
+    height: auto;
+  }
+  .bar nav {
+    display: flex;
+    gap: 28px;
+    font-size: 0.98rem;
+  }
+  .bar nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .bar nav a:hover {
+    color: var(--ink);
+  }
+
+  /* Hero, centered */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 0 56px;
+    text-align: center;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    font-size: 0.95rem;
+    color: var(--ink-2);
+  }
+  .status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  h1 {
+    max-width: 20ch;
+    font-size: clamp(2.6rem, 5.6vw, 4.8rem);
+    line-height: 1.02;
+  }
+  .lede {
+    max-width: 60ch;
+    margin: 28px 0 32px;
+    font-family: var(--serif);
+    font-size: 1.32rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .audience {
+    max-width: 58ch;
+    margin-top: 36px;
+    color: var(--ink-2);
+    font-size: 0.98rem;
+  }
+
+  .before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    width: 100%;
+    margin: 64px 0 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    text-align: left;
+  }
+  .before,
+  .after {
+    padding: 28px 32px 32px;
+  }
+  .before {
+    background: var(--cream);
+    border-right: 1px solid var(--line);
+  }
+  .after {
+    background: #fff;
+  }
+  .panel-title {
+    margin-bottom: 20px;
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+  }
+  .scatter {
+    position: relative;
+    height: 320px;
+  }
+  .scatter svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--sage);
+    stroke-width: 0.6;
+    stroke-dasharray: 2 2;
+    vector-effect: non-scaling-stroke;
+  }
+  .scatter span {
+    position: absolute;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 0.9rem;
+    color: var(--ink);
+    transform: rotate(var(--r));
+    box-shadow: 0 2px 0 var(--line);
+    white-space: nowrap;
+  }
+  .panel-note {
+    margin-top: 28px;
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+  .line {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .line li {
+    position: relative;
+    padding: 0 0 20px 30px;
+  }
+  .line li::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  .line li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 21px;
+    bottom: -2px;
+    left: 5px;
+    border-left: 2px solid var(--lime);
+  }
+  .line b {
+    display: block;
+    font-weight: 600;
+  }
+  .line span {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  /* Thread: the single line continues down the page */
+  .thread {
+    position: relative;
+    width: min(1120px, calc(100% - 40px));
+    margin: 40px auto 0;
+    padding-left: 72px;
+  }
+  .thread::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 5px;
+    border-left: 2px solid var(--lime);
+  }
+  .reading {
+    position: relative;
+    max-width: 66ch;
+    padding: 56px 0;
+  }
+  .reading.wide {
+    max-width: none;
+  }
+  .dot {
+    position: absolute;
+    top: 68px;
+    left: -72px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  .dot.end {
+    background: var(--ink);
+  }
+  .reading h2 {
+    margin-bottom: 18px;
+    font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+    line-height: 1.1;
+  }
+  .intro {
+    margin-bottom: 32px;
+    font-family: var(--serif);
+    font-size: 1.22rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .reading h3 {
+    font-family: var(--sans);
+    font-size: 1.12rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .moments,
+  .principles {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .moments li,
+  .principles li {
+    padding: 20px 0;
+    border-top: 1px solid var(--line);
+  }
+  .moments p,
+  .principles p {
+    margin-top: 6px;
+    color: var(--ink-2);
+  }
+  .pillars {
+    margin: 0;
+  }
+  .pillars div {
+    padding: 20px 0;
+    border-top: 1px solid var(--line);
+  }
+  .pillars dt {
+    font-weight: 600;
+    font-size: 1.12rem;
+  }
+  .pillars dd {
+    margin: 6px 0 0;
+    color: var(--ink-2);
+  }
+  .outcomes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 32px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .outcomes li {
+    padding-top: 14px;
+    border-top: 1px solid var(--ink);
+  }
+  .outcomes p {
+    margin-top: 6px;
+    color: var(--ink-2);
+    font-size: 0.98rem;
+  }
+  .offer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+  .offer h3 {
+    margin-bottom: 10px;
+  }
+  .offer ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .offer li {
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 0.98rem;
+  }
+  #pilot .actions {
+    justify-content: flex-start;
+  }
+
+  .trust {
+    margin-top: 56px;
+    padding: 80px 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .trust h2 {
+    margin-bottom: 36px;
+    font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+    color: #fff;
+  }
+  .trust ul {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .trust h3 {
+    margin-bottom: 8px;
+    padding-top: 14px;
+    border-top: 1px solid #3a5a50;
+    font-family: var(--sans);
+    font-size: 1.08rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .trust p {
+    color: #b7c8c1;
+    font-size: 0.98rem;
+  }
+
+  .faq {
+    padding: 80px 0 96px;
+  }
+  .faq h2 {
+    margin-bottom: 24px;
+    font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  }
+  .faq-list {
+    max-width: 760px;
+    border-top: 1px solid var(--line);
+  }
+  details {
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    flex-shrink: 0;
+    color: var(--ink-2);
+  }
+  details[open] summary::after {
+    content: '–';
+  }
+  details p {
+    max-width: 66ch;
+    padding-bottom: 20px;
+    color: var(--ink-2);
+  }
+
+  .foot {
+    padding: 40px 0 72px;
+    border-top: 1px solid var(--line);
+    font-size: 0.95rem;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .foot-grid img {
+    width: 130px;
+    height: auto;
+  }
+  .fine {
+    color: var(--ink-2);
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 1080px) {
+    .outcomes,
+    .trust ul {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 760px) {
+    .flux {
+      font-size: 17px;
+    }
+    .wrap {
+      width: min(100% - 32px, 1120px);
+    }
+    .bar nav,
+    .bar .button {
+      display: none;
+    }
+    .hero {
+      padding-top: 48px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 10vw, 3rem);
+    }
+    .lede {
+      font-size: 1.15rem;
+    }
+    .before-after {
+      grid-template-columns: 1fr;
+      margin-top: 40px;
+    }
+    .before {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .before,
+    .after {
+      padding: 22px 20px 24px;
+    }
+    .scatter {
+      height: 280px;
+    }
+    .scatter span {
+      font-size: 0.82rem;
+      padding: 6px 9px;
+    }
+    .thread {
+      width: min(100% - 32px, 1120px);
+      padding-left: 28px;
+    }
+    .thread::before {
+      left: 4px;
+    }
+    .dot {
+      left: -29px;
+      top: 60px;
+    }
+    .reading {
+      padding: 44px 0;
+    }
+    .outcomes,
+    .offer,
+    .trust ul,
+    .foot-grid {
+      grid-template-columns: 1fr;
+    }
+    .actions .button {
+      width: 100%;
+      justify-content: center;
+    }
+    .trust,
+    .faq {
+      padding-block: 64px;
+    }
+  }
+</style>

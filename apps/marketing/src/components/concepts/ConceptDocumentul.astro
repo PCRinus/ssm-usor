@@ -1,0 +1,1194 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ConceptSwitcher from './ConceptSwitcher.astro';
+import {
+  audience,
+  contact,
+  cta,
+  faq,
+  lifecycle,
+  pillars,
+  pilotOffer,
+  platformFlow,
+  status,
+  studioDifferences,
+  todayFlow,
+  trust,
+} from './content';
+---
+
+<BaseLayout
+  title="SSM Ușor — De la șablon la fișă semnată, fără să ieși din platformă"
+  description="Sistemul de lucru al serviciului extern SSM: creezi, editezi, aprobi, semnezi și arhivezi documentele tuturor clienților dintr-un singur loc."
+  themeColor="#f8f7f1"
+  noindex
+>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+    />
+  </Fragment>
+
+  <div class="doc">
+    <header class="top">
+      <div class="wrap bar">
+        <a class="brand" href="/concepte/documentul/" aria-label="SSM Ușor">
+          <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
+        </a>
+        <nav aria-label="Secțiuni">
+          <a href="#studio">Studio de documente</a>
+          <a href="#serviciu">Restul serviciului</a>
+          <a href="#pilot">Program pilot</a>
+          <a href="#intrebari">Întrebări</a>
+        </nav>
+        <a class="button primary small" href={contact.pilotHref}>{cta.pilot}</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <p class="status">{status.short}</p>
+          <h1>De la șablon la fișă semnată, fără să ieși din platformă.</h1>
+          <p class="lede">
+            SSM Ușor este sistemul de lucru al serviciului extern de prevenire și protecție. Creezi,
+            editezi, aprobi, semnezi și arhivezi documentele tuturor clienților dintr-un singur loc,
+            cu datele fiecărui client completate automat și cu fiecare versiune păstrată.
+          </p>
+          <div class="actions">
+            <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
+            <a class="button quiet" href="#flux">Vezi fluxul documentului</a>
+          </div>
+          <p class="audience">{audience}</p>
+        </div>
+
+        <figure class="sheet" aria-label="Exemplu de fișă de instruire generată în platformă">
+          <ul class="callouts" aria-label="Ce se vede în document">
+            <li class="c1">Datele vin din fișa clientului și a angajatului</li>
+            <li class="c2">Tematica este legată de revizia aprobată</li>
+            <li class="c3">Semnături prin furnizor calificat, în ordinea stabilită</li>
+          </ul>
+          <div class="tabs" aria-hidden="true">
+            <span class="on">Revizia 3, în vigoare</span>
+            <span>Revizia 2</span>
+            <span>Revizia 1</span>
+          </div>
+          <div class="paper">
+            <div class="paper-head">
+              <p class="issuer">
+                Prevent Consult SRL
+                <small>Serviciu extern de prevenire și protecție</small>
+              </p>
+              <p class="meta">
+                Șablon: Fișă instruire SSM, v4
+                <small>Generat 12 sept. 2026</small>
+              </p>
+            </div>
+            <h2>Fișă de instruire individuală privind securitatea și sănătatea în muncă</h2>
+            <dl class="fields">
+              <dt>Angajator</dt>
+              <dd><mark>Metalcon Prod SRL</mark></dd>
+              <dt>Punct de lucru</dt>
+              <dd><mark>Hala 2, str. Fabricii 14, Cluj-Napoca</mark></dd>
+              <dt>Numele și prenumele</dt>
+              <dd><mark>Ioana Popescu</mark></dd>
+              <dt>Funcția</dt>
+              <dd><mark>Lăcătuș mecanic</mark></dd>
+              <dt>Grup de expunere</dt>
+              <dd><mark>Producție, atelier mecanic</mark></dd>
+              <dt>Data angajării</dt>
+              <dd><mark>1 sept. 2026</mark></dd>
+            </dl>
+            <div class="block">
+              <h3>Instruirea introductiv-generală</h3>
+              <p>
+                Efectuată în <mark>2 sept. 2026</mark>, cu durata de <mark>8 ore</mark>, după
+                tematica <mark>T-01, revizia 2</mark>, de către <mark>Andrei Marin</mark>,
+                specialist SSM. Verificarea cunoștințelor: <mark>18 din 20, promovat</mark>.
+              </p>
+            </div>
+            <div class="block">
+              <h3>Instruirea la locul de muncă</h3>
+              <p>
+                Programată pentru <mark>3 sept. 2026</mark>, conducător loc de muncă
+                <mark>Vasile Nistor</mark>, după instrucțiunea proprie <mark
+                  >IPSSM-07, revizia 4</mark
+                >.
+              </p>
+            </div>
+            <div class="signatures">
+              <div>
+                <span>Persoana instruită</span>
+                <b>Ioana Popescu</b>
+                <i class="done">Semnat electronic, 2 sept. 2026, 14:32</i>
+              </div>
+              <div>
+                <span>Cel care a instruit</span>
+                <b>Andrei Marin</b>
+                <i class="done">Semnat electronic, 2 sept. 2026, 15:05</i>
+              </div>
+              <div>
+                <span>Conducător loc de muncă</span>
+                <b>Vasile Nistor</b>
+                <i>Așteaptă semnătura</i>
+              </div>
+            </div>
+            <p class="hash">
+              Amprentă SHA-256 3f9a…c21e. Semnături validate prin furnizor calificat de servicii de
+              încredere.
+            </p>
+          </div>
+          <figcaption>Exemplu ilustrativ. Firmele și persoanele sunt fictive.</figcaption>
+        </figure>
+      </section>
+
+      <section class="compare wrap" id="azi">
+        <div class="section-head">
+          <h2>Aceeași fișă, fără cele șase unelte.</h2>
+          <p>
+            Un document SSM trece azi prin Word, PDF, email, o aplicație de semnare, un dosar și o
+            foaie de termene. Fiecare trecere pierde context și creează încă o versiune.
+          </p>
+        </div>
+        <div class="compare-grid">
+          <div class="today">
+            <h3>Cum se lucrează azi</h3>
+            <ul>
+              {
+                todayFlow.map((item) => (
+                  <li>
+                    <span class="tool">{item.tool}</span>
+                    <span>{item.pain}</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          <div class="platform">
+            <h3>În SSM Ușor</h3>
+            <ol>
+              {
+                platformFlow.map((item) => (
+                  <li>
+                    <b>{item.step}</b>
+                    <span>{item.text}</span>
+                  </li>
+                ))
+              }
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="lifecycle" id="flux">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Ciclul unui document, de la șablon la revizie blocată.</h2>
+            <p>
+              Fiecare etapă este un obiect în platformă, nu un fișier trimis mai departe. De aceea
+              știi mereu ce versiune este în vigoare, cine a aprobat-o și ce urmează.
+            </p>
+          </div>
+          <ol class="stages">
+            {
+              lifecycle.map((stage, index) => (
+                <li>
+                  <span class="n">{index + 1}</span>
+                  <b>{stage.step}</b>
+                  <p>{stage.text}</p>
+                </li>
+              ))
+            }
+          </ol>
+        </div>
+      </section>
+
+      <section class="studio wrap" id="studio">
+        <div class="section-head">
+          <h2>Ce face studioul diferit de Word.</h2>
+          <p>
+            Nu reproducem Word în browser. Construim subsetul de care are nevoie un specialist SSM
+            în fiecare săptămână, cu mult mai multă structură și cu legătură directă către datele
+            clientului.
+          </p>
+        </div>
+        <dl class="differences">
+          {
+            studioDifferences.map((item) => (
+              <div>
+                <dt>{item.title}</dt>
+                <dd>{item.text}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <section class="service wrap" id="serviciu">
+        <div class="section-head">
+          <h2>Restul serviciului, pe aceleași date.</h2>
+          <p>
+            Modulele cresc treptat, dar folosesc aceiași clienți, aceiași oameni, aceleași documente
+            și același jurnal de dovezi. Nimic nu se copiază dintr-un loc în altul.
+          </p>
+        </div>
+        <dl class="pillars">
+          {
+            pillars.map((pillar) => (
+              <div>
+                <dt>{pillar.title}</dt>
+                <dd>
+                  <p>{pillar.text}</p>
+                  <ul class="states" aria-label="Stări">
+                    {pillar.states.map((state) => (
+                      <li>{state}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <section class="honest">
+        <div class="wrap honest-grid">
+          <div>
+            <h2>Ce există azi și ce urmează.</h2>
+            <p>{status.long}</p>
+          </div>
+          <dl>
+            <div>
+              <dt>Azi</dt>
+              <dd>
+                Direcția de produs, setul inițial de documente și prototipuri clicabile pentru
+                studio, portofoliu și fluxul de instruire.
+              </dd>
+            </div>
+            <div>
+              <dt>În pilot</dt>
+              <dd>
+                Portofoliu multi-client, import de angajați, studio de documente cu semnare prin
+                furnizor calificat, instruire cu testare, vizite cu măsuri corective și exporturi de
+                dovezi.
+              </dd>
+            </div>
+            <div>
+              <dt>După pilot</dt>
+              <dd>
+                Registre de incidente, urmărirea aptitudinilor și autorizărilor, planuri de evacuare
+                și revizuirea impactului legislativ asupra documentelor.
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="pilot wrap" id="pilot">
+        <div class="section-head">
+          <h2>Program pilot pentru 2–3 servicii externe.</h2>
+          <p>
+            Căutăm furnizori care gestionează mai mulți clienți și vor să înlocuiască fluxul Word,
+            PDF, email, semnare și arhivă cu unul singur. Construim documentele tale primele.
+          </p>
+        </div>
+        <div class="pilot-grid">
+          <div>
+            <h3>Ce primești</h3>
+            <ul>
+              {pilotOffer.give.map((item) => <li>{item}</li>)}
+            </ul>
+          </div>
+          <div>
+            <h3>Ce așteptăm de la tine</h3>
+            <ul>
+              {pilotOffer.ask.map((item) => <li>{item}</li>)}
+            </ul>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
+          <a class="button quiet" href={contact.launchHref}>{cta.launch}</a>
+        </div>
+      </section>
+
+      <section class="trust wrap">
+        <h2>Pe ce te poți baza.</h2>
+        <dl>
+          {
+            trust.map((item) => (
+              <div>
+                <dt>{item.title}</dt>
+                <dd>{item.text}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <section class="faq wrap" id="intrebari">
+        <h2>Întrebări frecvente</h2>
+        <div class="faq-list">
+          {
+            faq.map((item) => (
+              <details>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
+        <p>
+          Sistemul de lucru pentru servicii externe de prevenire și protecție. Scrie-ne la
+          <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+        </p>
+        <p class="fine">
+          Documentele afișate pe această pagină sunt exemple ilustrative, nu înregistrări reale. SSM
+          Ușor nu oferă consultanță juridică și nu înlocuiește responsabilitatea specialistului
+          autorizat.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <ConceptSwitcher current="documentul" />
+</BaseLayout>
+
+<style>
+  :global(body) {
+    background: #f8f7f1;
+  }
+  .doc {
+    --ink: #18342e;
+    --ink-2: #5b6b64;
+    --paper: #ffffff;
+    --cream: #f8f7f1;
+    --line: #d7ddd4;
+    --lime: #b6d86f;
+    --lime-soft: #e6f0cf;
+    --sage: #9fb39c;
+    --moss: #2a5045;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    overflow-x: clip;
+  }
+  .wrap {
+    width: min(1180px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+  }
+
+  /* Buttons */
+  .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.98rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .button.primary {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: var(--ink);
+  }
+  .button.primary:hover {
+    background: #a9cc61;
+  }
+  .button.quiet {
+    border-color: var(--ink);
+  }
+  .button.quiet:hover {
+    background: #eceee7;
+  }
+  .button.small {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 0.9rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Header */
+  .top {
+    border-bottom: 1px solid var(--line);
+    background: var(--cream);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 76px;
+  }
+  .brand img {
+    width: 150px;
+    height: auto;
+  }
+  .bar nav {
+    display: flex;
+    gap: 26px;
+    font-size: 0.95rem;
+  }
+  .bar nav a {
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+  .bar nav a:hover {
+    color: var(--ink);
+  }
+
+  /* Hero */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 64px;
+    align-items: start;
+    padding: 72px 0 40px;
+  }
+  .hero-copy {
+    padding-top: 40px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 26px;
+    font-size: 0.92rem;
+    color: var(--ink-2);
+  }
+  .status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--lime);
+    outline: 3px solid var(--lime-soft);
+  }
+  h1 {
+    max-width: 14ch;
+    font-size: clamp(2.5rem, 4.6vw, 3.9rem);
+    line-height: 1.04;
+  }
+  .lede {
+    max-width: 52ch;
+    margin: 26px 0 30px;
+    font-size: 1.1rem;
+    color: var(--ink-2);
+  }
+  .audience {
+    max-width: 48ch;
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 0.92rem;
+    color: var(--ink-2);
+  }
+
+  /* The document */
+  .sheet {
+    position: relative;
+    margin: 0;
+    padding-left: 176px;
+  }
+  .callouts {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .callouts li {
+    position: absolute;
+    left: 0;
+    width: 150px;
+    padding-right: 10px;
+    text-align: right;
+  }
+  .callouts li::after {
+    content: '';
+    position: absolute;
+    top: 9px;
+    right: -26px;
+    width: 22px;
+    border-top: 1px solid var(--sage);
+  }
+  .callouts .c1 {
+    top: 150px;
+  }
+  .callouts .c2 {
+    top: 344px;
+  }
+  .callouts .c3 {
+    top: 520px;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    font-size: 0.78rem;
+  }
+  .tabs span {
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    background: #eeeee8;
+    color: var(--ink-2);
+  }
+  .tabs .on {
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .paper {
+    padding: 34px 38px 28px;
+    border: 1px solid var(--line);
+    border-radius: 0 10px 10px 10px;
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 var(--line),
+      0 24px 50px -30px rgb(24 52 46 / 35%);
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+  .paper-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .paper-head p {
+    font-weight: 500;
+  }
+  .paper-head small {
+    display: block;
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+  .paper-head .meta {
+    flex-shrink: 0;
+    text-align: right;
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+  .paper h2 {
+    margin: 22px 0 18px;
+    font-size: 1.12rem;
+    line-height: 1.3;
+    letter-spacing: 0;
+  }
+  .fields {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 7px 16px;
+    margin: 0 0 20px;
+  }
+  .fields dt {
+    color: var(--ink-2);
+  }
+  .fields dd {
+    margin: 0;
+  }
+  mark {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--lime-soft);
+    color: inherit;
+    box-shadow: inset 0 -1px 0 var(--lime);
+  }
+  .block {
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+  }
+  .block h3 {
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    letter-spacing: 0;
+  }
+  .signatures {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 8px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .signatures span {
+    display: block;
+    font-size: 0.74rem;
+    color: var(--ink-2);
+  }
+  .signatures b {
+    display: block;
+    margin: 4px 0 8px;
+    font-weight: 500;
+  }
+  .signatures i {
+    display: block;
+    padding-top: 8px;
+    border-top: 1px dashed var(--sage);
+    font-size: 0.74rem;
+    font-style: normal;
+    color: var(--ink-2);
+  }
+  .signatures i.done {
+    color: var(--moss);
+    border-top-style: solid;
+    border-top-color: var(--lime);
+  }
+  .hash {
+    margin-top: 12px;
+    font-size: 0.74rem;
+    color: var(--ink-2);
+  }
+  figcaption {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--ink-2);
+  }
+
+  /* Section heads */
+  .section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 40px;
+    align-items: end;
+    margin-bottom: 44px;
+  }
+  .section-head h2 {
+    font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+    line-height: 1.1;
+  }
+  .section-head p {
+    max-width: 48ch;
+    color: var(--ink-2);
+  }
+
+  /* Compare */
+  .compare {
+    padding: 96px 0;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  .compare h3 {
+    margin-bottom: 20px;
+    font-size: 1.05rem;
+    color: var(--ink-2);
+  }
+  .today ul,
+  .platform ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .today li {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 14px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+    font-size: 0.95rem;
+    color: var(--ink-2);
+  }
+  .today li:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+  .tool {
+    display: inline-block;
+    justify-self: start;
+    padding: 3px 9px;
+    border: 1px solid var(--sage);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--ink);
+    background: #f1f2ec;
+  }
+  .platform {
+    padding: 28px 32px;
+    border-radius: 10px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+  }
+  .platform h3 {
+    color: var(--ink);
+  }
+  .platform li {
+    position: relative;
+    padding: 0 0 22px 26px;
+    font-size: 0.95rem;
+  }
+  .platform li::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  .platform li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 19px;
+    bottom: -3px;
+    left: 4.5px;
+    border-left: 1px solid var(--lime);
+  }
+  .platform b {
+    display: block;
+    font-weight: 500;
+  }
+  .platform span {
+    color: var(--ink-2);
+  }
+
+  /* Lifecycle */
+  .lifecycle {
+    padding: 96px 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .lifecycle .section-head p {
+    color: #b7c8c1;
+  }
+  .stages {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid #3a5a50;
+  }
+  .stages li {
+    padding: 22px 16px 0 0;
+    border-top: 2px solid transparent;
+    margin-top: -1px;
+    font-size: 0.9rem;
+  }
+  .stages li:last-child {
+    border-top-color: var(--lime);
+  }
+  .n {
+    display: block;
+    margin-bottom: 44px;
+    font-size: 0.8rem;
+    color: var(--sage);
+  }
+  .stages b {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #fff;
+  }
+  .stages p {
+    color: #b7c8c1;
+    font-size: 0.86rem;
+  }
+
+  /* Studio differences */
+  .studio {
+    padding: 96px 0 40px;
+  }
+  .differences {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px 56px;
+    margin: 0;
+  }
+  .differences div {
+    padding-top: 18px;
+    border-top: 1px solid var(--ink);
+  }
+  .differences dt {
+    margin-bottom: 8px;
+    font-size: 1.15rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .differences dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+
+  /* Pillars as definition list */
+  .service {
+    padding: 72px 0 96px;
+  }
+  .pillars {
+    margin: 0;
+    border-top: 1px solid var(--line);
+  }
+  .pillars > div {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: 24px;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pillars dt {
+    font-size: 1.2rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .pillars dd {
+    margin: 0;
+  }
+  .pillars dd p {
+    max-width: 66ch;
+    color: var(--ink-2);
+  }
+  .states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.8rem;
+  }
+  .states li {
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #ecefe6;
+    color: var(--moss);
+  }
+  .states li:last-child {
+    background: var(--lime-soft);
+  }
+
+  /* Honest status */
+  .honest {
+    padding: 72px 0;
+    background: #eef0e9;
+  }
+  .honest-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 48px;
+  }
+  .honest h2 {
+    margin-bottom: 14px;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+  }
+  .honest-grid > div > p {
+    max-width: 46ch;
+    color: var(--ink-2);
+  }
+  .honest dl {
+    display: grid;
+    gap: 18px;
+    margin: 0;
+  }
+  .honest dl div {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--sage);
+  }
+  .honest dt {
+    font-weight: 500;
+  }
+  .honest dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+
+  /* Pilot */
+  .pilot {
+    padding: 96px 0;
+  }
+  .pilot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 40px;
+  }
+  .pilot h3 {
+    margin-bottom: 14px;
+    font-size: 1.1rem;
+  }
+  .pilot ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .pilot li {
+    position: relative;
+    padding: 10px 0 10px 22px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+  }
+  .pilot li::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--lime);
+  }
+
+  /* Trust */
+  .trust {
+    padding: 0 0 96px;
+  }
+  .trust h2 {
+    margin-bottom: 32px;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+  }
+  .trust dl {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 0;
+  }
+  .trust dt {
+    margin-bottom: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ink);
+    font-weight: 500;
+  }
+  .trust dd {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--ink-2);
+  }
+
+  /* FAQ */
+  .faq {
+    padding: 0 0 96px;
+  }
+  .faq h2 {
+    margin-bottom: 24px;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+  }
+  .faq-list {
+    max-width: 780px;
+    border-top: 1px solid var(--line);
+  }
+  details {
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    padding: 18px 0;
+    cursor: pointer;
+    font-weight: 500;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    flex-shrink: 0;
+    color: var(--ink-2);
+  }
+  details[open] summary::after {
+    content: '–';
+  }
+  details p {
+    max-width: 66ch;
+    padding: 0 0 20px;
+    color: var(--ink-2);
+  }
+
+  /* Footer */
+  .foot {
+    padding: 40px 0 72px;
+    border-top: 1px solid var(--line);
+    font-size: 0.92rem;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .foot-grid img {
+    width: 130px;
+    height: auto;
+  }
+  .fine {
+    color: var(--ink-2);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 1080px) {
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .hero-copy {
+      padding-top: 0;
+    }
+    h1 {
+      max-width: 18ch;
+    }
+    .sheet {
+      padding-left: 0;
+    }
+    .callouts {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      width: auto;
+      margin-bottom: 18px;
+    }
+    .callouts li {
+      position: static;
+      width: auto;
+      padding: 0 0 0 14px;
+      text-align: left;
+      border-left: 2px solid var(--lime);
+    }
+    .callouts li::after {
+      display: none;
+    }
+    .stages {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px 0;
+    }
+    .stages li {
+      border-top: 1px solid #3a5a50;
+    }
+    .trust dl {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 760px) {
+    .doc {
+      font-size: 16px;
+    }
+    .wrap {
+      width: min(100% - 32px, 1180px);
+    }
+    .bar nav {
+      display: none;
+    }
+    .bar .button {
+      display: none;
+    }
+    .hero {
+      padding-top: 48px;
+    }
+    h1 {
+      max-width: none;
+      font-size: clamp(2.1rem, 9vw, 2.8rem);
+    }
+    .paper {
+      padding: 22px 18px;
+    }
+    .fields {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+    .fields dt {
+      margin-top: 8px;
+      font-size: 0.78rem;
+    }
+    .paper-head {
+      flex-direction: column;
+    }
+    .paper-head .meta {
+      text-align: left;
+    }
+    .signatures {
+      grid-template-columns: 1fr;
+    }
+    .section-head,
+    .compare-grid,
+    .differences,
+    .honest-grid,
+    .pilot-grid,
+    .foot-grid {
+      grid-template-columns: 1fr;
+    }
+    .section-head {
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .today li {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .pillars > div {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .honest dl div {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .stages {
+      grid-template-columns: 1fr 1fr;
+    }
+    .trust dl {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .compare,
+    .lifecycle,
+    .studio,
+    .service,
+    .pilot {
+      padding-block: 64px;
+    }
+    .trust,
+    .faq {
+      padding-bottom: 64px;
+    }
+    .actions .button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

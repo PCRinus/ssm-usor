@@ -1,0 +1,1157 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ConceptSwitcher from './ConceptSwitcher.astro';
+import {
+  audience,
+  contact,
+  cta,
+  dueSources,
+  faq,
+  outcomes,
+  pillars,
+  pilotOffer,
+  responsibilityMatrix,
+  status,
+  trust,
+} from './content';
+
+type State = 'todo' | 'late' | 'blocked' | 'client' | 'progress' | 'review';
+
+const board: {
+  client: string;
+  task: string;
+  owner: string;
+  due: string;
+  state: State;
+  label: string;
+  progress?: number;
+}[] = [
+  {
+    client: 'Metalcon Prod SRL',
+    task: 'Instruire periodică, 38 de angajați din producție',
+    owner: 'Andrei M.',
+    due: 'joi 17',
+    state: 'todo',
+    label: 'de făcut',
+  },
+  {
+    client: 'Panificația Doina',
+    task: 'Fișe pentru 2 angajați noi, lipsesc datele de angajare',
+    owner: 'Client',
+    due: 'marți 15',
+    state: 'client',
+    label: 'așteaptă clientul',
+  },
+  {
+    client: 'Transcarpat Logistic',
+    task: 'Măsură corectivă: echipament de protecție pentru șoferi',
+    owner: 'Client',
+    due: 'luni 14',
+    state: 'late',
+    label: 'întârziat',
+  },
+  {
+    client: 'Clinica Sanavita',
+    task: 'Vizită trimestrială, corp B',
+    owner: 'Ioana P.',
+    due: 'miercuri 16',
+    state: 'todo',
+    label: 'de făcut',
+  },
+  {
+    client: 'Hotel Belvedere',
+    task: 'Proces-verbal instruire SU, semnare',
+    owner: 'Ioana P.',
+    due: 'vineri 18',
+    state: 'progress',
+    label: '12 din 20 semnate',
+    progress: 60,
+  },
+  {
+    client: 'Atelier Lemnart',
+    task: 'Revizuire IPSSM-03 după modificarea șablonului',
+    owner: 'Andrei M.',
+    due: 'vineri 18',
+    state: 'review',
+    label: 'de revizuit',
+  },
+  {
+    client: 'Agro Bărăgan SA',
+    task: 'Raport trimestrial de activitate',
+    owner: 'Andrei M.',
+    due: 'vineri 18',
+    state: 'blocked',
+    label: 'blocat: vizita neînchisă',
+  },
+];
+
+const filters = [
+  { label: 'Toți clienții', count: 42 },
+  { label: 'De făcut', count: 17 },
+  { label: 'Întârziate', count: 4 },
+  { label: 'Blocate', count: 3 },
+  { label: 'Așteaptă clientul', count: 6 },
+];
+---
+
+<BaseLayout
+  title="SSM Ușor — Ce trebuie să facă echipa ta și clienții tăi săptămâna asta"
+  description="Toți clienții unui serviciu extern SSM într-un singur tablou de lucru: termene, documente, instruiri, semnături, vizite și măsuri, cu responsabil și stare."
+  themeColor="#18342e"
+  noindex
+>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&display=swap"
+    />
+  </Fragment>
+
+  <div class="ops">
+    <header class="top">
+      <div class="wrap bar">
+        <a class="brand" href="/concepte/portofoliul/" aria-label="SSM Ușor">
+          <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
+        </a>
+        <nav aria-label="Secțiuni">
+          <a href="#surse">De unde vin sarcinile</a>
+          <a href="#responsabilitati">Cine ce face</a>
+          <a href="#module">Module</a>
+          <a href="#pilot">Program pilot</a>
+        </nav>
+        <a class="button primary small" href={contact.pilotHref}>{cta.pilot}</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="wrap">
+          <div class="hero-copy">
+            <p class="status">{status.short}</p>
+            <h1>Ce trebuie să facă echipa ta și clienții tăi săptămâna asta?</h1>
+            <p class="lede">
+              SSM Ușor pune toți clienții unui serviciu extern într-un singur tablou de lucru:
+              termene, documente, instruiri, semnături, vizite și măsuri corective, fiecare cu
+              responsabil și stare. Fără să deschizi fiecare firmă în parte.
+            </p>
+            <div class="actions">
+              <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
+              <a class="button ghost" href="#module">Vezi ce intră în platformă</a>
+            </div>
+          </div>
+
+          <figure class="board" aria-label="Exemplu de tablou de portofoliu pentru o săptămână">
+            <div class="board-head">
+              <div>
+                <b>Săptămâna 38</b>
+                <span>14–18 septembrie 2026</span>
+              </div>
+              <ul class="filters" aria-label="Filtre">
+                {
+                  filters.map((filter, index) => (
+                    <li class:list={{ on: index === 0 }}>
+                      {filter.label} <b>{filter.count}</b>
+                    </li>
+                  ))
+                }
+              </ul>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Client</th>
+                  <th scope="col">Sarcină</th>
+                  <th scope="col">Responsabil</th>
+                  <th scope="col">Termen</th>
+                  <th scope="col">Stare</th>
+                </tr>
+              </thead>
+              <tbody>
+                {
+                  board.map((row) => (
+                    <tr>
+                      <th scope="row">{row.client}</th>
+                      <td>{row.task}</td>
+                      <td class:list={{ client: row.owner === 'Client' }}>{row.owner}</td>
+                      <td class:list={{ late: row.state === 'late' }}>{row.due}</td>
+                      <td>
+                        <span class={`state ${row.state}`}>
+                          {row.progress !== undefined && (
+                            <i style={`--p:${row.progress}%`} aria-hidden="true" />
+                          )}
+                          {row.label}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+            <figcaption>
+              Exemplu ilustrativ. Clienții, persoanele și sarcinile sunt fictive.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="audience-band">
+        <div class="wrap">
+          <p>{audience}</p>
+        </div>
+      </section>
+
+      <section class="sources wrap" id="surse">
+        <div class="section-head">
+          <h2>O sarcină are întotdeauna o sursă.</h2>
+          <p>
+            Nimic nu apare în tablou „pentru că așa a zis softul”. Fiecare termen vine dintr-o
+            regulă configurată de specialist, dintr-un eveniment sau dintr-un document, și poți
+            vedea de unde.
+          </p>
+        </div>
+        <ul class="source-list">
+          {
+            dueSources.map((item) => (
+              <li>
+                <b>{item.source}</b>
+                <span>{item.example}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="matrix-section" id="responsabilitati">
+        <div class="wrap matrix-grid">
+          <div class="section-copy">
+            <h2>Cine ce face, scris o singură dată.</h2>
+            <p>
+              Cea mai frecventă sursă de confuzie între furnizor și angajator este
+              responsabilitatea. În SSM Ușor fiecare tip de sarcină are un responsabil stabilit la
+              începutul contractului, iar starea „așteaptă clientul” este vizibilă pentru amândoi.
+            </p>
+          </div>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th scope="col">Sarcină</th>
+                {responsibilityMatrix.columns.map((column) => <th scope="col">{column}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {
+                responsibilityMatrix.rows.map((row) => (
+                  <tr>
+                    <th scope="row">{row.task}</th>
+                    {row.owners.map((owns) => (
+                      <td>
+                        {owns ? (
+                          <span class="yes">
+                            <span class="sr">Da</span>
+                          </span>
+                        ) : (
+                          <span class="sr">Nu</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="modules wrap" id="module">
+        <div class="section-head">
+          <h2>Ce intră în platformă.</h2>
+          <p>
+            Șase module pe aceleași date. Le adăugăm treptat, dar niciunul nu are propria listă de
+            clienți sau propriul istoric.
+          </p>
+        </div>
+        <ol class="ledger">
+          {
+            pillars.map((pillar) => (
+              <li>
+                <h3>{pillar.title}</h3>
+                <p>{pillar.text}</p>
+                <ul class="fragment" aria-label="Stări posibile">
+                  {pillar.states.map((state) => (
+                    <li>{state}</li>
+                  ))}
+                </ul>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      <section class="outcomes">
+        <div class="wrap">
+          <h2>Patru lucruri pe care vrem să le facem bine în pilot.</h2>
+          <ul>
+            {
+              outcomes.map((item) => (
+                <li>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </section>
+
+      <section class="pilot" id="pilot">
+        <div class="wrap pilot-grid">
+          <div>
+            <h2>Program pilot pentru 2–3 servicii externe.</h2>
+            <p>{status.long}</p>
+            <div class="actions">
+              <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
+              <a class="button ghost" href={contact.launchHref}>{cta.launch}</a>
+            </div>
+          </div>
+          <div class="offer">
+            <div>
+              <h3>Ce primești</h3>
+              <ul>
+                {pilotOffer.give.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+            <div>
+              <h3>Ce așteptăm de la tine</h3>
+              <ul>
+                {pilotOffer.ask.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="trust wrap">
+        <h2>Pe ce te poți baza.</h2>
+        <ul>
+          {
+            trust.map((item) => (
+              <li>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="faq wrap" id="intrebari">
+        <h2>Întrebări frecvente</h2>
+        <div class="faq-list">
+          {
+            faq.map((item) => (
+              <details>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
+        <p>
+          Sistemul de lucru pentru servicii externe de prevenire și protecție. Scrie-ne la
+          <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+        </p>
+        <p class="fine">
+          Tablourile afișate sunt exemple ilustrative. SSM Ușor nu oferă consultanță juridică și nu
+          înlocuiește responsabilitatea specialistului autorizat.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <ConceptSwitcher current="portofoliul" />
+</BaseLayout>
+
+<style>
+  :global(body) {
+    background: #f8f7f1;
+  }
+  .ops {
+    --ink: #18342e;
+    --ink-2: #5b6b64;
+    --cream: #f8f7f1;
+    --paper: #ffffff;
+    --line: #d7ddd4;
+    --lime: #b6d86f;
+    --lime-soft: #e6f0cf;
+    --sage: #9fb39c;
+    --moss: #2a5045;
+    --forest-line: #35564c;
+    --late: #b42318;
+    --late-soft: #fbe9e6;
+    color: var(--ink);
+    font-family: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+    font-optical-sizing: auto;
+    font-size: 17px;
+    line-height: 1.5;
+    overflow-x: clip;
+  }
+  .wrap {
+    width: min(1240px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  p {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 50px;
+    padding: 0 22px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .button.primary {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: var(--ink);
+  }
+  .button.primary:hover {
+    background: #a9cc61;
+  }
+  .button.ghost {
+    border-color: currentColor;
+  }
+  .button.small {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 0.92rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .top {
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 76px;
+  }
+  .brand {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: var(--cream);
+  }
+  .brand img {
+    width: 140px;
+    height: auto;
+  }
+  .bar nav {
+    display: flex;
+    gap: 26px;
+    font-size: 0.95rem;
+  }
+  .bar nav a {
+    color: #c6d4ce;
+    text-decoration: none;
+  }
+  .bar nav a:hover {
+    color: #fff;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 56px 0 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .hero-copy {
+    max-width: 760px;
+    padding-bottom: 48px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    font-size: 0.92rem;
+    color: #b7c8c1;
+  }
+  .status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  h1 {
+    font-size: clamp(2.6rem, 5.4vw, 4.6rem);
+    line-height: 1;
+    color: #fff;
+  }
+  .lede {
+    max-width: 58ch;
+    margin: 24px 0 30px;
+    font-size: 1.1rem;
+    color: #c6d4ce;
+  }
+  .hero .ghost {
+    color: #eef6f2;
+    border-color: #5a7a6f;
+  }
+
+  /* Board */
+  .board {
+    margin: 0;
+    transform: translateY(56px);
+    margin-top: -56px;
+  }
+  .board-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px 24px;
+    padding: 16px 22px;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 10px 10px 0 0;
+    background: #eef0e9;
+    color: var(--ink);
+    font-size: 0.92rem;
+  }
+  .board-head > div {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .board-head > div b {
+    font-weight: 600;
+  }
+  .board-head > div span {
+    color: var(--ink-2);
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .filters li {
+    padding: 5px 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+  .filters li b {
+    margin-left: 4px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .filters li.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .filters li.on b {
+    color: var(--lime);
+  }
+  .board table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 0.95rem;
+    text-align: left;
+  }
+  .board thead th {
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .board tbody th,
+  .board tbody td {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .board tbody tr:last-child th,
+  .board tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .board tbody th {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .board td.client {
+    color: var(--ink-2);
+  }
+  .board td.late {
+    color: var(--late);
+    font-weight: 600;
+  }
+  .state {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    background: #eef0e9;
+    color: var(--ink);
+  }
+  .state.late {
+    background: var(--late-soft);
+    color: var(--late);
+  }
+  .state.client {
+    background: transparent;
+    outline: 1px solid var(--sage);
+    outline-offset: -1px;
+    color: var(--moss);
+  }
+  .state.blocked {
+    background: #e4e8df;
+    color: var(--ink-2);
+  }
+  .state.review {
+    background: var(--lime-soft);
+  }
+  .state.progress {
+    background: var(--lime-soft);
+  }
+  .state.progress i {
+    width: 44px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .state.progress i::before {
+    content: '';
+    display: block;
+    width: var(--p);
+    height: 100%;
+    background: var(--lime);
+  }
+  .board figcaption {
+    padding: 14px 0 0;
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+
+  .audience-band {
+    padding: 112px 0 0;
+  }
+  .audience-band p {
+    max-width: 60ch;
+    color: var(--ink-2);
+    font-size: 1.05rem;
+  }
+
+  /* Sections */
+  .section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+    gap: 40px;
+    align-items: end;
+    margin-bottom: 40px;
+  }
+  .section-head h2,
+  .section-copy h2,
+  .outcomes h2,
+  .pilot h2,
+  .trust h2,
+  .faq h2 {
+    font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+    line-height: 1.05;
+  }
+  .section-head p,
+  .section-copy p {
+    max-width: 52ch;
+    color: var(--ink-2);
+  }
+
+  .sources {
+    padding: 80px 0 96px;
+  }
+  .source-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px 40px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .source-list li {
+    padding-top: 14px;
+    border-top: 2px solid var(--ink);
+  }
+  .source-list b {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .source-list span {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  .matrix-section {
+    padding: 96px 0;
+    background: #eef0e9;
+  }
+  .matrix-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    align-items: center;
+  }
+  .section-copy h2 {
+    margin-bottom: 16px;
+  }
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    font-size: 0.95rem;
+  }
+  .matrix th,
+  .matrix td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+  .matrix thead th {
+    color: var(--ink-2);
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+  .matrix thead th:not(:first-child),
+  .matrix td {
+    text-align: center;
+    width: 20%;
+  }
+  .matrix tbody th {
+    font-weight: 500;
+  }
+  .matrix tr:last-child th,
+  .matrix tr:last-child td {
+    border-bottom: 0;
+  }
+  .yes {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--lime);
+    vertical-align: middle;
+  }
+
+  .modules {
+    padding: 96px 0;
+  }
+  .ledger {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ink);
+  }
+  .ledger > li {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) minmax(0, 3fr);
+    gap: 24px;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .ledger h3 {
+    font-size: 1.35rem;
+  }
+  .ledger p {
+    max-width: 60ch;
+    color: var(--ink-2);
+  }
+  .fragment {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85rem;
+  }
+  .fragment li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-2);
+  }
+  .fragment li::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--sage);
+  }
+  .fragment li:last-child {
+    color: var(--ink);
+  }
+  .fragment li:last-child::before {
+    background: var(--lime);
+    border-color: var(--lime);
+  }
+
+  .outcomes {
+    padding: 96px 0;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .outcomes h2 {
+    max-width: 22ch;
+    margin-bottom: 40px;
+  }
+  .outcomes ul {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .outcomes li {
+    padding-top: 14px;
+    border-top: 2px solid var(--lime);
+  }
+  .outcomes h3 {
+    margin-bottom: 8px;
+    font-size: 1.15rem;
+  }
+  .outcomes p {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  .pilot {
+    padding: 96px 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .pilot-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 64px;
+  }
+  .pilot h2 {
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .pilot-grid > div > p {
+    max-width: 46ch;
+    margin-bottom: 28px;
+    color: #c6d4ce;
+  }
+  .pilot .ghost {
+    color: #eef6f2;
+    border-color: #5a7a6f;
+  }
+  .offer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  .offer h3 {
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    color: #fff;
+  }
+  .offer ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .offer li {
+    position: relative;
+    padding: 10px 0 10px 20px;
+    border-top: 1px solid var(--forest-line);
+    color: #c6d4ce;
+    font-size: 0.95rem;
+  }
+  .offer li::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    background: var(--lime);
+  }
+
+  .trust {
+    padding: 96px 0 40px;
+  }
+  .trust h2 {
+    margin-bottom: 32px;
+  }
+  .trust ul {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .trust h3 {
+    margin-bottom: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ink);
+    font-size: 1.05rem;
+  }
+  .trust p {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  .faq {
+    padding: 56px 0 96px;
+  }
+  .faq h2 {
+    margin-bottom: 24px;
+  }
+  .faq-list {
+    max-width: 800px;
+    border-top: 1px solid var(--line);
+  }
+  details {
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    flex-shrink: 0;
+    color: var(--ink-2);
+  }
+  details[open] summary::after {
+    content: '–';
+  }
+  details p {
+    max-width: 66ch;
+    padding-bottom: 20px;
+    color: var(--ink-2);
+  }
+
+  .foot {
+    padding: 40px 0 72px;
+    border-top: 1px solid var(--line);
+    font-size: 0.92rem;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .foot-grid img {
+    width: 130px;
+    height: auto;
+  }
+  .fine {
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 1080px) {
+    .source-list,
+    .trust ul {
+      grid-template-columns: 1fr 1fr;
+    }
+    .outcomes ul {
+      grid-template-columns: 1fr 1fr;
+    }
+    .matrix-grid,
+    .pilot-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .ledger > li {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    }
+    .ledger .fragment {
+      grid-column: 2;
+      grid-auto-flow: column;
+      gap: 14px;
+    }
+  }
+  @media (max-width: 760px) {
+    .ops {
+      font-size: 16px;
+    }
+    .wrap {
+      width: min(100% - 32px, 1240px);
+    }
+    .bar nav,
+    .bar .button {
+      display: none;
+    }
+    .hero {
+      padding-top: 40px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 9.5vw, 3rem);
+    }
+    .board {
+      transform: translateY(40px);
+      margin-top: -40px;
+    }
+    .board-head {
+      padding: 14px 16px;
+    }
+    .board table,
+    .board tbody,
+    .board tbody tr,
+    .board tbody th,
+    .board tbody td {
+      display: block;
+    }
+    .board thead {
+      display: none;
+    }
+    .board tbody tr {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .board tbody tr:last-child {
+      border-bottom: 0;
+    }
+    .board tbody th,
+    .board tbody td {
+      padding: 0;
+      border: 0;
+    }
+    .board tbody th {
+      margin-bottom: 4px;
+      white-space: normal;
+    }
+    .board tbody td:nth-child(2) {
+      margin-bottom: 10px;
+      color: var(--ink-2);
+      font-size: 0.92rem;
+    }
+    .board tbody td:nth-child(3),
+    .board tbody td:nth-child(4),
+    .board tbody td:nth-child(5) {
+      display: inline-block;
+      margin-right: 14px;
+      font-size: 0.88rem;
+    }
+    .board tbody td:nth-child(3)::before {
+      content: 'Responsabil: ';
+      color: var(--ink-2);
+    }
+    .audience-band {
+      padding-top: 88px;
+    }
+    .section-head,
+    .source-list,
+    .trust ul,
+    .outcomes ul,
+    .offer,
+    .foot-grid {
+      grid-template-columns: 1fr;
+    }
+    .section-head {
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .ledger > li {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .ledger .fragment {
+      grid-column: auto;
+      grid-auto-flow: row;
+      gap: 4px;
+    }
+    .matrix {
+      font-size: 0.85rem;
+    }
+    .matrix th,
+    .matrix td {
+      padding: 10px 8px;
+    }
+    .sources,
+    .matrix-section,
+    .modules,
+    .outcomes,
+    .pilot,
+    .trust {
+      padding-block: 64px;
+    }
+    .faq {
+      padding: 40px 0 64px;
+    }
+    .actions .button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

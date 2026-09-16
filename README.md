@@ -54,7 +54,11 @@ pnpm dev:marketing
 pnpm preview:marketing
 ```
 
-The design gallery is available at `http://localhost:4321/`. Common commands:
+The current landing page is served at `http://localhost:4321/`. Landing-page design concepts live
+under `http://localhost:4321/concepte/`: a gallery index plus one page per direction
+(`/concepte/documentul/`, `/concepte/portofoliul/`, `/concepte/un-singur-flux/`). Concept pages
+are `noindex`, excluded from the sitemap, and share their Romanian copy through
+`apps/marketing/src/components/concepts/content.ts`. Common commands:
 
 ```bash
 pnpm dev
