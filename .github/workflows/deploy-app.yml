@@ -24,6 +24,8 @@ jobs:
       VITE_API_URL: https://api.ssmusor.ro
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      E2E_API_URL: https://api.ssmusor.ro
+      E2E_APP_URL: https://app.ssmusor.ro
 
     steps:
       - name: Check out selected revision
@@ -34,9 +36,13 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
         run: |
           : "${CLOUDFLARE_ACCOUNT_ID:?Set CLOUDFLARE_ACCOUNT_ID in GitHub variables}"
           : "${CLOUDFLARE_API_TOKEN:?Set CLOUDFLARE_API_TOKEN in GitHub secrets}"
+          : "${E2E_EMAIL:?Set E2E_EMAIL in GitHub secrets}"
+          : "${E2E_PASSWORD:?Set E2E_PASSWORD in GitHub secrets}"
           : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Set VITE_SUPABASE_PUBLISHABLE_KEY in GitHub variables}"
           if [[ "$VITE_API_URL" != https://* || "$VITE_SUPABASE_URL" != https://* || "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
@@ -53,6 +59,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium for deployment checks
+        run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
 
       - name: Validate release
         run: |
@@ -80,7 +89,18 @@ jobs:
             SUPABASE_PUBLISHABLE_KEY
 
       - name: Check deployed API and browser access
-        run: node scripts/smoke-deployment.mjs api "$VITE_API_URL" https://app.ssmusor.ro
+        id: api-checks
+        run: pnpm --filter @ssm-usor/app test:e2e --project=api
+
+      - name: Upload API test report
+        if: ${{ !cancelled() && steps.api-checks.outcome != 'skipped' && steps.api-checks.outcome != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-api
+          path: |
+            apps/app/playwright-report/
+            apps/app/test-results/
+          retention-days: 7
 
       - name: Deploy SPA
         uses: cloudflare/wrangler-action@v4
@@ -92,5 +112,19 @@ jobs:
           command: deploy --tag ${{ github.sha }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check deployed SPA and direct dashboard navigation
-        run: node scripts/smoke-deployment.mjs app https://app.ssmusor.ro
+      - name: Check deployed SPA and authenticated user flow
+        id: app-checks
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: pnpm --filter @ssm-usor/app test:e2e --project=chromium --project=authenticated
+
+      - name: Upload browser test report
+        if: ${{ !cancelled() && steps.app-checks.outcome != 'skipped' && steps.app-checks.outcome != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-app
+          path: |
+            apps/app/playwright-report/
+            apps/app/test-results/
+          retention-days: 7

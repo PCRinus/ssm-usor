@@ -117,6 +117,9 @@ pnpm build
 pnpm deploy:dry-run
 ```
 
+Playwright deployment tests live in `e2e/` and run separately with `pnpm --filter @ssm-usor/app test:e2e`.
+See the [deployment guide](app-deployment.md#playwright-deployment-tests) for server setup and credentials.
+
 Vitest and Testing Library exercise real route transitions and form interactions against a mocked
 Supabase auth boundary. Tests cover restored sessions, invalid credentials, successful login and
 logout, remote sign-out, failed logout, account/cache isolation, cancellation, initialization races,

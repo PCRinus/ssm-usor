@@ -8,6 +8,7 @@
     "dev": "vite --port 5173",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "preview": "vite preview --port 4173",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "pnpm build && wrangler deploy"
@@ -24,6 +25,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

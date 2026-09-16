@@ -28,6 +28,8 @@ export default defineConfig([
     '**/dist/**',
     'apps/app/src/api/generated/**',
     '**/node_modules/**',
+    '**/playwright-report/**',
+    '**/test-results/**',
   ]),
   {
     files: scriptFiles,

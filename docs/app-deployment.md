@@ -23,6 +23,8 @@ In **Settings → Environments**, create `app-production`. Add these environment
 | `CLOUDFLARE_API_TOKEN`          | Secret   | Deployment token authorized to edit Workers and their custom-domain routes in this account/zone. |
 | `VITE_SUPABASE_URL`             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                              |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                      |
+| `E2E_EMAIL`                     | Secret   | Email of an existing Supabase test user.                                                         |
+| `E2E_PASSWORD`                  | Secret   | Password for that test user.                                                                     |
 
 Repository-level variables and secrets also work. Values scoped only to marketing's
 `design-preview` environment are unavailable to `app-production`. GitHub cannot reveal an
@@ -33,8 +35,10 @@ to the account and zone hosting this project, as described in the marketing depl
 The workflow fixes `VITE_API_URL` to `https://api.ssmusor.ro`; no GitHub variable is needed
 for it. It builds the public Supabase settings into the SPA and passes the same settings to
 the API as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. These are public configuration,
-not administrator credentials. No Supabase secret/service-role key or seed credentials
-belong in this workflow.
+not administrator credentials. No Supabase secret/service-role key belongs in this workflow.
+The E2E credentials belong to an existing test user in the same Supabase project. The test
+only signs in, reads its account identity, refreshes, and signs out; it does not require admin
+permissions or create users. Missing test credentials fail the workflow before either upload.
 
 Local `.env.local` and `.dev.vars` files are ignored by Git and are not uploaded by the
 workflow. API `keep_vars: true` retains the deployed public bindings on subsequent manual
@@ -49,14 +53,19 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
    both applications and their workspace dependencies.
 4. It deploys the API and checks health, OpenAPI, CORS preflight, and rejection of missing
    and invalid bearer tokens. If a check fails, SPA deployment does not start.
-5. It deploys the SPA, checks `/login`, direct `/dashboard` navigation, and its JavaScript asset.
-6. Open `https://app.ssmusor.ro`, sign in with an existing Supabase user, confirm the API
-   account details load, refresh `/dashboard`, and sign out.
+5. It deploys the SPA and runs Chromium tests for login rendering, form validation, and the
+   signed-out redirect from `/dashboard`.
+6. An authenticated Chromium test signs in through Supabase, checks the real API identity
+   appears, refreshes `/dashboard` to verify session restoration, signs out, and checks the guard again.
 
 The smoke checks retry briefly while a new domain becomes available. If initial DNS or
 certificate provisioning takes longer, inspect Cloudflare's domain status and rerun the
-workflow once ready. The checks do not prove a successful user login; step 6 verifies that
-separately without storing a user's credentials in CI. No user is seeded during deployment.
+workflow once ready. API checks use Playwright’s HTTP request fixture; browser checks exercise
+the deployed React application without mocking Supabase or the API. No user is seeded during deployment.
+
+Each stage uploads a separate Playwright HTML report retained for seven days. Failed public
+browser tests also capture a trace and screenshot. Authentication traces, screenshots, and
+videos are disabled to keep credentials and session tokens out of those artifacts.
 
 Releases run sequentially and are not automatically canceled by a newer release. Each Worker
 version is tagged with the Git commit SHA. The two deployments are **not atomic**: if the SPA
@@ -80,12 +89,56 @@ pnpm test
 pnpm deploy:dry-run
 ```
 
-Run the same smoke checks against a deployment:
+## Playwright deployment tests
+
+Tests live in `apps/app/e2e`, configured by `apps/app/playwright.config.ts`. Vitest remains
+responsible for unit and integration tests; `pnpm test` does not run tests against live services.
+Playwright specs and configuration are included in the app's normal type checks.
+
+Install the browser once:
 
 ```bash
-node scripts/smoke-deployment.mjs api https://api.ssmusor.ro https://app.ssmusor.ro
-node scripts/smoke-deployment.mjs app https://app.ssmusor.ro
+pnpm --filter @ssm-usor/app exec playwright install chromium
 ```
+
+To run against a deployment, export its origins and the existing test user's credentials in
+your shell (`E2E_EMAIL` and `E2E_PASSWORD`):
+
+```bash
+export E2E_API_URL=https://api.ssmusor.ro
+export E2E_APP_URL=https://app.ssmusor.ro
+pnpm --filter @ssm-usor/app test:e2e
+```
+
+The projects can also run independently:
+
+```bash
+pnpm --filter @ssm-usor/app test:e2e --project=api
+pnpm --filter @ssm-usor/app test:e2e --project=chromium
+pnpm --filter @ssm-usor/app test:e2e --project=authenticated
+```
+
+Only `authenticated` requires credentials; it fails explicitly if they are missing. It is
+required in the deployment workflow. Use the [development account](development-admin.md)
+for local checks against our development Supabase project.
+
+For local production-preview testing, the default origins are `http://localhost:8787` (API)
+and `http://localhost:4174` (SPA). Add `http://localhost:4174` to `CORS_ORIGINS` in
+`apps/api/.dev.vars`, retaining your Vite origins, then run:
+
+```bash
+pnpm --filter @ssm-usor/contracts build
+pnpm dev:api
+# In another terminal:
+VITE_API_URL=http://localhost:8787 pnpm --filter @ssm-usor/app build
+pnpm --filter @ssm-usor/app exec wrangler dev --port 4174
+# In another terminal, with E2E_EMAIL and E2E_PASSWORD exported:
+pnpm --filter @ssm-usor/app test:e2e
+```
+
+The SPA build also needs the public Supabase values in `apps/app/.env.local`. Local servers
+are started explicitly so the tests can target either a local preview or a deployed environment.
+Generated reports and test results are ignored by Git, ESLint, and Prettier.
 
 For manual deployment, authenticate with `pnpm --filter @ssm-usor/api exec wrangler login`,
 build `@ssm-usor/contracts`, and configure the API's deployed Supabase bindings before

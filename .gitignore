@@ -11,3 +11,5 @@ dist/
 **/supabase/.branches/
 .DS_Store
 *.tsbuildinfo
+playwright-report/
+test-results/
