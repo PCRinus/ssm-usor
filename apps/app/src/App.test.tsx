@@ -1,5 +1,5 @@
 import { createMemoryHistory } from '@tanstack/react-router';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -129,13 +129,64 @@ describe('dashboard authentication and routing', () => {
     });
     expect(screen.getByText('review@example.test')).toBeTruthy();
     runtime.queryClient.setQueryData(['private-client-data'], { name: 'Private client' });
-    await user.click(screen.getByRole('button', { name: 'Deconectare' }));
+    await user.click(screen.getByRole('button', { name: 'Meniul contului' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Deconectare' }));
     await screen.findByRole('heading', { name: 'Bine ai revenit' });
     expect(client.signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(runtime.queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(screen.queryByText('review@example.test')).toBeNull();
     await act(async () => runtime.router.navigate({ to: '/dashboard' }));
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/login'));
+  });
+
+  it('keeps the shell and logo when navigating to clients and collapsing navigation', async () => {
+    const runtime = mount(authFixture(makeSession()).client);
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Navigare principală' })).getByRole('link', {
+        name: 'Clienți',
+      })
+    );
+    await screen.findByRole('heading', { name: 'Clienți' });
+    expect(runtime.router.state.location.pathname).toBe('/clients');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Navigare principală' }))
+        .getByRole('link', { name: 'Clienți' })
+        .getAttribute('aria-current')
+    ).toBe('page');
+    await user.click(screen.getByRole('button', { name: 'Comută meniul lateral' }));
+    expect(document.querySelector('[data-slot="sidebar"]')?.getAttribute('data-state')).toBe(
+      'collapsed'
+    );
+    expect(screen.getByRole('banner').contains(screen.getByAltText('SSM Ușor'))).toBe(true);
+    expect(screen.getByRole('table', { name: 'Lista clienților' })).toBeTruthy();
+  });
+
+  it('closes mobile navigation after selecting a page', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    mount(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Clienți' });
+    await user.click(screen.getByRole('button', { name: 'Comută meniul lateral' }));
+    const drawer = await screen.findByRole('dialog', { name: 'Navigare principală' });
+    await user.click(within(drawer).getByRole('link', { name: 'Prezentare generală' }));
+    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('protects a direct clients visit', async () => {
+    const runtime = mount(authFixture().client, '/clients');
+    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(screen.queryByRole('table')).toBeNull();
   });
 
   it('redirects an existing session away from login', async () => {
@@ -161,7 +212,9 @@ describe('dashboard authentication and routing', () => {
     client.signOut.mockResolvedValue({ error: { message: 'Network unavailable' } });
     const runtime = mount(client);
     await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Deconectare' }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Meniul contului' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Deconectare' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Deconectarea nu a reușit');
     expect(runtime.auth.getSnapshot().session?.user.id).toBe('user-one');
   });

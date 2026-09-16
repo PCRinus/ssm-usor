@@ -24,7 +24,8 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(accountEmail).toBeVisible();
 
-  await page.getByRole('button', { name: 'Deconectare', exact: true }).click();
+  await page.getByRole('button', { name: 'Meniul contului' }).click();
+  await page.getByRole('menuitem', { name: 'Deconectare', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/dashboard');
   await expect(page).toHaveURL(/\/login$/);

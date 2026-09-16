@@ -10,6 +10,7 @@ import {
 
 import type { ApiRequestOptions } from './api/http';
 import type { AuthStore } from './auth/auth-store';
+import { ClientsPage } from './pages/clients';
 import { DashboardPage } from './pages/dashboard';
 import { LoginPage } from './pages/login';
 import { AuthenticatedLayout, NotFoundPage, RouteErrorPage } from './pages/route-states';
@@ -57,8 +58,14 @@ export function createAppRouter(context: RouterContext, history?: RouterHistory)
     component: DashboardPage,
   });
 
+  const clients = createRoute({
+    getParentRoute: () => authenticated,
+    path: '/clients',
+    component: ClientsPage,
+  });
+
   return createRouter({
-    routeTree: root.addChildren([index, login, authenticated.addChildren([dashboard])]),
+    routeTree: root.addChildren([index, login, authenticated.addChildren([dashboard, clients])]),
     context,
     history,
     defaultPreload: 'intent',

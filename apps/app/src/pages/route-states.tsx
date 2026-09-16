@@ -1,12 +1,13 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Link, Outlet } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 
 import { useAuth } from '../auth/auth-context';
+import { AppShell } from '../components/app-shell';
 
 export function AuthenticatedLayout() {
   const { session } = useAuth();
   // Hide stale content immediately while the router rechecks a changed session.
-  return session ? <Outlet /> : null;
+  return session ? <AppShell /> : null;
 }
 
 export function NotFoundPage() {

@@ -126,3 +126,19 @@ Supabase auth boundary. Tests cover restored sessions, invalid credentials, succ
 logout, remote sign-out, failed logout, account/cache isolation, cancellation, initialization races,
 missing configuration, and not-found routes. They do not create remote users. The [development admin guide](development-admin.md) records
 the separate live login, API, session-restoration, and logout checks.
+
+## Workspace layout
+
+Authenticated routes share `src/components/app-shell.tsx`. A full-width sticky header
+keeps the logo and sidebar toggle visible independently of sidebar collapse. The
+account menu sits at the bottom of the sidebar and remains accessible as an avatar
+when collapsed. Breadcrumbs sit above the page content, and a small footer follows the content.
+The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting a
+mobile navigation link closes the Sheet.
+
+- `/dashboard`: overview and existing account/API status.
+- `/clients`: clients table scaffold with a development state. Client data loading,
+  creation, search, and row actions are not implemented yet; the add button is disabled.
+
+Sign-out is available from the sidebar account menu on every authenticated route.
+Failed sign-out keeps the session and displays a retry action in the shared layout.
