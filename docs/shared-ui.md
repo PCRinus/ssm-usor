@@ -19,7 +19,8 @@ needs a genuinely interactive island.
 - `packages/ui/src/styles/globals.css` imports Tailwind, the theme, animation utilities, and
   shared base styles. It registers the UI source directory for Tailwind scanning.
 - `packages/ui/src/components` contains the editable shadcn components: Button, Input, Label,
-  Card, and Badge. The registry's `cn` utility merges conditional classes and Tailwind overrides;
+  Card, Badge, Avatar, Breadcrumb, Dropdown Menu, Separator, Sidebar, Sheet, Skeleton,
+  Table, and Tooltip. The registry's `cn` utility merges conditional classes and Tailwind overrides;
   it is also available through `@ssm-usor/ui/lib/utils`.
 
 The UI package exports TypeScript source, so Vite and Astro compile only the components they use.
@@ -65,7 +66,9 @@ The pinned shadcn CLI runs against the dashboard's `components.json` and routes 
 primitives and their dependencies into `packages/ui`. App-specific blocks stay in the dashboard.
 The dashboard and the UI package use the same `new-york` registry style, neutral base color,
 Lucide icon setting, and CSS variables. The brand palette comes from our tokens rather than
-neutral registry defaults.
+neutral registry defaults. Sidebar colors are also mapped through the shared design tokens.
+Responsive and sidebar context hooks live in `packages/ui/src/hooks`; import `useSidebar`
+from `@ssm-usor/ui/hooks/use-sidebar`.
 
 Review any generated CSS additions: keep brand token definitions in `packages/design-tokens`.
 Run formatting, linting, type checks, and builds after adding components:
