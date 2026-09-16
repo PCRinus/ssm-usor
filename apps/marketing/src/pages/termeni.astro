@@ -1,6 +1,10 @@
 ---
 import { links } from '../components/concepts/content';
+import { legalEntity } from '../components/site/legal';
 import LegalPage from '../components/site/LegalPage.astro';
+
+/** Highlights entity details until they are filled in. */
+const M = legalEntity.filled ? 'span' : 'mark';
 ---
 
 <LegalPage
@@ -8,19 +12,21 @@ import LegalPage from '../components/site/LegalPage.astro';
   description="Condițiile de utilizare a platformei SSM Ușor pentru servicii externe de prevenire și protecție."
   updated="16 septembrie 2026"
 >
-  <p class="note">
-    Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
-    plecare și trebuie revizuit de un consilier juridic înainte de lansare.
-  </p>
+  {
+    !legalEntity.filled && (
+      <p class="note">
+        Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
+        plecare și trebuie revizuit de un consilier juridic înainte de lansare.
+      </p>
+    )
+  }
 
   <h2>1. Cine suntem</h2>
   <p>
-    Platforma SSM Ușor („Platforma”) este operată de <mark>[Denumirea societății] S.R.L.</mark>, cu
-    sediul în <mark>[adresa sediului]</mark>, înregistrată la Registrul Comerțului sub nr.{' '}
-    <mark>[J__/____/____]</mark>, CUI <mark>[________]</mark> („noi”, „SSM Ușor”). Ne poți contacta la{
-      ' '
-    }
-    <a href={`mailto:${links.email}`}>{links.email}</a>.
+    Platforma SSM Ușor („Platforma”) este operată de <M>{legalEntity.name}</M>, cu sediul în{' '}
+    <M>{legalEntity.address}</M>, înregistrată la Registrul Comerțului sub nr.{' '}
+    <M>{legalEntity.registry}</M>, CUI <M>{legalEntity.cui}</M> („noi”, „SSM Ușor”). Ne poți contacta
+    la <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
 
   <h2>2. Ce este Platforma</h2>
@@ -120,6 +126,6 @@ import LegalPage from '../components/site/LegalPage.astro';
   <p>
     Acești termeni sunt guvernați de legea română. Eventualele litigii se soluționează pe cale
     amiabilă, iar în lipsa unei înțelegeri, de instanțele competente din{' '}
-    <mark>[localitatea sediului]</mark>.
+    <M>{legalEntity.city}</M>.
   </p>
 </LegalPage>

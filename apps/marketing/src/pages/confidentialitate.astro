@@ -1,6 +1,10 @@
 ---
 import { links } from '../components/concepts/content';
+import { legalEntity } from '../components/site/legal';
 import LegalPage from '../components/site/LegalPage.astro';
+
+/** Highlights entity details until they are filled in. */
+const M = legalEntity.filled ? 'span' : 'mark';
 ---
 
 <LegalPage
@@ -8,18 +12,20 @@ import LegalPage from '../components/site/LegalPage.astro';
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
   updated="16 septembrie 2026"
 >
-  <p class="note">
-    Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
-    plecare și trebuie revizuit de un consilier juridic sau de un responsabil cu protecția datelor
-    înainte de lansare.
-  </p>
+  {
+    !legalEntity.filled && (
+      <p class="note">
+        Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
+        plecare și trebuie revizuit de un consilier juridic sau de un responsabil cu protecția
+        datelor înainte de lansare.
+      </p>
+    )
+  }
 
   <h2>1. Operatorul</h2>
   <p>
-    <mark>[Denumirea societății] S.R.L.</mark>, cu sediul în <mark>[adresa sediului]</mark>, CUI{
-      ' '
-    }
-    <mark>[________]</mark>, operează site-ul ssmusor.ro și platforma SSM Ușor. Pentru orice
+    <M>{legalEntity.name}</M>, cu sediul în <M>{legalEntity.address}</M>, CUI{' '}
+    <M>{legalEntity.cui}</M>, operează site-ul ssmusor.ro și platforma SSM Ușor. Pentru orice
     întrebare legată de datele tale ne poți scrie la{' '}
     <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
@@ -74,10 +80,10 @@ import LegalPage from '../components/site/LegalPage.astro';
     <li>găzduire și livrare a site-ului și a platformei: Cloudflare, Inc.;</li>
     <li>autentificare și bază de date: Supabase, Inc., cu stocare în Uniunea Europeană;</li>
     <li>
-      semnătură electronică: <mark>[prestatorul de servicii de încredere]</mark>, pentru documentele
-      trimise la semnat;
+      semnătură electronică: <M>{legalEntity.signatureProvider}</M>, pentru documentele trimise la
+      semnat;
     </li>
-    <li>email tranzacțional: <mark>[furnizorul de email]</mark>.</li>
+    <li>email tranzacțional: <M>{legalEntity.emailProvider}</M>.</li>
   </ul>
   <p>
     Unii dintre acești furnizori au sediul în afara Uniunii Europene. Transferurile se fac în baza
