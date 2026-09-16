@@ -1,0 +1,34 @@
+name: Set up workspace
+description: Install the pinned pnpm workspace and optionally restore Turbo task results.
+
+inputs:
+  turbo-cache:
+    description: Cache Turbo results for validation and build jobs.
+    default: 'false'
+  cache-scope:
+    description: Distinguish concurrent cache writers.
+    default: validate
+
+runs:
+  using: composite
+  steps:
+    - name: Set up pnpm and Node.js
+      uses: pnpm/setup@v2
+      with:
+        runtime: node@24
+        cache: true
+        install: false
+
+    - name: Restore Turbo task cache
+      if: inputs.turbo-cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: .turbo
+        key: ${{ runner.os }}-node24-turbo-v1-${{ hashFiles('pnpm-lock.yaml') }}-${{ inputs.cache-scope }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ${{ runner.os }}-node24-turbo-v1-${{ hashFiles('pnpm-lock.yaml') }}-${{ inputs.cache-scope }}-
+          ${{ runner.os }}-node24-turbo-v1-${{ hashFiles('pnpm-lock.yaml') }}-
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

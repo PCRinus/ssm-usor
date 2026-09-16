@@ -47,9 +47,10 @@ The custom domain takes effect on deployment; committing the config does not pub
 Cloudflare provisions its DNS record and certificate when the Worker is deployed to the account
 with the active `ssmusor.ro` zone. Any existing conflicting DNS record must be resolved first.
 
-The manual **Deploy app** workflow deploys the API at `api.ssmusor.ro`, checks its health and
-browser access, and then publishes the SPA. It builds both using the same public Supabase
-configuration. See the [application deployment guide](app-deployment.md) for the required
+The **CI** workflow automatically deploys affected applications on pushes to `main`. When
+both API and SPA change, the API at `api.ssmusor.ro` is deployed and checked before the SPA.
+SPA-only changes leave the API deployment untouched. The SPA build and API bindings use the
+same public Supabase configuration. See the [application deployment guide](app-deployment.md) for the required
 GitHub environment values, release steps, smoke checks, and recovery guidance.
 
 For packaging validation without publishing, run `pnpm --filter @ssm-usor/app build` followed

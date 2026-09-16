@@ -5,34 +5,56 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 permissions:
   contents: read
 
+# Serialize entire main runs, including validation, builds, and deployment.
+# PR runs use separate groups; their validation jobs cancel superseded checks below.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'push' && github.ref || github.run_id }}
+  cancel-in-progress: false
+  queue: max
 
 jobs:
+  changes:
+    name: Select affected applications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      app: ${{ steps.filter.outputs.app }}
+      marketing: ${{ steps.filter.outputs.marketing }}
+      projects: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Detect changes across the PR or entire push
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          # On pushes, comparing to the same branch uses the pre-push SHA.
+          # PRs use GitHub's changed-file list instead.
+          base: ${{ github.ref }}
+          filters: .github/filters.yml
+
   validate:
     name: Validate repository
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
+    concurrency:
+      group: ci-validate-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+      cancel-in-progress: true
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-      - name: Set up pnpm and Node.js
-        uses: pnpm/setup@v2
+      - uses: ./.github/actions/setup
         with:
-          runtime: node@24
-          cache: true
-          install: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          turbo-cache: 'true'
 
       - name: Check generated API contract and client
         run: pnpm check:generated
@@ -43,11 +65,241 @@ jobs:
       - name: Type-check
         run: pnpm typecheck
 
-      - name: Build
-        run: pnpm build
-
       - name: Test
         run: pnpm test
 
-      - name: Validate Cloudflare deployments
-        run: pnpm deploy:dry-run
+      # PRs check packaging without production environment access. Main builds
+      # happen once in the production build job, with the real public settings.
+      - name: Build and validate affected PR applications
+        if: github.event_name == 'pull_request' && needs.changes.outputs.projects != '[]'
+        env:
+          PROJECTS: ${{ needs.changes.outputs.projects }}
+        shell: bash
+        run: |
+          mapfile -t projects < <(jq -r '.[]' <<< "$PROJECTS")
+          filters=()
+          for project in "${projects[@]}"; do
+            filters+=("--filter=@ssm-usor/$project")
+          done
+          pnpm exec turbo run deploy:dry-run "${filters[@]}"
+
+  build:
+    name: Build production ${{ matrix.project }}
+    needs: [changes, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.projects != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.changes.outputs.projects) }}
+    env:
+      VITE_API_URL: https://api.ssmusor.ro
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check public application configuration
+        if: matrix.project == 'app' || matrix.project == 'api'
+        shell: bash
+        run: |
+          : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
+          : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Set VITE_SUPABASE_PUBLISHABLE_KEY in GitHub variables}"
+          if [[ "$VITE_SUPABASE_URL" != https://* || "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
+            echo "Set an HTTPS Supabase URL and an sb_publishable_ key."
+            exit 1
+          fi
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'true'
+          cache-scope: build-${{ matrix.project }}
+
+      - name: Build and validate Cloudflare package
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: pnpm exec turbo run deploy:dry-run --filter="@ssm-usor/$PROJECT"
+
+      - name: Collect release files
+        env:
+          PROJECT: ${{ matrix.project }}
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          cp -R "apps/$PROJECT/.wrangler/deploy" "$RUNNER_TEMP/release/worker"
+          if [[ "$PROJECT" != api ]]; then
+            cp -R "apps/$PROJECT/dist" "$RUNNER_TEMP/release/dist"
+          fi
+
+      - name: Upload validated release
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.project }}-${{ github.sha }}
+          path: ${{ runner.temp }}/release/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+  deploy-api:
+    name: Deploy API
+    needs: [changes, build]
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://api.ssmusor.ro
+    env:
+      E2E_API_URL: https://api.ssmusor.ro
+      E2E_APP_URL: https://app.ssmusor.ro
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-api-${{ github.sha }}
+          path: apps/api/.wrangler/release
+
+      - name: Deploy validated API bundle
+        uses: cloudflare/wrangler-action@v4
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          packageManager: pnpm
+          command: deploy .wrangler/release/worker/index.js --no-bundle --tag ${{ github.sha }}
+          vars: |
+            SUPABASE_URL
+            SUPABASE_PUBLISHABLE_KEY
+
+      - name: Check deployed API and browser access
+        id: api-checks
+        run: pnpm --filter @ssm-usor/app test:e2e --project=api
+
+      - name: Upload API test report
+        if: ${{ !cancelled() && steps.api-checks.outcome != 'skipped' && steps.api-checks.outcome != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-api
+          path: |
+            apps/app/playwright-report/
+            apps/app/test-results/
+          retention-days: 7
+          overwrite: true
+
+  deploy-app:
+    name: Deploy SPA
+    needs: [changes, build, deploy-api]
+    # Explicitly allow a skipped API job on SPA-only releases, but never a failed one.
+    if: >-
+      !cancelled() &&
+      needs.changes.outputs.app == 'true' &&
+      needs.build.result == 'success' &&
+      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://app.ssmusor.ro
+    env:
+      E2E_API_URL: https://api.ssmusor.ro
+      E2E_APP_URL: https://app.ssmusor.ro
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-app-${{ github.sha }}
+          path: apps/app/.wrangler/release
+
+      - name: Deploy validated SPA assets
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/app
+          packageManager: pnpm
+          command: deploy --assets .wrangler/release/dist --tag ${{ github.sha }}
+
+      - name: Install Chromium for browser verification
+        run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
+
+      - name: Check deployed SPA and authenticated user flow
+        id: app-checks
+        # Advisory during development; deployment has already completed.
+        continue-on-error: true
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: pnpm --filter @ssm-usor/app test:e2e --project=chromium --project=authenticated
+
+      - name: Report browser verification warning
+        if: ${{ !cancelled() && steps.app-checks.outcome == 'failure' }}
+        run: |
+          echo "::warning::SPA deployed, but browser verification did not pass. Review the Playwright results."
+          cat >> "$GITHUB_STEP_SUMMARY" <<'MARKDOWN'
+          ### Browser verification warning
+
+          The SPA was deployed, but the Playwright browser checks did not pass.
+          These checks are currently advisory. Review the test logs and the `playwright-app`
+          artifact, if available, before treating this release as verified.
+          MARKDOWN
+
+      - name: Upload browser test report
+        if: ${{ !cancelled() && steps.app-checks.outcome != 'skipped' && steps.app-checks.outcome != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-app
+          path: |
+            apps/app/playwright-report/
+            apps/app/test-results/
+          retention-days: 7
+          overwrite: true
+
+  deploy-marketing:
+    name: Deploy marketing site
+    needs: [changes, build]
+    if: needs.changes.outputs.marketing == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://ssmusor.ro
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-marketing-${{ github.sha }}
+          path: apps/marketing/.wrangler/release
+
+      - name: Prepare deployment metadata
+        id: metadata
+        shell: bash
+        run: |
+          tag="$(git rev-parse --short=12 HEAD)"
+          subject="$(git log -1 --pretty=%s | LC_ALL=C tr -cd '[:alnum:] ._:/@+-' | cut -c1-240)"
+          printf 'message=CI: %s [%s]\n' "${subject:-Deploy commit $tag}" "$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy validated marketing bundle and assets
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/marketing
+          packageManager: pnpm
+          command: >-
+            deploy .wrangler/release/worker/worker.js --no-bundle
+            --assets .wrangler/release/dist
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"

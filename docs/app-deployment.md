@@ -1,7 +1,8 @@
 # Deploy the application and API
 
-The manual GitHub Actions workflow **Deploy app** (`.github/workflows/deploy-app.yml`)
-deploys two Cloudflare Workers from the same selected Git revision:
+The **CI** workflow (`.github/workflows/ci.yml`) automatically deploys the affected API
+and SPA applications after validation succeeds on a push to `main`. Each application
+has its own deployment job and can be released independently:
 
 | Worker         | Custom domain    | Purpose                                         |
 | -------------- | ---------------- | ----------------------------------------------- |
@@ -15,8 +16,8 @@ independently; see the [marketing deployment guide](deployment.md).
 
 ## One-time GitHub configuration
 
-In **Settings → Environments**, use the shared `production` environment. Both deployment
-workflows use its variables, secrets, and protection rules. Add these values for the API and SPA:
+In **Settings → Environments**, use the shared `production` environment. Production build
+and deployment jobs use its variables, secrets, and protection rules. Add these values for the API and SPA:
 
 | Name                            | Kind     | Value                                                                                            |
 | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
@@ -28,8 +29,10 @@ workflows use its variables, secrets, and protection rules. Add these values for
 | `E2E_PASSWORD`                  | Secret   | Password for that test user.                                                                     |
 
 The Cloudflare account ID and deployment token are shared with marketing.
-Marketing deploys automatically after successful CI on `main`, while **Deploy app** remains
-manual. Each workflow has its own concurrency group so they can deploy independently.
+All three applications deploy automatically and selectively after successful validation on
+`main`. Marketing has an independent deployment job. Main workflow runs are queued without
+automatically canceling active or pending releases. See [CI/CD](ci-cd.md) for change selection,
+artifact reuse, caching, and recovery.
 
 Repository-level variables and secrets also work, but values scoped to other environments
 are unavailable here. The Cloudflare **Edit Cloudflare Workers** token template is a starting
@@ -52,20 +55,22 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 
 ## Release
 
-1. Commit and push the changes to GitHub.
-2. Open **Actions → Deploy app → Run workflow** and select the intended branch or tag.
-3. The workflow validates configuration, generated code, lint, types, and tests, then builds
-   both applications and their workspace dependencies.
-4. It deploys the API and checks health, OpenAPI, CORS preflight, and rejection of missing
-   and invalid bearer tokens. If a check fails, SPA deployment does not start.
-5. It deploys the SPA and runs Chromium tests for login rendering, form validation, and the
-   signed-out redirect from `/dashboard`.
-6. An authenticated Chromium test signs in through Supabase, checks the real API identity
-   appears, refreshes `/dashboard` to verify session restoration, signs out, and checks the guard again.
+1. Merge or push the changes to `main`; follow the **CI** run in GitHub Actions.
+2. CI validates generated code, lint, types, and tests once for the revision.
+3. Only affected applications are built and checked with Wrangler's dry run. The SPA build
+   receives production public settings. Validated Worker bundles and static assets are uploaded
+   as artifacts and downloaded by deployment jobs; those jobs do not rebuild the applications.
+4. If the API changed, its job deploys the validated bundle and checks health, OpenAPI, CORS
+   preflight, and rejection of missing and invalid bearer tokens. No Chromium installation is needed.
+5. If the SPA changed, its job deploys the validated assets. When the API is also selected,
+   its deployment and smoke tests must succeed first; an unchanged API is skipped.
+6. After an SPA deployment, Chromium checks login rendering, form validation, the signed-out
+   redirect, and the authenticated identity/session/sign-out flow against the deployed services.
+   API-only releases run the API checks; they do not redeploy or run browser checks for the SPA.
 
 Browser verification is currently **non-blocking**: readiness, UI, or login failures leave a
 warning and job summary while allowing a successful deployment result. Browser report uploads
-are also best-effort. Build, validation, Worker upload, and API checks still fail the workflow
+are also best-effort. Build, validation, Worker upload, browser installation, and API checks still fail the workflow
 on error. A successful deployment with a browser warning does not mean the user flow was verified.
 
 Before either browser project runs, a shared Playwright `app-ready` setup project polls
@@ -77,17 +82,21 @@ inspect Cloudflare's domain status and rerun the workflow once ready. API checks
 Playwright’s HTTP request fixture; browser checks exercise
 the deployed React application without mocking Supabase or the API. No user is seeded during deployment.
 
-Each stage uploads a separate Playwright HTML report retained for seven days. Failed public
+Each executed verification stage uploads a separate Playwright HTML report retained for seven days. Failed public
 browser tests also capture a trace and screenshot. Authentication traces, screenshots, and
 videos are disabled to keep credentials and session tokens out of those artifacts.
 
-Releases run sequentially and are not automatically canceled by a newer release. Each Worker
-version is tagged with the Git commit SHA. The two deployments are **not atomic**: if the SPA
-upload fails, the API may already be live. Browser warnings leave both deployed versions in place.
-Correct the problem and rerun;
-to return to an earlier release, run the workflow against a known-good tag, or roll back both
-Workers to the matching commit versions in Cloudflare. Future API changes should remain
-compatible with the previous SPA while a release is in progress.
+Main workflow runs are queued and are not automatically canceled by newer pushes. Each Worker
+version is tagged with the full Git commit SHA. When both applications change, the two deployments
+are **not atomic**: if the SPA upload fails, the API may already be live. Browser warnings leave the
+new SPA in place. API changes must remain compatible with the previous SPA during deployment.
+
+If deployment fails, resolve the cause and rerun the failed job in the original **CI** run while
+its release artifact is available (seven days). A rerun uses the original commit: do not rerun an
+old deployment over a newer successful release. Later unrelated pushes do not automatically retry
+failed releases. For expired artifacts, rerun all jobs only if that revision is still the intended
+release; otherwise push a fix affecting the application. For rollback, select the known-good Worker
+version in Cloudflare; coordinate both Workers when their contracts require it.
 
 Email/password login needs no callback URL. Set Supabase's Site URL to `https://app.ssmusor.ro`
 and configure redirect URLs when adding password reset, email confirmation, or OAuth.
@@ -134,7 +143,7 @@ pnpm --filter @ssm-usor/app test:e2e --project=authenticated
 ```
 
 Only `authenticated` requires credentials; it fails explicitly if they are missing. It is
-always run in the deployment workflow, but its failure is advisory. Use the [development account](development-admin.md)
+run after each SPA deployment, but its failure is advisory. Use the [development account](development-admin.md)
 for local checks against our development Supabase project.
 
 For local production-preview testing, the default origins are `http://localhost:8787` (API)
@@ -159,4 +168,4 @@ For manual deployment, authenticate with `pnpm --filter @ssm-usor/api exec wrang
 build `@ssm-usor/contracts`, and configure the API's deployed Supabase bindings before
 `pnpm deploy:api`. Build the SPA with all three production `VITE_*` values before publishing
 via `pnpm deploy:app`; this command builds using the current shell and local env files.
-Prefer the workflow for a coordinated release, since local files may still point at local services.
+Prefer automatic CI deployment, since local files may still point at local services.

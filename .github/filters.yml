@@ -1,0 +1,31 @@
+# These are deployment/build targets, not every package in the workspace.
+# Keep shared build inputs conservative; lint and documentation alone do not deploy.
+api:
+  - &shared
+    - 'package.json'
+    - 'pnpm-lock.yaml'
+    - 'pnpm-workspace.yaml'
+    - '.npmrc'
+    - '.nvmrc'
+    - 'tsconfig.base.json'
+    - 'turbo.json'
+    - '.github/filters.yml'
+    - '.github/actions/**'
+    - '.github/workflows/**'
+    - 'patches/**'
+  - 'apps/api/**'
+  - 'packages/contracts/**'
+app:
+  - *shared
+  - 'apps/app/**'
+  - &ui
+    - 'packages/ui/**'
+    - 'packages/design-tokens/**'
+  # The generated client is not a workspace dependency on contracts.
+  - 'packages/contracts/**'
+  - 'apps/api/openapi.json'
+  - 'orval.config.ts'
+marketing:
+  - *shared
+  - *ui
+  - 'apps/marketing/**'

@@ -10,9 +10,9 @@ remains in place while the site is being developed.
 ## GitHub environment
 
 Use the GitHub Actions environment named `production` under **Settings → Environments**.
-It is shared with the API and SPA deployment workflow, including the Cloudflare account ID,
-deployment token, and environment protection rules. The workflows keep separate triggers and
-concurrency groups; sharing the environment does not require deploying them together.
+It is shared by the production build and deployment jobs in **CI**, including the Cloudflare
+account ID, deployment token, and environment protection rules. Each application is selected
+independently; sharing the environment does not require deploying them together.
 
 Add these environment variables under **Environment variables**:
 
@@ -62,12 +62,13 @@ The marketing site does not currently need Workers KV, R2, D1, DNS Edit, or Zone
 Start with the official template if the custom-token UI or the first deployment rejects the minimal
 set, then tighten the token after deployment is working.
 
-The deployment workflow runs after the `CI` workflow succeeds for a push to `main`. It can also be
-started manually from the Actions tab.
+The marketing deployment job runs in **CI** after validation and production builds succeed on
+`main`, only when marketing or one of its shared inputs changes. It downloads the validated
+Worker bundle and static assets instead of rebuilding. See [CI/CD](ci-cd.md) for selection,
+caching, and failed-release recovery.
 
-Each deployment is annotated with the sanitized commit subject and short commit SHA. Cloudflare
-uses the subject as the version/deployment message and the SHA as the version tag, making CI
-deployments identifiable in the Worker version history.
+Each deployment is annotated with the sanitized commit subject and short commit SHA in its
+message. The version tag is the full commit SHA, matching the API and SPA tags.
 
 ## Connect `ssmusor.ro` to Cloudflare
 
@@ -96,9 +97,9 @@ competing `A`, `AAAA`, or `CNAME` record for that hostname manually. The SPA and
 
 1. Confirm the `production` GitHub environment contains the account ID variable and API token secret
    listed above.
-2. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
-   automatically after CI succeeds.
-3. Follow **Actions → Deploy marketing site** until the deployment completes.
+2. Push a marketing or shared-build-input change to `main`. CI validates the revision, builds
+   the selected applications, then deploys marketing automatically.
+3. Follow **Actions → CI → Deploy marketing site** until the deployment completes.
 4. Open `https://ssmusor.ro`; the site is available without credentials.
 
 The first Custom Domain certificate can take a few minutes to become available. Before the initial

@@ -13,8 +13,11 @@ The [technical architecture](docs/technical-architecture.md) records the propose
 The [deployment guide](docs/deployment.md) covers the public Cloudflare marketing site,
 required GitHub secrets, and local Wrangler commands.
 
-The [application deployment guide](docs/app-deployment.md) covers the coordinated API and SPA
-release to `api.ssmusor.ro` and `app.ssmusor.ro`.
+The [application deployment guide](docs/app-deployment.md) covers selective, automatic API and SPA
+releases to `api.ssmusor.ro` and `app.ssmusor.ro`.
+
+The [CI/CD guide](docs/ci-cd.md) explains change selection, build artifacts, Turbo caching,
+and recovery from failed deployments.
 
 See the [API client guide](docs/api-client.md) for OpenAPI generation, Orval, and `VITE_API_URL`.
 

@@ -80,9 +80,10 @@ perform runtime response validation.
 
 Set `VITE_API_URL` in `apps/app/.env.local` to the API origin. Development defaults to
 `http://localhost:8787`; production requires an explicit URL. A production build with no URL
-shows an unavailable account section and makes no API requests. The app deployment workflow
-sets `VITE_API_URL` to `https://api.ssmusor.ro` at build time and deploys the API before the SPA.
-See the [application deployment guide](app-deployment.md) for the coordinated release workflow.
+shows an unavailable account section and makes no API requests. The production build job in
+**CI** sets `VITE_API_URL` to `https://api.ssmusor.ro`. When both applications are selected,
+the API deploys before the SPA; either can deploy independently when only its inputs change.
+See the [application deployment guide](app-deployment.md) for the selective release workflow.
 
 Run both applications locally:
 

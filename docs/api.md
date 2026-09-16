@@ -89,8 +89,9 @@ authentication still applies independently, including to non-browser clients.
 ## Deployment and verification
 
 `apps/api/wrangler.jsonc` declares the `ssm-usor-api` Worker at `api.ssmusor.ro` and its
-production CORS origin. The manual **Deploy app** workflow supplies the public Supabase
-bindings, deploys and checks the API, then publishes the SPA. `.dev.vars` is local only.
+production CORS origin. The **CI** workflow supplies the public Supabase bindings and deploys
+and checks the API when its inputs change on `main`. If the SPA also changed, its deployment
+waits for the API checks; otherwise the SPA is left untouched. `.dev.vars` is local only.
 See the [application deployment guide](app-deployment.md) for GitHub configuration and release steps.
 
 ```bash
