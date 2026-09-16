@@ -26,9 +26,9 @@ const signatures: [string, number, number][] = [
 
 <section class="showcase wrap" id="platforma">
   <h2>Cum arată în platformă.</h2>
-  <figure aria-label="Cei patru pași, așa cum arată în platformă">
+  <figure aria-label="Cei patru pași, așa cum arată în platformă" data-reveal>
     <ol>
-      <li>
+      <li style="--i: 0">
         <span class="step-label">1. Client</span>
         <div class="panel client">
           <b>Metalcon Prod SRL</b>
@@ -37,7 +37,7 @@ const signatures: [string, number, number][] = [
           <i>Contract semnat</i>
         </div>
       </li>
-      <li>
+      <li style="--i: 1">
         <span class="step-label">2. Angajați</span>
         <div class="panel people">
           {
@@ -51,7 +51,7 @@ const signatures: [string, number, number][] = [
           <p>și încă 34</p>
         </div>
       </li>
-      <li>
+      <li style="--i: 2">
         <span class="step-label">3. Documente și teste</span>
         <div class="panel docs">
           {
@@ -64,17 +64,17 @@ const signatures: [string, number, number][] = [
           }
         </div>
       </li>
-      <li>
+      <li style="--i: 3">
         <span class="step-label">4. Semnături</span>
         <div class="panel signs">
           {
-            signatures.map(([who, done, total]) => (
+            signatures.map(([who, done, total], index) => (
               <div>
                 <b>{who}</b>
                 <span>
                   {done} din {total}
                 </span>
-                <i style={`--p:${(done / total) * 100}%`} />
+                <i style={`--p:${(done / total) * 100}%; --j:${index}`} />
               </div>
             ))
           }
@@ -113,6 +113,13 @@ const signatures: [string, number, number][] = [
     left: 0;
     right: -14px;
     border-top: 2px solid var(--lime);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.45s ease-out;
+    transition-delay: calc(var(--i) * 0.2s);
+  }
+  figure.is-visible li::before {
+    transform: scaleX(1);
   }
   .step-label {
     position: relative;
@@ -201,9 +208,14 @@ const signatures: [string, number, number][] = [
   .panel.signs i::before {
     content: '';
     display: block;
-    width: var(--p);
+    width: 0;
     height: 100%;
     background: var(--lime);
+    transition: width 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: calc(0.6s + var(--j) * 0.12s);
+  }
+  figure.is-visible .panel.signs i::before {
+    width: var(--p);
   }
   figcaption {
     padding-top: 14px;

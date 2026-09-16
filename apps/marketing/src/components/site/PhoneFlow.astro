@@ -12,7 +12,7 @@ const points = [
 <section class="phone-section" id="telefon">
   <div class="wrap phone-grid">
     <figure class="phone" aria-label="Fluxul angajatului, pe telefon">
-      <div class="screen">
+      <div class="screen" data-reveal>
         <div class="bar">
           <span>Metalcon Prod SRL</span>
           <span>SSM Ușor</span>
@@ -20,15 +20,15 @@ const points = [
         <p class="hello">Bună, Ioana.</p>
         <p class="sub">Fișa ta de instruire este gata de semnat.</p>
         <ol class="checks">
-          <li class="done">
+          <li class="done" style="--i: 0">
             <b>Materialul de instruire</b>
             <span>citit, 6 min</span>
           </li>
-          <li class="done">
+          <li class="done" style="--i: 1">
             <b>Testul de verificare</b>
             <span>18 din 20, promovat</span>
           </li>
-          <li class="now">
+          <li class="now" style="--i: 2">
             <b>Fișa de instruire</b>
             <span>de semnat</span>
           </li>
@@ -110,6 +110,16 @@ const points = [
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 10px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity 0.4s ease-out,
+      transform 0.4s ease-out;
+    transition-delay: calc(0.15s + var(--i) * 0.18s);
+  }
+  .screen.is-visible .checks li {
+    opacity: 1;
+    transform: none;
   }
   .checks li::before {
     content: '';
@@ -145,6 +155,14 @@ const points = [
     color: #fff;
     font-weight: 600;
     text-align: center;
+  }
+  .screen.is-visible .cta {
+    animation: press 0.5s ease-out 0.95s 1;
+  }
+  @keyframes press {
+    50% {
+      transform: scale(1.04);
+    }
   }
   .fine {
     margin-top: 12px;

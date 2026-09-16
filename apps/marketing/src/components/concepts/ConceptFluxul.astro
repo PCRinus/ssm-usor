@@ -6,13 +6,6 @@ import { compact } from './compact';
 import ConceptSwitcher from './ConceptSwitcher.astro';
 import { cta, links, status } from './content';
 
-interface Props {
-  /** D: four-panel showcase. E: showcase plus the employee phone flow. */
-  variant?: 'd' | 'e';
-}
-
-const { variant = 'd' } = Astro.props;
-
 const scattered = [
   { label: 'Word', x: 6, y: 8, r: -6 },
   { label: 'Excel', x: 58, y: 2, r: 4 },
@@ -57,8 +50,10 @@ const scattered = [
             <path d="M62 6 C 90 20, 85 40, 66 44"></path>
           </svg>
           {
-            scattered.map((tile) => (
-              <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg`}>{tile.label}</span>
+            scattered.map((tile, index) => (
+              <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg; --i:${index}`}>
+                {tile.label}
+              </span>
             ))
           }
         </div>
@@ -66,11 +61,10 @@ const scattered = [
       <div class="after">
         <p class="panel-title">În SSM Ușor</p>
         <ol class="line">
-          {compact.steps.map((step) => <li>{step.title}</li>)}
+          {compact.steps.map((step, index) => <li style={`--i:${index}`}>{step.title}</li>)}
         </ol>
       </div>
     </figure>
-    <p class="audience">{compact.audience}</p>
   </section>
 
   <section class="steps-section wrap" id="cum">
@@ -130,9 +124,9 @@ const scattered = [
     </ul>
   </section>
 
-  {variant === 'e' && <PhoneFlow />}
+  <PhoneFlow />
 
-  <section class:list={['also', 'wrap', { 'after-phone': variant === 'e' }]}>
+  <section class="also wrap">
     <h2>Și restul, când ai nevoie.</h2>
     <ul class="also-list">
       {
@@ -175,8 +169,29 @@ const scattered = [
     </div>
   </section>
 
-  <ConceptSwitcher current={variant === 'e' ? 'fluxul-e' : 'fluxul'} />
+  <ConceptSwitcher current="fluxul" />
 </FluxLayout>
+
+<script>
+  // Reveal-on-scroll for the showcase and phone figures. Each figure animates once.
+  const targets = document.querySelectorAll<HTMLElement>('[data-reveal]');
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.35 }
+    );
+    targets.forEach((target) => observer.observe(target));
+  } else {
+    targets.forEach((target) => target.classList.add('is-visible'));
+  }
+</script>
 
 <style>
   /* Hero */
@@ -184,7 +199,7 @@ const scattered = [
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 80px 0 72px;
+    padding: 80px 0 40px;
     text-align: center;
   }
   .status {
@@ -223,12 +238,6 @@ const scattered = [
   .notify a {
     color: var(--ink-2);
     text-underline-offset: 3px;
-  }
-  .audience {
-    max-width: 52ch;
-    margin-top: 32px;
-    color: var(--ink-2);
-    font-size: 0.98rem;
   }
 
   .before-after {
@@ -274,6 +283,7 @@ const scattered = [
     stroke-width: 0.6;
     stroke-dasharray: 2 2;
     vector-effect: non-scaling-stroke;
+    animation: fade-in 0.8s ease-out 0.55s both;
   }
   .scatter span {
     position: absolute;
@@ -286,6 +296,8 @@ const scattered = [
     transform: rotate(var(--r));
     box-shadow: 0 2px 0 var(--line);
     white-space: nowrap;
+    animation: settle 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i) * 70ms);
   }
   .line {
     display: flex;
@@ -300,6 +312,8 @@ const scattered = [
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.2;
+    animation: rise 0.5s ease-out both;
+    animation-delay: calc(0.7s + var(--i) * 260ms);
   }
   .line li::before {
     content: '';
@@ -318,6 +332,45 @@ const scattered = [
     bottom: -60px;
     left: 6px;
     border-left: 2px solid var(--lime);
+    transform: scaleY(0);
+    transform-origin: top;
+    animation: grow-y 0.3s ease-out both;
+    animation-delay: calc(0.95s + var(--i) * 260ms);
+  }
+
+  /* The one orchestrated moment: tiles settle, then the flow line draws itself. */
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: rotate(var(--r)) translateY(12px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(var(--r)) translateY(0) scale(1);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes grow-y {
+    to {
+      transform: scaleY(1);
+    }
   }
 
   /* Section heads */
@@ -335,7 +388,7 @@ const scattered = [
 
   /* Steps */
   .steps-section {
-    padding: 88px 0;
+    padding: 64px 0 88px;
   }
   .steps-section h2 {
     margin-bottom: 36px;
@@ -419,10 +472,7 @@ const scattered = [
 
   /* Also */
   .also {
-    padding: 0 0 88px;
-  }
-  .also.after-phone {
-    padding-top: 88px;
+    padding: 88px 0;
   }
   .also h2 {
     margin-bottom: 32px;
@@ -501,9 +551,10 @@ const scattered = [
     content: '+';
     flex-shrink: 0;
     color: var(--ink-2);
+    transition: transform 0.2s ease;
   }
   details[open] summary::after {
-    content: '–';
+    transform: rotate(45deg);
   }
   details p {
     max-width: 70ch;
@@ -526,7 +577,7 @@ const scattered = [
   }
   @media (max-width: 760px) {
     .hero {
-      padding: 48px 0 56px;
+      padding: 48px 0 24px;
     }
     h1 {
       font-size: clamp(2.2rem, 10vw, 3rem);
@@ -577,15 +628,15 @@ const scattered = [
     .signers {
       gap: 12px;
     }
-    .steps-section,
+    .steps-section {
+      padding: 48px 0 56px;
+    }
     .documents,
     .signers-section,
+    .also,
     .access,
     .faq {
       padding-block: 56px;
-    }
-    .also {
-      padding-bottom: 56px;
     }
   }
 </style>

@@ -6,8 +6,6 @@ import type { DocumentGroup, Faq, Signer, Step } from './content';
  */
 export const compact = {
   lede: 'Adaugi clientul și angajații, creezi documentele și testele, semnezi cu toată lumea. Într-un singur loc.',
-  audience:
-    'Pentru servicii externe SSM din România, de la specialistul care lucrează singur la echipe întregi.',
   steps: [
     { title: 'Adaugi clientul', text: 'Firma, punctele de lucru și contractul de servicii.' },
     {

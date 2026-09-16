@@ -8,6 +8,7 @@ export default defineConfig({
   output: 'static',
   redirects: {
     '/concepte': '/concepte/fluxul',
+    '/concepte/fluxul-e': '/concepte/fluxul',
   },
   integrations: [
     react(),

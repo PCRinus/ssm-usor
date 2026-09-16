@@ -120,6 +120,16 @@
   justify-content: flex-start;
 }
 
+/* global.css already zeroes durations; delays must go too or content stays hidden. */
+@media (prefers-reduced-motion: reduce) {
+  .flux *,
+  .flux *::before,
+  .flux *::after {
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
+
 @media (max-width: 760px) {
   .flux {
     font-size: 17px;
