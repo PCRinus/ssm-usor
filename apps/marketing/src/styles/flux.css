@@ -1,15 +1,17 @@
 /*
- * Shared tokens, type and controls for the "Fluxul" landing page and its legal pages.
- * Scoped under .flux so the current production page at / is unaffected.
+ * Type, palette roles and controls for the landing page and its legal pages.
+ * Brand colors come from @ssm-usor/design-tokens (imported in global.css); the site-specific
+ * roles below derive from them so a palette change in the tokens package reaches both apps.
  */
 .flux {
-  --ink: #18342e;
-  --ink-2: #5b6b64;
-  --cream: #f8f7f1;
+  --ink: var(--brand-forest);
+  --ink-2: var(--muted-foreground);
+  --cream: var(--brand-cream);
   --paper: #ffffff;
-  --line: #d7ddd4;
-  --lime: #b6d86f;
-  --lime-soft: #e6f0cf;
+  --line: var(--border);
+  --lime: var(--brand-lime);
+  --lime-soft: color-mix(in srgb, var(--brand-lime) 38%, #ffffff);
+  /* Site-only shades tuned to the palette: the logo's sage layer and two dark-band greens. */
   --sage: #9fb39c;
   --moss: #2a5045;
   --forest-line: #35564c;

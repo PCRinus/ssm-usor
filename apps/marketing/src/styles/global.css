@@ -1,15 +1,20 @@
-@import '@ssm-usor/ui/globals.css';
+/* Brand and semantic tokens shared with the app (colors, radii, font fallback). */
+@import '@ssm-usor/design-tokens/tokens.css';
 
-@source '../';
-
+/* Minimal base styles. The site uses no CSS framework; page styles are scoped per component. */
 @layer base {
   :root {
     font-synthesis: none;
     text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
-  * {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
+    border: 0 solid;
   }
 
   html {
@@ -19,6 +24,27 @@
   body {
     min-width: 320px;
     margin: 0;
+    color: var(--foreground);
+    background: var(--background);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  ul,
+  ol,
+  dl,
+  dd {
+    margin: 0;
+  }
+
+  b,
+  strong {
+    font-weight: bolder;
   }
 
   button,
