@@ -38,10 +38,11 @@ access token in the Authorization header; the publishable API key is not a user 
 
 ## Routes and authentication
 
-| Route         | Access                                | Response                                        |
-| ------------- | ------------------------------------- | ----------------------------------------------- |
-| `GET /health` | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }` |
-| `GET /me`     | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`       |
+| Route               | Access                                | Response                                        |
+| ------------------- | ------------------------------------- | ----------------------------------------------- |
+| `GET /openapi.json` | Public                                | Generated OpenAPI contract                      |
+| `GET /health`       | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }` |
+| `GET /me`           | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`       |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns only the user's ID and
 email (nullable); it does not expose Supabase metadata or grant administrator permissions.
@@ -59,8 +60,8 @@ schema. Future business tables and authorization rules are separate work; user-e
 `user_metadata` must not grant permissions.
 
 New authenticated routes should attach `requireAuth` and read the verified identity using
-`c.get('user')`. Transport schemas live in `packages/contracts`. Step 4 will expose the OpenAPI
-contract and generate the Orval/TanStack Query client; the SPA does not call `/me` yet.
+`c.get('user')`. Transport schemas live in `packages/contracts`. The [OpenAPI/Orval pipeline](api-client.md)
+generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 
 ## Errors and CORS
 

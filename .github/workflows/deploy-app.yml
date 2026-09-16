@@ -20,6 +20,7 @@ jobs:
       name: app-production
       url: https://app.ssmusor.ro
     env:
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
@@ -30,10 +31,11 @@ jobs:
       - name: Check public app configuration
         shell: bash
         run: |
+          : "${VITE_API_URL:?Set VITE_API_URL in GitHub variables}"
           : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Set VITE_SUPABASE_PUBLISHABLE_KEY in GitHub variables}"
-          if [[ "$VITE_SUPABASE_URL" != https://* || "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
-            echo "Set an HTTPS Supabase URL and an sb_publishable_ key."
+          if [[ "$VITE_API_URL" != https://* || "$VITE_SUPABASE_URL" != https://* || "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
+            echo "Set HTTPS API and Supabase URLs, and an sb_publishable_ key."
             exit 1
           fi
 

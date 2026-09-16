@@ -26,6 +26,7 @@ export default defineConfig([
     '**/.turbo/**',
     '**/.wrangler/**',
     '**/dist/**',
+    'apps/app/src/api/generated/**',
     '**/node_modules/**',
   ]),
   {

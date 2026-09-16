@@ -1,7 +1,7 @@
 import { createMemoryHistory } from '@tanstack/react-router';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
 import { type AppRuntime, createAppRuntime } from './app-runtime';
@@ -9,16 +9,26 @@ import type { AuthClient } from './auth/auth-store';
 import { createQueryClient } from './lib/query-client';
 import { authFixture, makeSession } from './test/auth-fixture';
 
+const fetchMock = vi.fn<typeof fetch>();
+beforeEach(() => {
+  fetchMock.mockReset();
+  fetchMock.mockImplementation(async () =>
+    Response.json({ user: { id: 'user-one', email: 'verified@example.test' } })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+});
 const runtimes: AppRuntime[] = [];
 afterEach(() => {
   runtimes.splice(0).forEach((runtime) => runtime.dispose());
+  vi.unstubAllGlobals();
 });
 
 function mount(client: AuthClient | null, path = '/dashboard') {
   const runtime = createAppRuntime(
     client,
     createQueryClient(),
-    createMemoryHistory({ initialEntries: [path] })
+    createMemoryHistory({ initialEntries: [path] }),
+    'http://localhost:8787'
   );
   runtimes.push(runtime);
   render(<App runtime={runtime} />);
@@ -174,5 +184,56 @@ describe('dashboard authentication and routing', () => {
   it('renders an unknown route without exposing internal errors', async () => {
     mount(authFixture().client, '/missing-page');
     await screen.findByRole('heading', { name: 'Pagina nu a fost găsită' });
+  });
+});
+
+describe('generated API integration', () => {
+  it('shows the API identity and uses the refreshed token for subsequent queries', async () => {
+    const fixture = authFixture(makeSession());
+    const runtime = mount(fixture.client);
+    await screen.findByText('verified@example.test');
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('Authorization')).toBe(
+      `Bearer ${makeSession().access_token}`
+    );
+    await act(async () =>
+      fixture.emit('TOKEN_REFRESHED', { ...makeSession(), access_token: 'refreshed-token' })
+    );
+    await act(async () => {
+      await runtime.queryClient.invalidateQueries();
+    });
+    expect(new Headers(fetchMock.mock.lastCall?.[1]?.headers).get('Authorization')).toBe(
+      'Bearer refreshed-token'
+    );
+    expect(
+      JSON.stringify(
+        runtime.queryClient
+          .getQueryCache()
+          .getAll()
+          .map((query) => query.queryKey)
+      )
+    ).not.toContain('refreshed-token');
+  });
+
+  it('does not call the API before signing in', async () => {
+    mount(authFixture().client);
+    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a rejected-session error without retrying 401 responses automatically', async () => {
+    fetchMock.mockImplementation(async () =>
+      Response.json(
+        { error: 'unauthorized', message: 'A valid token is required.' },
+        { status: 401 }
+      )
+    );
+    mount(authFixture(makeSession()).client);
+    expect((await screen.findByRole('alert')).textContent).toContain('Sesiunea nu mai este validă');
+    expect(fetchMock).toHaveBeenCalledOnce();
+    fetchMock.mockImplementation(async () =>
+      Response.json({ user: { id: 'user-one', email: 'recovered@example.test' } })
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Încearcă din nou' }));
+    await screen.findByText('recovered@example.test');
   });
 });

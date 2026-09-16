@@ -9,6 +9,7 @@ Copy `apps/app/.env.example` to `apps/app/.env.local` and set the project's URL 
 publishable key:
 
 ```dotenv
+VITE_API_URL=http://localhost:8787
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
@@ -51,6 +52,7 @@ or variables on the `app-production` GitHub environment:
 
 | Name                            | Kind     | Purpose                                                   |
 | ------------------------------- | -------- | --------------------------------------------------------- |
+| `VITE_API_URL`                  | Variable | Deployed HTTPS API origin, consumed during build.         |
 | `VITE_SUPABASE_URL`             | Variable | Public Supabase project URL, consumed during build.       |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable | Public browser key, consumed during build.                |
 | `CLOUDFLARE_ACCOUNT_ID`         | Variable | Account hosting the `ssmusor.ro` zone.                    |
@@ -97,9 +99,9 @@ loading and session-initialization errors. Login always navigates to `/dashboard
 redirect query parameters are not used.
 
 `src/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
-client is both a React provider and typed router context, ready for generated Orval query options
-in route loaders. API fetching and generated hooks arrive with the OpenAPI/Orval step; no temporary
-handwritten API client is introduced here.
+client is both a React provider and typed router context, available for generated Orval query options
+in route loaders. The dashboard uses the generated `useGetMe` hook with request configuration
+from the router context. See the [API client guide](api-client.md) for generation and error handling.
 
 ## Authentication behavior
 
@@ -117,8 +119,8 @@ handwritten API client is introduced here.
 
 These browser guards control navigation only. The [Hono API](api.md) independently verifies bearer
 tokens for `/me`. Application permissions belong in API handlers as business routes are added;
-being signed in does not itself make a user an administrator. The current landing page contains
-no API-backed business data; the generated API client arrives in the OpenAPI/Orval step.
+being signed in does not itself make a user an administrator. The dashboard loads the verified account identity through the generated client.
+Business data and application roles will be added in later steps.
 
 ## Verification
 

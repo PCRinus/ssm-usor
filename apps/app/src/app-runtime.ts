@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { RouterHistory } from '@tanstack/react-router';
 
+import type { ApiRequestOptions } from './api/http';
 import { type AuthClient, createAuthStore } from './auth/auth-store';
 import { createQueryClient } from './lib/query-client';
 import { createAppRouter } from './router';
@@ -8,10 +9,19 @@ import { createAppRouter } from './router';
 export function createAppRuntime(
   client: AuthClient | null,
   queryClient: QueryClient = createQueryClient(),
-  history?: RouterHistory
+  history?: RouterHistory,
+  apiBaseUrl = import.meta.env.VITE_API_URL ??
+    (import.meta.env.DEV ? 'http://localhost:8787' : undefined)
 ) {
   const auth = createAuthStore(client, queryClient);
-  const router = createAppRouter({ auth, queryClient }, history);
+  const apiRequest: ApiRequestOptions = {
+    baseUrl: apiBaseUrl,
+    getAccessToken: async () => {
+      await auth.ready;
+      return auth.getSnapshot().session?.access_token ?? null;
+    },
+  };
+  const router = createAppRouter({ auth, queryClient, apiRequest }, history);
   let userId = auth.getSnapshot().session?.user.id;
   let disposed = false;
   const unsubscribe = auth.subscribe(() => {
@@ -28,6 +38,7 @@ export function createAppRuntime(
     auth,
     router,
     queryClient,
+    apiRequest,
     dispose() {
       disposed = true;
       unsubscribe();

@@ -8,6 +8,7 @@ import {
   type RouterHistory,
 } from '@tanstack/react-router';
 
+import type { ApiRequestOptions } from './api/http';
 import type { AuthStore } from './auth/auth-store';
 import { DashboardPage } from './pages/dashboard';
 import { LoginPage } from './pages/login';
@@ -15,6 +16,7 @@ import { AuthenticatedLayout, NotFoundPage, RouteErrorPage } from './pages/route
 
 interface RouterContext {
   auth: AuthStore;
+  apiRequest: ApiRequestOptions;
   queryClient: QueryClient;
 }
 

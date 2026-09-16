@@ -1,14 +1,24 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
+import { getGetMeQueryKey, useGetMe } from '../api/generated/api';
+import { ApiHttpError } from '../api/http';
 import { useAuth } from '../auth/auth-context';
 
 export function DashboardPage() {
   const { auth, session } = useAuth();
   const navigate = useNavigate();
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const me = useGetMe({
+    request: apiRequest,
+    query: {
+      queryKey: [...getGetMeQueryKey(), session?.user.id],
+      enabled: Boolean(session && apiRequest.baseUrl),
+    },
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +69,35 @@ export function DashboardPage() {
           </h1>
           <p className="mt-3 text-muted-foreground">Bine ai venit în SSM Ușor.</p>
         </div>
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Contul tău</h2>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {!apiRequest.baseUrl ? (
+              <p role="alert">Datele contului nu sunt disponibile momentan.</p>
+            ) : me.isError ? (
+              <>
+                <p role="alert">
+                  {me.error instanceof ApiHttpError && me.error.status === 401
+                    ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                    : 'Nu am putut încărca datele contului. Încearcă din nou.'}
+                </p>
+                <Button
+                  variant="outline"
+                  disabled={me.isFetching}
+                  onClick={() => void me.refetch()}
+                >
+                  Încearcă din nou
+                </Button>
+              </>
+            ) : me.isPending ? (
+              <p role="status">Se încarcă datele contului…</p>
+            ) : (
+              <p>{me.data.user.email ?? 'Cont fără adresă de email'}</p>
+            )}
+          </CardContent>
+        </Card>
         <Card className="max-w-2xl">
           <CardHeader>
             <h2 className="text-lg font-semibold">Totul începe de aici</h2>

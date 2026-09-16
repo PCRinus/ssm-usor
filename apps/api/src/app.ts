@@ -1,13 +1,13 @@
+import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ApiErrorResponse, ApiHealth, MeResponse } from '@ssm-usor/contracts';
-import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
-import { requireAuth } from './auth';
 import { allowedOrigins, type ApiEnv } from './env';
 import { ApiError } from './errors';
+import { healthRoute, meRoute, openApiConfig } from './openapi';
 
 export function createApp() {
-  const app = new Hono<ApiEnv>();
+  const app = new OpenAPIHono<ApiEnv>();
 
   app.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
@@ -22,9 +22,18 @@ export function createApp() {
     })(c, next)
   );
 
-  app.get('/health', (c) => c.json({ status: 'ok', service: 'ssm-usor-api' } satisfies ApiHealth));
+  app.openapi(healthRoute, (c) =>
+    c.json({ status: 'ok', service: 'ssm-usor-api' } satisfies ApiHealth, 200)
+  );
 
-  app.get('/me', requireAuth, (c) => c.json({ user: c.get('user') } satisfies MeResponse));
+  app.openapi(meRoute, (c) => c.json({ user: c.get('user') } satisfies MeResponse, 200));
+
+  app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+  });
+  app.doc('/openapi.json', openApiConfig);
 
   app.notFound((c) =>
     c.json(

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app';
 import type { ApiEnv } from './env';
+import { openApiConfig } from './openapi';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -237,4 +238,17 @@ describe('CORS', () => {
     );
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
+});
+
+it('serves the same OpenAPI document as the offline generator, with bearer security on /me', async () => {
+  const app = createApp();
+  const response = await app.request('/openapi.json', {}, {});
+  expect(response.status).toBe(200);
+  const document = app.getOpenAPIDocument(openApiConfig);
+  expect(await response.json()).toEqual(document);
+  expect(document.paths?.['/me']?.get?.security).toEqual([{ bearerAuth: [] }]);
+  expect(document.paths?.['/me']?.get?.operationId).toBe('getMe');
+  expect(document.paths?.['/health']?.get?.security).toBeUndefined();
+  expect(document.components?.schemas?.MeResponse).toBeDefined();
+  expect(fetchMock).not.toHaveBeenCalled();
 });

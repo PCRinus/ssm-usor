@@ -26,7 +26,9 @@
     "deploy:marketing": "pnpm --filter @ssm-usor/marketing deploy",
     "deploy:app": "pnpm --filter @ssm-usor/app deploy",
     "deploy:api": "pnpm --filter @ssm-usor/api deploy",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "generate:api": "pnpm --filter @ssm-usor/contracts build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
+    "check:generated": "node scripts/check-generated.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -38,6 +40,7 @@
     "eslint-plugin-simple-import-sort": "^14.0.0",
     "globals": "^17.11.0",
     "lefthook": "^2.1.12",
+    "orval": "^8.33.0",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
     "shadcn": "^4.21.0",

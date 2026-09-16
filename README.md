@@ -13,6 +13,8 @@ The [technical architecture](docs/technical-architecture.md) records the propose
 The [deployment guide](docs/deployment.md) covers the protected Cloudflare marketing site,
 required GitHub secrets, and local Wrangler commands.
 
+See the [API client guide](docs/api-client.md) for OpenAPI generation, Orval, and `VITE_API_URL`.
+
 ## Workspace
 
 The pnpm/Turborepo workspace contains:
