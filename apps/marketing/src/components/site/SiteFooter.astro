@@ -1,0 +1,65 @@
+---
+import { links } from '../concepts/content';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
+    <nav aria-label="Legal">
+      <a href="/termeni/">Termeni și condiții</a>
+      <a href="/confidentialitate/">Politica de confidențialitate</a>
+      <a href={`mailto:${links.email}`}>{links.email}</a>
+    </nav>
+    <p class="fine">
+      Exemplele de pe site sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
+      înlocuiește responsabilitatea specialistului autorizat. {year} SSM Ușor.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .foot {
+    padding: 36px 0 72px;
+    border-top: 1px solid var(--line);
+    background: #fff;
+    font-size: 0.95rem;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 32px;
+    align-items: center;
+  }
+  .foot-grid img {
+    width: 130px;
+    height: auto;
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+  }
+  nav a {
+    color: var(--ink);
+    text-decoration: none;
+    text-underline-offset: 3px;
+  }
+  nav a:hover {
+    text-decoration: underline;
+  }
+  .fine {
+    color: var(--ink-2);
+    font-size: 0.88rem;
+  }
+  @media (max-width: 760px) {
+    .foot-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    nav {
+      flex-direction: column;
+    }
+  }
+</style>

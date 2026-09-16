@@ -1,0 +1,71 @@
+---
+import { cta, links } from '../concepts/content';
+
+interface Props {
+  /** Path of the landing page, so section links work from any page. */
+  home?: string;
+}
+
+const { home = '/concepte/fluxul/' } = Astro.props;
+---
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href={home} aria-label="SSM Ușor">
+      <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
+    </a>
+    <nav aria-label="Secțiuni">
+      <a href={`${home}#cum`}>Cum funcționează</a>
+      <a href={`${home}#documente`}>Documente</a>
+      <a href={`${home}#semnaturi`}>Semnături</a>
+      <a href={`${home}#intrebari`}>Întrebări</a>
+    </nav>
+    <div class="auth">
+      <a class="button quiet small" href={links.login}>{cta.login}</a>
+      <span class="button primary small soon" aria-disabled="true">
+        {cta.signup}
+        <small>{cta.signupNote}</small>
+      </span>
+    </div>
+  </div>
+</header>
+
+<style>
+  .top {
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 76px;
+  }
+  .brand img {
+    width: 150px;
+    height: auto;
+  }
+  nav {
+    display: flex;
+    gap: 28px;
+    font-size: 0.98rem;
+  }
+  nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  nav a:hover {
+    color: var(--ink);
+  }
+  .auth {
+    display: flex;
+    gap: 8px;
+  }
+  @media (max-width: 760px) {
+    nav,
+    .auth .soon {
+      display: none;
+    }
+  }
+</style>

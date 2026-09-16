@@ -1,24 +1,21 @@
 ---
 /**
- * Small fixed bar for previewing landing-page concepts locally.
+ * Small fixed bar for previewing the landing-page concept next to the current page.
  * Rendered only on /concepte pages; those pages are noindex and excluded from the sitemap.
  */
 interface Props {
-  current: 'actual' | 'fluxul' | 'portofoliul' | 'un-singur-flux';
+  current: 'actual' | 'fluxul';
 }
 
 const { current } = Astro.props;
 
 const items = [
-  { key: 'actual', label: 'Actual', href: '/' },
-  { key: 'fluxul', label: 'D. Fluxul', href: '/concepte/fluxul/' },
-  { key: 'portofoliul', label: 'B. Portofoliul', href: '/concepte/portofoliul/' },
-  { key: 'un-singur-flux', label: 'C. Un singur flux', href: '/concepte/un-singur-flux/' },
+  { key: 'actual', label: 'Pagina actuală', href: '/' },
+  { key: 'fluxul', label: 'Concept D. Fluxul', href: '/concepte/fluxul/' },
 ] as const;
 ---
 
 <nav class="concept-switcher" aria-label="Concepte de design">
-  <a class="all" href="/concepte/">Concepte</a>
   {
     items.map((item) => (
       <a href={item.href} aria-current={item.key === current ? 'page' : undefined}>
@@ -59,19 +56,6 @@ const items = [
     background: #b6d86f;
     color: #18342e;
     font-weight: 600;
-  }
-  .concept-switcher .all {
-    color: #9fb39c;
-    border-right: 1px solid #2a5045;
-    border-radius: 7px 0 0 7px;
-    margin-right: 2px;
-  }
-  @media (max-width: 720px) {
-    .concept-switcher {
-      right: 12px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
   }
   @media print {
     .concept-switcher {

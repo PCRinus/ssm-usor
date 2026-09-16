@@ -6,6 +6,9 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://ssmusor.ro',
   output: 'static',
+  redirects: {
+    '/concepte': '/concepte/fluxul',
+  },
   integrations: [
     react(),
     sitemap({

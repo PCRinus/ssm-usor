@@ -1,0 +1,43 @@
+---
+/**
+ * Layout for the "Fluxul" landing page and its legal pages: fonts, shared header and footer.
+ */
+import '../styles/flux.css';
+
+import SiteFooter from '../components/site/SiteFooter.astro';
+import SiteHeader from '../components/site/SiteHeader.astro';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  home?: string;
+  noindex?: boolean;
+}
+
+const { title, description, home, noindex = false } = Astro.props;
+---
+
+<BaseLayout title={title} description={description} themeColor="#ffffff" noindex={noindex}>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Sans+3:wght@400;500;600&display=swap"
+    />
+  </Fragment>
+  <div class="flux">
+    <SiteHeader home={home} />
+    <main>
+      <slot />
+    </main>
+    <SiteFooter />
+  </div>
+</BaseLayout>
+
+<style>
+  :global(body) {
+    background: #ffffff;
+  }
+</style>

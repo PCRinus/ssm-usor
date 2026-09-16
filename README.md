@@ -54,11 +54,13 @@ pnpm dev:marketing
 pnpm preview:marketing
 ```
 
-The current landing page is served at `http://localhost:4321/`. Landing-page design concepts live
-under `http://localhost:4321/concepte/`: a gallery index plus one page per direction
-(`/concepte/fluxul/`, `/concepte/portofoliul/`, `/concepte/un-singur-flux/`). Concept pages
-are `noindex`, excluded from the sitemap, and share their Romanian copy through
-`apps/marketing/src/components/concepts/content.ts`. Common commands:
+The current landing page is served at `http://localhost:4321/`. The redesigned landing page
+lives at `http://localhost:4321/concepte/fluxul/` until it is promoted to the root; it is
+`noindex` and excluded from the sitemap. Its copy is in
+`apps/marketing/src/components/concepts/compact.ts`, its shared header, footer, tokens and
+legal-page shell are under `apps/marketing/src/components/site/`, `src/styles/flux.css` and
+`src/layouts/FluxLayout.astro`. The terms (`/termeni/`) and privacy (`/confidentialitate/`)
+pages use the same shell. Common commands:
 
 ```bash
 pnpm dev
