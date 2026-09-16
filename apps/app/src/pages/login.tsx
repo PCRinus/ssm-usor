@@ -2,10 +2,13 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 
 import { useLoginForm } from '../auth/use-login-form';
 
 export function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     onSubmit,
@@ -60,17 +63,31 @@ export function LoginPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Parolă</Label>
-                <Input
-                  id="password"
-                  className="h-11"
-                  {...register('password')}
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  disabled={isSubmitting}
-                  aria-invalid={Boolean(errors.password)}
-                  aria-describedby={errors.password ? 'password-error' : undefined}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    className="h-11 pr-12"
+                    {...register('password')}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    disabled={isSubmitting}
+                    aria-invalid={Boolean(errors.password)}
+                    aria-describedby={errors.password ? 'password-error' : undefined}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-0 right-0 size-11 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                    aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
+                    aria-controls="password"
+                    disabled={isSubmitting}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                  >
+                    {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                  </Button>
+                </div>
                 {errors.password && (
                   <p id="password-error" role="alert" className="text-sm text-destructive">
                     {errors.password.message}
