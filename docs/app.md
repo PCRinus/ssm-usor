@@ -47,29 +47,13 @@ The custom domain takes effect on deployment; committing the config does not pub
 Cloudflare provisions its DNS record and certificate when the Worker is deployed to the account
 with the active `ssmusor.ro` zone. Any existing conflicting DNS record must be resolved first.
 
-`.github/workflows/deploy-app.yml` adds a **manual** Actions workflow called **Deploy app**,
-separate from marketing's automatic post-CI deployment. Configure these repository variables
-or variables on the `app-production` GitHub environment:
+The manual **Deploy app** workflow deploys the API at `api.ssmusor.ro`, checks its health and
+browser access, and then publishes the SPA. It builds both using the same public Supabase
+configuration. See the [application deployment guide](app-deployment.md) for the required
+GitHub environment values, release steps, smoke checks, and recovery guidance.
 
-| Name                            | Kind     | Purpose                                                   |
-| ------------------------------- | -------- | --------------------------------------------------------- |
-| `VITE_API_URL`                  | Variable | Deployed HTTPS API origin, consumed during build.         |
-| `VITE_SUPABASE_URL`             | Variable | Public Supabase project URL, consumed during build.       |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable | Public browser key, consumed during build.                |
-| `CLOUDFLARE_ACCOUNT_ID`         | Variable | Account hosting the `ssmusor.ro` zone.                    |
-| `CLOUDFLARE_API_TOKEN`          | Secret   | Cloudflare deployment credentials, as used for marketing. |
-
-The workflow checks configuration, runs app type checks and tests, builds, then deploys with
-Wrangler. No app deployment has been performed as part of the scaffold. Existing GitHub variables
-or secrets scoped only to marketing's environment need to be made available to `app-production`.
-
-For local deployment after Cloudflare authentication, `pnpm deploy:app` builds using the app's
-local environment and publishes it. For packaging validation without publishing, run
-`pnpm --filter @ssm-usor/app build` followed by `pnpm --filter @ssm-usor/app deploy:dry-run`.
-
-The Hono API's production origin allowlist includes `https://app.ssmusor.ro`. Email/password
-login does not require a redirect callback; configure Supabase's Site URL and allowed redirect
-URLs for this domain when adding confirmation, password reset, or OAuth flows.
+For packaging validation without publishing, run `pnpm --filter @ssm-usor/app build` followed
+by `pnpm --filter @ssm-usor/app deploy:dry-run`.
 
 ## Form conventions
 

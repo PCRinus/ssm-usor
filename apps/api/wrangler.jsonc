@@ -3,6 +3,10 @@
   "name": "ssm-usor-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
+  "workers_dev": false,
+  "routes": [{ "pattern": "api.ssmusor.ro", "custom_domain": true }],
+  // Preserve public Supabase bindings supplied by the deployment workflow.
+  "keep_vars": true,
   "vars": {
     "CORS_ORIGINS": "https://app.ssmusor.ro",
   },

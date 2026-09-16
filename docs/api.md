@@ -85,10 +85,10 @@ authentication still applies independently, including to non-browser clients.
 
 ## Deployment and verification
 
-`apps/api/wrangler.jsonc` packages the `ssm-usor-api` Worker and its production CORS origin.
-Before publishing, configure `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as deployed Worker
-bindings, or supply them through the deployment configuration. `.dev.vars` is local only.
-The API's custom domain and production deployment workflow are not configured in this step.
+`apps/api/wrangler.jsonc` declares the `ssm-usor-api` Worker at `api.ssmusor.ro` and its
+production CORS origin. The manual **Deploy app** workflow supplies the public Supabase
+bindings, deploys and checks the API, then publishes the SPA. `.dev.vars` is local only.
+See the [application deployment guide](app-deployment.md) for GitHub configuration and release steps.
 
 ```bash
 pnpm test

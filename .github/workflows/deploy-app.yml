@@ -9,18 +9,19 @@ permissions:
 
 concurrency:
   group: cloudflare-app
-  cancel-in-progress: true
+  # Let both Workers finish deploying before another release starts.
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy SPA to app.ssmusor.ro
+    name: Deploy API and SPA
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment:
       name: app-production
       url: https://app.ssmusor.ro
     env:
-      VITE_API_URL: ${{ vars.VITE_API_URL }}
+      VITE_API_URL: https://api.ssmusor.ro
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
@@ -30,8 +31,12 @@ jobs:
 
       - name: Check public app configuration
         shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          : "${VITE_API_URL:?Set VITE_API_URL in GitHub variables}"
+          : "${CLOUDFLARE_ACCOUNT_ID:?Set CLOUDFLARE_ACCOUNT_ID in GitHub variables}"
+          : "${CLOUDFLARE_API_TOKEN:?Set CLOUDFLARE_API_TOKEN in GitHub secrets}"
           : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Set VITE_SUPABASE_PUBLISHABLE_KEY in GitHub variables}"
           if [[ "$VITE_API_URL" != https://* || "$VITE_SUPABASE_URL" != https://* || "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
@@ -49,20 +54,43 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate app
+      - name: Validate release
         run: |
-          pnpm --filter @ssm-usor/app typecheck
-          pnpm --filter @ssm-usor/app test
+          pnpm check:generated
+          pnpm lint
+          pnpm typecheck
+          pnpm test
 
-      - name: Build app with public Supabase configuration
-        run: pnpm --filter @ssm-usor/app build
+      - name: Build API and SPA with public Supabase configuration
+        run: pnpm exec turbo build --filter=@ssm-usor/app --filter=@ssm-usor/api
 
-      - name: Deploy to Cloudflare
+      - name: Deploy API
+        uses: cloudflare/wrangler-action@v4
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          packageManager: pnpm
+          command: deploy --tag ${{ github.sha }}
+          vars: |
+            SUPABASE_URL
+            SUPABASE_PUBLISHABLE_KEY
+
+      - name: Check deployed API and browser access
+        run: node scripts/smoke-deployment.mjs api "$VITE_API_URL" https://app.ssmusor.ro
+
+      - name: Deploy SPA
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/app
           packageManager: pnpm
-          command: deploy
+          command: deploy --tag ${{ github.sha }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check deployed SPA and direct dashboard navigation
+        run: node scripts/smoke-deployment.mjs app https://app.ssmusor.ro

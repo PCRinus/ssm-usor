@@ -56,7 +56,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.config.{js,mjs,cjs,ts,mts,cts}', 'eslint.config.mjs'],
+    files: ['**/*.config.{js,mjs,cjs,ts,mts,cts}', 'eslint.config.mjs', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: globals.node,
     },

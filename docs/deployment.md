@@ -1,5 +1,7 @@
 # Marketing deployment and Wrangler
 
+For the React SPA and Hono API, see the [application deployment guide](app-deployment.md).
+
 The marketing site is deployed as a Cloudflare Worker with Static Assets. Astro generates the
 files in `apps/marketing/dist`, while `apps/marketing/src/worker.ts` runs before every asset request
 and requires temporary HTTP Basic Auth credentials.
