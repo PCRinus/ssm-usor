@@ -1,8 +1,17 @@
 ---
 import FluxLayout from '../../layouts/FluxLayout.astro';
+import PhoneFlow from '../site/PhoneFlow.astro';
+import ShowcasePanels from '../site/ShowcasePanels.astro';
 import { compact } from './compact';
 import ConceptSwitcher from './ConceptSwitcher.astro';
 import { cta, links, status } from './content';
+
+interface Props {
+  /** D: four-panel showcase. E: showcase plus the employee phone flow. */
+  variant?: 'd' | 'e';
+}
+
+const { variant = 'd' } = Astro.props;
 
 const scattered = [
   { label: 'Word', x: 6, y: 8, r: -6 },
@@ -79,6 +88,8 @@ const scattered = [
     </ol>
   </section>
 
+  <ShowcasePanels />
+
   <section class="documents" id="documente">
     <div class="wrap">
       <div class="section-head">
@@ -119,7 +130,9 @@ const scattered = [
     </ul>
   </section>
 
-  <section class="also wrap">
+  {variant === 'e' && <PhoneFlow />}
+
+  <section class:list={['also', 'wrap', { 'after-phone': variant === 'e' }]}>
     <h2>Și restul, când ai nevoie.</h2>
     <ul class="also-list">
       {
@@ -162,7 +175,7 @@ const scattered = [
     </div>
   </section>
 
-  <ConceptSwitcher current="fluxul" />
+  <ConceptSwitcher current={variant === 'e' ? 'fluxul-e' : 'fluxul'} />
 </FluxLayout>
 
 <style>
@@ -407,6 +420,9 @@ const scattered = [
   /* Also */
   .also {
     padding: 0 0 88px;
+  }
+  .also.after-phone {
+    padding-top: 88px;
   }
   .also h2 {
     margin-bottom: 32px;

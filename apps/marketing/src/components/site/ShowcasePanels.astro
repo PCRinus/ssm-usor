@@ -1,0 +1,231 @@
+---
+/**
+ * "Cum arată în platformă": the four steps as four small illustrative screens.
+ * All names are fictional; the figure is labelled as an example.
+ */
+const employees = [
+  ['Ioana Popescu', 'Lăcătuș mecanic'],
+  ['Mihai Dobre', 'Operator CNC'],
+  ['Elena Rusu', 'Gestionar depozit'],
+  ['Radu Iancu', 'Electrician'],
+];
+
+const documents = [
+  ['Contract de servicii', 'semnat'],
+  ['Fișe de instruire', '38 generate'],
+  ['Instrucțiune IPSSM-07', 'în vigoare'],
+  ['Test introductiv', '36 din 38'],
+];
+
+const signatures: [string, number, number][] = [
+  ['Angajați', 36, 38],
+  ['Specialist SSM', 38, 38],
+  ['Administrator', 1, 1],
+];
+---
+
+<section class="showcase wrap" id="platforma">
+  <h2>Cum arată în platformă.</h2>
+  <figure aria-label="Cei patru pași, așa cum arată în platformă">
+    <ol>
+      <li>
+        <span class="step-label">1. Client</span>
+        <div class="panel client">
+          <b>Metalcon Prod SRL</b>
+          <span>2 puncte de lucru, Cluj-Napoca</span>
+          <span>Contact: Vasile Nistor</span>
+          <i>Contract semnat</i>
+        </div>
+      </li>
+      <li>
+        <span class="step-label">2. Angajați</span>
+        <div class="panel people">
+          {
+            employees.map(([name, role]) => (
+              <div>
+                <b>{name}</b>
+                <span>{role}</span>
+              </div>
+            ))
+          }
+          <p>și încă 34</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-label">3. Documente și teste</span>
+        <div class="panel docs">
+          {
+            documents.map(([name, state]) => (
+              <div>
+                <b>{name}</b>
+                <span>{state}</span>
+              </div>
+            ))
+          }
+        </div>
+      </li>
+      <li>
+        <span class="step-label">4. Semnături</span>
+        <div class="panel signs">
+          {
+            signatures.map(([who, done, total]) => (
+              <div>
+                <b>{who}</b>
+                <span>
+                  {done} din {total}
+                </span>
+                <i style={`--p:${(done / total) * 100}%`} />
+              </div>
+            ))
+          }
+        </div>
+      </li>
+    </ol>
+    <figcaption>Exemplu ilustrativ. Firmele și persoanele sunt fictive.</figcaption>
+  </figure>
+</section>
+
+<style>
+  .showcase {
+    padding: 0 0 88px;
+  }
+  .showcase h2 {
+    margin-bottom: 32px;
+  }
+  figure {
+    margin: 0;
+  }
+  ol {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    right: -14px;
+    width: 14px;
+    border-top: 2px solid var(--lime);
+  }
+  .step-label {
+    display: inline-block;
+    align-self: flex-start;
+    margin-bottom: 10px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--lime);
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .panel {
+    flex: 1;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper);
+    box-shadow: 0 1px 0 var(--line);
+    font-size: 0.92rem;
+  }
+  .panel.client {
+    display: grid;
+    gap: 4px;
+    align-content: start;
+  }
+  .panel.client b {
+    margin-bottom: 4px;
+    font-size: 1.05rem;
+  }
+  .panel.client span {
+    color: var(--ink-2);
+  }
+  .panel.client i {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    color: var(--moss);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .panel.people div,
+  .panel.docs div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel.people div:last-of-type,
+  .panel.docs div:last-of-type {
+    border-bottom: 0;
+  }
+  .panel.people span,
+  .panel.docs span {
+    flex-shrink: 0;
+    color: var(--ink-2);
+    text-align: right;
+    font-size: 0.85rem;
+  }
+  .panel.people p {
+    padding-top: 8px;
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+  .panel.signs div {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    padding: 8px 0;
+  }
+  .panel.signs span {
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+  .panel.signs i {
+    grid-column: 1 / -1;
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: #eef0e9;
+    overflow: hidden;
+  }
+  .panel.signs i::before {
+    content: '';
+    display: block;
+    width: var(--p);
+    height: 100%;
+    background: var(--lime);
+  }
+  figcaption {
+    padding-top: 14px;
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 1080px) {
+    ol {
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 14px;
+    }
+    li:nth-child(2)::after {
+      display: none;
+    }
+  }
+  @media (max-width: 760px) {
+    .showcase {
+      padding-bottom: 56px;
+    }
+    ol {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    li::after {
+      display: none;
+    }
+  }
+</style>

@@ -4,14 +4,15 @@
  * Rendered only on /concepte pages; those pages are noindex and excluded from the sitemap.
  */
 interface Props {
-  current: 'actual' | 'fluxul';
+  current: 'actual' | 'fluxul' | 'fluxul-e';
 }
 
 const { current } = Astro.props;
 
 const items = [
   { key: 'actual', label: 'Pagina actuală', href: '/' },
-  { key: 'fluxul', label: 'Concept D. Fluxul', href: '/concepte/fluxul/' },
+  { key: 'fluxul', label: 'D. Fluxul', href: '/concepte/fluxul/' },
+  { key: 'fluxul-e', label: 'E. Fluxul + telefon', href: '/concepte/fluxul-e/' },
 ] as const;
 ---
 

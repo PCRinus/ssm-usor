@@ -1,0 +1,201 @@
+---
+/**
+ * "Două minute pe telefon": the employee's side of the flow, as one phone screen.
+ */
+const points = [
+  'Primește un link pe email sau SMS. Fără cont, fără instalări.',
+  'Citește materialul și răspunde la test.',
+  'Semnează fișa. Tu vezi imediat cine a terminat.',
+];
+---
+
+<section class="phone-section" id="telefon">
+  <div class="wrap phone-grid">
+    <figure class="phone" aria-label="Fluxul angajatului, pe telefon">
+      <div class="screen">
+        <div class="bar">
+          <span>Metalcon Prod SRL</span>
+          <span>SSM Ușor</span>
+        </div>
+        <p class="hello">Bună, Ioana.</p>
+        <p class="sub">Fișa ta de instruire este gata de semnat.</p>
+        <ol class="checks">
+          <li class="done">
+            <b>Materialul de instruire</b>
+            <span>citit, 6 min</span>
+          </li>
+          <li class="done">
+            <b>Testul de verificare</b>
+            <span>18 din 20, promovat</span>
+          </li>
+          <li class="now">
+            <b>Fișa de instruire</b>
+            <span>de semnat</span>
+          </li>
+        </ol>
+        <span class="cta">Semnează fișa</span>
+        <p class="fine">Semnătură electronică prin furnizor autorizat.</p>
+      </div>
+      <figcaption>Exemplu ilustrativ.</figcaption>
+    </figure>
+    <div class="copy">
+      <h2>Două minute pe telefon.</h2>
+      <ol>
+        {
+          points.map((point, index) => (
+            <li>
+              <span class="n">{index + 1}</span>
+              <p>{point}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  .phone-section {
+    padding: 88px 0;
+    background: var(--cream);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .phone-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 64px;
+    align-items: center;
+  }
+  .phone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+  }
+  .screen {
+    width: 300px;
+    padding: 26px 22px 22px;
+    border: 8px solid var(--ink);
+    border-radius: 36px;
+    background: #fff;
+    box-shadow: 0 30px 60px -30px rgb(24 52 46 / 45%);
+    font-size: 0.9rem;
+  }
+  .bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    color: var(--ink-2);
+    font-size: 0.72rem;
+  }
+  .hello {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+  .sub {
+    margin: 6px 0 18px;
+    color: var(--ink-2);
+  }
+  .checks {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .checks li {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 2px 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .checks li::before {
+    content: '';
+    grid-row: span 2;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+  }
+  .checks li.done::before {
+    border-color: var(--lime);
+    background: var(--lime);
+  }
+  .checks li.now {
+    border-color: var(--ink);
+  }
+  .checks li.now::before {
+    border-color: var(--ink);
+  }
+  .checks b {
+    font-weight: 600;
+  }
+  .checks span {
+    color: var(--ink-2);
+    font-size: 0.8rem;
+  }
+  .cta {
+    display: block;
+    padding: 13px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+  }
+  .fine {
+    margin-top: 12px;
+    color: var(--ink-2);
+    font-size: 0.72rem;
+    text-align: center;
+  }
+  figcaption {
+    margin-top: 14px;
+    color: var(--ink-2);
+    font-size: 0.85rem;
+  }
+  .copy h2 {
+    margin-bottom: 28px;
+  }
+  .copy ol {
+    display: grid;
+    gap: 18px;
+  }
+  .copy li {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    align-items: baseline;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .n {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--ink-2);
+  }
+  .copy p {
+    font-size: 1.1rem;
+  }
+  @media (max-width: 900px) {
+    .phone-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .phone {
+      order: 2;
+    }
+  }
+  @media (max-width: 760px) {
+    .phone-section {
+      padding: 56px 0;
+    }
+    .screen {
+      width: min(300px, 100%);
+    }
+  }
+</style>
