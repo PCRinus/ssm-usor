@@ -2,101 +2,45 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ConceptSwitcher from './ConceptSwitcher.astro';
 import {
+  alsoIncluded,
   audience,
-  contact,
   cta,
-  dueSources,
+  documentGroups,
+  documentsNote,
   faq,
-  outcomes,
-  pillars,
-  pilotOffer,
-  responsibilityMatrix,
+  links,
+  reasons,
+  signatureNote,
+  signers,
   status,
+  steps,
   trust,
 } from './content';
 
-type State = 'todo' | 'late' | 'blocked' | 'client' | 'progress' | 'review';
-
-const board: {
-  client: string;
-  task: string;
-  owner: string;
-  due: string;
-  state: State;
-  label: string;
-  progress?: number;
-}[] = [
-  {
-    client: 'Metalcon Prod SRL',
-    task: 'Instruire periodică, 38 de angajați din producție',
-    owner: 'Andrei M.',
-    due: 'joi 17',
-    state: 'todo',
-    label: 'de făcut',
-  },
-  {
-    client: 'Panificația Doina',
-    task: 'Fișe pentru 2 angajați noi, lipsesc datele de angajare',
-    owner: 'Client',
-    due: 'marți 15',
-    state: 'client',
-    label: 'așteaptă clientul',
-  },
-  {
-    client: 'Transcarpat Logistic',
-    task: 'Măsură corectivă: echipament de protecție pentru șoferi',
-    owner: 'Client',
-    due: 'luni 14',
-    state: 'late',
-    label: 'întârziat',
-  },
-  {
-    client: 'Clinica Sanavita',
-    task: 'Vizită trimestrială, corp B',
-    owner: 'Ioana P.',
-    due: 'miercuri 16',
-    state: 'todo',
-    label: 'de făcut',
-  },
-  {
-    client: 'Hotel Belvedere',
-    task: 'Proces-verbal instruire SU, semnare',
-    owner: 'Ioana P.',
-    due: 'vineri 18',
-    state: 'progress',
-    label: '12 din 20 semnate',
-    progress: 60,
-  },
-  {
-    client: 'Atelier Lemnart',
-    task: 'Revizuire IPSSM-03 după modificarea șablonului',
-    owner: 'Andrei M.',
-    due: 'vineri 18',
-    state: 'review',
-    label: 'de revizuit',
-  },
-  {
-    client: 'Agro Bărăgan SA',
-    task: 'Raport trimestrial de activitate',
-    owner: 'Andrei M.',
-    due: 'vineri 18',
-    state: 'blocked',
-    label: 'blocat: vizita neînchisă',
-  },
+const employees = [
+  ['Ioana Popescu', 'Lăcătuș mecanic'],
+  ['Mihai Dobre', 'Operator CNC'],
+  ['Elena Rusu', 'Gestionar depozit'],
+  ['Radu Iancu', 'Electrician'],
 ];
 
-const filters = [
-  { label: 'Toți clienții', count: 42 },
-  { label: 'De făcut', count: 17 },
-  { label: 'Întârziate', count: 4 },
-  { label: 'Blocate', count: 3 },
-  { label: 'Așteaptă clientul', count: 6 },
+const documents = [
+  ['Contract de servicii', 'semnat'],
+  ['Fișe de instruire', '38 generate'],
+  ['Instrucțiune proprie IPSSM-07', 'în vigoare'],
+  ['Test introductiv', '36 din 38 promovat'],
+];
+
+const signatures = [
+  ['Angajați', 36, 38],
+  ['Specialist SSM', 38, 38],
+  ['Administrator', 1, 1],
 ];
 ---
 
 <BaseLayout
-  title="SSM Ușor — Ce trebuie să facă echipa ta și clienții tăi săptămâna asta"
-  description="Toți clienții unui serviciu extern SSM într-un singur tablou de lucru: termene, documente, instruiri, semnături, vizite și măsuri, cu responsabil și stare."
+  title="SSM Ușor — Tot ce faci pentru un client SSM, pas cu pas, într-un singur loc"
+  description="Adaugi clientul, adaugi angajații, creezi documentele și testele, semnezi electronic cu administratorul și cu fiecare angajat. Pentru servicii externe SSM din România."
   themeColor="#18342e"
   noindex
 >
@@ -116,12 +60,18 @@ const filters = [
           <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
         </a>
         <nav aria-label="Secțiuni">
-          <a href="#surse">De unde vin sarcinile</a>
-          <a href="#responsabilitati">Cine ce face</a>
-          <a href="#module">Module</a>
-          <a href="#pilot">Program pilot</a>
+          <a href="#cum">Cum funcționează</a>
+          <a href="#documente">Documente</a>
+          <a href="#semnaturi">Semnături</a>
+          <a href="#intrebari">Întrebări</a>
         </nav>
-        <a class="button primary small" href={contact.pilotHref}>{cta.pilot}</a>
+        <div class="auth">
+          <a class="button ghost small" href={links.login}>{cta.login}</a>
+          <span class="button primary small soon" aria-disabled="true">
+            {cta.signup}
+            <small>{cta.signupNote}</small>
+          </span>
+        </div>
       </div>
     </header>
 
@@ -130,68 +80,79 @@ const filters = [
         <div class="wrap">
           <div class="hero-copy">
             <p class="status">{status.short}</p>
-            <h1>Ce trebuie să facă echipa ta și clienții tăi săptămâna asta?</h1>
+            <h1>Tot ce faci pentru un client SSM, pas cu pas, într-un singur loc.</h1>
             <p class="lede">
-              SSM Ușor pune toți clienții unui serviciu extern într-un singur tablou de lucru:
-              termene, documente, instruiri, semnături, vizite și măsuri corective, fiecare cu
-              responsabil și stare. Fără să deschizi fiecare firmă în parte.
+              Adaugi clientul, adaugi angajații, creezi contractele, documentele și testele, apoi
+              semnezi electronic cu administratorul firmei și cu fiecare angajat. Fără Word, fără
+              PDF-uri pe email, fără drumuri pentru o semnătură.
             </p>
             <div class="actions">
-              <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
-              <a class="button ghost" href="#module">Vezi ce intră în platformă</a>
+              <a class="button primary" href={links.login}>{cta.login}</a>
+              <span class="button ghost soon" aria-disabled="true">
+                {cta.signup}
+                <small>{cta.signupNote}</small>
+              </span>
             </div>
+            <p class="notify"><a href={links.notifyHref}>{cta.notify}</a></p>
           </div>
 
-          <figure class="board" aria-label="Exemplu de tablou de portofoliu pentru o săptămână">
-            <div class="board-head">
-              <div>
-                <b>Săptămâna 38</b>
-                <span>14–18 septembrie 2026</span>
-              </div>
-              <ul class="filters" aria-label="Filtre">
-                {
-                  filters.map((filter, index) => (
-                    <li class:list={{ on: index === 0 }}>
-                      {filter.label} <b>{filter.count}</b>
-                    </li>
-                  ))
-                }
-              </ul>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Client</th>
-                  <th scope="col">Sarcină</th>
-                  <th scope="col">Responsabil</th>
-                  <th scope="col">Termen</th>
-                  <th scope="col">Stare</th>
-                </tr>
-              </thead>
-              <tbody>
-                {
-                  board.map((row) => (
-                    <tr>
-                      <th scope="row">{row.client}</th>
-                      <td>{row.task}</td>
-                      <td class:list={{ client: row.owner === 'Client' }}>{row.owner}</td>
-                      <td class:list={{ late: row.state === 'late' }}>{row.due}</td>
-                      <td>
-                        <span class={`state ${row.state}`}>
-                          {row.progress !== undefined && (
-                            <i style={`--p:${row.progress}%`} aria-hidden="true" />
-                          )}
-                          {row.label}
+          <figure class="walk" aria-label="Cei patru pași, așa cum arată în platformă">
+            <ol>
+              <li>
+                <span class="step-label">1. Client</span>
+                <div class="panel client">
+                  <b>Metalcon Prod SRL</b>
+                  <span>CUI 12345678</span>
+                  <span>2 puncte de lucru, Cluj-Napoca</span>
+                  <span>Contact: Vasile Nistor, administrator</span>
+                  <i>Contract semnat</i>
+                </div>
+              </li>
+              <li>
+                <span class="step-label">2. Angajați</span>
+                <div class="panel people">
+                  {
+                    employees.map(([name, role]) => (
+                      <div>
+                        <b>{name}</b>
+                        <span>{role}</span>
+                      </div>
+                    ))
+                  }
+                  <p>și încă 34</p>
+                </div>
+              </li>
+              <li>
+                <span class="step-label">3. Documente și teste</span>
+                <div class="panel docs">
+                  {
+                    documents.map(([name, state]) => (
+                      <div>
+                        <b>{name}</b>
+                        <span>{state}</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              </li>
+              <li>
+                <span class="step-label">4. Semnături</span>
+                <div class="panel signs">
+                  {
+                    signatures.map(([who, done, total]) => (
+                      <div>
+                        <b>{who}</b>
+                        <span>
+                          {done} din {total}
                         </span>
-                      </td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table>
-            <figcaption>
-              Exemplu ilustrativ. Clienții, persoanele și sarcinile sunt fictive.
-            </figcaption>
+                        <i style={`--p:${(Number(done) / Number(total)) * 100}%`} />
+                      </div>
+                    ))
+                  }
+                </div>
+              </li>
+            </ol>
+            <figcaption>Exemplu ilustrativ. Firmele și persoanele sunt fictive.</figcaption>
           </figure>
         </div>
       </section>
@@ -202,99 +163,120 @@ const filters = [
         </div>
       </section>
 
-      <section class="sources wrap" id="surse">
+      <section class="steps-section wrap" id="cum">
         <div class="section-head">
-          <h2>O sarcină are întotdeauna o sursă.</h2>
+          <h2>Patru pași, pentru fiecare client.</h2>
           <p>
-            Nimic nu apare în tablou „pentru că așa a zis softul”. Fiecare termen vine dintr-o
-            regulă configurată de specialist, dintr-un eveniment sau dintr-un document, și poți
-            vedea de unde.
+            Același drum, de la firma nouă la dosarul complet. Datele pe care le scrii la primul pas
+            ajung singure în toate documentele de la pasul trei.
           </p>
         </div>
-        <ul class="source-list">
+        <ol class="steps">
           {
-            dueSources.map((item) => (
+            steps.map((step, index) => (
               <li>
-                <b>{item.source}</b>
-                <span>{item.example}</span>
-              </li>
-            ))
-          }
-        </ul>
-      </section>
-
-      <section class="matrix-section" id="responsabilitati">
-        <div class="wrap matrix-grid">
-          <div class="section-copy">
-            <h2>Cine ce face, scris o singură dată.</h2>
-            <p>
-              Cea mai frecventă sursă de confuzie între furnizor și angajator este
-              responsabilitatea. În SSM Ușor fiecare tip de sarcină are un responsabil stabilit la
-              începutul contractului, iar starea „așteaptă clientul” este vizibilă pentru amândoi.
-            </p>
-          </div>
-          <table class="matrix">
-            <thead>
-              <tr>
-                <th scope="col">Sarcină</th>
-                {responsibilityMatrix.columns.map((column) => <th scope="col">{column}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {
-                responsibilityMatrix.rows.map((row) => (
-                  <tr>
-                    <th scope="row">{row.task}</th>
-                    {row.owners.map((owns) => (
-                      <td>
-                        {owns ? (
-                          <span class="yes">
-                            <span class="sr">Da</span>
-                          </span>
-                        ) : (
-                          <span class="sr">Nu</span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="modules wrap" id="module">
-        <div class="section-head">
-          <h2>Ce intră în platformă.</h2>
-          <p>
-            Șase module pe aceleași date. Le adăugăm treptat, dar niciunul nu are propria listă de
-            clienți sau propriul istoric.
-          </p>
-        </div>
-        <ol class="ledger">
-          {
-            pillars.map((pillar) => (
-              <li>
-                <h3>{pillar.title}</h3>
-                <p>{pillar.text}</p>
-                <ul class="fragment" aria-label="Stări posibile">
-                  {pillar.states.map((state) => (
-                    <li>{state}</li>
-                  ))}
-                </ul>
+                <span class="n">{index + 1}</span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
               </li>
             ))
           }
         </ol>
       </section>
 
-      <section class="outcomes">
+      <section class="documents" id="documente">
         <div class="wrap">
-          <h2>Patru lucruri pe care vrem să le facem bine în pilot.</h2>
+          <div class="section-head">
+            <h2>Ce poți face în platformă.</h2>
+            <p>{documentsNote}</p>
+          </div>
+          <div class="doc-groups">
+            {
+              documentGroups.map((group) => (
+                <div>
+                  <h3>{group.title}</h3>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="signers-section wrap" id="semnaturi">
+        <div class="section-head">
+          <h2>Cine semnează ce.</h2>
+          <p>{signatureNote}</p>
+        </div>
+        <table class="signers">
+          <tbody>
+            {
+              signers.map((signer) => (
+                <tr>
+                  <th scope="row">{signer.who}</th>
+                  <td>{signer.signs}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <section class="reasons">
+        <div class="wrap">
+          <h2>Ce dispare din ziua ta de lucru.</h2>
           <ul>
             {
-              outcomes.map((item) => (
+              reasons.map((reason) => (
+                <li>
+                  <h3>{reason.title}</h3>
+                  <p>{reason.text}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </section>
+
+      <section class="also wrap">
+        <div class="section-head">
+          <h2>Și restul, când ai nevoie.</h2>
+          <p>
+            Fluxul de mai sus este ceea ce faci zilnic. În jurul lui, platforma ține evidența pentru
+            toți clienții odată.
+          </p>
+        </div>
+        <ul class="also-list">
+          {
+            alsoIncluded.map((item) => (
+              <li>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="access" id="cont">
+        <div class="wrap access-grid">
+          <div>
+            <h2>Conturile noi se deschid în curând.</h2>
+            <p>{status.long}</p>
+            <div class="actions">
+              <a class="button primary" href={links.login}>{cta.login}</a>
+              <a class="button ghost" href={links.notifyHref}>{cta.notify}</a>
+            </div>
+          </div>
+          <ul class="trust">
+            {
+              trust.map((item) => (
                 <li>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
@@ -303,47 +285,6 @@ const filters = [
             }
           </ul>
         </div>
-      </section>
-
-      <section class="pilot" id="pilot">
-        <div class="wrap pilot-grid">
-          <div>
-            <h2>Program pilot pentru 2–3 servicii externe.</h2>
-            <p>{status.long}</p>
-            <div class="actions">
-              <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
-              <a class="button ghost" href={contact.launchHref}>{cta.launch}</a>
-            </div>
-          </div>
-          <div class="offer">
-            <div>
-              <h3>Ce primești</h3>
-              <ul>
-                {pilotOffer.give.map((item) => <li>{item}</li>)}
-              </ul>
-            </div>
-            <div>
-              <h3>Ce așteptăm de la tine</h3>
-              <ul>
-                {pilotOffer.ask.map((item) => <li>{item}</li>)}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="trust wrap">
-        <h2>Pe ce te poți baza.</h2>
-        <ul>
-          {
-            trust.map((item) => (
-              <li>
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </li>
-            ))
-          }
-        </ul>
       </section>
 
       <section class="faq wrap" id="intrebari">
@@ -365,11 +306,11 @@ const filters = [
       <div class="wrap foot-grid">
         <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
         <p>
-          Sistemul de lucru pentru servicii externe de prevenire și protecție. Scrie-ne la
-          <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+          Platforma de lucru pentru servicii externe SSM din România. Scrie-ne la
+          <a href={`mailto:${links.email}`}>{links.email}</a>.
         </p>
         <p class="fine">
-          Tablourile afișate sunt exemple ilustrative. SSM Ușor nu oferă consultanță juridică și nu
+          Exemplele afișate sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
           înlocuiește responsabilitatea specialistului autorizat.
         </p>
       </div>
@@ -394,8 +335,6 @@ const filters = [
     --sage: #9fb39c;
     --moss: #2a5045;
     --forest-line: #35564c;
-    --late: #b42318;
-    --late-soft: #fbe9e6;
     color: var(--ink);
     font-family: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
     font-optical-sizing: auto;
@@ -421,18 +360,11 @@ const filters = [
   a {
     color: inherit;
   }
-  .sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
 
   .button {
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     min-height: 50px;
     padding: 0 22px;
     border: 1px solid transparent;
@@ -458,10 +390,30 @@ const filters = [
     padding: 0 14px;
     font-size: 0.92rem;
   }
+  .button.soon {
+    cursor: default;
+    opacity: 0.75;
+  }
+  .button.soon small {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--cream);
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+  .hero .button.ghost.soon small {
+    background: var(--lime);
+    color: var(--ink);
+  }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+  }
+  .auth {
+    display: flex;
+    gap: 8px;
   }
 
   .top {
@@ -497,6 +449,10 @@ const filters = [
   .bar nav a:hover {
     color: #fff;
   }
+  .top .ghost {
+    color: #eef6f2;
+    border-color: #5a7a6f;
+  }
 
   /* Hero */
   .hero {
@@ -505,7 +461,7 @@ const filters = [
     color: #eef6f2;
   }
   .hero-copy {
-    max-width: 760px;
+    max-width: 800px;
     padding-bottom: 48px;
   }
   .status {
@@ -518,18 +474,19 @@ const filters = [
   }
   .status::before {
     content: '';
+    flex-shrink: 0;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--lime);
   }
   h1 {
-    font-size: clamp(2.6rem, 5.4vw, 4.6rem);
+    font-size: clamp(2.5rem, 5vw, 4.3rem);
     line-height: 1;
     color: #fff;
   }
   .lede {
-    max-width: 58ch;
+    max-width: 60ch;
     margin: 24px 0 30px;
     font-size: 1.1rem;
     color: #c6d4ce;
@@ -538,151 +495,130 @@ const filters = [
     color: #eef6f2;
     border-color: #5a7a6f;
   }
+  .notify {
+    margin-top: 16px;
+    font-size: 0.95rem;
+  }
+  .notify a {
+    color: #b7c8c1;
+    text-underline-offset: 3px;
+  }
 
-  /* Board */
-  .board {
+  /* Walkthrough */
+  .walk {
     margin: 0;
     transform: translateY(56px);
     margin-top: -56px;
   }
-  .board-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px 24px;
-    padding: 16px 22px;
-    border: 1px solid var(--line);
-    border-bottom: 0;
-    border-radius: 10px 10px 0 0;
-    background: #eef0e9;
-    color: var(--ink);
-    font-size: 0.92rem;
-  }
-  .board-head > div {
-    display: flex;
-    gap: 12px;
-    align-items: baseline;
-  }
-  .board-head > div b {
-    font-weight: 600;
-  }
-  .board-head > div span {
-    color: var(--ink-2);
-  }
-  .filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  .walk ol {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  .filters li {
-    padding: 5px 11px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--paper);
-    color: var(--ink-2);
-    font-size: 0.85rem;
+  .walk li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
   }
-  .filters li b {
-    margin-left: 4px;
+  .walk li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    right: -14px;
+    width: 14px;
+    border-top: 2px solid var(--lime);
+  }
+  .step-label {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--lime);
     color: var(--ink);
+    font-size: 0.85rem;
     font-weight: 600;
   }
-  .filters li.on {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
-  }
-  .filters li.on b {
-    color: var(--lime);
-  }
-  .board table {
-    width: 100%;
-    border-collapse: collapse;
+  .panel {
+    flex: 1;
+    padding: 18px 20px;
     border: 1px solid var(--line);
+    border-radius: 10px;
     background: var(--paper);
     color: var(--ink);
-    font-size: 0.95rem;
-    text-align: left;
+    font-size: 0.92rem;
   }
-  .board thead th {
-    padding: 12px 22px;
-    border-bottom: 1px solid var(--line);
+  .panel.client {
+    display: grid;
+    gap: 4px;
+  }
+  .panel.client b {
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+  }
+  .panel.client span {
     color: var(--ink-2);
-    font-size: 0.8rem;
-    font-weight: 500;
   }
-  .board tbody th,
-  .board tbody td {
-    padding: 14px 22px;
+  .panel.client i {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    color: var(--moss);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .panel.people div,
+  .panel.docs div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
     border-bottom: 1px solid var(--line);
-    vertical-align: middle;
   }
-  .board tbody tr:last-child th,
-  .board tbody tr:last-child td {
+  .panel.people div:last-of-type,
+  .panel.docs div:last-of-type {
     border-bottom: 0;
   }
-  .board tbody th {
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .board td.client {
+  .panel.people span,
+  .panel.docs span {
+    flex-shrink: 0;
     color: var(--ink-2);
-  }
-  .board td.late {
-    color: var(--late);
-    font-weight: 600;
-  }
-  .state {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 10px;
-    border-radius: 4px;
+    text-align: right;
     font-size: 0.85rem;
-    white-space: nowrap;
-    background: #eef0e9;
-    color: var(--ink);
   }
-  .state.late {
-    background: var(--late-soft);
-    color: var(--late);
-  }
-  .state.client {
-    background: transparent;
-    outline: 1px solid var(--sage);
-    outline-offset: -1px;
-    color: var(--moss);
-  }
-  .state.blocked {
-    background: #e4e8df;
+  .panel.people p {
+    padding-top: 8px;
     color: var(--ink-2);
+    font-size: 0.85rem;
   }
-  .state.review {
-    background: var(--lime-soft);
+  .panel.signs div {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    padding: 8px 0;
   }
-  .state.progress {
-    background: var(--lime-soft);
+  .panel.signs span {
+    color: var(--ink-2);
+    font-size: 0.85rem;
   }
-  .state.progress i {
-    width: 44px;
+  .panel.signs i {
+    grid-column: 1 / -1;
+    display: block;
     height: 6px;
     border-radius: 3px;
-    background: var(--paper);
+    background: #eef0e9;
     overflow: hidden;
   }
-  .state.progress i::before {
+  .panel.signs i::before {
     content: '';
     display: block;
     width: var(--p);
     height: 100%;
     background: var(--lime);
   }
-  .board figcaption {
+  .walk figcaption {
     padding: 14px 0 0;
     color: var(--ink-2);
     font-size: 0.85rem;
@@ -706,160 +642,116 @@ const filters = [
     margin-bottom: 40px;
   }
   .section-head h2,
-  .section-copy h2,
-  .outcomes h2,
-  .pilot h2,
-  .trust h2,
+  .reasons h2,
+  .access h2,
   .faq h2 {
     font-size: clamp(1.9rem, 3.4vw, 2.8rem);
     line-height: 1.05;
   }
-  .section-head p,
-  .section-copy p {
+  .section-head p {
     max-width: 52ch;
     color: var(--ink-2);
   }
 
-  .sources {
+  .steps-section {
     padding: 80px 0 96px;
   }
-  .source-list {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px 40px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .source-list li {
-    padding-top: 14px;
-    border-top: 2px solid var(--ink);
-  }
-  .source-list b {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-  }
-  .source-list span {
-    color: var(--ink-2);
-    font-size: 0.95rem;
-  }
-
-  .matrix-section {
-    padding: 96px 0;
-    background: #eef0e9;
-  }
-  .matrix-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 56px;
-    align-items: center;
-  }
-  .section-copy h2 {
-    margin-bottom: 16px;
-  }
-  .matrix {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--paper);
-    border: 1px solid var(--line);
-    font-size: 0.95rem;
-  }
-  .matrix th,
-  .matrix td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--line);
-    text-align: left;
-  }
-  .matrix thead th {
-    color: var(--ink-2);
-    font-size: 0.82rem;
-    font-weight: 500;
-  }
-  .matrix thead th:not(:first-child),
-  .matrix td {
-    text-align: center;
-    width: 20%;
-  }
-  .matrix tbody th {
-    font-weight: 500;
-  }
-  .matrix tr:last-child th,
-  .matrix tr:last-child td {
-    border-bottom: 0;
-  }
-  .yes {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--lime);
-    vertical-align: middle;
-  }
-
-  .modules {
-    padding: 96px 0;
-  }
-  .ledger {
+  .steps {
     margin: 0;
     padding: 0;
     list-style: none;
     border-top: 1px solid var(--ink);
   }
-  .ledger > li {
+  .steps li {
     display: grid;
-    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) minmax(0, 3fr);
+    grid-template-columns: 80px minmax(0, 4fr) minmax(0, 7fr);
     gap: 24px;
     padding: 26px 0;
     border-bottom: 1px solid var(--line);
   }
-  .ledger h3 {
+  .steps li > div {
+    display: contents;
+  }
+  .n {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--lime);
+    line-height: 1;
+  }
+  .steps h3 {
     font-size: 1.35rem;
   }
-  .ledger p {
-    max-width: 60ch;
+  .steps p {
     color: var(--ink-2);
   }
-  .fragment {
+
+  .documents {
+    padding: 96px 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .documents .section-head p {
+    color: #b7c8c1;
+  }
+  .doc-groups {
     display: grid;
-    gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .doc-groups h3 {
+    margin-bottom: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--lime);
+    font-size: 1.15rem;
+    color: #fff;
+  }
+  .doc-groups ul {
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 0.85rem;
   }
-  .fragment li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--ink-2);
-  }
-  .fragment li::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: 1px solid var(--sage);
-  }
-  .fragment li:last-child {
-    color: var(--ink);
-  }
-  .fragment li:last-child::before {
-    background: var(--lime);
-    border-color: var(--lime);
+  .doc-groups li {
+    padding: 9px 0;
+    border-top: 1px solid var(--forest-line);
+    color: #c6d4ce;
   }
 
-  .outcomes {
+  .signers-section {
+    padding: 96px 0;
+  }
+  .signers {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1px solid var(--ink);
+  }
+  .signers th,
+  .signers td {
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+  .signers th {
+    width: 32%;
+    padding-right: 32px;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  .signers td {
+    color: var(--ink-2);
+  }
+
+  .reasons {
     padding: 96px 0;
     background: var(--paper);
     border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
   }
-  .outcomes h2 {
+  .reasons h2 {
     max-width: 22ch;
     margin-bottom: 40px;
   }
-  .outcomes ul {
+  .reasons ul {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 32px;
@@ -867,101 +759,89 @@ const filters = [
     padding: 0;
     list-style: none;
   }
-  .outcomes li {
+  .reasons li {
     padding-top: 14px;
     border-top: 2px solid var(--lime);
   }
-  .outcomes h3 {
+  .reasons h3 {
     margin-bottom: 8px;
     font-size: 1.15rem;
   }
-  .outcomes p {
+  .reasons p {
     color: var(--ink-2);
     font-size: 0.95rem;
   }
 
-  .pilot {
+  .also {
+    padding: 96px 0;
+  }
+  .also-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .also-list li {
+    padding-top: 12px;
+    border-top: 1px solid var(--sage);
+  }
+  .also-list h3 {
+    margin-bottom: 6px;
+    font-size: 1.05rem;
+  }
+  .also-list p {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  .access {
     padding: 96px 0;
     background: var(--ink);
     color: #eef6f2;
   }
-  .pilot-grid {
+  .access-grid {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
     gap: 64px;
   }
-  .pilot h2 {
+  .access h2 {
     color: #fff;
     margin-bottom: 16px;
   }
-  .pilot-grid > div > p {
+  .access-grid > div > p {
     max-width: 46ch;
     margin-bottom: 28px;
     color: #c6d4ce;
   }
-  .pilot .ghost {
+  .access .ghost {
     color: #eef6f2;
     border-color: #5a7a6f;
   }
-  .offer {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-  }
-  .offer h3 {
-    margin-bottom: 12px;
-    font-size: 1.1rem;
-    color: #fff;
-  }
-  .offer ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .offer li {
-    position: relative;
-    padding: 10px 0 10px 20px;
-    border-top: 1px solid var(--forest-line);
-    color: #c6d4ce;
-    font-size: 0.95rem;
-  }
-  .offer li::before {
-    content: '';
-    position: absolute;
-    top: 18px;
-    left: 0;
-    width: 8px;
-    height: 8px;
-    background: var(--lime);
-  }
-
   .trust {
-    padding: 96px 0 40px;
-  }
-  .trust h2 {
-    margin-bottom: 32px;
-  }
-  .trust ul {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px;
+    gap: 20px;
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+  .trust li {
+    padding-top: 12px;
+    border-top: 1px solid var(--forest-line);
   }
   .trust h3 {
-    margin-bottom: 8px;
-    padding-top: 14px;
-    border-top: 1px solid var(--ink);
+    margin-bottom: 4px;
     font-size: 1.05rem;
+    color: #fff;
   }
   .trust p {
-    color: var(--ink-2);
+    color: #c6d4ce;
     font-size: 0.95rem;
   }
 
   .faq {
-    padding: 56px 0 96px;
+    padding: 96px 0;
   }
   .faq h2 {
     margin-bottom: 24px;
@@ -1020,25 +900,29 @@ const filters = [
   }
 
   @media (max-width: 1080px) {
-    .source-list,
-    .trust ul {
+    .walk ol {
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 14px;
+    }
+    .walk li:nth-child(2)::after {
+      display: none;
+    }
+    .reasons ul,
+    .also-list {
       grid-template-columns: 1fr 1fr;
     }
-    .outcomes ul {
-      grid-template-columns: 1fr 1fr;
-    }
-    .matrix-grid,
-    .pilot-grid {
+    .access-grid {
       grid-template-columns: 1fr;
       gap: 40px;
     }
-    .ledger > li {
-      grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    .steps li {
+      grid-template-columns: 56px 1fr;
     }
-    .ledger .fragment {
-      grid-column: 2;
-      grid-auto-flow: column;
-      gap: 14px;
+    .steps li > div {
+      display: block;
+    }
+    .steps h3 {
+      margin-bottom: 8px;
     }
   }
   @media (max-width: 760px) {
@@ -1049,72 +933,33 @@ const filters = [
       width: min(100% - 32px, 1240px);
     }
     .bar nav,
-    .bar .button {
+    .auth .soon {
       display: none;
     }
     .hero {
       padding-top: 40px;
     }
     h1 {
-      font-size: clamp(2.2rem, 9.5vw, 3rem);
+      font-size: clamp(2.1rem, 9vw, 2.8rem);
     }
-    .board {
+    .walk {
       transform: translateY(40px);
       margin-top: -40px;
     }
-    .board-head {
-      padding: 14px 16px;
+    .walk ol {
+      grid-template-columns: 1fr;
+      gap: 18px;
     }
-    .board table,
-    .board tbody,
-    .board tbody tr,
-    .board tbody th,
-    .board tbody td {
-      display: block;
-    }
-    .board thead {
+    .walk li::after {
       display: none;
-    }
-    .board tbody tr {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-    }
-    .board tbody tr:last-child {
-      border-bottom: 0;
-    }
-    .board tbody th,
-    .board tbody td {
-      padding: 0;
-      border: 0;
-    }
-    .board tbody th {
-      margin-bottom: 4px;
-      white-space: normal;
-    }
-    .board tbody td:nth-child(2) {
-      margin-bottom: 10px;
-      color: var(--ink-2);
-      font-size: 0.92rem;
-    }
-    .board tbody td:nth-child(3),
-    .board tbody td:nth-child(4),
-    .board tbody td:nth-child(5) {
-      display: inline-block;
-      margin-right: 14px;
-      font-size: 0.88rem;
-    }
-    .board tbody td:nth-child(3)::before {
-      content: 'Responsabil: ';
-      color: var(--ink-2);
     }
     .audience-band {
       padding-top: 88px;
     }
     .section-head,
-    .source-list,
-    .trust ul,
-    .outcomes ul,
-    .offer,
+    .doc-groups,
+    .reasons ul,
+    .also-list,
     .foot-grid {
       grid-template-columns: 1fr;
     }
@@ -1122,32 +967,33 @@ const filters = [
       gap: 14px;
       margin-bottom: 28px;
     }
-    .ledger > li {
-      grid-template-columns: 1fr;
-      gap: 10px;
+    .doc-groups {
+      gap: 24px;
     }
-    .ledger .fragment {
-      grid-column: auto;
-      grid-auto-flow: row;
-      gap: 4px;
+    .signers th,
+    .signers td {
+      display: block;
+      width: auto;
+      padding: 0;
+      border: 0;
     }
-    .matrix {
-      font-size: 0.85rem;
+    .signers tr {
+      display: block;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
     }
-    .matrix th,
-    .matrix td {
-      padding: 10px 8px;
+    .signers th {
+      margin-bottom: 6px;
+      font-size: 1.1rem;
     }
-    .sources,
-    .matrix-section,
-    .modules,
-    .outcomes,
-    .pilot,
-    .trust {
-      padding-block: 64px;
-    }
+    .steps-section,
+    .documents,
+    .signers-section,
+    .reasons,
+    .also,
+    .access,
     .faq {
-      padding: 40px 0 64px;
+      padding-block: 64px;
     }
     .actions .button {
       width: 100%;

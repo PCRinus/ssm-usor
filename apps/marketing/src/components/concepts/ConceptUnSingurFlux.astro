@@ -2,16 +2,18 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ConceptSwitcher from './ConceptSwitcher.astro';
 import {
+  alsoIncluded,
   audience,
-  contact,
   cta,
+  documentGroups,
+  documentsNote,
   faq,
-  outcomes,
-  pillars,
-  pilotOffer,
-  platformFlow,
-  principles,
+  links,
+  reasons,
+  signatureNote,
+  signers,
   status,
+  steps,
   trust,
 } from './content';
 
@@ -25,34 +27,11 @@ const scattered = [
   { label: 'Dosar fizic', x: 22, y: 80, r: 2 },
   { label: 'Calendar', x: 72, y: 82, r: 6 },
 ];
-
-const moments = [
-  {
-    title: 'Lista de angajați nu mai seamănă cu cea de la client',
-    text: 'HR a modificat două funcții și a scos un om, dar fișele au fost generate din varianta veche. Nimeni nu știe care listă e cea bună.',
-  },
-  {
-    title: 'Aceleași date, scrise de mână a cincea oară',
-    text: 'Denumirea firmei, adresa punctului de lucru, numele conducătorului. În fiecare document, de fiecare dată, cu riscul unei greșeli de fiecare dată.',
-  },
-  {
-    title: 'Șablonul are trei versiuni și niciuna nu e sigur cea bună',
-    text: 'O clauză a fost schimbată pentru un client, apoi copiată în alt fișier. Șablonul comun a rămas în urmă. Documentele emise nu mai au legătură cu el.',
-  },
-  {
-    title: 'Cine trebuie să semneze acum?',
-    text: 'Fișa a plecat pe email, clientul a răspuns cu o poză, semnătura conducătorului lipsește, iar termenul de instruire a trecut.',
-  },
-  {
-    title: 'Controlul vine marți',
-    text: 'Dosarul se reconstruiește din foldere, fire de email și un dosar cu șină. Ce nu se găsește în două ore nu există.',
-  },
-];
 ---
 
 <BaseLayout
   title="SSM Ușor — Word, PDF, email, semnare, arhivă. Sau un singur flux."
-  description="SSM Ușor înlocuiește fluxul fragmentat al serviciului extern SSM cu un singur sistem de lucru pentru toți clienții: date, documente, revizuire, semnare și dovezi."
+  description="Adaugi clientul, adaugi angajații, creezi documentele și testele, semnezi electronic cu administratorul și cu fiecare angajat. Pentru servicii externe SSM din România."
   themeColor="#ffffff"
   noindex
 >
@@ -72,12 +51,18 @@ const moments = [
           <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
         </a>
         <nav aria-label="Secțiuni">
-          <a href="#problema">Problema</a>
-          <a href="#sistem">Sistemul</a>
-          <a href="#principii">Principii</a>
-          <a href="#pilot">Program pilot</a>
+          <a href="#cum">Cum funcționează</a>
+          <a href="#documente">Documente</a>
+          <a href="#semnaturi">Semnături</a>
+          <a href="#intrebari">Întrebări</a>
         </nav>
-        <a class="button primary small" href={contact.pilotHref}>{cta.pilot}</a>
+        <div class="auth">
+          <a class="button quiet small" href={links.login}>{cta.login}</a>
+          <span class="button primary small soon" aria-disabled="true">
+            {cta.signup}
+            <small>{cta.signupNote}</small>
+          </span>
+        </div>
       </div>
     </header>
 
@@ -86,14 +71,18 @@ const moments = [
         <p class="status">{status.short}</p>
         <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
         <p class="lede">
-          SSM Ușor este sistemul de lucru al serviciului extern de prevenire și protecție. Creezi și
-          editezi documente, colectezi date de la clienți, organizezi instruiri și testări, semnezi
-          electronic și urmărești toate termenele fără să muți fișiere între aplicații.
+          Adaugi clientul, adaugi angajații, creezi contractele, documentele și testele, apoi
+          semnezi electronic cu administratorul firmei și cu fiecare angajat. Totul într-un singur
+          loc, pentru toți clienții tăi.
         </p>
         <div class="actions">
-          <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
-          <a class="button quiet" href={contact.launchHref}>{cta.launch}</a>
+          <a class="button primary" href={links.login}>{cta.login}</a>
+          <span class="button quiet soon" aria-disabled="true">
+            {cta.signup}
+            <small>{cta.signupNote}</small>
+          </span>
         </div>
+        <p class="notify"><a href={links.notifyHref}>{cta.notify}</a></p>
 
         <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
           <div class="before">
@@ -117,17 +106,17 @@ const moments = [
               }
             </div>
             <p class="panel-note">
-              Fiecare unealtă are propria copie a datelor. Fiecare trecere pierde context.
+              Fiecare unealtă are propria copie a datelor. Fiecare trecere pierde ceva.
             </p>
           </div>
           <div class="after">
             <p class="panel-title">În SSM Ușor</p>
             <ol class="line">
               {
-                platformFlow.map((item) => (
+                steps.map((step) => (
                   <li>
-                    <b>{item.step}</b>
-                    <span>{item.text}</span>
+                    <b>{step.title}</b>
+                    <span>{step.text}</span>
                   </li>
                 ))
               }
@@ -138,70 +127,71 @@ const moments = [
       </section>
 
       <div class="thread">
-        <section class="reading" id="problema">
+        <section class="reading" id="cum">
           <span class="dot" aria-hidden="true"></span>
-          <h2>Unde se pierde timpul.</h2>
+          <h2>Ce dispare din ziua ta de lucru.</h2>
           <p class="intro">
-            Munca unui serviciu extern este recurentă, împărțită între furnizor și angajator și grea
-            în dovezi. Nu instrumentele sunt problema, ci trecerea între ele. Câteva momente pe care
-            le știi.
+            Nu instrumentele sunt problema, ci trecerea între ele. Când clientul, angajații,
+            documentele și semnăturile stau în același loc, patru lucruri dispar de la sine.
           </p>
-          <ul class="moments">
+          <ul class="list">
             {
-              moments.map((moment) => (
+              reasons.map((reason) => (
                 <li>
-                  <h3>{moment.title}</h3>
-                  <p>{moment.text}</p>
+                  <h3>{reason.title}</h3>
+                  <p>{reason.text}</p>
                 </li>
               ))
             }
           </ul>
         </section>
 
-        <section class="reading" id="sistem">
+        <section class="reading wide" id="documente">
           <span class="dot" aria-hidden="true"></span>
-          <h2>Un singur sistem de lucru.</h2>
-          <p class="intro">
-            Nu un generator de documente cu semnătură lipită la final, ci stratul de operare din
-            jurul lor: clienți, oameni, obligații, documente, instruiri, vizite și dovezi care
-            folosesc aceleași date.
-          </p>
-          <dl class="pillars">
+          <h2>Ce poți face în platformă.</h2>
+          <p class="intro">{documentsNote}</p>
+          <div class="doc-groups">
             {
-              pillars.map((pillar) => (
+              documentGroups.map((group) => (
                 <div>
-                  <dt>{pillar.title}</dt>
-                  <dd>{pillar.text}</dd>
+                  <h3>{group.title}</h3>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            }
+          </div>
+        </section>
+
+        <section class="reading" id="semnaturi">
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Cine semnează ce.</h2>
+          <p class="intro">{signatureNote}</p>
+          <dl class="signers">
+            {
+              signers.map((signer) => (
+                <div>
+                  <dt>{signer.who}</dt>
+                  <dd>{signer.signs}</dd>
                 </div>
               ))
             }
           </dl>
         </section>
 
-        <section class="reading" id="principii">
+        <section class="reading wide" id="restul">
           <span class="dot" aria-hidden="true"></span>
-          <h2>Cum îl construim.</h2>
+          <h2>Și restul, când ai nevoie.</h2>
           <p class="intro">
-            Cinci reguli pe care le respectăm chiar și atunci când ar fi mai comod să nu o facem.
+            Fluxul de mai sus este ceea ce faci zilnic. În jurul lui, platforma ține evidența pentru
+            toți clienții odată.
           </p>
-          <ol class="principles">
+          <ul class="also">
             {
-              principles.map((principle) => (
-                <li>
-                  <h3>{principle.title}</h3>
-                  <p>{principle.text}</p>
-                </li>
-              ))
-            }
-          </ol>
-        </section>
-
-        <section class="reading wide" id="rezultate">
-          <span class="dot" aria-hidden="true"></span>
-          <h2>Patru lucruri pe care le validăm în pilot.</h2>
-          <ul class="outcomes">
-            {
-              outcomes.map((item) => (
+              alsoIncluded.map((item) => (
                 <li>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
@@ -211,34 +201,19 @@ const moments = [
           </ul>
         </section>
 
-        <section class="reading" id="pilot">
+        <section class="reading" id="cont">
           <span class="dot end" aria-hidden="true"></span>
-          <h2>Program pilot pentru 2–3 servicii externe.</h2>
+          <h2>Conturile noi se deschid în curând.</h2>
           <p class="intro">{status.long}</p>
-          <div class="offer">
-            <div>
-              <h3>Ce primești</h3>
-              <ul>
-                {pilotOffer.give.map((item) => <li>{item}</li>)}
-              </ul>
-            </div>
-            <div>
-              <h3>Ce așteptăm de la tine</h3>
-              <ul>
-                {pilotOffer.ask.map((item) => <li>{item}</li>)}
-              </ul>
-            </div>
-          </div>
-          <div class="actions">
-            <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
-            <a class="button quiet" href={contact.launchHref}>{cta.launch}</a>
+          <div class="actions start">
+            <a class="button primary" href={links.login}>{cta.login}</a>
+            <a class="button quiet" href={links.notifyHref}>{cta.notify}</a>
           </div>
         </section>
       </div>
 
       <section class="trust">
         <div class="wrap">
-          <h2>Pe ce te poți baza.</h2>
           <ul>
             {
               trust.map((item) => (
@@ -271,8 +246,8 @@ const moments = [
       <div class="wrap foot-grid">
         <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
         <p>
-          Sistemul de lucru pentru servicii externe de prevenire și protecție. Scrie-ne la
-          <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+          Platforma de lucru pentru servicii externe SSM din România. Scrie-ne la
+          <a href={`mailto:${links.email}`}>{links.email}</a>.
         </p>
         <p class="fine">
           SSM Ușor nu oferă consultanță juridică și nu înlocuiește responsabilitatea specialistului
@@ -330,6 +305,7 @@ const moments = [
   .button {
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     min-height: 48px;
     padding: 0 22px;
     border: 1px solid transparent;
@@ -358,11 +334,30 @@ const moments = [
     padding: 0 16px;
     font-size: 0.92rem;
   }
+  .button.soon {
+    cursor: default;
+    opacity: 0.75;
+  }
+  .button.soon small {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--lime);
+    color: var(--ink);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
   .actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 12px;
+  }
+  .actions.start {
+    justify-content: flex-start;
+  }
+  .auth {
+    display: flex;
+    gap: 8px;
   }
 
   .top {
@@ -410,6 +405,7 @@ const moments = [
   }
   .status::before {
     content: '';
+    flex-shrink: 0;
     width: 8px;
     height: 8px;
     border-radius: 50%;
@@ -421,12 +417,20 @@ const moments = [
     line-height: 1.02;
   }
   .lede {
-    max-width: 60ch;
+    max-width: 58ch;
     margin: 28px 0 32px;
     font-family: var(--serif);
     font-size: 1.32rem;
     line-height: 1.45;
     color: var(--ink-2);
+  }
+  .notify {
+    margin-top: 16px;
+    font-size: 0.95rem;
+  }
+  .notify a {
+    color: var(--ink-2);
+    text-underline-offset: 3px;
   }
   .audience {
     max-width: 58ch;
@@ -440,7 +444,7 @@ const moments = [
     grid-template-columns: 1fr 1fr;
     gap: 0;
     width: 100%;
-    margin: 64px 0 0;
+    margin: 56px 0 0;
     border: 1px solid var(--line);
     border-radius: 14px;
     overflow: hidden;
@@ -531,7 +535,7 @@ const moments = [
     font-size: 0.95rem;
   }
 
-  /* Thread: the single line continues down the page */
+  /* Thread */
   .thread {
     position: relative;
     width: min(1120px, calc(100% - 40px));
@@ -572,6 +576,7 @@ const moments = [
     line-height: 1.1;
   }
   .intro {
+    max-width: 66ch;
     margin-bottom: 32px;
     font-family: var(--serif);
     font-size: 1.22rem;
@@ -584,92 +589,81 @@ const moments = [
     font-weight: 600;
     letter-spacing: 0;
   }
-  .moments,
-  .principles {
+  .list {
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  .moments li,
-  .principles li {
+  .list li {
     padding: 20px 0;
     border-top: 1px solid var(--line);
   }
-  .moments p,
-  .principles p {
+  .list p {
     margin-top: 6px;
     color: var(--ink-2);
   }
-  .pillars {
-    margin: 0;
-  }
-  .pillars div {
-    padding: 20px 0;
-    border-top: 1px solid var(--line);
-  }
-  .pillars dt {
-    font-weight: 600;
-    font-size: 1.12rem;
-  }
-  .pillars dd {
-    margin: 6px 0 0;
-    color: var(--ink-2);
-  }
-  .outcomes {
+  .doc-groups {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px;
-    margin: 32px 0 0;
-    padding: 0;
-    list-style: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
   }
-  .outcomes li {
+  .doc-groups h3 {
+    margin-bottom: 10px;
     padding-top: 14px;
     border-top: 1px solid var(--ink);
   }
-  .outcomes p {
-    margin-top: 6px;
-    color: var(--ink-2);
-    font-size: 0.98rem;
-  }
-  .offer {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-    margin-bottom: 32px;
-  }
-  .offer h3 {
-    margin-bottom: 10px;
-  }
-  .offer ul {
+  .doc-groups ul {
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  .offer li {
-    padding: 10px 0;
+  .doc-groups li {
+    padding: 8px 0;
     border-top: 1px solid var(--line);
     color: var(--ink-2);
-    font-size: 0.98rem;
   }
-  #pilot .actions {
-    justify-content: flex-start;
+  .signers {
+    margin: 0;
+  }
+  .signers div {
+    padding: 18px 0;
+    border-top: 1px solid var(--line);
+  }
+  .signers dt {
+    font-weight: 600;
+    font-size: 1.12rem;
+  }
+  .signers dd {
+    margin: 6px 0 0;
+    color: var(--ink-2);
+  }
+  .also {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .also li {
+    padding-top: 12px;
+    border-top: 1px solid var(--sage);
+  }
+  .also p {
+    margin-top: 6px;
+    color: var(--ink-2);
+    font-size: 0.98rem;
   }
 
   .trust {
     margin-top: 56px;
-    padding: 80px 0;
+    padding: 72px 0;
     background: var(--ink);
     color: #eef6f2;
   }
-  .trust h2 {
-    margin-bottom: 36px;
-    font-size: clamp(1.9rem, 3.4vw, 2.7rem);
-    color: #fff;
-  }
   .trust ul {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 32px;
     margin: 0;
     padding: 0;
@@ -683,6 +677,7 @@ const moments = [
     font-size: 1.08rem;
     font-weight: 600;
     letter-spacing: 0;
+    color: #fff;
   }
   .trust p {
     color: #b7c8c1;
@@ -750,9 +745,12 @@ const moments = [
   }
 
   @media (max-width: 1080px) {
-    .outcomes,
-    .trust ul {
+    .also {
       grid-template-columns: 1fr 1fr;
+    }
+    .doc-groups {
+      grid-template-columns: 1fr;
+      gap: 24px;
     }
   }
   @media (max-width: 760px) {
@@ -763,7 +761,7 @@ const moments = [
       width: min(100% - 32px, 1120px);
     }
     .bar nav,
-    .bar .button {
+    .auth .soon {
       display: none;
     }
     .hero {
@@ -808,8 +806,7 @@ const moments = [
     .reading {
       padding: 44px 0;
     }
-    .outcomes,
-    .offer,
+    .also,
     .trust ul,
     .foot-grid {
       grid-template-columns: 1fr;

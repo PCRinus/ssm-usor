@@ -2,24 +2,25 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ConceptSwitcher from './ConceptSwitcher.astro';
 import {
+  alsoIncluded,
   audience,
-  contact,
   cta,
+  documentGroups,
+  documentsNote,
   faq,
-  lifecycle,
-  pillars,
-  pilotOffer,
-  platformFlow,
+  links,
+  reasons,
+  signatureNote,
+  signers,
   status,
-  studioDifferences,
-  todayFlow,
+  steps,
   trust,
 } from './content';
 ---
 
 <BaseLayout
-  title="SSM Ușor — De la șablon la fișă semnată, fără să ieși din platformă"
-  description="Sistemul de lucru al serviciului extern SSM: creezi, editezi, aprobi, semnezi și arhivezi documentele tuturor clienților dintr-un singur loc."
+  title="SSM Ușor — Documentele SSM ale clienților tăi, făcute și semnate într-un singur loc"
+  description="Adaugi clientul, adaugi angajații, creezi documentele și testele, semnezi electronic cu administratorul și cu fiecare angajat. Pentru servicii externe SSM din România."
   themeColor="#f8f7f1"
   noindex
 >
@@ -39,12 +40,18 @@ import {
           <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
         </a>
         <nav aria-label="Secțiuni">
-          <a href="#studio">Studio de documente</a>
-          <a href="#serviciu">Restul serviciului</a>
-          <a href="#pilot">Program pilot</a>
+          <a href="#cum">Cum funcționează</a>
+          <a href="#documente">Documente</a>
+          <a href="#semnaturi">Semnături</a>
           <a href="#intrebari">Întrebări</a>
         </nav>
-        <a class="button primary small" href={contact.pilotHref}>{cta.pilot}</a>
+        <div class="auth">
+          <a class="button quiet small" href={links.login}>{cta.login}</a>
+          <span class="button primary small soon" aria-disabled="true">
+            {cta.signup}
+            <small>{cta.signupNote}</small>
+          </span>
+        </div>
       </div>
     </header>
 
@@ -52,29 +59,37 @@ import {
       <section class="hero wrap">
         <div class="hero-copy">
           <p class="status">{status.short}</p>
-          <h1>De la șablon la fișă semnată, fără să ieși din platformă.</h1>
+          <h1>Documentele SSM ale clienților tăi, făcute și semnate într-un singur loc.</h1>
           <p class="lede">
-            SSM Ușor este sistemul de lucru al serviciului extern de prevenire și protecție. Creezi,
-            editezi, aprobi, semnezi și arhivezi documentele tuturor clienților dintr-un singur loc,
-            cu datele fiecărui client completate automat și cu fiecare versiune păstrată.
+            Adaugi clientul, adaugi angajații, creezi contractele, documentele și testele, apoi
+            semnezi electronic cu administratorul firmei și cu fiecare angajat. Fără Word, fără
+            PDF-uri trimise pe email, fără drumuri pentru o semnătură.
           </p>
           <div class="actions">
-            <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
-            <a class="button quiet" href="#flux">Vezi fluxul documentului</a>
+            <a class="button primary" href={links.login}>{cta.login}</a>
+            <span class="button quiet soon" aria-disabled="true">
+              {cta.signup}
+              <small>{cta.signupNote}</small>
+            </span>
           </div>
+          <p class="notify">
+            <a href={links.notifyHref}>{cta.notify}</a>
+          </p>
           <p class="audience">{audience}</p>
         </div>
 
-        <figure class="sheet" aria-label="Exemplu de fișă de instruire generată în platformă">
+        <figure
+          class="sheet"
+          aria-label="Exemplu de fișă de instruire generată și semnată în platformă"
+        >
           <ul class="callouts" aria-label="Ce se vede în document">
-            <li class="c1">Datele vin din fișa clientului și a angajatului</li>
-            <li class="c2">Tematica este legată de revizia aprobată</li>
-            <li class="c3">Semnături prin furnizor calificat, în ordinea stabilită</li>
+            <li class="c1">Datele firmei și ale angajatului, completate automat</li>
+            <li class="c2">Testul promovat, trecut direct în fișă</li>
+            <li class="c3">Semnată de angajat, de tine și de administrator</li>
           </ul>
           <div class="tabs" aria-hidden="true">
-            <span class="on">Revizia 3, în vigoare</span>
-            <span>Revizia 2</span>
-            <span>Revizia 1</span>
+            <span class="on">Versiunea în vigoare</span>
+            <span>Istoric</span>
           </div>
           <div class="paper">
             <div class="paper-head">
@@ -83,8 +98,8 @@ import {
                 <small>Serviciu extern de prevenire și protecție</small>
               </p>
               <p class="meta">
-                Șablon: Fișă instruire SSM, v4
-                <small>Generat 12 sept. 2026</small>
+                Fișă instruire SSM
+                <small>Generată 12 sept. 2026</small>
               </p>
             </div>
             <h2>Fișă de instruire individuală privind securitatea și sănătatea în muncă</h2>
@@ -97,108 +112,63 @@ import {
               <dd><mark>Ioana Popescu</mark></dd>
               <dt>Funcția</dt>
               <dd><mark>Lăcătuș mecanic</mark></dd>
-              <dt>Grup de expunere</dt>
-              <dd><mark>Producție, atelier mecanic</mark></dd>
               <dt>Data angajării</dt>
               <dd><mark>1 sept. 2026</mark></dd>
             </dl>
             <div class="block">
               <h3>Instruirea introductiv-generală</h3>
               <p>
-                Efectuată în <mark>2 sept. 2026</mark>, cu durata de <mark>8 ore</mark>, după
-                tematica <mark>T-01, revizia 2</mark>, de către <mark>Andrei Marin</mark>,
-                specialist SSM. Verificarea cunoștințelor: <mark>18 din 20, promovat</mark>.
+                Efectuată în <mark>2 sept. 2026</mark>, cu durata de <mark>8 ore</mark>, de către
+                <mark>Andrei Marin</mark>, specialist SSM. Verificarea cunoștințelor:
+                <mark>18 din 20, promovat</mark>.
               </p>
             </div>
             <div class="block">
               <h3>Instruirea la locul de muncă</h3>
               <p>
-                Programată pentru <mark>3 sept. 2026</mark>, conducător loc de muncă
-                <mark>Vasile Nistor</mark>, după instrucțiunea proprie <mark
-                  >IPSSM-07, revizia 4</mark
-                >.
+                Efectuată în <mark>3 sept. 2026</mark> de <mark>Vasile Nistor</mark>, conducătorul
+                locului de muncă, după instrucțiunea proprie <mark>IPSSM-07</mark>.
               </p>
             </div>
             <div class="signatures">
               <div>
                 <span>Persoana instruită</span>
                 <b>Ioana Popescu</b>
-                <i class="done">Semnat electronic, 2 sept. 2026, 14:32</i>
+                <i class="done">Semnat 2 sept. 2026, 14:32</i>
               </div>
               <div>
-                <span>Cel care a instruit</span>
+                <span>Specialist SSM</span>
                 <b>Andrei Marin</b>
-                <i class="done">Semnat electronic, 2 sept. 2026, 15:05</i>
+                <i class="done">Semnat 2 sept. 2026, 15:05</i>
               </div>
               <div>
-                <span>Conducător loc de muncă</span>
+                <span>Administrator</span>
                 <b>Vasile Nistor</b>
-                <i>Așteaptă semnătura</i>
+                <i class="done">Semnat 3 sept. 2026, 09:10</i>
               </div>
             </div>
-            <p class="hash">
-              Amprentă SHA-256 3f9a…c21e. Semnături validate prin furnizor calificat de servicii de
-              încredere.
-            </p>
+            <p class="hash">Semnături electronice validate. Document verificabil oricând.</p>
           </div>
           <figcaption>Exemplu ilustrativ. Firmele și persoanele sunt fictive.</figcaption>
         </figure>
       </section>
 
-      <section class="compare wrap" id="azi">
-        <div class="section-head">
-          <h2>Aceeași fișă, fără cele șase unelte.</h2>
-          <p>
-            Un document SSM trece azi prin Word, PDF, email, o aplicație de semnare, un dosar și o
-            foaie de termene. Fiecare trecere pierde context și creează încă o versiune.
-          </p>
-        </div>
-        <div class="compare-grid">
-          <div class="today">
-            <h3>Cum se lucrează azi</h3>
-            <ul>
-              {
-                todayFlow.map((item) => (
-                  <li>
-                    <span class="tool">{item.tool}</span>
-                    <span>{item.pain}</span>
-                  </li>
-                ))
-              }
-            </ul>
-          </div>
-          <div class="platform">
-            <h3>În SSM Ușor</h3>
-            <ol>
-              {
-                platformFlow.map((item) => (
-                  <li>
-                    <b>{item.step}</b>
-                    <span>{item.text}</span>
-                  </li>
-                ))
-              }
-            </ol>
-          </div>
-        </div>
-      </section>
-
-      <section class="lifecycle" id="flux">
+      <section class="steps-section" id="cum">
         <div class="wrap">
           <div class="section-head">
-            <h2>Ciclul unui document, de la șablon la revizie blocată.</h2>
+            <h2>Patru pași, pentru fiecare client.</h2>
             <p>
-              Fiecare etapă este un obiect în platformă, nu un fișier trimis mai departe. De aceea
-              știi mereu ce versiune este în vigoare, cine a aprobat-o și ce urmează.
+              Același drum, de la firma nouă la dosarul complet. Datele pe care le scrii la primul
+              pas ajung singure în toate documentele de la pasul trei.
             </p>
           </div>
-          <ol class="stages">
+          <ol class="steps">
             {
-              lifecycle.map((stage, index) => (
+              steps.map((step, index) => (
                 <li>
                   <span class="n">{index + 1}</span>
-                  <b>{stage.step}</b>
-                  <p>{stage.text}</p>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
                 </li>
               ))
             }
@@ -206,117 +176,96 @@ import {
         </div>
       </section>
 
-      <section class="studio wrap" id="studio">
+      <section class="documents wrap" id="documente">
         <div class="section-head">
-          <h2>Ce face studioul diferit de Word.</h2>
-          <p>
-            Nu reproducem Word în browser. Construim subsetul de care are nevoie un specialist SSM
-            în fiecare săptămână, cu mult mai multă structură și cu legătură directă către datele
-            clientului.
-          </p>
+          <h2>Ce poți face în platformă.</h2>
+          <p>{documentsNote}</p>
         </div>
-        <dl class="differences">
+        <div class="doc-groups">
           {
-            studioDifferences.map((item) => (
+            documentGroups.map((group) => (
               <div>
-                <dt>{item.title}</dt>
-                <dd>{item.text}</dd>
+                <h3>{group.title}</h3>
+                <ul>
+                  {group.items.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
               </div>
             ))
           }
-        </dl>
-      </section>
-
-      <section class="service wrap" id="serviciu">
-        <div class="section-head">
-          <h2>Restul serviciului, pe aceleași date.</h2>
-          <p>
-            Modulele cresc treptat, dar folosesc aceiași clienți, aceiași oameni, aceleași documente
-            și același jurnal de dovezi. Nimic nu se copiază dintr-un loc în altul.
-          </p>
         </div>
-        <dl class="pillars">
-          {
-            pillars.map((pillar) => (
-              <div>
-                <dt>{pillar.title}</dt>
-                <dd>
-                  <p>{pillar.text}</p>
-                  <ul class="states" aria-label="Stări">
-                    {pillar.states.map((state) => (
-                      <li>{state}</li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-            ))
-          }
-        </dl>
       </section>
 
-      <section class="honest">
-        <div class="wrap honest-grid">
-          <div>
-            <h2>Ce există azi și ce urmează.</h2>
-            <p>{status.long}</p>
+      <section class="signers-section" id="semnaturi">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Cine semnează ce.</h2>
+            <p>{signatureNote}</p>
           </div>
-          <dl>
-            <div>
-              <dt>Azi</dt>
-              <dd>
-                Direcția de produs, setul inițial de documente și prototipuri clicabile pentru
-                studio, portofoliu și fluxul de instruire.
-              </dd>
-            </div>
-            <div>
-              <dt>În pilot</dt>
-              <dd>
-                Portofoliu multi-client, import de angajați, studio de documente cu semnare prin
-                furnizor calificat, instruire cu testare, vizite cu măsuri corective și exporturi de
-                dovezi.
-              </dd>
-            </div>
-            <div>
-              <dt>După pilot</dt>
-              <dd>
-                Registre de incidente, urmărirea aptitudinilor și autorizărilor, planuri de evacuare
-                și revizuirea impactului legislativ asupra documentelor.
-              </dd>
-            </div>
+          <dl class="signers">
+            {
+              signers.map((signer) => (
+                <div>
+                  <dt>{signer.who}</dt>
+                  <dd>{signer.signs}</dd>
+                </div>
+              ))
+            }
           </dl>
         </div>
       </section>
 
-      <section class="pilot wrap" id="pilot">
-        <div class="section-head">
-          <h2>Program pilot pentru 2–3 servicii externe.</h2>
-          <p>
-            Căutăm furnizori care gestionează mai mulți clienți și vor să înlocuiască fluxul Word,
-            PDF, email, semnare și arhivă cu unul singur. Construim documentele tale primele.
-          </p>
-        </div>
-        <div class="pilot-grid">
+      <section class="reasons wrap">
+        <h2>Ce dispare din ziua ta de lucru.</h2>
+        <dl>
+          {
+            reasons.map((reason) => (
+              <div>
+                <dt>{reason.title}</dt>
+                <dd>{reason.text}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <section class="also">
+        <div class="wrap also-grid">
           <div>
-            <h3>Ce primești</h3>
-            <ul>
-              {pilotOffer.give.map((item) => <li>{item}</li>)}
-            </ul>
+            <h2>Și restul, când ai nevoie.</h2>
+            <p>
+              Fluxul de mai sus este ceea ce faci zilnic. În jurul lui, platforma ține evidența
+              pentru toți clienții odată.
+            </p>
           </div>
-          <div>
-            <h3>Ce așteptăm de la tine</h3>
-            <ul>
-              {pilotOffer.ask.map((item) => <li>{item}</li>)}
-            </ul>
-          </div>
+          <dl>
+            {
+              alsoIncluded.map((item) => (
+                <div>
+                  <dt>{item.title}</dt>
+                  <dd>{item.text}</dd>
+                </div>
+              ))
+            }
+          </dl>
         </div>
-        <div class="actions">
-          <a class="button primary" href={contact.pilotHref}>{cta.pilot}</a>
-          <a class="button quiet" href={contact.launchHref}>{cta.launch}</a>
+      </section>
+
+      <section class="access wrap" id="cont">
+        <div class="access-box">
+          <div>
+            <h2>Conturile noi se deschid în curând.</h2>
+            <p>{status.long}</p>
+          </div>
+          <div class="actions">
+            <a class="button primary" href={links.login}>{cta.login}</a>
+            <a class="button quiet" href={links.notifyHref}>{cta.notify}</a>
+          </div>
         </div>
       </section>
 
       <section class="trust wrap">
-        <h2>Pe ce te poți baza.</h2>
         <dl>
           {
             trust.map((item) => (
@@ -348,13 +297,12 @@ import {
       <div class="wrap foot-grid">
         <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
         <p>
-          Sistemul de lucru pentru servicii externe de prevenire și protecție. Scrie-ne la
-          <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+          Platforma de lucru pentru servicii externe SSM din România. Scrie-ne la
+          <a href={`mailto:${links.email}`}>{links.email}</a>.
         </p>
         <p class="fine">
-          Documentele afișate pe această pagină sunt exemple ilustrative, nu înregistrări reale. SSM
-          Ușor nu oferă consultanță juridică și nu înlocuiește responsabilitatea specialistului
-          autorizat.
+          Documentele afișate pe această pagină sunt exemple ilustrative. SSM Ușor nu oferă
+          consultanță juridică și nu înlocuiește responsabilitatea specialistului autorizat.
         </p>
       </div>
     </footer>
@@ -406,6 +354,7 @@ import {
   .button {
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     min-height: 48px;
     padding: 0 20px;
     border: 1px solid transparent;
@@ -434,10 +383,33 @@ import {
     padding: 0 14px;
     font-size: 0.9rem;
   }
+  .button.soon {
+    cursor: default;
+    opacity: 0.7;
+  }
+  .button.soon small {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--cream);
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+  .button.primary.soon small {
+    background: var(--ink);
+  }
+  .button.quiet.soon small {
+    background: var(--line);
+    color: var(--ink);
+  }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+  }
+  .auth {
+    display: flex;
+    gap: 8px;
   }
 
   /* Header */
@@ -478,7 +450,7 @@ import {
     padding: 72px 0 40px;
   }
   .hero-copy {
-    padding-top: 40px;
+    padding-top: 32px;
   }
   .status {
     display: inline-flex;
@@ -490,6 +462,7 @@ import {
   }
   .status::before {
     content: '';
+    flex-shrink: 0;
     width: 8px;
     height: 8px;
     border-radius: 50%;
@@ -497,15 +470,23 @@ import {
     outline: 3px solid var(--lime-soft);
   }
   h1 {
-    max-width: 14ch;
-    font-size: clamp(2.5rem, 4.6vw, 3.9rem);
-    line-height: 1.04;
+    max-width: 16ch;
+    font-size: clamp(2.4rem, 4.3vw, 3.6rem);
+    line-height: 1.06;
   }
   .lede {
     max-width: 52ch;
     margin: 26px 0 30px;
     font-size: 1.1rem;
     color: var(--ink-2);
+  }
+  .notify {
+    margin-top: 16px;
+    font-size: 0.95rem;
+  }
+  .notify a {
+    color: var(--ink-2);
+    text-underline-offset: 3px;
   }
   .audience {
     max-width: 48ch;
@@ -553,7 +534,7 @@ import {
     top: 150px;
   }
   .callouts .c2 {
-    top: 344px;
+    top: 350px;
   }
   .callouts .c3 {
     top: 520px;
@@ -664,15 +645,10 @@ import {
   .signatures i {
     display: block;
     padding-top: 8px;
-    border-top: 1px dashed var(--sage);
+    border-top: 1px solid var(--lime);
     font-size: 0.74rem;
     font-style: normal;
-    color: var(--ink-2);
-  }
-  .signatures i.done {
     color: var(--moss);
-    border-top-style: solid;
-    border-top-color: var(--lime);
   }
   .hash {
     margin-top: 12px;
@@ -688,309 +664,225 @@ import {
   /* Section heads */
   .section-head {
     display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
     gap: 40px;
     align-items: end;
     margin-bottom: 44px;
   }
-  .section-head h2 {
+  .section-head h2,
+  .reasons h2,
+  .also h2,
+  .access h2,
+  .faq h2 {
     font-size: clamp(1.8rem, 3.2vw, 2.6rem);
     line-height: 1.1;
   }
   .section-head p {
-    max-width: 48ch;
+    max-width: 52ch;
     color: var(--ink-2);
   }
 
-  /* Compare */
-  .compare {
-    padding: 96px 0;
-  }
-  .compare-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-  }
-  .compare h3 {
-    margin-bottom: 20px;
-    font-size: 1.05rem;
-    color: var(--ink-2);
-  }
-  .today ul,
-  .platform ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .today li {
-    display: grid;
-    grid-template-columns: 132px 1fr;
-    gap: 14px;
-    padding: 14px 0;
-    border-top: 1px solid var(--line);
-    font-size: 0.95rem;
-    color: var(--ink-2);
-  }
-  .today li:last-child {
-    border-bottom: 1px solid var(--line);
-  }
-  .tool {
-    display: inline-block;
-    justify-self: start;
-    padding: 3px 9px;
-    border: 1px solid var(--sage);
-    border-radius: 4px;
-    font-size: 0.82rem;
-    color: var(--ink);
-    background: #f1f2ec;
-  }
-  .platform {
-    padding: 28px 32px;
-    border-radius: 10px;
-    background: var(--paper);
-    border: 1px solid var(--line);
-  }
-  .platform h3 {
-    color: var(--ink);
-  }
-  .platform li {
-    position: relative;
-    padding: 0 0 22px 26px;
-    font-size: 0.95rem;
-  }
-  .platform li::before {
-    content: '';
-    position: absolute;
-    top: 7px;
-    left: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--lime);
-  }
-  .platform li:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    top: 19px;
-    bottom: -3px;
-    left: 4.5px;
-    border-left: 1px solid var(--lime);
-  }
-  .platform b {
-    display: block;
-    font-weight: 500;
-  }
-  .platform span {
-    color: var(--ink-2);
-  }
-
-  /* Lifecycle */
-  .lifecycle {
+  /* Steps */
+  .steps-section {
     padding: 96px 0;
     background: var(--ink);
     color: #eef6f2;
   }
-  .lifecycle .section-head p {
+  .steps-section .section-head p {
     color: #b7c8c1;
   }
-  .stages {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border-top: 1px solid #3a5a50;
-  }
-  .stages li {
-    padding: 22px 16px 0 0;
-    border-top: 2px solid transparent;
-    margin-top: -1px;
-    font-size: 0.9rem;
-  }
-  .stages li:last-child {
-    border-top-color: var(--lime);
-  }
-  .n {
-    display: block;
-    margin-bottom: 44px;
-    font-size: 0.8rem;
-    color: var(--sage);
-  }
-  .stages b {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #fff;
-  }
-  .stages p {
-    color: #b7c8c1;
-    font-size: 0.86rem;
-  }
-
-  /* Studio differences */
-  .studio {
-    padding: 96px 0 40px;
-  }
-  .differences {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 36px 56px;
-    margin: 0;
-  }
-  .differences div {
-    padding-top: 18px;
-    border-top: 1px solid var(--ink);
-  }
-  .differences dt {
-    margin-bottom: 8px;
-    font-size: 1.15rem;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-  }
-  .differences dd {
-    margin: 0;
-    color: var(--ink-2);
-  }
-
-  /* Pillars as definition list */
-  .service {
-    padding: 72px 0 96px;
-  }
-  .pillars {
-    margin: 0;
-    border-top: 1px solid var(--line);
-  }
-  .pillars > div {
-    display: grid;
-    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
-    gap: 24px;
-    padding: 26px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .pillars dt {
-    font-size: 1.2rem;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-  }
-  .pillars dd {
-    margin: 0;
-  }
-  .pillars dd p {
-    max-width: 66ch;
-    color: var(--ink-2);
-  }
-  .states {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 14px 0 0;
-    padding: 0;
-    list-style: none;
-    font-size: 0.8rem;
-  }
-  .states li {
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: #ecefe6;
-    color: var(--moss);
-  }
-  .states li:last-child {
-    background: var(--lime-soft);
-  }
-
-  /* Honest status */
-  .honest {
-    padding: 72px 0;
-    background: #eef0e9;
-  }
-  .honest-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 48px;
-  }
-  .honest h2 {
-    margin-bottom: 14px;
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-  }
-  .honest-grid > div > p {
-    max-width: 46ch;
-    color: var(--ink-2);
-  }
-  .honest dl {
-    display: grid;
-    gap: 18px;
-    margin: 0;
-  }
-  .honest dl div {
-    display: grid;
-    grid-template-columns: 110px 1fr;
-    gap: 16px;
-    padding-top: 14px;
-    border-top: 1px solid var(--sage);
-  }
-  .honest dt {
-    font-weight: 500;
-  }
-  .honest dd {
-    margin: 0;
-    color: var(--ink-2);
-  }
-
-  /* Pilot */
-  .pilot {
-    padding: 96px 0;
-  }
-  .pilot-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin-bottom: 40px;
-  }
-  .pilot h3 {
-    margin-bottom: 14px;
-    font-size: 1.1rem;
-  }
-  .pilot ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .pilot li {
-    position: relative;
-    padding: 10px 0 10px 22px;
-    border-top: 1px solid var(--line);
-    color: var(--ink-2);
-  }
-  .pilot li::before {
-    content: '';
-    position: absolute;
-    top: 18px;
-    left: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    background: var(--lime);
-  }
-
-  /* Trust */
-  .trust {
-    padding: 0 0 96px;
-  }
-  .trust h2 {
-    margin-bottom: 32px;
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-  }
-  .trust dl {
+  .steps {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 32px;
     margin: 0;
+    padding: 0;
+    list-style: none;
   }
-  .trust dt {
-    margin-bottom: 8px;
+  .steps li {
+    padding-top: 18px;
+    border-top: 1px solid #3a5a50;
+  }
+  .steps li:last-child {
+    border-top-color: var(--lime);
+  }
+  .n {
+    display: block;
+    margin-bottom: 36px;
+    font-size: 0.85rem;
+    color: var(--lime);
+  }
+  .steps h3 {
+    margin-bottom: 10px;
+    font-size: 1.25rem;
+    color: #fff;
+  }
+  .steps p {
+    color: #b7c8c1;
+    font-size: 0.95rem;
+  }
+
+  /* Documents */
+  .documents {
+    padding: 96px 0;
+  }
+  .doc-groups {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .doc-groups h3 {
+    margin-bottom: 14px;
     padding-top: 14px;
     border-top: 1px solid var(--ink);
+    font-size: 1.15rem;
+  }
+  .doc-groups ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .doc-groups li {
+    padding: 9px 0;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+  }
+
+  /* Signers */
+  .signers-section {
+    padding: 96px 0;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .signers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    margin: 0;
+  }
+  .signers div {
+    padding: 22px 24px;
+    border-radius: 10px;
+    background: var(--cream);
+  }
+  .signers dt {
+    margin-bottom: 8px;
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+  .signers dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+
+  /* Reasons */
+  .reasons {
+    padding: 96px 0 72px;
+  }
+  .reasons h2 {
+    max-width: 22ch;
+    margin-bottom: 40px;
+  }
+  .reasons dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 56px;
+    margin: 0;
+  }
+  .reasons div {
+    padding-top: 16px;
+    border-top: 1px solid var(--ink);
+  }
+  .reasons dt {
+    margin-bottom: 6px;
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+  .reasons dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+
+  /* Also included */
+  .also {
+    padding: 72px 0;
+    background: #eef0e9;
+  }
+  .also-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 48px;
+  }
+  .also h2 {
+    margin-bottom: 12px;
+  }
+  .also-grid > div > p {
+    max-width: 44ch;
+    color: var(--ink-2);
+  }
+  .also dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 32px;
+    margin: 0;
+  }
+  .also dl div {
+    padding-top: 12px;
+    border-top: 1px solid var(--sage);
+  }
+  .also dt {
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .also dd {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  /* Access */
+  .access {
+    padding: 96px 0 40px;
+  }
+  .access-box {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 40px;
+    align-items: center;
+    padding: 40px 44px;
+    border: 1px solid var(--ink);
+    border-radius: 12px;
+  }
+  .access h2 {
+    margin-bottom: 10px;
+  }
+  .access-box p {
+    max-width: 52ch;
+    color: var(--ink-2);
+  }
+  .access .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .access .button {
+    justify-content: center;
+  }
+
+  /* Trust */
+  .trust {
+    padding: 40px 0 96px;
+  }
+  .trust dl {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin: 0;
+  }
+  .trust dt {
+    margin-bottom: 6px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
     font-weight: 500;
   }
   .trust dd {
@@ -1005,7 +897,6 @@ import {
   }
   .faq h2 {
     margin-bottom: 24px;
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
   }
   .faq-list {
     max-width: 780px;
@@ -1015,13 +906,13 @@ import {
     border-bottom: 1px solid var(--line);
   }
   summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
     padding: 18px 0;
     cursor: pointer;
     font-weight: 500;
     list-style: none;
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
   }
   summary::-webkit-details-marker {
     display: none;
@@ -1070,7 +961,7 @@ import {
       padding-top: 0;
     }
     h1 {
-      max-width: 18ch;
+      max-width: 20ch;
     }
     .sheet {
       padding-left: 0;
@@ -1093,15 +984,22 @@ import {
     .callouts li::after {
       display: none;
     }
-    .stages {
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px 0;
-    }
-    .stages li {
-      border-top: 1px solid #3a5a50;
-    }
-    .trust dl {
+    .steps {
       grid-template-columns: 1fr 1fr;
+    }
+    .doc-groups,
+    .signers,
+    .trust dl {
+      grid-template-columns: 1fr;
+    }
+    .doc-groups {
+      gap: 24px;
+    }
+    .signers {
+      gap: 16px;
+    }
+    .access-box {
+      grid-template-columns: 1fr;
     }
   }
   @media (max-width: 760px) {
@@ -1114,7 +1012,7 @@ import {
     .bar nav {
       display: none;
     }
-    .bar .button {
+    .auth .soon {
       display: none;
     }
     .hero {
@@ -1122,7 +1020,7 @@ import {
     }
     h1 {
       max-width: none;
-      font-size: clamp(2.1rem, 9vw, 2.8rem);
+      font-size: clamp(2rem, 8.5vw, 2.6rem);
     }
     .paper {
       padding: 22px 18px;
@@ -1145,10 +1043,9 @@ import {
       grid-template-columns: 1fr;
     }
     .section-head,
-    .compare-grid,
-    .differences,
-    .honest-grid,
-    .pilot-grid,
+    .reasons dl,
+    .also-grid,
+    .also dl,
     .foot-grid {
       grid-template-columns: 1fr;
     }
@@ -1156,33 +1053,26 @@ import {
       gap: 14px;
       margin-bottom: 32px;
     }
-    .today li {
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-    .pillars > div {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .honest dl div {
-      grid-template-columns: 1fr;
-      gap: 4px;
-    }
-    .stages {
-      grid-template-columns: 1fr 1fr;
-    }
-    .trust dl {
+    .steps {
       grid-template-columns: 1fr;
       gap: 20px;
     }
-    .compare,
-    .lifecycle,
-    .studio,
-    .service,
-    .pilot {
+    .n {
+      margin-bottom: 12px;
+    }
+    .steps-section,
+    .documents,
+    .signers-section,
+    .reasons,
+    .access {
       padding-block: 64px;
     }
-    .trust,
+    .access-box {
+      padding: 28px 22px;
+    }
+    .trust {
+      padding-bottom: 64px;
+    }
     .faq {
       padding-bottom: 64px;
     }
