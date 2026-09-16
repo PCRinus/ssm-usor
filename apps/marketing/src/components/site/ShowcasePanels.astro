@@ -105,15 +105,18 @@ const signatures: [string, number, number][] = [
     display: flex;
     flex-direction: column;
   }
-  li:not(:last-child)::after {
+  /* One continuous line behind the pills, from the first pill to the last. */
+  li:not(:last-child)::before {
     content: '';
     position: absolute;
     top: 14px;
+    left: 0;
     right: -14px;
-    width: 14px;
     border-top: 2px solid var(--lime);
   }
   .step-label {
+    position: relative;
+    z-index: 1;
     display: inline-block;
     align-self: flex-start;
     margin-bottom: 10px;
@@ -212,7 +215,7 @@ const signatures: [string, number, number][] = [
       grid-template-columns: 1fr 1fr;
       gap: 24px 14px;
     }
-    li:nth-child(2)::after {
+    li:nth-child(2)::before {
       display: none;
     }
   }
@@ -224,7 +227,7 @@ const signatures: [string, number, number][] = [
       grid-template-columns: 1fr;
       gap: 18px;
     }
-    li::after {
+    li::before {
       display: none;
     }
   }
