@@ -20,6 +20,9 @@ See the [API client guide](docs/api-client.md) for OpenAPI generation, Orval, an
 
 See the [development admin guide](docs/development-admin.md) for local login credentials and `pnpm seed:admin`.
 
+See [local Supabase development](docs/local-development.md) to run Auth and Postgres with
+Docker, seed a local user, and connect the SPA/API without using the hosted project.
+
 ## Workspace
 
 The pnpm/Turborepo workspace contains:

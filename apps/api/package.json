@@ -11,7 +11,8 @@
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "wrangler deploy",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
-    "seed:admin": "node --env-file-if-exists=.env.seed --import tsx scripts/seed-admin.ts"
+    "seed:admin": "node --env-file-if-exists=.env.seed --import tsx scripts/seed-admin.ts",
+    "seed:admin:local": "tsx scripts/seed-admin.ts --local"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

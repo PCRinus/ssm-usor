@@ -30,7 +30,11 @@
     "prepare": "lefthook install",
     "generate:api": "pnpm --filter @ssm-usor/contracts build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
     "check:generated": "node scripts/check-generated.mjs",
-    "seed:admin": "pnpm --filter @ssm-usor/api seed:admin"
+    "seed:admin": "pnpm --filter @ssm-usor/api seed:admin",
+    "seed:admin:local": "pnpm --filter @ssm-usor/api seed:admin:local",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,5 +1,9 @@
 # Development admin account
 
+For an isolated Docker instance, use `pnpm supabase:start` and `pnpm seed:admin:local`.
+See [local Supabase development](local-development.md) for the app/API environment settings.
+The instructions below describe the existing hosted development project.
+
 A confirmed email/password account is available in the existing development Supabase project:
 
 | Setting  | Value                  |

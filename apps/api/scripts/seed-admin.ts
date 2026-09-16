@@ -1,11 +1,41 @@
 import { execFileSync } from 'node:child_process';
 import console from 'node:console';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { seedAdmin, seedConfigSchema } from './lib/seed-admin';
+
+function configFromLocalCli() {
+  try {
+    const output = execFileSync('supabase', ['status', '--output', 'json'], {
+      cwd: fileURLToPath(new URL('../../../', import.meta.url)),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+    });
+    const status = z
+      .object({
+        API_URL: z.url().refine((value) => {
+          const url = new URL(value);
+          return url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname);
+        }),
+        SECRET_KEY: z.string().startsWith('sb_secret_'),
+      })
+      .parse(JSON.parse(output));
+    // Local mode deliberately ignores hosted environment settings and credentials.
+    return seedConfigSchema.parse({
+      SUPABASE_URL: status.API_URL,
+      SUPABASE_SECRET_KEY: status.SECRET_KEY,
+    });
+  } catch {
+    throw new Error(
+      'Could not read local Supabase settings. Run pnpm supabase:start first (CLI 2.117.0 or newer).'
+    );
+  }
+}
 
 function secretFromCli(url: string) {
   const projectRef = new URL(url).hostname.match(/^([a-z]{20})\.supabase\.co$/)?.[1];
@@ -32,7 +62,9 @@ function secretFromCli(url: string) {
 try {
   if (process.env.NODE_ENV === 'production')
     throw new Error('The development admin seed cannot run with NODE_ENV=production.');
-  const parsed = seedConfigSchema.safeParse(process.env);
+  const parsed = seedConfigSchema.safeParse(
+    process.argv.includes('--local') ? configFromLocalCli() : process.env
+  );
   if (!parsed.success)
     throw new Error(
       'Set a valid SUPABASE_URL, SEED_ADMIN_EMAIL, and SEED_ADMIN_PASSWORD (at least six characters) in apps/api/.env.seed.'

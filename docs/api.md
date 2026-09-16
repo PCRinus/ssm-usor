@@ -5,6 +5,9 @@ the API accepts `Authorization: Bearer <access_token>` and independently verifie
 
 ## Local configuration
 
+For Auth and Postgres running in Docker, follow [local Supabase development](local-development.md).
+The settings below connect the local Worker to hosted Supabase.
+
 Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and fill in:
 
 ```dotenv
