@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy protected marketing site
+    name: Deploy marketing site
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -78,7 +78,3 @@ jobs:
             --tag "${{ steps.metadata.outputs.tag }}"
             --message "${{ steps.metadata.outputs.message }}"
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          vars: |
-            BASIC_AUTH_USERNAME
-        env:
-          BASIC_AUTH_USERNAME: ${{ vars.BASIC_AUTH_USERNAME }}

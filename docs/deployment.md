@@ -3,12 +3,9 @@
 For the React SPA and Hono API, see the [application deployment guide](app-deployment.md).
 
 The marketing site is deployed as a Cloudflare Worker with Static Assets. Astro generates the
-files in `apps/marketing/dist`, while `apps/marketing/src/worker.ts` runs before every asset request
-and requires temporary HTTP Basic Auth credentials.
-
-The Basic Auth layer temporarily protects the pre-launch marketing site. It is not the
-authentication model for the future SaaS application and should be removed when the landing page
-is ready for public access.
+files in `apps/marketing/dist`, while `apps/marketing/src/worker.ts` redirects HTTP to HTTPS and
+serves those assets publicly. The existing `X-Robots-Tag: noindex, nofollow, noarchive` header
+remains in place while the site is being developed.
 
 ## GitHub environment
 
@@ -19,10 +16,9 @@ concurrency groups; sharing the environment does not require deploying them toge
 
 Add these environment variables under **Environment variables**:
 
-| Variable                | Purpose                                                     |
-| ----------------------- | ----------------------------------------------------------- |
-| `BASIC_AUTH_USERNAME`   | Non-sensitive username deployed as a plain Worker variable. |
-| `CLOUDFLARE_ACCOUNT_ID` | Selects the Cloudflare account that owns the Worker.        |
+| Variable                | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID` | Selects the Cloudflare account that owns the Worker. |
 
 Add this value under **Environment secrets**:
 
@@ -30,10 +26,9 @@ Add this value under **Environment secrets**:
 | ---------------------- | --------------------------------------------------------------------- |
 | `CLOUDFLARE_API_TOKEN` | Allows Wrangler to deploy the marketing Worker and its static assets. |
 
-Set `BASIC_AUTH_PASSWORD` directly as an encrypted Worker secret before the first deployment. The
-deployment pipeline deliberately does not upload it again on every run: Wrangler preserves remote
-secrets, and avoiding redundant secret updates prevents an extra secret-only Worker version from
-appearing beside each code deployment.
+No marketing runtime variables or secrets are required. Previous Basic Auth values in GitHub,
+Cloudflare, or local `.dev.vars` files are unused and can be removed after the public version
+has been deployed.
 
 ## Create the Cloudflare API token
 
@@ -68,8 +63,7 @@ Start with the official template if the custom-token UI or the first deployment 
 set, then tighten the token after deployment is working.
 
 The deployment workflow runs after the `CI` workflow succeeds for a push to `main`. It can also be
-started manually from the Actions tab. GitHub passes the Basic Auth username as a plain Worker
-variable; the independently managed password remains encrypted in Cloudflare.
+started manually from the Actions tab.
 
 Each deployment is annotated with the sanitized commit subject and short commit SHA. Cloudflare
 uses the subject as the version/deployment message and the SHA as the version tag, making CI
@@ -93,21 +87,19 @@ DNS provider; it does not transfer ownership or registration away from RoTLD.
 7. Return to Cloudflare and wait for the zone status to become **Active**. Cloudflare advises that a
    nameserver update can take up to 24 hours.
 
-The protected marketing Worker is attached to `ssmusor.ro` as a Cloudflare Workers Custom Domain.
+The marketing Worker is attached to `ssmusor.ro` as a Cloudflare Workers Custom Domain.
 Wrangler creates the corresponding DNS records and Cloudflare provisions TLS, so do not create a
-competing `A`, `AAAA`, or `CNAME` record for that hostname manually. The future dashboard can use
-`app.ssmusor.ro` when it is ready for deployment.
+competing `A`, `AAAA`, or `CNAME` record for that hostname manually. The SPA and API use
+`app.ssmusor.ro` and `api.ssmusor.ro` through their separate Workers.
 
 ## First deployment
 
-1. Confirm the `production` GitHub environment contains both variables and the API token secret
+1. Confirm the `production` GitHub environment contains the account ID variable and API token secret
    listed above.
-2. Set the encrypted Worker password once with
-   `pnpm --filter @ssm-usor/marketing exec wrangler secret put BASIC_AUTH_PASSWORD`.
-3. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
+2. Push `main` to GitHub. The CI workflow validates the revision, then the deployment workflow runs
    automatically after CI succeeds.
-4. Follow **Actions → Deploy marketing site** until the deployment completes.
-5. Open `https://ssmusor.ro` and authenticate with the configured Basic Auth credentials.
+3. Follow **Actions → Deploy marketing site** until the deployment completes.
+4. Open `https://ssmusor.ro`; the site is available without credentials.
 
 The first Custom Domain certificate can take a few minutes to become available. Before the initial
 deployment, Cloudflare showing **No Workers connected** for the zone is expected; the workflow
@@ -115,8 +107,7 @@ creates the Worker, so no Worker needs to be created manually in the dashboard.
 
 ## Local development and preview
 
-For normal landing-page work, use Astro's development server. This is the fastest feedback loop and
-does not include the Basic Auth Worker:
+For normal landing-page work, use Astro's development server for the fastest feedback loop:
 
 ```bash
 nvm use
@@ -124,17 +115,15 @@ pnpm install
 pnpm dev:marketing
 ```
 
-To reproduce the deployed Cloudflare Worker locally, create a gitignored development secret file
-and run the Worker preview:
+To build and serve through the Cloudflare Worker locally, run:
 
 ```bash
-cp apps/marketing/.dev.vars.example apps/marketing/.dev.vars
-# Replace both placeholder values in apps/marketing/.dev.vars.
 pnpm preview:marketing
 ```
 
-Wrangler builds the Astro site and serves the Worker plus static assets at `http://localhost:8788`.
-Unlike `astro preview`, this route exercises Basic Auth and the Worker runtime.
+This builds the Astro site and serves the Worker plus static assets at `https://localhost:8788`
+using a local development certificate. The preview uses HTTPS to match the Worker's redirect
+policy. It requires no credential file.
 
 ## Local Cloudflare authentication
 
@@ -157,17 +146,7 @@ pnpm --filter @ssm-usor/marketing build
 pnpm --filter @ssm-usor/marketing deploy:dry-run
 ```
 
-For the first local deployment, set the remote password interactively, then deploy the username as a
-non-secret Worker variable:
-
-```bash
-pnpm --filter @ssm-usor/marketing build
-pnpm --filter @ssm-usor/marketing exec wrangler secret put BASIC_AUTH_PASSWORD
-pnpm --filter @ssm-usor/marketing exec wrangler deploy --var BASIC_AUTH_USERNAME:designer
-```
-
-Replace `designer` with the same value configured in the GitHub environment. The Wrangler
-configuration keeps remotely managed variables, so later local deployments preserve both values:
+After Cloudflare authentication, build and deploy:
 
 ```bash
 pnpm deploy:marketing

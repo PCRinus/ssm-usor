@@ -22,10 +22,23 @@ export default defineConfig({
       testMatch: 'api.spec.ts',
       use: { baseURL: process.env.E2E_API_URL ?? 'http://localhost:8787' },
     },
-    { name: 'chromium', testMatch: 'app.spec.ts', use: { browserName: 'chromium' } },
+    {
+      name: 'app-ready',
+      testMatch: 'app.setup.ts',
+      timeout: 330_000,
+      retries: 0,
+      use: { browserName: 'chromium' },
+    },
+    {
+      name: 'chromium',
+      testMatch: 'app.spec.ts',
+      dependencies: ['app-ready'],
+      use: { browserName: 'chromium' },
+    },
     {
       name: 'authenticated',
       testMatch: 'auth.spec.ts',
+      dependencies: ['app-ready'],
       // Auth traces contain credentials and bearer tokens. Keep them out of reports.
       use: { browserName: 'chromium', trace: 'off', screenshot: 'off', video: 'off' },
     },

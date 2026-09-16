@@ -10,8 +10,8 @@ deploys two Cloudflare Workers from the same selected Git revision:
 
 Both disable `workers.dev` routes. Cloudflare creates the custom-domain DNS records and
 certificates on deployment in the account hosting the active `ssmusor.ro` zone. Resolve any
-conflicting records for these two subdomains before the first release. Marketing's deployment
-and Basic Auth settings are independent; see the [marketing deployment guide](deployment.md).
+conflicting records for these two subdomains before the first release. Marketing deploys
+independently; see the [marketing deployment guide](deployment.md).
 
 ## One-time GitHub configuration
 
@@ -27,8 +27,7 @@ workflows use its variables, secrets, and protection rules. Add these values for
 | `E2E_EMAIL`                     | Secret   | Email of an existing Supabase test user.                                                         |
 | `E2E_PASSWORD`                  | Secret   | Password for that test user.                                                                     |
 
-The Cloudflare account ID and deployment token are shared with marketing. Its
-`BASIC_AUTH_USERNAME` variable also lives in `production`; see the marketing deployment guide.
+The Cloudflare account ID and deployment token are shared with marketing.
 Marketing deploys automatically after successful CI on `main`, while **Deploy app** remains
 manual. Each workflow has its own concurrency group so they can deploy independently.
 
@@ -43,7 +42,8 @@ the API as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. These are public confi
 not administrator credentials. No Supabase secret/service-role key belongs in this workflow.
 The E2E credentials belong to an existing test user in the same Supabase project. The test
 only signs in, reads its account identity, refreshes, and signs out; it does not require admin
-permissions or create users. Missing test credentials fail the workflow before either upload.
+permissions or create users. Missing test credentials fail the authenticated check, which is
+currently advisory and does not block deployment.
 
 Local `.env.local` and `.dev.vars` files are ignored by Git and are not uploaded by the
 workflow. API `keep_vars: true` retains the deployed public bindings on subsequent manual
@@ -63,9 +63,18 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 6. An authenticated Chromium test signs in through Supabase, checks the real API identity
    appears, refreshes `/dashboard` to verify session restoration, signs out, and checks the guard again.
 
-The smoke checks retry briefly while a new domain becomes available. If initial DNS or
-certificate provisioning takes longer, inspect Cloudflare's domain status and rerun the
-workflow once ready. API checks use Playwright’s HTTP request fixture; browser checks exercise
+Browser verification is currently **non-blocking**: readiness, UI, or login failures leave a
+warning and job summary while allowing a successful deployment result. Browser report uploads
+are also best-effort. Build, validation, Worker upload, and API checks still fail the workflow
+on error. A successful deployment with a browser warning does not mean the user flow was verified.
+
+Before either browser project runs, a shared Playwright `app-ready` setup project polls
+`/login` with Chromium for up to five minutes, waiting for DNS, HTTPS, and an HTML response.
+It runs once per invocation, and a failure prevents the dependent browser tests from running.
+The login and account assertions then run with their normal, shorter timeouts. API health
+checks also poll for availability. If initial DNS or certificate provisioning takes longer,
+inspect Cloudflare's domain status and rerun the workflow once ready. API checks use
+Playwright’s HTTP request fixture; browser checks exercise
 the deployed React application without mocking Supabase or the API. No user is seeded during deployment.
 
 Each stage uploads a separate Playwright HTML report retained for seven days. Failed public
@@ -74,7 +83,8 @@ videos are disabled to keep credentials and session tokens out of those artifact
 
 Releases run sequentially and are not automatically canceled by a newer release. Each Worker
 version is tagged with the Git commit SHA. The two deployments are **not atomic**: if the SPA
-upload or a later check fails, the API may already be live. Correct the problem and rerun;
+upload fails, the API may already be live. Browser warnings leave both deployed versions in place.
+Correct the problem and rerun;
 to return to an earlier release, run the workflow against a known-good tag, or roll back both
 Workers to the matching commit versions in Cloudflare. Future API changes should remain
 compatible with the previous SPA while a release is in progress.
@@ -124,7 +134,7 @@ pnpm --filter @ssm-usor/app test:e2e --project=authenticated
 ```
 
 Only `authenticated` requires credentials; it fails explicitly if they are missing. It is
-required in the deployment workflow. Use the [development account](development-admin.md)
+always run in the deployment workflow, but its failure is advisory. Use the [development account](development-admin.md)
 for local checks against our development Supabase project.
 
 For local production-preview testing, the default origins are `http://localhost:8787` (API)
