@@ -23,10 +23,17 @@ const M = legalEntity.filled ? 'span' : 'mark';
 
   <h2>1. Cine suntem</h2>
   <p>
-    Platforma SSM Ușor („Platforma”) este operată de <M>{legalEntity.name}</M>, cu sediul în{' '}
-    <M>{legalEntity.address}</M>, înregistrată la Registrul Comerțului sub nr.{' '}
-    <M>{legalEntity.registry}</M>, CUI <M>{legalEntity.cui}</M> („noi”, „SSM Ușor”). Ne poți contacta
-    la <a href={`mailto:${links.email}`}>{links.email}</a>.
+    Platforma SSM Ușor („Platforma”) este operată de <M>{legalEntity.name}</M>
+    {
+      legalEntity.address && (
+        <>
+          , cu sediul în <M>{legalEntity.address}</M>
+        </>
+      )
+    }, înregistrată la Registrul Comerțului sub nr. <M>{legalEntity.registry}</M>, CUI <M
+      >{legalEntity.cui}</M
+    >{' '}
+    („noi”, „SSM Ușor”). Ne poți contacta la <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
 
   <h2>2. Ce este Platforma</h2>
@@ -80,8 +87,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <p>
     Furnizorul rămâne proprietarul datelor și documentelor încărcate sau generate în contul său. Ne
     acorzi doar dreptul de a le stoca și prelucra pentru a furniza serviciul. Poți exporta
-    documentele în format PDF sau Word pe durata contractului și într-un termen de{' '}
-    <mark>[30]</mark> de zile de la încetarea acestuia, după care datele sunt șterse conform{' '}
+    documentele în format PDF sau Word pe durata contractului și într-un termen de 30 de zile de la
+    încetarea acestuia, după care datele sunt șterse conform{' '}
     <a href="/confidentialitate/">Politicii de confidențialitate</a>.
   </p>
 
@@ -96,8 +103,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>8. Prețuri și plată</h2>
   <p>
     Până la publicarea unei liste de prețuri, accesul se acordă în condițiile convenite în scris cu
-    fiecare Furnizor. Prețurile viitoare vor fi comunicate cu cel puțin <mark>[30]</mark> de zile înainte
-    de a se aplica unui cont existent.
+    fiecare Furnizor. Prețurile viitoare vor fi comunicate cu cel puțin 30 de zile înainte de a se
+    aplica unui cont existent.
   </p>
 
   <h2>9. Răspundere</h2>
@@ -118,14 +125,22 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>11. Modificări</h2>
   <p>
     Putem actualiza acești termeni. Modificările importante sunt anunțate prin email sau în
-    Platformă cu cel puțin <mark>[15]</mark> zile înainte de a intra în vigoare. Continuarea utilizării
-    după această dată înseamnă acceptarea noilor termeni.
+    Platformă cu cel puțin 15 zile înainte de a intra în vigoare. Continuarea utilizării după
+    această dată înseamnă acceptarea noilor termeni.
   </p>
 
   <h2>12. Legea aplicabilă</h2>
   <p>
     Acești termeni sunt guvernați de legea română. Eventualele litigii se soluționează pe cale
-    amiabilă, iar în lipsa unei înțelegeri, de instanțele competente din{' '}
-    <M>{legalEntity.city}</M>.
+    amiabilă, iar în lipsa unei înțelegeri, de instanțele competente{' '}
+    {
+      legalEntity.city ? (
+        <>
+          din <M>{legalEntity.city}</M>
+        </>
+      ) : (
+        'de la sediul operatorului'
+      )
+    }.
   </p>
 </LegalPage>

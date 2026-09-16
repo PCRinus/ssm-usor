@@ -24,9 +24,17 @@ const M = legalEntity.filled ? 'span' : 'mark';
 
   <h2>1. Operatorul</h2>
   <p>
-    <M>{legalEntity.name}</M>, cu sediul în <M>{legalEntity.address}</M>, CUI{' '}
-    <M>{legalEntity.cui}</M>, operează site-ul ssmusor.ro și platforma SSM Ușor. Pentru orice
-    întrebare legată de datele tale ne poți scrie la{' '}
+    <M>{legalEntity.name}</M>
+    {
+      legalEntity.address && (
+        <>
+          , cu sediul în <M>{legalEntity.address}</M>
+        </>
+      )
+    }, înregistrată la Registrul Comerțului sub nr. <M>{legalEntity.registry}</M>, CUI <M
+      >{legalEntity.cui}</M
+    >, operează site-ul ssmusor.ro și platforma SSM Ușor. Pentru orice întrebare legată de datele
+    tale ne poți scrie la{' '}
     <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
 
@@ -93,14 +101,14 @@ const M = legalEntity.filled ? 'span' : 'mark';
 
   <h2>6. Cât timp păstrăm datele</h2>
   <ul>
-    <li>mesajele de contact: <mark>[12]</mark> luni de la ultima corespondență;</li>
-    <li>contul de utilizator: pe durata contractului și <mark>[30]</mark> de zile după;</li>
+    <li>mesajele de contact: 12 luni de la ultima corespondență;</li>
+    <li>contul de utilizator: pe durata contractului și 30 de zile după;</li>
     <li>
       datele din platformă: conform instrucțiunilor serviciului extern și termenelor legale de
       arhivare a documentelor de securitate și sănătate în muncă; la încetarea contractului,
       serviciul extern le poate exporta, după care le ștergem;
     </li>
-    <li>jurnalele tehnice: <mark>[90]</mark> de zile.</li>
+    <li>jurnalele tehnice: 90 de zile.</li>
   </ul>
 
   <h2>7. Drepturile tale</h2>
