@@ -13,75 +13,92 @@ export function LoginPage() {
   } = useLoginForm();
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-lg flex-col justify-center gap-6 px-5 py-12">
-      <p className="text-sm font-semibold tracking-widest uppercase">SSM Ușor</p>
-      <Card>
-        <CardHeader>
-          <h1 className="text-3xl font-semibold tracking-tight">Bine ai revenit</h1>
-          <CardDescription className="leading-relaxed">
-            Intră în spațiul tău de lucru SSM.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="grid gap-5"
-            aria-busy={isSubmitting}
-            aria-describedby={errors.root?.auth ? 'login-error' : undefined}
-            noValidate
-            onSubmit={onSubmit}
-          >
-            <div className="grid gap-2">
-              <Label htmlFor="email">Adresă de email</Label>
-              <Input
-                id="email"
-                {...register('email')}
-                type="email"
-                autoComplete="username"
-                autoCapitalize="none"
-                placeholder="nume@companie.ro"
-                required
-                disabled={isSubmitting}
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? 'email-error' : undefined}
-              />
-              {errors.email && (
-                <p id="email-error" role="alert" className="text-sm text-destructive">
-                  {errors.email.message}
+    <main className="flex min-h-svh items-center justify-center bg-[color-mix(in_srgb,var(--brand-forest)_10%,var(--muted))] px-5 py-10 sm:px-8">
+      <div className="flex w-full max-w-sm flex-col items-center gap-7">
+        <img
+          src="/brand/logo.png"
+          alt="SSM Ușor"
+          width={2172}
+          height={724}
+          className="h-auto w-48"
+        />
+        <Card className="w-full gap-7 py-8">
+          <CardHeader className="gap-2 text-center sm:px-8">
+            <h1 className="text-2xl font-semibold tracking-tight">Bine ai revenit</h1>
+            <CardDescription className="leading-relaxed">
+              Intră în spațiul tău de lucru SSM.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="sm:px-8">
+            <form
+              className="grid gap-5"
+              aria-busy={isSubmitting}
+              aria-describedby={errors.root?.auth ? 'login-error' : undefined}
+              noValidate
+              onSubmit={onSubmit}
+            >
+              <div className="grid gap-2">
+                <Label htmlFor="email">Adresă de email</Label>
+                <Input
+                  id="email"
+                  className="h-11"
+                  {...register('email')}
+                  type="email"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  placeholder="nume@companie.ro"
+                  required
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
+                />
+                {errors.email && (
+                  <p id="email-error" role="alert" className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Parolă</Label>
+                <Input
+                  id="password"
+                  className="h-11"
+                  {...register('password')}
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
+                />
+                {errors.password && (
+                  <p id="password-error" role="alert" className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+              {errors.root?.auth && (
+                <p id="login-error" role="alert" className="text-sm text-destructive">
+                  {errors.root.auth.message}
                 </p>
               )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Parolă</Label>
-              <Input
-                id="password"
-                {...register('password')}
-                type="password"
-                autoComplete="current-password"
-                required
-                disabled={isSubmitting}
-                aria-invalid={Boolean(errors.password)}
-                aria-describedby={errors.password ? 'password-error' : undefined}
-              />
-              {errors.password && (
-                <p id="password-error" role="alert" className="text-sm text-destructive">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-            {errors.root?.auth && (
-              <p id="login-error" role="alert" className="text-sm text-destructive">
-                {errors.root.auth.message}
-              </p>
-            )}
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Se verifică…' : 'Autentificare'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-      <p className="text-center text-xs text-muted-foreground">
-        Creat în România · Pentru servicii externe SSM
-      </p>
+              <Button className="mt-1 h-11 w-full" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Se verifică…' : 'Autentificare'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+        <footer className="w-full text-center">
+          <nav aria-label="Linkuri utile" className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            <a
+              href="https://ssmusor.ro"
+              className="inline-flex min-h-11 items-center rounded-sm text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              Află mai multe despre SSM Ușor
+            </a>
+          </nav>
+        </footer>
+      </div>
     </main>
   );
 }
