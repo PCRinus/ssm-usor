@@ -10,6 +10,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "dev:marketing": "pnpm --filter @ssm-usor/marketing dev",
+    "stop:marketing": "pnpm --filter @ssm-usor/marketing stop",
     "dev:app": "pnpm --filter @ssm-usor/app dev",
     "dev:api": "pnpm --filter @ssm-usor/api dev",
     "ui:add": "shadcn add --cwd apps/app",

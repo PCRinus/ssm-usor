@@ -115,6 +115,19 @@ pnpm install
 pnpm dev:marketing
 ```
 
+To stop the Astro-managed dev and preview servers for the marketing workspace:
+
+```bash
+pnpm stop:marketing
+# Check the dev server without stopping it:
+pnpm --filter @ssm-usor/marketing exec astro dev status
+```
+
+This runs `astro dev stop` and `astro preview stop` in the marketing workspace. Astro uses
+its own server lock files to identify the processes. Dev servers started with `--ignore-lock`
+are not tracked by these commands.
+Use Ctrl+C in the owning terminal for a Wrangler preview or the full `pnpm dev` session.
+
 To build and serve through the Cloudflare Worker locally, run:
 
 ```bash
