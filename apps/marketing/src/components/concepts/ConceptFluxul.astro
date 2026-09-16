@@ -1,0 +1,812 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { compact } from './compact';
+import ConceptSwitcher from './ConceptSwitcher.astro';
+import { cta, links, status } from './content';
+
+const scattered = [
+  { label: 'Word', x: 6, y: 8, r: -6 },
+  { label: 'Excel', x: 58, y: 2, r: 4 },
+  { label: 'PDF', x: 30, y: 30, r: 3 },
+  { label: 'Email', x: 70, y: 40, r: -5 },
+  { label: 'Aplicație de semnare', x: 4, y: 58, r: 5 },
+  { label: 'WhatsApp', x: 52, y: 72, r: -3 },
+  { label: 'Dosar fizic', x: 22, y: 80, r: 2 },
+  { label: 'Calendar', x: 72, y: 82, r: 6 },
+];
+---
+
+<BaseLayout
+  title="SSM Ușor — Word, PDF, email, semnare, arhivă. Sau un singur flux."
+  description="Adaugi clientul și angajații, creezi documentele și testele, semnezi cu toată lumea. Într-un singur loc. Pentru servicii externe SSM din România."
+  themeColor="#ffffff"
+  noindex
+>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Sans+3:wght@400;500;600&display=swap"
+    />
+  </Fragment>
+
+  <div class="page">
+    <header class="top">
+      <div class="wrap bar">
+        <a class="brand" href="/concepte/fluxul/" aria-label="SSM Ușor">
+          <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
+        </a>
+        <nav aria-label="Secțiuni">
+          <a href="#cum">Cum funcționează</a>
+          <a href="#documente">Documente</a>
+          <a href="#semnaturi">Semnături</a>
+          <a href="#intrebari">Întrebări</a>
+        </nav>
+        <div class="auth">
+          <a class="button quiet small" href={links.login}>{cta.login}</a>
+          <span class="button primary small soon" aria-disabled="true">
+            {cta.signup}
+            <small>{cta.signupNote}</small>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <p class="status">{status.short}</p>
+        <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
+        <p class="lede">{compact.lede}</p>
+        <div class="actions">
+          <a class="button primary" href={links.login}>{cta.login}</a>
+          <span class="button quiet soon" aria-disabled="true">
+            {cta.signup}
+            <small>{cta.signupNote}</small>
+          </span>
+        </div>
+        <p class="notify"><a href={links.notifyHref}>{cta.notify}</a></p>
+
+        <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
+          <div class="before">
+            <p class="panel-title">Azi</p>
+            <div class="scatter" aria-hidden="true">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M12 14 C 40 5, 45 45, 66 44"></path>
+                <path d="M66 44 C 80 60, 30 60, 12 62"></path>
+                <path d="M12 62 C 5 80, 40 70, 58 76"></path>
+                <path d="M58 76 C 70 90, 40 100, 28 92"></path>
+                <path d="M34 34 C 20 20, 60 10, 62 6"></path>
+                <path d="M34 34 C 50 50, 60 90, 80 96"></path>
+                <path d="M62 6 C 90 20, 85 40, 66 44"></path>
+              </svg>
+              {
+                scattered.map((tile) => (
+                  <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg`}>
+                    {tile.label}
+                  </span>
+                ))
+              }
+            </div>
+          </div>
+          <div class="after">
+            <p class="panel-title">În SSM Ușor</p>
+            <ol class="line">
+              {compact.steps.map((step) => <li>{step.title}</li>)}
+            </ol>
+          </div>
+        </figure>
+        <p class="audience">{compact.audience}</p>
+      </section>
+
+      <section class="steps-section wrap" id="cum">
+        <h2>Patru pași, pentru fiecare client.</h2>
+        <ol class="steps">
+          {
+            compact.steps.map((step, index) => (
+              <li>
+                <span class="n">{index + 1}</span>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      <section class="documents" id="documente">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Ce poți face în platformă.</h2>
+            <p>{compact.documentsNote}</p>
+          </div>
+          <div class="doc-groups">
+            {
+              compact.documents.map((group) => (
+                <div>
+                  <h3>{group.title}</h3>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="signers-section wrap" id="semnaturi">
+        <div class="section-head">
+          <h2>Cine semnează ce.</h2>
+          <p>{compact.signatureNote}</p>
+        </div>
+        <ul class="signers">
+          {
+            compact.signers.map((signer) => (
+              <li>
+                <h3>{signer.who}</h3>
+                <p>{signer.signs}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="also wrap">
+        <h2>Și restul, când ai nevoie.</h2>
+        <ul class="also-list">
+          {
+            compact.also.map((item) => (
+              <li>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="access" id="cont">
+        <div class="wrap access-grid">
+          <div>
+            <h2>Conturile noi se deschid în curând.</h2>
+            <div class="actions start">
+              <a class="button primary light" href={links.login}>{cta.login}</a>
+              <a class="button ghost" href={links.notifyHref}>{cta.notify}</a>
+            </div>
+          </div>
+          <ul class="trust">
+            {compact.trust.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      <section class="faq wrap" id="intrebari">
+        <h2>Întrebări frecvente</h2>
+        <div class="faq-list">
+          {
+            compact.faq.map((item) => (
+              <details>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
+        <p>
+          <a href={`mailto:${links.email}`}>{links.email}</a>
+        </p>
+        <p class="fine">
+          Exemplele sunt ilustrative. SSM Ușor nu înlocuiește responsabilitatea specialistului
+          autorizat.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <ConceptSwitcher current="fluxul" />
+</BaseLayout>
+
+<style>
+  :global(body) {
+    background: #ffffff;
+  }
+  .page {
+    --ink: #18342e;
+    --ink-2: #5b6b64;
+    --cream: #f8f7f1;
+    --paper: #ffffff;
+    --line: #d7ddd4;
+    --lime: #b6d86f;
+    --lime-soft: #e6f0cf;
+    --sage: #9fb39c;
+    --moss: #2a5045;
+    --forest-line: #35564c;
+    --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 18px;
+    line-height: 1.5;
+    overflow-x: clip;
+  }
+  .wrap {
+    width: min(1120px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+  h1,
+  h2 {
+    margin: 0;
+    font-family: var(--serif);
+    font-optical-sizing: auto;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  h2 {
+    font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+    line-height: 1.1;
+  }
+  p {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+  }
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 22px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .button.primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .button.primary:hover {
+    background: var(--moss);
+  }
+  .button.primary.light {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: var(--ink);
+  }
+  .button.quiet {
+    border-color: var(--line);
+  }
+  .button.quiet:hover {
+    border-color: var(--ink);
+  }
+  .button.ghost {
+    border-color: #5a7a6f;
+    color: #eef6f2;
+  }
+  .button.small {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 0.92rem;
+  }
+  .button.soon {
+    cursor: default;
+    opacity: 0.75;
+  }
+  .button.soon small {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--lime);
+    color: var(--ink);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .actions.start {
+    justify-content: flex-start;
+  }
+  .auth {
+    display: flex;
+    gap: 8px;
+  }
+
+  .top {
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 76px;
+  }
+  .brand img {
+    width: 150px;
+    height: auto;
+  }
+  .bar nav {
+    display: flex;
+    gap: 28px;
+    font-size: 0.98rem;
+  }
+  .bar nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .bar nav a:hover {
+    color: var(--ink);
+  }
+
+  /* Hero */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 0 72px;
+    text-align: center;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    font-size: 0.95rem;
+    color: var(--ink-2);
+  }
+  .status::before {
+    content: '';
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  h1 {
+    max-width: 20ch;
+    font-size: clamp(2.6rem, 5.6vw, 4.8rem);
+    line-height: 1.02;
+  }
+  .lede {
+    max-width: 44ch;
+    margin: 28px 0 32px;
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .notify {
+    margin-top: 16px;
+    font-size: 0.95rem;
+  }
+  .notify a {
+    color: var(--ink-2);
+    text-underline-offset: 3px;
+  }
+  .audience {
+    max-width: 52ch;
+    margin-top: 32px;
+    color: var(--ink-2);
+    font-size: 0.98rem;
+  }
+
+  .before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    margin: 56px 0 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    text-align: left;
+  }
+  .before,
+  .after {
+    padding: 28px 32px 32px;
+  }
+  .before {
+    background: var(--cream);
+    border-right: 1px solid var(--line);
+  }
+  .after {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+  }
+  .panel-title {
+    margin-bottom: 20px;
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+  }
+  .scatter {
+    position: relative;
+    height: 300px;
+  }
+  .scatter svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--sage);
+    stroke-width: 0.6;
+    stroke-dasharray: 2 2;
+    vector-effect: non-scaling-stroke;
+  }
+  .scatter span {
+    position: absolute;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 0.9rem;
+    color: var(--ink);
+    transform: rotate(var(--r));
+    box-shadow: 0 2px 0 var(--line);
+    white-space: nowrap;
+  }
+  .line {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px 0 10px;
+  }
+  .line li {
+    position: relative;
+    padding-left: 34px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .line li::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  .line li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 22px;
+    bottom: -60px;
+    left: 6px;
+    border-left: 2px solid var(--lime);
+  }
+
+  /* Section heads */
+  .section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 40px;
+    margin-bottom: 36px;
+  }
+  .section-head p {
+    color: var(--ink-2);
+  }
+
+  /* Steps */
+  .steps-section {
+    padding: 88px 0;
+  }
+  .steps-section h2 {
+    margin-bottom: 36px;
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+  .steps li {
+    padding-top: 16px;
+    border-top: 1px solid var(--ink);
+  }
+  .n {
+    display: block;
+    margin-bottom: 20px;
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--ink-2);
+  }
+  .steps h3 {
+    margin-bottom: 6px;
+  }
+  .steps p {
+    color: var(--ink-2);
+  }
+
+  /* Documents */
+  .documents {
+    padding: 88px 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .documents h2 {
+    color: #fff;
+  }
+  .documents .section-head p {
+    color: #b7c8c1;
+  }
+  .doc-groups {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .doc-groups h3 {
+    margin-bottom: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--lime);
+    color: #fff;
+  }
+  .doc-groups li {
+    padding: 8px 0;
+    border-top: 1px solid var(--forest-line);
+    color: #c6d4ce;
+  }
+
+  /* Signers */
+  .signers-section {
+    padding: 88px 0;
+  }
+  .signers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .signers li {
+    padding: 22px 24px;
+    border-radius: 12px;
+    background: var(--cream);
+  }
+  .signers h3 {
+    margin-bottom: 6px;
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+  }
+  .signers p {
+    color: var(--ink-2);
+  }
+
+  /* Also */
+  .also {
+    padding: 0 0 88px;
+  }
+  .also h2 {
+    margin-bottom: 32px;
+  }
+  .also-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+  .also-list li {
+    padding-top: 12px;
+    border-top: 1px solid var(--sage);
+  }
+  .also-list h3 {
+    margin-bottom: 4px;
+    font-size: 1.05rem;
+  }
+  .also-list p {
+    color: var(--ink-2);
+    font-size: 0.98rem;
+  }
+
+  /* Access */
+  .access {
+    padding: 88px 0;
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .access-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 64px;
+    align-items: center;
+  }
+  .access h2 {
+    margin-bottom: 24px;
+    color: #fff;
+  }
+  .trust {
+    display: grid;
+    gap: 14px;
+  }
+  .trust li {
+    padding-top: 12px;
+    border-top: 1px solid var(--forest-line);
+    color: #c6d4ce;
+  }
+
+  /* FAQ */
+  .faq {
+    padding: 88px 0;
+  }
+  .faq h2 {
+    margin-bottom: 24px;
+  }
+  .faq-list {
+    max-width: 720px;
+    border-top: 1px solid var(--line);
+  }
+  details {
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 0;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    flex-shrink: 0;
+    color: var(--ink-2);
+  }
+  details[open] summary::after {
+    content: '–';
+  }
+  details p {
+    max-width: 60ch;
+    padding-bottom: 18px;
+    color: var(--ink-2);
+  }
+
+  /* Footer */
+  .foot {
+    padding: 36px 0 72px;
+    border-top: 1px solid var(--line);
+    font-size: 0.95rem;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 32px;
+    align-items: center;
+  }
+  .foot-grid img {
+    width: 130px;
+    height: auto;
+  }
+  .fine {
+    color: var(--ink-2);
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 1080px) {
+    .steps,
+    .also-list {
+      grid-template-columns: 1fr 1fr;
+    }
+    .doc-groups {
+      gap: 24px;
+    }
+    .access-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+  }
+  @media (max-width: 760px) {
+    .page {
+      font-size: 17px;
+    }
+    .wrap {
+      width: min(100% - 32px, 1120px);
+    }
+    .bar nav,
+    .auth .soon {
+      display: none;
+    }
+    .hero {
+      padding: 48px 0 56px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 10vw, 3rem);
+    }
+    .lede {
+      font-size: 1.15rem;
+    }
+    .before-after {
+      grid-template-columns: 1fr;
+      margin-top: 40px;
+    }
+    .before {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .before,
+    .after {
+      padding: 22px 20px 24px;
+    }
+    .scatter {
+      height: 260px;
+    }
+    .scatter span {
+      font-size: 0.82rem;
+      padding: 6px 9px;
+    }
+    .line {
+      gap: 22px;
+    }
+    .line li {
+      font-size: 1.1rem;
+    }
+    .line li:not(:last-child)::after {
+      bottom: -24px;
+    }
+    .steps,
+    .doc-groups,
+    .signers,
+    .also-list,
+    .foot-grid {
+      grid-template-columns: 1fr;
+    }
+    .steps {
+      gap: 20px;
+    }
+    .n {
+      margin-bottom: 8px;
+    }
+    .signers {
+      gap: 12px;
+    }
+    .steps-section,
+    .documents,
+    .signers-section,
+    .access,
+    .faq {
+      padding-block: 56px;
+    }
+    .also {
+      padding-bottom: 56px;
+    }
+    .actions .button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
