@@ -36,6 +36,11 @@ import { Fragment, useState } from 'react';
 
 import { useAuth } from '../auth/auth-context';
 
+function loaderCrumb(loaderData: unknown) {
+  const crumb = (loaderData as { crumb?: unknown } | undefined)?.crumb;
+  return typeof crumb === 'string' ? crumb : undefined;
+}
+
 const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard },
   { to: '/clients', label: 'Clienți', icon: Users },
@@ -137,11 +142,13 @@ export function AppShell() {
   const { auth, session } = useAuth();
   const navigate = useNavigate();
   // Matched routes with a title form the breadcrumb, for example Clienți › Client nou.
+  // A route whose title depends on data returns it as `crumb` from its loader.
   const trail = useMatches({
     select: (matches) =>
-      matches.flatMap((match) =>
-        match.staticData.title ? [{ to: match.pathname, label: match.staticData.title }] : []
-      ),
+      matches.flatMap((match) => {
+        const label = match.staticData.title ?? loaderCrumb(match.loaderData);
+        return label ? [{ to: match.pathname, label }] : [];
+      }),
   });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

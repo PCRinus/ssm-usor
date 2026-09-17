@@ -93,16 +93,24 @@ Routes are file-based under `src/routes`; the TanStack Router Vite plugin genera
 `src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
 API client). `src/router.ts` builds the router from that tree with the injected context.
 
-| File                                      | Route          | Behavior                                                            |
-| ----------------------------------------- | -------------- | ------------------------------------------------------------------- |
-| `routes/index.tsx`                        | `/`            | Redirects to `/dashboard`, which checks the session.                |
-| `routes/login.tsx`                        | `/login`       | Email/password form; an existing session redirects to `/dashboard`. |
-| `routes/_authenticated.tsx`               | pathless       | Session guard and the app shell for every protected page.           |
-| `routes/_authenticated/dashboard.tsx`     | `/dashboard`   | Protected landing page with the account email and logout.           |
-| `routes/_authenticated/clients.tsx`       | pathless       | Clients section layout carrying the breadcrumb title.               |
-| `routes/_authenticated/clients/index.tsx` | `/clients`     | Protected list of the organization's active clients.                |
-| `routes/_authenticated/clients/new.tsx`   | `/clients/new` | Protected form that creates a client, with ANAF prefill by CUI.     |
-| `routes/__root.tsx`                       | other paths    | Not-found screen with a link back to the start; route error screen. |
+| File                                                          | Route                        | Behavior                                                                                                                               |
+| ------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `routes/index.tsx`                                            | `/`                          | Redirects to `/dashboard`, which checks the session.                                                                                   |
+| `routes/login.tsx`                                            | `/login`                     | Email/password form; an existing session redirects to `/dashboard`.                                                                    |
+| `routes/_authenticated.tsx`                                   | pathless                     | Session guard and the app shell for every protected page.                                                                              |
+| `routes/_authenticated/dashboard.tsx`                         | `/dashboard`                 | Protected landing page with the account email and logout.                                                                              |
+| `routes/_authenticated/clients.tsx`                           | pathless                     | Clients section layout carrying the breadcrumb title.                                                                                  |
+| `routes/_authenticated/clients/index.tsx`                     | `/clients`                   | Protected list of the organization's active clients.                                                                                   |
+| `routes/_authenticated/clients/new.tsx`                       | `/clients/new`               | Protected form that creates a client, with ANAF prefill by CUI.                                                                        |
+| `routes/_authenticated/clients/$clientId.tsx`                 | `/clients/:id`               | Client layout: loads the client from the cached list, shows its header and section tabs, returns the breadcrumb label from its loader. |
+| `routes/_authenticated/clients/$clientId/index.tsx`           | `/clients/:id`               | Redirects to the employees section until a client overview exists.                                                                     |
+| `routes/_authenticated/clients/$clientId/employees.tsx`       | pathless                     | Employees section layout carrying the breadcrumb title.                                                                                |
+| `routes/_authenticated/clients/$clientId/employees/index.tsx` | `/clients/:id/employees`     | The client's employees with a status filter in the search params.                                                                      |
+| `routes/_authenticated/clients/$clientId/employees/new.tsx`   | `/clients/:id/employees/new` | Form that adds an employee to the client.                                                                                              |
+| `routes/__root.tsx`                                           | other paths                  | Not-found screen with a link back to the start; route error screen.                                                                    |
+
+A route whose breadcrumb label depends on data (the client name) returns `crumb` from its
+loader instead of `staticData.title`; the shell reads either.
 
 Each route file exports `Route` with its guard, loader, and component. A route sets
 `staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
@@ -173,7 +181,21 @@ mobile navigation link closes the Sheet.
   over the full CAEN Rev. 3 class list from `packages/contracts` (code prefix or words from
   the activity name, diacritics optional); a four-digit code outside the list can still be
   used. Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
-  Search, editing, archiving, and row actions are not implemented yet.
+  Search, editing, archiving, and row actions are not implemented yet. The company name
+  opens the client.
+- `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
+  under a client header (name, CUI, CAEN, registered office) and section tabs. The list shows
+  name and internal number, job title, contact, hire date, and status; **În activitate** (the
+  default) lists active and suspended people and **Plecați** passes `?status=terminated`. The
+  CNP is never part of the list. The client itself comes from the cached clients list, since
+  the API has no single-client read yet; an unknown id shows a not-found screen.
+- `/clients/:id/employees/new`: the creation form in the same sectioned layout: identity
+  (name, optional CNP and internal number), employment (job title, hire date), contact, and
+  the training-sheet fields (birth date, birth place, address, blood group, Rh, notes). A valid
+  CNP prefills the birth date on blur, and a contradicting birth date is rejected before the
+  request, mirroring the API rule. Saving posts to `POST /clients/{clientId}/employees`,
+  invalidates every filtered variant of the list, and returns to it; a duplicate CNP or
+  number is shown on its field and an archived client on the form.
 
 Sign-out is available from the sidebar account menu on every authenticated route.
 Failed sign-out keeps the session and displays a retry action in the shared layout.

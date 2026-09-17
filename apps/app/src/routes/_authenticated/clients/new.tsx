@@ -5,13 +5,14 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Search } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import { Controller } from 'react-hook-form';
 
 import { CaenCombobox } from '../../../clients/caen-combobox';
 import { CountyCombobox } from '../../../clients/county-combobox';
 import { useClientForm } from '../../../clients/use-client-form';
 import { Field } from '../../../components/form-field';
+import { FormSection } from '../../../components/form-section';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
   error ? `${id}-error` : hint ? `${id}-hint` : undefined;
@@ -20,27 +21,6 @@ export const Route = createFileRoute('/_authenticated/clients/new')({
   staticData: { title: 'Client nou' },
   component: NewClientPage,
 });
-
-// A form section: what it is for on the left, its fields on the right.
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="grid gap-5 px-6 py-7 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-10">
-      <div>
-        <h2 className="text-base font-semibold">{title}</h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
-      </div>
-      <div className="grid gap-6 sm:grid-cols-[repeat(2,minmax(0,1fr))]">{children}</div>
-    </section>
-  );
-}
 
 export function NewClientPage() {
   const { form, onSubmit, lookup, lookupCui, isSaving } = useClientForm();
@@ -69,7 +49,7 @@ export function NewClientPage() {
         onSubmit={onSubmit}
       >
         <Card className="gap-0 divide-y py-0">
-          <Section
+          <FormSection
             title="Identificare"
             description="Codul fiscal aduce restul datelor publice; denumirea rămâne editabilă."
           >
@@ -155,9 +135,9 @@ export function NewClientPage() {
               />
               <Label htmlFor="vatPayer">Plătitor de TVA</Label>
             </div>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Înregistrare"
             description="Activitatea principală și numărul din Registrul Comerțului, așa cum apar în acte."
           >
@@ -197,9 +177,9 @@ export function NewClientPage() {
                 {...input('tradeRegisterNumber', true)}
               />
             </Field>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Sediu social"
             description="Adresa înregistrată a companiei. Punctele de lucru se adaugă separat."
           >
@@ -245,9 +225,9 @@ export function NewClientPage() {
                 {...input('addressLine')}
               />
             </Field>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Alte informații"
             description="Date pe care ANAF nu le oferă și pe care le poți actualiza oricând."
           >
@@ -281,7 +261,7 @@ export function NewClientPage() {
                 {...input('declaredEmployeeCount', true)}
               />
             </Field>
-          </Section>
+          </FormSection>
         </Card>
 
         {errors.root?.server && (
