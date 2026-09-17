@@ -185,8 +185,9 @@ mobile navigation link closes the Sheet.
   opens the client.
 - `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
   under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
-  name and internal number, job title, contact, hire date, and status; **În activitate** (the
-  default) lists active and suspended people and **Plecați** passes `?status=terminated`. The
+  name and internal number, job title, contact, and hire date (plus the leave date for former
+  employees); **Angajați actuali** (the default) and **Foști angajați** (`?status=terminated`)
+  switch between the two groups through the search params. The
   CNP is never part of the list. The client itself comes from the cached clients list, since
   the API has no single-client read yet; an unknown id shows a not-found screen.
 - `/clients/:id/employees/new`: the creation form in the same sectioned layout: identity

@@ -19,7 +19,7 @@ export const listEmployeesRoute = createRoute({
   operationId: 'listEmployees',
   summary: "List a client's employees",
   description:
-    'Without a status filter the list holds active and suspended employees. Archived rows are never listed. The CNP is only returned by the detail route.',
+    'Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listEmployeesQuerySchema },

@@ -1,9 +1,8 @@
 import type { EmployeeStatus } from '@ssm-usor/contracts';
 
 export const employeeStatusLabels: Record<EmployeeStatus, string> = {
-  active: 'Activ',
-  suspended: 'Suspendat',
-  terminated: 'Plecat',
+  active: 'Angajați actuali',
+  terminated: 'Foști angajați',
 };
 
 const dateFormat = new Intl.DateTimeFormat('ro-RO', {

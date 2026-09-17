@@ -416,7 +416,6 @@ export type EmployeeListResponseEmployeesItemStatus =
 
 export const EmployeeListResponseEmployeesItemStatus = {
   active: 'active',
-  suspended: 'suspended',
   terminated: 'terminated',
 } as const;
 
@@ -449,7 +448,6 @@ export type EmployeeResponseEmployeeStatus =
 
 export const EmployeeResponseEmployeeStatus = {
   active: 'active',
-  suspended: 'suspended',
   terminated: 'terminated',
 } as const;
 
@@ -623,7 +621,6 @@ export type ListEmployeesStatus = (typeof ListEmployeesStatus)[keyof typeof List
 
 export const ListEmployeesStatus = {
   active: 'active',
-  suspended: 'suspended',
   terminated: 'terminated',
 } as const;
 
@@ -1237,7 +1234,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Without a status filter the list holds active and suspended employees. Archived rows are never listed. The CNP is only returned by the detail route.
+ * Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (

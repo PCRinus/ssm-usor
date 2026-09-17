@@ -85,8 +85,7 @@ export function fakeEmployees(
       const withContact = fakerRO.datatype.boolean({ probability: 0.8 });
       const withSheet = fakerRO.datatype.boolean({ probability: 0.5 });
       const status = fakerRO.helpers.weightedArrayElement([
-        { weight: 17, value: 'active' as const },
-        { weight: 2, value: 'suspended' as const },
+        { weight: 9, value: 'active' as const },
         { weight: 1, value: 'terminated' as const },
       ]);
       const lastName = fakerRO.person.lastName();

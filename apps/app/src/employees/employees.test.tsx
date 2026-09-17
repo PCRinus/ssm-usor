@@ -124,7 +124,7 @@ describe('client employees list', () => {
     expect(within(row).getByText('Sudor')).toBeTruthy();
     expect(within(row).getByText('ion.popescu@example.com')).toBeTruthy();
     expect(within(row).getByText('1 mar. 2020')).toBeTruthy();
-    expect(within(row).getByText('Activ')).toBeTruthy();
+    expect(within(row).queryByText('Angajați actuali')).toBeNull();
     expect(screen.getByTestId('employees-count').textContent).toBe('1 angajat');
     const [url, init] = requests(employeesPath)[0]!;
     expect(new URL(String(url)).searchParams.has('status')).toBe(false);
@@ -148,7 +148,7 @@ describe('client employees list', () => {
     expect(runtime.router.state.location.pathname).toBe(employeesPath);
   });
 
-  it('filters leavers through the status search parameter', async () => {
+  it('filters former employees through the status search parameter', async () => {
     mockApi({
       list: (_, url) =>
         Response.json({
@@ -162,9 +162,7 @@ describe('client employees list', () => {
     await screen.findByTestId('employees-row');
     await userEvent.setup().click(screen.getByTestId('employees-filter-terminated'));
     expect(runtime.router.state.location.search).toEqual({ status: 'terminated' });
-    const row = await screen.findByText('Plecat');
-    expect(row).toBeTruthy();
-    expect(screen.getByText('până la 31 dec. 2025')).toBeTruthy();
+    expect(await screen.findByText('până la 31 dec. 2025')).toBeTruthy();
     expect(screen.getByTestId('employees-filter-terminated').getAttribute('aria-current')).toBe(
       'page'
     );

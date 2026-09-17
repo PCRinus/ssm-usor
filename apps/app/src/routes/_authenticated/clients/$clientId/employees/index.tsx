@@ -1,5 +1,4 @@
 import { employeeStatuses, formatEmployeeName } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -26,12 +25,16 @@ import { employeeStatusLabels, formatDate } from '../../../../../employees/emplo
 
 type Employee = EmployeeListResponse['employees'][number];
 
-// Without a status the API lists everyone still employed (active and suspended).
+// Without a status the API lists current employees; former ones stay reachable here.
 const searchSchema = z.object({ status: z.enum(employeeStatuses).optional() });
 
 const filters = [
-  { status: undefined, label: 'În activitate', testId: 'employees-filter-current' },
-  { status: 'terminated', label: 'Plecați', testId: 'employees-filter-terminated' },
+  { status: undefined, label: employeeStatusLabels.active, testId: 'employees-filter-current' },
+  {
+    status: 'terminated',
+    label: employeeStatusLabels.terminated,
+    testId: 'employees-filter-terminated',
+  },
 ] as const;
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/employees/')({
@@ -49,17 +52,6 @@ function contact(employee: Employee) {
   );
 }
 
-function StatusBadge({ status }: { status: Employee['status'] }) {
-  return (
-    <Badge
-      variant={status === 'active' ? 'secondary' : 'outline'}
-      className={cn(status === 'suspended' && 'text-muted-foreground')}
-    >
-      {employeeStatusLabels[status]}
-    </Badge>
-  );
-}
-
 export function EmployeesPage() {
   const { clientId } = Route.useParams();
   const { status } = Route.useSearch();
@@ -74,7 +66,7 @@ export function EmployeesPage() {
     },
   });
   const rows = employees.data?.employees ?? [];
-  const columns = 5;
+  const columns = 4;
 
   return (
     <div data-testid="employees-page" className="space-y-5">
@@ -134,8 +126,7 @@ export function EmployeesPage() {
               <TableHead className="pl-5">Angajat</TableHead>
               <TableHead>Funcție</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>Angajat din</TableHead>
-              <TableHead className="pr-5">Stare</TableHead>
+              <TableHead className="pr-5">Angajat din</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -176,11 +167,8 @@ export function EmployeesPage() {
                   <TableCell>
                     <Skeleton className="h-4 w-40" />
                   </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
                   <TableCell className="pr-5">
-                    <Skeleton className="h-5 w-14 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
                   </TableCell>
                 </TableRow>
               ))
@@ -192,7 +180,7 @@ export function EmployeesPage() {
                     aria-hidden="true"
                   />
                   <h3 className="text-base font-medium">
-                    {status === 'terminated' ? 'Niciun angajat plecat' : 'Niciun angajat încă'}
+                    {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
                   </h3>
                   <p
                     data-testid="employees-empty"
@@ -225,16 +213,13 @@ export function EmployeesPage() {
                   </TableCell>
                   <TableCell>{employee.jobTitle}</TableCell>
                   <TableCell className="max-w-56 text-sm">{contact(employee)}</TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="pr-5 tabular-nums">
                     {formatDate(employee.hiredAt)}
                     {employee.terminatedAt && (
                       <span className="mt-0.5 block text-xs text-muted-foreground">
                         până la {formatDate(employee.terminatedAt)}
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell className="pr-5">
-                    <StatusBadge status={employee.status} />
                   </TableCell>
                 </TableRow>
               ))
