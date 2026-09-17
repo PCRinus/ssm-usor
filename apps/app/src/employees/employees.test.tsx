@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -167,6 +167,23 @@ describe('client employees list', () => {
     );
     const [url] = requests(employeesPath)[1]!;
     expect(new URL(String(url)).searchParams.get('status')).toBe('terminated');
+  });
+
+  it('does not add filter changes to the browser history', async () => {
+    mockApi();
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('clients-open'));
+    await screen.findByTestId('employees-page');
+    expect(runtime.router.history.length).toBe(2);
+
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    expect(runtime.router.state.location.search).toEqual({ status: 'terminated' });
+    expect(runtime.router.history.length).toBe(2);
+
+    act(() => runtime.router.history.back());
+    await screen.findByTestId('clients-page');
+    expect(runtime.router.state.location.pathname).toBe('/clients');
   });
 
   it('shows an empty state that leads to the creation page', async () => {

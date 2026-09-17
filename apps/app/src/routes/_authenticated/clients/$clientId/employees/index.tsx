@@ -107,6 +107,7 @@ export function EmployeesPage() {
                   to="/clients/$clientId/employees"
                   params={{ clientId }}
                   search={filter.status ? { status: filter.status } : {}}
+                  replace
                   data-testid={filter.testId}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
