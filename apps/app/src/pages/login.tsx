@@ -16,7 +16,10 @@ export function LoginPage() {
   } = useLoginForm();
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-[color-mix(in_srgb,var(--brand-forest)_10%,var(--muted))] px-5 py-10 sm:px-8">
+    <main
+      data-testid="login-page"
+      className="flex min-h-svh items-center justify-center bg-[color-mix(in_srgb,var(--brand-forest)_10%,var(--muted))] px-5 py-10 sm:px-8"
+    >
       <div className="flex w-full max-w-sm flex-col items-center gap-7">
         <img
           src="/brand/logo.png"
@@ -44,6 +47,7 @@ export function LoginPage() {
                 <Label htmlFor="email">Adresă de email</Label>
                 <Input
                   id="email"
+                  data-testid="login-email"
                   className="h-11"
                   {...register('email')}
                   type="email"
@@ -56,7 +60,12 @@ export function LoginPage() {
                   aria-describedby={errors.email ? 'email-error' : undefined}
                 />
                 {errors.email && (
-                  <p id="email-error" role="alert" className="text-sm text-destructive">
+                  <p
+                    id="email-error"
+                    data-testid="login-email-error"
+                    role="alert"
+                    className="text-sm text-destructive"
+                  >
                     {errors.email.message}
                   </p>
                 )}
@@ -66,6 +75,7 @@ export function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
+                    data-testid="login-password"
                     className="h-11 pr-12"
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
@@ -89,17 +99,32 @@ export function LoginPage() {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p id="password-error" role="alert" className="text-sm text-destructive">
+                  <p
+                    id="password-error"
+                    data-testid="login-password-error"
+                    role="alert"
+                    className="text-sm text-destructive"
+                  >
                     {errors.password.message}
                   </p>
                 )}
               </div>
               {errors.root?.auth && (
-                <p id="login-error" role="alert" className="text-sm text-destructive">
+                <p
+                  id="login-error"
+                  data-testid="login-auth-error"
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
                   {errors.root.auth.message}
                 </p>
               )}
-              <Button className="mt-1 h-11 w-full" type="submit" disabled={isSubmitting}>
+              <Button
+                data-testid="login-submit"
+                className="mt-1 h-11 w-full"
+                type="submit"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? 'Se verifică…' : 'Autentificare'}
               </Button>
             </form>

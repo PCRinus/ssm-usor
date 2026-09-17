@@ -12,14 +12,14 @@ export default function App({ runtime }: { runtime: AppRuntime }) {
 
   if (status === 'loading') {
     return (
-      <main className="grid min-h-svh place-items-center p-5">
+      <main data-testid="auth-loading" className="grid min-h-svh place-items-center p-5">
         <p role="status">Se încarcă…</p>
       </main>
     );
   }
   if (status === 'unconfigured' || status === 'error') {
     return (
-      <main className="mx-auto grid max-w-lg gap-5 px-5 py-20">
+      <main data-testid="auth-unavailable" className="mx-auto grid max-w-lg gap-5 px-5 py-20">
         <h1 className="text-2xl font-semibold">Autentificarea nu este disponibilă</h1>
         <p role="alert" className="text-muted-foreground">
           {status === 'unconfigured'
