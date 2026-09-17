@@ -4,18 +4,17 @@ For an isolated Docker instance, use `pnpm supabase:start` and `pnpm seed:local`
 See [local Supabase development](local-development.md) for the app/API environment settings.
 The instructions below describe the existing hosted development project.
 
-A confirmed email/password account is available in the existing development Supabase project:
+The seed creates a confirmed email/password account in the existing development Supabase
+project (`xvhiwymggufbvjdfywjg`). The email and password come from `SEED_ADMIN_EMAIL` and
+`SEED_ADMIN_PASSWORD` in the ignored `apps/api/.env.seed`; the defaults are `admin@ssmusor.test`
+and `admin123`, and the password only applies when the account is first created. The login form
+requires an email address. These are development credentials; the seed is not part of
+application startup, CI, or deployment.
 
-| Setting  | Value                  |
-| -------- | ---------------------- |
-| Project  | `xvhiwymggufbvjdfywjg` |
-| Email    | `admin@ssmusor.test`   |
-| Password | `admin123`             |
-
-Supabase rejected the requested five-character `admin` password because the project requires
-at least six characters. The seed uses `admin123` without changing the project's password policy.
-The login form requires an email address, so enter the full email above rather than `admin`.
-These are development credentials; the seed is not part of application startup, CI, or deployment.
+Password rules are enforced by Supabase Auth, not by the app: set the minimum length and the
+"password requirements" option under **Authentication → Sign In / Providers → Email** on the
+hosted project, and keep `supabase/config.toml` in step for the local stack. Client-side checks
+only give earlier feedback.
 
 ## Repeatable seed
 
@@ -30,9 +29,11 @@ Edit that file:
 
 ```dotenv
 SUPABASE_URL=https://xvhiwymggufbvjdfywjg.supabase.co
-SEED_ADMIN_EMAIL=admin@ssmusor.test
-SEED_ADMIN_PASSWORD=admin123
+SEED_ADMIN_EMAIL=you@example.com
+SEED_ADMIN_PASSWORD=choose-a-password
 ```
+
+`pnpm seed:local` reads the same file for the account settings and ignores the URL.
 
 Then, from the repository root:
 
@@ -80,8 +81,9 @@ The `admin` metadata marks a platform admin: it does not bypass row-level securi
 allows impersonating a user for support, as described in the [data model](data-model.md).
 User-editable `user_metadata` is not used to grant privileges.
 
-`SEED_ADMIN_PASSWORD` applies only when the account is created; rerunning the script never
-changes an existing account's password. Changing the email creates a separate account; it does
+`SEED_ADMIN_PASSWORD` applies when the account is created; rerunning the script leaves an
+existing account's password alone unless you pass `-- --reset-password`. Quote values that
+contain `#` in `.env.seed`, otherwise the rest of the line is read as a comment. Changing the email creates a separate account; it does
 not rename or delete the old one.
 Password-policy errors are reported without automatically changing credentials or policy.
 

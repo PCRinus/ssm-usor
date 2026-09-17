@@ -18,6 +18,10 @@ on:
         description: Faker seed value (same value, same data)
         type: number
         default: 20260917
+      reset-password:
+        description: Set SEED_ADMIN_PASSWORD on the existing admin account (requires the secret)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +39,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
       SEED_ADMIN_EMAIL_INPUT: ${{ vars.SEED_ADMIN_EMAIL }}
       SEED_ORGANIZATION_NAME_INPUT: ${{ vars.SEED_ORGANIZATION_NAME }}
       SEED_ALLOW_FAKE: ${{ vars.SEED_ALLOW_FAKE }}
@@ -44,6 +49,10 @@ jobs:
         run: |
           : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
+          if [[ "${{ inputs.reset-password }}" == "true" && -z "$SEED_ADMIN_PASSWORD" ]]; then
+            echo "Set SEED_ADMIN_PASSWORD in GitHub secrets to reset the admin password."
+            exit 1
+          fi
           if [[ "${{ inputs.fake }}" == "true" && "$SEED_ALLOW_FAKE" != "true" ]]; then
             echo "Fake data is not allowed in this environment. Set SEED_ALLOW_FAKE=true to permit it."
             exit 1
@@ -64,5 +73,8 @@ jobs:
           args=()
           if [[ "${{ inputs.fake }}" == "true" ]]; then
             args+=(--fake --clients "${{ inputs.clients }}" --seed "${{ inputs.seed }}")
+          fi
+          if [[ "${{ inputs.reset-password }}" == "true" ]]; then
+            args+=(--reset-password)
           fi
           pnpm --filter @ssm-usor/api seed "${args[@]}"

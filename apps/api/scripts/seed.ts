@@ -13,13 +13,15 @@ import { seedOrganization } from './lib/seed-organization';
 
 // Development seed: the admin user, its organization, and optionally fake clients.
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
-//   pnpm seed:local           local Docker stack, includes fake clients
+//   pnpm seed:local           local Docker stack, includes fake clients; account from .env.seed too
 //   --fake [--clients 25] [--seed 20260917]   opt in to fake data anywhere
+//   --reset-password          also set SEED_ADMIN_PASSWORD on an existing seeded account
 
 const options = z
   .object({
     local: z.boolean().default(false),
     fake: z.boolean().default(false),
+    'reset-password': z.boolean().default(false),
     clients: z.coerce.number().int().min(0).max(5000).default(25),
     seed: z.coerce.number().int().min(0).default(20260917),
   })
@@ -59,10 +61,13 @@ function configFromLocalCli() {
         SECRET_KEY: z.string().startsWith('sb_secret_'),
       })
       .parse(JSON.parse(output));
-    // Local mode deliberately ignores hosted environment settings and credentials.
+    // Local mode ignores the hosted URL and key but keeps the configured seed account.
     return seedConfigSchema.parse({
       SUPABASE_URL: status.API_URL,
       SUPABASE_SECRET_KEY: status.SECRET_KEY,
+      SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL,
+      SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
+      SEED_ORGANIZATION_NAME: process.env.SEED_ORGANIZATION_NAME,
     });
   } catch {
     throw new Error(
@@ -115,7 +120,8 @@ try {
   const { user, action } = await seedAdmin(
     client.auth.admin,
     config.SEED_ADMIN_EMAIL,
-    config.SEED_ADMIN_PASSWORD
+    config.SEED_ADMIN_PASSWORD,
+    { resetPassword: options['reset-password'] }
   );
   console.log(`${action} development admin ${user.email} (${user.id}) in ${host}.`);
 

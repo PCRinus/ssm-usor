@@ -32,6 +32,7 @@ and deployment jobs use its variables, secrets, and protection rules. Add these 
 | `SUPABASE_DB_PASSWORD`                       | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.        |
 | `SUPABASE_SECRET_KEY`                        | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used only by the seed workflow.    |
 | `SEED_ALLOW_FAKE`                            | Variable | `true` to let the seed workflow add fake clients; leave unset on a real production project.      |
+| `SEED_ADMIN_PASSWORD`                        | Secret   | Only for the workflow's `reset-password` input or a first creation; otherwise not needed.        |
 | `SEED_ADMIN_EMAIL`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account and organization name.                                 |
 
 The Cloudflare account ID and deployment token are shared with marketing.

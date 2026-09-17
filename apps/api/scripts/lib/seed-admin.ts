@@ -16,7 +16,8 @@ const pageSize = 1000;
 export async function seedAdmin(
   admin: SupabaseClient['auth']['admin'],
   email: string,
-  password: string
+  password: string,
+  options: { resetPassword?: boolean } = {}
 ) {
   let existing: User | undefined;
   for (let page = 1; ; page += 1) {
@@ -32,14 +33,17 @@ export async function seedAdmin(
     );
   }
 
-  // The password is set only when the account is created; reruns never change it.
+  // The password is set when the account is created, and on rerun only when asked.
   const attributes = {
     email,
     email_confirm: true,
     app_metadata: { ...existing?.app_metadata, role: 'admin', seed: seedMarker },
   };
   const { data, error } = existing
-    ? await admin.updateUserById(existing.id, attributes)
+    ? await admin.updateUserById(existing.id, {
+        ...attributes,
+        ...(options.resetPassword ? { password } : {}),
+      })
     : await admin.createUser({ ...attributes, password });
   if (error) throw new Error(`Could not seed the admin: ${error.message}`);
   if (!data.user) throw new Error('Supabase did not return the seeded user.');
