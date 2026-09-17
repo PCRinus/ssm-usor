@@ -23,7 +23,7 @@ import { ApiHttpError } from '../api/http';
 import { FieldMessage } from '../components/form-field';
 import { formatDate, todayIso } from './employee-format';
 
-type Employee = EmployeeListResponse['employees'][number];
+type Employee = EmployeeListResponse['items'][number];
 
 export type EmployeeStatusAction = 'terminate' | 'reactivate';
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
+import { listQuerySchema, pageSchema } from './list';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -77,8 +78,12 @@ export const updateEmployeeStatusRequestSchema = z.discriminatedUnion('status', 
 
 export type UpdateEmployeeStatusRequest = z.infer<typeof updateEmployeeStatusRequestSchema>;
 
-// Filters for the list. Without a status the list returns current employees.
-export const listEmployeesQuerySchema = z.object({
+// List parameters. Without a status the list returns current employees. One sort key at a
+// time; "name" orders by last name then first name.
+export const employeeSortKeys = ['name', 'jobTitle', 'hiredAt'] as const;
+export type EmployeeSortKey = (typeof employeeSortKeys)[number];
+
+export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name').extend({
   status: employeeStatusSchema.optional(),
 });
 
@@ -134,9 +139,7 @@ export const employeeResponseSchema = z.object({ employee: employeeSchema });
 
 export type EmployeeResponse = z.infer<typeof employeeResponseSchema>;
 
-export const employeeListResponseSchema = z.object({
-  employees: z.array(employeeListItemSchema),
-});
+export const employeeListResponseSchema = pageSchema(employeeListItemSchema);
 
 export type EmployeeListResponse = z.infer<typeof employeeListResponseSchema>;
 

@@ -411,15 +411,15 @@ export interface CompanyLookupResponse {
   company: CompanyLookupResponseCompany;
 }
 
-export type EmployeeListResponseEmployeesItemStatus =
-  (typeof EmployeeListResponseEmployeesItemStatus)[keyof typeof EmployeeListResponseEmployeesItemStatus];
+export type EmployeeListResponseItemsItemStatus =
+  (typeof EmployeeListResponseItemsItemStatus)[keyof typeof EmployeeListResponseItemsItemStatus];
 
-export const EmployeeListResponseEmployeesItemStatus = {
+export const EmployeeListResponseItemsItemStatus = {
   active: 'active',
   terminated: 'terminated',
 } as const;
 
-export type EmployeeListResponseEmployeesItem = {
+export type EmployeeListResponseItemsItem = {
   id: string;
   clientId: string;
   lastName: string;
@@ -432,7 +432,7 @@ export type EmployeeListResponseEmployeesItem = {
   phone: string | null;
   jobTitle: string;
   hiredAt: string;
-  status: EmployeeListResponseEmployeesItemStatus;
+  status: EmployeeListResponseItemsItemStatus;
   /** @nullable */
   terminatedAt: string | null;
   createdAt: string;
@@ -440,7 +440,16 @@ export type EmployeeListResponseEmployeesItem = {
 };
 
 export interface EmployeeListResponse {
-  employees: EmployeeListResponseEmployeesItem[];
+  items: EmployeeListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
 }
 
 export type EmployeeResponseEmployeeStatus =
@@ -623,8 +632,34 @@ export type LookupCompanyParams = {
 };
 
 export type ListEmployeesParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListEmployeesSort;
+  order?: ListEmployeesOrder;
   status?: ListEmployeesStatus;
 };
+
+export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmployeesSort];
+
+export const ListEmployeesSort = {
+  name: 'name',
+  jobTitle: 'jobTitle',
+  hiredAt: 'hiredAt',
+} as const;
+
+export type ListEmployeesOrder = (typeof ListEmployeesOrder)[keyof typeof ListEmployeesOrder];
+
+export const ListEmployeesOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
 
 export type ListEmployeesStatus = (typeof ListEmployeesStatus)[keyof typeof ListEmployeesStatus];
 
@@ -1243,7 +1278,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (

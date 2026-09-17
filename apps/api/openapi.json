@@ -550,7 +550,7 @@
       "EmployeeListResponse": {
         "type": "object",
         "properties": {
-          "employees": {
+          "items": {
             "type": "array",
             "items": {
               "type": "object",
@@ -622,9 +622,22 @@
                 "updatedAt"
               ]
             }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["employees"]
+        "required": ["items", "page", "pageSize", "total"]
       },
       "EmployeeResponse": {
         "type": "object",
@@ -1193,7 +1206,7 @@
       "get": {
         "operationId": "listEmployees",
         "summary": "List a client's employees",
-        "description": "Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.",
+        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name. The CNP is only returned by the detail route.",
         "security": [
           {
             "bearerAuth": []
@@ -1211,6 +1224,47 @@
           },
           {
             "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["name", "jobTitle", "hiredAt"],
+              "default": "name"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "asc"
+            },
+            "required": false,
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "string",
               "enum": ["active", "terminated"]
             },
@@ -1221,7 +1275,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Employees ordered by last name, then first name",
+            "description": "One page of employees with the total count",
             "content": {
               "application/json": {
                 "schema": {

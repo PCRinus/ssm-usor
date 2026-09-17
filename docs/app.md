@@ -187,7 +187,8 @@ mobile navigation link closes the Sheet.
   under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
   name and internal number, job title, contact, and hire date (plus the leave date for former
   employees); **Angajați actuali** (the default) and **Foști angajați** (`?status=terminated`)
-  switch between the two groups through the search params. The
+  switch between the two groups through the search params, and so does the page (`?page=`);
+  the footer shows the bounds and total with previous/next controls. The
   CNP is never part of the list. The client itself comes from the cached clients list, since
   the API has no single-client read yet; an unknown id shows a not-found screen.
   Each row has an actions menu: **Marchează plecarea…** opens a dialog asking for the leave

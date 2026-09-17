@@ -20,13 +20,13 @@ export const listEmployeesRoute = createRoute({
   operationId: 'listEmployees',
   summary: "List a client's employees",
   description:
-    'Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.',
+    'Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. The CNP is only returned by the detail route.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listEmployeesQuerySchema },
   responses: {
     200: {
-      description: 'Employees ordered by last name, then first name',
+      description: 'One page of employees with the total count',
       content: {
         'application/json': {
           schema: employeeListResponseSchema.meta({ id: 'EmployeeListResponse' }),

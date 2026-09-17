@@ -41,18 +41,18 @@ access token in the Authorization header; the publishable API key is not a user 
 
 ## Routes and authentication
 
-| Route                                                     | Access                                | Response                                                                             |
-| --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------ |
-| `GET /openapi.json`                                       | Public                                | Generated OpenAPI contract                                                           |
-| `GET /health`                                             | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                      |
-| `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`                                            |
-| `GET /clients`                                            | Verified user with a membership       | `{ "clients": [ … ] }`, active clients by name                                       |
-| `POST /clients`                                           | Verified user with a membership       | `201 { "client": { … } }`                                                            |
-| `GET /companies/lookup`                                   | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                         |
-| `GET /clients/{clientId}/employees`                       | Verified user with a membership       | `{ "employees": [ … ] }`, by name; `?status=` filters                                |
-| `POST /clients/{clientId}/employees`                      | Verified user with a membership       | `201 { "employee": { … } }`                                                          |
-| `GET /clients/{clientId}/employees/{employeeId}`          | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                          |
-| `PATCH /clients/{clientId}/employees/{employeeId}/status` | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating |
+| Route                                                     | Access                                | Response                                                                                   |
+| --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET /openapi.json`                                       | Public                                | Generated OpenAPI contract                                                                 |
+| `GET /health`                                             | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                            |
+| `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`                                                  |
+| `GET /clients`                                            | Verified user with a membership       | `{ "clients": [ … ] }`, active clients by name                                             |
+| `POST /clients`                                           | Verified user with a membership       | `201 { "client": { … } }`                                                                  |
+| `GET /companies/lookup`                                   | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                               |
+| `GET /clients/{clientId}/employees`                       | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=` |
+| `POST /clients/{clientId}/employees`                      | Verified user with a membership       | `201 { "employee": { … } }`                                                                |
+| `GET /clients/{clientId}/employees/{employeeId}`          | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                |
+| `PATCH /clients/{clientId}/employees/{employeeId}/status` | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating       |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns only the user's ID and
 email (nullable); it does not expose Supabase metadata or grant administrator permissions.
@@ -70,7 +70,11 @@ caller, so a client of another organization is indistinguishable from a missing 
 answer `404 not_found`. Adding an employee to an archived client answers `409 conflict`, and
 so does a CNP or employee number already used by an active employee of that client. The list
 omits the CNP and, without `?status=`, returns current employees; archived rows
-are never listed. `POST` validates the CNP checksum and calendar date, stores it as digits,
+are never listed. Lists are paginated with page numbers (`page` from 1, `pageSize` up to 100,
+25 by default) and sorted by one whitelisted key at a time (`sort=name|jobTitle|hiredAt`,
+`order=asc|desc`), always with the id as a tiebreaker; the shared query and envelope schemas
+live in `packages/contracts/src/list.ts`. A page past the end answers an empty page with the
+real total. `POST` validates the CNP checksum and calendar date, stores it as digits,
 lowercases the email, and rejects a birth date that contradicts the CNP. `PATCH …/status`
 takes `{ "status": "terminated", "terminatedAt": "YYYY-MM-DD" }` or `{ "status": "active" }`;
 a leave date before the hire date answers `400` with an issue on `terminatedAt`. Reactivating

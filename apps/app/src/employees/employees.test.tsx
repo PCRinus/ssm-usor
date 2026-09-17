@@ -54,6 +54,14 @@ const createdEmployee = {
 
 const employeesPath = `/clients/${clientId}/employees`;
 
+// The list envelope for one page of items.
+const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
+  items,
+  page: meta.page ?? 1,
+  pageSize: 25,
+  total: meta.total ?? items.length,
+});
+
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -74,7 +82,7 @@ function mockApi(
       return routes.clients?.(init, url) ?? Response.json({ clients: [sampleClient] });
     }
     if (url.pathname === employeesPath && method === 'GET') {
-      return routes.list?.(init, url) ?? Response.json({ employees: [] });
+      return routes.list?.(init, url) ?? Response.json(page([]));
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
       return (
@@ -113,7 +121,7 @@ afterEach(() => {
 
 describe('client employees list', () => {
   it('shows the client header, breadcrumb, and the employees with their status', async () => {
-    mockApi({ list: () => Response.json({ employees: [sampleEmployee] }) });
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
     mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('client-page');
     expect(screen.getByRole('heading', { level: 1, name: 'OMV PETROM SA' })).toBeTruthy();
@@ -134,8 +142,13 @@ describe('client employees list', () => {
     expect(within(row).getByText('1 mar. 2020')).toBeTruthy();
     expect(within(row).queryByText('Angajați actuali')).toBeNull();
     expect(screen.getByTestId('employees-count').textContent).toBe('1 angajat');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1 angajat');
+    expect(screen.queryByTestId('pager-next')).toBeNull();
     const [url, init] = requests(employeesPath)[0]!;
-    expect(new URL(String(url)).searchParams.has('status')).toBe(false);
+    const query = new URL(String(url)).searchParams;
+    expect(query.has('status')).toBe(false);
+    expect(query.get('page')).toBe('1');
+    expect(query.get('pageSize')).toBe('25');
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
@@ -159,12 +172,13 @@ describe('client employees list', () => {
   it('filters former employees through the status search parameter', async () => {
     mockApi({
       list: (_, url) =>
-        Response.json({
-          employees:
+        Response.json(
+          page(
             url.searchParams.get('status') === 'terminated'
               ? [{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }]
-              : [sampleEmployee],
-        }),
+              : [sampleEmployee]
+          )
+        ),
     });
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('employees-row');
@@ -195,6 +209,36 @@ describe('client employees list', () => {
     expect(runtime.router.state.location.pathname).toBe('/clients');
   });
 
+  it('pages through the list with the page in the URL', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          page(
+            url.searchParams.get('page') === '2'
+              ? [{ ...sampleEmployee, id: 'b2', lastName: 'Zamfir' }]
+              : [sampleEmployee],
+            { page: Number(url.searchParams.get('page') ?? 1), total: 26 }
+          )
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    expect(screen.getByTestId('employees-count').textContent).toBe('26 angajați');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 angajați');
+    expect((screen.getByTestId('pager-previous') as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByTestId('pager-next'));
+    await screen.findByText('Zamfir Ion');
+    expect(runtime.router.state.location.search).toEqual({ page: 2 });
+    expect(screen.getByTestId('pager-summary').textContent).toBe('26–26 din 26 angajați');
+    expect((screen.getByTestId('pager-next') as HTMLButtonElement).disabled).toBe(true);
+    // Switching the status filter starts again from the first page.
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ status: 'terminated' })
+    );
+  });
+
   it('shows an empty state that leads to the creation page', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
@@ -223,7 +267,7 @@ describe('client employees list', () => {
         attempts += 1;
         return attempts === 1
           ? Response.json({ error: 'not_found', message: 'gone' }, { status: 404 })
-          : Response.json({ employees: [sampleEmployee] });
+          : Response.json(page([sampleEmployee]));
       },
     });
     mountApp(authFixture(makeSession()).client, employeesPath);
@@ -305,7 +349,7 @@ describe('employee creation', () => {
   });
 
   it('sends the normalized request and returns to the list', async () => {
-    mockApi({ list: () => Response.json({ employees: [sampleEmployee] }) });
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
@@ -405,12 +449,13 @@ describe('employee status changes', () => {
     let status = 'active';
     mockApi({
       list: (_, url) =>
-        Response.json({
-          employees:
+        Response.json(
+          page(
             (url.searchParams.get('status') ?? 'active') === status
               ? [{ ...sampleEmployee, status }]
-              : [],
-        }),
+              : []
+          )
+        ),
       status: (init) => {
         status = JSON.parse(String(init?.body)).status;
         return Response.json({
@@ -443,7 +488,7 @@ describe('employee status changes', () => {
   });
 
   it('refuses a leave date before the hire date without calling the API', async () => {
-    mockApi({ list: () => Response.json({ employees: [sampleEmployee] }) });
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
     mountApp(authFixture(makeSession()).client, employeesPath);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
@@ -460,7 +505,7 @@ describe('employee status changes', () => {
   it('shows the API field issue and a generic failure in the dialog', async () => {
     let attempts = 0;
     mockApi({
-      list: () => Response.json({ employees: [sampleEmployee] }),
+      list: () => Response.json(page([sampleEmployee])),
       status: () => {
         attempts += 1;
         return attempts === 1
@@ -493,12 +538,13 @@ describe('employee status changes', () => {
   it('reactivates a former employee from the former employees tab', async () => {
     mockApi({
       list: (_, url) =>
-        Response.json({
-          employees:
+        Response.json(
+          page(
             url.searchParams.get('status') === 'terminated'
               ? [{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }]
-              : [],
-        }),
+              : []
+          )
+        ),
     });
     mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
     const user = userEvent.setup();

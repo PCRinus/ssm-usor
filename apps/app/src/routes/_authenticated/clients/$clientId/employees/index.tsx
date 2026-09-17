@@ -1,4 +1,4 @@
-import { employeeStatuses, formatEmployeeName } from '@ssm-usor/contracts';
+import { defaultPageSize, employeeStatuses, formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -16,7 +16,8 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
+import { keepPreviousData } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal, Plus, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -28,16 +29,21 @@ import {
 } from '../../../../../api/generated/api';
 import { ApiHttpError } from '../../../../../api/http';
 import { useAuth } from '../../../../../auth/auth-context';
+import { Pager } from '../../../../../components/pager';
 import { employeeStatusLabels, formatDate } from '../../../../../employees/employee-format';
 import {
   type EmployeeStatusChange,
   EmployeeStatusDialog,
 } from '../../../../../employees/employee-status-dialog';
 
-type Employee = EmployeeListResponse['employees'][number];
+type Employee = EmployeeListResponse['items'][number];
 
 // Without a status the API lists current employees; former ones stay reachable here.
-const searchSchema = z.object({ status: z.enum(employeeStatuses).optional() });
+// The page lives in the URL too, so refresh and back keep the place in the list.
+const searchSchema = z.object({
+  status: z.enum(employeeStatuses).optional(),
+  page: z.number().int().min(1).optional().catch(undefined),
+});
 
 const filters = [
   { status: undefined, label: employeeStatusLabels.active, testId: 'employees-filter-current' },
@@ -65,18 +71,22 @@ function contact(employee: Employee) {
 
 export function EmployeesPage() {
   const { clientId } = Route.useParams();
-  const { status } = Route.useSearch();
+  const { status, page = 1 } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = status ? { status } : undefined;
+  const params = { ...(status ? { status } : {}), page, pageSize: defaultPageSize };
   const employees = useListEmployees(clientId, params, {
     request: apiRequest,
     query: {
       queryKey: [...getListEmployeesQueryKey(clientId, params), session?.user.id],
       enabled: Boolean(session && apiRequest.baseUrl),
+      // Keep the current page on screen while the next one loads.
+      placeholderData: keepPreviousData,
     },
   });
-  const rows = employees.data?.employees ?? [];
+  const rows = employees.data?.items ?? [];
+  const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
   const columns = 5;
 
@@ -128,7 +138,7 @@ export function EmployeesPage() {
           </nav>
           {employees.isSuccess && (
             <span className="ml-auto text-sm text-muted-foreground" data-testid="employees-count">
-              {rows.length === 1 ? '1 angajat' : `${rows.length} angajați`}
+              {meta.total === 1 ? '1 angajat' : `${meta.total} angajați`}
             </span>
           )}
         </div>
@@ -275,6 +285,16 @@ export function EmployeesPage() {
             )}
           </TableBody>
         </Table>
+        {employees.isSuccess && (
+          <Pager
+            meta={meta}
+            noun={['angajat', 'angajați']}
+            disabled={employees.isFetching}
+            onPage={(next) =>
+              void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
+            }
+          />
+        )}
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
     </div>

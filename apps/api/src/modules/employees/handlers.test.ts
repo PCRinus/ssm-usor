@@ -93,7 +93,10 @@ function mockUpstream(
       return handlers.clients?.(init, url) ?? Response.json([activeClient]);
     }
     if (url.pathname === '/rest/v1/employees') {
-      return handlers.employees?.(init, url) ?? Response.json([employeeListRow]);
+      return (
+        handlers.employees?.(init, url) ??
+        Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/1' } })
+      );
     }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
@@ -139,7 +142,10 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(employeeListResponseSchema.parse(body)).toEqual({
-      employees: [
+      page: 1,
+      pageSize: 25,
+      total: 1,
+      items: [
         {
           id: employeeRow.id,
           clientId,
@@ -166,9 +172,59 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('status')).toBe('neq.terminated');
-    expect(query.get('order')).toBe('last_name.asc,first_name.asc');
-    expect(new Headers(listInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
+    expect(query.get('offset')).toBe('0');
+    expect(query.get('limit')).toBe('25');
+    const headers = new Headers(listInit?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(headers.get('Prefer')).toContain('count=exact');
   });
+
+  it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json([employeeListRow], { headers: { 'Content-Range': '25-25/26' } }),
+    });
+    const response = await request(`${employeesPath}?page=2&pageSize=25&sort=hiredAt&order=desc`);
+    expect(response.status).toBe(200);
+    expect(employeeListResponseSchema.parse(await response.json())).toMatchObject({
+      page: 2,
+      pageSize: 25,
+      total: 26,
+    });
+    const [listUrl] = calls('/rest/v1/employees')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('order')).toBe('hired_at.desc,last_name.desc,first_name.desc,id.asc');
+    expect(query.get('offset')).toBe('25');
+    expect(query.get('limit')).toBe('25');
+  });
+
+  it('answers an empty page with the real total when the page lies past the end', async () => {
+    mockUpstream({
+      employees: (_, url) =>
+        url?.searchParams.get('limit') === '1'
+          ? Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/3' } })
+          : Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              {
+                status: 416,
+              }
+            ),
+    });
+    const response = await request(`${employeesPath}?page=9`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+  });
+
+  it.each(['page=0', 'pageSize=101', 'sort=cnp', 'order=sideways'])(
+    'rejects an invalid list parameter: %s',
+    async (search) => {
+      mockUpstream({});
+      const response = await request(`${employeesPath}?${search}`);
+      expect(response.status).toBe(400);
+      expect(calls('/rest/v1/employees')).toHaveLength(0);
+    }
+  );
 
   it('filters by status when asked', async () => {
     mockUpstream({});
