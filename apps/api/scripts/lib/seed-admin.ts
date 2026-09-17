@@ -1,12 +1,17 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+// GitHub Actions passes a missing secret or variable as an empty string, not as unset.
+// Treat it as absent so the defaults apply however the caller provides the settings.
+const optionalEnv = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema);
+
 export const seedConfigSchema = z.object({
   SUPABASE_URL: z.url(),
-  SUPABASE_SECRET_KEY: z.string().min(1).optional(),
-  SEED_ADMIN_EMAIL: z.email().default('admin@ssmusor.test'),
-  SEED_ADMIN_PASSWORD: z.string().min(6).default('admin123'),
-  SEED_ORGANIZATION_NAME: z.string().trim().min(2).max(160).default('SSM Ușor'),
+  SUPABASE_SECRET_KEY: optionalEnv(z.string().min(1).optional()),
+  SEED_ADMIN_EMAIL: optionalEnv(z.email().default('admin@ssmusor.test')),
+  SEED_ADMIN_PASSWORD: optionalEnv(z.string().min(6).default('admin123')),
+  SEED_ORGANIZATION_NAME: optionalEnv(z.string().trim().min(2).max(160).default('SSM Ușor')),
 });
 
 const seedMarker = 'ssm-usor-development-admin';

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { seedAdmin } from './seed-admin';
+import { seedAdmin, seedConfigSchema } from './seed-admin';
 
 const email = 'admin@ssmusor.test';
 const seededUser = {
@@ -118,5 +118,39 @@ describe('development admin seed', () => {
       .mockResolvedValueOnce(Response.json({ message: 'Password is too weak' }, { status: 422 }));
     await expect(seedAdmin(admin, email, 'admin123')).rejects.toThrow('Password is too weak');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('seed configuration', () => {
+  it('applies the defaults when optional settings are unset or empty strings', () => {
+    const url = 'https://example.supabase.co';
+    const defaults = {
+      SUPABASE_URL: url,
+      SUPABASE_SECRET_KEY: undefined,
+      SEED_ADMIN_EMAIL: 'admin@ssmusor.test',
+      SEED_ADMIN_PASSWORD: 'admin123',
+      SEED_ORGANIZATION_NAME: 'SSM Ușor',
+    };
+    expect(seedConfigSchema.parse({ SUPABASE_URL: url })).toEqual(defaults);
+    // What a workflow passes when the secret or variable does not exist.
+    expect(
+      seedConfigSchema.parse({
+        SUPABASE_URL: url,
+        SUPABASE_SECRET_KEY: '',
+        SEED_ADMIN_EMAIL: '',
+        SEED_ADMIN_PASSWORD: '',
+        SEED_ORGANIZATION_NAME: '',
+      })
+    ).toEqual(defaults);
+  });
+
+  it('still rejects a short password and a malformed email', () => {
+    const url = 'https://example.supabase.co';
+    expect(
+      seedConfigSchema.safeParse({ SUPABASE_URL: url, SEED_ADMIN_PASSWORD: '123' }).success
+    ).toBe(false);
+    expect(
+      seedConfigSchema.safeParse({ SUPABASE_URL: url, SEED_ADMIN_EMAIL: 'nope' }).success
+    ).toBe(false);
   });
 });
