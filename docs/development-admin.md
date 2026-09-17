@@ -73,7 +73,7 @@ The script uses Supabase's Auth Admin API and, with the same secret key, PostgRE
   seed email if it conflicts with an unrelated account.
 - Upsert the organization on a fixed identifier and make the seeded user its `owner`.
 - With `--fake` (always on for `seed:local`), upsert deterministic fake clients keyed on
-  organization and CUI.
+  organization and CUI, then a few fake employees per client keyed on a deterministic id.
 
 No invitation/confirmation email is sent. Supabase owns the authentication tables; the
 organization and client rows come from the checked-in migrations, which must already be applied.

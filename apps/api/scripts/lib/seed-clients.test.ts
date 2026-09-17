@@ -65,9 +65,13 @@ describe('seed writes', () => {
 
   it('upserts clients on the organization and CUI', async () => {
     const { db, fetchMock } = fixture();
-    fetchMock.mockResolvedValueOnce(Response.json([{ id: 'a' }, { id: 'b' }]));
+    const stored = [
+      { id: 'a', declared_employee_count: 4 },
+      { id: 'b', declared_employee_count: null },
+    ];
+    fetchMock.mockResolvedValueOnce(Response.json(stored));
     const rows = fakeClients(2, 1, organizationId, userId);
-    expect(await seedClients(db, rows)).toBe(2);
+    expect(await seedClients(db, rows)).toEqual(stored);
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(new URL(String(url)).searchParams.get('on_conflict')).toBe('organization_id,cui');
     expect(JSON.parse(String(init?.body))).toHaveLength(2);

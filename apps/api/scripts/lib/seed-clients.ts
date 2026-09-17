@@ -81,11 +81,12 @@ export function fakeClients(
   return rows;
 }
 
+// Returns the stored rows so dependent seeds (employees) can reference their ids.
 export async function seedClients(db: SeedClient, rows: ClientInsert[]) {
   const { data, error } = await db
     .from('clients')
     .upsert(rows, { onConflict: 'organization_id,cui' })
-    .select('id');
+    .select('id, declared_employee_count');
   if (error) throw new Error(`Could not seed clients: ${error.message}`);
-  return data.length;
+  return data;
 }

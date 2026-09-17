@@ -2,8 +2,10 @@ import { z } from 'zod';
 
 export * from './caen';
 export * from './clients';
+export * from './cnp';
 export * from './counties';
 export * from './cui';
+export * from './employees';
 
 export const leadApplicationSchema = z.object({
   email: z.email(),

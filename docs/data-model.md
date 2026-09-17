@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, impersonations, and clients  
+Status: implemented for organizations, memberships, impersonations, clients, and employees  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -61,6 +61,43 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 Deferred on purpose: service status and contract period, financial data, contacts as their
 own table, and specialist assignment.
 
+## Employees
+
+`employees` stores the people employed by a client, one row per employment. A person working
+for two clients is two rows; there is no shared person entity. The row carries `client_id`
+and a denormalized `organization_id`, and a composite foreign key on `(client_id,
+organization_id)` guarantees the client belongs to the same organization, so the policies
+stay a one-line comparison like on `clients`.
+
+| Column                                      | Notes                                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `last_name`, `first_name`                   | Required, separate columns: forms print "Numele și prenumele" and lists sort by last name. |
+| `cnp`                                       | Optional, thirteen digits; checksum and date validated by the API. Unique per client.      |
+| `employee_number`                           | The client's own identifier (marca); import and dedupe key. Unique per client.             |
+| `email`, `phone`                            | Optional, for invitations and remote signing.                                              |
+| `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.         |
+| `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.     |
+| `status`, `terminated_at`                   | `active`, `suspended`, or `terminated`; the date is required exactly when terminated.      |
+| `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.  |
+| `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                 |
+| `notes`                                     | Free text, up to 2000 characters.                                                          |
+| `archived_at`                               | Soft delete for rows entered by mistake; a leaver is a status change, not an archive.      |
+
+Both unique indexes are partial on `archived_at is null`, so archiving a mistaken row releases
+its CNP and employee number. The insert policy additionally requires the client to be active
+(`archived_at is null`); the update policy does not, so leavers of an archived client can still
+be recorded.
+
+The CNP is optional per the product scope, protected by row-level security like every other
+column, and returned only by the detail route. It is not encrypted at the column level; an
+audit log of full-CNP reads is planned together with the employee dossier.
+
+Not on the employee row, on purpose: training completion, signatures, and medical fitness.
+Those are evidence records with dates and actors (a `training_records` table follows), because a
+flag would be wrong the day after the periodic training expires. Workplace, department, and SSM
+post are their own future entities; no free-text stand-ins were added. Contract type, working
+hours, and salary are HR data the product avoids.
+
 The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives in
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
 the generated client, so the form and the API validate against one list, and the database
@@ -73,7 +110,7 @@ supabase migration new <name>      # new SQL file under supabase/migrations
 supabase db reset                  # rebuild the local database from all migrations
 pnpm supabase:test                 # pgTAP tests in supabase/tests
 pnpm generate:db                   # regenerate apps/api/src/database.types.ts
-pnpm seed:local                    # admin user, organization, and fake clients
+pnpm seed:local                    # admin user, organization, fake clients and employees
 ```
 
 Migrations are forward-only. A bad migration is fixed with a corrective migration, never by

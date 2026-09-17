@@ -20,7 +20,7 @@ pnpm supabase:status
 
 The first start downloads Docker images. Subsequent starts reuse them and the local data.
 Starting applies every migration under `supabase/migrations`. The seed creates the admin
-account, the organization "SSM Ușor" with that user as owner, and 25 fake clients generated
+account, the organization "SSM Ușor" with that user as owner, 25 fake clients, and a few fake employees per client, generated
 with Faker's Romanian locale from a fixed seed value. The account comes from `SEED_ADMIN_EMAIL`
 and `SEED_ADMIN_PASSWORD` in the ignored `apps/api/.env.seed` (defaults: `admin@ssmusor.test`,
 `admin123`), so local and hosted seeds create the same login. Local Auth enforces the
