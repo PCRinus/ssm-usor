@@ -18,6 +18,7 @@ available as a required PR check, including on documentation-only changes.
 | `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                    |
 | `packages/contracts/**`, `apps/api/openapi.json`                                                                                          | API and SPA                          |
 | `orval.config.ts`                                                                                                                         | SPA                                  |
+| `supabase/config.toml`, `supabase/migrations/**`                                                                                          | Database (hosted migrations)         |
 | Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All three                            |
 | Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs |
 
@@ -30,7 +31,9 @@ inputs when introducing them. Generated API files must still be committed and pa
 ## Validation, builds, and artifacts
 
 Generated-code checks, lint, type checks, and unit/integration tests run repository-wide once
-per revision. On PRs, selected applications are also built and packaged with Wrangler's dry
+per revision. When the database or API is selected, validation also starts a local Supabase
+database in Docker, applies every migration from scratch, runs the pgTAP policy tests, and
+fails if `apps/api/src/database.types.ts` no longer matches the schema. On PRs, selected applications are also built and packaged with Wrangler's dry
 run, without production environment access or publishing.
 
 On `main`, a production build matrix runs after validation, with one job per selected
@@ -44,7 +47,8 @@ assets. Deployment jobs download their matching artifact. API and marketing uplo
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
-API and marketing deploy independently. SPA-only changes skip API deployment. If API and
+Database migrations deploy first when selected, from the `production` environment's Supabase
+credentials. API and marketing deploy independently. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
 Browser tests run after SPA deployment and remain advisory; API smoke-test failures block
 an accompanying SPA release. There is no check of the old live release before deployment.

@@ -1,6 +1,6 @@
 # Development admin account
 
-For an isolated Docker instance, use `pnpm supabase:start` and `pnpm seed:admin:local`.
+For an isolated Docker instance, use `pnpm supabase:start` and `pnpm seed:local`.
 See [local Supabase development](local-development.md) for the app/API environment settings.
 The instructions below describe the existing hosted development project.
 
@@ -38,8 +38,13 @@ Then, from the repository root:
 
 ```bash
 supabase login
-pnpm seed:admin
+pnpm seed
 ```
+
+This seeds the admin user and its organization only. Add `-- --fake` to also upsert fake
+clients (`-- --clients 50 --seed 7` to vary them). The hosted project currently doubles as
+the development environment, so fake data there is acceptable until a separate production
+project exists. Set `SEED_ORGANIZATION_NAME` in `.env.seed` to rename the organization.
 
 The script reads the configured hosted project's secret key through the authenticated Supabase
 CLI. It captures the key in memory without printing or saving it. Alternatively, set
@@ -53,7 +58,7 @@ continue to use publishable keys. `.env.seed` is loaded only by the seed command
 
 ## What it changes
 
-The script uses Supabase's Auth Admin API to:
+The script uses Supabase's Auth Admin API and, with the same secret key, PostgREST to:
 
 - Find the configured email across all user-list pages.
 - Create it with a confirmed email and the configured password if absent.
@@ -63,10 +68,14 @@ The script uses Supabase's Auth Admin API to:
   preserving its user ID and other app metadata.
 - Refuse to overwrite an existing account without that trusted seed marker. Choose a different
   seed email if it conflicts with an unrelated account.
+- Upsert the organization on a fixed identifier and make the seeded user its `owner`.
+- With `--fake` (always on for `seed:local`), upsert deterministic fake clients keyed on
+  organization and CUI.
 
-No invitation/confirmation email is sent, and no ORM or database migration is needed. Supabase
-owns the authentication tables. The `admin` metadata is a server-managed marker for future
-permission checks; it does not introduce an authorization model or make `/me` admin-only.
+No invitation/confirmation email is sent. Supabase owns the authentication tables; the
+organization and client rows come from the checked-in migrations, which must already be applied.
+The `admin` metadata marks a platform admin: it does not bypass row-level security, it only
+allows impersonating a user for support, as described in the [data model](data-model.md).
 User-editable `user_metadata` is not used to grant privileges.
 
 Changing `SEED_ADMIN_PASSWORD` and rerunning the script resets this development account's

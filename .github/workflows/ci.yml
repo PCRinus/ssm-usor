@@ -28,6 +28,7 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       app: ${{ steps.filter.outputs.app }}
       marketing: ${{ steps.filter.outputs.marketing }}
+      database: ${{ steps.filter.outputs.database }}
       projects: ${{ steps.filter.outputs.changes }}
     steps:
       - uses: actions/checkout@v7
@@ -67,6 +68,26 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # Apply every migration to a fresh local database, run the pgTAP policy tests,
+      # and verify the committed database types match the schema.
+      - name: Set up Supabase CLI
+        if: needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      - name: Check migrations, policies, and generated database types
+        if: needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true'
+        shell: bash
+        run: |
+          supabase start -x studio,imgproxy,mailpit,postgres-meta,edge-runtime,logflare,vector,supavisor,storage-api,realtime
+          supabase test db
+          pnpm generate:db
+          if ! git diff --exit-code -- apps/api/src/database.types.ts; then
+            echo "apps/api/src/database.types.ts is stale. Run pnpm generate:db and commit the result."
+            exit 1
+          fi
 
       # PRs check packaging without production environment access. Main builds
       # happen once in the production build job, with the real public settings.
@@ -143,10 +164,48 @@ jobs:
           retention-days: 7
           overwrite: true
 
+  deploy-database:
+    name: Deploy database migrations
+    needs: [changes, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.database == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check database deployment configuration
+        shell: bash
+        run: |
+          : "${SUPABASE_ACCESS_TOKEN:?Set SUPABASE_ACCESS_TOKEN in GitHub secrets}"
+          : "${SUPABASE_DB_PASSWORD:?Set SUPABASE_DB_PASSWORD in GitHub secrets}"
+          : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID in GitHub variables}"
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      # Forward-only: a bad migration is fixed by a corrective migration, never rolled back.
+      - name: Apply pending migrations to the hosted project
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          supabase db push
+
   deploy-api:
     name: Deploy API
-    needs: [changes, build]
-    if: needs.changes.outputs.api == 'true'
+    needs: [changes, build, deploy-database]
+    # Migrations land before code that depends on them; a skipped database job is fine.
+    if: >-
+      !cancelled() &&
+      needs.changes.outputs.api == 'true' &&
+      needs.build.result == 'success' &&
+      (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:

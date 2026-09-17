@@ -1,13 +1,15 @@
 import type { CurrentUser } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
+import type { Membership } from './membership';
+
 export type ApiEnv = {
   Bindings: {
     SUPABASE_URL?: string;
     SUPABASE_PUBLISHABLE_KEY?: string;
     CORS_ORIGINS?: string;
   };
-  Variables: { user: CurrentUser };
+  Variables: { user: CurrentUser; accessToken: string; membership: Membership };
 };
 
 export const supabaseConfigSchema = z.object({

@@ -27,6 +27,9 @@ and deployment jobs use its variables, secrets, and protection rules. Add these 
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                      |
 | `E2E_EMAIL`                     | Secret   | Email of an existing Supabase test user.                                                         |
 | `E2E_PASSWORD`                  | Secret   | Password for that test user.                                                                     |
+| `SUPABASE_PROJECT_ID`           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                          |
+| `SUPABASE_ACCESS_TOKEN`         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.            |
+| `SUPABASE_DB_PASSWORD`          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.        |
 
 The Cloudflare account ID and deployment token are shared with marketing.
 All three applications deploy automatically and selectively after successful validation on
@@ -43,6 +46,8 @@ The workflow fixes `VITE_API_URL` to `https://api.ssmusor.ro`; no GitHub variabl
 for it. It builds the public Supabase settings into the SPA and passes the same settings to
 the API as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. These are public configuration,
 not administrator credentials. No Supabase secret/service-role key belongs in this workflow.
+The access token and database password are used only by the **Deploy database migrations** job
+to push checked-in migrations; they never reach the Workers.
 The E2E credentials belong to an existing test user in the same Supabase project. The test
 only signs in, reads its account identity, refreshes, and signs out; it does not require admin
 permissions or create users. Missing test credentials fail the authenticated check, which is
@@ -60,11 +65,14 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 3. Only affected applications are built and checked with Wrangler's dry run. The SPA build
    receives production public settings. Validated Worker bundles and static assets are uploaded
    as artifacts and downloaded by deployment jobs; those jobs do not rebuild the applications.
-4. If the API changed, its job deploys the validated bundle and checks health, OpenAPI, CORS
+4. If `supabase/migrations` changed, the database job links the hosted project and applies the
+   pending migrations. Migrations are forward-only; fix problems with a corrective migration.
+   The API deployment waits for this job when both are selected.
+5. If the API changed, its job deploys the validated bundle and checks health, OpenAPI, CORS
    preflight, and rejection of missing and invalid bearer tokens. No Chromium installation is needed.
-5. If the SPA changed, its job deploys the validated assets. When the API is also selected,
+6. If the SPA changed, its job deploys the validated assets. When the API is also selected,
    its deployment and smoke tests must succeed first; an unchanged API is skipped.
-6. After an SPA deployment, Chromium checks login rendering, form validation, the signed-out
+7. After an SPA deployment, Chromium checks login rendering, form validation, the signed-out
    redirect, and the authenticated identity/session/sign-out flow against the deployed services.
    API-only releases run the API checks; they do not redeploy or run browser checks for the SPA.
 

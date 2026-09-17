@@ -41,14 +41,29 @@ access token in the Authorization header; the publishable API key is not a user 
 
 ## Routes and authentication
 
-| Route               | Access                                | Response                                        |
-| ------------------- | ------------------------------------- | ----------------------------------------------- |
-| `GET /openapi.json` | Public                                | Generated OpenAPI contract                      |
-| `GET /health`       | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }` |
-| `GET /me`           | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`       |
+| Route                   | Access                                | Response                                        |
+| ----------------------- | ------------------------------------- | ----------------------------------------------- |
+| `GET /openapi.json`     | Public                                | Generated OpenAPI contract                      |
+| `GET /health`           | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }` |
+| `GET /me`               | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`       |
+| `GET /clients`          | Verified user with a membership       | `{ "clients": [ … ] }`, active clients by name  |
+| `POST /clients`         | Verified user with a membership       | `201 { "client": { … } }`                       |
+| `GET /companies/lookup` | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`    |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns only the user's ID and
 email (nullable); it does not expose Supabase metadata or grant administrator permissions.
+
+Client routes are scoped to the caller's organization. `src/membership.ts` calls the database
+helper `current_membership()` and answers `403 forbidden` when the user has no membership.
+`POST /clients` validates the body with the Zod schema from `packages/contracts` (CUI checksum,
+county list, CAEN format), stores the CUI as digits, and treats an `RO` prefix as VAT
+registration. `GET /companies/lookup` proxies ANAF's public VAT registry (no CORS, roughly one
+request per second) and maps the record onto the client form fields; the form must work without
+it. See the [data model](data-model.md) for the schema and policies.
+
+Data access goes through `src/db.ts`: a per-request supabase-js client that forwards the
+user's bearer token to PostgREST, so row-level security runs as that user. Database types in
+`src/database.types.ts` are generated from the schema (`pnpm generate:db`) and checked in CI.
 
 `src/auth.ts` uses [Supabase `getUser(token)`](https://supabase.com/docs/reference/javascript/auth-getuser)
 to validate the supplied token against the configured project and retrieve the current user.
@@ -58,12 +73,12 @@ refresh, and logout stay in the browser SDK. JWT access tokens can remain usable
 after sign-out; this scaffold does not implement immediate token revocation.
 
 Only a publishable key is needed. A service-role or secret key is neither required nor accepted
-by this configuration. No ORM or authentication tables are introduced: Supabase owns its Auth
-schema. Future business tables and authorization rules are separate work; user-editable
-`user_metadata` must not grant permissions.
+by this configuration. Supabase owns its Auth schema; business tables live in SQL migrations
+and are protected by row-level security. User-editable `user_metadata` never grants permissions.
 
-New authenticated routes should attach `requireAuth` and read the verified identity using
-`c.get('user')`. Transport schemas live in `packages/contracts`. The [OpenAPI/Orval pipeline](api-client.md)
+New authenticated routes should attach `requireAuth`, and `requireMembership` when they touch
+organization data, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
+Transport schemas live in `packages/contracts`. The [OpenAPI/Orval pipeline](api-client.md)
 generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 
 ## Errors and CORS
@@ -72,17 +87,20 @@ All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "me
 
 | Status | Error                 | Meaning                                                                                         |
 | ------ | --------------------- | ----------------------------------------------------------------------------------------------- |
+| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                 |
 | `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.          |
-| `404`  | `not_found`           | No matching route.                                                                              |
+| `403`  | `forbidden`           | The user has no organization membership, or the database policy rejected the write.             |
+| `404`  | `not_found`           | No matching route, or no company registered with the CUI.                                       |
+| `409`  | `conflict`            | A client with this CUI already exists in the organization.                                      |
 | `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure. |
 | `500`  | `internal_error`      | Unexpected API failure.                                                                         |
 
-Upstream error details are not returned to callers. Authentication failures include
-`WWW-Authenticate: Bearer`.
+Upstream error details are not returned to callers; database failures are logged by context
+only. Authentication failures include `WWW-Authenticate: Bearer`.
 
 `CORS_ORIGINS` is a comma-separated list of exact browser origins. Production defaults to
 `https://app.ssmusor.ro`; `.dev.vars` allows the local Vite origins instead. OPTIONS preflight
-does not require authentication and allows GET requests with Authorization/Content-Type headers.
+does not require authentication and allows GET and POST requests with Authorization/Content-Type headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
 authentication still applies independently, including to non-browser clients.
 
@@ -104,5 +122,7 @@ pnpm --filter @ssm-usor/api deploy:dry-run
 
 API tests exercise Hono and the real Supabase SDK with mocked HTTP responses: token forwarding,
 identity isolation, response filtering, invalid credentials, anonymous users, configuration
-errors, upstream failures, CORS, and JSON errors. They do not create Supabase users. The [development admin guide](development-admin.md) covers
+errors, upstream failures, CORS, JSON errors, client listing and creation, membership checks,
+PostgREST error mapping, and the ANAF lookup. They do not create Supabase users or rows;
+policies are covered by the pgTAP tests in `supabase/tests`. The [development admin guide](development-admin.md) covers
 the seed command and completed live login-to-API verification.

@@ -1,0 +1,301 @@
+import {
+  apiErrorResponseSchema,
+  clientListResponseSchema,
+  clientResponseSchema,
+} from '@ssm-usor/contracts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { createApp } from './app';
+import type { ApiEnv } from './env';
+import { openApiConfig } from './openapi';
+
+const env: ApiEnv['Bindings'] = {
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
+};
+
+const user = {
+  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
+  email: 'owner@example.com',
+  aud: 'authenticated',
+  role: 'authenticated',
+  created_at: '2026-09-01T00:00:00Z',
+  is_anonymous: false,
+  app_metadata: { provider: 'email' },
+  user_metadata: {},
+};
+
+const membership = {
+  user_id: user.id,
+  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
+  role: 'owner',
+};
+
+const clientRow = {
+  id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+  legal_name: 'OMV PETROM SA',
+  cui: '1590082',
+  vat_payer: true,
+  caen_code: '0610',
+  trade_register_number: 'J1997008302407',
+  county_code: 'B',
+  locality: 'Sector 1 Mun. București',
+  address_line: 'Str. Coralilor, nr. 22',
+  legal_representative_name: null,
+  declared_employee_count: 120,
+  created_at: '2026-09-17T10:00:00+00:00',
+  updated_at: '2026-09-17T10:00:00+00:00',
+  archived_at: null,
+};
+
+type Handler = (init?: RequestInit) => Response | Promise<Response>;
+
+const fetchMock = vi.fn<typeof fetch>();
+
+function mockUpstream(handlers: Partial<Record<'auth' | 'membership' | 'clients', Handler>>) {
+  fetchMock.mockImplementation(async (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.pathname === '/auth/v1/user') return handlers.auth?.(init) ?? Response.json(user);
+    if (url.pathname === '/rest/v1/rpc/current_membership') {
+      return handlers.membership?.(init) ?? Response.json([membership]);
+    }
+    if (url.pathname === '/rest/v1/clients') {
+      return handlers.clients?.(init) ?? Response.json([clientRow]);
+    }
+    throw new Error(`Unexpected upstream request: ${url}`);
+  });
+}
+
+const calls = (pathname: string) =>
+  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
+
+const request = (path: string, init: RequestInit = {}, token = 'Bearer test-access-token') =>
+  createApp().request(
+    path,
+    { ...init, headers: { Authorization: token, ...(init.headers ?? {}) } },
+    env
+  );
+
+const postClient = (body: unknown, token?: string) =>
+  request(
+    '/clients',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+    token
+  );
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock);
+  fetchMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('GET /clients', () => {
+  it('lists active clients of the effective organization as the verified user', async () => {
+    mockUpstream({});
+    const response = await request('/clients');
+    expect(response.status).toBe(200);
+    expect(clientListResponseSchema.parse(await response.json())).toEqual({
+      clients: [
+        {
+          id: clientRow.id,
+          legalName: 'OMV PETROM SA',
+          cui: '1590082',
+          vatPayer: true,
+          caenCode: '0610',
+          tradeRegisterNumber: 'J1997008302407',
+          countyCode: 'B',
+          locality: 'Sector 1 Mun. București',
+          addressLine: 'Str. Coralilor, nr. 22',
+          legalRepresentativeName: null,
+          declaredEmployeeCount: 120,
+          createdAt: clientRow.created_at,
+          updatedAt: clientRow.updated_at,
+          archivedAt: null,
+        },
+      ],
+    });
+    const [rpcUrl, rpcInit] = calls('/rest/v1/rpc/current_membership')[0]!;
+    expect(new URL(String(rpcUrl)).origin).toBe('https://example.supabase.co');
+    expect(new Headers(rpcInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(new Headers(rpcInit?.headers).get('apikey')).toBe(env.SUPABASE_PUBLISHABLE_KEY);
+    const [listUrl, listInit] = calls('/rest/v1/clients')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('order')).toBe('legal_name.asc');
+    expect(new Headers(listInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(listInit?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('requires a bearer token', async () => {
+    mockUpstream({});
+    const response = await request('/clients', {}, '');
+    expect(response.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects verified users without an organization membership', async () => {
+    mockUpstream({ membership: () => Response.json([]) });
+    const response = await request('/clients');
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it('reports a database outage as unavailable without details', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpstream({
+      membership: () => {
+        throw new TypeError('Sensitive connection details');
+      },
+    });
+    const response = await request('/clients');
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain('Sensitive');
+  });
+
+  it('does not treat a PostgREST failure as a client error', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpstream({
+      clients: () => Response.json({ code: 'XX000', message: 'internal' }, { status: 500 }),
+    });
+    const response = await request('/clients');
+    expect(response.status).toBe(500);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('internal_error');
+  });
+});
+
+describe('POST /clients', () => {
+  const validBody = {
+    legalName: 'OMV Petrom SA',
+    cui: 'RO 1590082',
+    caenCode: '0610',
+    countyCode: 'B',
+    locality: 'București',
+    addressLine: 'Str. Coralilor, nr. 22',
+    declaredEmployeeCount: 120,
+  };
+
+  it('stores digits-only CUI, derives VAT status, and scopes to the membership', async () => {
+    mockUpstream({ clients: () => Response.json(clientRow, { status: 201 }) });
+    const response = await postClient(validBody);
+    expect(response.status).toBe(201);
+    expect(clientResponseSchema.parse(await response.json()).client.cui).toBe('1590082');
+    const [, init] = calls('/rest/v1/clients')[0]!;
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      organization_id: membership.organization_id,
+      legal_name: 'OMV Petrom SA',
+      cui: '1590082',
+      vat_payer: true,
+      caen_code: '0610',
+      trade_register_number: null,
+      county_code: 'B',
+      locality: 'București',
+      address_line: 'Str. Coralilor, nr. 22',
+      legal_representative_name: null,
+      declared_employee_count: 120,
+      created_by: user.id,
+    });
+    expect(new Headers(init?.headers).get('Prefer')).toContain('return=representation');
+  });
+
+  it('keeps an explicit VAT flag when the CUI has no prefix', async () => {
+    mockUpstream({ clients: () => Response.json(clientRow, { status: 201 }) });
+    await postClient({ legalName: 'Firma', cui: '1590082', vatPayer: true });
+    expect(JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body))).toMatchObject({
+      cui: '1590082',
+      vat_payer: true,
+    });
+  });
+
+  it.each([
+    [{ ...validBody, cui: '1590083' }, 'cui'],
+    [{ ...validBody, legalName: 'A' }, 'legalName'],
+    [{ ...validBody, countyCode: 'XX' }, 'countyCode'],
+    [{ ...validBody, caenCode: '61' }, 'caenCode'],
+    [{ ...validBody, declaredEmployeeCount: -1 }, 'declaredEmployeeCount'],
+  ])('rejects an invalid body before touching the database: %j', async (body, path) => {
+    mockUpstream({});
+    const response = await postClient(body);
+    expect(response.status).toBe(400);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.error).toBe('validation_error');
+    expect(error.issues?.map((issue) => issue.path)).toContain(path);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it('rejects a duplicate CUI within the organization', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json(
+          { code: '23505', message: 'duplicate key value violates unique constraint' },
+          { status: 409 }
+        ),
+    });
+    const response = await postClient(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('conflict');
+  });
+
+  it('maps a row-level security rejection to forbidden', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json(
+          { code: '42501', message: 'new row violates row-level security' },
+          {
+            status: 403,
+          }
+        ),
+    });
+    expect((await postClient(validBody)).status).toBe(403);
+  });
+
+  it('requires authentication before validation', async () => {
+    mockUpstream({});
+    const response = await postClient({ legalName: 'A' }, '');
+    expect(response.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('CORS', () => {
+  it('allows POST preflight from the app origin', async () => {
+    const response = await createApp().request(
+      '/clients',
+      {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://app.ssmusor.ro',
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'authorization,content-type',
+        },
+      },
+      env
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Methods')).toMatch(/\bPOST\b/);
+    expect(response.headers.get('Access-Control-Allow-Headers')?.toLowerCase()).toContain(
+      'content-type'
+    );
+  });
+});
+
+it('documents the client routes with bearer security and request schemas', () => {
+  const document = createApp().getOpenAPIDocument(openApiConfig);
+  expect(document.paths?.['/clients']?.get?.operationId).toBe('listClients');
+  expect(document.paths?.['/clients']?.post?.operationId).toBe('createClient');
+  expect(document.paths?.['/clients']?.post?.security).toEqual([{ bearerAuth: [] }]);
+  expect(document.paths?.['/companies/lookup']?.get?.operationId).toBe('lookupCompany');
+  expect(document.components?.schemas?.CreateClientRequest).toBeDefined();
+  expect(document.components?.schemas?.ClientListResponse).toBeDefined();
+  expect(document.components?.schemas?.CompanyLookupResponse).toBeDefined();
+});

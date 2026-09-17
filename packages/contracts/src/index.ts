@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+export * from './clients';
+export * from './counties';
+export * from './cui';
+
 export const leadApplicationSchema = z.object({
   email: z.email(),
   providerName: z.string().trim().min(2).max(160),
@@ -28,9 +32,23 @@ export const meResponseSchema = z.object({ user: currentUserSchema });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
+export const apiErrorCodeSchema = z.enum([
+  'unauthorized',
+  'forbidden',
+  'validation_error',
+  'not_found',
+  'conflict',
+  'service_unavailable',
+  'internal_error',
+]);
+
+export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;
+
 export const apiErrorResponseSchema = z.object({
-  error: z.enum(['unauthorized', 'service_unavailable', 'not_found', 'internal_error']),
+  error: apiErrorCodeSchema,
   message: z.string(),
+  // Field-level details for validation errors; paths use dot notation.
+  issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

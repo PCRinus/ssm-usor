@@ -6,6 +6,7 @@ export const seedConfigSchema = z.object({
   SUPABASE_SECRET_KEY: z.string().min(1).optional(),
   SEED_ADMIN_EMAIL: z.email().default('admin@ssmusor.test'),
   SEED_ADMIN_PASSWORD: z.string().min(6).default('admin123'),
+  SEED_ORGANIZATION_NAME: z.string().trim().min(2).max(160).default('SSM Ușor'),
 });
 
 const seedMarker = 'ssm-usor-development-admin';

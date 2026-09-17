@@ -6,7 +6,41 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+import type { Database } from '../src/database.types';
 import { seedAdmin, seedConfigSchema } from './lib/seed-admin';
+import { fakeClients, seedClients } from './lib/seed-clients';
+import { seedOrganization } from './lib/seed-organization';
+
+// Development seed: the admin user, its organization, and optionally fake clients.
+//   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
+//   pnpm seed:local           local Docker stack, includes fake clients
+//   --fake [--clients 25] [--seed 20260917]   opt in to fake data anywhere
+
+const options = z
+  .object({
+    local: z.boolean().default(false),
+    fake: z.boolean().default(false),
+    clients: z.coerce.number().int().min(0).max(5000).default(25),
+    seed: z.coerce.number().int().min(0).default(20260917),
+  })
+  .parse(parseArgs(process.argv.slice(2)));
+
+function parseArgs(args: string[]) {
+  const parsed: Record<string, string | boolean> = {};
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]!;
+    if (!arg.startsWith('--')) throw new Error(`Unexpected argument: ${arg}`);
+    const name = arg.slice(2);
+    const next = args[index + 1];
+    if (next !== undefined && !next.startsWith('--')) {
+      parsed[name] = next;
+      index += 1;
+    } else {
+      parsed[name] = true;
+    }
+  }
+  return parsed;
+}
 
 function configFromLocalCli() {
   try {
@@ -61,31 +95,40 @@ function secretFromCli(url: string) {
 
 try {
   if (process.env.NODE_ENV === 'production')
-    throw new Error('The development admin seed cannot run with NODE_ENV=production.');
-  const parsed = seedConfigSchema.safeParse(
-    process.argv.includes('--local') ? configFromLocalCli() : process.env
-  );
+    throw new Error('The development seed cannot run with NODE_ENV=production.');
+  const parsed = seedConfigSchema.safeParse(options.local ? configFromLocalCli() : process.env);
   if (!parsed.success)
     throw new Error(
       'Set a valid SUPABASE_URL, SEED_ADMIN_EMAIL, and SEED_ADMIN_PASSWORD (at least six characters) in apps/api/.env.seed.'
     );
   const config = parsed.data;
   const secret = config.SUPABASE_SECRET_KEY ?? secretFromCli(config.SUPABASE_URL);
-  const client = createClient(config.SUPABASE_URL, secret, {
+  const host = new URL(config.SUPABASE_URL).hostname;
+  // The secret key bypasses row-level security; it is used only here, never in the Worker.
+  const client = createClient<Database>(config.SUPABASE_URL, secret, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
       fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(10_000) }),
     },
   });
+
   const { user, action } = await seedAdmin(
     client.auth.admin,
     config.SEED_ADMIN_EMAIL,
     config.SEED_ADMIN_PASSWORD
   );
-  console.log(
-    `${action} development admin ${user.email} (${user.id}) in ${new URL(config.SUPABASE_URL).hostname}.`
-  );
+  console.log(`${action} development admin ${user.email} (${user.id}) in ${host}.`);
+
+  const { organization } = await seedOrganization(client, config.SEED_ORGANIZATION_NAME, user.id);
+  console.log(`Organization "${organization.name}" (${organization.id}) owned by ${user.email}.`);
+
+  // Fake data is opt-in on hosted projects; the local stack always gets it.
+  if (options.fake || options.local) {
+    const rows = fakeClients(options.clients, options.seed, organization.id, user.id);
+    const count = await seedClients(client, rows);
+    console.log(`Upserted ${count} fake clients (seed ${options.seed}).`);
+  }
 } catch (error) {
-  console.error(error instanceof Error ? error.message : 'The admin seed failed.');
+  console.error(error instanceof Error ? error.message : 'The seed failed.');
   process.exitCode = 1;
 }
