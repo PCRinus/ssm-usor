@@ -205,6 +205,10 @@ mobile navigation link closes the Sheet.
   date (today by default, not before the hire date) and calls `PATCH …/status`; on the former
   employees tab **Reactivează…** clears it, for undoing a mistake, since a rehire after a gap
   is a new employee. The list is invalidated so the row moves between the two tabs.
+- Date fields use `src/components/date-picker.tsx`: a text input for typed Romanian dates
+  (`dd.mm.yyyy`, also with slashes or dashes) next to a button that opens the shadcn calendar
+  (react-day-picker, Romanian locale, month and year dropdowns, optional bounds). The form
+  only ever receives ISO dates; helpers live in `src/lib/dates.ts`.
 - `/clients/:id/employees/new`: the creation form, rendered without the client summary and
   tabs (`staticData.fullPage`); a disabled first field names the client. Sections: employer, identity
   (name, optional CNP and internal number), employment (job title, hire date), contact, and

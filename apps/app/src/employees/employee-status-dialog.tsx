@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
@@ -20,6 +19,7 @@ import {
   useUpdateEmployeeStatus,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { DatePicker } from '../components/date-picker';
 import { FieldMessage } from '../components/form-field';
 import { formatDate, todayIso } from './employee-format';
 
@@ -137,17 +137,15 @@ function StatusForm({
         {action === 'terminate' && (
           <div className="mt-5 grid gap-2">
             <Label htmlFor="terminatedAt">Data plecării</Label>
-            <Input
+            <DatePicker
               id="terminatedAt"
-              data-testid="employee-terminated-at"
-              type="date"
-              className="h-11"
+              testId="employee-terminated-at"
               value={terminatedAt}
               min={employee.hiredAt}
               disabled={busy}
-              aria-invalid={Boolean(dateError)}
-              aria-describedby={dateError ? 'terminatedAt-error' : 'terminatedAt-hint'}
-              onChange={(event) => setTerminatedAt(event.target.value)}
+              invalid={Boolean(dateError)}
+              describedBy={dateError ? 'terminatedAt-error' : 'terminatedAt-hint'}
+              onChange={setTerminatedAt}
               required
             />
             {!dateError && (

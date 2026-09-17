@@ -5,10 +5,13 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
+import { Controller } from 'react-hook-form';
 
+import { DatePicker } from '../../../../../components/date-picker';
 import { Field } from '../../../../../components/form-field';
 import { FormSection } from '../../../../../components/form-section';
 import type { EmployeeFormValues } from '../../../../../employees/employee-form-schema';
+import { todayIso } from '../../../../../employees/employee-format';
 import { useEmployeeForm } from '../../../../../employees/use-employee-form';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
@@ -27,13 +30,21 @@ export function NewEmployeePage() {
   const { form, onSubmit, prefillBirthDate, isSaving } = useEmployeeForm(clientId);
   const {
     register,
+    control: formControl,
     formState: { errors },
   } = form;
+  const today = todayIso();
   // Shared attributes for inputs and selects.
   const control = (name: keyof EmployeeFormValues, hint?: boolean) => ({
     disabled: isSaving,
     'aria-invalid': Boolean(errors[name]),
     'aria-describedby': describedBy(name, errors[name], hint),
+  });
+  // The same, in the date picker's own prop names.
+  const dateControl = (name: 'hiredAt' | 'birthDate', hint?: boolean) => ({
+    disabled: isSaving,
+    invalid: Boolean(errors[name]),
+    describedBy: describedBy(name, errors[name], hint),
   });
 
   return (
@@ -139,15 +150,26 @@ export function NewEmployeePage() {
                 {...control('jobTitle')}
               />
             </Field>
-            <Field id="hiredAt" label="Data angajării" error={errors.hiredAt}>
-              <Input
-                id="hiredAt"
-                data-testid="employee-hired-at"
-                type="date"
-                className="h-11"
-                {...register('hiredAt')}
-                required
-                {...control('hiredAt')}
+            <Field
+              id="hiredAt"
+              label="Data angajării"
+              hint="Ziua din contract, în formatul zz.ll.aaaa."
+              error={errors.hiredAt}
+            >
+              <Controller
+                control={formControl}
+                name="hiredAt"
+                render={({ field }) => (
+                  <DatePicker
+                    id="hiredAt"
+                    testId="employee-hired-at"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    required
+                    {...dateControl('hiredAt', true)}
+                  />
+                )}
               />
             </Field>
           </FormSection>
@@ -185,13 +207,20 @@ export function NewEmployeePage() {
             description="Date tipărite pe fișa individuală de instruire. Toate sunt opționale."
           >
             <Field id="birthDate" label="Data nașterii" error={errors.birthDate}>
-              <Input
-                id="birthDate"
-                data-testid="employee-birth-date"
-                type="date"
-                className="h-11"
-                {...register('birthDate')}
-                {...control('birthDate')}
+              <Controller
+                control={formControl}
+                name="birthDate"
+                render={({ field }) => (
+                  <DatePicker
+                    id="birthDate"
+                    testId="employee-birth-date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    max={today}
+                    {...dateControl('birthDate')}
+                  />
+                )}
               />
             </Field>
             <Field id="birthPlace" label="Locul nașterii" error={errors.birthPlace}>
