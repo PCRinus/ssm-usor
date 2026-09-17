@@ -32,7 +32,7 @@ import {
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
 import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
 import { ChevronsUpDown, LayoutDashboard, LogOut, Users } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import { useAuth } from '../auth/auth-context';
 
@@ -40,6 +40,23 @@ const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard },
   { to: '/clients', label: 'Clienți', icon: Users },
 ] as const;
+
+// Nested pages list their parent so the breadcrumb can link back to it.
+const pages: Record<string, { label: string; parent?: string }> = {
+  '/dashboard': { label: 'Prezentare generală' },
+  '/clients': { label: 'Clienți' },
+  '/clients/new': { label: 'Client nou', parent: '/clients' },
+};
+
+function breadcrumbTrail(pathname: string) {
+  const trail: { to: string; label: string }[] = [];
+  for (let path: string | undefined = pathname; path; path = pages[path]?.parent) {
+    const page = pages[path];
+    if (!page) break;
+    trail.unshift({ to: path, label: page.label });
+  }
+  return trail.length ? trail : [{ to: pathname, label: 'Spațiul de lucru' }];
+}
 
 function AppNavigation({
   email,
@@ -137,7 +154,7 @@ export function AppShell() {
   const { auth, session } = useAuth();
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
-  const currentPage = navigation.find((item) => item.to === pathname)?.label ?? 'Spațiul de lucru';
+  const trail = breadcrumbTrail(pathname);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const email = session?.user.email ?? 'Contul meu';
@@ -194,10 +211,20 @@ export function AppShell() {
                     <Link to="/dashboard">Spațiul de lucru</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{currentPage}</BreadcrumbPage>
-                </BreadcrumbItem>
+                {trail.map((crumb, index) => (
+                  <Fragment key={crumb.to}>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {index === trail.length - 1 ? (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink asChild>
+                          <Link to={crumb.to}>{crumb.label}</Link>
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </Fragment>
+                ))}
               </BreadcrumbList>
             </Breadcrumb>
             {error && (
