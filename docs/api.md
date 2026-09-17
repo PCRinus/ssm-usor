@@ -53,7 +53,7 @@ access token in the Authorization header; the publishable API key is not a user 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns only the user's ID and
 email (nullable); it does not expose Supabase metadata or grant administrator permissions.
 
-Client routes are scoped to the caller's organization. `src/membership.ts` calls the database
+Client routes are scoped to the caller's organization. `src/lib/membership.ts` calls the database
 helper `current_membership()` and answers `403 forbidden` when the user has no membership.
 `POST /clients` validates the body with the Zod schema from `packages/contracts` (CUI checksum,
 county list, CAEN format), stores the CUI as digits, and treats an `RO` prefix as VAT
@@ -61,11 +61,11 @@ registration. `GET /companies/lookup` proxies ANAF's public VAT registry (no COR
 request per second) and maps the record onto the client form fields; the form must work without
 it. See the [data model](data-model.md) for the schema and policies.
 
-Data access goes through `src/db.ts`: a per-request supabase-js client that forwards the
+Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
 `src/database.types.ts` are generated from the schema (`pnpm generate:db`) and checked in CI.
 
-`src/auth.ts` uses [Supabase `getUser(token)`](https://supabase.com/docs/reference/javascript/auth-getuser)
+`src/lib/auth.ts` uses [Supabase `getUser(token)`](https://supabase.com/docs/reference/javascript/auth-getuser)
 to validate the supplied token against the configured project and retrieve the current user.
 This makes one Supabase Auth request for each authenticated API request, with a five-second
 timeout. No user session, cookie, or refresh token is stored in the Worker. Login, persistence,
@@ -78,7 +78,21 @@ and are protected by row-level security. User-editable `user_metadata` never gra
 
 New authenticated routes should attach `requireAuth`, and `requireMembership` when they touch
 organization data, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
-Transport schemas live in `packages/contracts`. The [OpenAPI/Orval pipeline](api-client.md)
+Transport schemas live in `packages/contracts`.
+
+## Source layout
+
+```text
+src/
+  app.ts               cross-cutting: headers, CORS, module mounting, OpenAPI document, errors
+  router.ts            createRouter(): an OpenAPIHono with the shared validation error hook
+  lib/                 auth, db, env, errors, membership, shared OpenAPI pieces
+  modules/<domain>/    routes.ts (OpenAPI route definitions), handlers.ts, index.ts (router), tests
+```
+
+Each domain module exports one router built with `createRouter()` and registers its own
+routes and handlers; `app.ts` mounts it with `app.route('/', …)`, which also merges its OpenAPI
+definitions. Add a new domain by adding a folder under `modules` and one mount line. The [OpenAPI/Orval pipeline](api-client.md)
 generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 
 ## Errors and CORS

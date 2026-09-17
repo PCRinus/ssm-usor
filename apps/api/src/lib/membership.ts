@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 
-import type { Database } from './database.types';
+import type { Database } from '../database.types';
 import { createDataClient, fromDatabaseError } from './db';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';

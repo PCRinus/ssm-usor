@@ -1,11 +1,11 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import { type Client, normalizeCui } from '@ssm-usor/contracts';
 
-import type { Database } from './database.types';
-import { createDataClient, fromDatabaseError } from './db';
-import type { ApiEnv } from './env';
-import { ApiError } from './errors';
-import type { createClientRoute, listClientsRoute } from './openapi';
+import type { Database } from '../../database.types';
+import { createDataClient, fromDatabaseError } from '../../lib/db';
+import type { ApiEnv } from '../../lib/env';
+import { ApiError } from '../../lib/errors';
+import type { createClientRoute, listClientsRoute } from './routes';
 
 type ClientRow = Database['public']['Tables']['clients']['Row'];
 
