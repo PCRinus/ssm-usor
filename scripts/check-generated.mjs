@@ -5,7 +5,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 
-const paths = ['apps/api/openapi.json', 'apps/app/src/api/generated'];
+const paths = [
+  'apps/api/openapi.json',
+  'apps/app/src/api/generated',
+  'apps/app/src/routeTree.gen.ts',
+];
 function snapshot() {
   const files = new Map();
   function visit(path) {
@@ -22,6 +26,7 @@ function snapshot() {
 
 const before = snapshot();
 execFileSync('pnpm', ['generate:api'], { stdio: 'inherit' });
+execFileSync('pnpm', ['generate:routes'], { stdio: 'inherit' });
 const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(
   (path) => before.get(path) !== after.get(path)

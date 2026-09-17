@@ -76,21 +76,27 @@ for transport types, which come from the generated client.
 
 ## Routes and providers
 
-`src/router.ts` defines the initial route tree in code:
+Routes are file-based under `src/routes`; the TanStack Router Vite plugin generates
+`src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
+API client). `src/router.ts` builds the router from that tree with the injected context.
 
-| Route          | Behavior                                                            |
-| -------------- | ------------------------------------------------------------------- |
-| `/`            | Redirects to `/dashboard`, which checks the session.                |
-| `/login`       | Email/password form; an existing session redirects to `/dashboard`. |
-| `/dashboard`   | Protected landing page with the account email and logout.           |
-| `/clients`     | Protected list of the organization's active clients.                |
-| `/clients/new` | Protected form that creates a client, with ANAF prefill by CUI.     |
-| Other paths    | Not-found screen with a link back to the start.                     |
+| File                                      | Route          | Behavior                                                            |
+| ----------------------------------------- | -------------- | ------------------------------------------------------------------- |
+| `routes/index.tsx`                        | `/`            | Redirects to `/dashboard`, which checks the session.                |
+| `routes/login.tsx`                        | `/login`       | Email/password form; an existing session redirects to `/dashboard`. |
+| `routes/_authenticated.tsx`               | pathless       | Session guard and the app shell for every protected page.           |
+| `routes/_authenticated/dashboard.tsx`     | `/dashboard`   | Protected landing page with the account email and logout.           |
+| `routes/_authenticated/clients.tsx`       | pathless       | Clients section layout carrying the breadcrumb title.               |
+| `routes/_authenticated/clients/index.tsx` | `/clients`     | Protected list of the organization's active clients.                |
+| `routes/_authenticated/clients/new.tsx`   | `/clients/new` | Protected form that creates a client, with ANAF prefill by CUI.     |
+| `routes/__root.tsx`                       | other paths    | Not-found screen with a link back to the start; route error screen. |
 
-Future protected pages belong under the `_authenticated` layout. Route guards await initial
-session restoration, avoiding a premature redirect on browser refresh. The app also handles
-loading and session-initialization errors. Login always navigates to `/dashboard`; arbitrary
-redirect query parameters are not used.
+Each route file exports `Route` with its guard, loader, and component. A route sets
+`staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
+as `clients.tsx` so the parent crumb links back. New protected pages go under
+`routes/_authenticated`; the guard there awaits initial session restoration, avoiding a
+premature redirect on browser refresh. The app also handles loading and session-initialization
+errors. Login always navigates to `/dashboard`; arbitrary redirect query parameters are not used.
 
 `src/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
 client is both a React provider and typed router context, available for generated Orval query options

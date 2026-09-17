@@ -8,6 +8,7 @@
     "dev": "vite --port 5173",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "generate:routes": "tsr generate",
     "test:e2e": "playwright test",
     "preview": "vite preview --port 4173",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
@@ -29,6 +30,8 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-cli": "^1.167.36",
+    "@tanstack/router-plugin": "^1.168.38",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/node": "^24.13.3",

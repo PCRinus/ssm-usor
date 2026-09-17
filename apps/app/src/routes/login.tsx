@@ -2,10 +2,19 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
 import { useLoginForm } from '../auth/use-login-form';
+
+export const Route = createFileRoute('/login')({
+  beforeLoad: async ({ context: { auth } }) => {
+    await auth.ready;
+    if (auth.getSnapshot().session) throw redirect({ to: '/dashboard', replace: true });
+  },
+  component: LoginPage,
+});
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);

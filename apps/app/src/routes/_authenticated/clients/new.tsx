@@ -5,54 +5,21 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { Search } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
-import { Controller, type FieldError } from 'react-hook-form';
+import type { ComponentProps } from 'react';
+import { Controller } from 'react-hook-form';
 
-import { useClientForm } from '../clients/use-client-form';
-
-function FieldMessage({ id, error }: { id: string; error?: FieldError }) {
-  if (!error) return null;
-  return (
-    <p id={id} data-testid={`${id}`} role="alert" className="text-sm text-destructive">
-      {error.message}
-    </p>
-  );
-}
-
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  className,
-  children,
-}: {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: FieldError;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={cn('grid gap-2', className)}>
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      <FieldMessage id={`${id}-error`} error={error} />
-    </div>
-  );
-}
+import { useClientForm } from '../../../clients/use-client-form';
+import { Field } from '../../../components/form-field';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
   error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+
+export const Route = createFileRoute('/_authenticated/clients/new')({
+  staticData: { title: 'Client nou' },
+  component: NewClientPage,
+});
 
 export function NewClientPage() {
   const { form, onSubmit, lookup, lookupCui, isSaving } = useClientForm();
