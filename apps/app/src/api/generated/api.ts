@@ -76,11 +76,11 @@ export interface MeResponse {
 /**
  * @nullable
  */
-export type ClientListResponseClientsItemCountyCode =
-  | (typeof ClientListResponseClientsItemCountyCode)[keyof typeof ClientListResponseClientsItemCountyCode]
+export type ClientListResponseItemsItemCountyCode =
+  | (typeof ClientListResponseItemsItemCountyCode)[keyof typeof ClientListResponseItemsItemCountyCode]
   | null;
 
-export const ClientListResponseClientsItemCountyCode = {
+export const ClientListResponseItemsItemCountyCode = {
   AB: 'AB',
   AR: 'AR',
   AG: 'AG',
@@ -125,7 +125,7 @@ export const ClientListResponseClientsItemCountyCode = {
   VN: 'VN',
 } as const;
 
-export type ClientListResponseClientsItem = {
+export type ClientListResponseItemsItem = {
   id: string;
   legalName: string;
   cui: string;
@@ -135,7 +135,7 @@ export type ClientListResponseClientsItem = {
   /** @nullable */
   tradeRegisterNumber: string | null;
   /** @nullable */
-  countyCode: ClientListResponseClientsItemCountyCode;
+  countyCode: ClientListResponseItemsItemCountyCode;
   /** @nullable */
   locality: string | null;
   /** @nullable */
@@ -151,7 +151,16 @@ export type ClientListResponseClientsItem = {
 };
 
 export interface ClientListResponse {
-  clients: ClientListResponseClientsItem[];
+  items: ClientListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
 }
 
 /**
@@ -623,6 +632,35 @@ export type UpdateEmployeeStatusRequest =
       status: 'active';
     };
 
+export type ListClientsParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListClientsSort;
+  order?: ListClientsOrder;
+};
+
+export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsSort];
+
+export const ListClientsSort = {
+  legalName: 'legalName',
+  cui: 'cui',
+  declaredEmployeeCount: 'declaredEmployeeCount',
+} as const;
+
+export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClientsOrder];
+
+export const ListClientsOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
+
 export type LookupCompanyParams = {
   /**
    * @minLength 2
@@ -911,39 +949,54 @@ export function useGetMe<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getListClientsUrl = () => {
-  return `/clients`;
+export const getListClientsUrl = (params?: ListClientsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/clients?${stringifiedParams}` : `/clients`;
 };
 
 /**
+ * Paginated. Archived clients are never listed. One sort key at a time; "legalName" is the default.
  * @summary List the organization's active clients
  */
 export const listClients = async (
+  params?: ListClientsParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientListResponse> => {
-  return apiFetch<ClientListResponse>(getListClientsUrl(), {
+  return apiFetch<ClientListResponse>(getListClientsUrl(params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getListClientsQueryKey = () => {
-  return [`/clients`] as const;
+export const getListClientsQueryKey = (params?: ListClientsParams) => {
+  return [`/clients`, ...(params ? [params] : [])] as const;
 };
 
 export const getListClientsQueryOptions = <
   TData = Awaited<ReturnType<typeof listClients>>,
   TError = ErrorType<ApiErrorResponse>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClients>>, TError, TData>>;
-  request?: SecondParameter<typeof apiFetch>;
-}) => {
+>(
+  params?: ListClientsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClients>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListClientsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListClientsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listClients>>> = ({ signal }) =>
-    listClients({ signal, ...requestOptions });
+    listClients(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listClients>>,
@@ -959,6 +1012,7 @@ export function useListClients<
   TData = Awaited<ReturnType<typeof listClients>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params: undefined | ListClientsParams,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClients>>, TError, TData>> &
       Pick<
@@ -977,6 +1031,7 @@ export function useListClients<
   TData = Awaited<ReturnType<typeof listClients>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListClientsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClients>>, TError, TData>> &
       Pick<
@@ -995,6 +1050,7 @@ export function useListClients<
   TData = Awaited<ReturnType<typeof listClients>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListClientsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClients>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
@@ -1009,13 +1065,14 @@ export function useListClients<
   TData = Awaited<ReturnType<typeof listClients>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListClientsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClients>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListClientsQueryOptions(options);
+  const queryOptions = getListClientsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -1127,6 +1184,130 @@ export const useCreateClient = <TError = ErrorType<ApiErrorResponse>, TContext =
 > => {
   return useMutation(getCreateClientMutationOptions(options), queryClient);
 };
+
+export const getGetClientUrl = (clientId: string) => {
+  return `/clients/${clientId}`;
+};
+
+/**
+ * @summary Read one client, archived or not
+ */
+export const getClient = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getGetClientUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetClientQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}`] as const;
+};
+
+export const getGetClientQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClient>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getClient>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetClientQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClient>>> = ({ signal }) =>
+    getClient(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getClient>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetClientQueryResult = NonNullable<Awaited<ReturnType<typeof getClient>>>;
+export type GetClientQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetClient<
+  TData = Awaited<ReturnType<typeof getClient>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getClient>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClient>>,
+          TError,
+          Awaited<ReturnType<typeof getClient>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClient<
+  TData = Awaited<ReturnType<typeof getClient>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getClient>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClient>>,
+          TError,
+          Awaited<ReturnType<typeof getClient>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClient<
+  TData = Awaited<ReturnType<typeof getClient>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getClient>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read one client, archived or not
+ */
+
+export function useGetClient<
+  TData = Awaited<ReturnType<typeof getClient>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getClient>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetClientQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getLookupCompanyUrl = (params: LookupCompanyParams) => {
   const normalizedParams = new URLSearchParams();

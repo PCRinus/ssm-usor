@@ -93,21 +93,21 @@ Routes are file-based under `src/routes`; the TanStack Router Vite plugin genera
 `src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
 API client). `src/router.ts` builds the router from that tree with the injected context.
 
-| File                                                          | Route                        | Behavior                                                                                                                               |
-| ------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `routes/index.tsx`                                            | `/`                          | Redirects to `/dashboard`, which checks the session.                                                                                   |
-| `routes/login.tsx`                                            | `/login`                     | Email/password form; an existing session redirects to `/dashboard`.                                                                    |
-| `routes/_authenticated.tsx`                                   | pathless                     | Session guard and the app shell for every protected page.                                                                              |
-| `routes/_authenticated/dashboard.tsx`                         | `/dashboard`                 | Protected landing page with the account email and logout.                                                                              |
-| `routes/_authenticated/clients.tsx`                           | pathless                     | Clients section layout carrying the breadcrumb title.                                                                                  |
-| `routes/_authenticated/clients/index.tsx`                     | `/clients`                   | Protected list of the organization's active clients.                                                                                   |
-| `routes/_authenticated/clients/new.tsx`                       | `/clients/new`               | Protected form that creates a client, with ANAF prefill by CUI.                                                                        |
-| `routes/_authenticated/clients/$clientId.tsx`                 | `/clients/:id`               | Client layout: loads the client from the cached list, shows its header and section tabs, returns the breadcrumb label from its loader. |
-| `routes/_authenticated/clients/$clientId/index.tsx`           | `/clients/:id`               | Redirects to the employees section until a client overview exists.                                                                     |
-| `routes/_authenticated/clients/$clientId/employees.tsx`       | pathless                     | Employees section layout carrying the breadcrumb title.                                                                                |
-| `routes/_authenticated/clients/$clientId/employees/index.tsx` | `/clients/:id/employees`     | The client's employees with a status filter in the search params.                                                                      |
-| `routes/_authenticated/clients/$clientId/employees/new.tsx`   | `/clients/:id/employees/new` | Form that adds an employee to the client.                                                                                              |
-| `routes/__root.tsx`                                           | other paths                  | Not-found screen with a link back to the start; route error screen.                                                                    |
+| File                                                          | Route                        | Behavior                                                                                                                                                  |
+| ------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routes/index.tsx`                                            | `/`                          | Redirects to `/dashboard`, which checks the session.                                                                                                      |
+| `routes/login.tsx`                                            | `/login`                     | Email/password form; an existing session redirects to `/dashboard`.                                                                                       |
+| `routes/_authenticated.tsx`                                   | pathless                     | Session guard and the app shell for every protected page.                                                                                                 |
+| `routes/_authenticated/dashboard.tsx`                         | `/dashboard`                 | Protected landing page with the account email and logout.                                                                                                 |
+| `routes/_authenticated/clients.tsx`                           | pathless                     | Clients section layout carrying the breadcrumb title.                                                                                                     |
+| `routes/_authenticated/clients/index.tsx`                     | `/clients`                   | Protected, paginated and sortable list of the organization's active clients.                                                                              |
+| `routes/_authenticated/clients/new.tsx`                       | `/clients/new`               | Protected form that creates a client, with ANAF prefill by CUI.                                                                                           |
+| `routes/_authenticated/clients/$clientId.tsx`                 | `/clients/:id`               | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader. |
+| `routes/_authenticated/clients/$clientId/index.tsx`           | `/clients/:id`               | Redirects to the employees section until a client overview exists.                                                                                        |
+| `routes/_authenticated/clients/$clientId/employees.tsx`       | pathless                     | Employees section layout carrying the breadcrumb title.                                                                                                   |
+| `routes/_authenticated/clients/$clientId/employees/index.tsx` | `/clients/:id/employees`     | The client's employees with a status filter in the search params.                                                                                         |
+| `routes/_authenticated/clients/$clientId/employees/new.tsx`   | `/clients/:id/employees/new` | Form that adds an employee to the client.                                                                                                                 |
+| `routes/__root.tsx`                                           | other paths                  | Not-found screen with a link back to the start; route error screen.                                                                                       |
 
 A route whose breadcrumb label depends on data (the client name) returns `crumb` from its
 loader instead of `staticData.title`; the shell reads either.
@@ -172,8 +172,10 @@ The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting 
 mobile navigation link closes the Sheet.
 
 - `/dashboard`: overview and existing account/API status.
-- `/clients`: the organization's active clients from `GET /clients`, with loading, empty,
-  and error states (a missing membership is explained; other failures offer a retry).
+- `/clients`: the organization's active clients from `GET /clients` on the shared data table:
+  sortable by company, CUI, and declared headcount, paged through `?page=` with the sort in
+  `?sort=&order=`, with loading, empty, and error states (a missing membership is explained;
+  other failures offer a retry).
 - `/clients/new`: the creation form, laid out as full-width sections with their purpose on
   the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
   name, VAT status, CAEN code, trade register number, and registered office; a missing record
@@ -197,12 +199,16 @@ mobile navigation link closes the Sheet.
   switch between the two groups through the search params, and so do the page (`?page=`) and
   the sort (`?sort=&order=`, defaults omitted; a sort change goes back to page one);
   the footer shows the bounds and total with previous/next controls. The
-  CNP is never part of the list. The client itself comes from the cached clients list, since
-  the API has no single-client read yet; an unknown id shows a not-found screen.
+  CNP is never part of the list. The client itself comes from `GET /clients/{clientId}`; a
+  404 shows the not-found screen.
   Each row has an actions menu: **Marchează plecarea…** opens a dialog asking for the leave
   date (today by default, not before the hire date) and calls `PATCH …/status`; on the former
   employees tab **Reactivează…** clears it, for undoing a mistake, since a rehire after a gap
   is a new employee. The list is invalidated so the row moves between the two tabs.
+- Date fields use `src/components/date-picker.tsx`: a text input for typed Romanian dates
+  (`dd.mm.yyyy`, also with slashes or dashes) next to a button that opens the shadcn calendar
+  (react-day-picker, Romanian locale, month and year dropdowns, optional bounds). The form
+  only ever receives ISO dates; helpers live in `src/lib/dates.ts`.
 - `/clients/:id/employees/new`: the creation form, rendered without the client summary and
   tabs (`staticData.fullPage`); a disabled first field names the client. Sections: employer, identity
   (name, optional CNP and internal number), employment (job title, hire date), contact, and

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput } from './cui';
+import { listQuerySchema, pageSchema } from './list';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -54,7 +55,15 @@ export const clientResponseSchema = z.object({ client: clientSchema });
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
-export const clientListResponseSchema = z.object({ clients: z.array(clientSchema) });
+// List parameters: one sort key at a time; "legalName" is the default order.
+export const clientSortKeys = ['legalName', 'cui', 'declaredEmployeeCount'] as const;
+export type ClientSortKey = (typeof clientSortKeys)[number];
+
+export const listClientsQuerySchema = listQuerySchema(clientSortKeys, 'legalName');
+
+export type ListClientsQuery = z.infer<typeof listClientsQuerySchema>;
+
+export const clientListResponseSchema = pageSchema(clientSchema);
 
 export type ClientListResponse = z.infer<typeof clientListResponseSchema>;
 

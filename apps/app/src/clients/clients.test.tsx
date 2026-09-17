@@ -35,6 +35,14 @@ const sampleCompany = {
   inactive: false,
 };
 
+// The list envelope for one page of items.
+const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
+  items,
+  page: meta.page ?? 1,
+  pageSize: 25,
+  total: meta.total ?? items.length,
+});
+
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -50,7 +58,7 @@ function mockApi(routes: Partial<Record<'me' | 'list' | 'create' | 'lookup', Rou
       );
     }
     if (url.pathname === '/clients' && method === 'GET') {
-      return routes.list?.(init, url) ?? Response.json({ clients: [] });
+      return routes.list?.(init, url) ?? Response.json(page([]));
     }
     if (url.pathname === '/clients' && method === 'POST') {
       return routes.create?.(init, url) ?? Response.json({ client: sampleClient }, { status: 201 });
@@ -80,7 +88,7 @@ afterEach(() => {
 
 describe('clients list', () => {
   it('lists clients from the API with the VAT prefix and registered office', async () => {
-    mockApi({ list: () => Response.json({ clients: [sampleClient] }) });
+    mockApi({ list: () => Response.json(page([sampleClient])) });
     mountApp(authFixture(makeSession()).client, '/clients');
     const row = await screen.findByTestId('clients-row');
     expect(within(row).getByText('OMV PETROM SA')).toBeTruthy();
@@ -89,8 +97,45 @@ describe('clients list', () => {
     expect(within(row).getByText('Sector 1 Mun. București, București')).toBeTruthy();
     expect(within(row).getByText('120')).toBeTruthy();
     expect(screen.getByTestId('clients-count').textContent).toBe('1 client');
-    const [, init] = requests('/clients')[0]!;
+    const [url, init] = requests('/clients')[0]!;
+    const query = new URL(String(url)).searchParams;
+    expect(query.get('page')).toBe('1');
+    expect(query.get('pageSize')).toBe('25');
+    expect(query.get('sort')).toBe('legalName');
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+  });
+
+  it('pages and sorts through the URL', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          page(
+            url.searchParams.get('page') === '2'
+              ? [{ ...sampleClient, id: 'b2', legalName: 'ZETA SRL' }]
+              : [sampleClient],
+            { page: Number(url.searchParams.get('page') ?? 1), total: 26 }
+          )
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-row');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 clienți');
+    await user.click(screen.getByTestId('pager-next'));
+    await screen.findByText('ZETA SRL');
+    expect(runtime.router.state.location.search).toEqual({ page: 2 });
+    // A sort change replaces the entry and returns to the first page.
+    await user.click(screen.getByTestId('sort-declaredEmployeeCount'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'declaredEmployeeCount' })
+    );
+    expect(screen.getByRole('columnheader', { name: /Angajați/ }).getAttribute('aria-sort')).toBe(
+      'ascending'
+    );
+    const last = requests('/clients').at(-1)!;
+    const query = new URL(String(last[0])).searchParams;
+    expect(query.get('sort')).toBe('declaredEmployeeCount');
+    expect(query.get('page')).toBe('1');
   });
 
   it('shows an empty state that leads to the creation page', async () => {
@@ -113,7 +158,7 @@ describe('clients list', () => {
         attempts += 1;
         return attempts === 1
           ? Response.json({ error: 'forbidden', message: 'No membership' }, { status: 403 })
-          : Response.json({ clients: [sampleClient] });
+          : Response.json(page([sampleClient]));
       },
     });
     mountApp(authFixture(makeSession()).client, '/clients');
@@ -161,7 +206,7 @@ describe('client creation', () => {
   });
 
   it('prefills from ANAF, sends the normalized request, and returns to the list', async () => {
-    mockApi({ list: () => Response.json({ clients: [sampleClient] }) });
+    mockApi({ list: () => Response.json(page([sampleClient])) });
     const runtime = mountApp(authFixture(makeSession()).client, '/clients/new');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');

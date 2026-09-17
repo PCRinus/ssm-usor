@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { formatRoDate } from '../lib/dates';
 import { authFixture, makeSession } from '../test/auth-fixture';
 import { disposeRuntimes, mountApp } from '../test/mount';
 
@@ -67,7 +68,7 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
-  routes: Partial<Record<'me' | 'clients' | 'list' | 'create' | 'status', Route>> = {}
+  routes: Partial<Record<'me' | 'clients' | 'client' | 'list' | 'create' | 'status', Route>> = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -79,7 +80,10 @@ function mockApi(
       );
     }
     if (url.pathname === '/clients' && method === 'GET') {
-      return routes.clients?.(init, url) ?? Response.json({ clients: [sampleClient] });
+      return routes.clients?.(init, url) ?? Response.json(page([sampleClient]));
+    }
+    if (url.pathname === `/clients/${clientId}` && method === 'GET') {
+      return routes.client?.(init, url) ?? Response.json({ client: sampleClient });
     }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
@@ -105,9 +109,9 @@ const requests = (pathname: string, method = 'GET') =>
       new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
   );
 
-// Date inputs accept an ISO value through a change event rather than typing.
+// The date picker takes typed Romanian dates; the form receives the ISO value.
 const setDate = (element: HTMLElement, value: string) =>
-  fireEvent.change(element, { target: { value } });
+  fireEvent.change(element, { target: { value: formatRoDate(value) } });
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -158,8 +162,7 @@ describe('client employees list', () => {
     await userEvent.setup().click(await screen.findByTestId('clients-open'));
     await screen.findByTestId('employees-page');
     expect(runtime.router.state.location.pathname).toBe(employeesPath);
-    // The client came from the cached list; it was not requested again.
-    expect(requests('/clients')).toHaveLength(1);
+    expect(requests(`/clients/${clientId}`)).toHaveLength(1);
   });
 
   it('redirects the bare client path to its employees', async () => {
@@ -310,7 +313,9 @@ describe('client employees list', () => {
   });
 
   it('shows a not-found screen for a client outside the organization', async () => {
-    mockApi({ clients: () => Response.json({ clients: [] }) });
+    mockApi({
+      client: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
+    });
     mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('client-not-found');
     expect(requests(employeesPath)).toHaveLength(0);
@@ -318,7 +323,7 @@ describe('client employees list', () => {
 
   it('explains a missing membership when the client cannot load', async () => {
     mockApi({
-      clients: () =>
+      client: () =>
         Response.json({ error: 'forbidden', message: 'No membership' }, { status: 403 }),
     });
     mountApp(authFixture(makeSession()).client, employeesPath);
@@ -367,7 +372,7 @@ describe('employee creation', () => {
     await user.type(screen.getByTestId('employee-cnp'), '1900101 400127');
     await user.tab();
     const birthDate = screen.getByTestId('employee-birth-date') as HTMLInputElement;
-    expect(birthDate.value).toBe('1990-01-01');
+    expect(birthDate.value).toBe('01.01.1990');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
     await user.type(screen.getByTestId('employee-first-name'), 'Ion');
     await user.type(screen.getByTestId('employee-job-title'), 'Sudor');
@@ -503,8 +508,7 @@ describe('employee status changes', () => {
     const dialog = await screen.findByTestId('employee-status-dialog');
     expect(within(dialog).getByText('Popescu Ion')).toBeTruthy();
     const date = screen.getByTestId('employee-terminated-at') as HTMLInputElement;
-    expect(date.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(date.getAttribute('min')).toBe('2020-03-01');
+    expect(date.value).toMatch(/^\d{2}\.\d{2}\.\d{4}$/);
     setDate(date, '2026-09-10');
     await user.click(screen.getByTestId('employee-status-confirm'));
     await screen.findByTestId('employees-empty');
@@ -517,6 +521,25 @@ describe('employee status changes', () => {
     });
     await user.click(screen.getByTestId('employees-filter-terminated'));
     await screen.findByTestId('employees-row');
+  });
+
+  it('picks the leave date from the calendar', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    const date = (await screen.findByTestId('employee-terminated-at')) as HTMLInputElement;
+    await user.click(screen.getByTestId('employee-terminated-at-calendar'));
+    const grid = await screen.findByRole('grid');
+    // The calendar opens on the current month; day buttons are labelled like
+    // "marți, 15 septembrie 2026". Pick the 15th.
+    await user.click(within(grid).getByRole('button', { name: /, 15 [a-zăâîșț]+ \d{4}/ }));
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    expect(date.value).toBe(`15.${month}.${now.getFullYear()}`);
+    expect(screen.queryByRole('grid')).toBeNull();
   });
 
   it('refuses a leave date before the hire date without calling the API', async () => {

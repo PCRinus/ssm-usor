@@ -1,47 +1,53 @@
-import { type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
+import {
+  type ClientSortKey,
+  clientSortKeys,
+  defaultPageSize,
+  sortOrderSchema,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
+import { keepPreviousData } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { Plus, Users } from 'lucide-react';
+import { z } from 'zod';
 
-import {
-  type ClientListResponse,
-  getListClientsQueryKey,
-  useListClients,
-} from '../../../api/generated/api';
+import { getListClientsQueryKey, useListClients } from '../../../api/generated/api';
 import { ApiHttpError } from '../../../api/http';
 import { useAuth } from '../../../auth/auth-context';
+import { clientColumns, type ClientRow } from '../../../clients/client-columns';
+import type { DataTableSort } from '../../../components/data-table/columns';
+import { DataTable } from '../../../components/data-table/data-table';
 
-type Client = ClientListResponse['clients'][number];
+// Page and sort live in the URL; defaults are omitted to keep links short.
+const defaultSort: DataTableSort & { sort: ClientSortKey } = { sort: 'legalName', order: 'asc' };
 
-function registeredOffice(client: Client) {
-  const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
-  return [client.locality, county].filter(Boolean).join(', ') || '—';
-}
+const searchSchema = z.object({
+  page: z.number().int().min(1).optional().catch(undefined),
+  sort: z.enum(clientSortKeys).optional().catch(undefined),
+  order: sortOrderSchema.optional().catch(undefined),
+});
 
 export const Route = createFileRoute('/_authenticated/clients/')({
+  validateSearch: searchSchema,
   component: ClientsPage,
 });
 
+const rowKey = (row: ClientRow) => row.id;
+
 export function ClientsPage() {
+  const { page = 1, sort = defaultSort.sort, order = defaultSort.order } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const clients = useListClients({
+  const params = { page, pageSize: defaultPageSize, sort, order };
+  const clients = useListClients(params, {
     request: apiRequest,
     query: {
-      queryKey: [...getListClientsQueryKey(), session?.user.id],
+      queryKey: [...getListClientsQueryKey(params), session?.user.id],
       enabled: Boolean(session && apiRequest.baseUrl),
+      placeholderData: keepPreviousData,
     },
   });
-  const rows = clients.data?.clients ?? [];
+  const meta = clients.data ?? { page, pageSize: defaultPageSize, total: 0 };
 
   return (
     <div data-testid="clients-page" className="space-y-7">
@@ -64,109 +70,77 @@ export function ClientsPage() {
           <h2 className="text-sm font-medium">Lista clienților</h2>
           {clients.isSuccess && (
             <span className="text-sm text-muted-foreground" data-testid="clients-count">
-              {rows.length === 1 ? '1 client' : `${rows.length} clienți`}
+              {meta.total === 1 ? '1 client' : `${meta.total} clienți`}
             </span>
           )}
         </div>
-        <Table data-testid="clients-table" aria-label="Lista clienților">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-5">Companie</TableHead>
-              <TableHead>CUI</TableHead>
-              <TableHead>Sediu social</TableHead>
-              <TableHead className="pr-5 text-right">Angajați</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!apiRequest.baseUrl || clients.isError ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={4} className="h-48 px-5 text-center whitespace-normal">
-                  <p data-testid="clients-error" role="alert" className="text-sm">
-                    {clients.error instanceof ApiHttpError && clients.error.status === 401
-                      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                      : clients.error instanceof ApiHttpError && clients.error.status === 403
-                        ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
-                        : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
-                  </p>
-                  {apiRequest.baseUrl && (
-                    <Button
-                      data-testid="clients-retry"
-                      variant="outline"
-                      className="mt-4"
-                      disabled={clients.isFetching}
-                      onClick={() => void clients.refetch()}
-                    >
-                      Încearcă din nou
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ) : clients.isPending ? (
-              Array.from({ length: 3 }, (_, index) => (
-                <TableRow key={index} className="hover:bg-transparent">
-                  <TableCell className="pl-5">
-                    <Skeleton className="h-4 w-48" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-36" />
-                  </TableCell>
-                  <TableCell className="pr-5">
-                    <Skeleton className="ml-auto h-4 w-10" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : rows.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={4} className="h-72 px-5 text-center whitespace-normal">
-                  <Users className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                  <h3 className="text-base font-medium">Niciun client încă</h3>
-                  <p
-                    data-testid="clients-empty"
-                    className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                  >
-                    Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
-                  </p>
-                  <Button asChild variant="outline" className="mt-5">
-                    <Link to="/clients/new">
-                      <Plus aria-hidden="true" />
-                      Adaugă primul client
-                    </Link>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((client) => (
-                <TableRow key={client.id} data-testid="clients-row">
-                  <TableCell className="pl-5 font-medium">
-                    <Link
-                      to="/clients/$clientId/employees"
-                      params={{ clientId: client.id }}
-                      data-testid="clients-open"
-                      className="hover:underline"
-                    >
-                      {client.legalName}
-                    </Link>
-                    {client.caenCode && (
-                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                        CAEN {client.caenCode}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {formatCui(client.cui, client.vatPayer)}
-                  </TableCell>
-                  <TableCell>{registeredOffice(client)}</TableCell>
-                  <TableCell className="pr-5 text-right tabular-nums">
-                    {client.declaredEmployeeCount ?? '—'}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          testId="clients-table"
+          rowTestId="clients-row"
+          label="Lista clienților"
+          columns={clientColumns}
+          data={clients.data?.items}
+          rowKey={rowKey}
+          meta={meta}
+          noun={['client', 'clienți']}
+          status={!apiRequest.baseUrl ? 'error' : clients.status}
+          isFetching={clients.isFetching}
+          sort={{ sort, order }}
+          onSortChange={(next) =>
+            void navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                sort: next.sort === defaultSort.sort ? undefined : (next.sort as ClientSortKey),
+                order: next.order === defaultSort.order ? undefined : next.order,
+                page: undefined,
+              }),
+            })
+          }
+          onPageChange={(next) =>
+            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
+          }
+          error={
+            <>
+              <p data-testid="clients-error" role="alert" className="text-sm">
+                {clients.error instanceof ApiHttpError && clients.error.status === 401
+                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                  : clients.error instanceof ApiHttpError && clients.error.status === 403
+                    ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+                    : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
+              </p>
+              {apiRequest.baseUrl && (
+                <Button
+                  data-testid="clients-retry"
+                  variant="outline"
+                  className="mt-4"
+                  disabled={clients.isFetching}
+                  onClick={() => void clients.refetch()}
+                >
+                  Încearcă din nou
+                </Button>
+              )}
+            </>
+          }
+          empty={
+            <>
+              <Users className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
+              <h3 className="text-base font-medium">Niciun client încă</h3>
+              <p
+                data-testid="clients-empty"
+                className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
+              >
+                Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
+              </p>
+              <Button asChild variant="outline" className="mt-5">
+                <Link to="/clients/new">
+                  <Plus aria-hidden="true" />
+                  Adaugă primul client
+                </Link>
+              </Button>
+            </>
+          }
+        />
       </div>
     </div>
   );
