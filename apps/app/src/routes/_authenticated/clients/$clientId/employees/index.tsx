@@ -1,5 +1,11 @@
 import { employeeStatuses, formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ssm-usor/ui/components/dropdown-menu';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -11,7 +17,8 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
-import { Plus, UserRound } from 'lucide-react';
+import { MoreHorizontal, Plus, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
+import { useState } from 'react';
 import { z } from 'zod';
 
 import {
@@ -22,6 +29,10 @@ import {
 import { ApiHttpError } from '../../../../../api/http';
 import { useAuth } from '../../../../../auth/auth-context';
 import { employeeStatusLabels, formatDate } from '../../../../../employees/employee-format';
+import {
+  type EmployeeStatusChange,
+  EmployeeStatusDialog,
+} from '../../../../../employees/employee-status-dialog';
 
 type Employee = EmployeeListResponse['employees'][number];
 
@@ -66,7 +77,8 @@ export function EmployeesPage() {
     },
   });
   const rows = employees.data?.employees ?? [];
-  const columns = 4;
+  const [change, setChange] = useState<EmployeeStatusChange | null>(null);
+  const columns = 5;
 
   return (
     <div data-testid="employees-page" className="space-y-5">
@@ -126,7 +138,10 @@ export function EmployeesPage() {
               <TableHead className="pl-5">Angajat</TableHead>
               <TableHead>Funcție</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead className="pr-5">Angajat din</TableHead>
+              <TableHead>Angajat din</TableHead>
+              <TableHead className="w-12 pr-3">
+                <span className="sr-only">Acțiuni</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -167,9 +182,10 @@ export function EmployeesPage() {
                   <TableCell>
                     <Skeleton className="h-4 w-40" />
                   </TableCell>
-                  <TableCell className="pr-5">
+                  <TableCell>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
+                  <TableCell className="pr-3" />
                 </TableRow>
               ))
             ) : rows.length === 0 ? (
@@ -213,7 +229,7 @@ export function EmployeesPage() {
                   </TableCell>
                   <TableCell>{employee.jobTitle}</TableCell>
                   <TableCell className="max-w-56 text-sm">{contact(employee)}</TableCell>
-                  <TableCell className="pr-5 tabular-nums">
+                  <TableCell className="tabular-nums">
                     {formatDate(employee.hiredAt)}
                     {employee.terminatedAt && (
                       <span className="mt-0.5 block text-xs text-muted-foreground">
@@ -221,12 +237,46 @@ export function EmployeesPage() {
                       </span>
                     )}
                   </TableCell>
+                  <TableCell className="pr-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          data-testid="employees-row-menu"
+                          aria-label={`Acțiuni pentru ${formatEmployeeName(employee)}`}
+                        >
+                          <MoreHorizontal aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {employee.status === 'active' ? (
+                          <DropdownMenuItem
+                            data-testid="employees-terminate"
+                            onSelect={() => setChange({ employee, action: 'terminate' })}
+                          >
+                            <UserRoundMinus aria-hidden="true" />
+                            Marchează plecarea…
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            data-testid="employees-reactivate"
+                            onSelect={() => setChange({ employee, action: 'reactivate' })}
+                          >
+                            <RotateCcw aria-hidden="true" />
+                            Reactivează…
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+      <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
     </div>
   );
 }

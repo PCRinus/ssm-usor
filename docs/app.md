@@ -190,6 +190,10 @@ mobile navigation link closes the Sheet.
   switch between the two groups through the search params. The
   CNP is never part of the list. The client itself comes from the cached clients list, since
   the API has no single-client read yet; an unknown id shows a not-found screen.
+  Each row has an actions menu: **Marchează plecarea…** opens a dialog asking for the leave
+  date (today by default, not before the hire date) and calls `PATCH …/status`; on the former
+  employees tab **Reactivează…** clears it, for undoing a mistake, since a rehire after a gap
+  is a new employee. The list is invalidated so the row moves between the two tabs.
 - `/clients/:id/employees/new`: the creation form, rendered without the client summary and
   tabs (`staticData.fullPage`); a disabled first field names the client. Sections: employer, identity
   (name, optional CNP and internal number), employment (job title, hire date), contact, and

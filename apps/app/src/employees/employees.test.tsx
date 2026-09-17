@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,7 +58,9 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockApi(routes: Partial<Record<'me' | 'clients' | 'list' | 'create', Route>> = {}) {
+function mockApi(
+  routes: Partial<Record<'me' | 'clients' | 'list' | 'create' | 'status', Route>> = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
     const method = init?.method ?? 'GET';
@@ -73,6 +75,12 @@ function mockApi(routes: Partial<Record<'me' | 'clients' | 'list' | 'create', Ro
     }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json({ employees: [] });
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
+      return (
+        routes.status?.(init, url) ??
+        Response.json({ employee: { ...createdEmployee, ...JSON.parse(String(init?.body)) } })
+      );
     }
     if (url.pathname === employeesPath && method === 'POST') {
       return (
@@ -387,5 +395,123 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('employee-form-error')).textContent).toContain('arhivat');
     expect(requests(employeesPath, 'POST')).toHaveLength(2);
+  });
+});
+
+describe('employee status changes', () => {
+  const statusPath = `${employeesPath}/${sampleEmployee.id}/status`;
+
+  it('marks a leaver with a date and moves the row to former employees', async () => {
+    let status = 'active';
+    mockApi({
+      list: (_, url) =>
+        Response.json({
+          employees:
+            (url.searchParams.get('status') ?? 'active') === status
+              ? [{ ...sampleEmployee, status }]
+              : [],
+        }),
+      status: (init) => {
+        status = JSON.parse(String(init?.body)).status;
+        return Response.json({
+          employee: { ...createdEmployee, status, terminatedAt: '2026-09-10' },
+        });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    const dialog = await screen.findByTestId('employee-status-dialog');
+    expect(within(dialog).getByText('Popescu Ion')).toBeTruthy();
+    const date = screen.getByTestId('employee-terminated-at') as HTMLInputElement;
+    expect(date.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(date.getAttribute('min')).toBe('2020-03-01');
+    setDate(date, '2026-09-10');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await screen.findByTestId('employees-empty');
+    expect(screen.queryByTestId('employee-status-dialog')).toBeNull();
+    const [, init] = requests(statusPath, 'PATCH')[0]!;
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      status: 'terminated',
+      terminatedAt: '2026-09-10',
+    });
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    await screen.findByTestId('employees-row');
+  });
+
+  it('refuses a leave date before the hire date without calling the API', async () => {
+    mockApi({ list: () => Response.json({ employees: [sampleEmployee] }) });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    setDate(await screen.findByTestId('employee-terminated-at'), '2019-12-31');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('terminatedAt-error')).textContent).toContain(
+      'înaintea datei angajării'
+    );
+    expect(requests(statusPath, 'PATCH')).toHaveLength(0);
+  });
+
+  it('shows the API field issue and a generic failure in the dialog', async () => {
+    let attempts = 0;
+    mockApi({
+      list: () => Response.json({ employees: [sampleEmployee] }),
+      status: () => {
+        attempts += 1;
+        return attempts === 1
+          ? Response.json(
+              {
+                error: 'validation_error',
+                message: 'invalid',
+                issues: [{ path: 'terminatedAt', message: 'before hire' }],
+              },
+              { status: 400 }
+            )
+          : Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    await screen.findByTestId('employee-terminated-at');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await screen.findByTestId('terminatedAt-error');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
+      'Nu am putut salva'
+    );
+    expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
+  });
+
+  it('reactivates a former employee from the former employees tab', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json({
+          employees:
+            url.searchParams.get('status') === 'terminated'
+              ? [{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }]
+              : [],
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    expect(screen.queryByTestId('employees-terminate')).toBeNull();
+    await user.click(await screen.findByTestId('employees-reactivate'));
+    const dialog = await screen.findByTestId('employee-status-dialog');
+    expect(within(dialog).queryByTestId('employee-terminated-at')).toBeNull();
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await waitFor(() => expect(screen.queryByTestId('employee-status-dialog')).toBeNull());
+    expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
+      status: 'active',
+    });
   });
 });
