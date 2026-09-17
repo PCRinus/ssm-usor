@@ -183,11 +183,19 @@ mobile navigation link closes the Sheet.
   used. Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
   Search, editing, archiving, and row actions are not implemented yet. The company name
   opens the client.
+- Lists share `src/components/data-table/`: a headless TanStack Table (v9) wrapper for
+  server-side tables. Columns come from `createDataTableColumns()`, sortable ones use the API
+  sort key as their id, and column `meta` carries class names for header, cell, and skeleton.
+  The table renders the header with sortable buttons (`aria-sort` on the column header, one
+  sort at a time, never removed), the pending skeleton, the error and empty slots, the rows,
+  and the `Pager` footer; the page owns the query and maps the table's sort and page
+  callbacks onto its search params.
 - `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
   under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
   name and internal number, job title, contact, and hire date (plus the leave date for former
   employees); **Angajați actuali** (the default) and **Foști angajați** (`?status=terminated`)
-  switch between the two groups through the search params, and so does the page (`?page=`);
+  switch between the two groups through the search params, and so do the page (`?page=`) and
+  the sort (`?sort=&order=`, defaults omitted; a sort change goes back to page one);
   the footer shows the bounds and total with previous/next controls. The
   CNP is never part of the list. The client itself comes from the cached clients list, since
   the API has no single-client read yet; an unknown id shows a not-found screen.

@@ -239,6 +239,38 @@ describe('client employees list', () => {
     );
   });
 
+  it('sorts by one column at a time through the URL', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?page=2`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    const nameHeader = screen.getByRole('columnheader', { name: /Angajat$/ });
+    expect(nameHeader.getAttribute('aria-sort')).toBe('ascending');
+    // Contact is not sortable: no button, no aria-sort.
+    expect(
+      screen.getByRole('columnheader', { name: 'Contact' }).getAttribute('aria-sort')
+    ).toBeNull();
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt' }));
+    expect(
+      screen.getByRole('columnheader', { name: /Angajat din/ }).getAttribute('aria-sort')
+    ).toBe('ascending');
+    expect(nameHeader.getAttribute('aria-sort')).toBe('none');
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt', order: 'desc' })
+    );
+    // Clicking a third time never removes the sort; it goes back to ascending.
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt' }));
+    // Each sort state was requested once; the third click reuses the cached ascending page.
+    const sorts = requests(employeesPath).map(([url]) => {
+      const query = new URL(String(url)).searchParams;
+      return `${query.get('sort')}:${query.get('order')}:${query.get('page')}`;
+    });
+    expect(sorts).toEqual(['name:asc:2', 'hiredAt:asc:1', 'hiredAt:desc:1']);
+  });
+
   it('shows an empty state that leads to the creation page', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);

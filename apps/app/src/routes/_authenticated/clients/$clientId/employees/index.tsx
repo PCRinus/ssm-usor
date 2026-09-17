@@ -1,48 +1,39 @@
-import { defaultPageSize, employeeStatuses, formatEmployeeName } from '@ssm-usor/contracts';
+import {
+  defaultPageSize,
+  type EmployeeSortKey,
+  employeeSortKeys,
+  employeeStatuses,
+  sortOrderSchema,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, UserRound } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { z } from 'zod';
 
-import {
-  type EmployeeListResponse,
-  getListEmployeesQueryKey,
-  useListEmployees,
-} from '../../../../../api/generated/api';
+import { getListEmployeesQueryKey, useListEmployees } from '../../../../../api/generated/api';
 import { ApiHttpError } from '../../../../../api/http';
 import { useAuth } from '../../../../../auth/auth-context';
-import { Pager } from '../../../../../components/pager';
-import { employeeStatusLabels, formatDate } from '../../../../../employees/employee-format';
+import type { DataTableSort } from '../../../../../components/data-table/columns';
+import { DataTable } from '../../../../../components/data-table/data-table';
+import { employeeColumns, type EmployeeRow } from '../../../../../employees/employee-columns';
+import { employeeStatusLabels } from '../../../../../employees/employee-format';
 import {
   type EmployeeStatusChange,
   EmployeeStatusDialog,
 } from '../../../../../employees/employee-status-dialog';
 
-type Employee = EmployeeListResponse['items'][number];
+// The table state lives in the URL: status filter, page, and one sort key, so refresh and
+// back keep the place in the list. Defaults are omitted to keep links short.
+const defaultSort: DataTableSort & { sort: EmployeeSortKey } = { sort: 'name', order: 'asc' };
 
-// Without a status the API lists current employees; former ones stay reachable here.
-// The page lives in the URL too, so refresh and back keep the place in the list.
 const searchSchema = z.object({
   status: z.enum(employeeStatuses).optional(),
   page: z.number().int().min(1).optional().catch(undefined),
+  sort: z.enum(employeeSortKeys).optional().catch(undefined),
+  order: sortOrderSchema.optional().catch(undefined),
 });
 
 const filters = [
@@ -59,23 +50,20 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/employee
   component: EmployeesPage,
 });
 
-function contact(employee: Employee) {
-  return (
-    <>
-      {employee.email && <span className="block truncate">{employee.email}</span>}
-      {employee.phone && <span className="block tabular-nums">{employee.phone}</span>}
-      {!employee.email && !employee.phone && '—'}
-    </>
-  );
-}
+const rowKey = (row: EmployeeRow) => row.id;
 
 export function EmployeesPage() {
   const { clientId } = Route.useParams();
-  const { status, page = 1 } = Route.useSearch();
+  const {
+    status,
+    page = 1,
+    sort = defaultSort.sort,
+    order = defaultSort.order,
+  } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = { ...(status ? { status } : {}), page, pageSize: defaultPageSize };
+  const params = { ...(status ? { status } : {}), page, pageSize: defaultPageSize, sort, order };
   const employees = useListEmployees(clientId, params, {
     request: apiRequest,
     query: {
@@ -85,10 +73,9 @@ export function EmployeesPage() {
       placeholderData: keepPreviousData,
     },
   });
-  const rows = employees.data?.items ?? [];
   const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
-  const columns = 5;
+  const columns = useMemo(() => employeeColumns(setChange), []);
 
   return (
     <div data-testid="employees-page" className="space-y-5">
@@ -121,9 +108,9 @@ export function EmployeesPage() {
                   to="/clients/$clientId/employees"
                   params={{ clientId }}
                   search={filter.status ? { status: filter.status } : {}}
-                  replace
                   data-testid={filter.testId}
                   aria-current={active ? 'page' : undefined}
+                  replace
                   className={cn(
                     'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                     active
@@ -142,159 +129,82 @@ export function EmployeesPage() {
             </span>
           )}
         </div>
-        <Table data-testid="employees-table" aria-label="Lista angajaților">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-5">Angajat</TableHead>
-              <TableHead>Funcție</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Angajat din</TableHead>
-              <TableHead className="w-12 pr-3">
-                <span className="sr-only">Acțiuni</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!apiRequest.baseUrl || employees.isError ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columns} className="h-48 px-5 text-center whitespace-normal">
-                  <p data-testid="employees-error" role="alert" className="text-sm">
-                    {employees.error instanceof ApiHttpError && employees.error.status === 401
-                      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                      : employees.error instanceof ApiHttpError && employees.error.status === 403
-                        ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
-                        : employees.error instanceof ApiHttpError && employees.error.status === 404
-                          ? 'Clientul nu mai există în organizația ta.'
-                          : 'Nu am putut încărca lista angajaților. Încearcă din nou.'}
-                  </p>
-                  {apiRequest.baseUrl && (
-                    <Button
-                      data-testid="employees-retry"
-                      variant="outline"
-                      className="mt-4"
-                      disabled={employees.isFetching}
-                      onClick={() => void employees.refetch()}
-                    >
-                      Încearcă din nou
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ) : employees.isPending ? (
-              Array.from({ length: 3 }, (_, index) => (
-                <TableRow key={index} className="hover:bg-transparent">
-                  <TableCell className="pl-5">
-                    <Skeleton className="h-4 w-40" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-28" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-40" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell className="pr-3" />
-                </TableRow>
-              ))
-            ) : rows.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columns} className="h-64 px-5 text-center whitespace-normal">
-                  <UserRound
-                    className="mx-auto mb-4 size-8 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <h3 className="text-base font-medium">
-                    {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
-                  </h3>
-                  <p
-                    data-testid="employees-empty"
-                    className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                  >
-                    {status === 'terminated'
-                      ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
-                      : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
-                  </p>
-                  {!status && (
-                    <Button asChild variant="outline" className="mt-5">
-                      <Link to="/clients/$clientId/employees/new" params={{ clientId }}>
-                        <Plus aria-hidden="true" />
-                        Adaugă primul angajat
-                      </Link>
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((employee) => (
-                <TableRow key={employee.id} data-testid="employees-row">
-                  <TableCell className="pl-5 font-medium">
-                    {formatEmployeeName(employee)}
-                    {employee.employeeNumber && (
-                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                        Marca {employee.employeeNumber}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>{employee.jobTitle}</TableCell>
-                  <TableCell className="max-w-56 text-sm">{contact(employee)}</TableCell>
-                  <TableCell className="tabular-nums">
-                    {formatDate(employee.hiredAt)}
-                    {employee.terminatedAt && (
-                      <span className="mt-0.5 block text-xs text-muted-foreground">
-                        până la {formatDate(employee.terminatedAt)}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="pr-3 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          data-testid="employees-row-menu"
-                          aria-label={`Acțiuni pentru ${formatEmployeeName(employee)}`}
-                        >
-                          <MoreHorizontal aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {employee.status === 'active' ? (
-                          <DropdownMenuItem
-                            data-testid="employees-terminate"
-                            onSelect={() => setChange({ employee, action: 'terminate' })}
-                          >
-                            <UserRoundMinus aria-hidden="true" />
-                            Marchează plecarea…
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            data-testid="employees-reactivate"
-                            onSelect={() => setChange({ employee, action: 'reactivate' })}
-                          >
-                            <RotateCcw aria-hidden="true" />
-                            Reactivează…
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        {employees.isSuccess && (
-          <Pager
-            meta={meta}
-            noun={['angajat', 'angajați']}
-            disabled={employees.isFetching}
-            onPage={(next) =>
-              void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
-            }
-          />
-        )}
+        <DataTable
+          testId="employees-table"
+          rowTestId="employees-row"
+          label="Lista angajaților"
+          columns={columns}
+          data={employees.data?.items}
+          rowKey={rowKey}
+          meta={meta}
+          noun={['angajat', 'angajați']}
+          status={!apiRequest.baseUrl ? 'error' : employees.status}
+          isFetching={employees.isFetching}
+          sort={{ sort, order }}
+          onSortChange={(next) =>
+            // Filter and sort changes replace the entry: back returns to the previous page.
+            void navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                sort: next.sort === defaultSort.sort ? undefined : (next.sort as EmployeeSortKey),
+                order: next.order === defaultSort.order ? undefined : next.order,
+                page: undefined,
+              }),
+            })
+          }
+          onPageChange={(next) =>
+            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
+          }
+          error={
+            <>
+              <p data-testid="employees-error" role="alert" className="text-sm">
+                {employees.error instanceof ApiHttpError && employees.error.status === 401
+                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                  : employees.error instanceof ApiHttpError && employees.error.status === 403
+                    ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+                    : employees.error instanceof ApiHttpError && employees.error.status === 404
+                      ? 'Clientul nu mai există în organizația ta.'
+                      : 'Nu am putut încărca lista angajaților. Încearcă din nou.'}
+              </p>
+              {apiRequest.baseUrl && (
+                <Button
+                  data-testid="employees-retry"
+                  variant="outline"
+                  className="mt-4"
+                  disabled={employees.isFetching}
+                  onClick={() => void employees.refetch()}
+                >
+                  Încearcă din nou
+                </Button>
+              )}
+            </>
+          }
+          empty={
+            <>
+              <UserRound className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
+              <h3 className="text-base font-medium">
+                {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
+              </h3>
+              <p
+                data-testid="employees-empty"
+                className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
+              >
+                {status === 'terminated'
+                  ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
+                  : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
+              </p>
+              {!status && (
+                <Button asChild variant="outline" className="mt-5">
+                  <Link to="/clients/$clientId/employees/new" params={{ clientId }}>
+                    <Plus aria-hidden="true" />
+                    Adaugă primul angajat
+                  </Link>
+                </Button>
+              )}
+            </>
+          }
+        />
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
     </div>
