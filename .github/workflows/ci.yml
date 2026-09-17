@@ -29,7 +29,7 @@ jobs:
       app: ${{ steps.filter.outputs.app }}
       marketing: ${{ steps.filter.outputs.marketing }}
       database: ${{ steps.filter.outputs.database }}
-      projects: ${{ steps.filter.outputs.changes }}
+      projects: ${{ steps.projects.outputs.projects }}
     steps:
       - uses: actions/checkout@v7
 
@@ -41,6 +41,14 @@ jobs:
           # PRs use GitHub's changed-file list instead.
           base: ${{ github.ref }}
           filters: .github/filters.yml
+
+      # The database filter selects the migration job, not a deployable workspace.
+      - name: Select deployable applications
+        id: projects
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+        shell: bash
+        run: echo "projects=$(jq -c 'map(select(. != "database"))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
