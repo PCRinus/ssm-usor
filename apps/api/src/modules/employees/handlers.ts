@@ -5,7 +5,12 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import type { createEmployeeRoute, getEmployeeRoute, listEmployeesRoute } from './routes';
+import type {
+  createEmployeeRoute,
+  getEmployeeRoute,
+  listEmployeesRoute,
+  updateEmployeeStatusRoute,
+} from './routes';
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
@@ -157,6 +162,43 @@ export const getEmployee: RouteHandler<typeof getEmployeeRoute, ApiEnv> = async 
     .eq('client_id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'get employee');
+  if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
+  return c.json({ employee: toEmployee(data) }, 200);
+};
+
+export const updateEmployeeStatus: RouteHandler<typeof updateEmployeeStatusRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  const current = await db
+    .from('employees')
+    .select('id, hired_at')
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (current.error) throw fromDatabaseError(current.error, 'find employee');
+  if (!current.data) {
+    throw new ApiError('not_found', 'This employee does not exist under this client.');
+  }
+  // The database enforces the same rule; checking here names the field for the form.
+  if (body.status === 'terminated' && body.terminatedAt < current.data.hired_at) {
+    throw new ApiError('validation_error', 'The leave date cannot precede the hire date.', [
+      { path: 'terminatedAt', message: 'The leave date cannot precede the hire date.' },
+    ]);
+  }
+  const { data, error } = await db
+    .from('employees')
+    .update({
+      status: body.status,
+      terminated_at: body.status === 'terminated' ? body.terminatedAt : null,
+    })
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .select(employeeColumns)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'update employee status');
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
   return c.json({ employee: toEmployee(data) }, 200);
 };

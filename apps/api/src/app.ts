@@ -24,7 +24,7 @@ export function createApp() {
     cors({
       origin: allowedOrigins(c.env),
       allowHeaders: ['Authorization', 'Content-Type'],
-      allowMethods: ['GET', 'POST', 'OPTIONS'],
+      allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
       maxAge: 600,
     })(c, next)
   );
@@ -57,7 +57,11 @@ export function createApp() {
     if (error instanceof ApiError) {
       if (error.code === 'unauthorized') c.header('WWW-Authenticate', 'Bearer');
       return c.json(
-        { error: error.code, message: error.message } satisfies ApiErrorResponse,
+        {
+          error: error.code,
+          message: error.message,
+          ...(error.issues ? { issues: error.issues } : {}),
+        } satisfies ApiErrorResponse,
         errorStatus[error.code]
       );
     }

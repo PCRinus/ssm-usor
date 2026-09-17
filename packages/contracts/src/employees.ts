@@ -68,6 +68,15 @@ export const createEmployeeRequestSchema = z
 
 export type CreateEmployeeRequest = z.infer<typeof createEmployeeRequestSchema>;
 
+// Status transition. Marking a leaver needs the leave date; reactivating clears it and is
+// meant for undoing a mistake. A rehire after a gap is a new employee row.
+export const updateEmployeeStatusRequestSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('terminated'), terminatedAt: z.iso.date() }),
+  z.object({ status: z.literal('active') }),
+]);
+
+export type UpdateEmployeeStatusRequest = z.infer<typeof updateEmployeeStatusRequestSchema>;
+
 // Filters for the list. Without a status the list returns current employees.
 export const listEmployeesQuerySchema = z.object({
   status: employeeStatusSchema.optional(),

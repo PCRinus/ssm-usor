@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@ssm-usor/contracts';
+import type { ApiErrorCode, ApiErrorResponse } from '@ssm-usor/contracts';
 
 export const errorStatus = {
   unauthorized: 401,
@@ -23,7 +23,9 @@ export const defaultMessages = {
 export class ApiError extends Error {
   constructor(
     readonly code: ApiErrorCode,
-    message: string = defaultMessages[code]
+    message: string = defaultMessages[code],
+    // Field-level details for validation errors raised by handlers, not by body parsing.
+    readonly issues?: ApiErrorResponse['issues']
   ) {
     super(message);
     this.name = 'ApiError';
