@@ -1,0 +1,88 @@
+import { z } from 'zod';
+
+import { countyCodeSchema } from './counties';
+import { isValidCuiInput } from './cui';
+
+const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
+
+// Request body for creating a client. The CUI accepts an optional RO prefix and spacing;
+// the API stores digits only and treats a present prefix as VAT registration.
+export const createClientRequestSchema = z.object({
+  legalName: z.string().trim().min(2).max(200),
+  cui: z
+    .string()
+    .trim()
+    .min(2)
+    .max(16)
+    .refine(isValidCuiInput, { message: 'Invalid CUI (format or control digit).' }),
+  vatPayer: z.boolean().default(false),
+  caenCode: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{4}$/, { message: 'CAEN code must have four digits.' })
+    .nullish(),
+  tradeRegisterNumber: optionalText(1, 40),
+  countyCode: countyCodeSchema.nullish(),
+  locality: optionalText(1, 120),
+  addressLine: optionalText(1, 240),
+  legalRepresentativeName: optionalText(2, 160),
+  declaredEmployeeCount: z.int().min(0).max(1_000_000).nullish(),
+});
+
+export type CreateClientRequest = z.infer<typeof createClientRequestSchema>;
+
+export const clientSchema = z.object({
+  id: z.uuid(),
+  legalName: z.string(),
+  cui: z.string(),
+  vatPayer: z.boolean(),
+  caenCode: z.string().nullable(),
+  tradeRegisterNumber: z.string().nullable(),
+  countyCode: countyCodeSchema.nullable(),
+  locality: z.string().nullable(),
+  addressLine: z.string().nullable(),
+  legalRepresentativeName: z.string().nullable(),
+  declaredEmployeeCount: z.int().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+  archivedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
+export type Client = z.infer<typeof clientSchema>;
+
+export const clientResponseSchema = z.object({ client: clientSchema });
+
+export type ClientResponse = z.infer<typeof clientResponseSchema>;
+
+export const clientListResponseSchema = z.object({ clients: z.array(clientSchema) });
+
+export type ClientListResponse = z.infer<typeof clientListResponseSchema>;
+
+// Public company data from ANAF, used to prefill the client form.
+export const companyLookupQuerySchema = z.object({
+  cui: z
+    .string()
+    .trim()
+    .min(2)
+    .max(16)
+    .refine(isValidCuiInput, { message: 'Invalid CUI (format or control digit).' }),
+});
+
+export const companyLookupSchema = z.object({
+  cui: z.string(),
+  legalName: z.string(),
+  vatPayer: z.boolean(),
+  caenCode: z.string().nullable(),
+  tradeRegisterNumber: z.string().nullable(),
+  countyCode: countyCodeSchema.nullable(),
+  locality: z.string().nullable(),
+  addressLine: z.string().nullable(),
+  registrationStatus: z.string().nullable(),
+  inactive: z.boolean(),
+});
+
+export type CompanyLookup = z.infer<typeof companyLookupSchema>;
+
+export const companyLookupResponseSchema = z.object({ company: companyLookupSchema });
+
+export type CompanyLookupResponse = z.infer<typeof companyLookupResponseSchema>;

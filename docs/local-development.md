@@ -14,13 +14,16 @@ From the repository root:
 
 ```bash
 pnpm supabase:start
-pnpm seed:admin:local
+pnpm seed:local
 pnpm supabase:status
 ```
 
 The first start downloads Docker images. Subsequent starts reuse them and the local data.
-The seed creates `admin@ssmusor.test` with password `admin123`. Rerunning it updates the
-same seed account. It reads the local secret key into memory from `supabase status`,
+Starting applies every migration under `supabase/migrations`. The seed creates
+`admin@ssmusor.test` with password `admin123`, the organization "SSM Ușor" with that user as
+owner, and 25 fake clients generated with Faker's Romanian locale from a fixed seed value.
+Rerunning it updates the same account and rows. Pass `-- --clients 50` or `-- --seed 7` for
+a different dataset. The seed reads the local secret key into memory from `supabase status`,
 ignores hosted environment settings, and refuses non-loopback Supabase URLs.
 
 ## Connect the SPA and API
@@ -92,5 +95,14 @@ app/API servers with Ctrl+C; `pnpm stop:marketing` stops Astro background server
 To reconnect to hosted Supabase, restore the hosted URL/key in both environment files and
 restart the SPA/API. Local configuration does not change GitHub environments or deployments.
 
-Supabase manages its own Auth tables. Future business tables can be added through checked-in
-SQL migrations under `supabase/migrations`; an ORM is not required for this setup.
+Supabase manages its own Auth tables. Business tables are checked-in SQL migrations under
+`supabase/migrations`; there is no ORM. After changing the schema:
+
+```bash
+supabase db reset        # rebuild the local database from all migrations
+pnpm supabase:test       # pgTAP policy tests in supabase/tests
+pnpm generate:db         # refresh apps/api/src/database.types.ts (checked in CI)
+pnpm seed:local
+```
+
+See the [data model](data-model.md) for the tenancy design and the migration workflow.

@@ -1,0 +1,90 @@
+# Data model and tenancy
+
+Status: implemented for organizations, memberships, impersonations, and clients  
+Audience: engineering
+
+The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
+Supabase CLI locally and from CI to the hosted project. There is no ORM. The Hono API reads
+and writes through PostgREST with the caller's own access token, so the row-level security
+(RLS) policies in the database are the authorization layer.
+
+## Tenancy
+
+An **organization** is one external SSM provider using the app: the paying customer. Every
+Supabase auth user belongs to at most one organization through **organization_members**,
+whose primary key is the user id. Roles are `owner` (administers the organization: team,
+settings, archiving) and `specialist` (does the SSM work). Nothing distinguishes them yet;
+the column exists so the seed can mark the first user and future policies can check it.
+
+Every business table carries an `organization_id`. Policies compare it with
+`public.current_organization_id()`, which resolves the caller's **effective** user (see
+impersonation) and returns that user's membership. `public.current_membership()` returns the
+same information as one row for the API. Both helpers run as `security definer` so they can
+read memberships regardless of the caller's own policies.
+
+Roles and organizations are never stored in Supabase user metadata. The only claim the app
+trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
+
+A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
+Organizations and memberships are created by the seed for now; owner-managed invitations will
+need the Auth Admin API, which requires a secret key the Worker does not hold.
+
+## Platform admins and impersonation
+
+`public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin`. Platform
+admins have no blanket bypass. To reproduce a customer's problem they **impersonate** a user:
+an `impersonations` row (admin, target, reason, `expires_at`, `ended_at`) makes
+`public.effective_user_id()` return the target while the row is active, so every policy
+automatically scopes to the target's organization and role. Rows are kept after ending as an
+audit trail, and a partial unique index allows one active impersonation per admin.
+
+Writes made during an impersonation carry the target's organization but the admin's real user
+id in `created_by`. The API routes and the banner for starting and ending impersonations are a
+follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
+
+## Clients
+
+`clients` stores the client companies of an organization:
+
+| Column                                    | Notes                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| `legal_name`                              | Required.                                                                       |
+| `cui`                                     | Required, digits only, unique per organization; checksum validated by the API.  |
+| `vat_payer`                               | The `RO` prefix is not stored; it is represented by this flag.                  |
+| `caen_code`                               | Four digits, leading zeros preserved (CAEN Rev. 3).                             |
+| `trade_register_number`                   | As issued (`J40/1234/2020` or the newer `J2024…` format).                       |
+| `county_code`, `locality`, `address_line` | Registered office; the county uses the vehicle registration code.               |
+| `legal_representative_name`               | Name only for now.                                                              |
+| `declared_employee_count`                 | Headcount declared at onboarding; a live count will come from employee records. |
+| `archived_at`                             | Soft delete. There is no delete policy.                                         |
+
+Deferred on purpose: service status and contract period, financial data, contacts as their
+own table, and specialist assignment.
+
+The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
+the generated client, so the form and the API validate against one list, and the database
+check constraint mirrors it.
+
+## Working with the schema
+
+```bash
+supabase migration new <name>      # new SQL file under supabase/migrations
+supabase db reset                  # rebuild the local database from all migrations
+pnpm supabase:test                 # pgTAP tests in supabase/tests
+pnpm generate:db                   # regenerate apps/api/src/database.types.ts
+pnpm seed:local                    # admin user, organization, and fake clients
+```
+
+Migrations are forward-only. A bad migration is fixed with a corrective migration, never by
+rolling back. CI applies every migration to a fresh database, runs the pgTAP tests, and fails
+if the committed database types are stale. On `main`, the **Deploy database migrations** job
+pushes pending migrations to the hosted project before the API deploys; see the
+[application deployment guide](app-deployment.md) for its secrets.
+
+## Environments
+
+There is a single hosted Supabase project today, used by the deployed app and for development.
+It becomes the development project when the first customer data or external pilot user arrives:
+create a new production project, point a new GitHub environment at it, let CI replay the
+migrations, run the seed without fake data, and move the custom domains. Nothing in the schema
+or code changes for that switch.

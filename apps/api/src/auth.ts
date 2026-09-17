@@ -2,7 +2,8 @@ import { currentUserSchema } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import { createMiddleware } from 'hono/factory';
 
-import { type ApiEnv, supabaseConfigSchema } from './env';
+import { requestFetch, supabaseConfig } from './db';
+import type { ApiEnv } from './env';
 import { ApiError } from './errors';
 
 export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
@@ -10,23 +11,16 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
   const token = authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];
   if (!token) throw new ApiError('unauthorized');
 
-  const config = supabaseConfigSchema.safeParse(c.env);
-  if (!config.success) throw new ApiError('service_unavailable');
+  const config = supabaseConfig(c);
 
   // No server session is stored. Every request verifies its own access token.
-  const supabase = createClient(config.data.SUPABASE_URL, config.data.SUPABASE_PUBLISHABLE_KEY, {
+  const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
-    global: {
-      fetch: (input, init) =>
-        fetch(input, {
-          ...init,
-          signal: AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(5_000)]),
-        }),
-    },
+    global: { fetch: requestFetch(c, 5_000) },
   });
 
   const { data, error } = await supabase.auth.getUser(token);
@@ -34,7 +28,7 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
     if (error.status === 401 || error.status === 403 || error.code === 'bad_jwt') {
       throw new ApiError('unauthorized');
     }
-    throw new ApiError('service_unavailable');
+    throw new ApiError('service_unavailable', 'Authentication is temporarily unavailable.');
   }
 
   if (!data.user || data.user.is_anonymous) throw new ApiError('unauthorized');
@@ -47,5 +41,6 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
   if (!user.success) throw new ApiError('service_unavailable');
 
   c.set('user', user.data);
+  c.set('accessToken', token);
   await next();
 });

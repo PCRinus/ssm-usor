@@ -21,7 +21,7 @@ and recovery from failed deployments.
 
 See the [API client guide](docs/api-client.md) for OpenAPI generation, Orval, and `VITE_API_URL`.
 
-See the [development admin guide](docs/development-admin.md) for local login credentials and `pnpm seed:admin`.
+See the [development admin guide](docs/development-admin.md) for local login credentials and `pnpm seed`.
 
 See [local Supabase development](docs/local-development.md) to run Auth and Postgres with
 Docker, seed a local user, and connect the SPA/API without using the hosted project.

@@ -29,3 +29,7 @@ marketing:
   - *shared
   - *ui
   - 'apps/marketing/**'
+# Schema changes deploy to the hosted Supabase project from main.
+database:
+  - 'supabase/config.toml'
+  - 'supabase/migrations/**'

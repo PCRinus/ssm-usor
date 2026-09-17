@@ -30,8 +30,10 @@
     "prepare": "lefthook install",
     "generate:api": "pnpm --filter @ssm-usor/contracts build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
     "check:generated": "node scripts/check-generated.mjs",
-    "seed:admin": "pnpm --filter @ssm-usor/api seed:admin",
-    "seed:admin:local": "pnpm --filter @ssm-usor/api seed:admin:local",
+    "seed": "pnpm --filter @ssm-usor/api seed",
+    "seed:local": "pnpm --filter @ssm-usor/api seed:local",
+    "generate:db": "supabase gen types typescript --local --schema public > apps/api/src/database.types.ts && prettier --write apps/api/src/database.types.ts",
+    "supabase:test": "supabase test db",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status"

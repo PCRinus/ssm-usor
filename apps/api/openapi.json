@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "SSM Ușor API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "components": {
     "securitySchemes": {
@@ -32,10 +32,33 @@
         "properties": {
           "error": {
             "type": "string",
-            "enum": ["unauthorized", "service_unavailable", "not_found", "internal_error"]
+            "enum": [
+              "unauthorized",
+              "forbidden",
+              "validation_error",
+              "not_found",
+              "conflict",
+              "service_unavailable",
+              "internal_error"
+            ]
           },
           "message": {
             "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": ["path", "message"]
+            }
           }
         },
         "required": ["error", "message"]
@@ -60,6 +83,469 @@
           }
         },
         "required": ["user"]
+      },
+      "ClientListResponse": {
+        "type": "object",
+        "properties": {
+          "clients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "legalName": {
+                  "type": "string"
+                },
+                "cui": {
+                  "type": "string"
+                },
+                "vatPayer": {
+                  "type": "boolean"
+                },
+                "caenCode": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "tradeRegisterNumber": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "countyCode": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "AB",
+                    "AR",
+                    "AG",
+                    "BC",
+                    "BH",
+                    "BN",
+                    "BT",
+                    "BV",
+                    "BR",
+                    "B",
+                    "BZ",
+                    "CS",
+                    "CL",
+                    "CJ",
+                    "CT",
+                    "CV",
+                    "DB",
+                    "DJ",
+                    "GL",
+                    "GR",
+                    "GJ",
+                    "HR",
+                    "HD",
+                    "IL",
+                    "IS",
+                    "IF",
+                    "MM",
+                    "MH",
+                    "MS",
+                    "NT",
+                    "OT",
+                    "PH",
+                    "SM",
+                    "SJ",
+                    "SB",
+                    "SV",
+                    "TR",
+                    "TM",
+                    "TL",
+                    "VS",
+                    "VL",
+                    "VN",
+                    null
+                  ]
+                },
+                "locality": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "addressLine": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "legalRepresentativeName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "declaredEmployeeCount": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "archivedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "legalName",
+                "cui",
+                "vatPayer",
+                "caenCode",
+                "tradeRegisterNumber",
+                "countyCode",
+                "locality",
+                "addressLine",
+                "legalRepresentativeName",
+                "declaredEmployeeCount",
+                "createdAt",
+                "updatedAt",
+                "archivedAt"
+              ]
+            }
+          }
+        },
+        "required": ["clients"]
+      },
+      "ClientResponse": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "legalName": {
+                "type": "string"
+              },
+              "cui": {
+                "type": "string"
+              },
+              "vatPayer": {
+                "type": "boolean"
+              },
+              "caenCode": {
+                "type": "string",
+                "nullable": true
+              },
+              "tradeRegisterNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "countyCode": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "AB",
+                  "AR",
+                  "AG",
+                  "BC",
+                  "BH",
+                  "BN",
+                  "BT",
+                  "BV",
+                  "BR",
+                  "B",
+                  "BZ",
+                  "CS",
+                  "CL",
+                  "CJ",
+                  "CT",
+                  "CV",
+                  "DB",
+                  "DJ",
+                  "GL",
+                  "GR",
+                  "GJ",
+                  "HR",
+                  "HD",
+                  "IL",
+                  "IS",
+                  "IF",
+                  "MM",
+                  "MH",
+                  "MS",
+                  "NT",
+                  "OT",
+                  "PH",
+                  "SM",
+                  "SJ",
+                  "SB",
+                  "SV",
+                  "TR",
+                  "TM",
+                  "TL",
+                  "VS",
+                  "VL",
+                  "VN",
+                  null
+                ]
+              },
+              "locality": {
+                "type": "string",
+                "nullable": true
+              },
+              "addressLine": {
+                "type": "string",
+                "nullable": true
+              },
+              "legalRepresentativeName": {
+                "type": "string",
+                "nullable": true
+              },
+              "declaredEmployeeCount": {
+                "type": "integer",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "legalName",
+              "cui",
+              "vatPayer",
+              "caenCode",
+              "tradeRegisterNumber",
+              "countyCode",
+              "locality",
+              "addressLine",
+              "legalRepresentativeName",
+              "declaredEmployeeCount",
+              "createdAt",
+              "updatedAt",
+              "archivedAt"
+            ]
+          }
+        },
+        "required": ["client"]
+      },
+      "CreateClientRequest": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "cui": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 16
+          },
+          "vatPayer": {
+            "type": "boolean",
+            "default": false
+          },
+          "caenCode": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9]{4}$"
+          },
+          "tradeRegisterNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "countyCode": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "AB",
+              "AR",
+              "AG",
+              "BC",
+              "BH",
+              "BN",
+              "BT",
+              "BV",
+              "BR",
+              "B",
+              "BZ",
+              "CS",
+              "CL",
+              "CJ",
+              "CT",
+              "CV",
+              "DB",
+              "DJ",
+              "GL",
+              "GR",
+              "GJ",
+              "HR",
+              "HD",
+              "IL",
+              "IS",
+              "IF",
+              "MM",
+              "MH",
+              "MS",
+              "NT",
+              "OT",
+              "PH",
+              "SM",
+              "SJ",
+              "SB",
+              "SV",
+              "TR",
+              "TM",
+              "TL",
+              "VS",
+              "VL",
+              "VN",
+              null
+            ]
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "addressLine": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "legalRepresentativeName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "declaredEmployeeCount": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 1000000
+          }
+        },
+        "required": ["legalName", "cui"]
+      },
+      "CompanyLookupResponse": {
+        "type": "object",
+        "properties": {
+          "company": {
+            "type": "object",
+            "properties": {
+              "cui": {
+                "type": "string"
+              },
+              "legalName": {
+                "type": "string"
+              },
+              "vatPayer": {
+                "type": "boolean"
+              },
+              "caenCode": {
+                "type": "string",
+                "nullable": true
+              },
+              "tradeRegisterNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "countyCode": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "AB",
+                  "AR",
+                  "AG",
+                  "BC",
+                  "BH",
+                  "BN",
+                  "BT",
+                  "BV",
+                  "BR",
+                  "B",
+                  "BZ",
+                  "CS",
+                  "CL",
+                  "CJ",
+                  "CT",
+                  "CV",
+                  "DB",
+                  "DJ",
+                  "GL",
+                  "GR",
+                  "GJ",
+                  "HR",
+                  "HD",
+                  "IL",
+                  "IS",
+                  "IF",
+                  "MM",
+                  "MH",
+                  "MS",
+                  "NT",
+                  "OT",
+                  "PH",
+                  "SM",
+                  "SJ",
+                  "SB",
+                  "SV",
+                  "TR",
+                  "TM",
+                  "TL",
+                  "VS",
+                  "VL",
+                  "VN",
+                  null
+                ]
+              },
+              "locality": {
+                "type": "string",
+                "nullable": true
+              },
+              "addressLine": {
+                "type": "string",
+                "nullable": true
+              },
+              "registrationStatus": {
+                "type": "string",
+                "nullable": true
+              },
+              "inactive": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "cui",
+              "legalName",
+              "vatPayer",
+              "caenCode",
+              "tradeRegisterNumber",
+              "countyCode",
+              "locality",
+              "addressLine",
+              "registrationStatus",
+              "inactive"
+            ]
+          }
+        },
+        "required": ["company"]
       }
     },
     "parameters": {}
@@ -134,7 +620,256 @@
             }
           },
           "503": {
-            "description": "Authentication is temporarily unavailable",
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients": {
+      "get": {
+        "operationId": "listClients",
+        "summary": "List the organization's active clients",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active clients ordered by legal name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createClient",
+        "summary": "Create a client in the organization",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A client with this CUI already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/lookup": {
+      "get": {
+        "operationId": "lookupCompany",
+        "summary": "Look up public company data by CUI (ANAF)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 16
+            },
+            "required": true,
+            "name": "cui",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public registry data to prefill a client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyLookupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CUI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No company registered with this CUI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {
