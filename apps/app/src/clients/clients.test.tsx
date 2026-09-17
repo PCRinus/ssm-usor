@@ -178,7 +178,7 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-vat-payer').getAttribute('aria-checked')).toBe('true');
     expect(screen.getByTestId('client-caen').textContent).toContain('0610');
     expect(screen.getByTestId('client-caen').textContent).toContain('Extracția petrolului brut');
-    expect((screen.getByTestId('client-county') as HTMLSelectElement).value).toBe('B');
+    expect(screen.getByTestId('client-county').textContent).toContain('București');
     expect((screen.getByTestId('client-locality') as HTMLInputElement).value).toBe(
       'Sector 1 Mun. București'
     );
@@ -217,7 +217,12 @@ describe('client creation', () => {
     expect(status.getAttribute('role')).toBe('alert');
     expect(status.textContent).toContain('Nu am găsit');
     await user.type(screen.getByTestId('client-legal-name'), 'Firma Mea SRL');
-    await user.selectOptions(screen.getByTestId('client-county'), 'CJ');
+    await user.click(screen.getByTestId('client-county'));
+    await user.type(screen.getByTestId('client-county-search'), 'clu');
+    await user.click(
+      await within(await screen.findByRole('listbox')).findByRole('option', { name: /Cluj/ })
+    );
+    expect(screen.getByTestId('client-county').textContent).toContain('Cluj');
     await user.click(screen.getByTestId('client-vat-payer'));
     await user.click(screen.getByTestId('client-caen'));
     await user.type(screen.getByTestId('client-caen-search'), 'soft-ului la comanda');
@@ -250,7 +255,7 @@ describe('client creation', () => {
     expect(options.every((option) => /^62/.test(option.textContent ?? ''))).toBe(true);
     await user.clear(screen.getByTestId('client-caen-search'));
     await user.type(screen.getByTestId('client-caen-search'), '9999');
-    await user.click(await within(listbox).findByRole('option', { name: /Folosește codul/ }));
+    await user.click(await within(listbox).findByRole('option', { name: /Folosește/ }));
     expect(screen.getByTestId('client-caen').textContent).toContain('9999');
     expect(screen.getByTestId('client-caen').textContent).toContain('nu apare');
     await user.click(screen.getByTestId('client-caen'));

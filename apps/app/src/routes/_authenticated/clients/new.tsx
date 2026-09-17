@@ -1,16 +1,15 @@
-import { romanianCounties } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Search } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import { Controller } from 'react-hook-form';
 
 import { CaenCombobox } from '../../../clients/caen-combobox';
+import { CountyCombobox } from '../../../clients/county-combobox';
 import { useClientForm } from '../../../clients/use-client-form';
 import { Field } from '../../../components/form-field';
 
@@ -205,22 +204,21 @@ export function NewClientPage() {
             description="Adresa înregistrată a companiei. Punctele de lucru se adaugă separat."
           >
             <Field id="countyCode" label="Județ" error={errors.countyCode}>
-              <NativeSelect
-                id="countyCode"
-                data-testid="client-county"
-                className="h-11 min-w-56"
-                {...register('countyCode')}
-                disabled={busy}
-                aria-invalid={Boolean(errors.countyCode)}
-                aria-describedby={describedBy('countyCode', errors.countyCode)}
-              >
-                <NativeSelectOption value="">Alege județul</NativeSelectOption>
-                {romanianCounties.map((county) => (
-                  <NativeSelectOption key={county.code} value={county.code}>
-                    {county.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <Controller
+                control={control}
+                name="countyCode"
+                render={({ field }) => (
+                  <CountyCombobox
+                    id="countyCode"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={busy}
+                    invalid={Boolean(errors.countyCode)}
+                    describedBy={describedBy('countyCode', errors.countyCode)}
+                  />
+                )}
+              />
             </Field>
             <Field id="locality" label="Localitate" error={errors.locality}>
               <Input
