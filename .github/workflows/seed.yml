@@ -1,7 +1,8 @@
 name: Seed database
 
 # Operator action, run by hand: ensures the admin user, its organization, and optionally
-# fake clients on the hosted Supabase project. Never part of a release.
+# fake clients on the hosted Supabase project. Never part of a release. An existing admin
+# account keeps its password; the default applies only when the account is first created.
 on:
   workflow_dispatch:
     inputs:
@@ -34,7 +35,6 @@ jobs:
     env:
       SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-      SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
       SEED_ADMIN_EMAIL_INPUT: ${{ vars.SEED_ADMIN_EMAIL }}
       SEED_ORGANIZATION_NAME_INPUT: ${{ vars.SEED_ORGANIZATION_NAME }}
       SEED_ALLOW_FAKE: ${{ vars.SEED_ALLOW_FAKE }}
@@ -44,7 +44,6 @@ jobs:
         run: |
           : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
-          : "${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in GitHub secrets}"
           if [[ "${{ inputs.fake }}" == "true" && "$SEED_ALLOW_FAKE" != "true" ]]; then
             echo "Fake data is not allowed in this environment. Set SEED_ALLOW_FAKE=true to permit it."
             exit 1

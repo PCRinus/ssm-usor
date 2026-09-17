@@ -66,8 +66,8 @@ The script uses Supabase's Auth Admin API and, with the same secret key, PostgRE
 - Create it with a confirmed email and the configured password if absent.
 - Set trusted `app_metadata.role` to `admin` and `app_metadata.seed` to
   `ssm-usor-development-admin`.
-- On rerun, update the same marked account's password, confirmation, and seed metadata,
-  preserving its user ID and other app metadata.
+- On rerun, update the same marked account's confirmation and seed metadata, preserving its
+  user ID, password, and other app metadata.
 - Refuse to overwrite an existing account without that trusted seed marker. Choose a different
   seed email if it conflicts with an unrelated account.
 - Upsert the organization on a fixed identifier and make the seeded user its `owner`.
@@ -80,8 +80,9 @@ The `admin` metadata marks a platform admin: it does not bypass row-level securi
 allows impersonating a user for support, as described in the [data model](data-model.md).
 User-editable `user_metadata` is not used to grant privileges.
 
-Changing `SEED_ADMIN_PASSWORD` and rerunning the script resets this development account's
-password. Changing the email creates a separate account; it does not rename or delete the old one.
+`SEED_ADMIN_PASSWORD` applies only when the account is created; rerunning the script never
+changes an existing account's password. Changing the email creates a separate account; it does
+not rename or delete the old one.
 Password-policy errors are reported without automatically changing credentials or policy.
 
 ## Local login

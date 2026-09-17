@@ -31,7 +31,6 @@ and deployment jobs use its variables, secrets, and protection rules. Add these 
 | `SUPABASE_ACCESS_TOKEN`                      | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.            |
 | `SUPABASE_DB_PASSWORD`                       | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.        |
 | `SUPABASE_SECRET_KEY`                        | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used only by the seed workflow.    |
-| `SEED_ADMIN_PASSWORD`                        | Secret   | Password the seed sets on the admin account (at least six characters).                           |
 | `SEED_ALLOW_FAKE`                            | Variable | `true` to let the seed workflow add fake clients; leave unset on a real production project.      |
 | `SEED_ADMIN_EMAIL`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account and organization name.                                 |
 
