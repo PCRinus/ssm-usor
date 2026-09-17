@@ -2,6 +2,8 @@
 
 One workflow, `.github/workflows/ci.yml`, validates pull requests and pushes to `main`.
 Only pushes to `main` deploy. The old standalone/manual deployment workflows are removed.
+A separate manual **Seed database** workflow seeds the hosted project on demand; see the
+[application deployment guide](app-deployment.md#seed-the-hosted-project).
 
 ## Change selection
 

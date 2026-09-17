@@ -42,7 +42,9 @@ pnpm seed
 ```
 
 This seeds the admin user and its organization only. Add `-- --fake` to also upsert fake
-clients (`-- --clients 50 --seed 7` to vary them). The hosted project currently doubles as
+clients (`-- --clients 50 --seed 7` to vary them). The same script runs from GitHub as the
+manual **Seed database** workflow, which needs no local CLI login; see the
+[application deployment guide](app-deployment.md#seed-the-hosted-project). The hosted project currently doubles as
 the development environment, so fake data there is acceptable until a separate production
 project exists. Set `SEED_ORGANIZATION_NAME` in `.env.seed` to rename the organization.
 
