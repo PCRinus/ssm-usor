@@ -143,11 +143,9 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-cui').getAttribute('aria-invalid')).toBe('true');
     await user.type(screen.getByTestId('client-cui'), '1590083');
     await user.type(screen.getByTestId('client-legal-name'), 'Firma');
-    await user.type(screen.getByTestId('client-caen'), '61');
     await user.type(screen.getByTestId('client-employees'), '12a');
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('cui-error')).textContent).toContain('CUI invalid');
-    expect(screen.getByTestId('caenCode-error').textContent).toContain('patru cifre');
     expect(screen.getByTestId('declaredEmployeeCount-error')).toBeTruthy();
     expect(requests('/clients', 'POST')).toHaveLength(0);
   });
@@ -178,7 +176,14 @@ describe('client creation', () => {
       'OMV PETROM SA'
     );
     expect(screen.getByTestId('client-vat-payer').getAttribute('aria-checked')).toBe('true');
-    expect((screen.getByTestId('client-caen') as HTMLInputElement).value).toBe('0610');
+    expect(screen.getByTestId('client-caen').textContent).toContain('0610');
+    expect(screen.getByTestId('client-caen').textContent).toContain('Extracția petrolului brut');
+    expect(screen.getByTestId('preview-name').textContent).toBe('OMV PETROM SA');
+    expect(screen.getByTestId('preview-cui').textContent).toBe('RO1590082');
+    expect(screen.getByTestId('preview-caen').textContent).toContain('Extracția petrolului brut');
+    expect(screen.getByTestId('preview-office').textContent).toBe(
+      'Sector 1 Mun. București, București'
+    );
     expect((screen.getByTestId('client-county') as HTMLSelectElement).value).toBe('B');
     expect((screen.getByTestId('client-locality') as HTMLInputElement).value).toBe(
       'Sector 1 Mun. București'
@@ -220,6 +225,13 @@ describe('client creation', () => {
     await user.type(screen.getByTestId('client-legal-name'), 'Firma Mea SRL');
     await user.selectOptions(screen.getByTestId('client-county'), 'CJ');
     await user.click(screen.getByTestId('client-vat-payer'));
+    await user.click(screen.getByTestId('client-caen'));
+    await user.type(screen.getByTestId('client-caen-search'), 'soft-ului la comanda');
+    const listbox = await screen.findByRole('listbox');
+    await user.click(await within(listbox).findByRole('option', { name: /6210/ }));
+    expect(screen.getByTestId('client-caen').textContent).toContain('6210');
+    expect(screen.getByTestId('client-caen').textContent).toContain('soft-ului la comandă');
+    expect(screen.getByTestId('preview-office').textContent).toBe('Cluj');
     await user.click(screen.getByTestId('client-submit'));
     await screen.findByTestId('clients-page');
     expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).toMatchObject({
@@ -227,9 +239,34 @@ describe('client creation', () => {
       cui: '1590082',
       vatPayer: true,
       countyCode: 'CJ',
-      caenCode: null,
+      caenCode: '6210',
       declaredEmployeeCount: null,
     });
+  });
+
+  it('finds CAEN classes by code prefix and accepts an unclassified four-digit code', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/clients/new');
+    const user = userEvent.setup();
+    await screen.findByTestId('new-client-page');
+    await user.click(screen.getByTestId('client-caen'));
+    await user.type(screen.getByTestId('client-caen-search'), '62');
+    const listbox = await screen.findByRole('listbox');
+    const options = await within(listbox).findAllByRole('option');
+    expect(options[0]?.textContent).toContain('6210');
+    expect(options.every((option) => /^62/.test(option.textContent ?? ''))).toBe(true);
+    await user.clear(screen.getByTestId('client-caen-search'));
+    await user.type(screen.getByTestId('client-caen-search'), '9999');
+    await user.click(await within(listbox).findByRole('option', { name: /Folosește codul/ }));
+    expect(screen.getByTestId('client-caen').textContent).toContain('9999');
+    expect(screen.getByTestId('client-caen').textContent).toContain('nu apare');
+    await user.click(screen.getByTestId('client-caen'));
+    await user.click(
+      await within(await screen.findByRole('listbox')).findByRole('option', {
+        name: /Șterge codul/,
+      })
+    );
+    expect(screen.getByTestId('client-caen').textContent).toContain('Caută după cod');
   });
 
   it('reports an ANAF outage without blocking the form', async () => {

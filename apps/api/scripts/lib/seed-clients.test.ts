@@ -1,4 +1,4 @@
-import { isValidCui } from '@ssm-usor/contracts';
+import { caenClassName, isValidCui } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -21,7 +21,7 @@ describe('fake clients', () => {
       expect(row.organization_id).toBe(organizationId);
       expect(row.created_by).toBe(userId);
       expect(row.legal_name.length).toBeGreaterThan(2);
-      if (row.caen_code) expect(row.caen_code).toMatch(/^[0-9]{4}$/);
+      if (row.caen_code) expect(caenClassName(row.caen_code)).not.toBeNull();
       expect(row.declared_employee_count).toBeGreaterThan(0);
     }
   });

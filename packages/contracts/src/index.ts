@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+export * from './caen';
 export * from './clients';
 export * from './counties';
 export * from './cui';

@@ -61,7 +61,8 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 Deferred on purpose: service status and contract period, financial data, contacts as their
 own table, and specialist assignment.
 
-The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
+The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives in
+`packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
 the generated client, so the form and the API validate against one list, and the database
 check constraint mirrors it.
 
