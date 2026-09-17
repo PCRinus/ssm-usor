@@ -77,11 +77,11 @@ export function EmployeesPage() {
   const columns = 5;
 
   return (
-    <div data-testid="employees-page" className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div data-testid="employees-page" className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Angajați</h2>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <h2 className="sr-only">Angajați</h2>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
             Persoanele angajate la acest client, pentru instruiri, fișe și documente.
           </p>
         </div>

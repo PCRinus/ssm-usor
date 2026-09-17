@@ -109,7 +109,10 @@ describe('client employees list', () => {
     mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('client-page');
     expect(screen.getByRole('heading', { level: 1, name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(screen.getByText('CUI RO1590082')).toBeTruthy();
+    expect(screen.getByText('RO1590082')).toBeTruthy();
+    expect(screen.getByText('· Extracția petrolului brut')).toBeTruthy();
+    expect(screen.getByText('Sector 1 Mun. București, București')).toBeTruthy();
+    expect(screen.getByTestId('client-section').getAttribute('aria-current')).toBe('page');
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).queryByText('Spațiul de lucru')).toBeNull();
     expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();

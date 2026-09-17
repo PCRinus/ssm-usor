@@ -184,7 +184,7 @@ mobile navigation link closes the Sheet.
   Search, editing, archiving, and row actions are not implemented yet. The company name
   opens the client.
 - `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
-  under a client header (name, CUI, CAEN, registered office) and section tabs. The list shows
+  under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
   name and internal number, job title, contact, hire date, and status; **În activitate** (the
   default) lists active and suspended people and **Plecați** passes `?status=terminated`. The
   CNP is never part of the list. The client itself comes from the cached clients list, since

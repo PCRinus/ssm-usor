@@ -1,7 +1,6 @@
-import { type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
+import { caenClassName, type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import {
   createFileRoute,
   type ErrorComponentProps,
@@ -10,6 +9,8 @@ import {
   Outlet,
   useRouter,
 } from '@tanstack/react-router';
+import { Building2, UsersRound } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
 
 import {
@@ -22,7 +23,9 @@ import { ApiHttpError } from '../../../api/http';
 export type Client = ClientListResponse['clients'][number];
 
 // Sections of a client. Only employees exist for now; documents and workplaces will follow.
-const sections = [{ to: '/clients/$clientId/employees', label: 'Angajați' }] as const;
+const sections = [
+  { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound },
+] as const;
 
 // The client comes from the organization's list, which is the only client read the API
 // offers. The list is cached per user by the clients page, so navigation reuses it.
@@ -52,34 +55,73 @@ function registeredOffice(client: Client) {
   return [client.locality, county].filter(Boolean).join(', ');
 }
 
+// One labelled value of the client summary strip.
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 bg-card px-5 py-3.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 truncate text-sm font-medium">{children}</dd>
+    </div>
+  );
+}
+
 export function ClientLayout() {
   const { client } = Route.useLoaderData();
   const office = registeredOffice(client);
+  const caen = client.caenCode ? caenClassName(client.caenCode) : null;
   return (
     <div data-testid="client-page" className="space-y-7">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">{client.legalName}</h1>
-        <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span className="tabular-nums">CUI {formatCui(client.cui, client.vatPayer)}</span>
-          {client.caenCode && <span>CAEN {client.caenCode}</span>}
-          {office && <span>{office}</span>}
-        </p>
-      </div>
+      <header className="overflow-hidden rounded-lg border bg-card">
+        <div className="flex items-center gap-4 px-5 py-5 sm:px-6">
+          <div
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            aria-hidden="true"
+          >
+            <Building2 className="size-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Client
+            </p>
+            <h1 className="mt-0.5 truncate text-2xl font-semibold tracking-tight">
+              {client.legalName}
+            </h1>
+          </div>
+        </div>
+        {/* Hairline dividers in any column count: a border-colored grid with card-colored cells. */}
+        <dl className="grid grid-cols-2 gap-px border-t bg-border lg:grid-cols-4">
+          <Fact label="CUI">
+            <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
+          </Fact>
+          <Fact label="Activitate principală">
+            {client.caenCode ? (
+              <>
+                <span className="tabular-nums">{client.caenCode}</span>
+                {caen && <span className="font-normal text-muted-foreground"> · {caen}</span>}
+              </>
+            ) : (
+              '—'
+            )}
+          </Fact>
+          <Fact label="Sediu social">{office || '—'}</Fact>
+          <Fact label="Angajați declarați">
+            <span className="tabular-nums">{client.declaredEmployeeCount ?? '—'}</span>
+          </Fact>
+        </dl>
+      </header>
       <nav aria-label="Secțiunile clientului" className="border-b">
-        <ul className="-mb-px flex gap-6">
-          {sections.map((section) => (
-            <li key={section.to}>
+        <ul className="-mb-px flex gap-1">
+          {sections.map(({ to, label, icon: Icon }) => (
+            <li key={to}>
               <Link
-                to={section.to}
+                to={to}
                 params={{ clientId: client.id }}
                 data-testid="client-section"
-                className="inline-flex h-10 items-center border-b-2 border-transparent text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                activeProps={{
-                  className: cn('border-primary text-foreground'),
-                  'aria-current': 'page',
-                }}
+                className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
+                activeProps={{ 'aria-current': 'page' }}
               >
-                {section.label}
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
               </Link>
             </li>
           ))}
@@ -93,10 +135,7 @@ export function ClientLayout() {
 function ClientPending() {
   return (
     <div className="space-y-7" aria-busy="true">
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-72" />
-        <Skeleton className="h-4 w-56" />
-      </div>
+      <Skeleton className="h-40 w-full rounded-lg" />
       <Skeleton className="h-10 w-full" />
     </div>
   );
