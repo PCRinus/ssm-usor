@@ -1,4 +1,4 @@
-import { caenClassName, type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
+import { caenClassName, formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -14,47 +14,40 @@ import { Building2, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
-import {
-  type ClientListResponse,
-  getListClientsQueryKey,
-  getListClientsQueryOptions,
-} from '../../../api/generated/api';
+import { getGetClientQueryKey, getGetClientQueryOptions } from '../../../api/generated/api';
 import { ApiHttpError } from '../../../api/http';
-
-export type Client = ClientListResponse['clients'][number];
+import { registeredOffice } from '../../../clients/client-columns';
 
 // Sections of a client. Only employees exist for now; documents and workplaces will follow.
 const sections = [
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound },
 ] as const;
 
-// The client comes from the organization's list, which is the only client read the API
-// offers. The list is cached per user by the clients page, so navigation reuses it.
+// Row-level security hides other organizations' clients, so a 404 from the API is the
+// not-found screen whether the client belongs to someone else or does not exist.
 export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   params: { parse: (params) => ({ clientId: z.uuid().parse(params.clientId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
-    const { clients } = await queryClient.ensureQueryData(
-      getListClientsQueryOptions({
-        request: apiRequest,
-        query: { queryKey: [...getListClientsQueryKey(), userId] },
-      })
-    );
-    const client = clients.find((candidate) => candidate.id === params.clientId);
-    if (!client) throw notFound();
-    // The shell shows the crumb in place of a static title.
-    return { client, crumb: client.legalName };
+    try {
+      const { client } = await queryClient.ensureQueryData(
+        getGetClientQueryOptions(params.clientId, {
+          request: apiRequest,
+          query: { queryKey: [...getGetClientQueryKey(params.clientId), userId] },
+        })
+      );
+      // The shell shows the crumb in place of a static title.
+      return { client, crumb: client.legalName };
+    } catch (cause) {
+      if (cause instanceof ApiHttpError && cause.status === 404) throw notFound();
+      throw cause;
+    }
   },
   component: ClientLayout,
   pendingComponent: ClientPending,
   notFoundComponent: ClientNotFound,
   errorComponent: ClientError,
 });
-
-function registeredOffice(client: Client) {
-  const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
-  return [client.locality, county].filter(Boolean).join(', ');
-}
 
 // One labelled value of the client summary strip.
 function Fact({ label, children }: { label: string; children: ReactNode }) {

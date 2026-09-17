@@ -70,7 +70,9 @@ export function DataTable<TData extends RowData>({
       if (first) onSortChange({ sort: first.id, order: first.desc ? 'desc' : 'asc' });
     },
     // Accessor columns are sortable unless they opt out; display columns never are.
+    // Every column starts ascending, numbers included, so the cycle is the same everywhere.
     manualSorting: true,
+    sortDescFirst: false,
     enableMultiSort: false,
     enableSortingRemoval: false,
   });

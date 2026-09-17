@@ -61,7 +61,10 @@ function mockUpstream(handlers: Partial<Record<'auth' | 'membership' | 'clients'
       return handlers.membership?.(init) ?? Response.json([membership]);
     }
     if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(init) ?? Response.json([clientRow]);
+      return (
+        handlers.clients?.(init) ??
+        Response.json([clientRow], { headers: { 'Content-Range': '0-0/1' } })
+      );
     }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
@@ -104,7 +107,10 @@ describe('GET /clients', () => {
     const response = await request('/clients');
     expect(response.status).toBe(200);
     expect(clientListResponseSchema.parse(await response.json())).toEqual({
-      clients: [
+      page: 1,
+      pageSize: 25,
+      total: 1,
+      items: [
         {
           id: clientRow.id,
           legalName: 'OMV PETROM SA',
@@ -130,10 +136,36 @@ describe('GET /clients', () => {
     const [listUrl, listInit] = calls('/rest/v1/clients')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('archived_at')).toBe('is.null');
-    expect(query.get('order')).toBe('legal_name.asc');
-    expect(new Headers(listInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(query.get('order')).toBe('legal_name.asc,id.asc');
+    expect(query.get('offset')).toBe('0');
+    expect(query.get('limit')).toBe('25');
+    const headers = new Headers(listInit?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(headers.get('Prefer')).toContain('count=exact');
     expect(listInit?.signal).toBeInstanceOf(AbortSignal);
   });
+
+  it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
+    mockUpstream({
+      clients: () => Response.json([clientRow], { headers: { 'Content-Range': '25-25/26' } }),
+    });
+    const response = await request('/clients?page=2&sort=declaredEmployeeCount&order=desc');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ page: 2, pageSize: 25, total: 26 });
+    const [listUrl] = calls('/rest/v1/clients')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('order')).toBe('declared_employee_count.desc,legal_name.desc,id.asc');
+    expect(query.get('offset')).toBe('25');
+  });
+
+  it.each(['page=0', 'pageSize=101', 'sort=cnp', 'order=up'])(
+    'rejects an invalid list parameter: %s',
+    async (search) => {
+      mockUpstream({});
+      expect((await request(`/clients?${search}`)).status).toBe(400);
+      expect(calls('/rest/v1/clients')).toHaveLength(0);
+    }
+  );
 
   it('requires a bearer token', async () => {
     mockUpstream({});
@@ -170,6 +202,34 @@ describe('GET /clients', () => {
     const response = await request('/clients');
     expect(response.status).toBe(500);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('internal_error');
+  });
+});
+
+describe('GET /clients/{clientId}', () => {
+  it('returns the client by id, archived or not', async () => {
+    mockUpstream({
+      clients: () => Response.json([{ ...clientRow, archived_at: '2026-01-01T00:00:00+00:00' }]),
+    });
+    const response = await request(`/clients/${clientRow.id}`);
+    expect(response.status).toBe(200);
+    const { client } = clientResponseSchema.parse(await response.json());
+    expect(client.id).toBe(clientRow.id);
+    expect(client.archivedAt).toBe('2026-01-01T00:00:00+00:00');
+    const [url] = calls('/rest/v1/clients')[0]!;
+    expect(new URL(String(url)).searchParams.get('id')).toBe(`eq.${clientRow.id}`);
+  });
+
+  it('answers 404 when the client is not visible to the organization', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    const response = await request(`/clients/${clientRow.id}`);
+    expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('not_found');
+  });
+
+  it('rejects a malformed id', async () => {
+    mockUpstream({});
+    expect((await request('/clients/nope')).status).toBe(400);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 });
 
@@ -293,6 +353,7 @@ it('documents the client routes with bearer security and request schemas', () =>
   const document = createApp().getOpenAPIDocument(openApiConfig);
   expect(document.paths?.['/clients']?.get?.operationId).toBe('listClients');
   expect(document.paths?.['/clients']?.post?.operationId).toBe('createClient');
+  expect(document.paths?.['/clients/{clientId}']?.get?.operationId).toBe('getClient');
   expect(document.paths?.['/clients']?.post?.security).toEqual([{ bearerAuth: [] }]);
   expect(document.paths?.['/companies/lookup']?.get?.operationId).toBe('lookupCompany');
   expect(document.components?.schemas?.CreateClientRequest).toBeDefined();

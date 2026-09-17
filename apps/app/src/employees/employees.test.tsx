@@ -67,7 +67,7 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
-  routes: Partial<Record<'me' | 'clients' | 'list' | 'create' | 'status', Route>> = {}
+  routes: Partial<Record<'me' | 'clients' | 'client' | 'list' | 'create' | 'status', Route>> = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -79,7 +79,10 @@ function mockApi(
       );
     }
     if (url.pathname === '/clients' && method === 'GET') {
-      return routes.clients?.(init, url) ?? Response.json({ clients: [sampleClient] });
+      return routes.clients?.(init, url) ?? Response.json(page([sampleClient]));
+    }
+    if (url.pathname === `/clients/${clientId}` && method === 'GET') {
+      return routes.client?.(init, url) ?? Response.json({ client: sampleClient });
     }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
@@ -158,8 +161,7 @@ describe('client employees list', () => {
     await userEvent.setup().click(await screen.findByTestId('clients-open'));
     await screen.findByTestId('employees-page');
     expect(runtime.router.state.location.pathname).toBe(employeesPath);
-    // The client came from the cached list; it was not requested again.
-    expect(requests('/clients')).toHaveLength(1);
+    expect(requests(`/clients/${clientId}`)).toHaveLength(1);
   });
 
   it('redirects the bare client path to its employees', async () => {
@@ -310,7 +312,9 @@ describe('client employees list', () => {
   });
 
   it('shows a not-found screen for a client outside the organization', async () => {
-    mockApi({ clients: () => Response.json({ clients: [] }) });
+    mockApi({
+      client: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
+    });
     mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('client-not-found');
     expect(requests(employeesPath)).toHaveLength(0);
@@ -318,7 +322,7 @@ describe('client employees list', () => {
 
   it('explains a missing membership when the client cannot load', async () => {
     mockApi({
-      clients: () =>
+      client: () =>
         Response.json({ error: 'forbidden', message: 'No membership' }, { status: 403 }),
     });
     mountApp(authFixture(makeSession()).client, employeesPath);
