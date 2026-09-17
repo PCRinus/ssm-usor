@@ -20,7 +20,7 @@ export function DashboardPage() {
   if (!session) return null;
 
   return (
-    <div className="grid gap-6">
+    <div data-testid="dashboard-page" className="grid gap-6">
       <div>
         <Badge variant="secondary" className="mb-4">
           În dezvoltare
@@ -37,12 +37,17 @@ export function DashboardPage() {
             <p role="alert">Datele contului nu sunt disponibile momentan.</p>
           ) : me.isError ? (
             <>
-              <p role="alert">
+              <p data-testid="dashboard-account-error" role="alert">
                 {me.error instanceof ApiHttpError && me.error.status === 401
                   ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
                   : 'Nu am putut încărca datele contului. Încearcă din nou.'}
               </p>
-              <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
+              <Button
+                data-testid="dashboard-account-retry"
+                variant="outline"
+                disabled={me.isFetching}
+                onClick={() => void me.refetch()}
+              >
                 Încearcă din nou
               </Button>
             </>

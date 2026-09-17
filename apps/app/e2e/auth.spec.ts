@@ -10,10 +10,10 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
   const accountEmail = page.getByRole('main').getByText(email, { exact: true });
 
   await page.goto('/login');
-  await page.getByLabel('Adresă de email').fill(email);
-  await page.getByLabel('Parolă', { exact: true }).fill(password);
+  await page.getByTestId('login-email').fill(email);
+  await page.getByTestId('login-password').fill(password);
   const initialIdentity = page.waitForResponse(meUrl);
-  await page.getByRole('button', { name: 'Autentificare', exact: true }).click();
+  await page.getByTestId('login-submit').click();
   expect((await initialIdentity).status()).toBe(200);
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(accountEmail).toBeVisible();
@@ -24,10 +24,10 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(accountEmail).toBeVisible();
 
-  await page.getByRole('button', { name: 'Meniul contului' }).click();
-  await page.getByRole('menuitem', { name: 'Deconectare', exact: true }).click();
+  await page.getByTestId('account-menu').click();
+  await page.getByTestId('account-sign-out').click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/dashboard');
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole('heading', { name: 'Bine ai revenit' })).toBeVisible();
+  await expect(page.getByTestId('login-page')).toBeVisible();
 });

@@ -12,7 +12,7 @@ import { Plus, Users } from 'lucide-react';
 
 export function ClientsPage() {
   return (
-    <div className="space-y-7">
+    <div data-testid="clients-page" className="space-y-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
@@ -30,7 +30,7 @@ export function ClientsPage() {
           <h2 className="text-sm font-medium">Lista clienților</h2>
           <Badge variant="secondary">În pregătire</Badge>
         </div>
-        <Table aria-label="Lista clienților">
+        <Table data-testid="clients-table" aria-label="Lista clienților">
           <TableHeader>
             <TableRow>
               <TableHead className="pl-5">Companie</TableHead>

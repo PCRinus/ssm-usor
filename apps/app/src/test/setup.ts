@@ -5,6 +5,18 @@ afterEach(cleanup);
 
 beforeEach(() => vi.stubGlobal('scrollTo', vi.fn()));
 
+// jsdom does not implement element resize observation used by Radix positioning primitives.
+beforeEach(() =>
+  vi.stubGlobal(
+    'ResizeObserver',
+    class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  )
+);
+
 // jsdom does not implement media queries used by responsive UI primitives.
 beforeEach(() =>
   vi.stubGlobal(

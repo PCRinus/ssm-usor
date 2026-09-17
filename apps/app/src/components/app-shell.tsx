@@ -64,6 +64,7 @@ function AppNavigation({
                     <SidebarMenuButton asChild isActive={pathname === to} tooltip={label}>
                       <Link
                         to={to}
+                        data-testid={`nav-${to.slice(1)}`}
                         aria-current={pathname === to ? 'page' : undefined}
                         onClick={() => {
                           if (isMobile) setOpenMobile(false);
@@ -87,6 +88,7 @@ function AppNavigation({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
+                  data-testid="account-menu"
                   aria-label="Meniul contului"
                   disabled={pending}
                   className="data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:p-0!"
@@ -114,7 +116,11 @@ function AppNavigation({
               >
                 <DropdownMenuLabel className="break-all">{email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem disabled={pending} onSelect={() => void onSignOut()}>
+                <DropdownMenuItem
+                  data-testid="account-sign-out"
+                  disabled={pending}
+                  onSelect={() => void onSignOut()}
+                >
                   <LogOut aria-hidden="true" />
                   Deconectare
                 </DropdownMenuItem>
@@ -159,10 +165,11 @@ export function AppShell() {
       </a>
       <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
         <div className="flex items-center gap-3 sm:gap-4">
-          <SidebarTrigger aria-label="Comută meniul lateral" />
+          <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
           <Separator orientation="vertical" className="!h-6" />
           <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
             <img
+              data-testid="app-logo"
               src="/brand/logo.png"
               alt="SSM Ușor"
               width={2172}
@@ -195,11 +202,17 @@ export function AppShell() {
             </Breadcrumb>
             {error && (
               <div
+                data-testid="sign-out-error"
                 role="alert"
                 className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-4 text-sm text-destructive"
               >
                 <p>{error}</p>
-                <Button variant="outline" disabled={pending} onClick={() => void signOut()}>
+                <Button
+                  data-testid="sign-out-retry"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => void signOut()}
+                >
                   Reîncearcă deconectarea
                 </Button>
               </div>

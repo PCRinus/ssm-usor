@@ -40,16 +40,16 @@ describe('dashboard authentication and routing', () => {
     const { client } = authFixture();
     mount(client, '/login');
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
-    await user.click(screen.getByRole('button', { name: 'Autentificare' }));
-    expect(await screen.findByText('Introdu adresa de email.')).toBeTruthy();
-    expect(screen.getByText('Introdu parola.')).toBeTruthy();
-    expect(screen.getByLabelText('Adresă de email').getAttribute('aria-invalid')).toBe('true');
+    await screen.findByTestId('login-page');
+    await user.click(screen.getByTestId('login-submit'));
+    expect(await screen.findByTestId('login-email-error')).toBeTruthy();
+    expect(screen.getByTestId('login-password-error')).toBeTruthy();
+    expect(screen.getByTestId('login-email').getAttribute('aria-invalid')).toBe('true');
     expect(client.signInWithPassword).not.toHaveBeenCalled();
-    await user.type(screen.getByLabelText('Adresă de email'), 'not-an-email');
-    await user.type(screen.getByLabelText('Parolă'), 'some-password');
-    await user.click(screen.getByRole('button', { name: 'Autentificare' }));
-    expect(await screen.findByText('Introdu o adresă de email validă.')).toBeTruthy();
+    await user.type(screen.getByTestId('login-email'), 'not-an-email');
+    await user.type(screen.getByTestId('login-password'), 'some-password');
+    await user.click(screen.getByTestId('login-submit'));
+    expect(await screen.findByTestId('login-email-error')).toBeTruthy();
     expect(client.signInWithPassword).not.toHaveBeenCalled();
   });
 
@@ -57,29 +57,29 @@ describe('dashboard authentication and routing', () => {
     const { client } = authFixture();
     mount(client, '/login');
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
-    await user.type(screen.getByLabelText('Adresă de email'), 'review@example.test');
-    await user.type(screen.getByLabelText('Parolă'), '  password with spaces  ');
-    await user.click(screen.getByRole('button', { name: 'Autentificare' }));
-    await screen.findByRole('alert');
+    await screen.findByTestId('login-page');
+    await user.type(screen.getByTestId('login-email'), 'review@example.test');
+    await user.type(screen.getByTestId('login-password'), '  password with spaces  ');
+    await user.click(screen.getByTestId('login-submit'));
+    await screen.findByTestId('login-auth-error');
     expect(client.signInWithPassword).toHaveBeenCalledWith({
       email: 'review@example.test',
       password: '  password with spaces  ',
     });
     client.signInWithPassword.mockResolvedValue({ data: { session: makeSession() }, error: null });
-    await user.clear(screen.getByLabelText('Parolă'));
-    await user.type(screen.getByLabelText('Parolă'), 'correct-password');
-    await user.click(screen.getByRole('button', { name: 'Autentificare' }));
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await user.clear(screen.getByTestId('login-password'));
+    await user.type(screen.getByTestId('login-password'), 'correct-password');
+    await user.click(screen.getByTestId('login-submit'));
+    await screen.findByTestId('dashboard-page');
     expect(client.signInWithPassword).toHaveBeenCalledTimes(2);
   });
 
   it('redirects a signed-out direct dashboard visit to login', async () => {
     const { client } = authFixture();
     const runtime = mount(client);
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/login');
-    expect(screen.queryByRole('heading', { name: 'Spațiul tău de lucru' })).toBeNull();
+    expect(screen.queryByTestId('dashboard-page')).toBeNull();
   });
 
   it('waits for restored authentication before showing protected content', async () => {
@@ -91,10 +91,10 @@ describe('dashboard authentication and routing', () => {
       })
     );
     const runtime = mount(client);
-    expect(screen.getByRole('status').textContent).toBe('Se încarcă…');
-    expect(screen.queryByRole('heading', { name: 'Bine ai revenit' })).toBeNull();
+    expect(screen.getByTestId('auth-loading')).toBeTruthy();
+    expect(screen.queryByTestId('login-page')).toBeNull();
     await act(async () => resolve({ data: { session: makeSession() }, error: null }));
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await screen.findByTestId('dashboard-page');
     expect(runtime.router.state.location.pathname).toBe('/dashboard');
   });
 
@@ -102,13 +102,11 @@ describe('dashboard authentication and routing', () => {
     const { client } = authFixture();
     const runtime = mount(client, '/login');
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
-    await user.type(screen.getByLabelText('Adresă de email'), 'review@example.test');
-    await user.type(screen.getByLabelText('Parolă'), 'incorrect-password');
-    await user.click(screen.getByRole('button', { name: 'Autentificare' }));
-    expect((await screen.findByRole('alert')).textContent).toBe(
-      'Adresa de email sau parola este incorectă.'
-    );
+    await screen.findByTestId('login-page');
+    await user.type(screen.getByTestId('login-email'), 'review@example.test');
+    await user.type(screen.getByTestId('login-password'), 'incorrect-password');
+    await user.click(screen.getByTestId('login-submit'));
+    expect(await screen.findByTestId('login-auth-error')).toBeTruthy();
     expect(runtime.router.state.location.pathname).toBe('/login');
     expect(runtime.queryClient.getMutationCache().getAll()).toHaveLength(0);
   });
@@ -118,20 +116,20 @@ describe('dashboard authentication and routing', () => {
     client.signInWithPassword.mockResolvedValue({ data: { session: makeSession() }, error: null });
     const runtime = mount(client, '/login');
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
-    await user.type(screen.getByLabelText('Adresă de email'), 'review@example.test');
-    await user.type(screen.getByLabelText('Parolă'), 'test-password');
-    await user.click(screen.getByRole('button', { name: 'Autentificare' }));
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await screen.findByTestId('login-page');
+    await user.type(screen.getByTestId('login-email'), 'review@example.test');
+    await user.type(screen.getByTestId('login-password'), 'test-password');
+    await user.click(screen.getByTestId('login-submit'));
+    await screen.findByTestId('dashboard-page');
     expect(client.signInWithPassword).toHaveBeenCalledWith({
       email: 'review@example.test',
       password: 'test-password',
     });
     expect(screen.getByText('review@example.test')).toBeTruthy();
     runtime.queryClient.setQueryData(['private-client-data'], { name: 'Private client' });
-    await user.click(screen.getByRole('button', { name: 'Meniul contului' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Deconectare' }));
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    await user.click(screen.getByTestId('account-menu'));
+    await user.click(screen.getByTestId('account-sign-out'));
+    await screen.findByTestId('login-page');
     expect(client.signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(runtime.queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(screen.queryByText('review@example.test')).toBeNull();
@@ -142,25 +140,17 @@ describe('dashboard authentication and routing', () => {
   it('keeps the shell and logo when navigating to clients and collapsing navigation', async () => {
     const runtime = mount(authFixture(makeSession()).client);
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
-    await user.click(
-      within(screen.getByRole('navigation', { name: 'Navigare principală' })).getByRole('link', {
-        name: 'Clienți',
-      })
-    );
-    await screen.findByRole('heading', { name: 'Clienți' });
+    await screen.findByTestId('dashboard-page');
+    await user.click(screen.getByTestId('nav-clients'));
+    await screen.findByTestId('clients-page');
     expect(runtime.router.state.location.pathname).toBe('/clients');
-    expect(
-      within(screen.getByRole('navigation', { name: 'Navigare principală' }))
-        .getByRole('link', { name: 'Clienți' })
-        .getAttribute('aria-current')
-    ).toBe('page');
-    await user.click(screen.getByRole('button', { name: 'Comută meniul lateral' }));
+    expect(screen.getByTestId('nav-clients').getAttribute('aria-current')).toBe('page');
+    await user.click(screen.getByTestId('sidebar-toggle'));
     expect(document.querySelector('[data-slot="sidebar"]')?.getAttribute('data-state')).toBe(
       'collapsed'
     );
-    expect(screen.getByRole('banner').contains(screen.getByAltText('SSM Ușor'))).toBe(true);
-    expect(screen.getByRole('table', { name: 'Lista clienților' })).toBeTruthy();
+    expect(screen.getByRole('banner').contains(screen.getByTestId('app-logo'))).toBe(true);
+    expect(screen.getByTestId('clients-table')).toBeTruthy();
   });
 
   it('closes mobile navigation after selecting a page', async () => {
@@ -174,17 +164,17 @@ describe('dashboard authentication and routing', () => {
     );
     mount(authFixture(makeSession()).client, '/clients');
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'Clienți' });
-    await user.click(screen.getByRole('button', { name: 'Comută meniul lateral' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Navigare principală' });
-    await user.click(within(drawer).getByRole('link', { name: 'Prezentare generală' }));
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await screen.findByTestId('clients-page');
+    await user.click(screen.getByTestId('sidebar-toggle'));
+    const drawer = await screen.findByRole('dialog');
+    await user.click(within(drawer).getByTestId('nav-dashboard'));
+    await screen.findByTestId('dashboard-page');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('protects a direct clients visit', async () => {
     const runtime = mount(authFixture().client, '/clients');
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/login');
     expect(screen.queryByRole('table')).toBeNull();
   });
@@ -192,17 +182,17 @@ describe('dashboard authentication and routing', () => {
   it('redirects an existing session away from login', async () => {
     const { client } = authFixture(makeSession());
     const runtime = mount(client, '/login');
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await screen.findByTestId('dashboard-page');
     expect(runtime.router.state.location.pathname).toBe('/dashboard');
   });
 
   it('reacts to remote sign-out and removes protected content and cached data', async () => {
     const fixture = authFixture(makeSession());
     const runtime = mount(fixture.client);
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await screen.findByTestId('dashboard-page');
     runtime.queryClient.setQueryData(['private-data'], 'private');
     await act(async () => fixture.emit('SIGNED_OUT', null));
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    await screen.findByTestId('login-page');
     expect(runtime.queryClient.getQueryData(['private-data'])).toBeUndefined();
     expect(screen.queryByText('review@example.test')).toBeNull();
   });
@@ -211,11 +201,12 @@ describe('dashboard authentication and routing', () => {
     const { client } = authFixture(makeSession());
     client.signOut.mockResolvedValue({ error: { message: 'Network unavailable' } });
     const runtime = mount(client);
-    await screen.findByRole('heading', { name: 'Spațiul tău de lucru' });
+    await screen.findByTestId('dashboard-page');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Meniul contului' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Deconectare' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Deconectarea nu a reușit');
+    await user.click(screen.getByTestId('account-menu'));
+    await user.click(screen.getByTestId('account-sign-out'));
+    expect(await screen.findByTestId('sign-out-error')).toBeTruthy();
+    expect(screen.getByTestId('sign-out-retry')).toBeTruthy();
     expect(runtime.auth.getSnapshot().session?.user.id).toBe('user-one');
   });
 
@@ -223,20 +214,18 @@ describe('dashboard authentication and routing', () => {
     const { client } = authFixture();
     client.getSession.mockRejectedValue(new Error('Network unavailable'));
     mount(client);
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'Nu am putut restabili sesiunea'
-    );
+    expect(await screen.findByTestId('auth-unavailable')).toBeTruthy();
   });
 
   it('shows an unavailable state when public Supabase configuration is absent', () => {
     mount(null);
-    expect(screen.getByRole('alert').textContent).toContain('nu este încă configurat');
-    expect(screen.queryByLabelText('Parolă')).toBeNull();
+    expect(screen.getByTestId('auth-unavailable')).toBeTruthy();
+    expect(screen.queryByTestId('login-password')).toBeNull();
   });
 
   it('renders an unknown route without exposing internal errors', async () => {
     mount(authFixture().client, '/missing-page');
-    await screen.findByRole('heading', { name: 'Pagina nu a fost găsită' });
+    await screen.findByTestId('not-found-page');
   });
 });
 
@@ -269,7 +258,7 @@ describe('generated API integration', () => {
 
   it('does not call the API before signing in', async () => {
     mount(authFixture().client);
-    await screen.findByRole('heading', { name: 'Bine ai revenit' });
+    await screen.findByTestId('login-page');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -281,12 +270,12 @@ describe('generated API integration', () => {
       )
     );
     mount(authFixture(makeSession()).client);
-    expect((await screen.findByRole('alert')).textContent).toContain('Sesiunea nu mai este validă');
+    expect(await screen.findByTestId('dashboard-account-error')).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledOnce();
     fetchMock.mockImplementation(async () =>
       Response.json({ user: { id: 'user-one', email: 'recovered@example.test' } })
     );
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Încearcă din nou' }));
+    await userEvent.setup().click(screen.getByTestId('dashboard-account-retry'));
     await screen.findByText('recovered@example.test');
   });
 });

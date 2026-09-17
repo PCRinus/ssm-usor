@@ -12,7 +12,7 @@ export function AuthenticatedLayout() {
 
 export function NotFoundPage() {
   return (
-    <main className="mx-auto grid max-w-lg gap-5 px-5 py-20">
+    <main data-testid="not-found-page" className="mx-auto grid max-w-lg gap-5 px-5 py-20">
       <h1 className="text-2xl font-semibold">Pagina nu a fost găsită</h1>
       <Button asChild>
         <Link to="/">Înapoi la început</Link>
