@@ -1,5 +1,4 @@
 import { type CaenClass, caenClasses, caenClassName } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import {
   Command,
   CommandEmpty,
@@ -57,10 +56,9 @@ export function CaenCombobox({
       }}
     >
       <PopoverTrigger asChild>
-        <Button
+        <button
           id={id}
           type="button"
-          variant="outline"
           role="combobox"
           aria-expanded={open}
           aria-invalid={invalid}
@@ -68,8 +66,10 @@ export function CaenCombobox({
           data-testid="client-caen"
           disabled={disabled}
           className={cn(
-            'h-11 w-full min-w-0 justify-between overflow-hidden px-3 font-normal hover:bg-transparent',
-            invalid && 'border-destructive ring-destructive/20',
+            // Same surface as Input; hover only strengthens the border.
+            'flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-[color,box-shadow,border-color] outline-none hover:border-ring/60 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30',
+            'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+            'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
             !value && 'text-muted-foreground'
           )}
         >
@@ -81,10 +81,10 @@ export function CaenCombobox({
               </span>
             </span>
           ) : (
-            <span>Caută după cod sau activitate</span>
+            <span className="truncate">Caută după cod sau activitate</span>
           )}
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" aria-hidden="true" />
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-80 p-0" align="start">
         <Command filter={caenFilter}>

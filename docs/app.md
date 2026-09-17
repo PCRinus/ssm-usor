@@ -166,9 +166,8 @@ mobile navigation link closes the Sheet.
 - `/dashboard`: overview and existing account/API status.
 - `/clients`: the organization's active clients from `GET /clients`, with loading, empty,
   and error states (a missing membership is explained; other failures offer a retry).
-- `/clients/new`: the creation form, laid out as sections (purpose on the left, fields on
-  the right) with a sticky preview column showing how the client will appear in the list.
-  Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
+- `/clients/new`: the creation form, laid out as full-width sections with their purpose on
+  the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
   name, VAT status, CAEN code, trade register number, and registered office; a missing record
   or an ANAF outage leaves manual entry available. The CAEN field is a searchable combobox
   over the full CAEN Rev. 3 class list from `packages/contracts` (code prefix or words from

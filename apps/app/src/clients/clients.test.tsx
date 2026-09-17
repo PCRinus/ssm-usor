@@ -178,12 +178,6 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-vat-payer').getAttribute('aria-checked')).toBe('true');
     expect(screen.getByTestId('client-caen').textContent).toContain('0610');
     expect(screen.getByTestId('client-caen').textContent).toContain('Extracția petrolului brut');
-    expect(screen.getByTestId('preview-name').textContent).toBe('OMV PETROM SA');
-    expect(screen.getByTestId('preview-cui').textContent).toBe('RO1590082');
-    expect(screen.getByTestId('preview-caen').textContent).toContain('Extracția petrolului brut');
-    expect(screen.getByTestId('preview-office').textContent).toBe(
-      'Sector 1 Mun. București, București'
-    );
     expect((screen.getByTestId('client-county') as HTMLSelectElement).value).toBe('B');
     expect((screen.getByTestId('client-locality') as HTMLInputElement).value).toBe(
       'Sector 1 Mun. București'
@@ -231,7 +225,6 @@ describe('client creation', () => {
     await user.click(await within(listbox).findByRole('option', { name: /6210/ }));
     expect(screen.getByTestId('client-caen').textContent).toContain('6210');
     expect(screen.getByTestId('client-caen').textContent).toContain('soft-ului la comandă');
-    expect(screen.getByTestId('preview-office').textContent).toBe('Cluj');
     await user.click(screen.getByTestId('client-submit'));
     await screen.findByTestId('clients-page');
     expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).toMatchObject({
