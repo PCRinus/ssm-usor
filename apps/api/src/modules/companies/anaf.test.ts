@@ -1,9 +1,9 @@
 import { apiErrorResponseSchema, companyLookupResponseSchema } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createApp } from '../../app';
+import type { ApiEnv } from '../../lib/env';
 import { anafLookupUrl, normalizeDiacritics } from './anaf';
-import { createApp } from './app';
-import type { ApiEnv } from './env';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',

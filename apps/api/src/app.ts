@@ -1,40 +1,18 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
-import type { ApiErrorResponse, ApiHealth, MeResponse } from '@ssm-usor/contracts';
-import { normalizeCui } from '@ssm-usor/contracts';
+import type { ApiErrorResponse } from '@ssm-usor/contracts';
 import { cors } from 'hono/cors';
 
-import { lookupCompany } from './anaf';
-import { createClient, listClients } from './clients';
-import { requestFetch } from './db';
-import { allowedOrigins, type ApiEnv } from './env';
-import { ApiError, defaultMessages, errorStatus } from './errors';
-import {
-  createClientRoute,
-  healthRoute,
-  listClientsRoute,
-  lookupCompanyRoute,
-  meRoute,
-  openApiConfig,
-} from './openapi';
+import { allowedOrigins } from './lib/env';
+import { ApiError, errorStatus } from './lib/errors';
+import { openApiConfig } from './lib/openapi';
+import { clientsRouter } from './modules/clients';
+import { companiesRouter } from './modules/companies';
+import { healthRouter } from './modules/health';
+import { meRouter } from './modules/me';
+import { createRouter } from './router';
 
+// Cross-cutting concerns live here; each domain module owns its routes and handlers.
 export function createApp() {
-  const app = new OpenAPIHono<ApiEnv>({
-    // Request validation failures share the API error shape.
-    defaultHook: (result, c) => {
-      if (result.success) return;
-      return c.json(
-        {
-          error: 'validation_error',
-          message: defaultMessages.validation_error,
-          issues: result.error.issues.map((issue) => ({
-            path: issue.path.map(String).join('.'),
-            message: issue.message,
-          })),
-        } satisfies ApiErrorResponse,
-        400
-      );
-    },
-  });
+  const app = createRouter();
 
   app.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
@@ -49,21 +27,10 @@ export function createApp() {
     })(c, next)
   );
 
-  app.openapi(healthRoute, (c) =>
-    c.json({ status: 'ok', service: 'ssm-usor-api' } satisfies ApiHealth, 200)
-  );
-
-  app.openapi(meRoute, (c) => c.json({ user: c.get('user') } satisfies MeResponse, 200));
-
-  app.openapi(listClientsRoute, listClients);
-  app.openapi(createClientRoute, createClient);
-
-  app.openapi(lookupCompanyRoute, async (c) => {
-    const { cui } = normalizeCui(c.req.valid('query').cui)!;
-    const company = await lookupCompany(cui, requestFetch(c, 8_000));
-    if (!company) throw new ApiError('not_found', 'No company is registered with this CUI.');
-    return c.json({ company }, 200);
-  });
+  app.route('/', healthRouter);
+  app.route('/', meRouter);
+  app.route('/', clientsRouter);
+  app.route('/', companiesRouter);
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',

@@ -1,7 +1,7 @@
 import { type CompanyLookup, countyCodeSchema } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { ApiError } from './errors';
+import { ApiError } from '../../lib/errors';
 
 // ANAF's public VAT registry lookup. Unauthenticated, no CORS, about one request per second.
 export const anafLookupUrl = 'https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva';

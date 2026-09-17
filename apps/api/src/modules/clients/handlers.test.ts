@@ -5,9 +5,9 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from './app';
-import type { ApiEnv } from './env';
-import { openApiConfig } from './openapi';
+import { createApp } from '../../app';
+import type { ApiEnv } from '../../lib/env';
+import { openApiConfig } from '../../lib/openapi';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',

@@ -5,7 +5,7 @@ The API owns the contract. Hono route definitions and the Zod schemas in
 request functions, TanStack Query hooks, query keys, and query-option factories.
 
 ```text
-packages/contracts + apps/api/src/openapi.ts
+packages/contracts + apps/api/src/modules/*/routes.ts
   → apps/api/openapi.json
   → apps/app/src/api/generated/api.ts
   → apps/app

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from 'hono';
 
-import type { Database } from './database.types';
+import type { Database } from '../database.types';
 import { type ApiEnv, supabaseConfigSchema } from './env';
 import { ApiError } from './errors';
 
