@@ -196,8 +196,13 @@ describe('client employees list', () => {
     await screen.findByTestId('new-employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/new`);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
     expect(within(breadcrumb).getByRole('link', { name: 'Angajați' })).toBeTruthy();
     expect(within(breadcrumb).getByText('Angajat nou')).toBeTruthy();
+    // The form stands on its own: no client summary card or section tabs above it.
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Angajat nou' })).toBeTruthy();
+    expect(within(screen.getByTestId('new-employee-page')).getByText('OMV PETROM SA')).toBeTruthy();
   });
 
   it('explains a list failure and can retry', async () => {

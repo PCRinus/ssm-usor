@@ -7,6 +7,7 @@ import {
   Link,
   notFound,
   Outlet,
+  useMatches,
   useRouter,
 } from '@tanstack/react-router';
 import { Building2, UsersRound } from 'lucide-react';
@@ -67,8 +68,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 
 export function ClientLayout() {
   const { client } = Route.useLoaderData();
+  // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
+  const fullPage = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.fullPage),
+  });
   const office = registeredOffice(client);
   const caen = client.caenCode ? caenClassName(client.caenCode) : null;
+  if (fullPage) return <Outlet />;
   return (
     <div data-testid="client-page" className="space-y-7">
       <header className="overflow-hidden rounded-lg border bg-card">

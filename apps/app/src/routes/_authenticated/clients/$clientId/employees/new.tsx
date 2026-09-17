@@ -4,7 +4,7 @@ import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 
 import { Field } from '../../../../../components/form-field';
 import { FormSection } from '../../../../../components/form-section';
@@ -14,13 +14,16 @@ import { useEmployeeForm } from '../../../../../employees/use-employee-form';
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
   error ? `${id}-error` : hint ? `${id}-hint` : undefined;
 
+const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
 export const Route = createFileRoute('/_authenticated/clients/$clientId/employees/new')({
-  staticData: { title: 'Angajat nou' },
+  staticData: { title: 'Angajat nou', fullPage: true },
   component: NewEmployeePage,
 });
 
 export function NewEmployeePage() {
   const { clientId } = Route.useParams();
+  const { client } = clientRoute.useLoaderData();
   const { form, onSubmit, prefillBirthDate, isSaving } = useEmployeeForm(clientId);
   const {
     register,
@@ -34,11 +37,12 @@ export function NewEmployeePage() {
   });
 
   return (
-    <div data-testid="new-employee-page" className="space-y-6">
+    <div data-testid="new-employee-page" className="space-y-7">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Angajat nou</h2>
-        <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Numele, funcția și data angajării sunt suficiente pentru început. Restul datelor apar pe
+        <h1 className="text-3xl font-semibold tracking-tight">Angajat nou</h1>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          Se adaugă la <span className="font-medium text-foreground">{client.legalName}</span>.
+          Numele, funcția și data angajării sunt suficiente pentru început; restul datelor apar pe
           fișa de instruire și pot fi completate mai târziu.
         </p>
       </div>

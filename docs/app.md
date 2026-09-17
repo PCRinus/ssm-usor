@@ -190,7 +190,8 @@ mobile navigation link closes the Sheet.
   switch between the two groups through the search params. The
   CNP is never part of the list. The client itself comes from the cached clients list, since
   the API has no single-client read yet; an unknown id shows a not-found screen.
-- `/clients/:id/employees/new`: the creation form in the same sectioned layout: identity
+- `/clients/:id/employees/new`: the creation form, rendered without the client summary and
+  tabs (`staticData.fullPage`); the breadcrumb and the intro line name the client. Sections: identity
   (name, optional CNP and internal number), employment (job title, hire date), contact, and
   the training-sheet fields (birth date, birth place, address, blood group, Rh, notes). A valid
   CNP prefills the birth date on blur, and a contradicting birth date is rejected before the
