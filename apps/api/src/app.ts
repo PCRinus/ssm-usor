@@ -1,3 +1,4 @@
+import { Scalar } from '@scalar/hono-api-reference';
 import type { ApiErrorResponse } from '@ssm-usor/contracts';
 import { cors } from 'hono/cors';
 
@@ -38,6 +39,7 @@ export function createApp() {
     bearerFormat: 'JWT',
   });
   app.doc('/openapi.json', openApiConfig);
+  app.get('/docs', Scalar({ url: '/openapi.json' }));
 
   app.notFound((c) =>
     c.json(

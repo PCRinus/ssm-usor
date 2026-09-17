@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
+    "@scalar/hono-api-reference": "^0.12.2",
     "@ssm-usor/contracts": "workspace:*",
     "@supabase/supabase-js": "^2.116.0",
     "hono": "^4.13.7",
