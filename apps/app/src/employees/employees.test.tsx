@@ -111,6 +111,7 @@ describe('client employees list', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'OMV PETROM SA' })).toBeTruthy();
     expect(screen.getByText('CUI RO1590082')).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(within(breadcrumb).queryByText('Spațiul de lucru')).toBeNull();
     expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();
     expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
     expect(within(breadcrumb).getByText('Angajați')).toBeTruthy();

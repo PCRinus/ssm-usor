@@ -201,14 +201,9 @@ export function AppShell() {
           >
             <Breadcrumb className="mb-7">
               <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to="/dashboard">Spațiul de lucru</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
                 {trail.map((crumb, index) => (
                   <Fragment key={crumb.to}>
-                    <BreadcrumbSeparator />
+                    {index > 0 && <BreadcrumbSeparator />}
                     <BreadcrumbItem>
                       {index === trail.length - 1 ? (
                         <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
