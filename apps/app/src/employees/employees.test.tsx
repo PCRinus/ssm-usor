@@ -202,7 +202,9 @@ describe('client employees list', () => {
     // The form stands on its own: no client summary card or section tabs above it.
     expect(screen.queryByTestId('client-page')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Angajat nou' })).toBeTruthy();
-    expect(within(screen.getByTestId('new-employee-page')).getByText('OMV PETROM SA')).toBeTruthy();
+    const clientField = screen.getByTestId('employee-client') as HTMLInputElement;
+    expect(clientField.value).toBe('OMV PETROM SA');
+    expect(clientField.disabled).toBe(true);
   });
 
   it('explains a list failure and can retry', async () => {

@@ -40,11 +40,6 @@ export function NewEmployeePage() {
     <div data-testid="new-employee-page" className="space-y-7">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Angajat nou</h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Se adaugă la <span className="font-medium text-foreground">{client.legalName}</span>.
-          Numele, funcția și data angajării sunt suficiente pentru început; restul datelor apar pe
-          fișa de instruire și pot fi completate mai târziu.
-        </p>
       </div>
       <form
         className="grid gap-6"
@@ -54,6 +49,22 @@ export function NewEmployeePage() {
         onSubmit={onSubmit}
       >
         <Card className="gap-0 divide-y py-0">
+          <FormSection
+            title="Angajator"
+            description="Clientul la care se adaugă angajatul. Se schimbă din lista de clienți."
+          >
+            <Field id="client" label="Client" className="sm:col-span-2">
+              <Input
+                id="client"
+                data-testid="employee-client"
+                className="h-11"
+                value={client.legalName}
+                readOnly
+                disabled
+              />
+            </Field>
+          </FormSection>
+
           <FormSection
             title="Identificare"
             description="Așa cum apar în actul de identitate. CNP-ul este opțional și rămâne vizibil doar pe fișa angajatului."
