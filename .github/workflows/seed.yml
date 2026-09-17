@@ -1,13 +1,14 @@
 name: Seed database
 
 # Operator action, run by hand: ensures the admin user, its organization, and optionally
-# fake clients on the hosted Supabase project. Never part of a release. An existing admin
-# account keeps its password; the default applies only when the account is first created.
+# fake clients with employees on the hosted Supabase project. Never part of a release.
+# An existing admin account keeps its password; the default applies only when the account
+# is first created.
 on:
   workflow_dispatch:
     inputs:
       fake:
-        description: Also upsert fake clients (only where SEED_ALLOW_FAKE is set)
+        description: Also upsert fake clients and their employees (only where SEED_ALLOW_FAKE is set)
         type: boolean
         default: false
       clients:
