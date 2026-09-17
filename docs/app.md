@@ -62,22 +62,30 @@ Use React Hook Form with `@hookform/resolvers/zod` for forms. Zod schemas define
 inferred TypeScript values; React Hook Form owns registration, errors, focus, and submission state.
 The login schema lives in `src/auth/login-schema.ts`, and `use-login-form.ts` keeps submission
 behavior out of the page component. Validation errors are displayed next to their fields.
+The client form follows the same split: `src/clients/client-form-schema.ts` validates string
+form values in Romanian and converts them to the API request, and `use-client-form.ts` owns the
+ANAF lookup, the create mutation, list invalidation, and the mapping of API errors (409 to the
+CUI field, 400 issues to their fields, everything else to a form-level message).
 
 Email is trimmed and validated. Passwords are required but preserved verbatim; login must not
 apply new-account password-strength rules to existing credentials. Supabase still validates the
 credentials on the server. UI-only schemas stay local; reusable API payload schemas belong in
-`packages/contracts`, and Hono must independently validate incoming API requests.
+`packages/contracts`, and Hono must independently validate incoming API requests. The SPA depends
+on `@ssm-usor/contracts` for shared value helpers such as the county list and CUI checksum, not
+for transport types, which come from the generated client.
 
 ## Routes and providers
 
 `src/router.ts` defines the initial route tree in code:
 
-| Route        | Behavior                                                            |
-| ------------ | ------------------------------------------------------------------- |
-| `/`          | Redirects to `/dashboard`, which checks the session.                |
-| `/login`     | Email/password form; an existing session redirects to `/dashboard`. |
-| `/dashboard` | Protected landing page with the account email and logout.           |
-| Other paths  | Not-found screen with a link back to the start.                     |
+| Route          | Behavior                                                            |
+| -------------- | ------------------------------------------------------------------- |
+| `/`            | Redirects to `/dashboard`, which checks the session.                |
+| `/login`       | Email/password form; an existing session redirects to `/dashboard`. |
+| `/dashboard`   | Protected landing page with the account email and logout.           |
+| `/clients`     | Protected list of the organization's active clients.                |
+| `/clients/new` | Protected form that creates a client, with ANAF prefill by CUI.     |
+| Other paths    | Not-found screen with a link back to the start.                     |
 
 Future protected pages belong under the `_authenticated` layout. Route guards await initial
 session restoration, avoiding a premature redirect on browser refresh. The app also handles
@@ -137,8 +145,13 @@ The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting 
 mobile navigation link closes the Sheet.
 
 - `/dashboard`: overview and existing account/API status.
-- `/clients`: clients table scaffold with a development state. Client data loading,
-  creation, search, and row actions are not implemented yet; the add button is disabled.
+- `/clients`: the organization's active clients from `GET /clients`, with loading, empty,
+  and error states (a missing membership is explained; other failures offer a retry).
+- `/clients/new`: the creation form. Entering a CUI and pressing **Caută la ANAF** calls
+  `GET /companies/lookup` and prefills the name, VAT status, CAEN code, trade register number,
+  and registered office; a missing record or an ANAF outage leaves manual entry available.
+  Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
+  Search, editing, archiving, and row actions are not implemented yet.
 
 Sign-out is available from the sidebar account menu on every authenticated route.
 Failed sign-out keeps the session and displays a retry action in the shared layout.

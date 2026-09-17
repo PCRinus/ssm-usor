@@ -13,6 +13,7 @@ import type { AuthStore } from './auth/auth-store';
 import { ClientsPage } from './pages/clients';
 import { DashboardPage } from './pages/dashboard';
 import { LoginPage } from './pages/login';
+import { NewClientPage } from './pages/new-client';
 import { AuthenticatedLayout, NotFoundPage, RouteErrorPage } from './pages/route-states';
 
 interface RouterContext {
@@ -63,9 +64,18 @@ export function createAppRouter(context: RouterContext, history?: RouterHistory)
     path: '/clients',
     component: ClientsPage,
   });
+  const newClient = createRoute({
+    getParentRoute: () => authenticated,
+    path: '/clients/new',
+    component: NewClientPage,
+  });
 
   return createRouter({
-    routeTree: root.addChildren([index, login, authenticated.addChildren([dashboard, clients])]),
+    routeTree: root.addChildren([
+      index,
+      login,
+      authenticated.addChildren([dashboard, clients, newClient]),
+    ]),
     context,
     history,
     defaultPreload: 'intent',
