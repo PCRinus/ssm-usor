@@ -41,14 +41,17 @@ access token in the Authorization header; the publishable API key is not a user 
 
 ## Routes and authentication
 
-| Route                   | Access                                | Response                                        |
-| ----------------------- | ------------------------------------- | ----------------------------------------------- |
-| `GET /openapi.json`     | Public                                | Generated OpenAPI contract                      |
-| `GET /health`           | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }` |
-| `GET /me`               | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`       |
-| `GET /clients`          | Verified user with a membership       | `{ "clients": [ … ] }`, active clients by name  |
-| `POST /clients`         | Verified user with a membership       | `201 { "client": { … } }`                       |
-| `GET /companies/lookup` | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`    |
+| Route                                            | Access                                | Response                                                    |
+| ------------------------------------------------ | ------------------------------------- | ----------------------------------------------------------- |
+| `GET /openapi.json`                              | Public                                | Generated OpenAPI contract                                  |
+| `GET /health`                                    | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`             |
+| `GET /me`                                        | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`                   |
+| `GET /clients`                                   | Verified user with a membership       | `{ "clients": [ … ] }`, active clients by name              |
+| `POST /clients`                                  | Verified user with a membership       | `201 { "client": { … } }`                                   |
+| `GET /companies/lookup`                          | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                |
+| `GET /clients/{clientId}/employees`              | Verified user with a membership       | `{ "employees": [ … ] }`, by name; `?status=` filters       |
+| `POST /clients/{clientId}/employees`             | Verified user with a membership       | `201 { "employee": { … } }`                                 |
+| `GET /clients/{clientId}/employees/{employeeId}` | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns only the user's ID and
 email (nullable); it does not expose Supabase metadata or grant administrator permissions.
@@ -60,6 +63,14 @@ county list, CAEN format), stores the CUI as digits, and treats an `RO` prefix a
 registration. `GET /companies/lookup` proxies ANAF's public VAT registry (no CORS, roughly one
 request per second) and maps the record onto the client form fields; the form must work without
 it. See the [data model](data-model.md) for the schema and policies.
+
+Employee routes are nested under the client. The handler first looks the client up as the
+caller, so a client of another organization is indistinguishable from a missing one and both
+answer `404 not_found`. Adding an employee to an archived client answers `409 conflict`, and
+so does a CNP or employee number already used by an active employee of that client. The list
+omits the CNP and, without `?status=`, returns active and suspended employees; archived rows
+are never listed. `POST` validates the CNP checksum and calendar date, stores it as digits,
+lowercases the email, and rejects a birth date that contradicts the CNP.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
@@ -104,8 +115,8 @@ All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "me
 | `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                 |
 | `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.          |
 | `403`  | `forbidden`           | The user has no organization membership, or the database policy rejected the write.             |
-| `404`  | `not_found`           | No matching route, or no company registered with the CUI.                                       |
-| `409`  | `conflict`            | A client with this CUI already exists in the organization.                                      |
+| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client or employee.           |
+| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, or an employee added to an archived client.             |
 | `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure. |
 | `500`  | `internal_error`      | Unexpected API failure.                                                                         |
 

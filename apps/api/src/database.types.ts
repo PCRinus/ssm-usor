@@ -68,6 +68,106 @@ export type Database = {
           },
         ];
       };
+      employees: {
+        Row: {
+          archived_at: string | null;
+          birth_date: string | null;
+          birth_place: string | null;
+          blood_group: string | null;
+          client_id: string;
+          cnp: string | null;
+          created_at: string;
+          created_by: string | null;
+          email: string | null;
+          employee_number: string | null;
+          first_name: string;
+          hired_at: string;
+          home_address: string | null;
+          id: string;
+          job_title: string;
+          last_name: string;
+          notes: string | null;
+          organization_id: string;
+          phone: string | null;
+          rh_factor: string | null;
+          status: Database['public']['Enums']['employee_status'];
+          terminated_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          birth_date?: string | null;
+          birth_place?: string | null;
+          blood_group?: string | null;
+          client_id: string;
+          cnp?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          employee_number?: string | null;
+          first_name: string;
+          hired_at: string;
+          home_address?: string | null;
+          id?: string;
+          job_title: string;
+          last_name: string;
+          notes?: string | null;
+          organization_id: string;
+          phone?: string | null;
+          rh_factor?: string | null;
+          status?: Database['public']['Enums']['employee_status'];
+          terminated_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          birth_date?: string | null;
+          birth_place?: string | null;
+          blood_group?: string | null;
+          client_id?: string;
+          cnp?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          employee_number?: string | null;
+          first_name?: string;
+          hired_at?: string;
+          home_address?: string | null;
+          id?: string;
+          job_title?: string;
+          last_name?: string;
+          notes?: string | null;
+          organization_id?: string;
+          phone?: string | null;
+          rh_factor?: string | null;
+          status?: Database['public']['Enums']['employee_status'];
+          terminated_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       impersonations: {
         Row: {
           admin_user_id: string;
@@ -169,6 +269,7 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean };
     };
     Enums: {
+      employee_status: 'active' | 'suspended' | 'terminated';
       organization_role: 'owner' | 'specialist';
     };
     CompositeTypes: {
@@ -291,6 +392,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      employee_status: ['active', 'suspended', 'terminated'],
       organization_role: ['owner', 'specialist'],
     },
   },

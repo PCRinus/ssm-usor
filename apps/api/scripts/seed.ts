@@ -9,11 +9,12 @@ import { z } from 'zod';
 import type { Database } from '../src/database.types';
 import { seedAdmin, seedConfigSchema } from './lib/seed-admin';
 import { fakeClients, seedClients } from './lib/seed-clients';
+import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedOrganization } from './lib/seed-organization';
 
-// Development seed: the admin user, its organization, and optionally fake clients.
+// Development seed: the admin user, its organization, and optionally fake clients with employees.
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
-//   pnpm seed:local           local Docker stack, includes fake clients; account from .env.seed too
+//   pnpm seed:local           local Docker stack, includes fake clients and employees; account from .env.seed too
 //   --fake [--clients 25] [--seed 20260917]   opt in to fake data anywhere
 //   --reset-password          also set SEED_ADMIN_PASSWORD on an existing seeded account
 
@@ -131,8 +132,11 @@ try {
   // Fake data is opt-in on hosted projects; the local stack always gets it.
   if (options.fake || options.local) {
     const rows = fakeClients(options.clients, options.seed, organization.id, user.id);
-    const count = await seedClients(client, rows);
-    console.log(`Upserted ${count} fake clients (seed ${options.seed}).`);
+    const clients = await seedClients(client, rows);
+    console.log(`Upserted ${clients.length} fake clients (seed ${options.seed}).`);
+    const employees = fakeEmployees(clients, options.seed, organization.id, user.id);
+    const employeeCount = await seedEmployees(client, employees);
+    console.log(`Upserted ${employeeCount} fake employees across those clients.`);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'The seed failed.');

@@ -7,6 +7,7 @@ import { ApiError, errorStatus } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
+import { employeesRouter } from './modules/employees';
 import { healthRouter } from './modules/health';
 import { meRouter } from './modules/me';
 import { createRouter } from './router';
@@ -32,6 +33,7 @@ export function createApp() {
   app.route('/', meRouter);
   app.route('/', clientsRouter);
   app.route('/', companiesRouter);
+  app.route('/', employeesRouter);
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',

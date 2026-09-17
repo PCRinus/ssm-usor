@@ -25,5 +25,5 @@ export const bearerSecurity = [{ bearerAuth: [] }];
 
 export const openApiConfig = {
   openapi: '3.0.3',
-  info: { title: 'SSM Ușor API', version: '0.2.0' },
+  info: { title: 'SSM Ușor API', version: '0.3.0' },
 };
