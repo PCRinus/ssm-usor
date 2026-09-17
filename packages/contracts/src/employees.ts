@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
+import { listQuerySchema, pageSchema } from './list';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -68,8 +69,21 @@ export const createEmployeeRequestSchema = z
 
 export type CreateEmployeeRequest = z.infer<typeof createEmployeeRequestSchema>;
 
-// Filters for the list. Without a status the list returns current employees.
-export const listEmployeesQuerySchema = z.object({
+// Status transition. Marking a leaver needs the leave date; reactivating clears it and is
+// meant for undoing a mistake. A rehire after a gap is a new employee row.
+export const updateEmployeeStatusRequestSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('terminated'), terminatedAt: z.iso.date() }),
+  z.object({ status: z.literal('active') }),
+]);
+
+export type UpdateEmployeeStatusRequest = z.infer<typeof updateEmployeeStatusRequestSchema>;
+
+// List parameters. Without a status the list returns current employees. One sort key at a
+// time; "name" orders by last name then first name.
+export const employeeSortKeys = ['name', 'jobTitle', 'hiredAt'] as const;
+export type EmployeeSortKey = (typeof employeeSortKeys)[number];
+
+export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name').extend({
   status: employeeStatusSchema.optional(),
 });
 
@@ -125,9 +139,7 @@ export const employeeResponseSchema = z.object({ employee: employeeSchema });
 
 export type EmployeeResponse = z.infer<typeof employeeResponseSchema>;
 
-export const employeeListResponseSchema = z.object({
-  employees: z.array(employeeListItemSchema),
-});
+export const employeeListResponseSchema = pageSchema(employeeListItemSchema);
 
 export type EmployeeListResponse = z.infer<typeof employeeListResponseSchema>;
 

@@ -1,7 +1,7 @@
 -- pgTAP checks for employee tenancy, the active-client rule, and identifier uniqueness.
 -- Run with: pnpm supabase:test (supabase test db)
 begin;
-select plan(12);
+select plan(15);
 
 -- Fixtures: two organizations with one member and one client each, plus an archived client in A.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -114,6 +114,23 @@ select lives_ok(
   $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, cnp, employee_number)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Din nou', 'Ion', 'Sudor', '2026-09-01', '1900101400127', 'A-1') $$,
   'archiving releases the CNP and the employee number'
+);
+
+select lives_ok(
+  $$ update public.employees set status = 'terminated', terminated_at = '2026-09-10' where last_name = 'Nou' $$,
+  'a member can mark their employee as former with a leave date'
+);
+
+select throws_ok(
+  $$ update public.employees set terminated_at = '2020-01-01' where last_name = 'Nou' $$,
+  '23514',
+  null,
+  'the leave date cannot precede the hire date'
+);
+
+select lives_ok(
+  $$ update public.employees set status = 'active', terminated_at = null where last_name = 'Nou' $$,
+  'a member can reactivate a former employee'
 );
 
 select throws_ok(

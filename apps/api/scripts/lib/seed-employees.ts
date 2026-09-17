@@ -55,7 +55,8 @@ function isoDate(date: Date) {
 }
 
 // Deterministic for a given seed value, so reruns upsert the same rows (keyed on id).
-// Each client gets a slice of its declared headcount, capped to keep the seed small.
+// Each client gets a slice of its declared headcount, capped so the largest fake clients
+// still span a few pages of 25.
 export function fakeEmployees(
   clients: SeedClientRef[],
   seedValue: number,
@@ -65,7 +66,7 @@ export function fakeEmployees(
   fakerRO.seed(seedValue);
   const rows: EmployeeInsert[] = [];
   for (const client of clients) {
-    const count = Math.min(client.declared_employee_count ?? 3, 12);
+    const count = Math.min(client.declared_employee_count ?? 3, 60);
     const seenCnp = new Set<string>();
     for (let index = 1; index <= count; index += 1) {
       const female = fakerRO.datatype.boolean();

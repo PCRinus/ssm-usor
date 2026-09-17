@@ -12,6 +12,12 @@ const dateFormat = new Intl.DateTimeFormat('ro-RO', {
   timeZone: 'UTC',
 });
 
+// Today's calendar date in the browser's time zone, as YYYY-MM-DD for date inputs.
+export function todayIso() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
 // Formats an ISO calendar date (YYYY-MM-DD) for display, for example "1 mar. 2020".
 export function formatDate(isoDate: string) {
   return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -54,11 +54,21 @@ const createdEmployee = {
 
 const employeesPath = `/clients/${clientId}/employees`;
 
+// The list envelope for one page of items.
+const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
+  items,
+  page: meta.page ?? 1,
+  pageSize: 25,
+  total: meta.total ?? items.length,
+});
+
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockApi(routes: Partial<Record<'me' | 'clients' | 'list' | 'create', Route>> = {}) {
+function mockApi(
+  routes: Partial<Record<'me' | 'clients' | 'list' | 'create' | 'status', Route>> = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
     const method = init?.method ?? 'GET';
@@ -72,7 +82,13 @@ function mockApi(routes: Partial<Record<'me' | 'clients' | 'list' | 'create', Ro
       return routes.clients?.(init, url) ?? Response.json({ clients: [sampleClient] });
     }
     if (url.pathname === employeesPath && method === 'GET') {
-      return routes.list?.(init, url) ?? Response.json({ employees: [] });
+      return routes.list?.(init, url) ?? Response.json(page([]));
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
+      return (
+        routes.status?.(init, url) ??
+        Response.json({ employee: { ...createdEmployee, ...JSON.parse(String(init?.body)) } })
+      );
     }
     if (url.pathname === employeesPath && method === 'POST') {
       return (
@@ -105,7 +121,7 @@ afterEach(() => {
 
 describe('client employees list', () => {
   it('shows the client header, breadcrumb, and the employees with their status', async () => {
-    mockApi({ list: () => Response.json({ employees: [sampleEmployee] }) });
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
     mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('client-page');
     expect(screen.getByRole('heading', { level: 1, name: 'OMV PETROM SA' })).toBeTruthy();
@@ -126,8 +142,13 @@ describe('client employees list', () => {
     expect(within(row).getByText('1 mar. 2020')).toBeTruthy();
     expect(within(row).queryByText('Angajați actuali')).toBeNull();
     expect(screen.getByTestId('employees-count').textContent).toBe('1 angajat');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1 angajat');
+    expect(screen.queryByTestId('pager-next')).toBeNull();
     const [url, init] = requests(employeesPath)[0]!;
-    expect(new URL(String(url)).searchParams.has('status')).toBe(false);
+    const query = new URL(String(url)).searchParams;
+    expect(query.has('status')).toBe(false);
+    expect(query.get('page')).toBe('1');
+    expect(query.get('pageSize')).toBe('25');
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
@@ -151,12 +172,13 @@ describe('client employees list', () => {
   it('filters former employees through the status search parameter', async () => {
     mockApi({
       list: (_, url) =>
-        Response.json({
-          employees:
+        Response.json(
+          page(
             url.searchParams.get('status') === 'terminated'
               ? [{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }]
-              : [sampleEmployee],
-        }),
+              : [sampleEmployee]
+          )
+        ),
     });
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('employees-row');
@@ -187,6 +209,68 @@ describe('client employees list', () => {
     expect(runtime.router.state.location.pathname).toBe('/clients');
   });
 
+  it('pages through the list with the page in the URL', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          page(
+            url.searchParams.get('page') === '2'
+              ? [{ ...sampleEmployee, id: 'b2', lastName: 'Zamfir' }]
+              : [sampleEmployee],
+            { page: Number(url.searchParams.get('page') ?? 1), total: 26 }
+          )
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    expect(screen.getByTestId('employees-count').textContent).toBe('26 angajați');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 angajați');
+    expect((screen.getByTestId('pager-previous') as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByTestId('pager-next'));
+    await screen.findByText('Zamfir Ion');
+    expect(runtime.router.state.location.search).toEqual({ page: 2 });
+    expect(screen.getByTestId('pager-summary').textContent).toBe('26–26 din 26 angajați');
+    expect((screen.getByTestId('pager-next') as HTMLButtonElement).disabled).toBe(true);
+    // Switching the status filter starts again from the first page.
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ status: 'terminated' })
+    );
+  });
+
+  it('sorts by one column at a time through the URL', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?page=2`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    const nameHeader = screen.getByRole('columnheader', { name: /Angajat$/ });
+    expect(nameHeader.getAttribute('aria-sort')).toBe('ascending');
+    // Contact is not sortable: no button, no aria-sort.
+    expect(
+      screen.getByRole('columnheader', { name: 'Contact' }).getAttribute('aria-sort')
+    ).toBeNull();
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt' }));
+    expect(
+      screen.getByRole('columnheader', { name: /Angajat din/ }).getAttribute('aria-sort')
+    ).toBe('ascending');
+    expect(nameHeader.getAttribute('aria-sort')).toBe('none');
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt', order: 'desc' })
+    );
+    // Clicking a third time never removes the sort; it goes back to ascending.
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt' }));
+    // Each sort state was requested once; the third click reuses the cached ascending page.
+    const sorts = requests(employeesPath).map(([url]) => {
+      const query = new URL(String(url)).searchParams;
+      return `${query.get('sort')}:${query.get('order')}:${query.get('page')}`;
+    });
+    expect(sorts).toEqual(['name:asc:2', 'hiredAt:asc:1', 'hiredAt:desc:1']);
+  });
+
   it('shows an empty state that leads to the creation page', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
@@ -215,7 +299,7 @@ describe('client employees list', () => {
         attempts += 1;
         return attempts === 1
           ? Response.json({ error: 'not_found', message: 'gone' }, { status: 404 })
-          : Response.json({ employees: [sampleEmployee] });
+          : Response.json(page([sampleEmployee]));
       },
     });
     mountApp(authFixture(makeSession()).client, employeesPath);
@@ -297,7 +381,7 @@ describe('employee creation', () => {
   });
 
   it('sends the normalized request and returns to the list', async () => {
-    mockApi({ list: () => Response.json({ employees: [sampleEmployee] }) });
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
@@ -387,5 +471,125 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('employee-form-error')).textContent).toContain('arhivat');
     expect(requests(employeesPath, 'POST')).toHaveLength(2);
+  });
+});
+
+describe('employee status changes', () => {
+  const statusPath = `${employeesPath}/${sampleEmployee.id}/status`;
+
+  it('marks a leaver with a date and moves the row to former employees', async () => {
+    let status = 'active';
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          page(
+            (url.searchParams.get('status') ?? 'active') === status
+              ? [{ ...sampleEmployee, status }]
+              : []
+          )
+        ),
+      status: (init) => {
+        status = JSON.parse(String(init?.body)).status;
+        return Response.json({
+          employee: { ...createdEmployee, status, terminatedAt: '2026-09-10' },
+        });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    const dialog = await screen.findByTestId('employee-status-dialog');
+    expect(within(dialog).getByText('Popescu Ion')).toBeTruthy();
+    const date = screen.getByTestId('employee-terminated-at') as HTMLInputElement;
+    expect(date.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(date.getAttribute('min')).toBe('2020-03-01');
+    setDate(date, '2026-09-10');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await screen.findByTestId('employees-empty');
+    expect(screen.queryByTestId('employee-status-dialog')).toBeNull();
+    const [, init] = requests(statusPath, 'PATCH')[0]!;
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      status: 'terminated',
+      terminatedAt: '2026-09-10',
+    });
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    await screen.findByTestId('employees-row');
+  });
+
+  it('refuses a leave date before the hire date without calling the API', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    setDate(await screen.findByTestId('employee-terminated-at'), '2019-12-31');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('terminatedAt-error')).textContent).toContain(
+      'înaintea datei angajării'
+    );
+    expect(requests(statusPath, 'PATCH')).toHaveLength(0);
+  });
+
+  it('shows the API field issue and a generic failure in the dialog', async () => {
+    let attempts = 0;
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      status: () => {
+        attempts += 1;
+        return attempts === 1
+          ? Response.json(
+              {
+                error: 'validation_error',
+                message: 'invalid',
+                issues: [{ path: 'terminatedAt', message: 'before hire' }],
+              },
+              { status: 400 }
+            )
+          : Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-terminate'));
+    await screen.findByTestId('employee-terminated-at');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await screen.findByTestId('terminatedAt-error');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
+      'Nu am putut salva'
+    );
+    expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
+  });
+
+  it('reactivates a former employee from the former employees tab', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          page(
+            url.searchParams.get('status') === 'terminated'
+              ? [{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }]
+              : []
+          )
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    expect(screen.queryByTestId('employees-terminate')).toBeNull();
+    await user.click(await screen.findByTestId('employees-reactivate'));
+    const dialog = await screen.findByTestId('employee-status-dialog');
+    expect(within(dialog).queryByTestId('employee-terminated-at')).toBeNull();
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await waitFor(() => expect(screen.queryByTestId('employee-status-dialog')).toBeNull());
+    expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
+      status: 'active',
+    });
   });
 });

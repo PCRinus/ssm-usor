@@ -19,9 +19,9 @@ describe('fake employees', () => {
     const second = fakeEmployees(clients, 7, organizationId, userId);
     expect(second).toEqual(first);
     expect(fakeEmployees(clients, 8, organizationId, userId)).not.toEqual(first);
-    // Capped at twelve per client, three when the headcount is unknown.
+    // Capped at sixty per client, three when the headcount is unknown.
     expect(first.filter((row) => row.client_id === clients[0]!.id)).toHaveLength(4);
-    expect(first.filter((row) => row.client_id === clients[1]!.id)).toHaveLength(12);
+    expect(first.filter((row) => row.client_id === clients[1]!.id)).toHaveLength(60);
     expect(first.filter((row) => row.client_id === clients[2]!.id)).toHaveLength(3);
     expect(new Set(first.map((row) => row.id)).size).toBe(first.length);
     for (const client of clients) {

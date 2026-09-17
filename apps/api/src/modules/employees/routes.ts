@@ -4,6 +4,7 @@ import {
   employeeListResponseSchema,
   employeeResponseSchema,
   listEmployeesQuerySchema,
+  updateEmployeeStatusRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -19,13 +20,13 @@ export const listEmployeesRoute = createRoute({
   operationId: 'listEmployees',
   summary: "List a client's employees",
   description:
-    'Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.',
+    'Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. The CNP is only returned by the detail route.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listEmployeesQuerySchema },
   responses: {
     200: {
-      description: 'Employees ordered by last name, then first name',
+      description: 'One page of employees with the total count',
       content: {
         'application/json': {
           schema: employeeListResponseSchema.meta({ id: 'EmployeeListResponse' }),
@@ -89,6 +90,45 @@ export const getEmployeeRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: 'The employee does not exist under this client in the organization',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const updateEmployeeStatusRoute = createRoute({
+  method: 'patch',
+  path: '/clients/{clientId}/employees/{employeeId}/status',
+  operationId: 'updateEmployeeStatus',
+  summary: 'Mark an employee as former, or reactivate one',
+  description:
+    'Terminating needs the leave date, on or after the hire date. Reactivating clears it and is meant for undoing a mistake; a rehire after a gap is a new employee.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: employeeParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateEmployeeStatusRequestSchema.meta({ id: 'UpdateEmployeeStatusRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The employee after the change',
+      content: {
+        'application/json': { schema: employeeResponseSchema.meta({ id: 'EmployeeResponse' }) },
+      },
+    },
+    400: {
+      description: 'Invalid path or body, or a leave date before the hire date',
+      content: errorContent,
+    },
     404: {
       description: 'The employee does not exist under this client in the organization',
       content: errorContent,

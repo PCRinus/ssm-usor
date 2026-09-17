@@ -411,15 +411,15 @@ export interface CompanyLookupResponse {
   company: CompanyLookupResponseCompany;
 }
 
-export type EmployeeListResponseEmployeesItemStatus =
-  (typeof EmployeeListResponseEmployeesItemStatus)[keyof typeof EmployeeListResponseEmployeesItemStatus];
+export type EmployeeListResponseItemsItemStatus =
+  (typeof EmployeeListResponseItemsItemStatus)[keyof typeof EmployeeListResponseItemsItemStatus];
 
-export const EmployeeListResponseEmployeesItemStatus = {
+export const EmployeeListResponseItemsItemStatus = {
   active: 'active',
   terminated: 'terminated',
 } as const;
 
-export type EmployeeListResponseEmployeesItem = {
+export type EmployeeListResponseItemsItem = {
   id: string;
   clientId: string;
   lastName: string;
@@ -432,7 +432,7 @@ export type EmployeeListResponseEmployeesItem = {
   phone: string | null;
   jobTitle: string;
   hiredAt: string;
-  status: EmployeeListResponseEmployeesItemStatus;
+  status: EmployeeListResponseItemsItemStatus;
   /** @nullable */
   terminatedAt: string | null;
   createdAt: string;
@@ -440,7 +440,16 @@ export type EmployeeListResponseEmployeesItem = {
 };
 
 export interface EmployeeListResponse {
-  employees: EmployeeListResponseEmployeesItem[];
+  items: EmployeeListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
 }
 
 export type EmployeeResponseEmployeeStatus =
@@ -605,6 +614,15 @@ export interface CreateEmployeeRequest {
   notes?: string | null;
 }
 
+export type UpdateEmployeeStatusRequest =
+  | {
+      status: 'terminated';
+      terminatedAt: string;
+    }
+  | {
+      status: 'active';
+    };
+
 export type LookupCompanyParams = {
   /**
    * @minLength 2
@@ -614,8 +632,34 @@ export type LookupCompanyParams = {
 };
 
 export type ListEmployeesParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListEmployeesSort;
+  order?: ListEmployeesOrder;
   status?: ListEmployeesStatus;
 };
+
+export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmployeesSort];
+
+export const ListEmployeesSort = {
+  name: 'name',
+  jobTitle: 'jobTitle',
+  hiredAt: 'hiredAt',
+} as const;
+
+export type ListEmployeesOrder = (typeof ListEmployeesOrder)[keyof typeof ListEmployeesOrder];
+
+export const ListEmployeesOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
 
 export type ListEmployeesStatus = (typeof ListEmployeesStatus)[keyof typeof ListEmployeesStatus];
 
@@ -1234,7 +1278,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (
@@ -1598,3 +1642,116 @@ export function useGetEmployee<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getUpdateEmployeeStatusUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/status`;
+};
+
+/**
+ * Terminating needs the leave date, on or after the hire date. Reactivating clears it and is meant for undoing a mistake; a rehire after a gap is a new employee.
+ * @summary Mark an employee as former, or reactivate one
+ */
+export const updateEmployeeStatus = async (
+  clientId: string,
+  employeeId: string,
+  updateEmployeeStatusRequest: UpdateEmployeeStatusRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EmployeeResponse>(getUpdateEmployeeStatusUrl(clientId, employeeId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateEmployeeStatusRequest),
+  });
+};
+
+export const getUpdateEmployeeStatusMutationKey = () => ['updateEmployeeStatus'] as const;
+
+export const getUpdateEmployeeStatusMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEmployeeStatus>>,
+    TError,
+    UpdateEmployeeStatusMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEmployeeStatus>>,
+  TError,
+  UpdateEmployeeStatusMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateEmployeeStatusMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEmployeeStatus>>,
+    UpdateEmployeeStatusMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return updateEmployeeStatus(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEmployeeStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEmployeeStatus>>
+>;
+export type UpdateEmployeeStatusMutationBody = UpdateEmployeeStatusRequest;
+export type UpdateEmployeeStatusMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEmployeeStatusMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: UpdateEmployeeStatusRequest;
+};
+
+/**
+ * @summary Mark an employee as former, or reactivate one
+ */
+export const useUpdateEmployeeStatus = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateEmployeeStatus>>,
+      TError,
+      UpdateEmployeeStatusMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateEmployeeStatus>>,
+  TError,
+  UpdateEmployeeStatusMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateEmployeeStatusMutationOptions(options), queryClient);
+};

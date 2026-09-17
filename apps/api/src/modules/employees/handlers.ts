@@ -1,11 +1,22 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import { type Employee, type EmployeeListItem, normalizeCnp } from '@ssm-usor/contracts';
+import {
+  type Employee,
+  type EmployeeListItem,
+  type EmployeeSortKey,
+  normalizeCnp,
+  pageRange,
+} from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import type { createEmployeeRoute, getEmployeeRoute, listEmployeesRoute } from './routes';
+import type {
+  createEmployeeRoute,
+  getEmployeeRoute,
+  listEmployeesRoute,
+  updateEmployeeStatusRoute,
+} from './routes';
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
@@ -88,22 +99,36 @@ function conflictMessage(detail: string | undefined) {
   return 'This employee conflicts with an existing one.';
 }
 
+// Sort keys map to column lists; the id keeps every order stable across pages.
+const sortColumns: Record<EmployeeSortKey, string[]> = {
+  name: ['last_name', 'first_name'],
+  jobTitle: ['job_title', 'last_name', 'first_name'],
+  hiredAt: ['hired_at', 'last_name', 'first_name'],
+};
+
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { status } = c.req.valid('query');
+  const { status, page, pageSize, sort, order } = c.req.valid('query');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  let query = db
-    .from('employees')
-    .select(employeeListColumns)
-    .eq('client_id', clientId)
-    .is('archived_at', null);
-  query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-  const { data, error } = await query
-    .order('last_name', { ascending: true })
-    .order('first_name', { ascending: true });
+  const filtered = () => {
+    const base = db.from('employees').select(employeeListColumns, { count: 'exact' });
+    const scoped = base.eq('client_id', clientId).is('archived_at', null);
+    return status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
+  };
+  let query = filtered();
+  for (const column of sortColumns[sort])
+    query = query.order(column, { ascending: order === 'asc' });
+  const { from, to } = pageRange(page, pageSize);
+  const { data, error, count } = await query.order('id').range(from, to);
+  if (error?.code === 'PGRST103') {
+    // The page lies past the end (rows left since the caller last looked): empty, real total.
+    const recount = await filtered().range(0, 0);
+    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
+    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+  }
   if (error) throw fromDatabaseError(error, 'list employees');
-  return c.json({ employees: data.map(toEmployeeListItem) }, 200);
+  return c.json({ items: data.map(toEmployeeListItem), page, pageSize, total: count ?? 0 }, 200);
 };
 
 export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = async (c) => {
@@ -157,6 +182,43 @@ export const getEmployee: RouteHandler<typeof getEmployeeRoute, ApiEnv> = async 
     .eq('client_id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'get employee');
+  if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
+  return c.json({ employee: toEmployee(data) }, 200);
+};
+
+export const updateEmployeeStatus: RouteHandler<typeof updateEmployeeStatusRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  const current = await db
+    .from('employees')
+    .select('id, hired_at')
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (current.error) throw fromDatabaseError(current.error, 'find employee');
+  if (!current.data) {
+    throw new ApiError('not_found', 'This employee does not exist under this client.');
+  }
+  // The database enforces the same rule; checking here names the field for the form.
+  if (body.status === 'terminated' && body.terminatedAt < current.data.hired_at) {
+    throw new ApiError('validation_error', 'The leave date cannot precede the hire date.', [
+      { path: 'terminatedAt', message: 'The leave date cannot precede the hire date.' },
+    ]);
+  }
+  const { data, error } = await db
+    .from('employees')
+    .update({
+      status: body.status,
+      terminated_at: body.status === 'terminated' ? body.terminatedAt : null,
+    })
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .select(employeeColumns)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'update employee status');
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
   return c.json({ employee: toEmployee(data) }, 200);
 };

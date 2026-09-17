@@ -6,6 +6,7 @@ export * from './cnp';
 export * from './counties';
 export * from './cui';
 export * from './employees';
+export * from './list';
 
 export const leadApplicationSchema = z.object({
   email: z.email(),

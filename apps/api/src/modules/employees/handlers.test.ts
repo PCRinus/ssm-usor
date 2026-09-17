@@ -93,7 +93,10 @@ function mockUpstream(
       return handlers.clients?.(init, url) ?? Response.json([activeClient]);
     }
     if (url.pathname === '/rest/v1/employees') {
-      return handlers.employees?.(init, url) ?? Response.json([employeeListRow]);
+      return (
+        handlers.employees?.(init, url) ??
+        Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/1' } })
+      );
     }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
@@ -139,7 +142,10 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(employeeListResponseSchema.parse(body)).toEqual({
-      employees: [
+      page: 1,
+      pageSize: 25,
+      total: 1,
+      items: [
         {
           id: employeeRow.id,
           clientId,
@@ -166,9 +172,59 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('status')).toBe('neq.terminated');
-    expect(query.get('order')).toBe('last_name.asc,first_name.asc');
-    expect(new Headers(listInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
+    expect(query.get('offset')).toBe('0');
+    expect(query.get('limit')).toBe('25');
+    const headers = new Headers(listInit?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(headers.get('Prefer')).toContain('count=exact');
   });
+
+  it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json([employeeListRow], { headers: { 'Content-Range': '25-25/26' } }),
+    });
+    const response = await request(`${employeesPath}?page=2&pageSize=25&sort=hiredAt&order=desc`);
+    expect(response.status).toBe(200);
+    expect(employeeListResponseSchema.parse(await response.json())).toMatchObject({
+      page: 2,
+      pageSize: 25,
+      total: 26,
+    });
+    const [listUrl] = calls('/rest/v1/employees')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('order')).toBe('hired_at.desc,last_name.desc,first_name.desc,id.asc');
+    expect(query.get('offset')).toBe('25');
+    expect(query.get('limit')).toBe('25');
+  });
+
+  it('answers an empty page with the real total when the page lies past the end', async () => {
+    mockUpstream({
+      employees: (_, url) =>
+        url?.searchParams.get('limit') === '1'
+          ? Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/3' } })
+          : Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              {
+                status: 416,
+              }
+            ),
+    });
+    const response = await request(`${employeesPath}?page=9`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+  });
+
+  it.each(['page=0', 'pageSize=101', 'sort=cnp', 'order=sideways'])(
+    'rejects an invalid list parameter: %s',
+    async (search) => {
+      mockUpstream({});
+      const response = await request(`${employeesPath}?${search}`);
+      expect(response.status).toBe(400);
+      expect(calls('/rest/v1/employees')).toHaveLength(0);
+    }
+  );
 
   it('filters by status when asked', async () => {
     mockUpstream({});
@@ -400,6 +456,101 @@ describe('GET /clients/{clientId}/employees/{employeeId}', () => {
   });
 });
 
+describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
+  const statusPath = `${employeesPath}/${employeeRow.id}/status`;
+  const patchStatus = (body: unknown) =>
+    request(statusPath, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  const terminatedRow = { ...employeeRow, status: 'terminated', terminated_at: '2026-09-10' };
+
+  it('marks a leaver with the date and returns the employee', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json([terminatedRow])
+          : Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),
+    });
+    const response = await patchStatus({ status: 'terminated', terminatedAt: '2026-09-10' });
+    expect(response.status).toBe(200);
+    const { employee } = employeeResponseSchema.parse(await response.json());
+    expect(employee.status).toBe('terminated');
+    expect(employee.terminatedAt).toBe('2026-09-10');
+    const patch = calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')!;
+    expect(JSON.parse(String(patch[1]?.body))).toEqual({
+      status: 'terminated',
+      terminated_at: '2026-09-10',
+    });
+    const query = new URL(String(patch[0])).searchParams;
+    expect(query.get('id')).toBe(`eq.${employeeRow.id}`);
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it('reactivates by clearing the leave date', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json([employeeRow])
+          : Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),
+    });
+    const response = await patchStatus({ status: 'active' });
+    expect(response.status).toBe(200);
+    const patch = calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')!;
+    expect(JSON.parse(String(patch[1]?.body))).toEqual({ status: 'active', terminated_at: null });
+  });
+
+  it('rejects a leave date before the hire date with a field issue', async () => {
+    mockUpstream({
+      employees: () => Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),
+    });
+    const response = await patchStatus({ status: 'terminated', terminatedAt: '2019-12-31' });
+    expect(response.status).toBe(400);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.issues?.map((issue) => issue.path)).toEqual(['terminatedAt']);
+    expect(calls('/rest/v1/employees').some(([, init]) => init?.method === 'PATCH')).toBe(false);
+  });
+
+  it.each([
+    [{ status: 'terminated' }, 'terminatedAt'],
+    [{ status: 'terminated', terminatedAt: '10.09.2026' }, 'terminatedAt'],
+    [{ status: 'suspended' }, 'status'],
+  ])('rejects an invalid body: %j', async (body, path) => {
+    mockUpstream({});
+    const response = await patchStatus(body);
+    expect(response.status).toBe(400);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.issues?.map((issue) => issue.path)).toContain(path);
+    expect(calls('/rest/v1/employees')).toHaveLength(0);
+  });
+
+  it('answers 404 when the employee is not under this client', async () => {
+    mockUpstream({ employees: () => Response.json([]) });
+    const response = await patchStatus({ status: 'active' });
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('CORS', () => {
+  it('allows PATCH preflight from the app origin', async () => {
+    const response = await createApp().request(
+      employeesPath,
+      {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://app.ssmusor.ro',
+          'Access-Control-Request-Method': 'PATCH',
+          'Access-Control-Request-Headers': 'authorization,content-type',
+        },
+      },
+      env
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Methods')).toMatch(/\bPATCH\b/);
+  });
+});
+
 it('documents the employee routes with bearer security and schemas', () => {
   const document = createApp().getOpenAPIDocument(openApiConfig);
   const collection = document.paths?.['/clients/{clientId}/employees'];
@@ -409,7 +560,11 @@ it('documents the employee routes with bearer security and schemas', () => {
   expect(document.paths?.['/clients/{clientId}/employees/{employeeId}']?.get?.operationId).toBe(
     'getEmployee'
   );
+  expect(
+    document.paths?.['/clients/{clientId}/employees/{employeeId}/status']?.patch?.operationId
+  ).toBe('updateEmployeeStatus');
   expect(document.components?.schemas?.CreateEmployeeRequest).toBeDefined();
+  expect(document.components?.schemas?.UpdateEmployeeStatusRequest).toBeDefined();
   expect(document.components?.schemas?.EmployeeListResponse).toBeDefined();
   expect(document.components?.schemas?.EmployeeResponse).toBeDefined();
 });
