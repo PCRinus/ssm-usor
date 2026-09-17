@@ -6,6 +6,10 @@ import { type AuthClient, createAuthStore } from './auth/auth-store';
 import { createQueryClient } from './lib/query-client';
 import { createAppRouter } from './router';
 
+// Composition root: builds the one auth store, query client, router, and API request
+// configuration an app instance needs, and keeps them consistent with each other.
+// main.tsx calls it once with the browser Supabase client; tests call it per test with a
+// mocked auth client, a memory history, and a local API URL, then dispose() it.
 export function createAppRuntime(
   client: AuthClient | null,
   queryClient: QueryClient = createQueryClient(),
@@ -22,6 +26,8 @@ export function createAppRuntime(
     },
   };
   const router = createAppRouter({ auth, queryClient, apiRequest }, history);
+  // Route guards read the session at navigation time only. When the signed-in user changes
+  // (sign-out, another tab, a different account) re-run them so protected pages disappear.
   let userId = auth.getSnapshot().session?.user.id;
   let disposed = false;
   const unsubscribe = auth.subscribe(() => {

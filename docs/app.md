@@ -37,6 +37,19 @@ runtime variables alone cannot change an already-built static bundle. Turbo incl
 variables and Vite production env files in the build cache key. A build without configuration
 is allowed for CI and renders the unavailable screen until rebuilt with configuration.
 
+## Build tooling
+
+`vite.config.ts` runs three plugins in order: the TanStack Router plugin (file routes and the
+generated route tree, with automatic per-route code splitting), Tailwind, and the React plugin
+with the **React Compiler** babel plugin. The compiler memoizes components and hooks
+automatically, so manual `useMemo`, `useCallback`, and `memo` are not needed for performance;
+the `react-hooks` lint rules enforce the constraints the compiler relies on.
+
+The **TanStack devtools** (router and query panels) load lazily from the root route only when
+Vite runs in development mode. The check is a build-time constant, so production bundles and
+tests contain no devtools code. Open them from the floating trigger in the bottom-right corner of
+`pnpm dev:app`.
+
 ## Cloudflare deployment
 
 `apps/app/wrangler.jsonc` defines the `ssm-usor-app` Worker, serves `dist`, and declares

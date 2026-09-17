@@ -6,8 +6,13 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  // The router plugin must run before React so file routes are generated first.
-  plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), tailwindcss(), react()],
+  plugins: [
+    // The router plugin must run before React so file routes are generated first.
+    tanstackRouter({ target: 'react', autoCodeSplitting: true }),
+    tailwindcss(),
+    // React Compiler memoizes components and hooks automatically; lint enforces its rules.
+    react({ compiler: true }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
