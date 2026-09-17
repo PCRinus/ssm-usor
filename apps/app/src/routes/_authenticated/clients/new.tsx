@@ -1,58 +1,46 @@
-import { romanianCounties } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
+import { Card } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { Search } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
-import { Controller, type FieldError } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 
-import { useClientForm } from '../clients/use-client-form';
-
-function FieldMessage({ id, error }: { id: string; error?: FieldError }) {
-  if (!error) return null;
-  return (
-    <p id={id} data-testid={`${id}`} role="alert" className="text-sm text-destructive">
-      {error.message}
-    </p>
-  );
-}
-
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  className,
-  children,
-}: {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: FieldError;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={cn('grid gap-2', className)}>
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      <FieldMessage id={`${id}-error`} error={error} />
-    </div>
-  );
-}
+import { CaenCombobox } from '../../../clients/caen-combobox';
+import { CountyCombobox } from '../../../clients/county-combobox';
+import { useClientForm } from '../../../clients/use-client-form';
+import { Field } from '../../../components/form-field';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
   error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+
+export const Route = createFileRoute('/_authenticated/clients/new')({
+  staticData: { title: 'Client nou' },
+  component: NewClientPage,
+});
+
+// A form section: what it is for on the left, its fields on the right.
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="grid gap-5 px-6 py-7 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-10">
+      <div>
+        <h2 className="text-base font-semibold">{title}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-[repeat(2,minmax(0,1fr))]">{children}</div>
+    </section>
+  );
+}
 
 export function NewClientPage() {
   const { form, onSubmit, lookup, lookupCui, isSaving } = useClientForm();
@@ -72,27 +60,25 @@ export function NewClientPage() {
     <div data-testid="new-client-page" className="space-y-7">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Client nou</h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Introdu codul CUI pentru a prelua datele publice de la ANAF, apoi completează restul.
-        </p>
       </div>
       <form
-        className="grid gap-8"
+        className="grid gap-6"
         aria-busy={busy}
         aria-describedby={errors.root?.server ? 'client-form-error' : undefined}
         noValidate
         onSubmit={onSubmit}
       >
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Identificare</h2>
-          </CardHeader>
-          <CardContent className="grid gap-6">
+        <Card className="gap-0 divide-y py-0">
+          <Section
+            title="Identificare"
+            description="Codul fiscal aduce restul datelor publice; denumirea rămâne editabilă."
+          >
             <Field
               id="cui"
               label="CUI"
               hint="Cu sau fără prefixul RO, de exemplu RO1590082."
               error={errors.cui}
+              className="sm:col-span-2"
             >
               <div className="flex flex-wrap gap-2">
                 <Input
@@ -122,7 +108,7 @@ export function NewClientPage() {
               <p
                 data-testid="client-lookup-status"
                 role="status"
-                className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"
+                className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2"
               >
                 {lookup.message}
               </p>
@@ -131,12 +117,28 @@ export function NewClientPage() {
               <p
                 data-testid="client-lookup-status"
                 role="alert"
-                className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
+                className="rounded-md border border-destructive/30 p-3 text-sm text-destructive sm:col-span-2"
               >
                 {lookup.message}
               </p>
             )}
-            <div className="flex items-center gap-3">
+            <Field
+              id="legalName"
+              label="Denumire"
+              error={errors.legalName}
+              className="sm:col-span-2"
+            >
+              <Input
+                id="legalName"
+                data-testid="client-legal-name"
+                className="h-11"
+                {...register('legalName')}
+                autoComplete="organization"
+                required
+                {...input('legalName')}
+              />
+            </Field>
+            <div className="flex items-center gap-3 sm:col-span-2">
               <Controller
                 control={control}
                 name="vatPayer"
@@ -153,44 +155,38 @@ export function NewClientPage() {
               />
               <Label htmlFor="vatPayer">Plătitor de TVA</Label>
             </div>
-            <Field id="legalName" label="Denumire" error={errors.legalName}>
-              <Input
-                id="legalName"
-                data-testid="client-legal-name"
-                className="h-11"
-                {...register('legalName')}
-                autoComplete="organization"
-                required
-                {...input('legalName')}
-              />
-            </Field>
-          </CardContent>
-        </Card>
+          </Section>
 
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Date de înregistrare</h2>
-          </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2">
+          <Section
+            title="Înregistrare"
+            description="Activitatea principală și numărul din Registrul Comerțului, așa cum apar în acte."
+          >
             <Field
               id="caenCode"
               label="Cod CAEN"
-              hint="Activitatea principală, patru cifre."
+              hint="Caută după cod sau după cuvinte din denumirea activității."
               error={errors.caenCode}
             >
-              <Input
-                id="caenCode"
-                data-testid="client-caen"
-                className="h-11"
-                {...register('caenCode')}
-                inputMode="numeric"
-                maxLength={4}
-                {...input('caenCode', true)}
+              <Controller
+                control={control}
+                name="caenCode"
+                render={({ field }) => (
+                  <CaenCombobox
+                    id="caenCode"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={busy}
+                    invalid={Boolean(errors.caenCode)}
+                    describedBy={describedBy('caenCode', errors.caenCode, true)}
+                  />
+                )}
               />
             </Field>
             <Field
               id="tradeRegisterNumber"
               label="Nr. Registrul Comerțului"
+              hint="De exemplu J40/1234/2020."
               error={errors.tradeRegisterNumber}
             >
               <Input
@@ -198,34 +194,31 @@ export function NewClientPage() {
                 data-testid="client-trade-register"
                 className="h-11"
                 {...register('tradeRegisterNumber')}
-                {...input('tradeRegisterNumber')}
+                {...input('tradeRegisterNumber', true)}
               />
             </Field>
-          </CardContent>
-        </Card>
+          </Section>
 
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Sediu social</h2>
-          </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2">
+          <Section
+            title="Sediu social"
+            description="Adresa înregistrată a companiei. Punctele de lucru se adaugă separat."
+          >
             <Field id="countyCode" label="Județ" error={errors.countyCode}>
-              <NativeSelect
-                id="countyCode"
-                data-testid="client-county"
-                className="h-11 min-w-56"
-                {...register('countyCode')}
-                disabled={busy}
-                aria-invalid={Boolean(errors.countyCode)}
-                aria-describedby={describedBy('countyCode', errors.countyCode)}
-              >
-                <NativeSelectOption value="">Alege județul</NativeSelectOption>
-                {romanianCounties.map((county) => (
-                  <NativeSelectOption key={county.code} value={county.code}>
-                    {county.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <Controller
+                control={control}
+                name="countyCode"
+                render={({ field }) => (
+                  <CountyCombobox
+                    id="countyCode"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={busy}
+                    invalid={Boolean(errors.countyCode)}
+                    describedBy={describedBy('countyCode', errors.countyCode)}
+                  />
+                )}
+              />
             </Field>
             <Field id="locality" label="Localitate" error={errors.locality}>
               <Input
@@ -252,14 +245,12 @@ export function NewClientPage() {
                 {...input('addressLine')}
               />
             </Field>
-          </CardContent>
-        </Card>
+          </Section>
 
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Alte informații</h2>
-          </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2">
+          <Section
+            title="Alte informații"
+            description="Date pe care ANAF nu le oferă și pe care le poți actualiza oricând."
+          >
             <Field
               id="legalRepresentativeName"
               label="Reprezentant legal"
@@ -290,7 +281,7 @@ export function NewClientPage() {
                 {...input('declaredEmployeeCount', true)}
               />
             </Field>
-          </CardContent>
+          </Section>
         </Card>
 
         {errors.root?.server && (
@@ -298,7 +289,7 @@ export function NewClientPage() {
             id="client-form-error"
             data-testid="client-form-error"
             role="alert"
-            className="max-w-3xl rounded-md border border-destructive/30 p-3 text-sm text-destructive"
+            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
           >
             {errors.root.server.message}
           </p>

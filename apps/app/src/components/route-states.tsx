@@ -1,15 +1,6 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
 
-import { useAuth } from '../auth/auth-context';
-import { AppShell } from '../components/app-shell';
-
-export function AuthenticatedLayout() {
-  const { session } = useAuth();
-  // Hide stale content immediately while the router rechecks a changed session.
-  return session ? <AppShell /> : null;
-}
-
 export function NotFoundPage() {
   return (
     <main data-testid="not-found-page" className="mx-auto grid max-w-lg gap-5 px-5 py-20">

@@ -33,3 +33,11 @@ beforeEach(() =>
     }))
   )
 );
+
+// jsdom lacks these element APIs used by Radix popovers and the cmdk list.
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+  Element.prototype.hasPointerCapture = vi.fn(() => false);
+  Element.prototype.setPointerCapture = vi.fn();
+  Element.prototype.releasePointerCapture = vi.fn();
+});

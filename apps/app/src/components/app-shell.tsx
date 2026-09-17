@@ -30,7 +30,7 @@ import {
   SidebarTrigger,
 } from '@ssm-usor/ui/components/sidebar';
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
-import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
+import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
 import { ChevronsUpDown, LayoutDashboard, LogOut, Users } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
@@ -40,23 +40,6 @@ const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard },
   { to: '/clients', label: 'Clienți', icon: Users },
 ] as const;
-
-// Nested pages list their parent so the breadcrumb can link back to it.
-const pages: Record<string, { label: string; parent?: string }> = {
-  '/dashboard': { label: 'Prezentare generală' },
-  '/clients': { label: 'Clienți' },
-  '/clients/new': { label: 'Client nou', parent: '/clients' },
-};
-
-function breadcrumbTrail(pathname: string) {
-  const trail: { to: string; label: string }[] = [];
-  for (let path: string | undefined = pathname; path; path = pages[path]?.parent) {
-    const page = pages[path];
-    if (!page) break;
-    trail.unshift({ to: path, label: page.label });
-  }
-  return trail.length ? trail : [{ to: pathname, label: 'Spațiul de lucru' }];
-}
 
 function AppNavigation({
   email,
@@ -153,8 +136,13 @@ function AppNavigation({
 export function AppShell() {
   const { auth, session } = useAuth();
   const navigate = useNavigate();
-  const pathname = useLocation({ select: (location) => location.pathname });
-  const trail = breadcrumbTrail(pathname);
+  // Matched routes with a title form the breadcrumb, for example Clienți › Client nou.
+  const trail = useMatches({
+    select: (matches) =>
+      matches.flatMap((match) =>
+        match.staticData.title ? [{ to: match.pathname, label: match.staticData.title }] : []
+      ),
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const email = session?.user.email ?? 'Contul meu';

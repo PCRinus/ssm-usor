@@ -19,17 +19,21 @@ independently; see the [marketing deployment guide](deployment.md).
 In **Settings → Environments**, use the shared `production` environment. Production build
 and deployment jobs use its variables, secrets, and protection rules. Add these values for the API and SPA:
 
-| Name                            | Kind     | Value                                                                                            |
-| ------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `CLOUDFLARE_ACCOUNT_ID`         | Variable | Account hosting the `ssmusor.ro` zone; same account as marketing.                                |
-| `CLOUDFLARE_API_TOKEN`          | Secret   | Deployment token authorized to edit Workers and their custom-domain routes in this account/zone. |
-| `VITE_SUPABASE_URL`             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                              |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                      |
-| `E2E_EMAIL`                     | Secret   | Email of an existing Supabase test user.                                                         |
-| `E2E_PASSWORD`                  | Secret   | Password for that test user.                                                                     |
-| `SUPABASE_PROJECT_ID`           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                          |
-| `SUPABASE_ACCESS_TOKEN`         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.            |
-| `SUPABASE_DB_PASSWORD`          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.        |
+| Name                                         | Kind     | Value                                                                                            |
+| -------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `CLOUDFLARE_ACCOUNT_ID`                      | Variable | Account hosting the `ssmusor.ro` zone; same account as marketing.                                |
+| `CLOUDFLARE_API_TOKEN`                       | Secret   | Deployment token authorized to edit Workers and their custom-domain routes in this account/zone. |
+| `VITE_SUPABASE_URL`                          | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                              |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`              | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                      |
+| `E2E_EMAIL`                                  | Secret   | Email of an existing Supabase test user.                                                         |
+| `E2E_PASSWORD`                               | Secret   | Password for that test user.                                                                     |
+| `SUPABASE_PROJECT_ID`                        | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                          |
+| `SUPABASE_ACCESS_TOKEN`                      | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.            |
+| `SUPABASE_DB_PASSWORD`                       | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.        |
+| `SUPABASE_SECRET_KEY`                        | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used only by the seed workflow.    |
+| `SEED_ALLOW_FAKE`                            | Variable | `true` to let the seed workflow add fake clients; leave unset on a real production project.      |
+| `SEED_ADMIN_PASSWORD`                        | Secret   | Only for the workflow's `reset-password` input or a first creation; otherwise not needed.        |
+| `SEED_ADMIN_EMAIL`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account and organization name.                                 |
 
 The Cloudflare account ID and deployment token are shared with marketing.
 All three applications deploy automatically and selectively after successful validation on
@@ -47,7 +51,17 @@ for it. It builds the public Supabase settings into the SPA and passes the same 
 the API as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. These are public configuration,
 not administrator credentials. No Supabase secret/service-role key belongs in this workflow.
 The access token and database password are used only by the **Deploy database migrations** job
-to push checked-in migrations; they never reach the Workers.
+to push checked-in migrations, and the secret key only by the **Seed database** workflow; none
+of them reach the Workers.
+
+## Seed the hosted project
+
+The **Seed database** workflow (`.github/workflows/seed.yml`) is run by hand from the Actions
+tab. It ensures the admin user, the organization, and the owner membership, and can add
+deterministic fake clients when the `fake` input is set and the environment allows it. The
+seed is idempotent: rerunning it updates the same rows. Run it after a new project is created
+or when fresh fake data is wanted; it is not part of any release. The same script runs locally
+as `pnpm seed`, see the [development admin guide](development-admin.md).
 The E2E credentials belong to an existing test user in the same Supabase project. The test
 only signs in, reads its account identity, refreshes, and signs out; it does not require admin
 permissions or create users. Missing test credentials fail the authenticated check, which is

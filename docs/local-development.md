@@ -19,9 +19,12 @@ pnpm supabase:status
 ```
 
 The first start downloads Docker images. Subsequent starts reuse them and the local data.
-Starting applies every migration under `supabase/migrations`. The seed creates
-`admin@ssmusor.test` with password `admin123`, the organization "SSM Ușor" with that user as
-owner, and 25 fake clients generated with Faker's Romanian locale from a fixed seed value.
+Starting applies every migration under `supabase/migrations`. The seed creates the admin
+account, the organization "SSM Ușor" with that user as owner, and 25 fake clients generated
+with Faker's Romanian locale from a fixed seed value. The account comes from `SEED_ADMIN_EMAIL`
+and `SEED_ADMIN_PASSWORD` in the ignored `apps/api/.env.seed` (defaults: `admin@ssmusor.test`,
+`admin123`), so local and hosted seeds create the same login. Local Auth enforces the
+password policy in `supabase/config.toml` (eight characters, upper and lower case, digits).
 Rerunning it updates the same account and rows. Pass `-- --clients 50` or `-- --seed 7` for
 a different dataset. The seed reads the local secret key into memory from `supabase status`,
 ignores hosted environment settings, and refuses non-loopback Supabase URLs.

@@ -12,7 +12,7 @@
     "deploy": "wrangler deploy",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "seed": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts",
-    "seed:local": "tsx scripts/seed.ts --local"
+    "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

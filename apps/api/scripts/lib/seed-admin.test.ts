@@ -22,7 +22,7 @@ function fixture() {
 const requestBody = (init?: RequestInit) => JSON.parse(String(init?.body));
 
 describe('development admin seed', () => {
-  it('creates a confirmed admin, then updates the same account on rerun', async () => {
+  it('creates a confirmed admin, then updates the same account on rerun without touching the password', async () => {
     const { admin, fetchMock } = fixture();
     fetchMock
       .mockResolvedValueOnce(Response.json({ users: [] }))
@@ -47,9 +47,21 @@ describe('development admin seed', () => {
     );
     expect(fetchMock.mock.calls[3]?.[1]?.method).toBe('PUT');
     expect(requestBody(fetchMock.mock.calls[3]?.[1])).toMatchObject({
-      password: 'changed-password',
+      email_confirm: true,
       app_metadata: { ...seededUser.app_metadata },
     });
+    expect(requestBody(fetchMock.mock.calls[3]?.[1])).not.toHaveProperty('password');
+  });
+
+  it('resets the password of the seeded account only when asked', async () => {
+    const { admin, fetchMock } = fixture();
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ users: [seededUser] }))
+      .mockResolvedValueOnce(Response.json(seededUser));
+    const result = await seedAdmin(admin, email, 'new-password', { resetPassword: true });
+    expect(result.action).toBe('Updated');
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('PUT');
+    expect(requestBody(fetchMock.mock.calls[1]?.[1])).toMatchObject({ password: 'new-password' });
   });
 
   it('refuses to reset or promote an existing account without the trusted seed marker', async () => {

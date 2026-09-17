@@ -37,6 +37,19 @@ runtime variables alone cannot change an already-built static bundle. Turbo incl
 variables and Vite production env files in the build cache key. A build without configuration
 is allowed for CI and renders the unavailable screen until rebuilt with configuration.
 
+## Build tooling
+
+`vite.config.ts` runs three plugins in order: the TanStack Router plugin (file routes and the
+generated route tree, with automatic per-route code splitting), Tailwind, and the React plugin
+with the **React Compiler** babel plugin. The compiler memoizes components and hooks
+automatically, so manual `useMemo`, `useCallback`, and `memo` are not needed for performance;
+the `react-hooks` lint rules enforce the constraints the compiler relies on.
+
+The **TanStack devtools** (router and query panels) load lazily from the root route only when
+Vite runs in development mode. The check is a build-time constant, so production bundles and
+tests contain no devtools code. Open them from the floating trigger in the bottom-right corner of
+`pnpm dev:app`.
+
 ## Cloudflare deployment
 
 `apps/app/wrangler.jsonc` defines the `ssm-usor-app` Worker, serves `dist`, and declares
@@ -76,21 +89,27 @@ for transport types, which come from the generated client.
 
 ## Routes and providers
 
-`src/router.ts` defines the initial route tree in code:
+Routes are file-based under `src/routes`; the TanStack Router Vite plugin generates
+`src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
+API client). `src/router.ts` builds the router from that tree with the injected context.
 
-| Route          | Behavior                                                            |
-| -------------- | ------------------------------------------------------------------- |
-| `/`            | Redirects to `/dashboard`, which checks the session.                |
-| `/login`       | Email/password form; an existing session redirects to `/dashboard`. |
-| `/dashboard`   | Protected landing page with the account email and logout.           |
-| `/clients`     | Protected list of the organization's active clients.                |
-| `/clients/new` | Protected form that creates a client, with ANAF prefill by CUI.     |
-| Other paths    | Not-found screen with a link back to the start.                     |
+| File                                      | Route          | Behavior                                                            |
+| ----------------------------------------- | -------------- | ------------------------------------------------------------------- |
+| `routes/index.tsx`                        | `/`            | Redirects to `/dashboard`, which checks the session.                |
+| `routes/login.tsx`                        | `/login`       | Email/password form; an existing session redirects to `/dashboard`. |
+| `routes/_authenticated.tsx`               | pathless       | Session guard and the app shell for every protected page.           |
+| `routes/_authenticated/dashboard.tsx`     | `/dashboard`   | Protected landing page with the account email and logout.           |
+| `routes/_authenticated/clients.tsx`       | pathless       | Clients section layout carrying the breadcrumb title.               |
+| `routes/_authenticated/clients/index.tsx` | `/clients`     | Protected list of the organization's active clients.                |
+| `routes/_authenticated/clients/new.tsx`   | `/clients/new` | Protected form that creates a client, with ANAF prefill by CUI.     |
+| `routes/__root.tsx`                       | other paths    | Not-found screen with a link back to the start; route error screen. |
 
-Future protected pages belong under the `_authenticated` layout. Route guards await initial
-session restoration, avoiding a premature redirect on browser refresh. The app also handles
-loading and session-initialization errors. Login always navigates to `/dashboard`; arbitrary
-redirect query parameters are not used.
+Each route file exports `Route` with its guard, loader, and component. A route sets
+`staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
+as `clients.tsx` so the parent crumb links back. New protected pages go under
+`routes/_authenticated`; the guard there awaits initial session restoration, avoiding a
+premature redirect on browser refresh. The app also handles loading and session-initialization
+errors. Login always navigates to `/dashboard`; arbitrary redirect query parameters are not used.
 
 `src/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
 client is both a React provider and typed router context, available for generated Orval query options
@@ -147,10 +166,13 @@ mobile navigation link closes the Sheet.
 - `/dashboard`: overview and existing account/API status.
 - `/clients`: the organization's active clients from `GET /clients`, with loading, empty,
   and error states (a missing membership is explained; other failures offer a retry).
-- `/clients/new`: the creation form. Entering a CUI and pressing **Caută la ANAF** calls
-  `GET /companies/lookup` and prefills the name, VAT status, CAEN code, trade register number,
-  and registered office; a missing record or an ANAF outage leaves manual entry available.
-  Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
+- `/clients/new`: the creation form, laid out as full-width sections with their purpose on
+  the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
+  name, VAT status, CAEN code, trade register number, and registered office; a missing record
+  or an ANAF outage leaves manual entry available. The CAEN field is a searchable combobox
+  over the full CAEN Rev. 3 class list from `packages/contracts` (code prefix or words from
+  the activity name, diacritics optional); a four-digit code outside the list can still be
+  used. Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
   Search, editing, archiving, and row actions are not implemented yet.
 
 Sign-out is available from the sidebar account menu on every authenticated route.

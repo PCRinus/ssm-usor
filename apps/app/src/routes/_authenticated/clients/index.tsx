@@ -9,16 +9,16 @@ import {
   TableHeader,
   TableRow,
 } from '@ssm-usor/ui/components/table';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 import { Plus, Users } from 'lucide-react';
 
 import {
   type ClientListResponse,
   getListClientsQueryKey,
   useListClients,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { useAuth } from '../auth/auth-context';
+} from '../../../api/generated/api';
+import { ApiHttpError } from '../../../api/http';
+import { useAuth } from '../../../auth/auth-context';
 
 type Client = ClientListResponse['clients'][number];
 
@@ -26,6 +26,10 @@ function registeredOffice(client: Client) {
   const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
   return [client.locality, county].filter(Boolean).join(', ') || '—';
 }
+
+export const Route = createFileRoute('/_authenticated/clients/')({
+  component: ClientsPage,
+});
 
 export function ClientsPage() {
   const { session } = useAuth();

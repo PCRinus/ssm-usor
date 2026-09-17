@@ -27,6 +27,7 @@ export default defineConfig([
     '**/.wrangler/**',
     '**/dist/**',
     'apps/app/src/api/generated/**',
+    'apps/app/src/routeTree.gen.ts',
     '**/node_modules/**',
     '**/playwright-report/**',
     '**/test-results/**',
@@ -54,6 +55,16 @@ export default defineConfig([
       'react-refresh/only-export-components': [
         'error',
         { allowConstantExport: true, allowExportNames: ['buttonVariants', 'badgeVariants'] },
+      ],
+    },
+  },
+  {
+    // File-based route modules export the route definition next to their component.
+    files: ['apps/app/src/routes/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        { allowConstantExport: true, allowExportNames: ['Route'] },
       ],
     },
   },

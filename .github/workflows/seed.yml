@@ -1,0 +1,80 @@
+name: Seed database
+
+# Operator action, run by hand: ensures the admin user, its organization, and optionally
+# fake clients on the hosted Supabase project. Never part of a release. An existing admin
+# account keeps its password; the default applies only when the account is first created.
+on:
+  workflow_dispatch:
+    inputs:
+      fake:
+        description: Also upsert fake clients (only where SEED_ALLOW_FAKE is set)
+        type: boolean
+        default: false
+      clients:
+        description: Number of fake clients
+        type: number
+        default: 25
+      seed:
+        description: Faker seed value (same value, same data)
+        type: number
+        default: 20260917
+      reset-password:
+        description: Set SEED_ADMIN_PASSWORD on the existing admin account (requires the secret)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seed-database
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: Seed hosted project
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+      SEED_ADMIN_EMAIL_INPUT: ${{ vars.SEED_ADMIN_EMAIL }}
+      SEED_ORGANIZATION_NAME_INPUT: ${{ vars.SEED_ORGANIZATION_NAME }}
+      SEED_ALLOW_FAKE: ${{ vars.SEED_ALLOW_FAKE }}
+    steps:
+      - name: Check seed configuration
+        shell: bash
+        run: |
+          : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
+          : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
+          if [[ "${{ inputs.reset-password }}" == "true" && -z "$SEED_ADMIN_PASSWORD" ]]; then
+            echo "Set SEED_ADMIN_PASSWORD in GitHub secrets to reset the admin password."
+            exit 1
+          fi
+          if [[ "${{ inputs.fake }}" == "true" && "$SEED_ALLOW_FAKE" != "true" ]]; then
+            echo "Fake data is not allowed in this environment. Set SEED_ALLOW_FAKE=true to permit it."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Build shared contracts
+        run: pnpm --filter @ssm-usor/contracts build
+
+      # Optional variables are exported only when set, so the script's defaults apply otherwise.
+      - name: Run the seed
+        shell: bash
+        run: |
+          [[ -n "$SEED_ADMIN_EMAIL_INPUT" ]] && export SEED_ADMIN_EMAIL="$SEED_ADMIN_EMAIL_INPUT"
+          [[ -n "$SEED_ORGANIZATION_NAME_INPUT" ]] && export SEED_ORGANIZATION_NAME="$SEED_ORGANIZATION_NAME_INPUT"
+          args=()
+          if [[ "${{ inputs.fake }}" == "true" ]]; then
+            args+=(--fake --clients "${{ inputs.clients }}" --seed "${{ inputs.seed }}")
+          fi
+          if [[ "${{ inputs.reset-password }}" == "true" ]]; then
+            args+=(--reset-password)
+          fi
+          pnpm --filter @ssm-usor/api seed "${args[@]}"
