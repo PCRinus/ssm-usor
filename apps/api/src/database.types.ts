@@ -269,7 +269,7 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean };
     };
     Enums: {
-      employee_status: 'active' | 'suspended' | 'terminated';
+      employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
     };
     CompositeTypes: {
@@ -392,7 +392,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      employee_status: ['active', 'suspended', 'terminated'],
+      employee_status: ['active', 'terminated'],
       organization_role: ['owner', 'specialist'],
     },
   },

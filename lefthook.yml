@@ -1,17 +1,16 @@
+# Staged files are resolved inside scripts/lint-staged.sh rather than interpolated here,
+# because file names with `$` (TanStack Router params) would be expanded by the shell.
 pre-commit:
   parallel: false
   commands:
     eslint:
       glob: '*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,astro}'
       run: >-
-        bash -lc 'source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" &&
-        nvm use --silent &&
-        corepack pnpm exec eslint --fix {staged_files}'
-      stage_fixed: true
+        bash scripts/lint-staged.sh eslint
+        '*.js' '*.mjs' '*.cjs' '*.jsx' '*.ts' '*.mts' '*.cts' '*.tsx' '*.astro'
     prettier:
       glob: '*.{astro,css,html,js,mjs,cjs,jsx,json,jsonc,md,ts,mts,cts,tsx,yaml,yml}'
       run: >-
-        bash -lc 'source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" &&
-        nvm use --silent &&
-        corepack pnpm exec prettier --write {staged_files}'
-      stage_fixed: true
+        bash scripts/lint-staged.sh prettier
+        '*.astro' '*.css' '*.html' '*.js' '*.mjs' '*.cjs' '*.jsx' '*.json' '*.jsonc'
+        '*.md' '*.ts' '*.mts' '*.cts' '*.tsx' '*.yaml' '*.yml'

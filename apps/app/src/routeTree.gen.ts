@@ -15,7 +15,12 @@ import { Route as LoginRouteImport } from './routes/login';
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
+import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients/$clientId';
 import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authenticated/clients/new';
+import { Route as AuthenticatedClientsClientIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/index';
+import { Route as AuthenticatedClientsClientIdEmployeesRouteImport } from './routes/_authenticated/clients/$clientId/employees';
+import { Route as AuthenticatedClientsClientIdEmployeesIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/index';
+import { Route as AuthenticatedClientsClientIdEmployeesNewRouteImport } from './routes/_authenticated/clients/$clientId/employees/new';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,19 +52,54 @@ const AuthenticatedClientsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedClientsRoute,
   } as any);
+const AuthenticatedClientsClientIdRoute =
+  AuthenticatedClientsClientIdRouteImport.update({
+    id: '/$clientId',
+    path: '/$clientId',
+    getParentRoute: () => AuthenticatedClientsRoute,
+  } as any);
 const AuthenticatedClientsNewRoute = AuthenticatedClientsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any);
+const AuthenticatedClientsClientIdIndexRoute =
+  AuthenticatedClientsClientIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
+const AuthenticatedClientsClientIdEmployeesRoute =
+  AuthenticatedClientsClientIdEmployeesRouteImport.update({
+    id: '/employees',
+    path: '/employees',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
+const AuthenticatedClientsClientIdEmployeesIndexRoute =
+  AuthenticatedClientsClientIdEmployeesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
+  } as any);
+const AuthenticatedClientsClientIdEmployeesNewRoute =
+  AuthenticatedClientsClientIdEmployeesNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
+  '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/clients/': typeof AuthenticatedClientsIndexRoute;
+  '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
+  '/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
+  '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -67,6 +107,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/clients': typeof AuthenticatedClientsIndexRoute;
+  '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
+  '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -75,15 +118,38 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute;
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
+  '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
+  '/_authenticated/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
+  '/_authenticated/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
+  '/_authenticated/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/_authenticated/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    '/' | '/login' | '/clients' | '/dashboard' | '/clients/new' | '/clients/';
+    | '/'
+    | '/login'
+    | '/clients'
+    | '/dashboard'
+    | '/clients/$clientId'
+    | '/clients/new'
+    | '/clients/'
+    | '/clients/$clientId/employees'
+    | '/clients/$clientId/'
+    | '/clients/$clientId/employees/new'
+    | '/clients/$clientId/employees/';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/dashboard' | '/clients/new' | '/clients';
+  to:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/clients/new'
+    | '/clients'
+    | '/clients/$clientId'
+    | '/clients/$clientId/employees/new'
+    | '/clients/$clientId/employees';
   id:
     | '__root__'
     | '/'
@@ -91,8 +157,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
+    | '/_authenticated/clients/$clientId'
     | '/_authenticated/clients/new'
-    | '/_authenticated/clients/';
+    | '/_authenticated/clients/'
+    | '/_authenticated/clients/$clientId/employees'
+    | '/_authenticated/clients/$clientId/'
+    | '/_authenticated/clients/$clientId/employees/new'
+    | '/_authenticated/clients/$clientId/employees/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -145,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport;
       parentRoute: typeof AuthenticatedClientsRoute;
     };
+    '/_authenticated/clients/$clientId': {
+      id: '/_authenticated/clients/$clientId';
+      path: '/$clientId';
+      fullPath: '/clients/$clientId';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdRouteImport;
+      parentRoute: typeof AuthenticatedClientsRoute;
+    };
     '/_authenticated/clients/new': {
       id: '/_authenticated/clients/new';
       path: '/new';
@@ -152,15 +230,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsNewRouteImport;
       parentRoute: typeof AuthenticatedClientsRoute;
     };
+    '/_authenticated/clients/$clientId/': {
+      id: '/_authenticated/clients/$clientId/';
+      path: '/';
+      fullPath: '/clients/$clientId/';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdIndexRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
+    '/_authenticated/clients/$clientId/employees': {
+      id: '/_authenticated/clients/$clientId/employees';
+      path: '/employees';
+      fullPath: '/clients/$clientId/employees';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
+    '/_authenticated/clients/$clientId/employees/': {
+      id: '/_authenticated/clients/$clientId/employees/';
+      path: '/';
+      fullPath: '/clients/$clientId/employees/';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesIndexRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
+    };
+    '/_authenticated/clients/$clientId/employees/new': {
+      id: '/_authenticated/clients/$clientId/employees/new';
+      path: '/new';
+      fullPath: '/clients/$clientId/employees/new';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesNewRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
+    };
   }
 }
 
+interface AuthenticatedClientsClientIdEmployeesRouteChildren {
+  AuthenticatedClientsClientIdEmployeesNewRoute: typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  AuthenticatedClientsClientIdEmployeesIndexRoute: typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+}
+
+const AuthenticatedClientsClientIdEmployeesRouteChildren: AuthenticatedClientsClientIdEmployeesRouteChildren =
+  {
+    AuthenticatedClientsClientIdEmployeesNewRoute:
+      AuthenticatedClientsClientIdEmployeesNewRoute,
+    AuthenticatedClientsClientIdEmployeesIndexRoute:
+      AuthenticatedClientsClientIdEmployeesIndexRoute,
+  };
+
+const AuthenticatedClientsClientIdEmployeesRouteWithChildren =
+  AuthenticatedClientsClientIdEmployeesRoute._addFileChildren(
+    AuthenticatedClientsClientIdEmployeesRouteChildren,
+  );
+
+interface AuthenticatedClientsClientIdRouteChildren {
+  AuthenticatedClientsClientIdEmployeesRoute: typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
+  AuthenticatedClientsClientIdIndexRoute: typeof AuthenticatedClientsClientIdIndexRoute;
+}
+
+const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRouteChildren =
+  {
+    AuthenticatedClientsClientIdEmployeesRoute:
+      AuthenticatedClientsClientIdEmployeesRouteWithChildren,
+    AuthenticatedClientsClientIdIndexRoute:
+      AuthenticatedClientsClientIdIndexRoute,
+  };
+
+const AuthenticatedClientsClientIdRouteWithChildren =
+  AuthenticatedClientsClientIdRoute._addFileChildren(
+    AuthenticatedClientsClientIdRouteChildren,
+  );
+
 interface AuthenticatedClientsRouteChildren {
+  AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRouteWithChildren;
   AuthenticatedClientsNewRoute: typeof AuthenticatedClientsNewRoute;
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute;
 }
 
 const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
+  AuthenticatedClientsClientIdRoute:
+    AuthenticatedClientsClientIdRouteWithChildren,
   AuthenticatedClientsNewRoute: AuthenticatedClientsNewRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
 };

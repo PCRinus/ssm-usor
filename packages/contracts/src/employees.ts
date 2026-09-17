@@ -4,7 +4,8 @@ import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
-export const employeeStatuses = ['active', 'suspended', 'terminated'] as const;
+// Current or former. Absences will be dated events, not a status.
+export const employeeStatuses = ['active', 'terminated'] as const;
 export const employeeStatusSchema = z.enum(employeeStatuses);
 export type EmployeeStatus = z.infer<typeof employeeStatusSchema>;
 
@@ -67,7 +68,7 @@ export const createEmployeeRequestSchema = z
 
 export type CreateEmployeeRequest = z.infer<typeof createEmployeeRequestSchema>;
 
-// Filters for the list. Without a status the list returns everyone still employed.
+// Filters for the list. Without a status the list returns current employees.
 export const listEmployeesQuerySchema = z.object({
   status: employeeStatusSchema.optional(),
 });

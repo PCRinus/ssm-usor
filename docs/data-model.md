@@ -77,7 +77,7 @@ stay a one-line comparison like on `clients`.
 | `email`, `phone`                            | Optional, for invitations and remote signing.                                              |
 | `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.         |
 | `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.     |
-| `status`, `terminated_at`                   | `active`, `suspended`, or `terminated`; the date is required exactly when terminated.      |
+| `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                    |
 | `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.  |
 | `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                 |
 | `notes`                                     | Free text, up to 2000 characters.                                                          |
@@ -91,6 +91,11 @@ be recorded.
 The CNP is optional per the product scope, protected by row-level security like every other
 column, and returned only by the detail route. It is not encrypted at the column level; an
 audit log of full-CNP reads is planned together with the employee dossier.
+
+There is no suspended status. A paused contract (parental or medical leave, unpaid leave,
+technical unemployment) is an absence with a start and a return date, and the return after
+more than 30 working days triggers supplementary training; it will be a dated event next to
+the training records, from which "currently absent" is derived.
 
 Not on the employee row, on purpose: training completion, signatures, and medical fitness.
 Those are evidence records with dates and actors (a `training_records` table follows), because a

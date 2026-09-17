@@ -68,7 +68,7 @@ Employee routes are nested under the client. The handler first looks the client 
 caller, so a client of another organization is indistinguishable from a missing one and both
 answer `404 not_found`. Adding an employee to an archived client answers `409 conflict`, and
 so does a CNP or employee number already used by an active employee of that client. The list
-omits the CNP and, without `?status=`, returns active and suspended employees; archived rows
+omits the CNP and, without `?status=`, returns current employees; archived rows
 are never listed. `POST` validates the CNP checksum and calendar date, stores it as digits,
 lowercases the email, and rejects a birth date that contradicts the CNP.
 

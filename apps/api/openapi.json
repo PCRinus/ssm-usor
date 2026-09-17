@@ -590,7 +590,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": ["active", "suspended", "terminated"]
+                  "enum": ["active", "terminated"]
                 },
                 "terminatedAt": {
                   "type": "string",
@@ -671,7 +671,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": ["active", "suspended", "terminated"]
+                "enum": ["active", "terminated"]
               },
               "terminatedAt": {
                 "type": "string",
@@ -1165,7 +1165,7 @@
       "get": {
         "operationId": "listEmployees",
         "summary": "List a client's employees",
-        "description": "Without a status filter the list holds active and suspended employees. Archived rows are never listed. The CNP is only returned by the detail route.",
+        "description": "Without a status filter the list holds current employees. Archived rows are never listed. The CNP is only returned by the detail route.",
         "security": [
           {
             "bearerAuth": []
@@ -1184,7 +1184,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["active", "suspended", "terminated"]
+              "enum": ["active", "terminated"]
             },
             "required": false,
             "name": "status",

@@ -141,7 +141,14 @@ export function ClientsPage() {
               rows.map((client) => (
                 <TableRow key={client.id} data-testid="clients-row">
                   <TableCell className="pl-5 font-medium">
-                    {client.legalName}
+                    <Link
+                      to="/clients/$clientId/employees"
+                      params={{ clientId: client.id }}
+                      data-testid="clients-open"
+                      className="hover:underline"
+                    >
+                      {client.legalName}
+                    </Link>
                     {client.caenCode && (
                       <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
                         CAEN {client.caenCode}
