@@ -210,6 +210,22 @@ pnpm deploy:dry-run
 Playwright deployment tests live in `e2e/` and run separately with `pnpm --filter @ssm-usor/app test:e2e`.
 See the [deployment guide](app-deployment.md#playwright-deployment-tests) for server setup and credentials.
 
+Browser flow tests live in `e2e/flows/` and run with `pnpm --filter @ssm-usor/app test:e2e:flows`
+after `pnpm supabase:start`. They cover what creates users: inviting, accepting with a new
+and with an existing account, changing a role, removing a member, resetting and changing a
+password. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
+`pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
+pointed at the local Supabase stack, and a preview of a production build of the SPA. That API
+refuses any Supabase URL that is not local and keeps emails in memory instead of calling the
+mail Worker, so a flow test cannot send email or reach the hosted project; the specs read
+the emailed link back from `GET /__e2e/emails`. Fixtures are created with the local secret
+key and deleted afterwards.
+
+These tests run the production build, which the Vitest suite does not: Vitest compiles
+without the React Compiler. A hook that returned `{ ...form }` from `useForm` worked under
+Vitest and froze the login page's errors in production, because the compiler memoized the
+copy; return the form itself and read `form.formState` while rendering.
+
 Vitest and Testing Library exercise real route transitions and form interactions against a mocked
 Supabase auth boundary. Tests cover restored sessions, invalid credentials, successful login and
 logout, remote sign-out, failed logout, account/cache isolation, cancellation, initialization races,
@@ -285,8 +301,10 @@ mobile navigation link closes the Sheet.
   revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a
   conflict decides the wording: an address that is already a member or was emailed in the
   last 10 minutes is reported on the email field, the 20-invitation limit on the form.
-  Hiding the owner's tools is a courtesy; the API and the database enforce the rule. An
-  account without an organization is told to ask for an invitation.
+  An owner's members table has a row menu for everyone but themselves: switch the role, or
+  remove the member after a confirmation that says what stays. Hiding the owner's tools is a
+  courtesy; the API and the database enforce the rule. An account without an organization is
+  told to ask for an invitation.
 - `/profile`: a form for the user's name backed by `PATCH /me/profile`, with the email
   read-only. Saving refreshes `/me`, so the account menu follows.
 

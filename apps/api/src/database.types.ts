@@ -389,6 +389,13 @@ export type Database = {
         };
         Returns: string;
       };
+      change_organization_member_role: {
+        Args: {
+          member_user_id: string;
+          new_role: Database['public']['Enums']['organization_role'];
+        };
+        Returns: boolean;
+      };
       create_organization_invitation: {
         Args: {
           invitee_email: string;
@@ -415,6 +422,7 @@ export type Database = {
       effective_user_id: { Args: never; Returns: string };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
+      lock_members_as_owner: { Args: never; Returns: string };
       organization_invitation_by_token: {
         Args: { invitation_token_hash: string };
         Returns: {
@@ -436,6 +444,10 @@ export type Database = {
           role: Database['public']['Enums']['organization_role'];
           user_id: string;
         }[];
+      };
+      remove_organization_member: {
+        Args: { member_user_id: string };
+        Returns: boolean;
       };
       revoke_organization_invitation: {
         Args: { invitation_id: string };

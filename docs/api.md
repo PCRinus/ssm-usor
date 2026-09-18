@@ -51,6 +51,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                           |
 | `PATCH /me/profile`                                       | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                            |
 | `GET /organization/members`                               | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                 |
+| `PATCH /organization/members/{userId}`                    | Owner                                 | `204` after changing the member's role                                                             |
+| `DELETE /organization/members/{userId}`                   | Owner                                 | `204` after removing the membership; the account stays                                             |
 | `GET /organization/invitations`                           | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                 |
 | `POST /organization/invitations`                          | Owner                                 | `201` with the invitation, after emailing the link                                                 |
 | `POST /organization/invitations/{invitationId}/resend`    | Owner                                 | The renewed invitation, after emailing a fresh link                                                |
@@ -174,6 +176,16 @@ Invitation errors carry a `reason` so the SPA can word them: `already_member`,
 The owner routes need `SUPABASE_SECRET_KEY` and the `MAIL` binding and answer `503` before
 creating anything while either is missing.
 
+## Members
+
+An owner changes a member's role with `PATCH /organization/members/{userId}` and removes a
+member with `DELETE /organization/members/{userId}`. Both call database functions as the
+owner; memberships have no write policy. Nobody acts on their own membership (`409`,
+`reason: own_membership`), which is what keeps an organization from ending up without an
+owner. Someone who is not a member of the caller's organization is `404`. Removing deletes
+the membership only: the account, the profile, and what the person created stay, the person
+sees no organization, and can be invited again.
+
 ## Supabase Auth emails
 
 Supabase Auth does not send email itself: its Send Email hook posts every email it would send
@@ -233,7 +245,7 @@ only. Authentication failures include `WWW-Authenticate: Bearer`.
 `CORS_ORIGINS` is a comma-separated list of exact browser origins for every route except
 `/waitlist`, which allows only `MARKETING_ORIGIN`. Production defaults to
 `https://app.ssmusor.ro`; `.dev.vars` allows the local Vite origins instead. OPTIONS preflight
-does not require authentication and allows GET, POST, and PATCH requests with Authorization/Content-Type headers.
+does not require authentication and allows GET, POST, PATCH, and DELETE requests with Authorization/Content-Type headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
 authentication still applies independently, including to non-browser clients.
 

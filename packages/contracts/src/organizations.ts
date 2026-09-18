@@ -29,3 +29,12 @@ export const organizationMemberListResponseSchema = z.object({
 });
 
 export type OrganizationMemberListResponse = z.infer<typeof organizationMemberListResponseSchema>;
+
+export const changeMemberRoleRequestSchema = z.object({ role: organizationRoleSchema });
+
+export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;
+
+/** `reason` values on member management errors, so the SPA can word them itself. */
+export const memberErrorReasons = ['own_membership'] as const;
+
+export type MemberErrorReason = (typeof memberErrorReasons)[number];

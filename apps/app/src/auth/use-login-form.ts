@@ -29,5 +29,9 @@ export function useLoginForm(invitation?: string) {
     }
   });
 
-  return { ...form, onSubmit };
+  // Return the form itself, never a spread copy. `useForm` hands back one stable object
+  // and swaps its `formState` on every render; the React Compiler would memoize a copy on
+  // that stable identity and freeze the first `formState`, so errors and the submitting
+  // state would never reach the page. Read `form.formState` while rendering instead.
+  return { form, onSubmit };
 }

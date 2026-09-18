@@ -707,6 +707,18 @@ export interface OrganizationMemberListResponse {
   items: OrganizationMemberListResponseItemsItem[];
 }
 
+export type ChangeMemberRoleRequestRole =
+  (typeof ChangeMemberRoleRequestRole)[keyof typeof ChangeMemberRoleRequestRole];
+
+export const ChangeMemberRoleRequestRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export interface ChangeMemberRoleRequest {
+  role: ChangeMemberRoleRequestRole;
+}
+
 export type InvitationListResponseItemsItemRole =
   (typeof InvitationListResponseItemsItemRole)[keyof typeof InvitationListResponseItemsItemRole];
 
@@ -2437,6 +2449,198 @@ export function useListOrganizationMembers<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getChangeMemberRoleUrl = (userId: string) => {
+  return `/organization/members/${userId}`;
+};
+
+/**
+ * Owners only, and never on their own membership, which is what keeps an organization from ending up without an owner.
+ * @summary Change a member's role
+ */
+export const changeMemberRole = async (
+  userId: string,
+  changeMemberRoleRequest: ChangeMemberRoleRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<void>(getChangeMemberRoleUrl(userId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeMemberRoleRequest),
+  });
+};
+
+export const getChangeMemberRoleMutationKey = () => ['changeMemberRole'] as const;
+
+export const getChangeMemberRoleMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof changeMemberRole>>,
+    TError,
+    ChangeMemberRoleMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof changeMemberRole>>,
+  TError,
+  ChangeMemberRoleMutationVariables,
+  TContext
+> => {
+  const mutationKey = getChangeMemberRoleMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof changeMemberRole>>,
+    ChangeMemberRoleMutationVariables
+  > = (props) => {
+    const { userId, data } = props ?? {};
+
+    return changeMemberRole(userId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ChangeMemberRoleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof changeMemberRole>>
+>;
+export type ChangeMemberRoleMutationBody = ChangeMemberRoleRequest;
+export type ChangeMemberRoleMutationError = ErrorType<ApiErrorResponse>;
+export type ChangeMemberRoleMutationVariables = { userId: string; data: ChangeMemberRoleRequest };
+
+/**
+ * @summary Change a member's role
+ */
+export const useChangeMemberRole = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof changeMemberRole>>,
+      TError,
+      ChangeMemberRoleMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof changeMemberRole>>,
+  TError,
+  ChangeMemberRoleMutationVariables,
+  TContext
+> => {
+  return useMutation(getChangeMemberRoleMutationOptions(options), queryClient);
+};
+
+export const getRemoveMemberUrl = (userId: string) => {
+  return `/organization/members/${userId}`;
+};
+
+/**
+ * Owners only, and never themselves. Only the membership is deleted: the account, the profile, and what the person created stay, and they can be invited again.
+ * @summary Remove a member from the organization
+ */
+export const removeMember = async (
+  userId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRemoveMemberUrl(userId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveMemberMutationKey = () => ['removeMember'] as const;
+
+export const getRemoveMemberMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMember>>,
+    TError,
+    RemoveMemberMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeMember>>,
+  TError,
+  RemoveMemberMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveMemberMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeMember>>,
+    RemoveMemberMutationVariables
+  > = (props) => {
+    const { userId } = props ?? {};
+
+    return removeMember(userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeMember>>>;
+
+export type RemoveMemberMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveMemberMutationVariables = { userId: string };
+
+/**
+ * @summary Remove a member from the organization
+ */
+export const useRemoveMember = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeMember>>,
+      TError,
+      RemoveMemberMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeMember>>,
+  TError,
+  RemoveMemberMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveMemberMutationOptions(options), queryClient);
+};
 
 export const getListInvitationsUrl = () => {
   return `/organization/invitations`;
