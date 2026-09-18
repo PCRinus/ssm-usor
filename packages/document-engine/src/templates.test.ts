@@ -130,21 +130,33 @@ describe('typesetting', () => {
     expect(bodyOf(name)).not.toContain('<w:hyperlink');
   });
 
-  it.each(templateFiles)('%s has the house margins and nothing in a header or footer', (name) => {
-    const xml = bodyOf(name);
-    // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.
-    expect(xml).toMatch(/<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/);
-    expect(xml).toMatch(
-      /<w:pgMar [^>]*w:top="1134"[^>]*w:bottom="1134"|<w:pgMar [^>]*w:bottom="1134"[^>]*w:top="1134"/
-    );
-    // LibreOffice keeps a reference to an even-page footer; what matters is that it is empty.
-    const zip = new PizZip(read(name));
-    for (const part of Object.keys(zip.files).filter((file) =>
-      /word\/(header|footer)\d*\.xml/.test(file)
-    )) {
-      expect(documentTextOf(zip.file(part)!.asText()).trim(), part).toBe('');
+  it.each(templateFiles)(
+    '%s has the house margins, no header, and a footer that ends with the branding line',
+    (name) => {
+      const xml = bodyOf(name);
+      // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.
+      expect(xml).toMatch(/<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/);
+      // The footer sits inside the bottom margin: 12 mm to the footer, the text ends above 20 mm.
+      expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
+      expect(xml).toMatch(/<w:pgMar [^>]*w:footer="680"/);
+      const bottom = Number(/<w:pgMar [^>]*w:bottom="(\d+)"/.exec(xml)![1]);
+      expect(bottom).toBeGreaterThanOrEqual(1134);
+      expect(bottom).toBeLessThan(1500);
+      // No header. Every footer ends with the branding line, which the merge data switches.
+      const zip = new PizZip(read(name));
+      const parts = Object.keys(zip.files);
+      for (const part of parts.filter((file) => /word\/header\d*\.xml/.test(file))) {
+        expect(documentTextOf(zip.file(part)!.asText()).trim(), part).toBe('');
+      }
+      const footers = parts.filter((file) => /word\/footer\d*\.xml/.test(file));
+      expect(footers.length).toBeGreaterThan(0);
+      for (const part of footers) {
+        expect(documentTextOf(zip.file(part)!.asText()), part).toMatch(
+          /\{\{#branding\}\}Document generat cu SSM Ușor · ssmusor\.ro\{\{\/branding\}\}$/
+        );
+      }
     }
-  });
+  );
 
   it.each(templateFiles)(
     '%s keeps a heading, what follows it, and its table on one page',
@@ -206,6 +218,7 @@ describe('decision_first_aid', () => {
 
   it('asks for exactly this data', () => {
     expect(templatePlaceholders(template)).toEqual([
+      'branding',
       'client.legalName',
       'client.representativeName',
       'client.representativeRole',
@@ -360,5 +373,33 @@ describe('decision_imminent_danger', () => {
     expect(text.split(imminentDangerText)).toHaveLength(2);
     expect(text.match(/: lucrătorii desemnați/g)).toHaveLength(5);
     acknowledged(text);
+  });
+});
+
+describe('branding', () => {
+  const template = read('1.2_decision_risk_evaluation_team.docx');
+  const data = {
+    ...shared,
+    decisionNumber: 2,
+    evaluationTeam: people,
+    specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
+  };
+  const footerText = (file: Uint8Array) => {
+    const zip = new PizZip(file);
+    return Object.keys(zip.files)
+      .filter((part) => /word\/footer\d*\.xml/.test(part))
+      .map((part) => documentTextOf(zip.file(part)!.asText()));
+  };
+
+  it('prints the line in the footer when the merge data asks for it', () => {
+    const footers = footerText(renderDocument(template, { ...data, branding: [{}] }));
+    expect(new Set(footers)).toEqual(new Set(['Document generat cu SSM Ușor · ssmusor.ro']));
+  });
+
+  it('prints nothing when branding is empty or left out, and asks for no value', () => {
+    expect(new Set(footerText(renderDocument(template, { ...data, branding: [] })))).toEqual(
+      new Set([''])
+    );
+    expect(new Set(footerText(renderDocument(template, data)))).toEqual(new Set(['']));
   });
 });

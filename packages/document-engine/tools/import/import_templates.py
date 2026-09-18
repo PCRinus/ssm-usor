@@ -63,6 +63,13 @@ SIGNATURE_BLOCK = [
 
 LETTER = r'\p{L}'
 
+# The last line of every footer. The engine removes it when the merge data has no `branding`,
+# or an empty one, which is how a plan without it would be served. It is text in the Word file
+# on purpose: nothing is stamped onto a PDF, least of all onto one a user uploaded.
+BRANDING = '{{#branding}}Document generat cu SSM Ușor · ssmusor.ro{{/branding}}'
+BRANDING_SIZE = 7.5
+BRANDING_COLOR = 0x7A7A7A
+
 # Where list items sit, whatever list they came from: numbered items, lettered items under
 # them, dashes under those. The originals build one hierarchy out of a dozen unrelated lists,
 # some with paragraph indents on top, so each level drifts. The label hangs 6.35 mm to the left.
@@ -240,6 +247,38 @@ def normalise_characters(document):
         cursor.CharUnderline = 0
 
 
+def add_branding(page_style):
+    """Ends the footer with the branding line: alone where the document had no footer, as one
+    more paragraph under what a footer already holds."""
+    page_style.FooterIsOn = True
+    # The footer lives inside the 20 mm bottom margin of the house style: 12 mm from the edge
+    # to the footer, then the line, then 4 mm to the text.
+    page_style.BottomMargin = 1200
+    page_style.FooterBodyDistance = 400
+    footer = page_style.FooterText
+    if BRANDING in footer.getString():
+        return
+    cursor = footer.createTextCursor()
+    cursor.gotoEnd(False)
+    if footer.getString().strip():
+        footer.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
+    else:
+        footer.setString('')
+        cursor = footer.createTextCursor()
+    footer.insertString(cursor, BRANDING, False)
+    cursor.gotoStartOfParagraph(True)
+    cursor.CharFontName = FONT
+    cursor.CharHeight = BRANDING_SIZE
+    cursor.CharColor = BRANDING_COLOR
+    cursor.CharWeight = 100
+    cursor.CharLocale = ROMANIAN
+    cursor.ParaAdjust = CENTER
+    cursor.ParaTopMargin = round(3 * POINT)
+    cursor.ParaBottomMargin = 0
+    cursor.ParaLeftMargin = 0
+    cursor.ParaFirstLineIndent = 0
+
+
 def snap_list_indent(paragraph):
     """Moves a list item to the nearest tier, in the list's own definition, and drops the
     paragraph indents laid over it. Articles ("Art. 1.") keep their flush-left form."""
@@ -290,8 +329,7 @@ def typeset(document, kind):
                 setattr(style, shared, True)
             if style.HeaderIsOn and not style.HeaderText.getString().strip():
                 style.HeaderIsOn = False
-            if style.FooterIsOn and not style.FooterText.getString().strip():
-                style.FooterIsOn = False
+            add_branding(style)
 
     # Empty paragraphs were the spacing. Paragraph margins replace them. One that carries a
     # page break hands it to the paragraph after it.

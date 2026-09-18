@@ -31,6 +31,7 @@ function sample(
   return {
     label,
     data: {
+      branding: [{}],
       decisionNumber: 1,
       issueDate: '19.01.2026',
       client: { legalName, representativeName, representativeRole: 'Administrator' },

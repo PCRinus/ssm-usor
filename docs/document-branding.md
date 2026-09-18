@@ -1,6 +1,6 @@
 # Branding generated documents
 
-Status: exploration, nothing built  
+Status: decided and built as a text footer; no PDF stamp  
 Date: 19 September 2026  
 Audience: founders, product, engineering
 
@@ -8,6 +8,25 @@ Can the documents a provider generates carry a mark that they were made with SSM
 be switched per customer, and is that something to sell? Short answer: yes to all three, with
 one limit that shapes the design. A Word file can be edited, so a mark in the `.docx` is a
 default, not a lock. Only the PDF can enforce it.
+
+## Decision
+
+Decided with Mircea on 19 September 2026, after the exploration below.
+
+- **A text-only footer line**, `Document generat cu SSM Ușor · ssmusor.ro`, Arial 7.5 pt, grey,
+  centred. No logo.
+- **No PDF stamp.** Drawing our name onto a PDF, least of all onto one a user uploaded to the
+  platform, would be disingenuous. The mark lives in the Word file as ordinary text, where the
+  person who owns the document can see it and remove it.
+- **Every template carries it**, wrapped in `{{#branding}}…{{/branding}}`, so the merge data
+  switches it: `branding: [{}]` prints it, an empty or missing `branding` prints nothing. The
+  import script adds it as part of the house style. Where a document already has a footer,
+  the line is one more paragraph at its end.
+- The footer sits inside the 20 mm bottom margin: 12 mm from the page edge to the footer, the
+  line, then 4 mm to the text.
+
+What follows is the exploration as written before the decision. Its recommendation of a PDF
+stamp was not taken.
 
 ## What was tried
 
@@ -79,22 +98,6 @@ least to the most robust:
 This tips the recommendation further towards the PDF. The footer line in the `.docx` is worth
 having on documents without a footer, as a preview of what the issued file will carry; on
 documents with a footer of their own, leave the `.docx` alone and let the PDF stamp do it.
-
-## Previews
-
-Two previews on the first aid decision, with the conditional block in both, plus a control
-rendered with branding off. They are made by `originals/branding-preview/make.py` and
-`render.ts` in the document engine package, a folder git ignores:
-
-- `branded-text.pdf`: "Document generat cu SSM Ușor · ssmusor.ro", Arial 7.5 pt, grey, centred.
-- `branded-logo.pdf`: the same line with the wordmark inline, 15 by 5 mm, from
-  `apps/marketing/public/brand/logo.png`. A fixed image needs no image module; the engine
-  leaves drawings alone and the conditional block removes it with the text.
-- `unbranded.pdf`: the logo template rendered with `branding: []`. Nothing in the footer, no
-  image in the file.
-
-One thing to fix if the logo version is chosen: anchored as a character, the image sits a
-little above the baseline of the text beside it.
 
 ## What suits these documents
 
