@@ -115,7 +115,9 @@ jobs:
 
   build:
     name: Build production ${{ matrix.project }}
-    needs: [changes, validate]
+    # Alongside validation, to keep it off the critical path. Nothing built here is deployed
+    # unless validation succeeds too: every deployment job needs both.
+    needs: changes
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.projects != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -213,7 +215,7 @@ jobs:
 
   deploy-mail:
     name: Deploy mail Worker
-    needs: [changes, build]
+    needs: [changes, validate, build]
     if: needs.changes.outputs.mail == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -254,12 +256,13 @@ jobs:
 
   deploy-api:
     name: Deploy API
-    needs: [changes, build, deploy-database, deploy-mail]
+    needs: [changes, validate, build, deploy-database, deploy-mail]
     # Migrations and the mail Worker land before code that depends on them: the API's
     # service binding cannot deploy against a Worker that does not exist. Skipped jobs are fine.
     if: >-
       !cancelled() &&
       needs.changes.outputs.api == 'true' &&
+      needs.validate.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped') &&
       (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped')
@@ -392,11 +395,12 @@ jobs:
 
   deploy-app:
     name: Deploy SPA
-    needs: [changes, build, deploy-api]
+    needs: [changes, validate, build, deploy-api]
     # Explicitly allow a skipped API job on SPA-only releases, but never a failed one.
     if: >-
       !cancelled() &&
       needs.changes.outputs.app == 'true' &&
+      needs.validate.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
         (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
@@ -405,9 +409,6 @@ jobs:
     environment:
       name: production
       url: https://app.ssmusor.ro
-    env:
-      E2E_API_URL: https://api.ssmusor.ro
-      E2E_APP_URL: https://app.ssmusor.ro
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -433,12 +434,47 @@ jobs:
             --tag ${{ github.sha }}
             --message "${{ steps.metadata.outputs.message }}"
 
-      - name: Install Chromium for browser verification
+  # Separate from the deployment, which is done and reported by the time this starts. The
+  # checks run against production with a real account, so they stay small; flows that create
+  # users or send email are tested against a local stack on pull requests instead.
+  verify-app:
+    name: Verify deployed SPA
+    needs: [changes, deploy-app]
+    if: ${{ !cancelled() && needs.deploy-app.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      E2E_API_URL: https://api.ssmusor.ro
+      E2E_APP_URL: https://app.ssmusor.ro
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      # The browser download is cached by Playwright version; its system packages are not.
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @ssm-usor/app exec playwright --version | tr -cd '0-9.')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Chromium download
+        id: chromium-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
+
+      - name: Install Chromium's system packages
+        if: steps.chromium-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
 
       - name: Check deployed SPA and authenticated user flow
         id: app-checks
-        # Advisory during development; deployment has already completed.
+        # Advisory during development; the deployment completed in the job before this one.
         continue-on-error: true
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
@@ -471,7 +507,7 @@ jobs:
 
   deploy-marketing:
     name: Deploy marketing site
-    needs: [changes, build]
+    needs: [changes, validate, build]
     if: needs.changes.outputs.marketing == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15

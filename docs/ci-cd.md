@@ -40,8 +40,10 @@ database in Docker, applies every migration from scratch, runs the pgTAP policy 
 fails if `apps/api/src/database.types.ts` no longer matches the schema. On PRs, selected applications are also built and packaged with Wrangler's dry
 run, without production environment access or publishing.
 
-On `main`, a production build matrix runs after validation, with one job per selected
-application. It uses the existing `production` environment's public configuration. The SPA's
+On `main`, a production build matrix runs alongside validation, with one job per selected
+application, which keeps the builds off the critical path. Every deployment job needs both,
+so nothing built is deployed unless validation also succeeds; a build for a commit that
+fails validation is wasted work, not a risk. It uses the existing `production` environment's public configuration. The SPA's
 three `VITE_*` variables and the commit SHA embedded in both frontend footers are part of their
 Turbo build hashes. Turbo builds workspace dependencies before the selected application; the
 dry-run task depends on that build.
@@ -72,7 +74,11 @@ deployments do nothing when there is nothing to apply, which is why workflow fil
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
 skipped means something before it failed.
-Browser tests run after SPA deployment and remain advisory; API smoke-test failures block
+Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
+finished and been reported, and remain advisory. They run against production with a real
+account, so they stay small; flows that create users or send email are tested against a
+local stack on pull requests instead. The job caches the Chromium download by Playwright
+version and installs only its system packages on a cache hit. API smoke-test failures block
 an accompanying SPA release. There is no check of the old live release before deployment.
 
 ## Caching
