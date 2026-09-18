@@ -1,5 +1,6 @@
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
+import { validity } from './_components/validity';
 
 export type PasswordResetProps = {
   resetUrl: string;
@@ -8,13 +9,6 @@ export type PasswordResetProps = {
 };
 
 export const subject = 'Resetează parola contului SSM Ușor';
-
-// "60 de minute" reads worse than "o oră"; whole hours are what the setting holds in practice.
-function validity(minutes: number) {
-  if (minutes === 60) return 'o oră';
-  if (minutes % 60 === 0) return `${minutes / 60} ore`;
-  return minutes < 20 ? `${minutes} minute` : `${minutes} de minute`;
-}
 
 export default function PasswordReset({ resetUrl, expiresInMinutes }: PasswordResetProps) {
   return (

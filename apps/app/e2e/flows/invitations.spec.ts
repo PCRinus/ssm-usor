@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
   addressOf,
@@ -12,6 +12,19 @@ import {
 } from './support';
 
 test.afterAll(cleanUp);
+
+// Reopening the row menu within milliseconds of choosing an item, as only a script does,
+// races the closing menu handing focus back to its trigger, and the click can be swallowed.
+// The trigger's state attribute, unlike the animated menu, says at once whether it is open.
+async function openMemberMenu(page: Page, row: Locator) {
+  const trigger = row.getByTestId('member-actions');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await expect(async () => {
+    if ((await trigger.getAttribute('data-state')) !== 'open') await trigger.click();
+    await expect(trigger).toHaveAttribute('data-state', 'open', { timeout: 500 });
+  }).toPass();
+  await expect(page.getByTestId('member-remove')).toBeVisible();
+}
 
 test('an owner invites a person, who creates an account, joins, and is then managed', async ({
   page,
@@ -71,18 +84,19 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   const row = page.getByTestId('member-row').filter({ hasText: 'Ion Invitat' });
   await expect(row).toContainText('Specialist');
   await expect(page.getByTestId('invitations-empty')).toBeVisible();
-  await row.getByTestId('member-actions').click();
+  await openMemberMenu(page, row);
   await page.getByTestId('member-switch-role').click();
   await expect(row).toContainText('Administrator');
 
-  await row.getByTestId('member-actions').click();
+  await openMemberMenu(page, row);
   await page.getByTestId('member-remove').click();
   await page.getByTestId('member-remove-confirm').click();
   await expect(page.getByTestId('member-row')).toHaveCount(1);
 
-  // The removed person keeps their account but has no organization any more.
+  // The removed person keeps their account, and is offered an organization of their own.
   await guest.reload();
-  await expect(guest.getByTestId('organization-none')).toBeVisible();
+  await expect(guest).toHaveURL(/\/onboarding$/);
+  await expect(guest.getByTestId('onboarding-full-name')).toHaveValue('Ion Invitat');
 
   await signOut(page);
 });

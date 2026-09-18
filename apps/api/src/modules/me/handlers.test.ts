@@ -28,6 +28,16 @@ function mockUpstream({ profile = profileRow as typeof profileRow | null, member
         member ? [{ user_id: user.id, organization_id: organization.id, role: 'owner' }] : []
       );
     }
+    if (url.pathname === '/rest/v1/rpc/my_open_invitations') {
+      return Response.json([
+        {
+          organization_name: 'Alt SSM SRL',
+          inviter_name: null,
+          role: 'specialist',
+          expires_at: '2026-09-25T10:00:00+00:00',
+        },
+      ]);
+    }
     if (url.pathname === '/rest/v1/organizations')
       return Response.json(member ? organization : null);
     if (url.pathname === '/rest/v1/profiles') {
@@ -144,5 +154,25 @@ describe('PATCH /me/profile', () => {
 
     expect(response.status).toBe(400);
     expect(profileWrites()).toEqual([]);
+  });
+});
+
+describe('GET /me/invitations', () => {
+  it('lists open invitations for the caller without an id or a token', async () => {
+    mockUpstream({ member: false });
+
+    const response = await request('/me/invitations');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      items: [
+        {
+          organizationName: 'Alt SSM SRL',
+          inviterName: null,
+          role: 'specialist',
+          expiresAt: '2026-09-25T10:00:00.000Z',
+        },
+      ],
+    });
   });
 });

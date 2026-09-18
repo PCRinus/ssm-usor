@@ -1,3 +1,4 @@
+import type { MailService } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { appOrigin } from '../../lib/env';
@@ -7,7 +8,7 @@ import { verifyWebhookSignature } from './signature';
 // Supabase Auth calls this instead of sending its own email (ADR 002). It is not part of
 // the OpenAPI document: the only caller is Supabase, and the SPA client has no use for it.
 
-// How long a recovery link works: `otp_expiry` in supabase/config.toml, in minutes.
+// How long an emailed link works: `otp_expiry` in supabase/config.toml, in minutes.
 const OTP_EXPIRY_MINUTES = 60;
 
 const sendEmailPayloadSchema = z.object({
@@ -17,6 +18,23 @@ const sendEmailPayloadSchema = z.object({
     email_action_type: z.string().min(1),
   }),
 });
+
+// The emails in use, by Supabase's `email_action_type`.
+const emails: Record<
+  string,
+  { path: string; send: (mail: MailService, to: string, url: string) => Promise<unknown> }
+> = {
+  recovery: {
+    path: '/reset-password',
+    send: (mail, to, resetUrl) =>
+      mail.sendPasswordReset({ to, resetUrl, expiresInMinutes: OTP_EXPIRY_MINUTES }),
+  },
+  signup: {
+    path: '/confirm-email',
+    send: (mail, to, confirmUrl) =>
+      mail.sendSignupConfirmation({ to, confirmUrl, expiresInMinutes: OTP_EXPIRY_MINUTES }),
+  },
+};
 
 // The shape Supabase Auth expects from a failing hook.
 const hookError = (status: 400 | 401 | 422 | 500 | 503, message: string) =>
@@ -47,28 +65,24 @@ export const authHooksRouter = createRouter().post('/hooks/supabase/send-email',
   if (!payload.success) return hookError(400, 'The payload is not a Send Email hook payload.');
   const { user, email_data: emailData } = payload.data;
 
-  // Once enabled, the hook receives every email Supabase Auth would send. Only recovery is
-  // in use; the others fail loudly here instead of silently never arriving.
-  if (emailData.email_action_type !== 'recovery') {
+  // Once enabled, the hook receives every email Supabase Auth would send. The types not in
+  // use fail loudly here instead of silently never arriving.
+  const email = emails[emailData.email_action_type];
+  if (!email) {
     console.error(`Unsupported auth email type: ${emailData.email_action_type}`);
     return hookError(422, `Unsupported email type: ${emailData.email_action_type}.`);
   }
 
-  // The link opens the SPA, which verifies the token only when the form is submitted, so
-  // a mail scanner following the link cannot use it up.
-  const resetUrl = new URL('/reset-password', appOrigin(c.env));
-  resetUrl.searchParams.set('token_hash', emailData.token_hash);
+  // Each link opens a page of the SPA that verifies the token only when its form or button
+  // is submitted, so a mail scanner following the link cannot use it up. The redirect
+  // Supabase was asked for is ignored, so the link cannot leave the SPA.
+  const url = new URL(email.path, appOrigin(c.env));
+  url.searchParams.set('token_hash', emailData.token_hash);
 
   try {
-    await mail.sendPasswordReset({
-      to: user.email,
-      resetUrl: resetUrl.href,
-      expiresInMinutes: OTP_EXPIRY_MINUTES,
-    });
+    await email.send(mail, user.email, url.href);
   } catch (error) {
-    console.error(
-      `Password reset email failed: ${error instanceof Error ? error.name : 'unknown'}`
-    );
+    console.error(`Auth email failed: ${error instanceof Error ? error.name : 'unknown'}`);
     return hookError(500, 'The email could not be sent.');
   }
 

@@ -1,5 +1,10 @@
 import { createRoute } from '@hono/zod-openapi';
-import { meResponseSchema, profileSchema, updateProfileRequestSchema } from '@ssm-usor/contracts';
+import {
+  meResponseSchema,
+  pendingInvitationListResponseSchema,
+  profileSchema,
+  updateProfileRequestSchema,
+} from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
 import { authErrors, bearerSecurity, errorContent } from '../../lib/openapi';
@@ -46,6 +51,30 @@ export const updateProfileRoute = createRoute({
       content: { 'application/json': { schema: profileSchema.meta({ id: 'ProfileResponse' }) } },
     },
     400: { description: 'Invalid request body', content: errorContent },
+    ...authErrors,
+  },
+});
+
+export const listMyInvitationsRoute = createRoute({
+  method: 'get',
+  path: '/me/invitations',
+  operationId: 'listMyInvitations',
+  summary: "List open invitations sent to the authenticated user's address",
+  description:
+    'For onboarding, so a person is told about an invitation before creating an organization of their own. Carries no id and no token: only the emailed link accepts an invitation.',
+  security: bearerSecurity,
+  middleware: [requireAuth] as const,
+  responses: {
+    200: {
+      description: 'Open invitations, newest first',
+      content: {
+        'application/json': {
+          schema: pendingInvitationListResponseSchema.meta({
+            id: 'PendingInvitationListResponse',
+          }),
+        },
+      },
+    },
     ...authErrors,
   },
 });

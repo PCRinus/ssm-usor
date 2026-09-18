@@ -1,9 +1,9 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type { MeResponse, Profile } from '@ssm-usor/contracts';
+import type { MeResponse, PendingInvitationListResponse, Profile } from '@ssm-usor/contracts';
 
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import type { meRoute, updateProfileRoute } from './routes';
+import type { listMyInvitationsRoute, meRoute, updateProfileRoute } from './routes';
 
 const profileColumns = 'full_name, terms_version, terms_accepted_at';
 
@@ -71,4 +71,21 @@ export const updateProfile: RouteHandler<typeof updateProfileRoute, ApiEnv> = as
     .single();
   if (created.error) throw fromDatabaseError(created.error, 'profile create');
   return c.json(toProfile(created.data), 200);
+};
+
+export const listMyInvitations: RouteHandler<typeof listMyInvitationsRoute, ApiEnv> = async (c) => {
+  const { data, error } = await createDataClient(c).rpc('my_open_invitations');
+  if (error) throw fromDatabaseError(error, 'my invitations');
+
+  return c.json(
+    {
+      items: data.map((invitation) => ({
+        organizationName: invitation.organization_name,
+        inviterName: invitation.inviter_name,
+        role: invitation.role,
+        expiresAt: new Date(invitation.expires_at).toISOString(),
+      })),
+    } satisfies PendingInvitationListResponse,
+    200
+  );
 };

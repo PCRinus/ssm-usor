@@ -37,17 +37,8 @@ export function OrganizationPage() {
   }
 
   const { user, membership } = me.data;
-  if (!membership) {
-    return (
-      <div data-testid="organization-none" className="grid max-w-xl gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Fără organizație</h1>
-        <p className="text-muted-foreground">
-          Contul tău nu face parte dintr-o organizație. Cere unui administrator să îți trimită o
-          invitație pe adresa {user.email ?? 'contului tău'}.
-        </p>
-      </div>
-    );
-  }
+  // The shell sends an account without an organization to onboarding before this renders.
+  if (!membership) return null;
 
   // Hiding the owner's tools is a courtesy; the API and the database enforce the rule.
   const isOwner = membership.role === 'owner';

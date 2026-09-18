@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, profiles, invitations, impersonations, clients, and employees  
+Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, and employees  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -26,7 +26,15 @@ Roles and organizations are never stored in Supabase user metadata. The only cla
 trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
 
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
-Organizations are created by the seed for now. Memberships come from the seed and from
+Organizations are created by the seed, and by onboarding
+([ADR 004](architecture/adr-004-registration-and-onboarding.md)):
+`create_organization(name, owner name, terms version)` lets a signed-in account with a
+confirmed email and no membership create its organization, become its `owner`, name itself,
+and record the accepted terms, on the organization (`terms_version`, `terms_accepted_at`,
+`terms_accepted_by`) and on the profile, in one transaction. It refuses an account that
+already belongs to an organization (`ORG01`). `my_open_invitations()` lists the open
+invitations sent to the caller's confirmed address, without tokens, so onboarding can point
+them out first. Memberships come from the seed and from
 accepted invitations; no policy lets a signed-in user write `organization_members`. An owner
 changes a role with `change_organization_member_role(user, role)` and removes a member with
 `remove_organization_member(user)`. Both lock the organization's memberships before checking

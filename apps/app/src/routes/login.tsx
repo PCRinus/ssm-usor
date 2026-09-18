@@ -153,6 +153,18 @@ export function LoginPage() {
             </form>
           </CardContent>
         </Card>
+        {import.meta.env.VITE_REGISTRATION_LINK === 'true' && (
+          <p className="text-sm text-muted-foreground">
+            Nu ai cont?{' '}
+            <Link
+              to="/register"
+              data-testid="login-register"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Creează unul
+            </Link>
+          </p>
+        )}
         <footer className="grid w-full justify-items-center gap-2 text-center">
           <nav aria-label="Linkuri utile" className="flex flex-wrap justify-center gap-x-5 gap-y-2">
             <a

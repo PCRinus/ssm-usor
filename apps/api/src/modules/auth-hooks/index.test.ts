@@ -5,6 +5,7 @@ import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
 
 const sendPasswordReset = vi.fn<MailService['sendPasswordReset']>();
+const sendSignupConfirmation = vi.fn<MailService['sendSignupConfirmation']>();
 
 const base64 = (text: string) => btoa(text);
 const key = base64('a-hook-signing-key-of-32-bytes!!');
@@ -15,6 +16,7 @@ const env: ApiEnv['Bindings'] = {
     sendWaitlistConfirmation: vi.fn(),
     sendOrganizationInvitation: vi.fn(),
     sendPasswordReset,
+    sendSignupConfirmation,
   },
 };
 
@@ -61,6 +63,7 @@ const post = (body: string, headers: Record<string, string>, targetEnv = env) =>
 
 beforeEach(() => {
   sendPasswordReset.mockReset().mockResolvedValue({ id: 'msg_1' });
+  sendSignupConfirmation.mockReset().mockResolvedValue({ id: 'msg_2' });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -81,6 +84,20 @@ describe('POST /hooks/supabase/send-email', () => {
       resetUrl: 'https://app.example.ro/reset-password?token_hash=hash-abc',
       expiresInMinutes: 60,
     });
+  });
+
+  it('sends the signup confirmation with a link to the confirm page of the SPA', async () => {
+    const body = JSON.stringify(payload('signup'));
+
+    const response = await post(body, await sign(body));
+
+    expect(response.status).toBe(200);
+    expect(sendSignupConfirmation).toHaveBeenCalledWith({
+      to: 'ion@example.ro',
+      confirmUrl: 'https://app.example.ro/confirm-email?token_hash=hash-abc',
+      expiresInMinutes: 60,
+    });
+    expect(sendPasswordReset).not.toHaveBeenCalled();
   });
 
   it('ignores the redirect Supabase was asked for, so the link cannot leave the SPA', async () => {
@@ -126,7 +143,7 @@ describe('POST /hooks/supabase/send-email', () => {
     expect(response.status).toBe(200);
   });
 
-  it.each(['signup', 'magiclink', 'email_change', 'invite', 'reauthentication'])(
+  it.each(['magiclink', 'email_change', 'invite', 'reauthentication'])(
     'refuses the %s email, which is not in use, instead of dropping it silently',
     async (type) => {
       const body = JSON.stringify(payload(type));

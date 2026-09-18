@@ -32,3 +32,10 @@ export const changePasswordSchema = z.object({
 });
 
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
+
+export const registerSchema = z.object({
+  email: forgotPasswordSchema.shape.email,
+  password: newPasswordField,
+});
+
+export type RegisterValues = z.infer<typeof registerSchema>;

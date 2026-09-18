@@ -60,6 +60,7 @@ function mockApi({
     const { pathname } = new URL(String(input));
     const method = init?.method ?? 'GET';
     if (pathname === '/me') return Response.json(meAs(role));
+    if (pathname === '/me/invitations') return Response.json({ items: [] });
     if (pathname === '/organization/members') return Response.json({ items: members });
     if (pathname === '/organization/members/user-two') {
       return method === 'DELETE' ? removeMember(init) : changeRole(init);
@@ -129,13 +130,12 @@ describe('organization page', () => {
     expect(requests('/organization/invitations')).toHaveLength(0);
   });
 
-  it('explains what to do to an account without an organization', async () => {
+  it('sends an account without an organization to onboarding', async () => {
     mockApi({ role: null });
-    mount();
+    const runtime = mount();
 
-    expect((await screen.findByTestId('organization-none')).textContent).toContain(
-      'review@example.test'
-    );
+    await screen.findByTestId('onboarding-page');
+    expect(runtime.router.state.location.pathname).toBe('/onboarding');
     expect(requests('/organization/members')).toHaveLength(0);
   });
 

@@ -19,6 +19,7 @@ function mockUpstream({
   role = 'owner',
   change = () => Response.json(true),
   remove = () => Response.json(true),
+  create = () => Response.json(organizationId),
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -41,6 +42,8 @@ function mockUpstream({
         return change();
       case '/rest/v1/rpc/remove_organization_member':
         return remove();
+      case '/rest/v1/rpc/create_organization':
+        return create();
     }
     throw new Error(`Unexpected upstream request: ${init?.method} ${url}`);
   });
@@ -192,5 +195,75 @@ describe('DELETE /organization/members/{userId}', () => {
     );
 
     expect(response.headers.get('Access-Control-Allow-Methods')).toContain('DELETE');
+  });
+});
+
+describe('POST /organization', () => {
+  const body = {
+    organizationName: '  Protect SSM SRL ',
+    fullName: ' Ana Popescu ',
+    termsVersion: '2026-09',
+  };
+  const databaseError = (code: string, message: string) => () =>
+    Response.json({ code, message }, { status: 400 });
+
+  it('creates the organization as the caller and answers with the new membership', async () => {
+    mockUpstream();
+
+    const response = await request('POST', '/organization', body);
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      organization: { id: organizationId, name: 'Protect SSM SRL' },
+      role: 'owner',
+    });
+    expect(rpcBodies('create_organization')).toEqual([
+      {
+        organization_name: 'Protect SSM SRL',
+        owner_full_name: 'Ana Popescu',
+        accepted_terms_version: '2026-09',
+      },
+    ]);
+  });
+
+  it('does not ask for a membership first, since the caller has none', async () => {
+    mockUpstream();
+
+    await request('POST', '/organization', body);
+
+    expect(rpcBodies('current_membership')).toEqual([]);
+  });
+
+  it('answers 409 with a reason for an account that already belongs to an organization', async () => {
+    mockUpstream({ create: databaseError('ORG01', 'already_in_organization') });
+
+    const response = await request('POST', '/organization', body);
+
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { reason: string }).reason).toBe('already_in_organization');
+  });
+
+  it('answers 403 with a reason for an unconfirmed email', async () => {
+    mockUpstream({ create: databaseError('42501', 'email_not_confirmed') });
+
+    const response = await request('POST', '/organization', body);
+
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as { reason: string }).reason).toBe('email_not_confirmed');
+  });
+
+  it.each([
+    [{ organizationName: 'X' }, 'organizationName'],
+    [{ fullName: ' A ' }, 'fullName'],
+    [{ termsVersion: '2020-01' }, 'termsVersion'],
+  ])('rejects %o before calling the database', async (override, path) => {
+    mockUpstream();
+
+    const response = await request('POST', '/organization', { ...body, ...override });
+
+    expect(response.status).toBe(400);
+    const { issues } = (await response.json()) as { issues: { path: string }[] };
+    expect(issues.map((issue) => issue.path)).toContain(path);
+    expect(rpcBodies('create_organization')).toEqual([]);
   });
 });

@@ -29,8 +29,8 @@ pnpm dev:app
 
 Open `http://localhost:5173/`. An existing Supabase email/password user can sign in.
 The [development admin guide](development-admin.md) documents the seeded account and how to
-rerun the seed. Registration is not exposed; an account is created only by accepting an
-invitation. Missing configuration produces an unavailable
+rerun the seed. Registration exists at `/register` but nothing links to it yet; the login
+page shows a link only when built with `VITE_REGISTRATION_LINK=true`. Missing configuration produces an unavailable
 screen instead of a broken form.
 
 For deployment, supply the same public variables when **building** the SPA. Setting Worker
@@ -101,6 +101,9 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/accept-invitation.tsx`                                      | `/accept-invitation`                 | Public. Where an invitation email lands: create an account, or join with an existing one.                                                                 |
 | `routes/forgot-password.tsx`                                        | `/forgot-password`                   | Public. Asks Supabase for a password reset email.                                                                                                         |
 | `routes/reset-password.tsx`                                         | `/reset-password`                    | Public. Where a password reset email lands: choose a new password.                                                                                        |
+| `routes/register.tsx`                                               | `/register`                          | Public and unlinked. Supabase's signup: email and password.                                                                                               |
+| `routes/confirm-email.tsx`                                          | `/confirm-email`                     | Public. Where a signup confirmation email lands; confirms on a button press.                                                                              |
+| `routes/onboarding.tsx`                                             | `/onboarding`                        | Signed in, outside the shell. An account without an organization creates one.                                                                             |
 | `routes/_authenticated.tsx`                                         | pathless                             | Session guard and the app shell for every protected page.                                                                                                 |
 | `routes/_authenticated/dashboard.tsx`                               | `/dashboard`                         | Protected landing page with the account email and logout.                                                                                                 |
 | `routes/_authenticated/organization.tsx`                            | `/organization`                      | The organization's members for everyone; pending invitations and the invite dialog for owners.                                                            |
@@ -170,6 +173,23 @@ The password rules are the shared ones described under Passwords below. The term
 version sent is `currentTermsVersion` from the contracts. The browser's default referrer
 policy keeps the query string, and so the token, out of requests to other origins.
 
+## Registration and onboarding
+
+[ADR 004](architecture/adr-004-registration-and-onboarding.md). `/register` calls Supabase's
+`signUp` and shows the same "check your email" for any address. Supabase hands the
+confirmation to the API's Send Email hook, which links to `/confirm-email?token_hash=…`. That
+page confirms on its button, never on load, which signs the person in and opens `/onboarding`.
+
+An account is not yet a customer. The authenticated layout sends any account whose `/me` says
+`membership: null` to `/onboarding`, whether it just registered, was removed from an
+organization, or has not accepted its invitation; the shell's pages all need an organization.
+The page sits outside the shell and asks for the person's name, the organization's name, and
+a checkbox accepting the terms and the data processing agreement on the organization's behalf.
+It posts to `POST /organization` with `currentTermsVersion` and then opens the dashboard.
+Open invitations for the account's address, from `GET /me/invitations`, are pointed out first,
+without an accept button: the emailed link stays the only thing that accepts. The page also
+offers to sign out.
+
 ## Passwords
 
 Password reset is Supabase Auth's own recovery flow; the app adds no token handling of its
@@ -213,12 +233,14 @@ See the [deployment guide](app-deployment.md#playwright-deployment-tests) for se
 Browser flow tests live in `e2e/flows/` and run with `pnpm --filter @ssm-usor/app test:e2e:flows`
 after `pnpm supabase:start`. They cover what creates users: inviting, accepting with a new
 and with an existing account, changing a role, removing a member, resetting and changing a
-password. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
+password, and registering through to a new organization. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
 pointed at the local Supabase stack, and a preview of a production build of the SPA. That API
 refuses any Supabase URL that is not local and keeps emails in memory instead of calling the
 mail Worker, so a flow test cannot send email or reach the hosted project; the specs read
-the emailed link back from `GET /__e2e/emails`. Fixtures are created with the local secret
+the emailed link back from `GET /__e2e/emails`. The local stack's Send Email hook points at
+that API too, so registering and asking for a password reset are tested from the form to the
+link in the email Supabase asked us to send. Fixtures are created with the local secret
 key and deleted afterwards.
 
 These tests run the production build, which the Vitest suite does not: Vitest compiles

@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-09-18
+- Amended by [ADR 004](adr-004-registration-and-onboarding.md): public signup opens for registration; invitations are unchanged.
 
 ## Context
 

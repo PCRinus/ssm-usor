@@ -5,7 +5,13 @@
 //
 //   SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY   from `supabase status`
 //   APP_ORIGIN, CORS_ORIGINS                                      where the SPA under test is served
+//   SUPABASE_AUTH_HOOK_SECRET                                     the local placeholder from supabase/config.toml
 //   PORT                                                          defaults to 8797
+//   HOST                                                          defaults to 127.0.0.1; 0.0.0.0 on Linux, where the
+//                                                                 Supabase containers reach the host over the Docker bridge
+//
+// The local stack's Send Email hook points here, so signing up or asking for a password
+// reset through Supabase lands in the same in-memory mailbox.
 //
 // GET /__e2e/emails?to=<address> returns what that address was sent, newest last.
 import { createServer } from 'node:http';
@@ -29,12 +35,14 @@ const mail: MailService = {
   sendWaitlistConfirmation: ({ to, confirmUrl }) => record('waitlist', to, confirmUrl),
   sendOrganizationInvitation: ({ to, acceptUrl }) => record('invitation', to, acceptUrl),
   sendPasswordReset: ({ to, resetUrl }) => record('password-reset', to, resetUrl),
+  sendSignupConfirmation: ({ to, confirmUrl }) => record('signup-confirmation', to, confirmUrl),
 };
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: supabaseUrl,
   SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+  SUPABASE_AUTH_HOOK_SECRET: process.env.SUPABASE_AUTH_HOOK_SECRET,
   CORS_ORIGINS: process.env.CORS_ORIGINS,
   APP_ORIGIN: process.env.APP_ORIGIN,
   MAIL: mail,
@@ -72,6 +80,6 @@ createServer(async (incoming, outgoing) => {
   outgoing.statusCode = response.status;
   response.headers.forEach((value, name) => outgoing.setHeader(name, value));
   outgoing.end(Buffer.from(await response.arrayBuffer()));
-}).listen(port, '127.0.0.1', () => {
-  console.log(`e2e API on http://127.0.0.1:${port} against ${supabaseUrl}`);
+}).listen(port, process.env.HOST ?? '127.0.0.1', () => {
+  console.log(`e2e API on port ${port} against ${supabaseUrl}`);
 });

@@ -40,22 +40,26 @@ additional_redirect_urls = ["http://127.0.0.1:5173"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
-enable_signup = false
+# Registration is Supabase's own signup (ADR 004).
+enable_signup = true
 enable_anonymous_sign_ins = false
 # The SPA's password fields and `newPasswordSchema` in the contracts mirror these.
 minimum_password_length = 8
 password_requirements = "lower_upper_letters_digits"
 
 [auth.email]
-# Enable the email provider; auth.enable_signup above still blocks public registration.
 enable_signup = true
-enable_confirmations = false
+# An address is confirmed before its account can be used, here as on the hosted project.
+enable_confirmations = true
 # How long a recovery link works. OTP_EXPIRY_MINUTES in apps/api's auth-hooks module says the
 # same to the person reading the email.
 otp_expiry = 3600
 
 # Supabase Auth hands every email it would send to the API, which forwards it to the mail
-# Worker (ADR 002). Locally that needs `pnpm dev` running.
+# Worker (ADR 002). Locally the hook points at the API the browser flow tests start
+# (apps/api/scripts/e2e-server.ts, port 8797), which keeps emails in memory, so those tests
+# cover registration and password reset from the form to the emailed link. To receive these
+# emails from a local `pnpm dev` instead, point the uri at port 8787 and restart the stack.
 #
 # The value below is not a secret: it decodes to "not-a-secret-local-stack-only-32" and only
 # signs calls from the local stack to the local API (apps/api/.dev.vars.example has the same).
@@ -63,7 +67,7 @@ otp_expiry = 3600
 # command. The hosted project gets its own from [remotes.production] below, never this one.
 [auth.hook.send_email]
 enabled = true
-uri = "http://host.docker.internal:8787/hooks/supabase/send-email"
+uri = "http://host.docker.internal:8797/hooks/supabase/send-email"
 secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 
 # Enable additional services here when the application starts using them.
@@ -86,10 +90,6 @@ project_id = "xvhiwymggufbvjdfywjg"
 [remotes.production.auth]
 site_url = "https://app.ssmusor.ro"
 additional_redirect_urls = []
-
-[remotes.production.auth.email]
-# Nobody can sign up, but an address that ever could must be confirmed.
-enable_confirmations = true
 
 [remotes.production.auth.hook.send_email]
 enabled = true

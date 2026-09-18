@@ -15,9 +15,14 @@ export interface AuthClient {
   }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
   signOut(options: { scope: 'local' | 'others' }): Promise<{ error: AuthError | null }>;
   resetPasswordForEmail(email: string): Promise<{ error: AuthError | null }>;
+  signUp(credentials: {
+    email: string;
+    password: string;
+  }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
   verifyOtp(params: {
     token_hash: string;
-    type: 'recovery';
+    // 'email' is Supabase's type for the signup confirmation link.
+    type: 'recovery' | 'email';
   }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
   updateUser(attributes: { password: string }): Promise<{ error: AuthError | null }>;
 }
@@ -100,6 +105,25 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       const { error } = await client.signOut({ scope: 'local' });
       if (error) throw error;
       publish(null);
+    },
+    // Supabase answers the same for an address that already has an account, and sends the
+    // confirmation email through the API's hook. A session comes back only where
+    // confirmations are off.
+    async signUp(email: string, password: string) {
+      if (!client) throw new Error('Authentication is not configured.');
+      const { data, error } = await client.signUp({ email, password });
+      if (error) throw error;
+      if (data.session) publish(data.session);
+    },
+    // Uses up the token from a confirmation email and signs its owner in. As with a recovery
+    // link, call it on a button press, never on page load.
+    async confirmEmail(tokenHash: string) {
+      if (!client) throw new Error('Authentication is not configured.');
+      await ready;
+      const { data, error } = await client.verifyOtp({ token_hash: tokenHash, type: 'email' });
+      if (error) throw error;
+      if (!data.session) throw new Error('No session was returned.');
+      publish(data.session);
     },
     // Supabase answers the same whether or not the address has an account.
     async requestPasswordReset(email: string) {
