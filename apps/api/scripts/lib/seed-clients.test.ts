@@ -37,14 +37,15 @@ describe('seed writes', () => {
     return { db, fetchMock };
   }
 
-  it('upserts the organization and the owner membership on a fixed identifier', async () => {
+  it('upserts the organization, the owner membership, and the owner profile', async () => {
     const { db, fetchMock } = fixture();
     fetchMock
       .mockResolvedValueOnce(Response.json({ id: seedOrganizationId, name: 'SSM Ușor' }))
       .mockResolvedValueOnce(
         Response.json({ user_id: userId, organization_id: seedOrganizationId, role: 'owner' })
-      );
-    const result = await seedOrganization(db, 'SSM Ușor', userId);
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 201 }));
+    const result = await seedOrganization(db, 'SSM Ușor', userId, 'Ana Admin');
     expect(result.membership.role).toBe('owner');
     const [organizationUrl, organizationInit] = fetchMock.mock.calls[0]!;
     expect(String(organizationUrl)).toContain('/rest/v1/organizations');
@@ -60,6 +61,16 @@ describe('seed writes', () => {
       user_id: userId,
       organization_id: seedOrganizationId,
       role: 'owner',
+    });
+    // An existing profile keeps the name its owner chose.
+    const [profileUrl, profileInit] = fetchMock.mock.calls[2]!;
+    expect(String(profileUrl)).toContain('/rest/v1/profiles');
+    expect(new Headers(profileInit?.headers).get('Prefer')).toContain(
+      'resolution=ignore-duplicates'
+    );
+    expect(JSON.parse(String(profileInit?.body))).toEqual({
+      user_id: userId,
+      full_name: 'Ana Admin',
     });
   });
 

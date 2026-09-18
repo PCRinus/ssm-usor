@@ -47,7 +47,8 @@ clients (`-- --clients 50 --seed 7` to vary them). The same script runs from Git
 manual **Seed database** workflow, which needs no local CLI login; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project). The hosted project currently doubles as
 the development environment, so fake data there is acceptable until a separate production
-project exists. Set `SEED_ORGANIZATION_NAME` in `.env.seed` to rename the organization.
+project exists. Set `SEED_ORGANIZATION_NAME` in `.env.seed` to rename the organization, and
+`SEED_ADMIN_NAME` to choose the name on the admin's profile.
 
 The script reads the configured hosted project's secret key through the authenticated Supabase
 CLI. It captures the key in memory without printing or saving it. Alternatively, set
@@ -72,6 +73,7 @@ The script uses Supabase's Auth Admin API and, with the same secret key, PostgRE
 - Refuse to overwrite an existing account without that trusted seed marker. Choose a different
   seed email if it conflicts with an unrelated account.
 - Upsert the organization on a fixed identifier and make the seeded user its `owner`.
+- Create the user's profile with `SEED_ADMIN_NAME`, keeping a name they have since changed.
 - With `--fake` (always on for `seed:local`), upsert deterministic fake clients keyed on
   organization and CUI, then a few fake employees per client keyed on a deterministic id.
 

@@ -129,6 +129,7 @@ describe('seed configuration', () => {
       SUPABASE_SECRET_KEY: undefined,
       SEED_ADMIN_EMAIL: 'admin@ssmusor.test',
       SEED_ADMIN_PASSWORD: 'admin123',
+      SEED_ADMIN_NAME: 'Admin SSM Ușor',
       SEED_ORGANIZATION_NAME: 'SSM Ușor',
     };
     expect(seedConfigSchema.parse({ SUPABASE_URL: url })).toEqual(defaults);
@@ -139,6 +140,7 @@ describe('seed configuration', () => {
         SUPABASE_SECRET_KEY: '',
         SEED_ADMIN_EMAIL: '',
         SEED_ADMIN_PASSWORD: '',
+        SEED_ADMIN_NAME: '',
         SEED_ORGANIZATION_NAME: '',
       })
     ).toEqual(defaults);

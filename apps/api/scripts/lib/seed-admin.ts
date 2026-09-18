@@ -11,6 +11,7 @@ export const seedConfigSchema = z.object({
   SUPABASE_SECRET_KEY: optionalEnv(z.string().min(1).optional()),
   SEED_ADMIN_EMAIL: optionalEnv(z.email().default('admin@ssmusor.test')),
   SEED_ADMIN_PASSWORD: optionalEnv(z.string().min(6).default('admin123')),
+  SEED_ADMIN_NAME: optionalEnv(z.string().trim().min(2).max(120).default('Admin SSM Ușor')),
   SEED_ORGANIZATION_NAME: optionalEnv(z.string().trim().min(2).max(160).default('SSM Ușor')),
 });
 
