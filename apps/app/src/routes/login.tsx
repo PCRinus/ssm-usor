@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 
 import { useLoginForm } from '../auth/use-login-form';
+import { CommitVersion } from '../components/commit-version';
 
 export const Route = createFileRoute('/login')({
   // Set by the accept page for someone who must sign in first; login returns them to it.
@@ -155,7 +156,7 @@ export function LoginPage() {
             </form>
           </CardContent>
         </Card>
-        <footer className="w-full text-center">
+        <footer className="grid w-full justify-items-center gap-2 text-center">
           <nav aria-label="Linkuri utile" className="flex flex-wrap justify-center gap-x-5 gap-y-2">
             <a
               href="https://ssmusor.ro"
@@ -164,6 +165,7 @@ export function LoginPage() {
               Află mai multe despre SSM Ușor
             </a>
           </nav>
+          <CommitVersion />
         </footer>
       </div>
     </main>

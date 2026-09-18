@@ -125,6 +125,7 @@ jobs:
       matrix:
         project: ${{ fromJSON(needs.changes.outputs.projects) }}
     env:
+      GIT_COMMIT_SHA: ${{ github.sha }}
       VITE_API_URL: https://api.ssmusor.ro
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}

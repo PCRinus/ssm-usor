@@ -42,8 +42,9 @@ run, without production environment access or publishing.
 
 On `main`, a production build matrix runs after validation, with one job per selected
 application. It uses the existing `production` environment's public configuration. The SPA's
-three `VITE_*` variables are already part of its Turbo build hash. Turbo builds workspace
-dependencies before the selected application; the dry-run task depends on that build.
+three `VITE_*` variables and the commit SHA embedded in both frontend footers are part of their
+Turbo build hashes. Turbo builds workspace dependencies before the selected application; the
+dry-run task depends on that build.
 
 Each production build uploads a `release-<application>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`

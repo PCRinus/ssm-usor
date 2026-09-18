@@ -79,6 +79,7 @@ describe('dashboard authentication and routing', () => {
     const runtime = mount(client);
     await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(screen.getByTestId('commit-version').textContent).toMatch(/^Versiune \S+$/);
     expect(screen.queryByTestId('dashboard-page')).toBeNull();
   });
 
@@ -150,6 +151,7 @@ describe('dashboard authentication and routing', () => {
       'collapsed'
     );
     expect(screen.getByRole('banner').contains(screen.getByTestId('app-logo'))).toBe(true);
+    expect(screen.getByTestId('commit-version').textContent).toMatch(/^Versiune \S+$/);
     expect(screen.getByTestId('clients-table')).toBeTruthy();
   });
 

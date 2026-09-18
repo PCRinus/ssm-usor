@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader } from '@ssm-usor/ui/components/card';
 import type { ReactNode } from 'react';
 
+import { CommitVersion } from './commit-version';
+
 // The centered card that pages outside the app shell share: the logo, a title, an optional
 // explanation, and the page's own content.
 export function PublicFrame({
@@ -36,6 +38,9 @@ export function PublicFrame({
           </CardHeader>
           {children && <CardContent className="grid gap-5 sm:px-8">{children}</CardContent>}
         </Card>
+        <footer>
+          <CommitVersion />
+        </footer>
       </div>
     </main>
   );
