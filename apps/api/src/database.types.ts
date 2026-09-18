@@ -3,9 +3,148 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      client_responsible_persons: {
+        Row: {
+          archived_at: string | null;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          employee_id: string | null;
+          full_name: string;
+          id: string;
+          job_title: string;
+          organization_id: string;
+          roles: Database['public']['Enums']['responsible_person_role'][];
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          employee_id?: string | null;
+          full_name: string;
+          id?: string;
+          job_title: string;
+          organization_id: string;
+          roles: Database['public']['Enums']['responsible_person_role'][];
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          employee_id?: string | null;
+          full_name?: string;
+          id?: string;
+          job_title?: string;
+          organization_id?: string;
+          roles?: Database['public']['Enums']['responsible_person_role'][];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_responsible_persons_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      client_workplaces: {
+        Row: {
+          address_line: string | null;
+          archived_at: string | null;
+          client_id: string;
+          county_code: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_registered_office: boolean;
+          locality: string | null;
+          name: string;
+          organization_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          address_line?: string | null;
+          archived_at?: string | null;
+          client_id: string;
+          county_code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_registered_office?: boolean;
+          locality?: string | null;
+          name: string;
+          organization_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          address_line?: string | null;
+          archived_at?: string | null;
+          client_id?: string;
+          county_code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_registered_office?: boolean;
+          locality?: string | null;
+          name?: string;
+          organization_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       clients: {
         Row: {
           address_line: string | null;
+          administrative_training_interval_months: number | null;
           archived_at: string | null;
           caen_code: string | null;
           county_code: string | null;
@@ -16,14 +155,21 @@ export type Database = {
           id: string;
           legal_name: string;
           legal_representative_name: string | null;
+          legal_representative_role: string | null;
           locality: string | null;
           organization_id: string;
+          periodic_training_hours: number | null;
           trade_register_number: string | null;
+          training_day_from: number | null;
+          training_day_to: number | null;
+          training_first_month: number | null;
           updated_at: string;
           vat_payer: boolean;
+          worker_training_interval_months: number | null;
         };
         Insert: {
           address_line?: string | null;
+          administrative_training_interval_months?: number | null;
           archived_at?: string | null;
           caen_code?: string | null;
           county_code?: string | null;
@@ -34,14 +180,21 @@ export type Database = {
           id?: string;
           legal_name: string;
           legal_representative_name?: string | null;
+          legal_representative_role?: string | null;
           locality?: string | null;
           organization_id: string;
+          periodic_training_hours?: number | null;
           trade_register_number?: string | null;
+          training_day_from?: number | null;
+          training_day_to?: number | null;
+          training_first_month?: number | null;
           updated_at?: string;
           vat_payer?: boolean;
+          worker_training_interval_months?: number | null;
         };
         Update: {
           address_line?: string | null;
+          administrative_training_interval_months?: number | null;
           archived_at?: string | null;
           caen_code?: string | null;
           county_code?: string | null;
@@ -52,11 +205,17 @@ export type Database = {
           id?: string;
           legal_name?: string;
           legal_representative_name?: string | null;
+          legal_representative_role?: string | null;
           locality?: string | null;
           organization_id?: string;
+          periodic_training_hours?: number | null;
           trade_register_number?: string | null;
+          training_day_from?: number | null;
+          training_day_to?: number | null;
+          training_first_month?: number | null;
           updated_at?: string;
           vat_payer?: boolean;
+          worker_training_interval_months?: number | null;
         };
         Relationships: [
           {
@@ -288,30 +447,54 @@ export type Database = {
       };
       organizations: {
         Row: {
+          address_line: string | null;
+          county_code: string | null;
           created_at: string;
+          cui: string | null;
           id: string;
+          legal_name: string | null;
+          legal_representative_name: string | null;
+          legal_representative_role: string | null;
+          locality: string | null;
           name: string;
           terms_accepted_at: string | null;
           terms_accepted_by: string | null;
           terms_version: string | null;
+          trade_register_number: string | null;
           updated_at: string;
         };
         Insert: {
+          address_line?: string | null;
+          county_code?: string | null;
           created_at?: string;
+          cui?: string | null;
           id?: string;
+          legal_name?: string | null;
+          legal_representative_name?: string | null;
+          legal_representative_role?: string | null;
+          locality?: string | null;
           name: string;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
+          trade_register_number?: string | null;
           updated_at?: string;
         };
         Update: {
+          address_line?: string | null;
+          county_code?: string | null;
           created_at?: string;
+          cui?: string | null;
           id?: string;
+          legal_name?: string | null;
+          legal_representative_name?: string | null;
+          legal_representative_role?: string | null;
+          locality?: string | null;
           name?: string;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
+          trade_register_number?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -320,6 +503,7 @@ export type Database = {
         Row: {
           created_at: string;
           full_name: string;
+          professional_title: string | null;
           terms_accepted_at: string | null;
           terms_version: string | null;
           updated_at: string;
@@ -328,6 +512,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           full_name: string;
+          professional_title?: string | null;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
           updated_at?: string;
@@ -336,6 +521,7 @@ export type Database = {
         Update: {
           created_at?: string;
           full_name?: string;
+          professional_title?: string | null;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
           updated_at?: string;
@@ -467,6 +653,7 @@ export type Database = {
           email: string;
           full_name: string;
           joined_at: string;
+          professional_title: string;
           role: Database['public']['Enums']['organization_role'];
           user_id: string;
         }[];
@@ -483,6 +670,8 @@ export type Database = {
     Enums: {
       employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
+      responsible_person_role:
+        'workplace_manager' | 'first_aid' | 'risk_evaluation_team' | 'imminent_danger';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -606,6 +795,12 @@ export const Constants = {
     Enums: {
       employee_status: ['active', 'terminated'],
       organization_role: ['owner', 'specialist'],
+      responsible_person_role: [
+        'workplace_manager',
+        'first_aid',
+        'risk_evaluation_team',
+        'imminent_danger',
+      ],
     },
   },
 } as const;

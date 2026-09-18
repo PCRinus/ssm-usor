@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, and employees  
+Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, and the facts documents print  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -73,6 +73,52 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 Deferred on purpose: service status and contract period, financial data, contacts as their
 own table, and specialist assignment.
 
+## What the documents print
+
+A client's SSM documentation ([ADR 005](architecture/adr-005-document-generation.md)) names
+the provider, the client's representative, its workplaces, the people it designates by
+decision, and its training schedule. These facts outlast one generation, so they are stored
+once. All of them are optional in the database: the generation form reports what is missing
+and refuses to generate until it is filled in. Honorifics are not stored; documents print
+the name and the role.
+
+**The provider.** `organizations.name` stays what the app shows. Documents print
+`legal_name`, `cui`, `trade_register_number`, the registered office (`county_code`,
+`locality`, `address_line`), and `legal_representative_name` with
+`legal_representative_role`. Only an owner updates them, and column grants keep the name
+and the accepted terms out of that update. A specialist's qualification, as printed
+("Coordonator în materie de securitate și sănătate în muncă, evaluator autorizat"), is
+`profiles.professional_title`, which each person writes for themselves;
+`organization_member_list()` returns it.
+
+**The client.** `legal_representative_role` ("Administrator") sits next to the name. The
+training schedule that the first decision sets is on the client too, because the deadline
+calendar will read the same columns:
+
+| Column                                    | Notes                                                                 |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| `periodic_training_hours`                 | Duration of a periodic training, 1 to 8.                              |
+| `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.   |
+| `worker_training_interval_months`         | Workers, 1 to 6.                                                      |
+| `training_first_month`                    | First month of the year with a training; the rest follow by interval. |
+| `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.       |
+
+**Workplaces.** `client_workplaces` holds the registered office and the points of work: a
+name, `is_registered_office` (one per client, by a partial unique index), and an address.
+Documents belong to the client, not to a workplace; they list the workplaces.
+
+**Responsible persons.** `client_responsible_persons` holds the people the employer
+designates by decision, with `roles` as an array of `workplace_manager` (gives the workplace
+and periodic training), `first_aid`, `risk_evaluation_team`, and `imminent_danger`. One
+person often holds every role, and the administrator is not always an employee, so the row
+carries its own `full_name` and `job_title` and only optionally an `employee_id`, which a
+composite foreign key ties to the same client. An employee appears once per client.
+
+Both tables follow `employees`: a denormalized `organization_id` with a composite foreign
+key to the client, the same three policies, new rows only for an active client, and
+`archived_at` as the soft delete. The new address columns use the `county_code` domain;
+`clients.county_code` keeps its own check with the same values.
+
 ## Employees
 
 `employees` stores the people employed by a client, one row per employment. A person working
@@ -111,8 +157,9 @@ the training records, from which "currently absent" is derived.
 
 Not on the employee row, on purpose: training completion, signatures, and medical fitness.
 Those are evidence records with dates and actors (a `training_records` table follows), because a
-flag would be wrong the day after the periodic training expires. Workplace, department, and SSM
-post are their own future entities; no free-text stand-ins were added. Contract type, working
+flag would be wrong the day after the periodic training expires. Department and SSM post are
+their own future entities; no free-text stand-ins were added. Workplaces exist as
+`client_workplaces`, and an employee does not point at one yet. Contract type, working
 hours, and salary are HR data the product avoids.
 
 The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives in
