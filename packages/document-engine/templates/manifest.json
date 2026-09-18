@@ -4,9 +4,9 @@
       "number": "1.0",
       "original": "1.0._Coperta_Decizii",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_decisions",
+      "title": "Copertă – Deciziile interne",
+      "file": "1.0_cover_decisions.docx"
     },
     {
       "number": "1.1",
@@ -44,9 +44,9 @@
       "number": "2.1",
       "original": "2.1._Coperta_MISSMIG",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_general_training_material",
+      "title": "Copertă – Material de instruire introductiv-generală",
+      "file": "2.1_cover_general_training_material.docx"
     },
     {
       "number": "2.2",
@@ -60,9 +60,9 @@
       "number": "3.1",
       "original": "3.1._Coperta_IPSSM",
       "stage": 2,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_own_instructions",
+      "title": "Copertă – Instrucțiuni proprii",
+      "file": "3.1_cover_own_instructions.docx"
     },
     {
       "number": "3.2",
@@ -76,9 +76,9 @@
       "number": "4.1",
       "original": "4.1._Coperta_Tematica",
       "stage": 2,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_training_themes",
+      "title": "Copertă – Tematica de instruire",
+      "file": "4.1_cover_training_themes.docx"
     },
     {
       "number": "4.2",
@@ -92,9 +92,9 @@
       "number": "5.0",
       "original": "5.0._Coperta_Testari",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_tests",
+      "title": "Copertă – Teste de verificare a cunoștințelor",
+      "file": "5.0_cover_tests.docx"
     },
     {
       "number": "5.1",
@@ -124,9 +124,9 @@
       "number": "7.1",
       "original": "7.1_Coperta_Registre",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_event_registers",
+      "title": "Copertă – Registrele de evidență a evenimentelor",
+      "file": "7.1_cover_event_registers.docx"
     },
     {
       "number": "7.2",
@@ -164,9 +164,9 @@
       "number": "11.1",
       "original": "11.1._Coperta_Informare angajator",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "cover_employer_briefing",
+      "title": "Copertă – Material de informare a angajatorului",
+      "file": "11.1_cover_employer_briefing.docx"
     },
     {
       "number": "11",

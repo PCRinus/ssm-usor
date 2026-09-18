@@ -12,13 +12,17 @@ const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templat
 const documentTextOf = (paragraph: string) =>
   [...paragraph.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
 
-const templateFiles = readdirSync(fileURLToPath(templatesUrl)).filter((name) =>
+const allTemplateFiles = readdirSync(fileURLToPath(templatesUrl)).filter((name) =>
   name.endsWith('.docx')
 );
 
 // What the provider's originals printed. None of it may survive in a template.
 const originals =
   /VELOCITA|PIPETECH|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|D-na|D-l |\b\d{2}\.\d{2}\.20\d{2}\b/;
+
+// What only the decisions have: a signature block, an acknowledgement table, its wording.
+const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
+const templateFiles = allTemplateFiles;
 
 describe('built-in templates', () => {
   it.each(templateFiles)('%s carries nothing of the client it was made from', (name) => {
@@ -66,7 +70,7 @@ const bodyOf = (name: string) => new PizZip(read(name)).file('word/document.xml'
 describe('typesetting', () => {
   const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
 
-  it.each(templateFiles)('%s centres the signature block instead of spacing it out', (name) => {
+  it.each(decisionFiles)('%s centres the signature block instead of spacing it out', (name) => {
     for (const placeholder of [
       '{{client.legalName}}',
       '{{client.representativeRole}}',
@@ -114,8 +118,9 @@ describe('typesetting', () => {
       ].map((match) => match[1])
     );
     expect([...fonts]).toEqual(['Arial']);
-    // 10 pt body and the 12 pt title, on the runs that carry text.
-    expect([...sizes].sort((a, b) => a - b)).toEqual([10, 12]);
+    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page. Nothing smaller than
+    // the body, which is what a fake heading looks like.
+    expect([...sizes].filter((size) => ![10, 12, 14, 16].includes(size))).toEqual([]);
     expect([...languages]).toEqual(['ro-RO']);
   });
 
@@ -158,7 +163,7 @@ describe('typesetting', () => {
     }
   );
 
-  it.each(templateFiles)(
+  it.each(decisionFiles)(
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
       const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
@@ -191,11 +196,14 @@ describe('wording', () => {
     );
   });
 
-  it.each(texts)('%s words the acknowledgement for one signer or several', (_, text) => {
-    expect(text).toContain(
-      'fiecare persoană desemnată confirmă că a luat cunoștință de prezenta decizie'
-    );
-  });
+  it.each(texts.filter(([name]) => name.includes('_decision_')))(
+    '%s words the acknowledgement for one signer or several',
+    (_, text) => {
+      expect(text).toContain(
+        'fiecare persoană desemnată confirmă că a luat cunoștință de prezenta decizie'
+      );
+    }
+  );
 });
 
 describe('decision_first_aid', () => {

@@ -15,7 +15,8 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
     "import-templates": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/import_templates.py",
-    "preview": "tsx tools/preview.ts"
+    "preview": "tsx tools/preview.ts",
+    "build-covers": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_covers.py"
   },
   "dependencies": {
     "docxtemplater": "3.69.3",

@@ -38,6 +38,7 @@ function sample(
       provider: {
         legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',
         representativeName: 'Ana IONESCU',
+        representativeRole: 'Administrator',
       },
       specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
       workplaceManagers: people,

@@ -132,6 +132,24 @@ across runs, and leaves an ellipsis alone.
 numbers, ported or not, with the stage each belongs to. A ported template is named
 `<number>_<type_key>.docx`, so the folder shows what is still to do.
 
+## Covers
+
+The seven covers are not imported, they are built:
+`pnpm --filter @ssm-usor/document-engine build-covers`. The provider's covers are text boxes on
+an empty page, with the provider's name pushed into place in the header by nine empty lines.
+LibreOffice cannot read the boxes as text, and every cover is the same page with another
+title. `tools/import/build_covers.py` makes them from `tools/import/covers.ro.json`: the
+provider's name at the head, an optional motto, the title at 16 pt, the client's name at
+14 pt, a list of contents where there is one, and the hand-over block as two borderless
+columns, the client's side and the provider's. A cover is the one place the house style goes
+above 12 pt.
+
+One correction to the content: the decisions' cover listed a fifth decision, naming the worker
+designated for prevention and protection, which the pack does not contain. The list now has
+the four decisions that exist.
+
+Covers need `provider.representativeRole` besides what the decisions use.
+
 ## Built-in templates
 
 | `type_key`                      | Document                                                                 | Data beyond `decisionNumber`, `issueDate`, `client`, `provider`                                                                                                  |
