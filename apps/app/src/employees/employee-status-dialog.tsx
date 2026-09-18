@@ -15,6 +15,7 @@ import { type FormEvent, useState } from 'react';
 import {
   type ApiErrorResponse,
   type EmployeeListResponse,
+  getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
   useUpdateEmployeeStatus,
 } from '../api/generated/api';
@@ -101,8 +102,12 @@ function StatusForm({
         data:
           action === 'terminate' ? { status: 'terminated', terminatedAt } : { status: 'active' },
       });
-      // Every filtered variant of the client's list shares this key prefix.
-      await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
+      // Every filtered variant of the client's list shares this key prefix; the detail
+      // page reads its own query.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
+        queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
+      ]);
       onClose();
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;

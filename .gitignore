@@ -14,3 +14,6 @@ dist/
 playwright-report/
 test-results/
 .claude/worktrees/
+
+# TanStack Router generator scratch files
+.tanstack/

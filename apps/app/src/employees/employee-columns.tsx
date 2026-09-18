@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
+import { Link } from '@tanstack/react-router';
 import { MoreHorizontal, RotateCcw, UserRoundMinus } from 'lucide-react';
 
 import type { EmployeeListResponse } from '../api/generated/api';
@@ -31,7 +32,14 @@ export function employeeColumns(onStatusChange: (change: EmployeeStatusChange) =
       },
       cell: ({ row, getValue }) => (
         <>
-          {getValue()}
+          <Link
+            to="/clients/$clientId/employees/$employeeId"
+            params={{ clientId: row.original.clientId, employeeId: row.original.id }}
+            data-testid="employees-open"
+            className="hover:underline"
+          >
+            {getValue()}
+          </Link>
           {row.original.employeeNumber && (
             <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
               Marca {row.original.employeeNumber}
