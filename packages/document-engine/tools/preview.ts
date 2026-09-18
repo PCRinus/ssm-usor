@@ -34,6 +34,8 @@ function sample(
       branding: [{}],
       decisionNumber: 1,
       issueDate: '19.01.2026',
+      issueYear: '2026',
+      followingYear: '2027',
       client: { legalName, representativeName, representativeRole: 'Administrator' },
       provider: {
         legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',

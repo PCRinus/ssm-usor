@@ -32,6 +32,7 @@ from com.sun.star.beans import PropertyValue
 from com.sun.star.lang import Locale
 from com.sun.star.style.BreakType import NONE as NO_BREAK
 from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
+from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
@@ -48,12 +49,32 @@ ROMANIAN = Locale('ro', 'RO', '')
 
 # What counts as a title or a heading, per kind of document. Matched on a whole paragraph.
 KINDS = {
+    'regulation': {
+        'title': [r'^REGULAMENT INTERN'],
+        'subtitle': [],
+        'headings': [r'^Tabel \d+\.'],
+    },
     'decision': {
         'title': [r'^DECIZIA$'],
         'subtitle': [r'^Nr\. ?:'],
         'headings': [r'^DECIDE ?:?$', r'^PROCES[ -]VERBAL'],
     },
 }
+
+# The hand-over block most documents open with: who prepared and handed over the document, who
+# received it. The originals lay it out with tabs and runs of spaces, five lines deep.
+HANDOVER = (
+    (['Am întocmit și predat un exemplar', 'Am informat angajatorul'],
+     '{{provider.representativeName}}', '{{provider.representativeRole}} al {{provider.legalName}}'),
+    (['Am primit un exemplar', 'Am luat la cunoștință'],
+     '{{client.representativeName}}', '{{client.representativeRole}} al {{client.legalName}}'),
+)
+# Tables wider than this are set in the small print: a register with twenty columns does not
+# fit at 10 pt.
+WIDE_TABLE_COLUMNS = 6
+# ParaAdjust reads back as a number: justified, and justified with a stretched last line.
+JUSTIFIED = (2, 4)
+SMALL_PRINT = 8.0
 
 SIGNATURE_BLOCK = [
     '{{client.legalName}}',
@@ -182,12 +203,36 @@ def apply(document, replacement):
     return count
 
 
-def wording_replacements(wording):
-    """Phrases first, written against the original text; then whole words in three cases."""
+def document_words(document):
+    """Every word of the document, lowercased, to apply only the corrections it needs. The
+    dictionary holds thousands; a document uses a few hundred of them."""
+    chunks = []
+    roots = [document.Text]
+    page_styles = document.StyleFamilies.getByName('PageStyles')
+    for name in page_styles.getElementNames():
+        style = page_styles.getByName(name)
+        roots += [style.HeaderText] if style.HeaderIsOn else []
+        roots += [style.FooterText] if style.FooterIsOn else []
+    for root in roots:
+        chunks.append(root.getString())
+        for element in _elements(root):
+            if element.supportsService('com.sun.star.text.TextTable'):
+                chunks.extend(element.getCellByName(name).getString() for name in element.getCellNames())
+    return {word.lower() for word in re.findall(r"[^\W\d_]+", ' '.join(chunks))}
+
+
+def wording_replacements(wording, present):
+    """Phrases first, written against the original text; then the rules that need context;
+    then whole words in three cases."""
     replacements = [dict(phrase, min=0) for phrase in wording['phrases']]
+    replacements += [dict(rule, min=0) for rule in wording.get('context', [])]
     for source, target in wording['words'].items():
-        variants = {source: target, source.capitalize(): target[0].upper() + target[1:],
-                    source.upper(): target.upper()}
+        if source not in present:
+            continue
+        variants = {source: target, source.capitalize(): target[0].upper() + target[1:]}
+        # "II" is a number before it is the word "îi" in capitals.
+        if not re.fullmatch(r'[IVXLCDM]+', source.upper()):
+            variants[source.upper()] = target.upper()
         for find, replace in variants.items():
             replacements.append({
                 # Never the inside of a longer word or of a placeholder's dotted name.
@@ -196,6 +241,206 @@ def wording_replacements(wording):
                 'min': 0,
             })
     return replacements
+
+
+def write_paragraph(text, cursor, content, *, size=BODY_SIZE, bold=False, italic=False,
+                    adjust=CENTER, above=0, below=6, keep=False, first=False):
+    """Appends a paragraph in the house style at the cursor."""
+    if not first:
+        text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
+    cursor.CharFontName = FONT
+    cursor.CharFontNameAsian = FONT
+    cursor.CharFontNameComplex = FONT
+    cursor.CharHeight = size
+    cursor.CharWeight = 150 if bold else 100
+    cursor.CharPosture = 2 if italic else 0
+    cursor.CharLocale = ROMANIAN
+    cursor.CharColor = -1
+    cursor.ParaAdjust = adjust
+    cursor.ParaTopMargin = round(above * POINT)
+    cursor.ParaBottomMargin = round(below * POINT)
+    cursor.ParaLeftMargin = 0
+    cursor.ParaFirstLineIndent = 0
+    cursor.ParaKeepTogether = keep
+    text.insertString(cursor, content, False)
+
+
+def insert_handover(document, text, cursor, sides, signing_room=42):
+    """Two columns without borders: what each side confirms, room to sign, who signs."""
+    table = document.createInstance('com.sun.star.text.TextTable')
+    table.initialize(1, 2)
+    text.insertTextContent(cursor, table, False)
+    table.Split = False
+    table.HoriOrient = FULL_WIDTH
+    border = table.TableBorder2
+    for side in ('TopLine', 'BottomLine', 'LeftLine', 'RightLine', 'HorizontalLine', 'VerticalLine'):
+        setattr(border, side, BorderLine2())
+    table.TableBorder2 = border
+    for cell_name, (lines, name, role) in zip(('A1', 'B1'), sides):
+        cell = table.getCellByName(cell_name)
+        cell_cursor = cell.createTextCursor()
+        for index, line in enumerate(lines):
+            write_paragraph(cell, cell_cursor, line, below=0, first=index == 0)
+        write_paragraph(cell, cell_cursor, name, bold=True, above=signing_room, below=0)
+        write_paragraph(cell, cell_cursor, role, below=0)
+    table.BottomMargin = round(12 * POINT)
+    return table
+
+
+def rebuild_table(document, definition):
+    """Replaces a table of the body with one drawn from a definition, where the original is
+    beyond tidying: columns a letter wide, cells aligned with tabs. `rows` holds the cells as
+    text or as {text, colspan, rowspan}; a cell another one spans over is an empty string."""
+    tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
+    old = tables[definition['replaceTable']]
+    body = list(_elements(document.Text))
+    following = body[body.index(old) + 1]
+    old.dispose()
+
+    text = document.Text
+    cursor = text.createTextCursorByRange(following.getStart())
+    if definition.get('heading'):
+        text.insertString(cursor, definition['heading'], False)
+        text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
+        heading = list(_elements(text))[list(_elements(text)).index(following) - 1]
+        heading.CharWeight = 150
+        heading.ParaAdjust = CENTER
+        heading.ParaKeepTogether = True
+        heading.NumberingIsNumber = False
+        following.CharWeight = 100
+
+    rows = definition['rows']
+    columns = len(definition['widths'])
+    table = document.createInstance('com.sun.star.text.TextTable')
+    table.initialize(len(rows), columns)
+    text.insertTextContent(text.createTextCursorByRange(following.getStart()), table, False)
+    table.HoriOrient = FULL_WIDTH
+    total, position = sum(definition['widths']), 0
+    separators = table.TableColumnSeparators
+    for separator, width in zip(separators, definition['widths']):
+        position += width
+        separator.Position = round(position / total * table.TableColumnRelativeSum)
+    table.TableColumnSeparators = separators
+
+    size = definition.get('size', BODY_SIZE)
+    header_rows = definition.get('headerRows', 1)
+    left = set(definition.get('left', []))
+    merges = []
+    for row_index, row in enumerate(rows):
+        for column_index, content in enumerate(row):
+            cell_definition = content if isinstance(content, dict) else {'text': content}
+            cell = table.getCellByPosition(column_index, row_index)
+            cell.VertOrient = 2
+            lines = cell_definition['text'].split('\n')
+            cell_cursor = cell.createTextCursor()
+            for index, line in enumerate(lines):
+                write_paragraph(cell, cell_cursor, line, size=size, bold=row_index < header_rows,
+                                adjust=LEFT if column_index in left and row_index >= header_rows else CENTER,
+                                below=0, first=index == 0)
+            spans = (cell_definition.get('colspan', 1), cell_definition.get('rowspan', 1))
+            if spans != (1, 1):
+                merges.append((column_index, row_index, *spans))
+    # From the end, so a merge never renames a cell still to be merged.
+    for column_index, row_index, colspan, rowspan in reversed(merges):
+        merge = table.createCursorByCellName(table.getCellByPosition(column_index, row_index).CellName)
+        if colspan > 1:
+            merge.goRight(colspan - 1, True)
+        if rowspan > 1:
+            merge.goDown(rowspan - 1, True)
+        merge.mergeRange()
+    if header_rows > 1:
+        table.HeaderRowCount = header_rows
+    return table
+
+
+def replace_handover(document):
+    """Swaps the tab-aligned hand-over lines for the two-column block. Returns whether it
+    found them."""
+    body = list(_elements(document.Text))
+    for index, element in enumerate(body):
+        if not element.supportsService('com.sun.star.text.Paragraph'):
+            continue
+        if not re.match(r'\s*Am [iî]ntocmit [sș]i predat', element.getString()):
+            continue
+        # The opening line and what follows it, up to the line with the two names.
+        block = [element]
+        for following in body[index + 1:index + 8]:
+            if not following.supportsService('com.sun.star.text.Paragraph'):
+                break
+            block.append(following)
+            if len([item for item in block if item.getString().strip()]) == 5:
+                break
+        cursor = document.Text.createTextCursorByRange(block[0].getStart())
+        insert_handover(document, document.Text, cursor, HANDOVER)
+        for paragraph in block:
+            document.Text.removeTextContent(paragraph)
+        return True
+    return False
+
+
+# The box of document details the provider prints at the head of every page. Rebuilt, because
+# the originals fill it with runs of spaces and a page number typed by hand.
+HEADER_COLUMNS = (2000, 5000, 8000)  # separators, out of 10000
+HEADER_PARTIES = {
+    'provider': ['{{provider.legalName}}', '{{provider.representativeRole}}', '{{provider.representativeName}}'],
+    'specialist': ['{{provider.legalName}}', '{{specialist.professionalTitle}}', '{{specialist.name}}'],
+    'client': ['{{client.legalName}}', '{{client.representativeRole}}', '{{client.representativeName}}'],
+}
+
+
+def build_header(document, details):
+    """Writes the document details into the header of every page style."""
+    page_styles = document.StyleFamilies.getByName('PageStyles')
+    for style_name in page_styles.getElementNames():
+        style = page_styles.getByName(style_name)
+        # Off and on again empties it, tables included.
+        style.HeaderIsOn = False
+        style.HeaderIsOn = True
+        for shared in ('HeaderIsShared', 'FirstIsShared'):
+            setattr(style, shared, True)
+        header = style.HeaderText
+        table = document.createInstance('com.sun.star.text.TextTable')
+        table.initialize(2, 4)
+        header.insertTextContent(header.createTextCursor(), table, False)
+        table.HoriOrient = FULL_WIDTH
+        separators = table.TableColumnSeparators
+        for separator, position in zip(separators, HEADER_COLUMNS):
+            separator.Position = position
+        table.TableColumnSeparators = separators
+
+        cells = {
+            'A1': ['Data întocmirii documentului:', '{{issueDate}}'],
+            'B1': ['Întocmit de:'] + HEADER_PARTIES[details.get('preparedBy', 'provider')],
+            'C1': ['Întocmit pentru:'] + HEADER_PARTIES['client'],
+            'D1': ['Cod document:', details['code']],
+            'A2': ['Denumire document:', details['title']],
+        }
+        for cell_name, lines in cells.items():
+            cell = table.getCellByName(cell_name)
+            cursor = cell.createTextCursor()
+            for index, line in enumerate(lines):
+                write_paragraph(cell, cursor, line, size=SMALL_PRINT, bold=index == 1,
+                                adjust=LEFT if cell_name == 'A2' else CENTER, below=0, first=index == 0)
+        page = table.getCellByName('D2')
+        cursor = page.createTextCursor()
+        write_paragraph(page, cursor, 'Pag. ', size=SMALL_PRINT, below=0, first=True)
+        for service, after in (('PageNumber', ' din '), ('PageCount', '')):
+            field = document.createInstance(f'com.sun.star.text.TextField.{service}')
+            field.NumberingType = 4  # Arabic numerals
+            if service == 'PageNumber':
+                field.SubType = uno.Enum('com.sun.star.text.PageNumberType', 'CURRENT')
+            page.insertTextContent(cursor, field, False)
+            page.insertString(cursor, after, False)
+        page.VertOrient = 2  # centred in the height of the row
+        merge = table.createCursorByCellName('A2')
+        merge.gotoCellByName('C2', True)
+        merge.mergeRange()
+
+        # The paragraph a header keeps after its table is the gap down to the text.
+        closing = [item for item in _elements(header) if item.supportsService('com.sun.star.text.Paragraph')][-1]
+        closing.CharHeight = 2.0
+        closing.ParaTopMargin = 0
+        closing.ParaBottomMargin = 0
 
 
 def strip_spacing(document):
@@ -214,23 +459,50 @@ def texts(document):
                 yield element.getCellByName(name)
 
 
+def column_count(table):
+    """The cells of the fullest row. A table with merged cells reports the columns of its first
+    row only."""
+    rows = {}
+    for name in table.getCellNames():
+        row = re.sub(r'^[A-Za-z]+', '', name)
+        rows[row] = rows.get(row, 0) + 1
+    return max(rows.values())
+
+
 def normalise_characters(document):
     """One font, one size, one language, no colour, over everything including the paragraph
-    marks, which keep formatting of their own that a paragraph's properties do not reach. The
-    originals also carry dead internal hyperlinks ("#"), which is where stray underlines and
-    languages hide."""
-    for text in texts(document):
+    marks, which keep formatting of their own that a paragraph's properties do not reach. A
+    wide table is set smaller, like the small print of a header or footer."""
+    def apply(text, size):
         cursor = text.createTextCursor()
         cursor.gotoStart(False)
         cursor.gotoEnd(True)
         cursor.CharFontName = FONT
         cursor.CharFontNameAsian = FONT
         cursor.CharFontNameComplex = FONT
-        cursor.CharHeight = BODY_SIZE
-        cursor.CharHeightAsian = BODY_SIZE
-        cursor.CharHeightComplex = BODY_SIZE
+        if size:
+            cursor.CharHeight = size
+            cursor.CharHeightAsian = size
+            cursor.CharHeightComplex = size
         cursor.CharLocale = ROMANIAN
         cursor.CharColor = -1
+
+    def apply_tables(text, size):
+        for element in _elements(text):
+            if element.supportsService('com.sun.star.text.TextTable'):
+                wide = column_count(element) > WIDE_TABLE_COLUMNS
+                for name in element.getCellNames():
+                    apply(element.getCellByName(name), SMALL_PRINT if wide else size)
+
+    apply(document.Text, BODY_SIZE)
+    apply_tables(document.Text, BODY_SIZE)
+    page_styles = document.StyleFamilies.getByName('PageStyles')
+    for name in page_styles.getElementNames():
+        style = page_styles.getByName(name)
+        for enabled, part in ((style.HeaderIsOn, 'HeaderText'), (style.FooterIsOn, 'FooterText')):
+            if enabled:
+                apply(getattr(style, part), SMALL_PRINT)
+                apply_tables(getattr(style, part), SMALL_PRINT)
 
     # The dead internal links ("#") of the originals, one portion at a time. Writing an empty
     # address over everything does the opposite: it is saved as a link to nowhere around all
@@ -244,7 +516,12 @@ def normalise_characters(document):
                              'UnvisitedCharStyleName', 'VisitedCharStyleName', 'CharStyleName'):
                     portion.setPropertyToDefault(name)
                 portion.CharUnderline = 0
-        cursor.CharUnderline = 0
+
+
+def has_content(text):
+    """Text or a table: a header holding only a table reads as an empty string."""
+    return any(element.supportsService('com.sun.star.text.TextTable') or element.getString().strip()
+               for element in _elements(text))
 
 
 def add_branding(page_style):
@@ -260,7 +537,7 @@ def add_branding(page_style):
         return
     cursor = footer.createTextCursor()
     cursor.gotoEnd(False)
-    if footer.getString().strip():
+    if has_content(footer):
         footer.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
     else:
         footer.setString('')
@@ -327,9 +604,21 @@ def typeset(document, kind):
             # Shared, or the first and the even pages keep a header and footer of their own.
             for shared in ('HeaderIsShared', 'FooterIsShared', 'FirstIsShared'):
                 setattr(style, shared, True)
-            if style.HeaderIsOn and not style.HeaderText.getString().strip():
+            if style.HeaderIsOn and not has_content(style.HeaderText):
                 style.HeaderIsOn = False
+            if style.HeaderIsOn:
+                # Like the footer, a header lives inside its margin: 12 mm, the box, then 4 mm.
+                style.TopMargin = 1200
+                style.HeaderBodyDistance = 400
             add_branding(style)
+
+    # Boxes drawn behind a title for decoration. One that holds text stays.
+    page = document.DrawPage
+    for index in reversed(range(page.getCount())):
+        shape = page.getByIndex(index)
+        if shape.ShapeType in ('com.sun.star.drawing.CustomShape', 'com.sun.star.drawing.RectangleShape') \
+                and not shape.getString().strip():
+            page.remove(shape)
 
     # Empty paragraphs were the spacing. Paragraph margins replace them. One that carries a
     # page break hands it to the paragraph after it.
@@ -364,6 +653,10 @@ def typeset(document, kind):
         previous = element if element.supportsService('com.sun.star.text.Paragraph') else None
 
     normalise_characters(document)
+    # A list label takes its colour from a character style, out of a cursor's reach.
+    character_styles = document.StyleFamilies.getByName('CharacterStyles')
+    for name in character_styles.getElementNames():
+        character_styles.getByName(name).setPropertyToDefault('CharColor')
 
     # A list of one item is not a list: the lone "1." in front of it goes.
     items = {}
@@ -381,14 +674,22 @@ def typeset(document, kind):
         # Again on the paragraph: its end mark keeps formatting of its own, out of a cursor's
         # reach, and that is where a stray language or size survives.
         paragraph.CharFontName = FONT
-        paragraph.CharHeight = BODY_SIZE
+        if not in_table:
+            # In a table the size went on with the rest of the characters: a wide one is smaller.
+            paragraph.CharHeight = BODY_SIZE
         paragraph.CharLocale = ROMANIAN
         paragraph.CharColor = -1
         paragraph.ParaWidows = 2
         paragraph.ParaOrphans = 2
+        # No boxes, shadows or shading around a paragraph.
+        for name in ('LeftBorder', 'RightBorder', 'TopBorder', 'BottomBorder', 'ParaShadowFormat',
+                     'ParaBackColor', 'ParaBackTransparent'):
+            paragraph.setPropertyToDefault(name)
         if in_table:
             paragraph.ParaTopMargin = 0
             paragraph.ParaBottomMargin = 0
+            if paragraph.ParaAdjust in JUSTIFIED:
+                paragraph.ParaAdjust = LEFT
             continue
 
         paragraph.ParaTopMargin = 0
@@ -481,9 +782,17 @@ def import_template(desktop, spec_path, wording, output):
             if count < replacement.get('min', 1):
                 label = replacement.get('find') or f'/{replacement["pattern"]}/'
                 problems.append(f'{label!r} found {count} times, expected at least {replacement.get("min", 1)}')
+        if spec.get('header'):
+            build_header(document, spec['header'])
         strip_spacing(document)
-        fixes = sum(apply(document, replacement) for replacement in wording)
+        for definition in spec.get('tables', []):
+            rebuild_table(document, definition)
+        rules = wording_replacements(wording, document_words(document))
+        fixes = sum(apply(document, replacement) for replacement in rules)
         removed = typeset(document, spec.get('kind', 'decision'))
+        # After the typesetting, which would flatten the room left for signatures.
+        if spec.get('handover') and not replace_handover(document):
+            problems.append('the hand-over block was not found')
         if problems:
             raise RuntimeError('; '.join(problems))
         os.makedirs(f'{ROOT}/{output}', exist_ok=True)
@@ -511,7 +820,7 @@ def main():
     if not specs:
         sys.exit('No specs in originals/. They live outside the repository; see docs/document-engine.md.')
     with open(f'{ROOT}/tools/import/wording.ro.json', encoding='utf8') as file:
-        wording = wording_replacements(json.load(file))
+        wording = json.load(file)
 
     process, desktop = start_office()
     failed = False

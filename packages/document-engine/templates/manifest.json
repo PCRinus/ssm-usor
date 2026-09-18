@@ -180,9 +180,9 @@
       "number": "12",
       "original": "12._Regulament_de_control_propriu_S.S.M",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "control_regulation",
+      "title": "Regulament intern privind controlul propriu",
+      "file": "12_control_regulation.docx"
     }
   ]
 }

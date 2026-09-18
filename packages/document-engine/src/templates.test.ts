@@ -118,9 +118,11 @@ describe('typesetting', () => {
       ].map((match) => match[1])
     );
     expect([...fonts]).toEqual(['Arial']);
-    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page. Nothing smaller than
-    // the body, which is what a fake heading looks like.
-    expect([...sizes].filter((size) => ![10, 12, 14, 16].includes(size))).toEqual([]);
+    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page; 8 pt in a table too wide
+    // for the body size. Nothing else, and no heading smaller than the text under it.
+    expect([...sizes].filter((size) => ![8, 10, 12, 14, 16].includes(size))).toEqual([]);
+    const outsideTables = xml.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '');
+    expect(outsideTables).not.toMatch(/<w:sz w:val="16"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/);
     expect([...languages]).toEqual(['ro-RO']);
   });
 
@@ -136,22 +138,33 @@ describe('typesetting', () => {
   });
 
   it.each(templateFiles)(
-    '%s has the house margins, no header, and a footer that ends with the branding line',
+    '%s has the house margins, no header but the document details, and a footer that ends with the branding line',
     (name) => {
       const xml = bodyOf(name);
       // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.
       expect(xml).toMatch(/<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/);
       // The footer sits inside the bottom margin: 12 mm to the footer, the text ends above 20 mm.
-      expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
       expect(xml).toMatch(/<w:pgMar [^>]*w:footer="680"/);
       const bottom = Number(/<w:pgMar [^>]*w:bottom="(\d+)"/.exec(xml)![1]);
       expect(bottom).toBeGreaterThanOrEqual(1134);
       expect(bottom).toBeLessThan(1500);
-      // No header. Every footer ends with the branding line, which the merge data switches.
+      // No header, or the box of document details, which sits inside the top margin the way
+      // the footer sits inside the bottom one. Every footer ends with the branding line, which
+      // the merge data switches.
       const zip = new PizZip(read(name));
       const parts = Object.keys(zip.files);
-      for (const part of parts.filter((file) => /word\/header\d*\.xml/.test(file))) {
-        expect(documentTextOf(zip.file(part)!.asText()).trim(), part).toBe('');
+      const headers = parts
+        .filter((file) => /word\/header\d*\.xml/.test(file))
+        .map((part) => documentTextOf(zip.file(part)!.asText()).trim());
+      if (headers.every((text) => text === '')) {
+        expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
+      } else {
+        expect(xml).toMatch(/<w:pgMar [^>]*w:header="680"/);
+        for (const text of headers) {
+          expect(text).toContain('Data întocmirii documentului:{{issueDate}}');
+          expect(text).toContain('Întocmit pentru:{{client.legalName}}');
+          expect(text).toMatch(/Cod document:.+Denumire document:.+Pag\. /);
+        }
       }
       const footers = parts.filter((file) => /word\/footer\d*\.xml/.test(file));
       expect(footers.length).toBeGreaterThan(0);

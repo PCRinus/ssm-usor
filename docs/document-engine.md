@@ -91,6 +91,14 @@ makes the engine repeat a paragraph per person. `min` is how often the text must
 a text found less often fails the import. Honorifics go: "D-na … in calitate de Administrator"
 becomes `{{client.representativeName}} in calitate de {{client.representativeRole}}`.
 
+A spec can ask for three larger repairs, where tidying what is there would not do:
+
+| Spec key         | What it does                                                                                                                                                                                                                                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header`         | Rebuilds the box of document details at the head of every page from `code` and `title`: the issue date, who prepared the document and for whom, its code, its name, and "Pag. X din Y" as real page fields. The originals type the page number by hand and pad cells with spaces. `preparedBy: "specialist"` names the specialist |
+| `handover: true` | Replaces the five lines of "Am întocmit și predat un exemplar … Am primit un exemplar", aligned with tabs and runs of spaces, with the two-column block the covers use: what each side confirms, room to sign, who signs                                                                                                          |
+| `tables`         | Replaces the n-th table of the body (`replaceTable`) with one drawn from a definition: `widths`, `rows` of cells as text or `{text, colspan, rowspan}`, `headerRows`, the columns set `left`, a `size`, and a `heading` paragraph above it. For a table whose columns are a letter wide or whose cells are aligned with tabs      |
+
 `originals/` is git-ignored, specs included, because both quote real people by name.
 
 **2. Wording.** `tools/import/wording.ro.json`, committed because it quotes no one, is an
@@ -100,8 +108,14 @@ spaces before punctuation, and sentences that are only right for one person ("Su
 luat cunoștință… ne obligăm"). The rule is to **reword once in the template rather than add a
 case at generation time**: a sentence that must read right for one person or five is rewritten
 so it does. `words` is a dictionary applied as whole words in lower, Capitalised, and UPPER
-case; a word whose diacritics depend on meaning goes in only after every occurrence has been
-read in context. `phrases` are replacements, none of which has to occur. What the documents
+case (a Roman numeral is left alone: "II" is not "îi"); a word whose diacritics depend on
+meaning goes in only after every occurrence has been read in context. Most of its 2,500
+entries were derived, not typed: every word of both packs was checked against LibreOffice's
+Romanian spelling dictionary, and a plain word went in only if it is not itself a word and
+exactly one way of adding diacritics to it is. Only the words a document contains are applied
+to it. `context` holds the rules for words that are right both ways: "sa" is "să" except as a
+possessive ("activitatea sa"), "munca" is "muncă" after a preposition, "asigura" is "asigură"
+unless an auxiliary precedes it. `phrases` are replacements, none of which has to occur. What the documents
 _say_ is not touched: article references, durations, who decides what. Nor are the empty
 numbered rows of the acknowledgement tables, where newly appointed people sign later.
 
@@ -109,14 +123,14 @@ numbered rows of the acknowledgement tables, where newly appointed people sign l
 
 |                  |                                                                                                                                                                                                                                                                                                                             |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Text             | Arial 10 pt; the document title bold 12 pt; headings ("DECIDE:", "PROCES VERBAL…") bold 10 pt, centred                                                                                                                                                                                                                      |
-| Page             | A4, margins 25 mm left for binding and 20 mm elsewhere; an empty header or footer is switched off                                                                                                                                                                                                                           |
+| Text             | Arial 10 pt; the document title bold 12 pt; headings ("DECIDE:", "PROCES VERBAL…") bold 10 pt, centred; 8 pt in a table of more than six columns and in the header's document details                                                                                                                                       |
+| Page             | A4, margins 25 mm left for binding and 20 mm elsewhere; an empty header or footer is switched off; a header sits inside the top margin like the footer inside the bottom one: 12 mm, the box, 4 mm                                                                                                                          |
 | Alignment        | Running text and list items are left-aligned, never justified: without hyphenation a justified line opens uneven gaps between words. Titles, headings, and the signature block are centred                                                                                                                                  |
 | Spacing          | Paragraph margins, 6 pt between paragraphs and 2 pt between list items. Every empty paragraph used as spacing is removed, and so are the spaces paragraphs were aligned with                                                                                                                                                |
 | Lists            | Items snapped to three indent tiers, in the list's own definition, whatever list they came from. The originals build one hierarchy from a dozen unrelated lists with paragraph indents on top. A list of one item loses its lone "1.". Article labels ("Art. 1.") stay automatic list numbers                               |
 | Signature block  | The client's name, the representative's role and name: centred, so a long name grows both ways instead of drifting off a column of spaces                                                                                                                                                                                   |
 | Staying together | From a heading to the table it introduces, everything moves to the next page together; a short table does not split; two lines at least stay together at a page break                                                                                                                                                       |
-| Characters       | Romanian as the language, no font colours (the provider marks in red what they replace by hand), no dead internal hyperlinks and the underline they left                                                                                                                                                                    |
+| Characters       | Romanian as the language, no font colours (the provider marks in red what they replace by hand), no dead internal hyperlinks and the underline they left, no boxes or shading around a paragraph, no empty shapes drawn behind a title                                                                                      |
 | Footer           | Every footer ends with `{{#branding}}Document generat cu SSM Ușor · ssmusor.ro{{/branding}}`, Arial 7.5 pt, grey, centred: alone where the document had no footer, one more paragraph where it had one. `branding: [{}]` in the merge data prints it; empty or missing prints nothing. See [branding](document-branding.md) |
 | The end          | A document that closes with a table keeps the one paragraph Word needs after it, at 1 pt, so it cannot spill onto an empty last page                                                                                                                                                                                        |
 
@@ -157,6 +171,7 @@ Covers need `provider.representativeRole` besides what the decisions use.
 | `decision_training`             | Decision no. 1: who trains whom, and the periodic training schedule      | `workplaceManagers[]`, `training` (`periodicDuration`, `administrativeFrequency`, `administrativeMonths`, `workerFrequency`, `workerMonths`, `dayFrom`, `dayTo`) |
 | `decision_risk_evaluation_team` | Decision no. 2: the risk evaluation team                                 | `evaluationTeam[]`, `specialist` (`name`, `professionalTitle`)                                                                                                   |
 | `decision_first_aid`            | Decision no. 3: who gives first aid, with its two acknowledgement tables | `firstAiders[]`, `firstAiderNames`                                                                                                                               |
+| `control_regulation`            | The internal regulation on the employer's own checks, with its schedule  | `issueYear`, `followingYear` for the schedule's heading                                                                                                          |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
