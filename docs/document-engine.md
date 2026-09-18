@@ -109,6 +109,12 @@ title after the first opens a new page the same way. `tableSizes` sets one
 table smaller than the small print, for pictogram captions. A replacement may set
 `groups: true` to use what its pattern captured (`$1`).
 
+A spec with `"source": null` starts from an empty document and draws all of it (`kind:
+"form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
+the original lays it out in text frames, which LibreOffice cannot read back as a table. In a
+drawn table a cell may set `bold` and `align`, and `rowHeights` makes single rows taller, for
+the blank space of a form.
+
 `originals/` is git-ignored, specs included, because both quote real people by name.
 
 **2. Wording.** `tools/import/wording.ro.json`, committed because it quotes no one, is an
@@ -185,6 +191,7 @@ Covers need `provider.representativeRole` besides what the decisions use.
 | `test_hiring`                   | The test after the general introductory training, with its specimen      | None                                                                                                                                                             |
 | `test_periodic`                 | The yearly test, with its specimen                                       | None                                                                                                                                                             |
 | `event_registers`               | The four registers of accidents and dangerous incidents, A4 landscape    | None                                                                                                                                                             |
+| `control_report`                | The report form filled in by hand at each control visit                  | None                                                                                                                                                             |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`

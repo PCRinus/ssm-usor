@@ -140,9 +140,9 @@
       "number": "8",
       "original": "8._REFERAT_S.S.M",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "control_report",
+      "title": "Referat de control",
+      "file": "8_control_report.docx"
     },
     {
       "number": "9",

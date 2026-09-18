@@ -50,6 +50,8 @@ ROMANIAN = Locale('ro', 'RO', '')
 
 # What counts as a title or a heading, per kind of document. Matched on a whole paragraph.
 KINDS = {
+    # A form drawn from its spec, on an empty document.
+    'form': {'title': [], 'subtitle': [], 'headings': []},
     'register': {
         'title': [r'^REGISTRUL UNIC'],
         'subtitle': [r'^PENTRU '],
@@ -313,11 +315,15 @@ def rebuild_table(document, definition):
     """Replaces a table of the body with one drawn from a definition, where the original is
     beyond tidying: columns a letter wide, cells aligned with tabs. `rows` holds the cells as
     text or as {text, colspan, rowspan}; a cell another one spans over is an empty string."""
-    tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
-    old = tables[definition['replaceTable']]
     body = list(_elements(document.Text))
-    following = body[body.index(old) + 1]
-    old.dispose()
+    if 'replaceTable' in definition:
+        tables = [item for item in body if item.supportsService('com.sun.star.text.TextTable')]
+        old = tables[definition['replaceTable']]
+        following = body[body.index(old) + 1]
+        old.dispose()
+    else:
+        # A table of its own, at the end.
+        following = body[-1]
 
     text = document.Text
     cursor = text.createTextCursorByRange(following.getStart())
@@ -340,8 +346,9 @@ def rebuild_table(document, definition):
     # A register may run over pages; a form stays whole. A heading with cells merged downwards
     # is not repeated on the next page: LibreOffice draws the repeat over the rows under it.
     spans_rows = any(isinstance(cell, dict) and cell.get('rowspan', 1) > 1 for row in definition['rows'] for cell in row)
-    flags = ('Split' if definition.get('split') else '') + ('Once' if spans_rows else '')
-    table.Name = f"{DRAWN}{flags}{definition['replaceTable']}"
+    flags = ('Split' if definition.get('split') else '') + \
+        ('Once' if spans_rows or not definition.get('headerRows', 1) else '')
+    table.Name = f"{DRAWN}{flags}{definition.get('replaceTable', len(DRAWN_SIZES) + 100)}"
     DRAWN_SIZES[table.Name] = definition.get('size', BODY_SIZE)
     total, position = sum(definition['widths']), 0
     separators = table.TableColumnSeparators
@@ -363,9 +370,12 @@ def rebuild_table(document, definition):
             lines = cell_definition['text'].split('\n')
             cell_cursor = cell.createTextCursor()
             for index, line in enumerate(lines):
+                aligned = cell_definition.get('align')
                 write_paragraph(cell, cell_cursor, line, size=size,
-                                bold=row_index < header_rows or column_index in bold_columns,
-                                adjust=LEFT if column_index in left and row_index >= header_rows else CENTER,
+                                bold=row_index < header_rows or column_index in bold_columns
+                                or cell_definition.get('bold', False),
+                                adjust={'left': LEFT, 'center': CENTER}[aligned] if aligned else
+                                LEFT if column_index in left and row_index >= header_rows else CENTER,
                                 below=0, first=index == 0)
             spans = (cell_definition.get('colspan', 1), cell_definition.get('rowspan', 1))
             if spans != (1, 1):
@@ -380,6 +390,14 @@ def rebuild_table(document, definition):
         merge.mergeRange()
     if header_rows > 1 and not spans_rows:
         table.HeaderRowCount = header_rows
+    for row_number, height in definition.get('rowHeights', {}).items():
+        # One row taller than the rest: the blank space of a form.
+        padding = max(0, round((height * 100 - size * POINT * 1.2) / 2))
+        for cell_name in table.getCellNames():
+            if re.sub(r'^[A-Za-z]+', '', cell_name).split('.')[0] == row_number:
+                cell = table.getCellByName(cell_name)
+                cell.TopBorderDistance = padding
+                cell.BottomBorderDistance = padding
     if definition.get('rowHeight'):
         # Room to write by hand, as padding: a row's least height is not something the API
         # offers, and padding reads the same in every viewer.
@@ -902,9 +920,11 @@ def import_template(desktop, spec_path, wording, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
     name = os.path.basename(spec_path)[: -len('.spec.json')]
-    source = f'{ROOT}/originals/{spec["source"]}'
-    document = desktop.loadComponentFromURL(
-        uno.systemPathToFileUrl(source), '_blank', 0, (prop('Hidden', True),))
+    # Without a source the document starts empty and the spec draws all of it: an original
+    # laid out in text frames, which LibreOffice cannot read back as a table.
+    source = uno.systemPathToFileUrl(f'{ROOT}/originals/{spec["source"]}') if spec.get('source') \
+        else 'private:factory/swriter'
+    document = desktop.loadComponentFromURL(source, '_blank', 0, (prop('Hidden', True),))
     DRAWN_SIZES.clear()
     try:
         problems = []
