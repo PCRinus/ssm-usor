@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated';
+import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
@@ -32,6 +33,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any);
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AcceptInvitationRoute = AcceptInvitationRouteImport.update({
+  id: '/accept-invitation',
+  path: '/accept-invitation',
   getParentRoute: () => rootRouteImport,
 } as any);
 const LoginRoute = LoginRouteImport.update({
@@ -110,6 +116,7 @@ const AuthenticatedClientsClientIdEmployeesNewRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
+  '/accept-invitation': typeof AcceptInvitationRoute;
   '/login': typeof LoginRoute;
   '/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
+  '/accept-invitation': typeof AcceptInvitationRoute;
   '/login': typeof LoginRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/organization': typeof AuthenticatedOrganizationRoute;
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/_authenticated': typeof AuthenticatedRouteWithChildren;
+  '/accept-invitation': typeof AcceptInvitationRoute;
   '/login': typeof LoginRoute;
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
+    | '/accept-invitation'
     | '/login'
     | '/clients'
     | '/dashboard'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
+    | '/accept-invitation'
     | '/login'
     | '/dashboard'
     | '/organization'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/accept-invitation'
     | '/login'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
@@ -207,6 +219,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
+  AcceptInvitationRoute: typeof AcceptInvitationRoute;
   LoginRoute: typeof LoginRoute;
 }
 
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '';
       fullPath: '/';
       preLoaderRoute: typeof AuthenticatedRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/accept-invitation': {
+      id: '/accept-invitation';
+      path: '/accept-invitation';
+      fullPath: '/accept-invitation';
+      preLoaderRoute: typeof AcceptInvitationRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/login': {
@@ -396,6 +416,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AcceptInvitationRoute: AcceptInvitationRoute,
   LoginRoute: LoginRoute,
 };
 export const routeTree = rootRouteImport
