@@ -55,12 +55,16 @@ enable_confirmations = false
 otp_expiry = 3600
 
 # Supabase Auth hands every email it would send to the API, which forwards it to the mail
-# Worker (ADR 002). Locally that needs `pnpm dev` running; the secret below is for the local
-# stack only and matches apps/api/.dev.vars.example.
+# Worker (ADR 002). Locally that needs `pnpm dev` running.
+#
+# The value below is not a secret: it decodes to "not-a-secret-local-stack-only-32" and only
+# signs calls from the local stack to the local API (apps/api/.dev.vars.example has the same).
+# It is a literal because the CLI rejects an unset env() here and would fail every local
+# command. The hosted project gets its own from [remotes.production] below, never this one.
 [auth.hook.send_email]
 enabled = true
 uri = "http://host.docker.internal:8787/hooks/supabase/send-email"
-secrets = "v1,whsec_bG9jYWwtZGV2ZWxvcG1lbnQtaG9vay1zZWNyZXQtMzI="
+secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 
 # Enable additional services here when the application starts using them.
 [realtime]
