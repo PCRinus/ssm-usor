@@ -91,6 +91,8 @@ describe('seed writes', () => {
   it('surfaces database errors', async () => {
     const { db, fetchMock } = fixture();
     fetchMock.mockResolvedValue(Response.json({ message: 'permission denied' }, { status: 403 }));
-    await expect(seedOrganization(db, 'SSM Ușor', userId)).rejects.toThrow('permission denied');
+    await expect(seedOrganization(db, 'SSM Ușor', userId, 'Ana Admin')).rejects.toThrow(
+      'permission denied'
+    );
   });
 });
