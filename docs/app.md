@@ -181,13 +181,16 @@ the API's Send Email hook (see the [API guide](api.md#supabase-auth-emails)), wh
 That page does nothing when opened. On submit it checks the password rules, then calls
 `verifyOtp` with the token, which signs the person in, then `updateUser`, then signs other
 devices out and opens the dashboard. Verifying only on submit keeps a mail scanner from
-using the token up. The token works once, so a password Supabase rejects (the same as the
-old one, say) is retried without verifying again. An expired, used, or missing token leads to
+using the token up. The token works once, so a password Supabase rejects as too weak is
+retried without verifying again. Supabase also refuses the current password; here that
+counts as done, because the person is signed in with the password they asked for and a
+distinct error would confirm a guess to whoever holds the link. An expired, used, or missing token leads to
 a page that offers a new link.
 
 "Profilul meu" changes the password of a signed-in user. It asks for the current password
 and checks it with `signInWithPassword` before `updateUser`, so an unlocked screen is not
-enough to take over the account.
+enough to take over the account. There, a new password equal to the current one is reported
+on the field.
 
 The rules live in `src/auth/password-schema.ts` and mirror `newPasswordSchema` in the
 contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same

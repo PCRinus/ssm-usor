@@ -63,7 +63,7 @@ export function ResetPasswordPage() {
       }
     }
     try {
-      await auth.updatePassword(password);
+      await auth.updatePassword(password, { acceptCurrent: true });
     } catch (cause) {
       form.setError('password', { message: newPasswordErrorMessage(cause) });
       return;

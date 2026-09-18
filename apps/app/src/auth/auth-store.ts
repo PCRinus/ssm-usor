@@ -65,10 +65,15 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
 
   // For the signed-in user. Other devices are signed out: whoever knew the old password
   // should not keep a session.
-  async function updatePassword(password: string) {
+  //
+  // Supabase refuses a password equal to the current one. After a recovery link that is not
+  // a failure: the person is signed in and the account has the password they asked for, and
+  // a distinct error would tell whoever holds the link that the guess was right.
+  // `acceptCurrent` treats it as done; changing a password on purpose leaves it off.
+  async function updatePassword(password: string, { acceptCurrent = false } = {}) {
     if (!client) throw new Error('Authentication is not configured.');
     const { error } = await client.updateUser({ password });
-    if (error) throw error;
+    if (error && !(acceptCurrent && error.code === 'same_password')) throw error;
     // The password is already changed; failing to end other sessions is not worth an error.
     await client.signOut({ scope: 'others' }).catch(() => undefined);
   }

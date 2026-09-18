@@ -146,17 +146,15 @@ describe('reset password', () => {
   it('retries a rejected password without verifying the spent token again', async () => {
     const auth = recoveringAuth();
     auth.client.updateUser
-      .mockResolvedValueOnce({ error: authError('same_password') })
+      .mockResolvedValueOnce({ error: authError('weak_password') })
       .mockResolvedValueOnce({ error: null });
     const runtime = mountApp(auth.client, path);
     const user = userEvent.setup();
 
     const field = await screen.findByTestId('reset-password');
-    await user.type(field, 'ParolaVeche1');
+    await user.type(field, 'Parola1234');
     await user.click(screen.getByTestId('reset-submit'));
-    expect((await screen.findByTestId('reset-password-error')).textContent).toMatch(
-      /diferită de cea veche/
-    );
+    expect((await screen.findByTestId('reset-password-error')).textContent).toMatch(/prea slabă/);
 
     await user.clear(field);
     await user.type(field, 'ParolaNoua1');
@@ -164,6 +162,20 @@ describe('reset password', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(auth.client.verifyOtp).toHaveBeenCalledOnce();
+  });
+
+  it('treats the current password as done instead of as an error', async () => {
+    const auth = recoveringAuth();
+    auth.client.updateUser.mockResolvedValue({ error: authError('same_password') });
+    const runtime = mountApp(auth.client, path);
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('reset-password'), 'ParolaVeche1');
+    await user.click(screen.getByTestId('reset-submit'));
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(await screen.findByText('Parola a fost schimbată.')).toBeTruthy();
+    expect(auth.client.signOut).toHaveBeenCalledWith({ scope: 'others' });
   });
 
   it('explains an expired or used link and offers a new one', async () => {
@@ -229,6 +241,21 @@ describe('change password on the profile page', () => {
       'Parola curentă nu este corectă.'
     );
     expect(auth.client.updateUser).not.toHaveBeenCalled();
+  });
+
+  it('asks for a different password when the new one equals the current one', async () => {
+    const auth = signedIn();
+    auth.client.updateUser.mockResolvedValue({ error: authError('same_password') });
+    mountApp(auth.client, '/profile');
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
+    await user.type(screen.getByTestId('new-password'), 'ParolaVeche1');
+    await user.click(screen.getByTestId('change-password-save'));
+
+    expect((await screen.findByTestId('new-password-error')).textContent).toMatch(
+      /diferită de cea veche/
+    );
   });
 
   it('applies the password rules to the new password', async () => {
