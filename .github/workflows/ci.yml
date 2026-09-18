@@ -82,7 +82,7 @@ jobs:
       # and verify the committed database types match the schema.
       - name: Set up Supabase CLI
         if: needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true'
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.117.0
 
@@ -138,7 +138,7 @@ jobs:
           cache-scope: flows
 
       - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.117.0
 
@@ -272,7 +272,7 @@ jobs:
           : "${SUPABASE_AUTH_HOOK_SECRET:?Set SUPABASE_AUTH_HOOK_SECRET in GitHub secrets}"
 
       - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.117.0
 
@@ -449,7 +449,7 @@ jobs:
             || { echo "::error::supabase/config.toml has no [remotes] block for $SUPABASE_PROJECT_ID, so the local values would be pushed."; exit 1; }
 
       - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.117.0
 
