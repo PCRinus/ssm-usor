@@ -22,6 +22,20 @@ export const cta = {
   notify: 'Anunță-mă când se deschid conturile',
 };
 
+export const waitlist = {
+  // Bump when the consent sentence below changes; it is stored with each subscription.
+  consentVersion: '2026-09',
+  label: 'Adresa ta de email',
+  placeholder: 'nume@firma.ro',
+  submit: 'Anunță-mă',
+  consent: 'Folosim adresa doar ca să te anunțăm când se deschid conturile.',
+  consentLink: 'Politica de confidențialitate',
+  sending: 'Se trimite…',
+  success: 'Ți-am trimis un email. Deschide-l și confirmă adresa ca să te trecem pe listă.',
+  error: 'Nu am putut trimite cererea. Încearcă din nou sau scrie-ne la contact@ssmusor.ro.',
+  challengeFailed: 'Verificarea anti-spam nu a reușit. Reîncarcă pagina și încearcă din nou.',
+};
+
 export const status = {
   short: 'Platformă în dezvoltare. Conturile noi se deschid în curând.',
 };

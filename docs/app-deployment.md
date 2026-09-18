@@ -31,6 +31,7 @@ and deployment jobs use its variables, secrets, and protection rules. Add these 
 | `SUPABASE_ACCESS_TOKEN`                      | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.                           |
 | `SUPABASE_DB_PASSWORD`                       | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.                       |
 | `SUPABASE_SECRET_KEY`                        | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used by the seed workflow and the API's waitlist. |
+| `TURNSTILE_SITE_KEY`                         | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.     |
 | `TURNSTILE_SECRET_KEY`                       | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                               |
 | `RESEND_API_KEY`                             | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                              |
 | `SEED_ALLOW_FAKE`                            | Variable | `true` to let the seed workflow add fake clients and employees; leave unset on a real production project.       |

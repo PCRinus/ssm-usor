@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="16 septembrie 2026"
+  updated="18 septembrie 2026"
 >
   {
     !legalEntity.filled && (
@@ -56,6 +56,12 @@ const M = legalEntity.filled ? 'span' : 'mark';
       respectiv consimțământul tău pentru anunțuri.
     </li>
     <li>
+      <strong>Lista de anunțuri.</strong> Adresa de email pe care o lași în formularul „Anunță-mă când
+      se deschid conturile”, data la care ai confirmat-o din emailul primit și versiunea textului de consimțământ
+      afișat. O folosim doar ca să îți scriem când se deschid conturile. Temei: consimțământul tău, pe
+      care îl poți retrage oricând scriindu-ne la adresa de contact.
+    </li>
+    <li>
       <strong>Contul de utilizator.</strong> Nume, adresă de email, firma și rolul, jurnalul autentificărilor.
       Temei: executarea contractului de utilizare a platformei.
     </li>
@@ -81,6 +87,11 @@ const M = legalEntity.filled ? 'span' : 'mark';
     folosește doar cookie-uri strict necesare pentru autentificare și pentru menținerea sesiunii.
     Dacă vom introduce instrumente de analiză, vom cere consimțământul înainte de a le activa.
   </p>
+  <p>
+    Formularul de anunțuri este protejat împotriva abuzurilor cu Cloudflare Turnstile, care se
+    încarcă doar când folosești formularul și verifică, fără cookie-uri de urmărire, că cererea vine
+    de la un om.
+  </p>
 
   <h2>5. Cui transmitem datele</h2>
   <p>Folosim un număr restrâns de furnizori, cu care avem încheiate acorduri de prelucrare:</p>
@@ -102,6 +113,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>6. Cât timp păstrăm datele</h2>
   <ul>
     <li>mesajele de contact: 12 luni de la ultima corespondență;</li>
+    <li>
+      lista de anunțuri: până la anunțul de deschidere a conturilor sau până îți retragi
+      consimțământul, oricare este mai devreme;
+    </li>
     <li>contul de utilizator: pe durata contractului și 30 de zile după;</li>
     <li>
       datele din platformă: conform instrucțiunilor serviciului extern și termenelor legale de

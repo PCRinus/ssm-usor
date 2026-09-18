@@ -1,0 +1,18 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env",
+        ".env.local",
+        ".env.production",
+        ".env.production.local"
+      ],
+      "env": ["PUBLIC_TURNSTILE_SITE_KEY", "PUBLIC_API_URL"]
+    },
+    "dev": {
+      "env": ["PUBLIC_TURNSTILE_SITE_KEY", "PUBLIC_API_URL"]
+    }
+  }
+}
