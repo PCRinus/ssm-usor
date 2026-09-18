@@ -119,6 +119,11 @@ describe('typesetting', () => {
     expect([...languages]).toEqual(['ro-RO']);
   });
 
+  it.each(templateFiles)('%s justifies nothing', (name) => {
+    // Without hyphenation a justified line opens uneven gaps between words.
+    expect(bodyOf(name)).not.toContain('<w:jc w:val="both"/>');
+  });
+
   it.each(templateFiles)('%s contains no hyperlinks', (name) => {
     // The originals carry dead internal links, and clearing them carelessly wraps all the text
     // in a link to nowhere, which some viewers draw as links.

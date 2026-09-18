@@ -31,7 +31,7 @@ import uno
 from com.sun.star.beans import PropertyValue
 from com.sun.star.lang import Locale
 from com.sun.star.style.BreakType import NONE as NO_BREAK
-from com.sun.star.style.ParagraphAdjust import BLOCK, CENTER, LEFT
+from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
@@ -273,9 +273,8 @@ def matches(text, patterns):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
-def typeset(document, kind, align):
+def typeset(document, kind):
     rules = KINDS[kind]
-    running_text = LEFT if align == 'left' else BLOCK
 
     # One page setup.
     page_styles = document.StyleFamilies.getByName('PageStyles')
@@ -356,8 +355,10 @@ def typeset(document, kind, align):
 
         paragraph.ParaTopMargin = 0
         paragraph.ParaBottomMargin = round(6 * POINT)
-        # Running text and list items; titles, headings and the signature block centre below.
-        paragraph.ParaAdjust = running_text
+        # Running text and list items are left-aligned, never justified: without hyphenation a
+        # justified line opens uneven gaps between words. Titles, headings and the signature
+        # block centre below.
+        paragraph.ParaAdjust = LEFT
         listed = paragraph.NumberingIsNumber and paragraph.NumberingRules is not None and (
             paragraph.ListLabelString or paragraph.ParaLeftMargin
             or any(item.Name == 'IndentAt' and item.Value for item in
@@ -428,7 +429,7 @@ def _elements(text):
         yield elements.nextElement()
 
 
-def import_template(desktop, spec_path, wording, align, output):
+def import_template(desktop, spec_path, wording, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
     name = os.path.basename(spec_path)[: -len('.spec.json')]
@@ -444,7 +445,7 @@ def import_template(desktop, spec_path, wording, align, output):
                 problems.append(f'{label!r} found {count} times, expected at least {replacement.get("min", 1)}')
         strip_spacing(document)
         fixes = sum(apply(document, replacement) for replacement in wording)
-        removed = typeset(document, spec.get('kind', 'decision'), align)
+        removed = typeset(document, spec.get('kind', 'decision'))
         if problems:
             raise RuntimeError('; '.join(problems))
         os.makedirs(f'{ROOT}/{output}', exist_ok=True)
@@ -456,16 +457,13 @@ def import_template(desktop, spec_path, wording, align, output):
 
 
 def main():
-    # import_templates.py [--align left|justify] [--out DIR] [name ...]
-    # The alignment of running text is a house style choice; `--out` writes a variant next to
-    # the real templates, to compare.
+    # import_templates.py [--out DIR] [name ...]
+    # `--out` writes next to the real templates, to try a change of style before adopting it.
     arguments = sys.argv[1:]
-    align, output, names = 'justify', 'templates', []
+    output, names = 'templates', []
     while arguments:
         argument = arguments.pop(0)
-        if argument == '--align':
-            align = arguments.pop(0)
-        elif argument == '--out':
+        if argument == '--out':
             output = arguments.pop(0)
         else:
             names.append(argument)
@@ -482,7 +480,7 @@ def main():
     try:
         for path in specs:
             try:
-                import_template(desktop, path, wording, align, output)
+                import_template(desktop, path, wording, output)
             except Exception as error:  # noqa: BLE001 - report every document, then fail
                 failed = True
                 print(f'{os.path.basename(path)}: FAILED: {error!r}')
