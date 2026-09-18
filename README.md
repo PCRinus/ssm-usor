@@ -10,6 +10,8 @@ The [technical architecture](docs/technical-architecture.md) records the propose
 
 [ADR 001](docs/architecture/adr-001-web-applications-and-cloudflare.md) records the accepted decision to use a static Astro marketing site, a client-only React/Vite dashboard, a shared Worker API, and Cloudflare-first deployment.
 
+[ADR 002](docs/architecture/adr-002-transactional-email.md) records how transactional email is sent: an internal mail Worker with React Email templates, Resend as the provider, and a double opt-in waitlist.
+
 The [deployment guide](docs/deployment.md) covers the public Cloudflare marketing site,
 required GitHub secrets, and local Wrangler commands.
 
