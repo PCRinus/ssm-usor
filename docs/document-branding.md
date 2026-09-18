@@ -57,6 +57,45 @@ So the two layers do different jobs:
 If branding is ever part of a price, enforce it on the PDF and treat the `.docx` footer as a
 courtesy.
 
+## Documents that already have a footer
+
+The four decisions have none, which is why they were the easy case. Others in the provider's
+pack do: the covers print the provider's name in the footer, and the training themes, the
+control report form, and the control regulation carry a small table there with the document
+code, the edition, the revision, and "Pag. X din Y". Three ways to live with that, from the
+least to the most robust:
+
+1. **A last line under what is there.** The mark becomes one more paragraph at the end of the
+   footer, below the provider's name or below the table. It works, and it makes the footer one
+   line taller on exactly the documents whose footer is already the tallest.
+2. **A cell of the table.** Where the footer is a table, the mark can take a row of its own
+   across the full width. It looks deliberate, and it has to be done per template.
+3. **Not in the footer at all: on the PDF.** A stamp drawn onto the issued PDF sits at a fixed
+   distance from the bottom edge of the page, in the 20 mm bottom margin of the house style,
+   below whatever footer the document has. It needs to know nothing about the template, it is
+   identical on every document, and it is the variant that cannot be edited out. It is also the
+   only one that works for a file a user uploaded instead of generating.
+
+This tips the recommendation further towards the PDF. The footer line in the `.docx` is worth
+having on documents without a footer, as a preview of what the issued file will carry; on
+documents with a footer of their own, leave the `.docx` alone and let the PDF stamp do it.
+
+## Previews
+
+Two previews on the first aid decision, with the conditional block in both, plus a control
+rendered with branding off. They are made by `originals/branding-preview/make.py` and
+`render.ts` in the document engine package, a folder git ignores:
+
+- `branded-text.pdf`: "Document generat cu SSM Ușor · ssmusor.ro", Arial 7.5 pt, grey, centred.
+- `branded-logo.pdf`: the same line with the wordmark inline, 15 by 5 mm, from
+  `apps/marketing/public/brand/logo.png`. A fixed image needs no image module; the engine
+  leaves drawings alone and the conditional block removes it with the text.
+- `unbranded.pdf`: the logo template rendered with `branding: []`. Nothing in the footer, no
+  image in the file.
+
+One thing to fix if the logo version is chosen: anchored as a character, the image sits a
+little above the baseline of the text beside it.
+
 ## What suits these documents
 
 These are an employer's legal documents: decisions signed by an administrator, shown to a
