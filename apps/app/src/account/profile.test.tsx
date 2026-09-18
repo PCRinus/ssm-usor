@@ -12,20 +12,33 @@ const fetchMock = vi.fn<typeof fetch>();
 // The profile the API holds; a successful PATCH changes it, as the real one would.
 function mockApi({ fullName = 'Ana Popescu' as string | null, failSave = false } = {}) {
   let saved = fullName;
+  let title: string | null = null;
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     if (pathname === '/me') {
       return Response.json({
         user: { id: 'user-one', email: 'review@example.test' },
-        profile: saved ? { fullName: saved, termsVersion: null, termsAcceptedAt: null } : null,
+        profile: saved
+          ? { fullName: saved, professionalTitle: title, termsVersion: null, termsAcceptedAt: null }
+          : null,
         membership: { organization, role: 'specialist' },
       });
     }
     if (pathname === '/me/profile' && init?.method === 'PATCH') {
       if (failSave)
         return Response.json({ error: 'internal_error', message: 'x' }, { status: 500 });
-      saved = (JSON.parse(init.body as string) as { fullName: string }).fullName;
-      return Response.json({ fullName: saved, termsVersion: null, termsAcceptedAt: null });
+      const body = JSON.parse(init.body as string) as {
+        fullName: string;
+        professionalTitle: string | null;
+      };
+      saved = body.fullName;
+      title = body.professionalTitle;
+      return Response.json({
+        fullName: saved,
+        professionalTitle: title,
+        termsVersion: null,
+        termsAcceptedAt: null,
+      });
     }
     throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${pathname}`);
   });
@@ -71,10 +84,38 @@ describe('profile page', () => {
     await user.click(screen.getByTestId('profile-save'));
 
     expect(await screen.findByText('Profilul a fost salvat.')).toBeTruthy();
-    expect(saves()).toEqual([{ fullName: 'Ana Maria Popescu' }]);
+    expect(saves()).toEqual([{ fullName: 'Ana Maria Popescu', professionalTitle: null }]);
     await waitFor(() =>
       expect(screen.getByTestId('account-name').textContent).toBe('Ana Maria Popescu')
     );
+  });
+
+  it('saves the professional title, and clears it when emptied', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/profile');
+    const user = userEvent.setup();
+
+    await user.type(
+      await screen.findByTestId('profile-professional-title'),
+      ' Evaluator autorizat '
+    );
+    await user.click(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(saves()).toHaveLength(1));
+
+    // The form starts again from what was saved.
+    await waitFor(() =>
+      expect(screen.getByTestId<HTMLInputElement>('profile-professional-title').value).toBe(
+        'Evaluator autorizat'
+      )
+    );
+    await user.clear(screen.getByTestId('profile-professional-title'));
+    await user.click(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(saves()).toHaveLength(2));
+
+    expect(saves()).toEqual([
+      { fullName: 'Ana Popescu', professionalTitle: 'Evaluator autorizat' },
+      { fullName: 'Ana Popescu', professionalTitle: null },
+    ]);
   });
 
   it('lets an account without a profile name itself', async () => {

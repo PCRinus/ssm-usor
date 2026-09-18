@@ -40,6 +40,17 @@ const invitation = {
   createdAt: '2026-09-18T10:00:00.000Z',
 };
 
+const legalDetails = {
+  legalName: 'S.C. PROTECT SSM S.R.L.',
+  cui: '1590082',
+  tradeRegisterNumber: 'J35/1234/2015',
+  countyCode: 'TM',
+  locality: 'Timișoara',
+  addressLine: 'Str. Lungă 5',
+  legalRepresentativeName: 'Ana Popescu',
+  legalRepresentativeRole: null,
+};
+
 const conflict = (reason: string) =>
   Response.json({ error: 'conflict', message: 'Conflict', reason }, { status: 409 });
 
@@ -55,6 +66,7 @@ function mockApi({
   revoke = (() => new Response(null, { status: 204 })) as Route,
   changeRole = (() => new Response(null, { status: 204 })) as Route,
   removeMember = (() => new Response(null, { status: 204 })) as Route,
+  saveLegalDetails = (() => Response.json({ legalDetails })) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -62,6 +74,9 @@ function mockApi({
     if (pathname === '/me') return Response.json(meAs(role));
     if (pathname === '/me/invitations') return Response.json({ items: [] });
     if (pathname === '/organization/members') return Response.json({ items: members });
+    if (pathname === '/organization/legal-details') {
+      return method === 'PUT' ? saveLegalDetails(init) : Response.json({ legalDetails });
+    }
     if (pathname === '/organization/members/user-two') {
       return method === 'DELETE' ? removeMember(init) : changeRole(init);
     }
@@ -338,5 +353,70 @@ describe('managing members', () => {
       'ion@example.test nu mai face parte din organizație.'
     );
     await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
+  });
+});
+
+describe('legal details', () => {
+  it('shows an owner the saved details and replaces them on save, clearing emptied fields', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    const name = await screen.findByTestId<HTMLInputElement>('legal-legalName');
+    expect(name.value).toBe('S.C. PROTECT SSM S.R.L.');
+    expect(screen.getByTestId<HTMLButtonElement>('legal-details-save').disabled).toBe(true);
+
+    await user.type(screen.getByTestId('legal-legalRepresentativeRole'), 'Administrator');
+    await user.clear(screen.getByTestId('legal-addressLine'));
+    await user.click(screen.getByTestId('legal-details-save'));
+
+    await waitFor(() => expect(requests('/organization/legal-details', 'PUT')).toHaveLength(1));
+    const [, init] = requests('/organization/legal-details', 'PUT')[0]!;
+    expect(JSON.parse(String(init?.body))).toEqual({
+      ...legalDetails,
+      addressLine: null,
+      legalRepresentativeRole: 'Administrator',
+    });
+    expect(await screen.findByText('Datele juridice au fost salvate.')).toBeTruthy();
+  });
+
+  it('refuses a CUI with a wrong control digit without calling the API', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    const cui = await screen.findByTestId('legal-cui');
+    await user.clear(cui);
+    await user.type(cui, '1590083');
+    await user.click(screen.getByTestId('legal-details-save'));
+
+    expect((await screen.findByTestId('legal-cui-error')).textContent).toContain('CUI invalid');
+    expect(requests('/organization/legal-details', 'PUT')).toHaveLength(0);
+  });
+
+  it('shows a specialist the details read-only, without save or lookup', async () => {
+    mockApi({ role: 'specialist' });
+    mount();
+
+    const name = await screen.findByTestId<HTMLInputElement>('legal-legalName');
+    expect(name.disabled).toBe(true);
+    expect(screen.queryByTestId('legal-details-save')).toBeNull();
+    expect(screen.queryByTestId('legal-lookup')).toBeNull();
+  });
+
+  it('reports a failed save inline and keeps what was typed', async () => {
+    mockApi({ saveLegalDetails: () => new Response(null, { status: 500 }) });
+    mount();
+    const user = userEvent.setup();
+
+    const locality = await screen.findByTestId<HTMLInputElement>('legal-locality');
+    await user.clear(locality);
+    await user.type(locality, 'Lugoj');
+    await user.click(screen.getByTestId('legal-details-save'));
+
+    expect((await screen.findByTestId('legal-details-error')).textContent).toContain(
+      'Nu am putut salva'
+    );
+    expect(locality.value).toBe('Lugoj');
   });
 });

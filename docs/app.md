@@ -106,8 +106,8 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/onboarding.tsx`                                             | `/onboarding`                        | Signed in, outside the shell. An account without an organization creates one.                                                                             |
 | `routes/_authenticated.tsx`                                         | pathless                             | Session guard and the app shell for every protected page.                                                                                                 |
 | `routes/_authenticated/dashboard.tsx`                               | `/dashboard`                         | Protected landing page with the account email and logout.                                                                                                 |
-| `routes/_authenticated/organization.tsx`                            | `/organization`                      | The organization's members for everyone; pending invitations and the invite dialog for owners.                                                            |
-| `routes/_authenticated/profile.tsx`                                 | `/profile`                           | The user's name (editable), email, and organization.                                                                                                      |
+| `routes/_authenticated/organization.tsx`                            | `/organization`                      | The organization's members and legal details for everyone; invitations, the invite dialog, and editing for owners.                                        |
+| `routes/_authenticated/profile.tsx`                                 | `/profile`                           | The user's name and professional title (editable), email, and organization.                                                                               |
 | `routes/_authenticated/clients.tsx`                                 | pathless                             | Clients section layout carrying the breadcrumb title.                                                                                                     |
 | `routes/_authenticated/clients/index.tsx`                           | `/clients`                           | Protected, paginated and sortable list of the organization's active clients.                                                                              |
 | `routes/_authenticated/clients/new.tsx`                             | `/clients/new`                       | Protected form that creates a client, with ANAF prefill by CUI.                                                                                           |
@@ -326,9 +326,14 @@ mobile navigation link closes the Sheet.
   An owner's members table has a row menu for everyone but themselves: switch the role, or
   remove the member after a confirmation that says what stays. Hiding the owner's tools is a
   courtesy; the API and the database enforce the rule. An account without an organization is
-  told to ask for an invitation.
-- `/profile`: a form for the user's name backed by `PATCH /me/profile`, with the email
-  read-only. Saving refreshes `/me`, so the account menu follows.
+  told to ask for an invitation. The "Date juridice" card holds what generated documents print
+  about the provider (ADR 005), from `GET /organization/legal-details`: every member sees it,
+  an owner edits it, can prefill it from ANAF by CUI like the new client form, and saves with
+  `PUT`, which replaces every field, so an emptied input clears what was saved.
+- `/profile`: a form for the user's name and optional professional title backed by
+  `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
+  name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
+  account menu follows.
 
 `src/account/use-me.ts` is the one `/me` query the shell, the dashboard, and these pages
 share. The account menu shows the user's name and organization once it has loaded, and falls

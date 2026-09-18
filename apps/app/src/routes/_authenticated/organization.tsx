@@ -7,6 +7,7 @@ import { useMe } from '../../account/use-me';
 import { InvitationsCard } from '../../organization/invitations-card';
 import { InviteMemberDialog } from '../../organization/invite-member-dialog';
 import { roleLabels } from '../../organization/labels';
+import { LegalDetailsCard } from '../../organization/legal-details-card';
 import { MembersCard } from '../../organization/members-card';
 
 export const Route = createFileRoute('/_authenticated/organization')({
@@ -64,6 +65,7 @@ export function OrganizationPage() {
       </div>
       <MembersCard userId={user.id} canManage={isOwner} />
       {isOwner && <InvitationsCard userId={user.id} />}
+      <LegalDetailsCard userId={user.id} canEdit={isOwner} />
       <InviteMemberDialog open={inviting} onClose={() => setInviting(false)} />
     </div>
   );
