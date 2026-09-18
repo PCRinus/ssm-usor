@@ -29,3 +29,12 @@ export const requireMembership = createMiddleware<ApiEnv>(async (c, next) => {
   });
   await next();
 });
+
+// Runs after requireMembership. The database checks the role again; this gives the
+// caller a clear answer before any work is done.
+export const requireOwner = createMiddleware<ApiEnv>(async (c, next) => {
+  if (c.get('membership').role !== 'owner') {
+    throw new ApiError('forbidden', 'Only an owner of the organization can do this.');
+  }
+  await next();
+});

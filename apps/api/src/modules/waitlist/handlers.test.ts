@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
-import { hashToken } from './tokens';
+import { hashToken } from '../../lib/tokens';
 
 const sendWaitlistConfirmation = vi.fn<MailService['sendWaitlistConfirmation']>();
 

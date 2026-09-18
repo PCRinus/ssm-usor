@@ -5,9 +5,9 @@ import { createAdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, apiOrigin, marketingOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { createToken, hashToken } from '../../lib/tokens';
 import { verifyTurnstile } from '../../lib/turnstile';
 import type { confirmWaitlistRoute, subscribeToWaitlistRoute } from './routes';
-import { createToken, hashToken } from './tokens';
 
 // A pending address gets at most one confirmation email in this window, so the form
 // cannot be used to flood someone's inbox.

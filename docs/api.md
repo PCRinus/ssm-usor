@@ -47,7 +47,16 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /health`                                             | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                    |
 | `POST /waitlist`                                          | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                |
 | `GET /waitlist/confirm`                                   | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                       |
-| `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`                                                          |
+| `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                           |
+| `PATCH /me/profile`                                       | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                            |
+| `GET /organization/members`                               | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                 |
+| `GET /organization/invitations`                           | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                 |
+| `POST /organization/invitations`                          | Owner                                 | `201` with the invitation, after emailing the link                                                 |
+| `POST /organization/invitations/{invitationId}/resend`    | Owner                                 | The renewed invitation, after emailing a fresh link                                                |
+| `POST /organization/invitations/{invitationId}/revoke`    | Owner                                 | `204`                                                                                              |
+| `POST /invitations/lookup`                                | Public, by emailed token              | What the accept page shows, including `accountExists`                                              |
+| `POST /invitations/accept`                                | Public, by emailed token              | `201` after creating the account and the membership                                                |
+| `POST /invitations/join`                                  | Verified user, by emailed token       | The signed-in account joins the organization                                                       |
 | `GET /clients`                                            | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients; `?page=&pageSize=&sort=&order=` |
 | `POST /clients`                                           | Verified user with a membership       | `201 { "client": { … } }`                                                                          |
 | `GET /clients/{clientId}`                                 | Verified user with a membership       | `{ \"client\": { … } }`, archived or not                                                           |
@@ -57,8 +66,11 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/employees/{employeeId}`          | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                        |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status` | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating               |
 
-`/health` checks the Worker, not Supabase connectivity. `/me` returns only the user's ID and
-email (nullable); it does not expose Supabase metadata or grant administrator permissions.
+`/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
+(nullable), their profile, and their organization with their role. It answers an account
+without a membership too, with `membership: null`, and never exposes Supabase metadata.
+During an impersonation `membership` is the impersonated user's while `user` and `profile`
+stay the platform admin's own.
 
 Client routes are scoped to the caller's organization. `src/lib/membership.ts` calls the database
 helper `current_membership()` and answers `403 forbidden` when the user has no membership.
@@ -98,12 +110,13 @@ after sign-out; this scaffold does not implement immediate token revocation.
 Routes acting for a signed-in user need only the publishable key. The waitlist acts for nobody
 signed in, so it uses `createAdminClient(c)` from `src/lib/admin-db.ts`, which holds
 `SUPABASE_SECRET_KEY` and bypasses row-level security. Import that client only in a module
-with the same need (invitations will be the next); never reach for it to work around a policy.
+with the same need; never reach for it to work around a policy. The invitations module is the
+second, for the three things listed below.
 Supabase owns its Auth schema; business tables live in SQL migrations
 and are protected by row-level security. User-editable `user_metadata` never grants permissions.
 
-New authenticated routes should attach `requireAuth`, and `requireMembership` when they touch
-organization data, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
+New authenticated routes should attach `requireAuth`, `requireMembership` when they touch
+organization data, and `requireOwner` after it for what only an owner may do, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
 Transport schemas live in `packages/contracts`.
 
 ## Waitlist
@@ -129,13 +142,44 @@ The route needs `SUPABASE_SECRET_KEY`, `TURNSTILE_SECRET_KEY`, and the `MAIL` bi
 answers `503` while any is missing. `API_ORIGIN` builds the emailed link and
 `MARKETING_ORIGIN` is both the redirect target and the only origin CORS allows on `/waitlist`.
 
+## Invitations
+
+[ADR 003](architecture/adr-003-organization-invitations.md) records the design and
+[the data model](data-model.md#organization-invitations) the database side.
+
+An owner's `POST /organization/invitations` takes `{ email, role }`. As the owner, it calls
+`create_organization_invitation`, which creates or renews the invitation. With the secret
+key it then stores the hash of a fresh token, and only after the mail Worker has accepted the
+email, the sent time. The link is `APP_ORIGIN/accept-invitation?token=…` and is never
+returned. An address emailed in the last 10 minutes is answered with `409`; a failed send
+with `503`, leaving the sent time so a retry works. The response is the same whether or not
+the address has an account.
+
+The accept page posts the token to `/invitations/lookup`, which changes nothing. A person
+without an account then posts `{ token, fullName, password, termsVersion }` to
+`/invitations/accept`: the API creates the user through the Auth Admin API with
+`email_confirm: true`, calls `accept_invitation_as`, and deletes the user again if that
+fails. A person with an account signs in and posts to `/invitations/join`, which runs
+`accept_organization_invitation` as that user and needs no secret key.
+
+The admin client is used for exactly three things: storing the token hash and sent time,
+the lookup, and the new-account path. Tokens travel in request bodies, never in an API URL.
+
+Invitation errors carry a `reason` so the SPA can word them: `already_member`,
+`too_many_open_invitations`, `sent_recently`, `invitation_accepted`, `invitation_revoked`,
+`invitation_expired`, `account_exists`, `already_in_organization`, `email_mismatch`
+(`403`), and `full_name_required` (`400`).
+
+The owner routes need `SUPABASE_SECRET_KEY` and the `MAIL` binding and answer `503` before
+creating anything while either is missing.
+
 ## Source layout
 
 ```text
 src/
   app.ts               cross-cutting: headers, CORS, module mounting, OpenAPI document, errors
   router.ts            createRouter(): an OpenAPIHono with the shared validation error hook
-  lib/                 auth, db, admin-db, turnstile, env, errors, membership, shared OpenAPI pieces
+  lib/                 auth, db, admin-db, tokens, turnstile, env, errors, membership, shared OpenAPI pieces
   modules/<domain>/    routes.ts (OpenAPI route definitions), handlers.ts, index.ts (router), tests
 ```
 
@@ -146,17 +190,18 @@ generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 
 ## Errors and CORS
 
-All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "message": "…" }`:
+All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "message": "…" }`,
+with an optional `reason` where one status covers cases the client words differently:
 
-| Status | Error                 | Meaning                                                                                         |
-| ------ | --------------------- | ----------------------------------------------------------------------------------------------- |
-| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                 |
-| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.          |
-| `403`  | `forbidden`           | The user has no organization membership, or the database policy rejected the write.             |
-| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client or employee.           |
-| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, or an employee added to an archived client.             |
-| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure. |
-| `500`  | `internal_error`      | Unexpected API failure.                                                                         |
+| Status | Error                 | Meaning                                                                                                     |
+| ------ | --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                             |
+| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                      |
+| `403`  | `forbidden`           | No organization membership, not an owner where one is required, or the database policy rejected the write.  |
+| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client or employee.                       |
+| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict. |
+| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.             |
+| `500`  | `internal_error`      | Unexpected API failure.                                                                                     |
 
 Upstream error details are not returned to callers; database failures are logged by context
 only. Authentication failures include `WWW-Authenticate: Bearer`.
@@ -164,7 +209,7 @@ only. Authentication failures include `WWW-Authenticate: Bearer`.
 `CORS_ORIGINS` is a comma-separated list of exact browser origins for every route except
 `/waitlist`, which allows only `MARKETING_ORIGIN`. Production defaults to
 `https://app.ssmusor.ro`; `.dev.vars` allows the local Vite origins instead. OPTIONS preflight
-does not require authentication and allows GET and POST requests with Authorization/Content-Type headers.
+does not require authentication and allows GET, POST, and PATCH requests with Authorization/Content-Type headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
 authentication still applies independently, including to non-browser clients.
 
