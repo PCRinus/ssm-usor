@@ -43,12 +43,12 @@ pnpm --filter @ssm-usor/document-engine import-templates   # all specs, or name 
 pnpm --filter @ssm-usor/document-engine preview            # PDFs to read, in originals/preview/
 ```
 
-To compare a style choice, import a variant next to the real templates and preview it on its
-own. Both folders are git-ignored:
+To try a change of style before adopting it, import next to the real templates and preview
+that folder; anything under `originals/` is git-ignored:
 
 ```bash
-pnpm --filter @ssm-usor/document-engine import-templates --align left --out originals/compare/left
-pnpm --filter @ssm-usor/document-engine preview originals/compare/left originals/preview-left
+pnpm --filter @ssm-usor/document-engine import-templates --out originals/try
+pnpm --filter @ssm-usor/document-engine preview originals/try originals/preview-try
 ```
 
 Both run LibreOffice inside the Gotenberg Docker image, the same one that will make the PDFs,
@@ -111,6 +111,7 @@ numbered rows of the acknowledgement tables, where newly appointed people sign l
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Text             | Arial 10 pt; the document title bold 12 pt; headings ("DECIDE:", "PROCES VERBAL…") bold 10 pt, centred                                                                                                                                                                                        |
 | Page             | A4, margins 25 mm left for binding and 20 mm elsewhere; an empty header or footer is switched off                                                                                                                                                                                             |
+| Alignment        | Running text and list items are left-aligned, never justified: without hyphenation a justified line opens uneven gaps between words. Titles, headings, and the signature block are centred                                                                                                    |
 | Spacing          | Paragraph margins, 6 pt between paragraphs and 2 pt between list items. Every empty paragraph used as spacing is removed, and so are the spaces paragraphs were aligned with                                                                                                                  |
 | Lists            | Items snapped to three indent tiers, in the list's own definition, whatever list they came from. The originals build one hierarchy from a dozen unrelated lists with paragraph indents on top. A list of one item loses its lone "1.". Article labels ("Art. 1.") stay automatic list numbers |
 | Signature block  | The client's name, the representative's role and name: centred, so a long name grows both ways instead of drifting off a column of spaces                                                                                                                                                     |
