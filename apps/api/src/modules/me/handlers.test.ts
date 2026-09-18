@@ -13,6 +13,7 @@ const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.r
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' };
 const profileRow = {
   full_name: 'Ana Popescu',
+  professional_title: null as string | null,
   terms_version: '2026-09',
   terms_accepted_at: '2026-09-18T10:00:00+00:00',
 };
@@ -94,6 +95,7 @@ describe('GET /me', () => {
       user,
       profile: {
         fullName: 'Ana Popescu',
+        professionalTitle: null,
         termsVersion: '2026-09',
         termsAcceptedAt: '2026-09-18T10:00:00.000Z',
       },
@@ -127,6 +129,23 @@ describe('PATCH /me/profile', () => {
     expect(write?.method).toBe('PATCH');
     expect(write?.url.searchParams.get('user_id')).toBe(`eq.${user.id}`);
     expect(write?.body).toEqual({ full_name: 'Ana P.' });
+  });
+
+  it('sets the professional title when given, and clears it with null', async () => {
+    mockUpstream();
+
+    for (const professionalTitle of ['  Evaluator autorizat ', null]) {
+      const response = await request('/me/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ fullName: 'Ana P.', professionalTitle }),
+      });
+      expect(response.status).toBe(200);
+    }
+
+    expect(profileWrites().map((write) => write.body)).toEqual([
+      { full_name: 'Ana P.', professional_title: 'Evaluator autorizat' },
+      { full_name: 'Ana P.', professional_title: null },
+    ]);
   });
 
   it('creates the profile for an account that has none', async () => {

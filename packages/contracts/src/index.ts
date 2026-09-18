@@ -8,6 +8,7 @@ export * from './clients';
 export * from './cnp';
 export * from './counties';
 export * from './cui';
+export * from './document-data';
 export * from './employees';
 export * from './invitations';
 export * from './list';

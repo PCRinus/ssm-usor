@@ -12,7 +12,26 @@ type ClientRow = Database['public']['Tables']['clients']['Row'];
 export const clientColumns =
   'id, legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, declared_employee_count, created_at, updated_at, archived_at';
 
-export function toClient(row: Omit<ClientRow, 'organization_id' | 'created_by'>): Client {
+// The columns above; the documentation fields of ADR 005 get their own routes.
+type SelectedClientRow = Pick<
+  ClientRow,
+  | 'id'
+  | 'legal_name'
+  | 'cui'
+  | 'vat_payer'
+  | 'caen_code'
+  | 'trade_register_number'
+  | 'county_code'
+  | 'locality'
+  | 'address_line'
+  | 'legal_representative_name'
+  | 'declared_employee_count'
+  | 'created_at'
+  | 'updated_at'
+  | 'archived_at'
+>;
+
+export function toClient(row: SelectedClientRow): Client {
   return {
     id: row.id,
     legalName: row.legal_name,

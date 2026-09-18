@@ -21,7 +21,8 @@ Single-context: the apps and packages serve one product and share one vocabulary
 │   ├── adr-001-web-applications-and-cloudflare.md
 │   ├── adr-002-transactional-email.md
 │   ├── adr-003-organization-invitations.md
-│   └── adr-004-registration-and-onboarding.md
+│   ├── adr-004-registration-and-onboarding.md
+│   └── adr-005-document-generation.md
 └── apps/, packages/
 ```
 

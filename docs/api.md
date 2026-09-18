@@ -41,35 +41,47 @@ access token in the Authorization header; the publishable API key is not a user 
 
 ## Routes and authentication
 
-| Route                                                     | Access                                | Response                                                                                           |
-| --------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `GET /openapi.json`                                       | Public                                | Generated OpenAPI contract                                                                         |
-| `GET /health`                                             | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                    |
-| `POST /waitlist`                                          | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                |
-| `GET /waitlist/confirm`                                   | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                       |
-| `POST /hooks/supabase/send-email`                         | Supabase Auth, by signature           | `200 {}` after handing the recovery or signup email to the mail Worker                             |
-| `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                           |
-| `PATCH /me/profile`                                       | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                            |
-| `GET /me/invitations`                                     | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token               |
-| `POST /organization`                                      | Verified user without a membership    | `201` with the new membership, after creating the organization                                     |
-| `GET /organization/members`                               | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                 |
-| `PATCH /organization/members/{userId}`                    | Owner                                 | `204` after changing the member's role                                                             |
-| `DELETE /organization/members/{userId}`                   | Owner                                 | `204` after removing the membership; the account stays                                             |
-| `GET /organization/invitations`                           | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                 |
-| `POST /organization/invitations`                          | Owner                                 | `201` with the invitation, after emailing the link                                                 |
-| `POST /organization/invitations/{invitationId}/resend`    | Owner                                 | The renewed invitation, after emailing a fresh link                                                |
-| `POST /organization/invitations/{invitationId}/revoke`    | Owner                                 | `204`                                                                                              |
-| `POST /invitations/lookup`                                | Public, by emailed token              | What the accept page shows, including `accountExists`                                              |
-| `POST /invitations/accept`                                | Public, by emailed token              | `201` after creating the account and the membership                                                |
-| `POST /invitations/join`                                  | Verified user, by emailed token       | The signed-in account joins the organization                                                       |
-| `GET /clients`                                            | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients; `?page=&pageSize=&sort=&order=` |
-| `POST /clients`                                           | Verified user with a membership       | `201 { "client": { … } }`                                                                          |
-| `GET /clients/{clientId}`                                 | Verified user with a membership       | `{ \"client\": { … } }`, archived or not                                                           |
-| `GET /companies/lookup`                                   | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                       |
-| `GET /clients/{clientId}/employees`                       | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
-| `POST /clients/{clientId}/employees`                      | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
-| `GET /clients/{clientId}/employees/{employeeId}`          | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                        |
-| `PATCH /clients/{clientId}/employees/{employeeId}/status` | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating               |
+| Route                                                                  | Access                                | Response                                                                                           |
+| ---------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET /openapi.json`                                                    | Public                                | Generated OpenAPI contract                                                                         |
+| `GET /health`                                                          | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                    |
+| `POST /waitlist`                                                       | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                |
+| `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                       |
+| `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery or signup email to the mail Worker                             |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                           |
+| `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                            |
+| `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token               |
+| `POST /organization`                                                   | Verified user without a membership    | `201` with the new membership, after creating the organization                                     |
+| `GET /organization/members`                                            | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                 |
+| `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                             |
+| `DELETE /organization/members/{userId}`                                | Owner                                 | `204` after removing the membership; the account stays                                             |
+| `GET /organization/invitations`                                        | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                 |
+| `POST /organization/invitations`                                       | Owner                                 | `201` with the invitation, after emailing the link                                                 |
+| `POST /organization/invitations/{invitationId}/resend`                 | Owner                                 | The renewed invitation, after emailing a fresh link                                                |
+| `POST /organization/invitations/{invitationId}/revoke`                 | Owner                                 | `204`                                                                                              |
+| `POST /invitations/lookup`                                             | Public, by emailed token              | What the accept page shows, including `accountExists`                                              |
+| `POST /invitations/accept`                                             | Public, by emailed token              | `201` after creating the account and the membership                                                |
+| `POST /invitations/join`                                               | Verified user, by emailed token       | The signed-in account joins the organization                                                       |
+| `GET /clients`                                                         | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients; `?page=&pageSize=&sort=&order=` |
+| `POST /clients`                                                        | Verified user with a membership       | `201 { "client": { … } }`                                                                          |
+| `GET /clients/{clientId}`                                              | Verified user with a membership       | `{ \"client\": { … } }`, archived or not                                                           |
+| `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                               |
+| `PUT /organization/legal-details`                                      | Owner                                 | The legal details after replacing them                                                             |
+| `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's role and the training schedule                |
+| `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                          |
+| `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                       |
+| `POST /clients/{clientId}/workplaces`                                  | Verified user with a membership       | `201 { "workplace": { … } }`                                                                       |
+| `PUT /clients/{clientId}/workplaces/{workplaceId}`                     | Verified user with a membership       | `{ "workplace": { … } }` after replacing it                                                        |
+| `DELETE /clients/{clientId}/workplaces/{workplaceId}`                  | Verified user with a membership       | `204` after archiving it                                                                           |
+| `GET /clients/{clientId}/responsible-persons`                          | Verified user with a membership       | `{ "items": [ … ] }` by name; not paginated                                                        |
+| `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                               |
+| `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                |
+| `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                           |
+| `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                       |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
+| `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
+| `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                        |
+| `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating               |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -204,6 +216,28 @@ owner. Someone who is not a member of the caller's organization is `404`. Removi
 the membership only: the account, the profile, and what the person created stay, the person
 sees no organization, and can be invited again.
 
+## What the documents print
+
+The `document-data` module holds the facts a client's SSM documentation prints
+([ADR 005](architecture/adr-005-document-generation.md)); the [data model](data-model.md)
+describes the columns. Every field is optional while it is being filled in; generating a
+document is what will require them.
+
+The two `PUT` routes on details replace the whole set, so a field left out or null is
+cleared, which is what a form that shows every field wants. The organization's CUI accepts an
+`RO` prefix and spacing and is stored as digits. The training days must be in order, and the
+worker interval stops at six months, as the database checks too.
+
+Workplaces and responsible persons are created with `POST`, replaced with `PUT`, and archived
+with `DELETE`; archived rows leave the lists. An archived client takes no new ones (`409`). A
+second registered office is `409`. A responsible person carries a name, a job title, one or
+more of `workplace_manager`, `first_aid`, `risk_evaluation_team`, `imminent_danger`, and
+optionally an `employeeId`: an employee of another client is `400` with the issue on
+`employeeId`, and an employee who already is a responsible person of the client is `409`.
+
+`PATCH /me/profile` also takes `professionalTitle`: left out it stays, `null` clears it.
+`GET /organization/members` returns it for each member.
+
 ## Supabase Auth emails
 
 Supabase Auth does not send email itself: its Send Email hook posts every email it would send
@@ -248,15 +282,15 @@ generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "message": "…" }`,
 with an optional `reason` where one status covers cases the client words differently:
 
-| Status | Error                 | Meaning                                                                                                     |
-| ------ | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                             |
-| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                      |
-| `403`  | `forbidden`           | No organization membership, not an owner where one is required, or the database policy rejected the write.  |
-| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client or employee.                       |
-| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict. |
-| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.             |
-| `500`  | `internal_error`      | Unexpected API failure.                                                                                     |
+| Status | Error                 | Meaning                                                                                                               |
+| ------ | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                                       |
+| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                                |
+| `403`  | `forbidden`           | No organization membership, not an owner where one is required, or the database policy rejected the write.            |
+| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client, employee, workplace, or responsible person. |
+| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict.           |
+| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                       |
+| `500`  | `internal_error`      | Unexpected API failure.                                                                                               |
 
 Upstream error details are not returned to callers; database failures are logged by context
 only. Authentication failures include `WWW-Authenticate: Bearer`.

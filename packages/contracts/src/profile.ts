@@ -5,15 +5,23 @@ export const currentTermsVersion = '2026-09';
 
 export const fullNameSchema = z.string().trim().min(2).max(120);
 
+/** A specialist's qualification as documents print it, for example "Evaluator autorizat". */
+export const professionalTitleSchema = z.string().trim().min(2).max(160);
+
 export const profileSchema = z.object({
   fullName: z.string(),
+  professionalTitle: z.string().nullable(),
   termsVersion: z.string().nullable(),
   termsAcceptedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
 export type Profile = z.infer<typeof profileSchema>;
 
-export const updateProfileRequestSchema = z.object({ fullName: fullNameSchema });
+// Leaving the title out keeps it; null clears it.
+export const updateProfileRequestSchema = z.object({
+  fullName: fullNameSchema,
+  professionalTitle: professionalTitleSchema.nullable().optional(),
+});
 
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;
 

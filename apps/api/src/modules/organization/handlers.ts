@@ -93,6 +93,7 @@ export const listOrganizationMembers: RouteHandler<
         userId: member.user_id,
         email: member.email,
         fullName: member.full_name,
+        professionalTitle: member.professional_title,
         role: member.role,
         joinedAt: new Date(member.joined_at).toISOString(),
       })),
