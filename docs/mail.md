@@ -50,7 +50,7 @@ Images must be PNG or JPEG at an absolute URL. The logo is
 
 ```bash
 pnpm dev:emails   # React Email preview at http://localhost:3001
-pnpm dev:mail     # the Worker itself, on port 8788
+pnpm dev:mail     # the Worker itself, on port 8790
 ```
 
 The preview server is the way to look at a template while editing it. `pnpm dev:mail` matters
