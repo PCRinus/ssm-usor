@@ -75,7 +75,9 @@ secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 enabled = false
 
 [storage]
-enabled = false
+enabled = true
+# Generated documents are Word files; the largest sample is under 1 MiB, a PDF a few more.
+file_size_limit = "20MiB"
 
 [edge_runtime]
 enabled = false

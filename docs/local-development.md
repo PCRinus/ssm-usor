@@ -88,8 +88,13 @@ The marketing site does not need Supabase settings.
 | Local email inbox | http://127.0.0.1:54324 |
 
 Postgres listens on `127.0.0.1:54322` (database/user/password: `postgres`).
-Studio can inspect local Auth users and future application tables. Storage, Realtime,
-Edge Functions, and analytics are disabled until needed.
+Studio can inspect local Auth users and application tables. Storage is on: generated
+documents and their templates are files ([ADR 005](architecture/adr-005-document-generation.md)).
+Realtime, Edge Functions, and analytics are disabled until needed.
+
+A stack started before Storage was switched on has no `storage.buckets` table, and the
+documents migration fails on it. Restart it once with `pnpm supabase:stop` and
+`pnpm supabase:start`; a plain stop keeps the local data.
 
 ### Emails from the local Auth
 
