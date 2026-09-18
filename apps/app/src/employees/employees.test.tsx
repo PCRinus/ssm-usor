@@ -68,7 +68,9 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
-  routes: Partial<Record<'me' | 'clients' | 'client' | 'list' | 'create' | 'status', Route>> = {}
+  routes: Partial<
+    Record<'me' | 'clients' | 'client' | 'list' | 'detail' | 'create' | 'status', Route>
+  > = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -87,6 +89,9 @@ function mockApi(
     }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'GET') {
+      return routes.detail?.(init, url) ?? Response.json({ employee: createdEmployee });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
       return (
@@ -614,5 +619,112 @@ describe('employee status changes', () => {
     expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
       status: 'active',
     });
+  });
+});
+
+describe('employee detail', () => {
+  const detailPath = `${employeesPath}/${sampleEmployee.id}`;
+  const fullEmployee = {
+    ...createdEmployee,
+    birthPlace: 'Cluj-Napoca',
+    homeAddress: 'Str. Lungă 5, Cluj-Napoca',
+    bloodGroup: 'A(II)',
+    rhFactor: '+',
+    notes: 'Lucrează în schimbul de noapte.',
+  };
+
+  it('opens from the list and shows the record without the client chrome', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      detail: () => Response.json({ employee: fullEmployee }),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    await userEvent.setup().click(await screen.findByTestId('employees-open'));
+    await screen.findByTestId('employee-page');
+    expect(runtime.router.state.location.pathname).toBe(detailPath);
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
+    expect(screen.getByTestId('employee-status').textContent).toBe('Angajat actual');
+    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
+    expect(within(breadcrumb).getByRole('link', { name: 'Angajați' })).toBeTruthy();
+    expect(within(breadcrumb).getByText('Popescu Ion')).toBeTruthy();
+    expect(screen.getByText('A-17')).toBeTruthy();
+    expect(screen.getByText('1 mar. 2020')).toBeTruthy();
+    expect(screen.getByText('1 ian. 1990')).toBeTruthy();
+    expect(screen.getByText('Str. Lungă 5, Cluj-Napoca')).toBeTruthy();
+    expect(screen.getByText('A(II) Rh +')).toBeTruthy();
+    expect(screen.getByText('Lucrează în schimbul de noapte.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'ion.popescu@example.com' }).getAttribute('href')).toBe(
+      'mailto:ion.popescu@example.com'
+    );
+    expect(screen.getByRole('link', { name: '0721 000 000' }).getAttribute('href')).toBe(
+      'tel:0721000000'
+    );
+  });
+
+  it('keeps the CNP masked until asked and hides it again', async () => {
+    mockApi({ detail: () => Response.json({ employee: fullEmployee }) });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    const user = userEvent.setup();
+    const value = await screen.findByTestId('employee-cnp-value');
+    expect(value.textContent).toBe('•••••••••0127');
+    expect(document.body.textContent).not.toContain('1900101400127');
+    await user.click(screen.getByTestId('employee-cnp-toggle'));
+    expect(value.textContent).toBe('1900101400127');
+    expect(screen.getByTestId('employee-cnp-toggle').getAttribute('aria-pressed')).toBe('true');
+    await user.click(screen.getByTestId('employee-cnp-toggle'));
+    expect(value.textContent).toBe('•••••••••0127');
+  });
+
+  it('shows dashes for missing optional data and no CNP control without a CNP', async () => {
+    mockApi({
+      detail: () =>
+        Response.json({
+          employee: { ...createdEmployee, cnp: null, email: null, phone: null, birthDate: null },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    await screen.findByTestId('employee-page');
+    expect(screen.queryByTestId('employee-cnp-toggle')).toBeNull();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(5);
+  });
+
+  it('marks the leaver from the page and refreshes the record', async () => {
+    let status = 'active';
+    mockApi({
+      detail: () =>
+        Response.json({
+          employee: {
+            ...fullEmployee,
+            status,
+            terminatedAt: status === 'terminated' ? '2026-09-10' : null,
+          },
+        }),
+      status: (init) => {
+        status = JSON.parse(String(init?.body)).status;
+        return Response.json({ employee: { ...fullEmployee, status, terminatedAt: '2026-09-10' } });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employee-page');
+    await user.click(screen.getByTestId('employee-status-action'));
+    setDate(await screen.findByTestId('employee-terminated-at'), '2026-09-10');
+    await user.click(screen.getByTestId('employee-status-confirm'));
+    await waitFor(() =>
+      expect(screen.getByTestId('employee-status').textContent).toBe('Fost angajat')
+    );
+    expect(screen.getByText('10 sept. 2026')).toBeTruthy();
+    expect(screen.getByText('Vechime la plecare')).toBeTruthy();
+    expect(screen.getByTestId('employee-status-action').textContent).toContain('Reactivează');
+  });
+
+  it('shows a not-found screen for an employee outside the client', async () => {
+    mockApi({
+      detail: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
+    });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    await screen.findByTestId('employee-not-found');
   });
 });
