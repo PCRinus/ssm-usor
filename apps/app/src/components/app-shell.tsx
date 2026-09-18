@@ -36,6 +36,7 @@ import { Fragment, useState } from 'react';
 
 import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
+import { CommitVersion } from './commit-version';
 
 function loaderCrumb(loaderData: unknown) {
   const crumb = (loaderData as { crumb?: unknown } | undefined)?.crumb;
@@ -289,6 +290,7 @@ export function AppShell() {
           </main>
           <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
             <span>© {new Date().getFullYear()} SSM Ușor</span>
+            <CommitVersion />
           </footer>
         </div>
       </div>

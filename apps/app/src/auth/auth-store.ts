@@ -13,7 +13,13 @@ export interface AuthClient {
     email: string;
     password: string;
   }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
-  signOut(options: { scope: 'local' }): Promise<{ error: AuthError | null }>;
+  signOut(options: { scope: 'local' | 'others' }): Promise<{ error: AuthError | null }>;
+  resetPasswordForEmail(email: string): Promise<{ error: AuthError | null }>;
+  verifyOtp(params: {
+    token_hash: string;
+    type: 'recovery';
+  }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
+  updateUser(attributes: { password: string }): Promise<{ error: AuthError | null }>;
 }
 
 export interface AuthSnapshot {
@@ -57,6 +63,16 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
         })
     : Promise.resolve();
 
+  // For the signed-in user. Other devices are signed out: whoever knew the old password
+  // should not keep a session.
+  async function updatePassword(password: string) {
+    if (!client) throw new Error('Authentication is not configured.');
+    const { error } = await client.updateUser({ password });
+    if (error) throw error;
+    // The password is already changed; failing to end other sessions is not worth an error.
+    await client.signOut({ scope: 'others' }).catch(() => undefined);
+  }
+
   return {
     ready,
     getSnapshot: () => snapshot,
@@ -79,6 +95,31 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       const { error } = await client.signOut({ scope: 'local' });
       if (error) throw error;
       publish(null);
+    },
+    // Supabase answers the same whether or not the address has an account.
+    async requestPasswordReset(email: string) {
+      if (!client) throw new Error('Authentication is not configured.');
+      const { error } = await client.resetPasswordForEmail(email);
+      if (error) throw error;
+    },
+    // Uses up the token from a recovery email and signs its owner in. Call it only when
+    // the person submits a new password, never on page load: mail scanners open links.
+    async verifyRecovery(tokenHash: string) {
+      if (!client) throw new Error('Authentication is not configured.');
+      await ready;
+      const { data, error } = await client.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+      if (error) throw error;
+      if (!data.session) throw new Error('No session was returned.');
+      publish(data.session);
+    },
+    updatePassword,
+    // Proves the person at the keyboard knows the current password before changing it.
+    async changePassword(email: string, currentPassword: string, newPassword: string) {
+      if (!client) throw new Error('Authentication is not configured.');
+      const { data, error } = await client.signInWithPassword({ email, password: currentPassword });
+      if (error) throw error;
+      if (data.session) publish(data.session);
+      await updatePassword(newPassword);
     },
     dispose() {
       disposed = true;

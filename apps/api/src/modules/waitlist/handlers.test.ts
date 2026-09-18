@@ -13,7 +13,11 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   TURNSTILE_SECRET_KEY: 'turnstile-secret',
   CORS_ORIGINS: 'https://app.ssmusor.ro',
-  MAIL: { sendWaitlistConfirmation, sendOrganizationInvitation: vi.fn() },
+  MAIL: {
+    sendWaitlistConfirmation,
+    sendOrganizationInvitation: vi.fn(),
+    sendPasswordReset: vi.fn(),
+  },
 };
 
 type Row = {

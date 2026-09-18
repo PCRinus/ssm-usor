@@ -2,12 +2,13 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { z } from 'zod';
 
 import { useLoginForm } from '../auth/use-login-form';
+import { CommitVersion } from '../components/commit-version';
 
 export const Route = createFileRoute('/login')({
   // Set by the accept page for someone who must sign in first; login returns them to it.
@@ -87,7 +88,16 @@ export function LoginPage() {
                 )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Parolă</Label>
+                <div className="flex items-baseline justify-between gap-3">
+                  <Label htmlFor="password">Parolă</Label>
+                  <Link
+                    to="/forgot-password"
+                    data-testid="login-forgot-password"
+                    className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    Ai uitat parola?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -146,7 +156,7 @@ export function LoginPage() {
             </form>
           </CardContent>
         </Card>
-        <footer className="w-full text-center">
+        <footer className="grid w-full justify-items-center gap-2 text-center">
           <nav aria-label="Linkuri utile" className="flex flex-wrap justify-center gap-x-5 gap-y-2">
             <a
               href="https://ssmusor.ro"
@@ -155,6 +165,7 @@ export function LoginPage() {
               Află mai multe despre SSM Ușor
             </a>
           </nav>
+          <CommitVersion />
         </footer>
       </div>
     </main>

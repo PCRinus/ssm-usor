@@ -99,6 +99,8 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/index.tsx`                                                  | `/`                                  | Redirects to `/dashboard`, which checks the session.                                                                                                      |
 | `routes/login.tsx`                                                  | `/login`                             | Email/password form; an existing session redirects to `/dashboard`.                                                                                       |
 | `routes/accept-invitation.tsx`                                      | `/accept-invitation`                 | Public. Where an invitation email lands: create an account, or join with an existing one.                                                                 |
+| `routes/forgot-password.tsx`                                        | `/forgot-password`                   | Public. Asks Supabase for a password reset email.                                                                                                         |
+| `routes/reset-password.tsx`                                         | `/reset-password`                    | Public. Where a password reset email lands: choose a new password.                                                                                        |
 | `routes/_authenticated.tsx`                                         | pathless                             | Session guard and the app shell for every protected page.                                                                                                 |
 | `routes/_authenticated/dashboard.tsx`                               | `/dashboard`                         | Protected landing page with the account email and logout.                                                                                                 |
 | `routes/_authenticated/organization.tsx`                            | `/organization`                      | The organization's members for everyone; pending invitations and the invite dialog for owners.                                                            |
@@ -164,10 +166,33 @@ Business data and application roles will be added in later steps.
 - a request to sign out when the signed-in account has another address.
 - an explanation for an expired, revoked, already accepted, or unknown link.
 
-The password rules in `src/invitations/accept-schema.ts` mirror `newPasswordSchema` in the
-contracts and the Supabase policy. The terms are shown as a notice with links, and the
+The password rules are the shared ones described under Passwords below. The terms are shown as a notice with links, and the
 version sent is `currentTermsVersion` from the contracts. The browser's default referrer
 policy keeps the query string, and so the token, out of requests to other origins.
+
+## Passwords
+
+Password reset is Supabase Auth's own recovery flow; the app adds no token handling of its
+own. `/forgot-password` calls `resetPasswordForEmail` and shows the same confirmation for any
+address, so it cannot be used to find out who has an account. Supabase hands the email to
+the API's Send Email hook (see the [API guide](api.md#supabase-auth-emails)), which links to
+`/reset-password?token_hash=…`.
+
+That page does nothing when opened. On submit it checks the password rules, then calls
+`verifyOtp` with the token, which signs the person in, then `updateUser`, then signs other
+devices out and opens the dashboard. Verifying only on submit keeps a mail scanner from
+using the token up. The token works once, so a password Supabase rejects (the same as the
+old one, say) is retried without verifying again. An expired, used, or missing token leads to
+a page that offers a new link.
+
+"Profilul meu" changes the password of a signed-in user. It asks for the current password
+and checks it with `signInWithPassword` before `updateUser`, so an unlocked screen is not
+enough to take over the account.
+
+The rules live in `src/auth/password-schema.ts` and mirror `newPasswordSchema` in the
+contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same
+ones. `AuthClient` in `src/auth/auth-store.ts` lists the Supabase calls the app makes;
+`PublicFrame` and `PasswordInput` are shared by the pages outside the shell.
 
 ## Verification
 

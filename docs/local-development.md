@@ -91,6 +91,14 @@ Postgres listens on `127.0.0.1:54322` (database/user/password: `postgres`).
 Studio can inspect local Auth users and future application tables. Storage, Realtime,
 Edge Functions, and analytics are disabled until needed.
 
+### Password reset emails
+
+The local stack's Auth hands its emails to `http://host.docker.internal:8787/hooks/supabase/send-email`,
+so a recovery email needs the API running (`pnpm dev`) with the `SUPABASE_AUTH_HOOK_SECRET`
+from `apps/api/.dev.vars.example`. The mail Worker then logs the email, or sends it when it
+has a Resend key. A stack started before the hook was added picks it up after
+`pnpm supabase:stop` and `pnpm supabase:start`.
+
 ## Stop or switch back
 
 ```bash

@@ -19,6 +19,19 @@ export const organizationInvitationEmailSchema = z.object({
 
 export type OrganizationInvitationEmail = z.infer<typeof organizationInvitationEmailSchema>;
 
+export const passwordResetEmailSchema = z.object({
+  to: z.email(),
+  /** The reset page in the SPA, carrying Supabase's recovery token hash. */
+  resetUrl: z.url(),
+  /** How long the link works; Supabase Auth's OTP expiry, in minutes. */
+  expiresInMinutes: z
+    .int()
+    .min(1)
+    .max(24 * 60),
+});
+
+export type PasswordResetEmail = z.infer<typeof passwordResetEmailSchema>;
+
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
 
@@ -30,4 +43,5 @@ export type MailReceipt = { id: string | null };
 export interface MailService {
   sendWaitlistConfirmation(input: WaitlistConfirmationEmail): Promise<MailReceipt>;
   sendOrganizationInvitation(input: OrganizationInvitationEmail): Promise<MailReceipt>;
+  sendPasswordReset(input: PasswordResetEmail): Promise<MailReceipt>;
 }

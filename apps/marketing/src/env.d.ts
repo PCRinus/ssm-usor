@@ -5,4 +5,6 @@ interface ImportMetaEnv {
   readonly PUBLIC_TURNSTILE_SITE_KEY?: string;
   /** Defaults to https://api.ssmusor.ro. */
   readonly PUBLIC_API_URL?: string;
+  /** Full Git commit SHA embedded in the static build. */
+  readonly PUBLIC_COMMIT_SHA?: string;
 }

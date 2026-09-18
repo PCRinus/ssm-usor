@@ -2,6 +2,8 @@
 import { links } from './copy';
 
 const year = new Date().getFullYear();
+const commitSha = import.meta.env.PUBLIC_COMMIT_SHA ?? 'local';
+const shortCommitSha = commitSha.slice(0, 7);
 ---
 
 <footer class="foot">
@@ -12,10 +14,19 @@ const year = new Date().getFullYear();
       <a href="/confidentialitate/">Politica de confidențialitate</a>
       <a href={`mailto:${links.email}`}>{links.email}</a>
     </nav>
-    <p class="fine">
-      Exemplele de pe site sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
-      înlocuiește responsabilitatea specialistului autorizat. {year} SSM Ușor.
-    </p>
+    <div class="fine">
+      <p>
+        Exemplele de pe site sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
+        înlocuiește responsabilitatea specialistului autorizat. {year} SSM Ușor.
+      </p>
+      <span
+        class="version"
+        title={`Commit ${commitSha}`}
+        aria-label={`Versiunea site-ului: commit ${commitSha}`}
+      >
+        Versiune <code aria-hidden="true">{shortCommitSha}</code>
+      </span>
+    </div>
   </div>
 </footer>
 
@@ -52,6 +63,11 @@ const year = new Date().getFullYear();
   .fine {
     color: var(--ink-2);
     font-size: 0.88rem;
+  }
+  .version {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.78rem;
   }
   @media (max-width: 760px) {
     .foot-grid {
