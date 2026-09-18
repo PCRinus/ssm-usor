@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 import { allowedOrigins, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
+import { authHooksRouter } from './modules/auth-hooks';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
 import { employeesRouter } from './modules/employees';
@@ -41,6 +42,7 @@ export function createApp() {
   app.route('/', organizationRouter);
   app.route('/', invitationsRouter);
   app.route('/', waitlistRouter);
+  app.route('/', authHooksRouter);
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',

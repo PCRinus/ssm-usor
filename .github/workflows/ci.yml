@@ -277,21 +277,22 @@ jobs:
           name: release-api-${{ github.sha }}
           path: apps/api/.wrangler/release
 
-      # The waitlist answers 503 until both exist, so a missing secret warns instead of failing.
+      # Routes answer 503 until the secret they need exists, so a missing one warns instead of failing.
       - name: Select configured API secrets
         id: secrets
         env:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
-                echo "::warning::$name is not set. POST /waitlist will answer 503." >&2
+                echo "::warning::$name is not set. The routes that need it will answer 503." >&2
               fi
             done
             echo 'EOF'
@@ -308,6 +309,7 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -336,6 +338,51 @@ jobs:
             apps/app/test-results/
           retention-days: 7
           overwrite: true
+
+  deploy-auth-config:
+    name: Deploy Supabase configuration
+    needs: [changes, validate, deploy-api]
+    # After the API: the Send Email hook must not point at an endpoint that is not deployed yet.
+    if: >-
+      !cancelled() &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.database == 'true' &&
+      needs.validate.result == 'success' &&
+      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+      # Read by supabase/config.toml through env(); the API holds the same value.
+      SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check configuration deployment settings
+        shell: bash
+        run: |
+          : "${SUPABASE_ACCESS_TOKEN:?Set SUPABASE_ACCESS_TOKEN in GitHub secrets}"
+          : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID in GitHub variables}"
+          : "${SUPABASE_AUTH_HOOK_SECRET:?Set SUPABASE_AUTH_HOOK_SECRET in GitHub secrets}"
+          grep -q "project_id = \"$SUPABASE_PROJECT_ID\"" supabase/config.toml \
+            || { echo "::error::supabase/config.toml has no [remotes] block for $SUPABASE_PROJECT_ID, so the local values would be pushed."; exit 1; }
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      # The push below does not ask for confirmation here, so the log keeps what it changed.
+      - name: Show what the push will change
+        run: supabase config diff --project-ref "$SUPABASE_PROJECT_ID"
+
+      # Only properties config.toml declares are written; the rest of the hosted
+      # configuration is left as it is.
+      - name: Apply supabase/config.toml to the hosted project
+        run: supabase config push --project-ref "$SUPABASE_PROJECT_ID" --yes
 
   deploy-app:
     name: Deploy SPA

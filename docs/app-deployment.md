@@ -19,24 +19,25 @@ independently; see the [marketing deployment guide](deployment.md).
 In **Settings → Environments**, use the shared `production` environment. Production build
 and deployment jobs use its variables, secrets, and protection rules. Add these values for the API and SPA:
 
-| Name                                                            | Kind     | Value                                                                                                           |
-| --------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`                                         | Variable | Account hosting the `ssmusor.ro` zone; same account as marketing.                                               |
-| `CLOUDFLARE_API_TOKEN`                                          | Secret   | Deployment token authorized to edit Workers and their custom-domain routes in this account/zone.                |
-| `VITE_SUPABASE_URL`                                             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                                             |
-| `VITE_SUPABASE_PUBLISHABLE_KEY`                                 | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                                     |
-| `E2E_EMAIL`                                                     | Secret   | Email of an existing Supabase test user.                                                                        |
-| `E2E_PASSWORD`                                                  | Secret   | Password for that test user.                                                                                    |
-| `SUPABASE_PROJECT_ID`                                           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                                         |
-| `SUPABASE_ACCESS_TOKEN`                                         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.                           |
-| `SUPABASE_DB_PASSWORD`                                          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.                       |
-| `SUPABASE_SECRET_KEY`                                           | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used by the seed workflow and the API's waitlist. |
-| `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.     |
-| `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                               |
-| `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                              |
-| `SEED_ALLOW_FAKE`                                               | Variable | `true` to let the seed workflow add fake clients and employees; leave unset on a real production project.       |
-| `SEED_ADMIN_PASSWORD`                                           | Secret   | Only for the workflow's `reset-password` input or a first creation; otherwise not needed.                       |
-| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account, its profile name, and the organization name.                         |
+| Name                                                            | Kind     | Value                                                                                                                                                       |
+| --------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`                                         | Variable | Account hosting the `ssmusor.ro` zone; same account as marketing.                                                                                           |
+| `CLOUDFLARE_API_TOKEN`                                          | Secret   | Deployment token authorized to edit Workers and their custom-domain routes in this account/zone.                                                            |
+| `VITE_SUPABASE_URL`                                             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                                                                                         |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`                                 | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                                                                                 |
+| `E2E_EMAIL`                                                     | Secret   | Email of an existing Supabase test user.                                                                                                                    |
+| `E2E_PASSWORD`                                                  | Secret   | Password for that test user.                                                                                                                                |
+| `SUPABASE_PROJECT_ID`                                           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                                                                                     |
+| `SUPABASE_ACCESS_TOKEN`                                         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.                                                                       |
+| `SUPABASE_DB_PASSWORD`                                          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.                                                                   |
+| `SUPABASE_SECRET_KEY`                                           | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used by the seed workflow and the API's waitlist.                                             |
+| `SUPABASE_AUTH_HOOK_SECRET`                                     | Secret   | Signs Supabase Auth's Send Email hook. We choose it: `v1,whsec_` followed by 32 random bytes in base64. CI gives the same value to Supabase and to the API. |
+| `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.                                                 |
+| `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                                                                           |
+| `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                                                                          |
+| `SEED_ALLOW_FAKE`                                               | Variable | `true` to let the seed workflow add fake clients and employees; leave unset on a real production project.                                                   |
+| `SEED_ADMIN_PASSWORD`                                           | Secret   | Only for the workflow's `reset-password` input or a first creation; otherwise not needed.                                                                   |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account, its profile name, and the organization name.                                                                     |
 
 The Cloudflare account ID and deployment token are shared with marketing.
 All three applications deploy automatically and selectively after successful validation on

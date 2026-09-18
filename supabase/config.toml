@@ -1,4 +1,6 @@
-# Local services only. Hosted Supabase is configured independently.
+# The local stack, and through [remotes.production] at the end, the hosted project's settings.
+# CI applies the declared properties to the hosted project with `supabase config push`;
+# properties this file does not declare are left as they are there.
 # https://supabase.com/docs/guides/local-development/cli/config
 project_id = "ssm-usor-local"
 
@@ -40,7 +42,7 @@ enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = false
 enable_anonymous_sign_ins = false
-# Mirror these in the hosted project: Authentication → Sign In / Providers → Email.
+# The SPA's password fields and `newPasswordSchema` in the contracts mirror these.
 minimum_password_length = 8
 password_requirements = "lower_upper_letters_digits"
 
@@ -48,6 +50,17 @@ password_requirements = "lower_upper_letters_digits"
 # Enable the email provider; auth.enable_signup above still blocks public registration.
 enable_signup = true
 enable_confirmations = false
+# How long a recovery link works. OTP_EXPIRY_MINUTES in apps/api's auth-hooks module says the
+# same to the person reading the email.
+otp_expiry = 3600
+
+# Supabase Auth hands every email it would send to the API, which forwards it to the mail
+# Worker (ADR 002). Locally that needs `pnpm dev` running; the secret below is for the local
+# stack only and matches apps/api/.dev.vars.example.
+[auth.hook.send_email]
+enabled = true
+uri = "http://host.docker.internal:8787/hooks/supabase/send-email"
+secrets = "v1,whsec_bG9jYWwtZGV2ZWxvcG1lbnQtaG9vay1zZWNyZXQtMzI="
 
 # Enable additional services here when the application starts using them.
 [realtime]
@@ -61,3 +74,20 @@ enabled = false
 
 [analytics]
 enabled = false
+
+# The hosted project. Only what must differ from the local values above is listed.
+[remotes.production]
+project_id = "xvhiwymggufbvjdfywjg"
+
+[remotes.production.auth]
+site_url = "https://app.ssmusor.ro"
+additional_redirect_urls = []
+
+[remotes.production.auth.email]
+# Nobody can sign up, but an address that ever could must be confirmed.
+enable_confirmations = true
+
+[remotes.production.auth.hook.send_email]
+enabled = true
+uri = "https://api.ssmusor.ro/hooks/supabase/send-email"
+secrets = "env(SUPABASE_AUTH_HOOK_SECRET)"

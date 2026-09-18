@@ -56,6 +56,14 @@ credentials. Mail and marketing deploy independently; the API waits for the mail
 both are selected, because its service binding needs that Worker to exist. The mail deployment uploads
 `RESEND_API_KEY` when the `production` environment has it and warns when it does not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
+
+When `supabase/config.toml` or a migration changes, a last job applies the file to the hosted
+project with `supabase config push`, after the API, because the Send Email hook it declares
+must not point at an endpoint that is not deployed yet. Only properties the file declares are
+written; `[remotes.production]` holds the values that differ from the local stack. The push
+does not ask for confirmation in CI, so the job prints `supabase config diff` first and
+refuses to run when the file has no `[remotes]` block for the project. It needs
+`SUPABASE_AUTH_HOOK_SECRET`, which the API deployment uploads too.
 Browser tests run after SPA deployment and remain advisory; API smoke-test failures block
 an accompanying SPA release. There is no check of the old live release before deployment.
 
