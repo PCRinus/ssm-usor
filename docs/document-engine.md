@@ -104,7 +104,8 @@ or `test`. A test has questions and answers on top of a title: a question typed 
 is set bold and kept with its answers; each question's answers start again from a), where the
 originals run one list through the whole test so that the specimen reads d), e), f); answers
 typed by hand (" a) …", long ones broken with the Enter key) are joined back together and
-hung from their letter; a second title opens the specimen on a new page. `tableSizes` sets one
+hung from their letter; a second title opens the specimen on a new page. In a `register`, every
+title after the first opens a new page the same way. `tableSizes` sets one
 table smaller than the small print, for pictogram captions. A replacement may set
 `groups: true` to use what its pattern captured (`$1`).
 
@@ -183,6 +184,7 @@ Covers need `provider.representativeRole` besides what the decisions use.
 | `control_regulation`            | The internal regulation on the employer's own checks, with its schedule  | `issueYear`, `followingYear` for the schedule's heading                                                                                                          |
 | `test_hiring`                   | The test after the general introductory training, with its specimen      | None                                                                                                                                                             |
 | `test_periodic`                 | The yearly test, with its specimen                                       | None                                                                                                                                                             |
+| `event_registers`               | The four registers of accidents and dangerous incidents, A4 landscape    | None                                                                                                                                                             |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`

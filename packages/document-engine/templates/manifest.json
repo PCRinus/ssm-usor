@@ -132,9 +132,9 @@
       "number": "7.2",
       "original": "7.2_Registre_de_evidenta_a_evenimentelor",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "event_registers",
+      "title": "Registrele de evidență a evenimentelor",
+      "file": "7.2_event_registers.docx"
     },
     {
       "number": "8",

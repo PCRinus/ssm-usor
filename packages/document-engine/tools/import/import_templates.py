@@ -50,6 +50,11 @@ ROMANIAN = Locale('ro', 'RO', '')
 
 # What counts as a title or a heading, per kind of document. Matched on a whole paragraph.
 KINDS = {
+    'register': {
+        'title': [r'^REGISTRUL UNIC'],
+        'subtitle': [r'^PENTRU '],
+        'headings': [],
+    },
     'test': {
         'title': [r'^TESTARE DE VERIFICARE'],
         'subtitle': [r'^\((ANGAJARE|PERIODIC)'],
@@ -86,6 +91,7 @@ JUSTIFIED = (2, 4)
 SMALL_PRINT = 8.0
 # A table drawn from a definition has the sizes it was given.
 DRAWN = 'Drawn'
+DRAWN_SIZES = {}
 
 SIGNATURE_BLOCK = [
     '{{client.legalName}}',
@@ -261,6 +267,9 @@ def write_paragraph(text, cursor, content, *, size=BODY_SIZE, bold=False, italic
     """Appends a paragraph in the house style at the cursor."""
     if not first:
         text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
+    text.insertString(cursor, content, False)
+    # Over the text once it is there: what is set on an empty cursor does not reach it.
+    cursor.gotoStartOfParagraph(True)
     cursor.CharFontName = FONT
     cursor.CharFontNameAsian = FONT
     cursor.CharFontNameComplex = FONT
@@ -275,7 +284,7 @@ def write_paragraph(text, cursor, content, *, size=BODY_SIZE, bold=False, italic
     cursor.ParaLeftMargin = 0
     cursor.ParaFirstLineIndent = 0
     cursor.ParaKeepTogether = keep
-    text.insertString(cursor, content, False)
+    cursor.gotoEndOfParagraph(False)
 
 
 def insert_handover(document, text, cursor, sides, signing_room=42):
@@ -328,7 +337,12 @@ def rebuild_table(document, definition):
     table.initialize(len(rows), columns)
     text.insertTextContent(text.createTextCursorByRange(following.getStart()), table, False)
     table.HoriOrient = FULL_WIDTH
-    table.Name = f"{DRAWN}{definition['replaceTable']}"
+    # A register may run over pages; a form stays whole. A heading with cells merged downwards
+    # is not repeated on the next page: LibreOffice draws the repeat over the rows under it.
+    spans_rows = any(isinstance(cell, dict) and cell.get('rowspan', 1) > 1 for row in definition['rows'] for cell in row)
+    flags = ('Split' if definition.get('split') else '') + ('Once' if spans_rows else '')
+    table.Name = f"{DRAWN}{flags}{definition['replaceTable']}"
+    DRAWN_SIZES[table.Name] = definition.get('size', BODY_SIZE)
     total, position = sum(definition['widths']), 0
     separators = table.TableColumnSeparators
     for separator, width in zip(separators, definition['widths']):
@@ -364,13 +378,15 @@ def rebuild_table(document, definition):
         if rowspan > 1:
             merge.goDown(rowspan - 1, True)
         merge.mergeRange()
-    if header_rows > 1:
+    if header_rows > 1 and not spans_rows:
         table.HeaderRowCount = header_rows
     if definition.get('rowHeight'):
         # Room to write by hand, as padding: a row's least height is not something the API
         # offers, and padding reads the same in every viewer.
         padding = max(0, round((definition['rowHeight'] * 100 - size * POINT * 1.2) / 2))
         for cell_name in table.getCellNames():
+            if int(re.sub(r'^[A-Za-z]+', '', cell_name).split('.')[0]) <= header_rows:
+                continue
             cell = table.getCellByName(cell_name)
             cell.TopBorderDistance = padding
             cell.BottomBorderDistance = padding
@@ -548,9 +564,10 @@ def normalise_characters(document):
         for element in _elements(text):
             if element.supportsService('com.sun.star.text.TextTable'):
                 wide = column_count(element) > WIDE_TABLE_COLUMNS
-                drawn = element.Name.startswith(DRAWN)
+                # The cursor over the body reaches into the tables, so a drawn one is set again.
+                drawn = DRAWN_SIZES.get(element.Name)
                 for name in element.getCellNames():
-                    apply(element.getCellByName(name), None if drawn else SMALL_PRINT if wide else size)
+                    apply(element.getCellByName(name), drawn or (SMALL_PRINT if wide else size))
 
     apply(document.Text, BODY_SIZE)
     apply_tables(document.Text, BODY_SIZE)
@@ -656,6 +673,9 @@ def typeset(document, kind):
     for name in page_styles.getElementNames():
         if name:
             style = page_styles.getByName(name)
+            # A4, whichever way it is turned: some originals are on Letter.
+            long_side, short_side = 29700, 21000
+            style.Width, style.Height = (long_side, short_side) if style.IsLandscape else (short_side, long_side)
             for margin, value in MARGINS.items():
                 setattr(style, margin, value)
             # An empty header or footer still takes its height off every page.
@@ -710,9 +730,9 @@ def typeset(document, kind):
     for element in [item for item in _elements(document.Text)]:
         if element.supportsService('com.sun.star.text.TextTable'):
             # A short table moves to the next page whole, with the paragraph that introduces it.
-            element.RepeatHeadline = True
+            element.RepeatHeadline = 'Once' not in element.Name
             element.HoriOrient = FULL_WIDTH
-            if element.getRows().getCount() <= 25:
+            if element.getRows().getCount() <= 25 and not element.Name.startswith(f'{DRAWN}Split'):
                 element.Split = False
             element.TopMargin = round(6 * POINT)
             element.BottomMargin = round(6 * POINT)
@@ -885,6 +905,7 @@ def import_template(desktop, spec_path, wording, output):
     source = f'{ROOT}/originals/{spec["source"]}'
     document = desktop.loadComponentFromURL(
         uno.systemPathToFileUrl(source), '_blank', 0, (prop('Hidden', True),))
+    DRAWN_SIZES.clear()
     try:
         problems = []
         for replacement in spec['replacements']:
