@@ -53,12 +53,17 @@ function mockApi({
   create = (() => Response.json(invitation, { status: 201 })) as Route,
   resend = (() => Response.json(invitation)) as Route,
   revoke = (() => new Response(null, { status: 204 })) as Route,
+  changeRole = (() => new Response(null, { status: 204 })) as Route,
+  removeMember = (() => new Response(null, { status: 204 })) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     const method = init?.method ?? 'GET';
     if (pathname === '/me') return Response.json(meAs(role));
     if (pathname === '/organization/members') return Response.json({ items: members });
+    if (pathname === '/organization/members/user-two') {
+      return method === 'DELETE' ? removeMember(init) : changeRole(init);
+    }
     if (pathname === '/organization/invitations') {
       return method === 'POST' ? create(init) : Response.json({ items: invitations });
     }
@@ -248,5 +253,90 @@ describe('pending invitation actions', () => {
     ).toBeTruthy();
     expect(requests(`/organization/invitations/${invitation.id}/revoke`, 'POST')).toHaveLength(1);
     await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(2));
+  });
+});
+
+describe('managing members', () => {
+  async function openMenu() {
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('member-actions'));
+    return user;
+  }
+
+  it('offers the menu to an owner for everyone but themselves', async () => {
+    mockApi();
+    mount();
+
+    const rows = await screen.findAllByTestId('member-row');
+    expect(within(rows[0]!).queryByTestId('member-actions')).toBeNull();
+    expect(within(rows[1]!).getByTestId('member-actions')).toBeTruthy();
+  });
+
+  it('offers no menu to a specialist', async () => {
+    mockApi({ role: 'specialist' });
+    mount();
+
+    await screen.findAllByTestId('member-row');
+    expect(screen.queryByTestId('member-actions')).toBeNull();
+  });
+
+  it('switches a specialist to administrator and refreshes the list', async () => {
+    mockApi();
+    mount();
+    const user = await openMenu();
+
+    await user.click(await screen.findByTestId('member-switch-role'));
+
+    expect(await screen.findByText('ion@example.test este acum administrator.')).toBeTruthy();
+    const [, init] = requests('/organization/members/user-two', 'PATCH')[0]!;
+    expect(JSON.parse(init?.body as string)).toEqual({ role: 'owner' });
+    await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
+  });
+
+  it('removes a member only after confirmation', async () => {
+    mockApi();
+    mount();
+    const user = await openMenu();
+
+    await user.click(await screen.findByTestId('member-remove'));
+    const dialog = await screen.findByTestId('member-remove-dialog');
+    expect(dialog.textContent).toContain('ion@example.test');
+    expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(0);
+
+    await user.click(within(dialog).getByTestId('member-remove-confirm'));
+
+    expect(
+      await screen.findByText('ion@example.test nu mai face parte din organizație.')
+    ).toBeTruthy();
+    expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(1);
+    await waitFor(() => expect(screen.queryByTestId('member-remove-dialog')).toBeNull());
+  });
+
+  it('leaves the member alone when the confirmation is declined', async () => {
+    mockApi();
+    mount();
+    const user = await openMenu();
+
+    await user.click(await screen.findByTestId('member-remove'));
+    const dialog = await screen.findByTestId('member-remove-dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Renunță' }));
+
+    await waitFor(() => expect(screen.queryByTestId('member-remove-dialog')).toBeNull());
+    expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(0);
+  });
+
+  it('reports a member who is already gone inline and refreshes the list', async () => {
+    mockApi({
+      changeRole: () => Response.json({ error: 'not_found', message: 'No' }, { status: 404 }),
+    });
+    mount();
+    const user = await openMenu();
+
+    await user.click(await screen.findByTestId('member-switch-role'));
+
+    expect((await screen.findByTestId('members-error')).textContent).toBe(
+      'ion@example.test nu mai face parte din organizație.'
+    );
+    await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
   });
 });

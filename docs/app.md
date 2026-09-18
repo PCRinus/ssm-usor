@@ -285,8 +285,10 @@ mobile navigation link closes the Sheet.
   revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a
   conflict decides the wording: an address that is already a member or was emailed in the
   last 10 minutes is reported on the email field, the 20-invitation limit on the form.
-  Hiding the owner's tools is a courtesy; the API and the database enforce the rule. An
-  account without an organization is told to ask for an invitation.
+  An owner's members table has a row menu for everyone but themselves: switch the role, or
+  remove the member after a confirmation that says what stays. Hiding the owner's tools is a
+  courtesy; the API and the database enforce the rule. An account without an organization is
+  told to ask for an invitation.
 - `/profile`: a form for the user's name backed by `PATCH /me/profile`, with the email
   read-only. Saving refreshes `/me`, so the account menu follows.
 

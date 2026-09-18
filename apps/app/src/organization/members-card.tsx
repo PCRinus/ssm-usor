@@ -11,14 +11,19 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { useRouteContext } from '@tanstack/react-router';
+import { useState } from 'react';
 
 import {
   getListOrganizationMembersQueryKey,
   useListOrganizationMembers,
 } from '../api/generated/api';
 import { formatDay, roleLabels } from './labels';
+import { MemberActions } from './member-actions';
 
-export function MembersCard({ userId }: { userId: string }) {
+// `canManage` adds an owner's row menu for everyone but themselves. Hiding it is a courtesy;
+// the database refuses the actions to anyone else.
+export function MembersCard({ userId, canManage }: { userId: string; canManage: boolean }) {
+  const [error, setError] = useState<string | null>(null);
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const members = useListOrganizationMembers({
     request: apiRequest,
@@ -30,7 +35,16 @@ export function MembersCard({ userId }: { userId: string }) {
       <CardHeader>
         <h2 className="text-lg font-semibold">Membri</h2>
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-4">
+        {error && (
+          <p
+            data-testid="members-error"
+            role="alert"
+            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
+          >
+            {error}
+          </p>
+        )}
         {members.isError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
             <p>Nu am putut încărca membrii organizației.</p>
@@ -50,12 +64,17 @@ export function MembersCard({ userId }: { userId: string }) {
                 <TableHead>Email</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead className="text-right">Membru din</TableHead>
+                {canManage && (
+                  <TableHead className="w-12">
+                    <span className="sr-only">Acțiuni</span>
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.isPending ? (
                 <TableRow>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={canManage ? 5 : 4}>
                     <Skeleton className="h-5 w-full" />
                     <span className="sr-only" role="status">
                       Se încarcă membrii…
@@ -80,6 +99,13 @@ export function MembersCard({ userId }: { userId: string }) {
                     <TableCell className="text-right whitespace-nowrap text-muted-foreground">
                       {formatDay(member.joinedAt)}
                     </TableCell>
+                    {canManage && (
+                      <TableCell className="text-right">
+                        {member.userId !== userId && (
+                          <MemberActions member={member} onError={setError} />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

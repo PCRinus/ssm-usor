@@ -27,7 +27,11 @@ trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
 
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
 Organizations are created by the seed for now. Memberships come from the seed and from
-accepted invitations; no policy lets a signed-in user write `organization_members`.
+accepted invitations; no policy lets a signed-in user write `organization_members`. An owner
+changes a role with `change_organization_member_role(user, role)` and removes a member with
+`remove_organization_member(user)`. Both lock the organization's memberships before checking
+the caller, and refuse the caller's own membership (`MEM01`), so an organization always
+keeps an owner. Removal deletes the membership only.
 
 ## Platform admins and impersonation
 

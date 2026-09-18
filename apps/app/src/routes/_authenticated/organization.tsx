@@ -71,7 +71,7 @@ export function OrganizationPage() {
           </Button>
         )}
       </div>
-      <MembersCard userId={user.id} />
+      <MembersCard userId={user.id} canManage={isOwner} />
       {isOwner && <InvitationsCard userId={user.id} />}
       <InviteMemberDialog open={inviting} onClose={() => setInviting(false)} />
     </div>
