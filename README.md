@@ -21,6 +21,8 @@ releases to `api.ssmusor.ro` and `app.ssmusor.ro`.
 The [CI/CD guide](docs/ci-cd.md) explains change selection, build artifacts, Turbo caching,
 and recovery from failed deployments.
 
+See the [mail Worker guide](docs/mail.md) for email templates, the preview server, and the Resend setup.
+
 See the [API client guide](docs/api-client.md) for OpenAPI generation, Orval, and `VITE_API_URL`.
 
 See the [development admin guide](docs/development-admin.md) for local login credentials and `pnpm seed`.
@@ -35,6 +37,7 @@ The pnpm/Turborepo workspace contains:
 - `apps/marketing` — the static Astro acquisition site and landing-page concepts;
 - `apps/app` — the client-only React/Vite application shell;
 - `apps/api` — the Cloudflare Worker API;
+- `apps/mail` — the internal Worker that renders and sends email;
 - `packages/contracts` — runtime schemas and shared transport types.
 - `packages/design-tokens` — shared brand colors, typography, radii, and Tailwind theme;
 - `packages/ui` — shared shadcn React primitives and the Tailwind CSS entry point.

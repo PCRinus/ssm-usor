@@ -17,15 +17,17 @@ available as a required PR check, including on documentation-only changes.
 | `apps/marketing/**`                                                                                                                       | Marketing                            |
 | `apps/app/**`                                                                                                                             | SPA                                  |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                  |
+| `apps/mail/**`                                                                                                                            | Mail Worker                          |
 | `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                    |
-| `packages/contracts/**`, `apps/api/openapi.json`                                                                                          | API and SPA                          |
+| `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker            |
+| `apps/api/openapi.json`                                                                                                                   | API and SPA                          |
 | `orval.config.ts`                                                                                                                         | SPA                                  |
 | `supabase/config.toml`, `supabase/migrations/**`                                                                                          | Database (hosted migrations)         |
-| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All three                            |
+| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All four                             |
 | Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs |
 
 Rules are intentionally conservative: an application-local test or configuration change also
-selects that application. A lockfile change selects all three; we do not maintain custom
+selects that application. A lockfile change selects all four; we do not maintain custom
 lockfile dependency analysis. Add shared build inputs to both the filters and Turbo's cache
 inputs when introducing them. Generated API files must still be committed and pass
 `pnpm check:generated`.
@@ -45,12 +47,13 @@ dependencies before the selected application; the dry-run task depends on that b
 
 Each production build uploads a `release-<application>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`
-assets. Deployment jobs download their matching artifact. API and marketing upload the
+assets. Deployment jobs download their matching artifact. API, mail, and marketing upload the
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
 Database migrations deploy first when selected, from the `production` environment's Supabase
-credentials. API and marketing deploy independently. SPA-only changes skip API deployment. If API and
+credentials. API, mail, and marketing deploy independently. The mail deployment uploads
+`RESEND_API_KEY` when the `production` environment has it and warns when it does not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
 Browser tests run after SPA deployment and remain advisory; API smoke-test failures block
 an accompanying SPA release. There is no check of the old live release before deployment.

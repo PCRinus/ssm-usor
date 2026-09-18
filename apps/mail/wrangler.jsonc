@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ssm-usor-mail",
+  "main": "src/index.tsx",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
+  // Internal only: other Workers reach it through a service binding.
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "MAIL_FROM": "SSM Ușor <noreply@mail.ssmusor.ro>",
+    "MAIL_REPLY_TO": "contact@ssmusor.ro",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
