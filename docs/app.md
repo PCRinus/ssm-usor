@@ -332,7 +332,14 @@ mobile navigation link closes the Sheet.
   a row's "Modifică" open one dialog; the API's `409` for a second registered office is
   reported on the checkbox and keeps the dialog open. "Arhivează" asks first, and a `404`
   refreshes the list. An archived client gets the list without add or row actions.
-  Responsible persons join this section next.
+  The third card lists the people the client designates by decision, with their roles as
+  badges, and names the roles nobody holds yet, which is what generating will ask for. Its
+  dialog can pick one of the client's current employees, which fills the name (first names
+  first, as documents print it) and the job title; both stay editable, and a person who is
+  not an employee is typed in by hand. At least one role is required, and roles are sent in
+  the order the decisions list them. A `409` means the employee is already listed and a `400`
+  on `employeeId` that they belong to another client; both are reported on the employee
+  field.
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and
   revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a

@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { cleanUp, createAccount, createClientCompany, createOrganization, signIn } from './support';
+import {
+  cleanUp,
+  createAccount,
+  createClientCompany,
+  createEmployee,
+  createOrganization,
+  signIn,
+} from './support';
 
 test.afterAll(cleanUp);
 
@@ -133,4 +140,59 @@ test('a client gets a registered office and a point of work, one of which is the
 
   await page.reload();
   await expect(page.getByTestId('workplace-row')).toHaveCount(1);
+});
+
+test('an employee is designated once, and the administrator is added by hand', async ({ page }) => {
+  const owner = await createAccount('responsible-owner', 'Radu Responsabil');
+  const organizationId = await createOrganization('Persoane responsabile E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT PERSOANE E2E SRL');
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Paolo-Antonio',
+    lastName: 'Luca',
+    jobTitle: 'Manager magazin',
+  });
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/document-data`);
+  await expect(page.getByTestId('responsible-persons-empty')).toBeVisible();
+
+  const pickEmployee = async () => {
+    await page.getByTestId('responsible-add').click();
+    await page.getByTestId('responsible-employee').click();
+    await page.getByTestId('responsible-employee-search').fill('luca');
+    await page.getByRole('option', { name: /Luca/ }).click();
+  };
+
+  await pickEmployee();
+  await expect(page.getByTestId('responsible-name')).toHaveValue('Paolo-Antonio Luca');
+  await expect(page.getByTestId('responsible-job-title')).toHaveValue('Manager magazin');
+  await page.getByTestId('responsible-save').click();
+  await expect(page.getByTestId('responsible-roles-error')).toContainText('cel puțin o');
+  await page.getByTestId('responsible-role-workplace_manager').click();
+  await page.getByTestId('responsible-role-first_aid').click();
+  await page.getByTestId('responsible-save').click();
+  await expect(page.getByText('Persoana a fost adăugată.')).toBeVisible();
+  await expect(page.getByTestId('responsible-missing')).toContainText(
+    'Echipa de evaluare a riscurilor, Pericol grav și iminent'
+  );
+
+  // The database lists an employee once per client; the dialog says where to change them.
+  await pickEmployee();
+  await page.getByTestId('responsible-role-imminent_danger').click();
+  await page.getByTestId('responsible-save').click();
+  await expect(page.getByTestId('responsible-employee-error')).toContainText('este deja în listă');
+  await page.getByRole('button', { name: 'Renunță' }).click();
+
+  // The administrator is often designated without being an employee.
+  await page.getByTestId('responsible-add').click();
+  await page.getByTestId('responsible-name').fill('Maria Popescu');
+  await page.getByTestId('responsible-job-title').fill('Administrator');
+  await page.getByTestId('responsible-role-risk_evaluation_team').click();
+  await page.getByTestId('responsible-role-imminent_danger').click();
+  await page.getByTestId('responsible-save').click();
+  await expect(page.getByTestId('responsible-row')).toHaveCount(2);
+  await expect(page.getByTestId('responsible-missing')).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByTestId('responsible-row')).toHaveCount(2);
 });

@@ -80,6 +80,8 @@ function mockApi({
       return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === `/clients/${clientId}/responsible-persons`)
+      return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: emptyDetails });
     }

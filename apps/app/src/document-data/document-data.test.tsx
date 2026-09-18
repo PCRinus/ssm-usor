@@ -61,6 +61,8 @@ function mockApi({
       return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === `/clients/${clientId}/responsible-persons`)
+      return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
     if (pathname === detailsPath) {
       return method === 'PUT' ? save(init) : Response.json({ documentDetails: details });

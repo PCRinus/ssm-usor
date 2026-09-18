@@ -59,6 +59,23 @@ export async function createClientCompany(organizationId: string, legalName: str
   return client.data.id as string;
 }
 
+// An employee of a client, for pickers that list them.
+export async function createEmployee(
+  organizationId: string,
+  clientId: string,
+  name: { firstName: string; lastName: string; jobTitle: string }
+) {
+  const employee = await admin.from('employees').insert({
+    organization_id: organizationId,
+    client_id: clientId,
+    first_name: name.firstName,
+    last_name: name.lastName,
+    job_title: name.jobTitle,
+    hired_at: '2024-02-15',
+  });
+  if (employee.error) throw employee.error;
+}
+
 // What the recovery email would carry, without sending one.
 export async function recoveryTokenHash(email: string) {
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
@@ -85,7 +102,9 @@ export async function cleanUp() {
   }
   for (const id of created.organizations) {
     // Clients restrict the deletion of their organization, and their rows that of the client.
+    await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
+    await admin.from('employees').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }

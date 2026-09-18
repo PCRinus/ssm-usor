@@ -2,6 +2,7 @@ import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
 import { useAuth } from '../../../../auth/auth-context';
 import { DocumentDetailsCard } from '../../../../document-data/document-details-card';
+import { ResponsiblePersonsCard } from '../../../../document-data/responsible-persons-card';
 import { WorkplacesCard } from '../../../../document-data/workplaces-card';
 
 // What a client's generated documentation prints beyond its registration data (ADR 005).
@@ -27,6 +28,11 @@ export function DocumentDataPage() {
       )}
       <DocumentDetailsCard client={client} userId={session.user.id} />
       <WorkplacesCard
+        clientId={client.id}
+        userId={session.user.id}
+        readOnly={client.archivedAt !== null}
+      />
+      <ResponsiblePersonsCard
         clientId={client.id}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
