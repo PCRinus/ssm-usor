@@ -10,8 +10,12 @@ const items: readonly ComboboxItem[] = romanianCounties.map((county) => ({
   search: `${county.name}|${county.code}`,
 }));
 
-export function CountyCombobox(props: {
+export function CountyCombobox({
+  testId = 'client-county',
+  ...props
+}: {
   id: string;
+  testId?: string;
   value: string;
   onChange: (code: string) => void;
   onBlur?: () => void;
@@ -22,7 +26,7 @@ export function CountyCombobox(props: {
   return (
     <SearchCombobox
       {...props}
-      testId="client-county"
+      testId={testId}
       items={items}
       filter={countyFilter}
       placeholder="Alege județul"

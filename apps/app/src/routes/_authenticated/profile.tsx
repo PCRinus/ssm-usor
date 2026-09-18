@@ -40,8 +40,9 @@ export function ProfilePage() {
     );
   }
 
-  // Keyed by the saved name, so the form starts again from what the server holds.
-  return <ProfileForm key={me.data.profile?.fullName ?? ''} me={me.data} />;
+  // Keyed by what is saved, so the form starts again from what the server holds.
+  const saved = `${me.data.profile?.fullName ?? ''}|${me.data.profile?.professionalTitle ?? ''}`;
+  return <ProfileForm key={saved} me={me.data} />;
 }
 
 function ProfileForm({ me }: { me: MeResponse }) {
@@ -49,14 +50,19 @@ function ProfileForm({ me }: { me: MeResponse }) {
   const update = useUpdateProfile({ request: apiRequest });
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: { fullName: me.profile?.fullName ?? '' },
+    defaultValues: {
+      fullName: me.profile?.fullName ?? '',
+      professionalTitle: me.profile?.professionalTitle ?? '',
+    },
   });
   const { errors, isDirty } = form.formState;
   const busy = update.isPending;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await update.mutateAsync({ data: values });
+      await update.mutateAsync({
+        data: { fullName: values.fullName, professionalTitle: values.professionalTitle || null },
+      });
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       toast.success('Profilul a fost salvat.');
     } catch (cause) {
@@ -97,6 +103,26 @@ function ProfileForm({ me }: { me: MeResponse }) {
                 aria-invalid={Boolean(errors.fullName)}
                 aria-describedby={errors.fullName ? 'profile-full-name-error' : undefined}
                 {...form.register('fullName')}
+              />
+            </Field>
+            <Field
+              id="profile-professional-title"
+              label="Titlu profesional"
+              hint="Apare lângă numele tău în documentele generate, de exemplu „Evaluator autorizat”."
+              error={errors.professionalTitle}
+            >
+              <Input
+                id="profile-professional-title"
+                data-testid="profile-professional-title"
+                autoComplete="organization-title"
+                disabled={busy}
+                aria-invalid={Boolean(errors.professionalTitle)}
+                aria-describedby={
+                  errors.professionalTitle
+                    ? 'profile-professional-title-error'
+                    : 'profile-professional-title-hint'
+                }
+                {...form.register('professionalTitle')}
               />
             </Field>
             <Field
