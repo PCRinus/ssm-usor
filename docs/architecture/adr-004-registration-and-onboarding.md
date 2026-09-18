@@ -35,7 +35,7 @@ Someone invited to an organization may register on their own instead of followin
 
 Nothing links to `/register`: not the marketing site, and the login page only behind a build-time flag that stays off. This is obscurity, chosen because it is the simplest to build and to undo. Supabase signup is a project-wide switch, so once it is on, anyone holding the publishable key, which ships in the SPA, can create an account through Supabase directly. Such an account sees nothing until it creates an organization, which is what registration is for. What the switch really exposes is our sender: each signup makes us email a confirmation to an address the caller chose.
 
-That is accepted for now. Supabase limits how often one address can be emailed and how many emails go out per hour. Before the page is linked anywhere, registration gets a CAPTCHA; Supabase's applies to every auth call, login and password reset included, so it is its own piece of work. An allowlist through Supabase's Before User Created hook was considered and set aside as more machinery than this stage needs.
+That is accepted for now. Supabase limits how often one address can be emailed (once a minute on the hosted project) and how many emails go out per hour. The hourly cap is not something `supabase config push` manages, so it is read and changed in the dashboard, under Authentication, Rate Limits. Before the page is linked anywhere, registration gets a CAPTCHA; Supabase's applies to every auth call, login and password reset included, so it is its own piece of work. An allowlist through Supabase's Before User Created hook was considered and set aside as more machinery than this stage needs.
 
 ### Order of work
 

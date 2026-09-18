@@ -88,8 +88,6 @@ enabled = false
 project_id = "xvhiwymggufbvjdfywjg"
 
 [remotes.production.auth]
-# Off until the last step of the registration work turns it on.
-enable_signup = false
 site_url = "https://app.ssmusor.ro"
 additional_redirect_urls = []
 
