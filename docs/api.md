@@ -47,7 +47,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /health`                                             | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                    |
 | `POST /waitlist`                                          | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                |
 | `GET /waitlist/confirm`                                   | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                       |
-| `POST /hooks/supabase/send-email`                         | Supabase Auth, by signature           | `200 {}` after handing the recovery email to the mail Worker                                       |
+| `POST /hooks/supabase/send-email`                         | Supabase Auth, by signature           | `200 {}` after handing the recovery or signup email to the mail Worker                             |
 | `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                           |
 | `PATCH /me/profile`                                       | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                            |
 | `GET /organization/members`                               | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                 |
@@ -198,9 +198,10 @@ handler checks the `webhook-id`, `webhook-timestamp`, and `webhook-signature` he
 accepts several secrets joined with `|` while one is rotated out. Errors use the shape
 Supabase expects, `{ "error": { "http_code", "message" } }`.
 
-Only `recovery` is handled: the email links to `APP_ORIGIN/reset-password?token_hash=…`,
-ignoring any redirect Supabase was asked for, and the SPA verifies the token when the form is
-submitted, so a mail scanner opening the link cannot use it up. Every other email type is
+Two types are handled. `recovery` links to `APP_ORIGIN/reset-password?token_hash=…` and
+`signup` to `APP_ORIGIN/confirm-email?token_hash=…`, ignoring any redirect Supabase was asked
+for. The SPA verifies the token when the page's form or button is submitted, so a mail scanner
+opening the link cannot use it up. Every other email type is
 answered with `422` and logged, so an email nobody implemented fails loudly instead of never
 arriving. A failed send answers `500`, which Supabase reports to the caller. The route
 answers `503` while the secret or the `MAIL` binding is missing, and must finish within the

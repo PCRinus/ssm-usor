@@ -29,6 +29,7 @@ const mail: MailService = {
   sendWaitlistConfirmation: ({ to, confirmUrl }) => record('waitlist', to, confirmUrl),
   sendOrganizationInvitation: ({ to, acceptUrl }) => record('invitation', to, acceptUrl),
   sendPasswordReset: ({ to, resetUrl }) => record('password-reset', to, resetUrl),
+  sendSignupConfirmation: ({ to, confirmUrl }) => record('signup-confirmation', to, confirmUrl),
 };
 
 const env: ApiEnv['Bindings'] = {

@@ -17,6 +17,7 @@ const env: ApiEnv['Bindings'] = {
     sendWaitlistConfirmation,
     sendOrganizationInvitation: vi.fn(),
     sendPasswordReset: vi.fn(),
+    sendSignupConfirmation: vi.fn(),
   },
 };
 

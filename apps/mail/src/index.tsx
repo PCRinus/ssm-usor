@@ -5,6 +5,8 @@ import {
   organizationInvitationEmailSchema,
   type PasswordResetEmail,
   passwordResetEmailSchema,
+  type SignupConfirmationEmail,
+  signupConfirmationEmailSchema,
   type WaitlistConfirmationEmail,
   waitlistConfirmationEmailSchema,
 } from '@ssm-usor/contracts';
@@ -14,6 +16,9 @@ import OrganizationInvitation, {
   subject as invitationSubject,
 } from './emails/organization-invitation';
 import PasswordReset, { subject as passwordResetSubject } from './emails/password-reset';
+import SignupConfirmation, {
+  subject as signupConfirmationSubject,
+} from './emails/signup-confirmation';
 import WaitlistConfirmation, { subject as waitlistSubject } from './emails/waitlist-confirmation';
 import type { MailEnv } from './env';
 import { sendEmail } from './send';
@@ -46,6 +51,16 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: passwordResetSubject,
       body: <PasswordReset {...reset} />,
+    });
+  }
+
+  async sendSignupConfirmation(input: SignupConfirmationEmail): Promise<MailReceipt> {
+    const { to, ...confirmation } = signupConfirmationEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: signupConfirmationSubject,
+      body: <SignupConfirmation {...confirmation} />,
     });
   }
 }
