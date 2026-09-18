@@ -23,6 +23,21 @@ const user = {
 };
 
 const fetchMock = vi.fn<typeof fetch>();
+
+// Supabase Auth answers with the token's user; the account has no profile or membership.
+function mockAccount(accountFor: (token: string | null) => unknown) {
+  fetchMock.mockImplementation(async (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.pathname === '/auth/v1/user') {
+      const token = new Headers(init?.headers).get('Authorization');
+      return Response.json(accountFor(token));
+    }
+    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([]);
+    if (url.pathname.startsWith('/rest/v1/')) return Response.json(null);
+    throw new Error(`Unexpected upstream request: ${url}`);
+  });
+}
+
 const requestMe = (authorization = 'Bearer test-access-token', bindings = env) =>
   createApp().request('/me', { headers: { Authorization: authorization } }, bindings);
 
@@ -67,17 +82,19 @@ describe('API routes', () => {
   );
 
   it('verifies with the configured Supabase project and only exposes public identity fields', async () => {
-    fetchMock.mockResolvedValue(Response.json(user));
+    mockAccount(() => user);
     const response = await requestMe('bearer test-access-token');
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(
       meResponseSchema.parse({
         user: { id: user.id, email: user.email },
+        profile: null,
+        membership: null,
       })
     );
     expect(response.headers.get('Set-Cookie')).toBeNull();
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(fetchMock).toHaveBeenCalledOnce();
+    // The token is verified before anything is read on the user's behalf.
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe('https://example.supabase.co/auth/v1/user');
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
@@ -91,17 +108,17 @@ describe('API routes', () => {
       id: '1e8b36cc-d87a-4318-9af2-acb1f6156112',
       email: 'other@example.com',
     };
-    fetchMock
-      .mockResolvedValueOnce(Response.json(user))
-      .mockResolvedValueOnce(Response.json(secondUser));
+    mockAccount((token) => (token === 'Bearer first' ? user : secondUser));
     const app = createApp();
     const first = await app.request('/me', { headers: { Authorization: 'Bearer first' } }, env);
     const second = await app.request('/me', { headers: { Authorization: 'Bearer second' } }, env);
     expect(meResponseSchema.parse(await first.json()).user.id).toBe(user.id);
     expect(meResponseSchema.parse(await second.json()).user.id).toBe(secondUser.id);
-    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('Authorization')).toBe(
-      'Bearer second'
+    const tokens = fetchMock.mock.calls.map(([, init]) =>
+      new Headers(init?.headers).get('Authorization')
     );
+    expect(new Set(tokens)).toEqual(new Set(['Bearer first', 'Bearer second']));
+    expect(tokens.indexOf('Bearer second')).toBeGreaterThan(tokens.lastIndexOf('Bearer first'));
   });
 
   it.each([401, 403])(

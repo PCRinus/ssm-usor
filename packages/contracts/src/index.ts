@@ -1,14 +1,19 @@
 import { z } from 'zod';
 
+import { membershipSchema } from './organizations';
+import { profileSchema } from './profile';
+
 export * from './caen';
 export * from './clients';
 export * from './cnp';
 export * from './counties';
 export * from './cui';
 export * from './employees';
+export * from './invitations';
 export * from './list';
 export * from './mail';
 export * from './organizations';
+export * from './profile';
 export * from './waitlist';
 
 export const leadApplicationSchema = z.object({
@@ -35,7 +40,14 @@ export const currentUserSchema = z.object({
 
 export type CurrentUser = z.infer<typeof currentUserSchema>;
 
-export const meResponseSchema = z.object({ user: currentUserSchema });
+export const meResponseSchema = z.object({
+  user: currentUserSchema,
+  // Null until the person has named themselves.
+  profile: profileSchema.nullable(),
+  // Null for an account that belongs to no organization. During an impersonation this is
+  // the impersonated user's membership, while `user` and `profile` stay the caller's own.
+  membership: membershipSchema.nullable(),
+});
 
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
@@ -56,6 +68,8 @@ export const apiErrorResponseSchema = z.object({
   message: z.string(),
   // Field-level details for validation errors; paths use dot notation.
   issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
+  // A stable identifier for errors a client words itself, such as `already_member`.
+  reason: z.string().optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

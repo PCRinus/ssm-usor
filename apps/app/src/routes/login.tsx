@@ -5,13 +5,20 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import { z } from 'zod';
 
 import { useLoginForm } from '../auth/use-login-form';
 
 export const Route = createFileRoute('/login')({
-  beforeLoad: async ({ context: { auth } }) => {
+  // Set by the accept page for someone who must sign in first; login returns them to it.
+  // Only that token travels here, never a URL, so this cannot redirect anywhere else.
+  validateSearch: z.object({ invitation: z.string().optional() }),
+  beforeLoad: async ({ context: { auth }, search }) => {
     await auth.ready;
-    if (auth.getSnapshot().session) throw redirect({ to: '/dashboard', replace: true });
+    if (!auth.getSnapshot().session) return;
+    throw search.invitation
+      ? redirect({ to: '/accept-invitation', search: { token: search.invitation }, replace: true })
+      : redirect({ to: '/dashboard', replace: true });
   },
   component: LoginPage,
 });
@@ -22,7 +29,7 @@ export function LoginPage() {
     register,
     onSubmit,
     formState: { errors, isSubmitting },
-  } = useLoginForm();
+  } = useLoginForm(Route.useSearch().invitation);
 
   return (
     <main

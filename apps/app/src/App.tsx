@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Toaster } from '@ssm-usor/ui/components/sonner';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useSyncExternalStore } from 'react';
@@ -35,6 +36,8 @@ export default function App({ runtime }: { runtime: AppRuntime }) {
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={auth}>
         <RouterProvider router={router} />
+        {/* Confirms actions that leave the user on the same page; errors stay inline. */}
+        <Toaster position="bottom-right" closeButton />
       </AuthContext.Provider>
     </QueryClientProvider>
   );

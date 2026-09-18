@@ -11,9 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated';
+import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
+import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization';
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile';
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients/$clientId';
 import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authenticated/clients/new';
@@ -32,6 +35,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any);
+const AcceptInvitationRoute = AcceptInvitationRouteImport.update({
+  id: '/accept-invitation',
+  path: '/accept-invitation',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -45,6 +53,17 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedOrganizationRoute =
+  AuthenticatedOrganizationRouteImport.update({
+    id: '/organization',
+    path: '/organization',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any);
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedClientsIndexRoute =
@@ -97,9 +116,12 @@ const AuthenticatedClientsClientIdEmployeesNewRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
+  '/accept-invitation': typeof AcceptInvitationRoute;
   '/login': typeof LoginRoute;
   '/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
+  '/organization': typeof AuthenticatedOrganizationRoute;
+  '/profile': typeof AuthenticatedProfileRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/clients/': typeof AuthenticatedClientsIndexRoute;
@@ -111,8 +133,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
+  '/accept-invitation': typeof AcceptInvitationRoute;
   '/login': typeof LoginRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
+  '/organization': typeof AuthenticatedOrganizationRoute;
+  '/profile': typeof AuthenticatedProfileRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/clients': typeof AuthenticatedClientsIndexRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
@@ -124,9 +149,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/_authenticated': typeof AuthenticatedRouteWithChildren;
+  '/accept-invitation': typeof AcceptInvitationRoute;
   '/login': typeof LoginRoute;
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
+  '/_authenticated/organization': typeof AuthenticatedOrganizationRoute;
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute;
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
@@ -140,9 +168,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
+    | '/accept-invitation'
     | '/login'
     | '/clients'
     | '/dashboard'
+    | '/organization'
+    | '/profile'
     | '/clients/$clientId'
     | '/clients/new'
     | '/clients/'
@@ -154,8 +185,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
+    | '/accept-invitation'
     | '/login'
     | '/dashboard'
+    | '/organization'
+    | '/profile'
     | '/clients/new'
     | '/clients'
     | '/clients/$clientId'
@@ -166,9 +200,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/accept-invitation'
     | '/login'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
+    | '/_authenticated/organization'
+    | '/_authenticated/profile'
     | '/_authenticated/clients/$clientId'
     | '/_authenticated/clients/new'
     | '/_authenticated/clients/'
@@ -182,6 +219,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
+  AcceptInvitationRoute: typeof AcceptInvitationRoute;
   LoginRoute: typeof LoginRoute;
 }
 
@@ -199,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '';
       fullPath: '/';
       preLoaderRoute: typeof AuthenticatedRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/accept-invitation': {
+      id: '/accept-invitation';
+      path: '/accept-invitation';
+      fullPath: '/accept-invitation';
+      preLoaderRoute: typeof AcceptInvitationRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/login': {
@@ -220,6 +265,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard';
       fullPath: '/dashboard';
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    '/_authenticated/organization': {
+      id: '/_authenticated/organization';
+      path: '/organization';
+      fullPath: '/organization';
+      preLoaderRoute: typeof AuthenticatedOrganizationRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile';
+      path: '/profile';
+      fullPath: '/profile';
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/clients/': {
@@ -339,11 +398,15 @@ const AuthenticatedClientsRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren;
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
+  AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRoute;
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedOrganizationRoute: AuthenticatedOrganizationRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
 };
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -353,6 +416,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AcceptInvitationRoute: AcceptInvitationRoute,
   LoginRoute: LoginRoute,
 };
 export const routeTree = rootRouteImport

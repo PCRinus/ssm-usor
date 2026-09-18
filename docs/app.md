@@ -29,7 +29,8 @@ pnpm dev:app
 
 Open `http://localhost:5173/`. An existing Supabase email/password user can sign in.
 The [development admin guide](development-admin.md) documents the seeded account and how to
-rerun the seed. Registration is not exposed. Missing configuration produces an unavailable
+rerun the seed. Registration is not exposed; an account is created only by accepting an
+invitation. Missing configuration produces an unavailable
 screen instead of a broken form.
 
 For deployment, supply the same public variables when **building** the SPA. Setting Worker
@@ -97,8 +98,11 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | ------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `routes/index.tsx`                                                  | `/`                                  | Redirects to `/dashboard`, which checks the session.                                                                                                      |
 | `routes/login.tsx`                                                  | `/login`                             | Email/password form; an existing session redirects to `/dashboard`.                                                                                       |
+| `routes/accept-invitation.tsx`                                      | `/accept-invitation`                 | Public. Where an invitation email lands: create an account, or join with an existing one.                                                                 |
 | `routes/_authenticated.tsx`                                         | pathless                             | Session guard and the app shell for every protected page.                                                                                                 |
 | `routes/_authenticated/dashboard.tsx`                               | `/dashboard`                         | Protected landing page with the account email and logout.                                                                                                 |
+| `routes/_authenticated/organization.tsx`                            | `/organization`                      | The organization's members for everyone; pending invitations and the invite dialog for owners.                                                            |
+| `routes/_authenticated/profile.tsx`                                 | `/profile`                           | The user's name (editable), email, and organization.                                                                                                      |
 | `routes/_authenticated/clients.tsx`                                 | pathless                             | Clients section layout carrying the breadcrumb title.                                                                                                     |
 | `routes/_authenticated/clients/index.tsx`                           | `/clients`                           | Protected, paginated and sortable list of the organization's active clients.                                                                              |
 | `routes/_authenticated/clients/new.tsx`                             | `/clients/new`                       | Protected form that creates a client, with ANAF prefill by CUI.                                                                                           |
@@ -143,6 +147,27 @@ These browser guards control navigation only. The [Hono API](api.md) independent
 tokens for `/me`. Application permissions belong in API handlers as business routes are added;
 being signed in does not itself make a user an administrator. The dashboard loads the verified account identity through the generated client.
 Business data and application roles will be added in later steps.
+
+## Accepting an invitation
+
+`/accept-invitation?token=…` is the second public route. It posts the token to
+`/invitations/lookup`, which changes nothing, and then shows one of:
+
+- a form for the name and a password when the address has no account. Submitting calls
+  `/invitations/accept`, signs in with the password just typed, and opens the dashboard; if
+  only that sign-in fails, the person lands on the login page with their new account.
+- a prompt to sign in when the address has an account. The login page takes the token as
+  `?invitation=` and returns here afterwards. It accepts a token only, never a URL, so it
+  cannot be used to redirect elsewhere.
+- an accept button when the signed-in account has the invited address, with a name field
+  only if the account has no profile. It calls `/invitations/join` and opens `/organization`.
+- a request to sign out when the signed-in account has another address.
+- an explanation for an expired, revoked, already accepted, or unknown link.
+
+The password rules in `src/invitations/accept-schema.ts` mirror `newPasswordSchema` in the
+contracts and the Supabase policy. The terms are shown as a notice with links, and the
+version sent is `currentTermsVersion` from the contracts. The browser's default referrer
+policy keeps the query string, and so the token, out of requests to other origins.
 
 ## Verification
 
@@ -226,6 +251,24 @@ mobile navigation link closes the Sheet.
   request, mirroring the API rule. Saving posts to `POST /clients/{clientId}/employees`,
   invalidates every filtered variant of the list, and returns to it; a duplicate CNP or
   number is shown on its field and an archived client on the form.
+
+- `/organization`: the organization's name, the caller's role, and the members from
+  `GET /organization/members`. An owner also gets the pending invitations with resend and
+  revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a
+  conflict decides the wording: an address that is already a member or was emailed in the
+  last 10 minutes is reported on the email field, the 20-invitation limit on the form.
+  Hiding the owner's tools is a courtesy; the API and the database enforce the rule. An
+  account without an organization is told to ask for an invitation.
+- `/profile`: a form for the user's name backed by `PATCH /me/profile`, with the email
+  read-only. Saving refreshes `/me`, so the account menu follows.
+
+`src/account/use-me.ts` is the one `/me` query the shell, the dashboard, and these pages
+share. The account menu shows the user's name and organization once it has loaded, and falls
+back to "Contul meu" and the email.
+
+Actions that leave the user on the same page (invitation sent, resent, revoked, profile
+saved) are confirmed with a Sonner toast, mounted once in `App.tsx`. Errors and field
+validation stay inline with `role="alert"`, next to their cause, so they persist.
 
 Sign-out is available from the sidebar account menu on every authenticated route.
 Failed sign-out keeps the session and displays a retry action in the shared layout.

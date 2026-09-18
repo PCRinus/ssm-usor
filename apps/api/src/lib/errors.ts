@@ -25,7 +25,9 @@ export class ApiError extends Error {
     readonly code: ApiErrorCode,
     message: string = defaultMessages[code],
     // Field-level details for validation errors raised by handlers, not by body parsing.
-    readonly issues?: ApiErrorResponse['issues']
+    readonly issues?: ApiErrorResponse['issues'],
+    // A stable identifier for an error the client words itself.
+    readonly reason?: string
   ) {
     super(message);
     this.name = 'ApiError';

@@ -21,6 +21,11 @@ export const membershipErrors = {
   403: { description: 'The account is not a member of an organization', content: errorContent },
 } as const;
 
+export const ownerErrors = {
+  ...authErrors,
+  403: { description: 'The account is not an owner of an organization', content: errorContent },
+} as const;
+
 export const bearerSecurity = [{ bearerAuth: [] }];
 
 export const openApiConfig = {

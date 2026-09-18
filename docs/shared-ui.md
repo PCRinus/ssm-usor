@@ -70,6 +70,10 @@ neutral registry defaults. Sidebar colors are also mapped through the shared des
 Responsive and sidebar context hooks live in `packages/ui/src/hooks`; import `useSidebar`
 from `@ssm-usor/ui/hooks/use-sidebar`.
 
+`sonner.tsx` differs from the registry version: it does not read a theme from `next-themes`,
+because the app has one light theme, so re-adding it with the CLI would bring that dependency back. `toast` is re-exported from
+`@ssm-usor/ui/lib/toast`, so applications need no dependency on `sonner` of their own.
+
 Review any generated CSS additions: keep brand token definitions in `packages/design-tokens`.
 Run formatting, linting, type checks, and builds after adding components:
 

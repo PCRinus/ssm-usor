@@ -10,6 +10,7 @@
   "vars": {
     "CORS_ORIGINS": "https://app.ssmusor.ro",
     "API_ORIGIN": "https://api.ssmusor.ro",
+    "APP_ORIGIN": "https://app.ssmusor.ro",
     "MARKETING_ORIGIN": "https://ssmusor.ro",
   },
   // apps/mail has no routes; this binding is the only way to reach it.

@@ -61,6 +61,7 @@ export interface ApiErrorResponse {
   error: ApiErrorResponseError;
   message: string;
   issues?: ApiErrorResponseIssuesItem[];
+  reason?: string;
 }
 
 export type MeResponseUser = {
@@ -69,8 +70,60 @@ export type MeResponseUser = {
   email: string | null;
 };
 
+/**
+ * @nullable
+ */
+export type MeResponseProfile = {
+  fullName: string;
+  /** @nullable */
+  termsVersion: string | null;
+  /** @nullable */
+  termsAcceptedAt: string | null;
+} | null;
+
+export type MeResponseMembershipOrganization = {
+  id: string;
+  name: string;
+};
+
+export type MeResponseMembershipRole =
+  (typeof MeResponseMembershipRole)[keyof typeof MeResponseMembershipRole];
+
+export const MeResponseMembershipRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+/**
+ * @nullable
+ */
+export type MeResponseMembership = {
+  organization: MeResponseMembershipOrganization;
+  role: MeResponseMembershipRole;
+} | null;
+
 export interface MeResponse {
   user: MeResponseUser;
+  /** @nullable */
+  profile: MeResponseProfile;
+  /** @nullable */
+  membership: MeResponseMembership;
+}
+
+export interface ProfileResponse {
+  fullName: string;
+  /** @nullable */
+  termsVersion: string | null;
+  /** @nullable */
+  termsAcceptedAt: string | null;
+}
+
+export interface UpdateProfileRequest {
+  /**
+   * @minLength 2
+   * @maxLength 120
+   */
+  fullName: string;
 }
 
 /**
@@ -632,6 +685,189 @@ export type UpdateEmployeeStatusRequest =
       status: 'active';
     };
 
+export type OrganizationMemberListResponseItemsItemRole =
+  (typeof OrganizationMemberListResponseItemsItemRole)[keyof typeof OrganizationMemberListResponseItemsItemRole];
+
+export const OrganizationMemberListResponseItemsItemRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export type OrganizationMemberListResponseItemsItem = {
+  userId: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  fullName: string | null;
+  role: OrganizationMemberListResponseItemsItemRole;
+  joinedAt: string;
+};
+
+export interface OrganizationMemberListResponse {
+  items: OrganizationMemberListResponseItemsItem[];
+}
+
+export type InvitationListResponseItemsItemRole =
+  (typeof InvitationListResponseItemsItemRole)[keyof typeof InvitationListResponseItemsItemRole];
+
+export const InvitationListResponseItemsItemRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export type InvitationListResponseItemsItemStatus =
+  (typeof InvitationListResponseItemsItemStatus)[keyof typeof InvitationListResponseItemsItemStatus];
+
+export const InvitationListResponseItemsItemStatus = {
+  open: 'open',
+  expired: 'expired',
+} as const;
+
+export type InvitationListResponseItemsItem = {
+  id: string;
+  email: string;
+  role: InvitationListResponseItemsItemRole;
+  status: InvitationListResponseItemsItemStatus;
+  /** @nullable */
+  sentAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export interface InvitationListResponse {
+  items: InvitationListResponseItemsItem[];
+}
+
+export type InvitationResponseRole =
+  (typeof InvitationResponseRole)[keyof typeof InvitationResponseRole];
+
+export const InvitationResponseRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export type InvitationResponseStatus =
+  (typeof InvitationResponseStatus)[keyof typeof InvitationResponseStatus];
+
+export const InvitationResponseStatus = {
+  open: 'open',
+  expired: 'expired',
+} as const;
+
+export interface InvitationResponse {
+  id: string;
+  email: string;
+  role: InvitationResponseRole;
+  status: InvitationResponseStatus;
+  /** @nullable */
+  sentAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export type CreateInvitationRequestRole =
+  (typeof CreateInvitationRequestRole)[keyof typeof CreateInvitationRequestRole];
+
+export const CreateInvitationRequestRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export interface CreateInvitationRequest {
+  email: string;
+  role?: CreateInvitationRequestRole;
+}
+
+export type InvitationLookupResponseRole =
+  (typeof InvitationLookupResponseRole)[keyof typeof InvitationLookupResponseRole];
+
+export const InvitationLookupResponseRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export type InvitationLookupResponseStatus =
+  (typeof InvitationLookupResponseStatus)[keyof typeof InvitationLookupResponseStatus];
+
+export const InvitationLookupResponseStatus = {
+  open: 'open',
+  expired: 'expired',
+  revoked: 'revoked',
+  accepted: 'accepted',
+} as const;
+
+export interface InvitationLookupResponse {
+  organizationName: string;
+  email: string;
+  role: InvitationLookupResponseRole;
+  status: InvitationLookupResponseStatus;
+  /** @nullable */
+  inviterName: string | null;
+  accountExists: boolean;
+  expiresAt: string;
+}
+
+export interface InvitationLookupRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  token: string;
+}
+
+export interface InvitationAcceptedResponse {
+  organizationId: string;
+  email: string;
+}
+
+export type AcceptInvitationRequestTermsVersion =
+  (typeof AcceptInvitationRequestTermsVersion)[keyof typeof AcceptInvitationRequestTermsVersion];
+
+export const AcceptInvitationRequestTermsVersion = {
+  '2026-09': '2026-09',
+} as const;
+
+export interface AcceptInvitationRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  token: string;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   */
+  fullName: string;
+  /**
+   * @minLength 8
+   * @maxLength 72
+   * @pattern [a-z]
+   */
+  password: string;
+  termsVersion: AcceptInvitationRequestTermsVersion;
+}
+
+export type JoinWithInvitationRequestTermsVersion =
+  (typeof JoinWithInvitationRequestTermsVersion)[keyof typeof JoinWithInvitationRequestTermsVersion];
+
+export const JoinWithInvitationRequestTermsVersion = {
+  '2026-09': '2026-09',
+} as const;
+
+export interface JoinWithInvitationRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  token: string;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   */
+  fullName?: string;
+  termsVersion: JoinWithInvitationRequestTermsVersion;
+}
+
 export type WaitlistSubscribeResponseStatus =
   (typeof WaitlistSubscribeResponseStatus)[keyof typeof WaitlistSubscribeResponseStatus];
 
@@ -875,7 +1111,8 @@ export const getGetMeUrl = () => {
 };
 
 /**
- * @summary Get the authenticated user
+ * Answers for an account without a membership too, with `membership: null`, so the SPA can tell that apart from a failure.
+ * @summary Get the authenticated user, their profile, and their organization
  */
 export const getMe = async (options?: Parameters<typeof apiFetch>[1]): Promise<MeResponse> => {
   return apiFetch<MeResponse>(getGetMeUrl(), {
@@ -959,7 +1196,7 @@ export function useGetMe<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get the authenticated user
+ * @summary Get the authenticated user, their profile, and their organization
  */
 
 export function useGetMe<
@@ -980,6 +1217,111 @@ export function useGetMe<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getUpdateProfileUrl = () => {
+  return `/me/profile`;
+};
+
+/**
+ * Creates the profile when the account has none yet.
+ * @summary Change the authenticated user's name
+ */
+export const updateProfile = async (
+  updateProfileRequest: UpdateProfileRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ProfileResponse>(getUpdateProfileUrl(), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateProfileRequest),
+  });
+};
+
+export const getUpdateProfileMutationKey = () => ['updateProfile'] as const;
+
+export const getUpdateProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProfile>>,
+    TError,
+    UpdateProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProfile>>,
+  TError,
+  UpdateProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProfile>>,
+    UpdateProfileMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateProfile>>>;
+export type UpdateProfileMutationBody = UpdateProfileRequest;
+export type UpdateProfileMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateProfileMutationVariables = { data: UpdateProfileRequest };
+
+/**
+ * @summary Change the authenticated user's name
+ */
+export const useUpdateProfile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateProfile>>,
+      TError,
+      UpdateProfileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateProfile>>,
+  TError,
+  UpdateProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateProfileMutationOptions(options), queryClient);
+};
 
 export const getListClientsUrl = (params?: ListClientsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -1967,6 +2309,847 @@ export const useUpdateEmployeeStatus = <TError = ErrorType<ApiErrorResponse>, TC
   TContext
 > => {
   return useMutation(getUpdateEmployeeStatusMutationOptions(options), queryClient);
+};
+
+export const getListOrganizationMembersUrl = () => {
+  return `/organization/members`;
+};
+
+/**
+ * Every member may read it. Ordered by when people joined; not paginated.
+ * @summary List the organization's members
+ */
+export const listOrganizationMembers = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationMemberListResponse> => {
+  return apiFetch<OrganizationMemberListResponse>(getListOrganizationMembersUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListOrganizationMembersQueryKey = () => {
+  return [`/organization/members`] as const;
+};
+
+export const getListOrganizationMembersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListOrganizationMembersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationMembers>>> = ({
+    signal,
+  }) => listOrganizationMembers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOrganizationMembers>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListOrganizationMembersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOrganizationMembers>>
+>;
+export type ListOrganizationMembersQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListOrganizationMembers<
+  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationMembers>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationMembers>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOrganizationMembers<
+  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationMembers>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationMembers>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOrganizationMembers<
+  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's members
+ */
+
+export function useListOrganizationMembers<
+  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListOrganizationMembersQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListInvitationsUrl = () => {
+  return `/organization/invitations`;
+};
+
+/**
+ * Owners only. Open and expired invitations, newest first; accepted and revoked ones are left out.
+ * @summary List the organization's pending invitations
+ */
+export const listInvitations = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InvitationListResponse> => {
+  return apiFetch<InvitationListResponse>(getListInvitationsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListInvitationsQueryKey = () => {
+  return [`/organization/invitations`] as const;
+};
+
+export const getListInvitationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInvitationsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listInvitations>>> = ({ signal }) =>
+    listInvitations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInvitations>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListInvitationsQueryResult = NonNullable<Awaited<ReturnType<typeof listInvitations>>>;
+export type ListInvitationsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListInvitations<
+  TData = Awaited<ReturnType<typeof listInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listInvitations>>,
+          TError,
+          Awaited<ReturnType<typeof listInvitations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListInvitations<
+  TData = Awaited<ReturnType<typeof listInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listInvitations>>,
+          TError,
+          Awaited<ReturnType<typeof listInvitations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListInvitations<
+  TData = Awaited<ReturnType<typeof listInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's pending invitations
+ */
+
+export function useListInvitations<
+  TData = Awaited<ReturnType<typeof listInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListInvitationsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateInvitationUrl = () => {
+  return `/organization/invitations`;
+};
+
+/**
+ * Owners only. Inviting an address that already has a pending invitation renews it and sends a fresh link. The response never says whether the address has an account.
+ * @summary Invite a person into the organization by email
+ */
+export const createInvitation = async (
+  createInvitationRequest: CreateInvitationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InvitationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InvitationResponse>(getCreateInvitationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createInvitationRequest),
+  });
+};
+
+export const getCreateInvitationMutationKey = () => ['createInvitation'] as const;
+
+export const getCreateInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInvitation>>,
+    TError,
+    CreateInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createInvitation>>,
+  TError,
+  CreateInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createInvitation>>,
+    CreateInvitationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createInvitation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createInvitation>>
+>;
+export type CreateInvitationMutationBody = CreateInvitationRequest;
+export type CreateInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type CreateInvitationMutationVariables = { data: CreateInvitationRequest };
+
+/**
+ * @summary Invite a person into the organization by email
+ */
+export const useCreateInvitation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createInvitation>>,
+      TError,
+      CreateInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createInvitation>>,
+  TError,
+  CreateInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateInvitationMutationOptions(options), queryClient);
+};
+
+export const getResendInvitationUrl = (invitationId: string) => {
+  return `/organization/invitations/${invitationId}/resend`;
+};
+
+/**
+ * Owners only. The earlier link stops working.
+ * @summary Renew a pending invitation and email a fresh link
+ */
+export const resendInvitation = async (
+  invitationId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InvitationResponse> => {
+  return apiFetch<InvitationResponse>(getResendInvitationUrl(invitationId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getResendInvitationMutationKey = () => ['resendInvitation'] as const;
+
+export const getResendInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendInvitation>>,
+    TError,
+    ResendInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resendInvitation>>,
+  TError,
+  ResendInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getResendInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resendInvitation>>,
+    ResendInvitationMutationVariables
+  > = (props) => {
+    const { invitationId } = props ?? {};
+
+    return resendInvitation(invitationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResendInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resendInvitation>>
+>;
+
+export type ResendInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type ResendInvitationMutationVariables = { invitationId: string };
+
+/**
+ * @summary Renew a pending invitation and email a fresh link
+ */
+export const useResendInvitation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof resendInvitation>>,
+      TError,
+      ResendInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof resendInvitation>>,
+  TError,
+  ResendInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getResendInvitationMutationOptions(options), queryClient);
+};
+
+export const getRevokeInvitationUrl = (invitationId: string) => {
+  return `/organization/invitations/${invitationId}/revoke`;
+};
+
+/**
+ * Owners only. The emailed link stops working.
+ * @summary Revoke a pending invitation
+ */
+export const revokeInvitation = async (
+  invitationId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRevokeInvitationUrl(invitationId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getRevokeInvitationMutationKey = () => ['revokeInvitation'] as const;
+
+export const getRevokeInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeInvitation>>,
+    TError,
+    RevokeInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeInvitation>>,
+  TError,
+  RevokeInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRevokeInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeInvitation>>,
+    RevokeInvitationMutationVariables
+  > = (props) => {
+    const { invitationId } = props ?? {};
+
+    return revokeInvitation(invitationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeInvitation>>
+>;
+
+export type RevokeInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type RevokeInvitationMutationVariables = { invitationId: string };
+
+/**
+ * @summary Revoke a pending invitation
+ */
+export const useRevokeInvitation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof revokeInvitation>>,
+      TError,
+      RevokeInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof revokeInvitation>>,
+  TError,
+  RevokeInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getRevokeInvitationMutationOptions(options), queryClient);
+};
+
+export const getLookupInvitationUrl = () => {
+  return `/invitations/lookup`;
+};
+
+/**
+ * Public, and changes nothing, so a mail scanner opening the link cannot accept. A POST keeps the token out of URLs.
+ * @summary Describe the invitation behind an emailed token
+ */
+export const lookupInvitation = async (
+  invitationLookupRequest: InvitationLookupRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InvitationLookupResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InvitationLookupResponse>(getLookupInvitationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationLookupRequest),
+  });
+};
+
+export const getLookupInvitationMutationKey = () => ['lookupInvitation'] as const;
+
+export const getLookupInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof lookupInvitation>>,
+    TError,
+    LookupInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof lookupInvitation>>,
+  TError,
+  LookupInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getLookupInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof lookupInvitation>>,
+    LookupInvitationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return lookupInvitation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LookupInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof lookupInvitation>>
+>;
+export type LookupInvitationMutationBody = InvitationLookupRequest;
+export type LookupInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type LookupInvitationMutationVariables = { data: InvitationLookupRequest };
+
+/**
+ * @summary Describe the invitation behind an emailed token
+ */
+export const useLookupInvitation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof lookupInvitation>>,
+      TError,
+      LookupInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof lookupInvitation>>,
+  TError,
+  LookupInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getLookupInvitationMutationOptions(options), queryClient);
+};
+
+export const getAcceptInvitationUrl = () => {
+  return `/invitations/accept`;
+};
+
+/**
+ * Public. For an address without an account; the token proves control of the mailbox, so the account is created confirmed. Sign in with the chosen password afterwards.
+ * @summary Create an account from an invitation and join the organization
+ */
+export const acceptInvitation = async (
+  acceptInvitationRequest: AcceptInvitationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InvitationAcceptedResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InvitationAcceptedResponse>(getAcceptInvitationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(acceptInvitationRequest),
+  });
+};
+
+export const getAcceptInvitationMutationKey = () => ['acceptInvitation'] as const;
+
+export const getAcceptInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptInvitation>>,
+    TError,
+    AcceptInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acceptInvitation>>,
+  TError,
+  AcceptInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAcceptInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acceptInvitation>>,
+    AcceptInvitationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return acceptInvitation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcceptInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acceptInvitation>>
+>;
+export type AcceptInvitationMutationBody = AcceptInvitationRequest;
+export type AcceptInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type AcceptInvitationMutationVariables = { data: AcceptInvitationRequest };
+
+/**
+ * @summary Create an account from an invitation and join the organization
+ */
+export const useAcceptInvitation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof acceptInvitation>>,
+      TError,
+      AcceptInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof acceptInvitation>>,
+  TError,
+  AcceptInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getAcceptInvitationMutationOptions(options), queryClient);
+};
+
+export const getJoinWithInvitationUrl = () => {
+  return `/invitations/join`;
+};
+
+/**
+ * For an account without a membership whose confirmed email is the invited address. `fullName` is required only when the account has no profile.
+ * @summary Join the organization with the signed-in account
+ */
+export const joinWithInvitation = async (
+  joinWithInvitationRequest: JoinWithInvitationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InvitationAcceptedResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InvitationAcceptedResponse>(getJoinWithInvitationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(joinWithInvitationRequest),
+  });
+};
+
+export const getJoinWithInvitationMutationKey = () => ['joinWithInvitation'] as const;
+
+export const getJoinWithInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinWithInvitation>>,
+    TError,
+    JoinWithInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof joinWithInvitation>>,
+  TError,
+  JoinWithInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getJoinWithInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof joinWithInvitation>>,
+    JoinWithInvitationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return joinWithInvitation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type JoinWithInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof joinWithInvitation>>
+>;
+export type JoinWithInvitationMutationBody = JoinWithInvitationRequest;
+export type JoinWithInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type JoinWithInvitationMutationVariables = { data: JoinWithInvitationRequest };
+
+/**
+ * @summary Join the organization with the signed-in account
+ */
+export const useJoinWithInvitation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof joinWithInvitation>>,
+      TError,
+      JoinWithInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof joinWithInvitation>>,
+  TError,
+  JoinWithInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getJoinWithInvitationMutationOptions(options), queryClient);
 };
 
 export const getSubscribeToWaitlistUrl = () => {

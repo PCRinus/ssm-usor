@@ -12,6 +12,8 @@ export type ApiEnv = {
     SUPABASE_SECRET_KEY?: string;
     TURNSTILE_SECRET_KEY?: string;
     MARKETING_ORIGIN?: string;
+    // Where the SPA lives, for links in emails.
+    APP_ORIGIN?: string;
     // Where this API is reachable from an email; the request URL is not reliable under wrangler dev.
     API_ORIGIN?: string;
     // Service binding to apps/mail.
@@ -42,6 +44,10 @@ export function allowedOrigins(env: ApiEnv['Bindings']) {
 
 export function marketingOrigin(env: ApiEnv['Bindings']) {
   return env.MARKETING_ORIGIN ?? 'https://ssmusor.ro';
+}
+
+export function appOrigin(env: ApiEnv['Bindings']) {
+  return env.APP_ORIGIN ?? 'https://app.ssmusor.ro';
 }
 
 export function apiOrigin(env: ApiEnv['Bindings']) {
