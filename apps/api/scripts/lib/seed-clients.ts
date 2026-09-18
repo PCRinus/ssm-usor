@@ -41,6 +41,24 @@ function fakeCui() {
   return `${body}${cuiControlDigit(body)}`;
 }
 
+// What the documents print about a client (ADR 005), for clients seeded with complete data.
+// Derived from the CUI, not drawn from faker: another draw would shift every later client of
+// the sequence, and a rerun would insert new clients next to the ones it should update.
+function documentDetails(cui: string, complete: boolean) {
+  if (!complete) return {};
+  const n = Number(cui);
+  const firstDay = 1 + (n % 10);
+  return {
+    legal_representative_role: n % 5 === 0 ? 'Director general' : 'Administrator',
+    periodic_training_hours: 1 + (n % 2),
+    administrative_training_interval_months: n % 3 === 0 ? 3 : 6,
+    worker_training_interval_months: 3,
+    training_first_month: 1 + (n % 3),
+    training_day_from: firstDay,
+    training_day_to: firstDay + 5,
+  } satisfies Partial<ClientInsert>;
+}
+
 // Deterministic for a given seed value, so reruns upsert the same rows.
 export function fakeClients(
   count: number,
@@ -76,6 +94,7 @@ export function fakeClients(
         { weight: 2, value: fakerRO.number.int({ min: 50, max: 400 }) },
       ]),
       created_by: createdBy,
+      ...documentDetails(cui, complete),
     });
   }
   return rows;
@@ -86,7 +105,9 @@ export async function seedClients(db: SeedClient, rows: ClientInsert[]) {
   const { data, error } = await db
     .from('clients')
     .upsert(rows, { onConflict: 'organization_id,cui' })
-    .select('id, declared_employee_count');
+    .select(
+      'id, declared_employee_count, county_code, locality, address_line, legal_representative_name, legal_representative_role'
+    );
   if (error) throw new Error(`Could not seed clients: ${error.message}`);
   return data;
 }

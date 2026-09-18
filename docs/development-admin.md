@@ -76,6 +76,17 @@ The script uses Supabase's Auth Admin API and, with the same secret key, PostgRE
 - Create the user's profile with `SEED_ADMIN_NAME`, keeping a name they have since changed.
 - With `--fake` (always on for `seed:local`), upsert deterministic fake clients keyed on
   organization and CUI, then a few fake employees per client keyed on a deterministic id.
+- With `--fake`, also what the generated documents print
+  ([ADR 005](architecture/adr-005-document-generation.md)). About four clients in five are
+  complete: they get a representative with a role and a training schedule, a registered office
+  from their address, an employee as workplace manager and first aider, and the representative
+  on the evaluation team and for imminent danger. The rest stay incomplete on purpose, to try
+  the "missing data" list of the generation form. The organization gets fake legal details
+  and the owner a professional title. Everything here keeps what was entered by hand: legal
+  details and the title are filled only while empty, and a client gets workplaces or
+  responsible persons only while it has none. The schedule is derived from the CUI rather
+  than drawn from faker, because another draw would shift every later client of the sequence
+  and a rerun would add clients instead of updating them.
 
 No invitation/confirmation email is sent. Supabase owns the authentication tables; the
 organization and client rows come from the checked-in migrations, which must already be applied.

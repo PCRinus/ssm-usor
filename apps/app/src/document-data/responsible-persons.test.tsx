@@ -24,6 +24,7 @@ const sampleClient = {
 };
 
 const emptyDetails = {
+  legalRepresentativeName: null,
   legalRepresentativeRole: null,
   periodicTrainingHours: null,
   administrativeTrainingIntervalMonths: null,

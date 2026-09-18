@@ -24,6 +24,7 @@ const sampleClient = {
 };
 
 const emptyDetails = {
+  legalRepresentativeName: null as string | null,
   legalRepresentativeRole: null,
   periodicTrainingHours: null,
   administrativeTrainingIntervalMonths: null,
@@ -34,6 +35,7 @@ const emptyDetails = {
 };
 
 const savedDetails = {
+  legalRepresentativeName: 'Maria Popescu',
   legalRepresentativeRole: 'Administrator',
   periodicTrainingHours: 2,
   administrativeTrainingIntervalMonths: 6,
@@ -97,8 +99,7 @@ describe('client document data', () => {
     expect(await screen.findByTestId('document-data-page')).toBeTruthy();
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).toEqual(['Angajați', 'Date pentru documente']);
-    const name = await screen.findByTestId<HTMLInputElement>('details-representative-name');
-    expect(name.value).toBe('Maria Popescu');
+    expect(await screen.findByTestId('details-representative-name')).toBeTruthy();
   });
 
   it('previews the training months as the first month and the intervals are chosen', async () => {
@@ -128,7 +129,11 @@ describe('client document data', () => {
     mount();
     const user = userEvent.setup();
 
-    await user.type(await screen.findByTestId('details-representative-role'), ' Administrator ');
+    // A client created without a representative gets one here.
+    const name = await screen.findByTestId<HTMLInputElement>('details-representative-name');
+    expect(name.value).toBe('');
+    await user.type(name, ' Maria Popescu ');
+    await user.type(screen.getByTestId('details-representative-role'), ' Administrator ');
     await user.selectOptions(screen.getByTestId('details-training-hours'), '2');
     await user.selectOptions(screen.getByTestId('details-first-month'), '2');
     await user.selectOptions(screen.getByTestId('details-administrative-interval'), '6');

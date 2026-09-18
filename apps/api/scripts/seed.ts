@@ -9,6 +9,11 @@ import { z } from 'zod';
 import type { Database } from '../src/database.types';
 import { seedAdmin, seedConfigSchema } from './lib/seed-admin';
 import { fakeClients, seedClients } from './lib/seed-clients';
+import {
+  seedDocumentData,
+  seedOrganizationLegalDetails,
+  seedProfessionalTitle,
+} from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedOrganization } from './lib/seed-organization';
 
@@ -143,6 +148,18 @@ try {
     const employees = fakeEmployees(clients, options.seed, organization.id, user.id);
     const employeeCount = await seedEmployees(client, employees);
     console.log(`Upserted ${employeeCount} fake employees across those clients.`);
+    // What the documents print (ADR 005). Each step keeps what has been entered by hand.
+    const filled = await seedOrganizationLegalDetails(client, config.SEED_ADMIN_NAME);
+    await seedProfessionalTitle(client, user.id);
+    console.log(
+      filled
+        ? 'Filled in fake legal details for the organization.'
+        : 'Kept the legal details the organization already has.'
+    );
+    const documentData = await seedDocumentData(client, clients, user.id);
+    console.log(
+      `Added ${documentData.workplaces} registered offices and ${documentData.persons} responsible persons to clients that had none.`
+    );
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'The seed failed.');

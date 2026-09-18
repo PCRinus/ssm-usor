@@ -1200,6 +1200,10 @@
           "documentDetails": {
             "type": "object",
             "properties": {
+              "legalRepresentativeName": {
+                "type": "string",
+                "nullable": true
+              },
               "legalRepresentativeRole": {
                 "type": "string",
                 "nullable": true
@@ -1242,6 +1246,7 @@
               }
             },
             "required": [
+              "legalRepresentativeName",
               "legalRepresentativeRole",
               "periodicTrainingHours",
               "administrativeTrainingIntervalMonths",
@@ -1257,6 +1262,12 @@
       "UpdateClientDocumentDetailsRequest": {
         "type": "object",
         "properties": {
+          "legalRepresentativeName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
           "legalRepresentativeRole": {
             "type": "string",
             "nullable": true,

@@ -47,6 +47,7 @@ const legalDetailsRow = {
 };
 
 const documentDetailsRow = {
+  legal_representative_name: 'Maria Popescu',
   legal_representative_role: 'Administrator',
   periodic_training_hours: 2,
   administrative_training_interval_months: 6,
@@ -204,6 +205,7 @@ describe('/clients/{clientId}/document-details', () => {
     expect(response.status).toBe(200);
     expect(clientDocumentDetailsResponseSchema.parse(await response.json())).toEqual({
       documentDetails: {
+        legalRepresentativeName: 'Maria Popescu',
         legalRepresentativeRole: 'Administrator',
         periodicTrainingHours: 2,
         administrativeTrainingIntervalMonths: 6,
@@ -218,11 +220,13 @@ describe('/clients/{clientId}/document-details', () => {
   it('replaces them, clearing what is left out', async () => {
     mockUpstream({ clients: () => Response.json(documentDetailsRow) });
     const response = await request(path, 'PUT', {
+      legalRepresentativeName: ' Maria Popescu ',
       legalRepresentativeRole: 'Administrator',
       periodicTrainingHours: 2,
     });
     expect(response.status).toBe(200);
     expect(sentBody('/rest/v1/clients')).toEqual({
+      legal_representative_name: 'Maria Popescu',
       legal_representative_role: 'Administrator',
       periodic_training_hours: 2,
       administrative_training_interval_months: null,

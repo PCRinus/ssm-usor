@@ -64,6 +64,8 @@ const trainingScheduleFields = {
 
 /** What documents print about a client beyond its registration data. */
 export const clientDocumentDetailsSchema = z.object({
+  // Also asked when the client is created; this is where it is corrected or filled in later.
+  legalRepresentativeName: z.string().nullable(),
   legalRepresentativeRole: z.string().nullable(),
   periodicTrainingHours: trainingScheduleFields.periodicTrainingHours.nullable(),
   administrativeTrainingIntervalMonths:
@@ -85,6 +87,7 @@ export type ClientDocumentDetailsResponse = z.infer<typeof clientDocumentDetails
 // Replaces all of them: a field left out or null is cleared.
 export const updateClientDocumentDetailsRequestSchema = z
   .object({
+    legalRepresentativeName: optionalText(2, 160),
     legalRepresentativeRole: optionalText(2, 80),
     periodicTrainingHours: trainingScheduleFields.periodicTrainingHours.nullish(),
     administrativeTrainingIntervalMonths:

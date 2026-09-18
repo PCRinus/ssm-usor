@@ -77,6 +77,8 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByTestId('document-details-save').click();
   await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
 
+  // The name given when the client was created can be corrected here.
+  await page.getByTestId('details-representative-name').fill('Maria-Ioana Popescu');
   await page.getByTestId('details-representative-role').fill('Administrator');
   await page.getByTestId('details-training-hours').selectOption('2');
   await page.getByTestId('details-first-month').selectOption('2');
@@ -89,6 +91,7 @@ test("a specialist sets a client's representative role and training schedule", a
   await expect(page.getByText('Datele pentru documente au fost salvate.')).toBeVisible();
 
   await page.reload();
+  await expect(page.getByTestId('details-representative-name')).toHaveValue('Maria-Ioana Popescu');
   await expect(page.getByTestId('details-representative-role')).toHaveValue('Administrator');
   await expect(page.getByTestId('details-worker-interval')).toHaveValue('3');
   await expect(page.getByText('Instruiri în: Februarie, August.')).toBeVisible();

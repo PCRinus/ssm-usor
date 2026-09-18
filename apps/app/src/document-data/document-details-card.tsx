@@ -12,6 +12,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import {
   type ClientDocumentDetailsResponse,
   getGetClientDocumentDetailsQueryKey,
+  getGetClientQueryKey,
   useGetClientDocumentDetails,
   useUpdateClientDocumentDetails,
 } from '../api/generated/api';
@@ -30,11 +31,10 @@ type DocumentDetails = ClientDocumentDetailsResponse['documentDetails'];
 
 interface ClientSummary {
   id: string;
-  legalRepresentativeName: string | null;
   archivedAt: string | null;
 }
 
-// The representative's role and the training schedule that the first decision sets.
+// The legal representative and the training schedule that the first decision sets.
 export function DocumentDetailsCard({ client, userId }: { client: ClientSummary; userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const details = useGetClientDocumentDetails(client.id, {
@@ -47,8 +47,9 @@ export function DocumentDetailsCard({ client, userId }: { client: ClientSummary;
       <CardHeader>
         <h2 className="text-lg font-semibold">Reprezentant și instruire periodică</h2>
         <p className="text-sm text-muted-foreground">
-          Decizia privind instruirea tipărește funcția reprezentantului legal și programul
-          instruirilor periodice. Calendarul termenelor va folosi același program.
+          Deciziile sunt emise de reprezentantul legal, cu numele și funcția de mai jos, iar decizia
+          privind instruirea tipărește programul instruirilor periodice. Calendarul termenelor va
+          folosi același program.
         </p>
       </CardHeader>
       <CardContent>
@@ -120,9 +121,13 @@ function DocumentDetailsForm({
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await update.mutateAsync({ clientId: client.id, data: toDocumentDetailsRequest(values) });
-      await queryClient.invalidateQueries({
-        queryKey: [...getGetClientDocumentDetailsQueryKey(client.id), userId],
-      });
+      // The client itself carries the name too.
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [...getGetClientDocumentDetailsQueryKey(client.id), userId],
+        }),
+        queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) }),
+      ]);
       toast.success('Datele pentru documente au fost salvate.');
     } catch (cause) {
       form.setError('root.server', {
@@ -150,15 +155,21 @@ function DocumentDetailsForm({
       <Field
         id="details-representative-name"
         label="Reprezentant legal"
-        hint="Numele introdus la crearea clientului."
+        hint="Numele și prenumele, așa cum apar în decizii."
+        error={errors.legalRepresentativeName}
       >
         <Input
           id="details-representative-name"
           data-testid="details-representative-name"
-          value={client.legalRepresentativeName ?? '—'}
-          readOnly
-          aria-describedby="details-representative-name-hint"
-          className="bg-muted"
+          autoComplete="off"
+          disabled={locked}
+          aria-invalid={Boolean(errors.legalRepresentativeName)}
+          aria-describedby={describedBy(
+            'details-representative-name',
+            errors.legalRepresentativeName,
+            true
+          )}
+          {...form.register('legalRepresentativeName')}
         />
       </Field>
       <Field

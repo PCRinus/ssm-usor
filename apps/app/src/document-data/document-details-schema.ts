@@ -21,6 +21,14 @@ const wholeNumber = (min: number, max: number, message: string) =>
 
 export const documentDetailsFormSchema = z
   .object({
+    legalRepresentativeName: z
+      .string()
+      .trim()
+      .max(160, 'Numele are cel mult 160 de caractere.')
+      .refine(
+        (value) => value.length === 0 || value.length >= 2,
+        'Numele are cel puțin 2 caractere.'
+      ),
     legalRepresentativeRole: z
       .string()
       .trim()
@@ -50,6 +58,7 @@ const text = (value: number | string | null) => (value === null ? '' : String(va
 
 export function toDocumentDetailsForm(details: DocumentDetails): DocumentDetailsFormValues {
   return {
+    legalRepresentativeName: text(details.legalRepresentativeName),
     legalRepresentativeRole: text(details.legalRepresentativeRole),
     periodicTrainingHours: text(details.periodicTrainingHours),
     administrativeTrainingIntervalMonths: text(details.administrativeTrainingIntervalMonths),
@@ -67,6 +76,7 @@ export function toDocumentDetailsRequest(
   values: DocumentDetailsFormValues
 ): UpdateClientDocumentDetailsRequest {
   return {
+    legalRepresentativeName: values.legalRepresentativeName || null,
     legalRepresentativeRole: values.legalRepresentativeRole || null,
     periodicTrainingHours: numberOrNull(values.periodicTrainingHours),
     administrativeTrainingIntervalMonths: numberOrNull(values.administrativeTrainingIntervalMonths),

@@ -116,7 +116,7 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees.tsx`             | pathless                             | Employees section layout carrying the breadcrumb title.                                                                                                   |
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`       | `/clients/:id/employees`             | The client's employees with a status filter in the search params.                                                                                         |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`         | `/clients/:id/employees/new`         | Form that adds an employee to the client.                                                                                                                 |
-| `routes/_authenticated/clients/$clientId/document-data.tsx`         | `/clients/:id/document-data`         | What the client's generated documents print: the representative's role and the training schedule.                                                         |
+| `routes/_authenticated/clients/$clientId/document-data.tsx`         | `/clients/:id/document-data`         | What the client's generated documents print: the representative, the training schedule, workplaces, and responsible persons.                              |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx` | `/clients/:id/employees/:employeeId` | Employee record, the only page that can reveal the CNP.                                                                                                   |
 | `routes/__root.tsx`                                                 | other paths                          | Not-found screen with a link back to the start; route error screen.                                                                                       |
 
@@ -321,7 +321,7 @@ mobile navigation link closes the Sheet.
 
 - `/clients/:clientId/document-data`: the "Date pentru documente" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005). The first card holds
-  the legal representative's role, next to the read-only name, and the periodic training
+  the legal representative's name and role, and the periodic training
   schedule: duration, interval for administrative staff and for workers, first month, and the
   days of the month. It previews the resulting months ("Instruiri în: Februarie, August.")
   with `trainingMonths` from the contracts, the same function the documents will use. Workers
