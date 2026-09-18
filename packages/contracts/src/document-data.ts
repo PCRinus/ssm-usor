@@ -193,3 +193,14 @@ export const responsiblePersonRequestSchema = z.object({
 });
 
 export type ResponsiblePersonRequest = z.infer<typeof responsiblePersonRequestSchema>;
+
+/**
+ * The months of the year with a periodic training: the first month, then every `interval`
+ * months until the year ends. February every 3 months gives 2, 5, 8, 11. Documents print
+ * this list, and the form previews it.
+ */
+export function trainingMonths(firstMonth: number, intervalMonths: number): number[] {
+  const months: number[] = [];
+  for (let month = firstMonth; month <= 12; month += intervalMonths) months.push(month);
+  return months;
+}

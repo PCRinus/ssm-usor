@@ -116,6 +116,7 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees.tsx`             | pathless                             | Employees section layout carrying the breadcrumb title.                                                                                                   |
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`       | `/clients/:id/employees`             | The client's employees with a status filter in the search params.                                                                                         |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`         | `/clients/:id/employees/new`         | Form that adds an employee to the client.                                                                                                                 |
+| `routes/_authenticated/clients/$clientId/document-data.tsx`         | `/clients/:id/document-data`         | What the client's generated documents print: the representative's role and the training schedule.                                                         |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx` | `/clients/:id/employees/:employeeId` | Employee record, the only page that can reveal the CNP.                                                                                                   |
 | `routes/__root.tsx`                                                 | other paths                          | Not-found screen with a link back to the start; route error screen.                                                                                       |
 
@@ -318,6 +319,15 @@ mobile navigation link closes the Sheet.
   invalidates every filtered variant of the list, and returns to it; a duplicate CNP or
   number is shown on its field and an archived client on the form.
 
+- `/clients/:clientId/document-data`: the "Date pentru documente" section of a client, what its
+  generated documentation prints beyond the registration data (ADR 005). The first card holds
+  the legal representative's role, next to the read-only name, and the periodic training
+  schedule: duration, interval for administrative staff and for workers, first month, and the
+  days of the month. It previews the resulting months ("Instruiri în: Februarie, August.")
+  with `trainingMonths` from the contracts, the same function the documents will use. Workers
+  are offered no interval above six months. `PUT /clients/{clientId}/document-details`
+  replaces every field, so an emptied input clears what was saved. An archived client is
+  shown read-only. Workplaces and responsible persons join this section next.
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and
   revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a

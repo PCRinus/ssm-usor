@@ -43,6 +43,22 @@ export async function createOrganization(name: string, ownerId: string) {
   return organization.data.id;
 }
 
+// A client company of the organization. Removed with it by `cleanUp`.
+export async function createClientCompany(organizationId: string, legalName: string) {
+  const client = await admin
+    .from('clients')
+    .insert({
+      organization_id: organizationId,
+      legal_name: legalName,
+      cui: '1590082',
+      legal_representative_name: 'Maria Popescu',
+    })
+    .select('id')
+    .single();
+  if (client.error) throw client.error;
+  return client.data.id as string;
+}
+
 // What the recovery email would carry, without sending one.
 export async function recoveryTokenHash(email: string) {
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
@@ -68,6 +84,8 @@ export async function cleanUp() {
     await admin.auth.admin.deleteUser(id);
   }
   for (const id of created.organizations) {
+    // Clients restrict the deletion of their organization.
+    await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }
 }

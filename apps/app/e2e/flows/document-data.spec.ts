@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { cleanUp, createAccount, createOrganization, signIn } from './support';
+import { cleanUp, createAccount, createClientCompany, createOrganization, signIn } from './support';
 
 test.afterAll(cleanUp);
 
@@ -52,4 +52,38 @@ test('a person sets their professional title on the profile page', async ({ page
 
   await page.reload();
   await expect(page.getByTestId('profile-professional-title')).toHaveValue('Evaluator autorizat');
+});
+
+test("a specialist sets a client's representative role and training schedule", async ({ page }) => {
+  const owner = await createAccount('schedule-owner', 'Sorin Program');
+  const organizationId = await createOrganization('Program instruire E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT PROGRAM E2E SRL');
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.goto(`/clients/${clientId}/employees`);
+  await page.getByRole('link', { name: 'Date pentru documente' }).click();
+  await expect(page.getByTestId('details-representative-name')).toHaveValue('Maria Popescu');
+
+  await page.getByTestId('details-day-from').fill('12');
+  await page.getByTestId('details-day-to').fill('7');
+  await page.getByTestId('document-details-save').click();
+  await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
+
+  await page.getByTestId('details-representative-role').fill('Administrator');
+  await page.getByTestId('details-training-hours').selectOption('2');
+  await page.getByTestId('details-first-month').selectOption('2');
+  await page.getByTestId('details-administrative-interval').selectOption('6');
+  await page.getByTestId('details-worker-interval').selectOption('3');
+  // The preview follows the selects while typing, before anything is saved.
+  await expect(page.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeVisible();
+  await page.getByTestId('details-day-from').fill('2');
+  await page.getByTestId('document-details-save').click();
+  await expect(page.getByText('Datele pentru documente au fost salvate.')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId('details-representative-role')).toHaveValue('Administrator');
+  await expect(page.getByTestId('details-worker-interval')).toHaveValue('3');
+  await expect(page.getByText('Instruiri în: Februarie, August.')).toBeVisible();
+  await expect(page.getByTestId('document-details-save')).toBeDisabled();
 });
