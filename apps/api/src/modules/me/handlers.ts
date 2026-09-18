@@ -5,10 +5,11 @@ import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import type { listMyInvitationsRoute, meRoute, updateProfileRoute } from './routes';
 
-const profileColumns = 'full_name, terms_version, terms_accepted_at';
+const profileColumns = 'full_name, professional_title, terms_version, terms_accepted_at';
 
 interface ProfileRow {
   full_name: string;
+  professional_title: string | null;
   terms_version: string | null;
   terms_accepted_at: string | null;
 }
@@ -16,6 +17,7 @@ interface ProfileRow {
 function toProfile(row: ProfileRow): Profile {
   return {
     fullName: row.full_name,
+    professionalTitle: row.professional_title,
     termsVersion: row.terms_version,
     termsAcceptedAt: row.terms_accepted_at ? new Date(row.terms_accepted_at).toISOString() : null,
   };
@@ -50,14 +52,19 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
 };
 
 export const updateProfile: RouteHandler<typeof updateProfileRoute, ApiEnv> = async (c) => {
-  const { fullName } = c.req.valid('json');
+  const { fullName, professionalTitle } = c.req.valid('json');
   const user = c.get('user');
   const db = createDataClient(c);
+  // Left out, the title stays as it is; null clears it.
+  const changes = {
+    full_name: fullName,
+    ...(professionalTitle === undefined ? {} : { professional_title: professionalTitle }),
+  };
 
   // Not an upsert: the user may write only `full_name`, and an upsert also sets the key.
   const updated = await db
     .from('profiles')
-    .update({ full_name: fullName })
+    .update(changes)
     .eq('user_id', user.id)
     .select(profileColumns)
     .maybeSingle();
@@ -70,7 +77,17 @@ export const updateProfile: RouteHandler<typeof updateProfileRoute, ApiEnv> = as
     .select(profileColumns)
     .single();
   if (created.error) throw fromDatabaseError(created.error, 'profile create');
-  return c.json(toProfile(created.data), 200);
+  if (!professionalTitle) return c.json(toProfile(created.data), 200);
+
+  // The insert grant covers the name only, so a title given with the first save follows it.
+  const titled = await db
+    .from('profiles')
+    .update({ professional_title: professionalTitle })
+    .eq('user_id', user.id)
+    .select(profileColumns)
+    .single();
+  if (titled.error) throw fromDatabaseError(titled.error, 'profile title');
+  return c.json(toProfile(titled.data), 200);
 };
 
 export const listMyInvitations: RouteHandler<typeof listMyInvitationsRoute, ApiEnv> = async (c) => {

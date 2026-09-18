@@ -19,6 +19,7 @@ export const organizationMemberSchema = z.object({
   email: z.email().nullable(),
   // Null for an account from before profiles existed that has not named itself yet.
   fullName: z.string().nullable(),
+  professionalTitle: z.string().nullable(),
   role: organizationRoleSchema,
   joinedAt: z.iso.datetime({ offset: true }),
 });

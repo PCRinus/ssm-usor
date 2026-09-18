@@ -8,6 +8,7 @@ import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
+import { documentDataRouter } from './modules/document-data';
 import { employeesRouter } from './modules/employees';
 import { healthRouter } from './modules/health';
 import { invitationsRouter } from './modules/invitations';
@@ -39,6 +40,7 @@ export function createApp() {
   app.route('/', clientsRouter);
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
+  app.route('/', documentDataRouter);
   app.route('/', organizationRouter);
   app.route('/', invitationsRouter);
   app.route('/', waitlistRouter);

@@ -91,6 +91,10 @@
               "fullName": {
                 "type": "string"
               },
+              "professionalTitle": {
+                "type": "string",
+                "nullable": true
+              },
               "termsVersion": {
                 "type": "string",
                 "nullable": true
@@ -101,7 +105,7 @@
                 "format": "date-time"
               }
             },
-            "required": ["fullName", "termsVersion", "termsAcceptedAt"]
+            "required": ["fullName", "professionalTitle", "termsVersion", "termsAcceptedAt"]
           },
           "membership": {
             "type": "object",
@@ -136,6 +140,10 @@
           "fullName": {
             "type": "string"
           },
+          "professionalTitle": {
+            "type": "string",
+            "nullable": true
+          },
           "termsVersion": {
             "type": "string",
             "nullable": true
@@ -146,7 +154,7 @@
             "format": "date-time"
           }
         },
-        "required": ["fullName", "termsVersion", "termsAcceptedAt"]
+        "required": ["fullName", "professionalTitle", "termsVersion", "termsAcceptedAt"]
       },
       "UpdateProfileRequest": {
         "type": "object",
@@ -155,6 +163,12 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 120
+          },
+          "professionalTitle": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
           }
         },
         "required": ["fullName"]
@@ -986,6 +1000,743 @@
           }
         ]
       },
+      "OrganizationLegalDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "legalDetails": {
+            "type": "object",
+            "properties": {
+              "legalName": {
+                "type": "string",
+                "nullable": true
+              },
+              "cui": {
+                "type": "string",
+                "nullable": true
+              },
+              "tradeRegisterNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "countyCode": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "AB",
+                  "AR",
+                  "AG",
+                  "BC",
+                  "BH",
+                  "BN",
+                  "BT",
+                  "BV",
+                  "BR",
+                  "B",
+                  "BZ",
+                  "CS",
+                  "CL",
+                  "CJ",
+                  "CT",
+                  "CV",
+                  "DB",
+                  "DJ",
+                  "GL",
+                  "GR",
+                  "GJ",
+                  "HR",
+                  "HD",
+                  "IL",
+                  "IS",
+                  "IF",
+                  "MM",
+                  "MH",
+                  "MS",
+                  "NT",
+                  "OT",
+                  "PH",
+                  "SM",
+                  "SJ",
+                  "SB",
+                  "SV",
+                  "TR",
+                  "TM",
+                  "TL",
+                  "VS",
+                  "VL",
+                  "VN",
+                  null
+                ]
+              },
+              "locality": {
+                "type": "string",
+                "nullable": true
+              },
+              "addressLine": {
+                "type": "string",
+                "nullable": true
+              },
+              "legalRepresentativeName": {
+                "type": "string",
+                "nullable": true
+              },
+              "legalRepresentativeRole": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "legalName",
+              "cui",
+              "tradeRegisterNumber",
+              "countyCode",
+              "locality",
+              "addressLine",
+              "legalRepresentativeName",
+              "legalRepresentativeRole"
+            ]
+          }
+        },
+        "required": ["legalDetails"]
+      },
+      "UpdateOrganizationLegalDetailsRequest": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "cui": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 16
+          },
+          "tradeRegisterNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "countyCode": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "AB",
+              "AR",
+              "AG",
+              "BC",
+              "BH",
+              "BN",
+              "BT",
+              "BV",
+              "BR",
+              "B",
+              "BZ",
+              "CS",
+              "CL",
+              "CJ",
+              "CT",
+              "CV",
+              "DB",
+              "DJ",
+              "GL",
+              "GR",
+              "GJ",
+              "HR",
+              "HD",
+              "IL",
+              "IS",
+              "IF",
+              "MM",
+              "MH",
+              "MS",
+              "NT",
+              "OT",
+              "PH",
+              "SM",
+              "SJ",
+              "SB",
+              "SV",
+              "TR",
+              "TM",
+              "TL",
+              "VS",
+              "VL",
+              "VN",
+              null
+            ]
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "addressLine": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "legalRepresentativeName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "legalRepresentativeRole": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 80
+          }
+        }
+      },
+      "ClientDocumentDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "documentDetails": {
+            "type": "object",
+            "properties": {
+              "legalRepresentativeRole": {
+                "type": "string",
+                "nullable": true
+              },
+              "periodicTrainingHours": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 8
+              },
+              "administrativeTrainingIntervalMonths": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 12
+              },
+              "workerTrainingIntervalMonths": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 6
+              },
+              "trainingFirstMonth": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 12
+              },
+              "trainingDayFrom": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 31
+              },
+              "trainingDayTo": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 31
+              }
+            },
+            "required": [
+              "legalRepresentativeRole",
+              "periodicTrainingHours",
+              "administrativeTrainingIntervalMonths",
+              "workerTrainingIntervalMonths",
+              "trainingFirstMonth",
+              "trainingDayFrom",
+              "trainingDayTo"
+            ]
+          }
+        },
+        "required": ["documentDetails"]
+      },
+      "UpdateClientDocumentDetailsRequest": {
+        "type": "object",
+        "properties": {
+          "legalRepresentativeRole": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "periodicTrainingHours": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 8
+          },
+          "administrativeTrainingIntervalMonths": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 12
+          },
+          "workerTrainingIntervalMonths": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 6
+          },
+          "trainingFirstMonth": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 12
+          },
+          "trainingDayFrom": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 31
+          },
+          "trainingDayTo": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 31
+          }
+        }
+      },
+      "WorkplaceListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "isRegisteredOffice": {
+                  "type": "boolean"
+                },
+                "countyCode": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "AB",
+                    "AR",
+                    "AG",
+                    "BC",
+                    "BH",
+                    "BN",
+                    "BT",
+                    "BV",
+                    "BR",
+                    "B",
+                    "BZ",
+                    "CS",
+                    "CL",
+                    "CJ",
+                    "CT",
+                    "CV",
+                    "DB",
+                    "DJ",
+                    "GL",
+                    "GR",
+                    "GJ",
+                    "HR",
+                    "HD",
+                    "IL",
+                    "IS",
+                    "IF",
+                    "MM",
+                    "MH",
+                    "MS",
+                    "NT",
+                    "OT",
+                    "PH",
+                    "SM",
+                    "SJ",
+                    "SB",
+                    "SV",
+                    "TR",
+                    "TM",
+                    "TL",
+                    "VS",
+                    "VL",
+                    "VN",
+                    null
+                  ]
+                },
+                "locality": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "addressLine": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "name",
+                "isRegisteredOffice",
+                "countyCode",
+                "locality",
+                "addressLine",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "WorkplaceResponse": {
+        "type": "object",
+        "properties": {
+          "workplace": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "isRegisteredOffice": {
+                "type": "boolean"
+              },
+              "countyCode": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "AB",
+                  "AR",
+                  "AG",
+                  "BC",
+                  "BH",
+                  "BN",
+                  "BT",
+                  "BV",
+                  "BR",
+                  "B",
+                  "BZ",
+                  "CS",
+                  "CL",
+                  "CJ",
+                  "CT",
+                  "CV",
+                  "DB",
+                  "DJ",
+                  "GL",
+                  "GR",
+                  "GJ",
+                  "HR",
+                  "HD",
+                  "IL",
+                  "IS",
+                  "IF",
+                  "MM",
+                  "MH",
+                  "MS",
+                  "NT",
+                  "OT",
+                  "PH",
+                  "SM",
+                  "SJ",
+                  "SB",
+                  "SV",
+                  "TR",
+                  "TM",
+                  "TL",
+                  "VS",
+                  "VL",
+                  "VN",
+                  null
+                ]
+              },
+              "locality": {
+                "type": "string",
+                "nullable": true
+              },
+              "addressLine": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "name",
+              "isRegisteredOffice",
+              "countyCode",
+              "locality",
+              "addressLine",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["workplace"]
+      },
+      "WorkplaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "isRegisteredOffice": {
+            "type": "boolean",
+            "default": false
+          },
+          "countyCode": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "AB",
+              "AR",
+              "AG",
+              "BC",
+              "BH",
+              "BN",
+              "BT",
+              "BV",
+              "BR",
+              "B",
+              "BZ",
+              "CS",
+              "CL",
+              "CJ",
+              "CT",
+              "CV",
+              "DB",
+              "DJ",
+              "GL",
+              "GR",
+              "GJ",
+              "HR",
+              "HD",
+              "IL",
+              "IS",
+              "IF",
+              "MM",
+              "MH",
+              "MS",
+              "NT",
+              "OT",
+              "PH",
+              "SM",
+              "SJ",
+              "SB",
+              "SV",
+              "TR",
+              "TM",
+              "TL",
+              "VS",
+              "VL",
+              "VN",
+              null
+            ]
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "addressLine": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 240
+          }
+        },
+        "required": ["name"]
+      },
+      "ResponsiblePersonListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "employeeId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "jobTitle": {
+                  "type": "string"
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "workplace_manager",
+                      "first_aid",
+                      "risk_evaluation_team",
+                      "imminent_danger"
+                    ]
+                  },
+                  "minItems": 1
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "employeeId",
+                "fullName",
+                "jobTitle",
+                "roles",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "ResponsiblePersonResponse": {
+        "type": "object",
+        "properties": {
+          "responsiblePerson": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "employeeId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "fullName": {
+                "type": "string"
+              },
+              "jobTitle": {
+                "type": "string"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "workplace_manager",
+                    "first_aid",
+                    "risk_evaluation_team",
+                    "imminent_danger"
+                  ]
+                },
+                "minItems": 1
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "employeeId",
+              "fullName",
+              "jobTitle",
+              "roles",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["responsiblePerson"]
+      },
+      "ResponsiblePersonRequest": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "jobTitle": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["workplace_manager", "first_aid", "risk_evaluation_team", "imminent_danger"]
+            },
+            "minItems": 1,
+            "maxItems": 4
+          }
+        },
+        "required": ["fullName", "jobTitle", "roles"]
+      },
       "MembershipResponse": {
         "type": "object",
         "properties": {
@@ -1050,6 +1801,10 @@
                   "type": "string",
                   "nullable": true
                 },
+                "professionalTitle": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "role": {
                   "type": "string",
                   "enum": ["owner", "specialist"]
@@ -1059,7 +1814,7 @@
                   "format": "date-time"
                 }
               },
-              "required": ["userId", "email", "fullName", "role", "joinedAt"]
+              "required": ["userId", "email", "fullName", "professionalTitle", "role", "joinedAt"]
             }
           }
         },
@@ -2362,6 +3117,1200 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/legal-details": {
+      "get": {
+        "operationId": "getOrganizationLegalDetails",
+        "summary": "Read the organization's legal details",
+        "description": "What documents print about the provider. Any member reads them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The legal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationLegalDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateOrganizationLegalDetails",
+        "summary": "Replace the organization's legal details",
+        "description": "Owners only. A field left out or null is cleared.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationLegalDetailsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The legal details after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationLegalDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/document-details": {
+      "get": {
+        "operationId": "getClientDocumentDetails",
+        "summary": "Read the representative's role and the training schedule of a client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateClientDocumentDetails",
+        "summary": "Replace the representative's role and the training schedule of a client",
+        "description": "A field left out or null is cleared. The intervals are months between two periodic trainings; the first month and the days say when in the year they fall.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientDocumentDetailsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document details after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/workplaces": {
+      "get": {
+        "operationId": "listWorkplaces",
+        "summary": "List a client's workplaces",
+        "description": "The registered office first, then by name. Archived workplaces are not listed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The workplaces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkplaceListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createWorkplace",
+        "summary": "Add a workplace to a client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkplaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created workplace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkplaceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived, or it already has a registered office",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/workplaces/{workplaceId}": {
+      "put": {
+        "operationId": "updateWorkplace",
+        "summary": "Replace a workplace",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workplaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkplaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The workplace after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkplaceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The workplace does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client already has a registered office",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "archiveWorkplace",
+        "summary": "Archive a workplace",
+        "description": "A soft delete: the row stays, and lists and documents leave it out.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workplaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Archived"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The workplace does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/responsible-persons": {
+      "get": {
+        "operationId": "listResponsiblePersons",
+        "summary": "List the people a client designates by decision",
+        "description": "By name. Archived rows are not listed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The responsible persons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsiblePersonListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createResponsiblePerson",
+        "summary": "Add a responsible person to a client",
+        "description": "A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsiblePersonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created responsible person",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsiblePersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or an employee who is not of this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived, or the employee is already a responsible person",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/responsible-persons/{responsiblePersonId}": {
+      "put": {
+        "operationId": "updateResponsiblePerson",
+        "summary": "Replace a responsible person",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "responsiblePersonId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsiblePersonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The responsible person after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsiblePersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or an employee who is not of this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The responsible person does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The employee is already a responsible person",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "archiveResponsiblePerson",
+        "summary": "Archive a responsible person",
+        "description": "A soft delete: the row stays, and lists and documents leave it out.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "responsiblePersonId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Archived"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The responsible person does not exist under this client",
             "content": {
               "application/json": {
                 "schema": {

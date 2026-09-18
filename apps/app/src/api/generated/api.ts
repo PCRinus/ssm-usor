@@ -76,6 +76,8 @@ export type MeResponseUser = {
 export type MeResponseProfile = {
   fullName: string;
   /** @nullable */
+  professionalTitle: string | null;
+  /** @nullable */
   termsVersion: string | null;
   /** @nullable */
   termsAcceptedAt: string | null;
@@ -113,6 +115,8 @@ export interface MeResponse {
 export interface ProfileResponse {
   fullName: string;
   /** @nullable */
+  professionalTitle: string | null;
+  /** @nullable */
   termsVersion: string | null;
   /** @nullable */
   termsAcceptedAt: string | null;
@@ -124,6 +128,12 @@ export interface UpdateProfileRequest {
    * @maxLength 120
    */
   fullName: string;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  professionalTitle?: string | null;
 }
 
 export type PendingInvitationListResponseItemsItemRole =
@@ -705,6 +715,570 @@ export type UpdateEmployeeStatusRequest =
       status: 'active';
     };
 
+/**
+ * @nullable
+ */
+export type OrganizationLegalDetailsResponseLegalDetailsCountyCode =
+  | (typeof OrganizationLegalDetailsResponseLegalDetailsCountyCode)[keyof typeof OrganizationLegalDetailsResponseLegalDetailsCountyCode]
+  | null;
+
+export const OrganizationLegalDetailsResponseLegalDetailsCountyCode = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export type OrganizationLegalDetailsResponseLegalDetails = {
+  /** @nullable */
+  legalName: string | null;
+  /** @nullable */
+  cui: string | null;
+  /** @nullable */
+  tradeRegisterNumber: string | null;
+  /** @nullable */
+  countyCode: OrganizationLegalDetailsResponseLegalDetailsCountyCode;
+  /** @nullable */
+  locality: string | null;
+  /** @nullable */
+  addressLine: string | null;
+  /** @nullable */
+  legalRepresentativeName: string | null;
+  /** @nullable */
+  legalRepresentativeRole: string | null;
+};
+
+export interface OrganizationLegalDetailsResponse {
+  legalDetails: OrganizationLegalDetailsResponseLegalDetails;
+}
+
+/**
+ * @nullable
+ */
+export type UpdateOrganizationLegalDetailsRequestCountyCode =
+  | (typeof UpdateOrganizationLegalDetailsRequestCountyCode)[keyof typeof UpdateOrganizationLegalDetailsRequestCountyCode]
+  | null;
+
+export const UpdateOrganizationLegalDetailsRequestCountyCode = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export interface UpdateOrganizationLegalDetailsRequest {
+  /**
+   * @minLength 2
+   * @maxLength 200
+   * @nullable
+   */
+  legalName?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 16
+   * @nullable
+   */
+  cui?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 40
+   * @nullable
+   */
+  tradeRegisterNumber?: string | null;
+  /** @nullable */
+  countyCode?: UpdateOrganizationLegalDetailsRequestCountyCode;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  locality?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   * @nullable
+   */
+  addressLine?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  legalRepresentativeName?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 80
+   * @nullable
+   */
+  legalRepresentativeRole?: string | null;
+}
+
+export type ClientDocumentDetailsResponseDocumentDetails = {
+  /** @nullable */
+  legalRepresentativeRole: string | null;
+  /**
+   * @minimum 1
+   * @maximum 8
+   * @nullable
+   */
+  periodicTrainingHours: number | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  administrativeTrainingIntervalMonths: number | null;
+  /**
+   * @minimum 1
+   * @maximum 6
+   * @nullable
+   */
+  workerTrainingIntervalMonths: number | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  trainingFirstMonth: number | null;
+  /**
+   * @minimum 1
+   * @maximum 31
+   * @nullable
+   */
+  trainingDayFrom: number | null;
+  /**
+   * @minimum 1
+   * @maximum 31
+   * @nullable
+   */
+  trainingDayTo: number | null;
+};
+
+export interface ClientDocumentDetailsResponse {
+  documentDetails: ClientDocumentDetailsResponseDocumentDetails;
+}
+
+export interface UpdateClientDocumentDetailsRequest {
+  /**
+   * @minLength 2
+   * @maxLength 80
+   * @nullable
+   */
+  legalRepresentativeRole?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 8
+   * @nullable
+   */
+  periodicTrainingHours?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  administrativeTrainingIntervalMonths?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 6
+   * @nullable
+   */
+  workerTrainingIntervalMonths?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  trainingFirstMonth?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 31
+   * @nullable
+   */
+  trainingDayFrom?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 31
+   * @nullable
+   */
+  trainingDayTo?: number | null;
+}
+
+/**
+ * @nullable
+ */
+export type WorkplaceListResponseItemsItemCountyCode =
+  | (typeof WorkplaceListResponseItemsItemCountyCode)[keyof typeof WorkplaceListResponseItemsItemCountyCode]
+  | null;
+
+export const WorkplaceListResponseItemsItemCountyCode = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export type WorkplaceListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  name: string;
+  isRegisteredOffice: boolean;
+  /** @nullable */
+  countyCode: WorkplaceListResponseItemsItemCountyCode;
+  /** @nullable */
+  locality: string | null;
+  /** @nullable */
+  addressLine: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface WorkplaceListResponse {
+  items: WorkplaceListResponseItemsItem[];
+}
+
+/**
+ * @nullable
+ */
+export type WorkplaceResponseWorkplaceCountyCode =
+  | (typeof WorkplaceResponseWorkplaceCountyCode)[keyof typeof WorkplaceResponseWorkplaceCountyCode]
+  | null;
+
+export const WorkplaceResponseWorkplaceCountyCode = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export type WorkplaceResponseWorkplace = {
+  id: string;
+  clientId: string;
+  name: string;
+  isRegisteredOffice: boolean;
+  /** @nullable */
+  countyCode: WorkplaceResponseWorkplaceCountyCode;
+  /** @nullable */
+  locality: string | null;
+  /** @nullable */
+  addressLine: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface WorkplaceResponse {
+  workplace: WorkplaceResponseWorkplace;
+}
+
+/**
+ * @nullable
+ */
+export type WorkplaceRequestCountyCode =
+  (typeof WorkplaceRequestCountyCode)[keyof typeof WorkplaceRequestCountyCode] | null;
+
+export const WorkplaceRequestCountyCode = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export interface WorkplaceRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name: string;
+  isRegisteredOffice?: boolean;
+  /** @nullable */
+  countyCode?: WorkplaceRequestCountyCode;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  locality?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   * @nullable
+   */
+  addressLine?: string | null;
+}
+
+export type ResponsiblePersonListResponseItemsItemRolesItem =
+  (typeof ResponsiblePersonListResponseItemsItemRolesItem)[keyof typeof ResponsiblePersonListResponseItemsItemRolesItem];
+
+export const ResponsiblePersonListResponseItemsItemRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  risk_evaluation_team: 'risk_evaluation_team',
+  imminent_danger: 'imminent_danger',
+} as const;
+
+export type ResponsiblePersonListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  jobTitle: string;
+  /** @minItems 1 */
+  roles: ResponsiblePersonListResponseItemsItemRolesItem[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface ResponsiblePersonListResponse {
+  items: ResponsiblePersonListResponseItemsItem[];
+}
+
+export type ResponsiblePersonResponseResponsiblePersonRolesItem =
+  (typeof ResponsiblePersonResponseResponsiblePersonRolesItem)[keyof typeof ResponsiblePersonResponseResponsiblePersonRolesItem];
+
+export const ResponsiblePersonResponseResponsiblePersonRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  risk_evaluation_team: 'risk_evaluation_team',
+  imminent_danger: 'imminent_danger',
+} as const;
+
+export type ResponsiblePersonResponseResponsiblePerson = {
+  id: string;
+  clientId: string;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  jobTitle: string;
+  /** @minItems 1 */
+  roles: ResponsiblePersonResponseResponsiblePersonRolesItem[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface ResponsiblePersonResponse {
+  responsiblePerson: ResponsiblePersonResponseResponsiblePerson;
+}
+
+export type ResponsiblePersonRequestRolesItem =
+  (typeof ResponsiblePersonRequestRolesItem)[keyof typeof ResponsiblePersonRequestRolesItem];
+
+export const ResponsiblePersonRequestRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  risk_evaluation_team: 'risk_evaluation_team',
+  imminent_danger: 'imminent_danger',
+} as const;
+
+export interface ResponsiblePersonRequest {
+  /** @nullable */
+  employeeId?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  fullName: string;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  jobTitle: string;
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  roles: ResponsiblePersonRequestRolesItem[];
+}
+
 export type MembershipResponseOrganization = {
   id: string;
   name: string;
@@ -758,6 +1332,8 @@ export type OrganizationMemberListResponseItemsItem = {
   email: string | null;
   /** @nullable */
   fullName: string | null;
+  /** @nullable */
+  professionalTitle: string | null;
   role: OrganizationMemberListResponseItemsItemRole;
   joinedAt: string;
 };
@@ -2496,6 +3072,1391 @@ export const useUpdateEmployeeStatus = <TError = ErrorType<ApiErrorResponse>, TC
   TContext
 > => {
   return useMutation(getUpdateEmployeeStatusMutationOptions(options), queryClient);
+};
+
+export const getGetOrganizationLegalDetailsUrl = () => {
+  return `/organization/legal-details`;
+};
+
+/**
+ * What documents print about the provider. Any member reads them.
+ * @summary Read the organization's legal details
+ */
+export const getOrganizationLegalDetails = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationLegalDetailsResponse> => {
+  return apiFetch<OrganizationLegalDetailsResponse>(getGetOrganizationLegalDetailsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetOrganizationLegalDetailsQueryKey = () => {
+  return [`/organization/legal-details`] as const;
+};
+
+export const getGetOrganizationLegalDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrganizationLegalDetailsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationLegalDetails>>> = ({
+    signal,
+  }) => getOrganizationLegalDetails({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetOrganizationLegalDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrganizationLegalDetails>>
+>;
+export type GetOrganizationLegalDetailsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetOrganizationLegalDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationLegalDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationLegalDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationLegalDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationLegalDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the organization's legal details
+ */
+
+export function useGetOrganizationLegalDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetOrganizationLegalDetailsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateOrganizationLegalDetailsUrl = () => {
+  return `/organization/legal-details`;
+};
+
+/**
+ * Owners only. A field left out or null is cleared.
+ * @summary Replace the organization's legal details
+ */
+export const updateOrganizationLegalDetails = async (
+  updateOrganizationLegalDetailsRequest: UpdateOrganizationLegalDetailsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationLegalDetailsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<OrganizationLegalDetailsResponse>(getUpdateOrganizationLegalDetailsUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationLegalDetailsRequest),
+  });
+};
+
+export const getUpdateOrganizationLegalDetailsMutationKey = () =>
+  ['updateOrganizationLegalDetails'] as const;
+
+export const getUpdateOrganizationLegalDetailsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
+    TError,
+    UpdateOrganizationLegalDetailsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
+  TError,
+  UpdateOrganizationLegalDetailsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateOrganizationLegalDetailsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
+    UpdateOrganizationLegalDetailsMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateOrganizationLegalDetails(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOrganizationLegalDetailsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrganizationLegalDetails>>
+>;
+export type UpdateOrganizationLegalDetailsMutationBody = UpdateOrganizationLegalDetailsRequest;
+export type UpdateOrganizationLegalDetailsMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateOrganizationLegalDetailsMutationVariables = {
+  data: UpdateOrganizationLegalDetailsRequest;
+};
+
+/**
+ * @summary Replace the organization's legal details
+ */
+export const useUpdateOrganizationLegalDetails = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
+      TError,
+      UpdateOrganizationLegalDetailsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
+  TError,
+  UpdateOrganizationLegalDetailsMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateOrganizationLegalDetailsMutationOptions(options), queryClient);
+};
+
+export const getGetClientDocumentDetailsUrl = (clientId: string) => {
+  return `/clients/${clientId}/document-details`;
+};
+
+/**
+ * @summary Read the representative's role and the training schedule of a client
+ */
+export const getClientDocumentDetails = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentDetailsResponse> => {
+  return apiFetch<ClientDocumentDetailsResponse>(getGetClientDocumentDetailsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetClientDocumentDetailsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/document-details`] as const;
+};
+
+export const getGetClientDocumentDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClientDocumentDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientDocumentDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetClientDocumentDetailsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClientDocumentDetails>>> = ({
+    signal,
+  }) => getClientDocumentDetails(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getClientDocumentDetails>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetClientDocumentDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClientDocumentDetails>>
+>;
+export type GetClientDocumentDetailsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetClientDocumentDetails<
+  TData = Awaited<ReturnType<typeof getClientDocumentDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientDocumentDetails>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientDocumentDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getClientDocumentDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClientDocumentDetails<
+  TData = Awaited<ReturnType<typeof getClientDocumentDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientDocumentDetails>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientDocumentDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getClientDocumentDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClientDocumentDetails<
+  TData = Awaited<ReturnType<typeof getClientDocumentDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientDocumentDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the representative's role and the training schedule of a client
+ */
+
+export function useGetClientDocumentDetails<
+  TData = Awaited<ReturnType<typeof getClientDocumentDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientDocumentDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetClientDocumentDetailsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateClientDocumentDetailsUrl = (clientId: string) => {
+  return `/clients/${clientId}/document-details`;
+};
+
+/**
+ * A field left out or null is cleared. The intervals are months between two periodic trainings; the first month and the days say when in the year they fall.
+ * @summary Replace the representative's role and the training schedule of a client
+ */
+export const updateClientDocumentDetails = async (
+  clientId: string,
+  updateClientDocumentDetailsRequest: UpdateClientDocumentDetailsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentDetailsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientDocumentDetailsResponse>(getUpdateClientDocumentDetailsUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateClientDocumentDetailsRequest),
+  });
+};
+
+export const getUpdateClientDocumentDetailsMutationKey = () =>
+  ['updateClientDocumentDetails'] as const;
+
+export const getUpdateClientDocumentDetailsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClientDocumentDetails>>,
+    TError,
+    UpdateClientDocumentDetailsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateClientDocumentDetails>>,
+  TError,
+  UpdateClientDocumentDetailsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateClientDocumentDetailsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateClientDocumentDetails>>,
+    UpdateClientDocumentDetailsMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return updateClientDocumentDetails(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateClientDocumentDetailsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateClientDocumentDetails>>
+>;
+export type UpdateClientDocumentDetailsMutationBody = UpdateClientDocumentDetailsRequest;
+export type UpdateClientDocumentDetailsMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateClientDocumentDetailsMutationVariables = {
+  clientId: string;
+  data: UpdateClientDocumentDetailsRequest;
+};
+
+/**
+ * @summary Replace the representative's role and the training schedule of a client
+ */
+export const useUpdateClientDocumentDetails = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateClientDocumentDetails>>,
+      TError,
+      UpdateClientDocumentDetailsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateClientDocumentDetails>>,
+  TError,
+  UpdateClientDocumentDetailsMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateClientDocumentDetailsMutationOptions(options), queryClient);
+};
+
+export const getListWorkplacesUrl = (clientId: string) => {
+  return `/clients/${clientId}/workplaces`;
+};
+
+/**
+ * The registered office first, then by name. Archived workplaces are not listed.
+ * @summary List a client's workplaces
+ */
+export const listWorkplaces = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<WorkplaceListResponse> => {
+  return apiFetch<WorkplaceListResponse>(getListWorkplacesUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListWorkplacesQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/workplaces`] as const;
+};
+
+export const getListWorkplacesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkplaces>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkplaces>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWorkplacesQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkplaces>>> = ({ signal }) =>
+    listWorkplaces(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listWorkplaces>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListWorkplacesQueryResult = NonNullable<Awaited<ReturnType<typeof listWorkplaces>>>;
+export type ListWorkplacesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListWorkplaces<
+  TData = Awaited<ReturnType<typeof listWorkplaces>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkplaces>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listWorkplaces>>,
+          TError,
+          Awaited<ReturnType<typeof listWorkplaces>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListWorkplaces<
+  TData = Awaited<ReturnType<typeof listWorkplaces>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkplaces>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listWorkplaces>>,
+          TError,
+          Awaited<ReturnType<typeof listWorkplaces>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListWorkplaces<
+  TData = Awaited<ReturnType<typeof listWorkplaces>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkplaces>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a client's workplaces
+ */
+
+export function useListWorkplaces<
+  TData = Awaited<ReturnType<typeof listWorkplaces>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkplaces>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListWorkplacesQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateWorkplaceUrl = (clientId: string) => {
+  return `/clients/${clientId}/workplaces`;
+};
+
+/**
+ * @summary Add a workplace to a client
+ */
+export const createWorkplace = async (
+  clientId: string,
+  workplaceRequest: WorkplaceRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<WorkplaceResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<WorkplaceResponse>(getCreateWorkplaceUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workplaceRequest),
+  });
+};
+
+export const getCreateWorkplaceMutationKey = () => ['createWorkplace'] as const;
+
+export const getCreateWorkplaceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWorkplace>>,
+    TError,
+    CreateWorkplaceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWorkplace>>,
+  TError,
+  CreateWorkplaceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateWorkplaceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWorkplace>>,
+    CreateWorkplaceMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createWorkplace(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWorkplaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWorkplace>>
+>;
+export type CreateWorkplaceMutationBody = WorkplaceRequest;
+export type CreateWorkplaceMutationError = ErrorType<ApiErrorResponse>;
+export type CreateWorkplaceMutationVariables = { clientId: string; data: WorkplaceRequest };
+
+/**
+ * @summary Add a workplace to a client
+ */
+export const useCreateWorkplace = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createWorkplace>>,
+      TError,
+      CreateWorkplaceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createWorkplace>>,
+  TError,
+  CreateWorkplaceMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateWorkplaceMutationOptions(options), queryClient);
+};
+
+export const getUpdateWorkplaceUrl = (clientId: string, workplaceId: string) => {
+  return `/clients/${clientId}/workplaces/${workplaceId}`;
+};
+
+/**
+ * @summary Replace a workplace
+ */
+export const updateWorkplace = async (
+  clientId: string,
+  workplaceId: string,
+  workplaceRequest: WorkplaceRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<WorkplaceResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<WorkplaceResponse>(getUpdateWorkplaceUrl(clientId, workplaceId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workplaceRequest),
+  });
+};
+
+export const getUpdateWorkplaceMutationKey = () => ['updateWorkplace'] as const;
+
+export const getUpdateWorkplaceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWorkplace>>,
+    TError,
+    UpdateWorkplaceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateWorkplace>>,
+  TError,
+  UpdateWorkplaceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateWorkplaceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateWorkplace>>,
+    UpdateWorkplaceMutationVariables
+  > = (props) => {
+    const { clientId, workplaceId, data } = props ?? {};
+
+    return updateWorkplace(clientId, workplaceId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateWorkplaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateWorkplace>>
+>;
+export type UpdateWorkplaceMutationBody = WorkplaceRequest;
+export type UpdateWorkplaceMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateWorkplaceMutationVariables = {
+  clientId: string;
+  workplaceId: string;
+  data: WorkplaceRequest;
+};
+
+/**
+ * @summary Replace a workplace
+ */
+export const useUpdateWorkplace = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateWorkplace>>,
+      TError,
+      UpdateWorkplaceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateWorkplace>>,
+  TError,
+  UpdateWorkplaceMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateWorkplaceMutationOptions(options), queryClient);
+};
+
+export const getArchiveWorkplaceUrl = (clientId: string, workplaceId: string) => {
+  return `/clients/${clientId}/workplaces/${workplaceId}`;
+};
+
+/**
+ * A soft delete: the row stays, and lists and documents leave it out.
+ * @summary Archive a workplace
+ */
+export const archiveWorkplace = async (
+  clientId: string,
+  workplaceId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getArchiveWorkplaceUrl(clientId, workplaceId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getArchiveWorkplaceMutationKey = () => ['archiveWorkplace'] as const;
+
+export const getArchiveWorkplaceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof archiveWorkplace>>,
+    TError,
+    ArchiveWorkplaceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof archiveWorkplace>>,
+  TError,
+  ArchiveWorkplaceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getArchiveWorkplaceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof archiveWorkplace>>,
+    ArchiveWorkplaceMutationVariables
+  > = (props) => {
+    const { clientId, workplaceId } = props ?? {};
+
+    return archiveWorkplace(clientId, workplaceId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ArchiveWorkplaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof archiveWorkplace>>
+>;
+
+export type ArchiveWorkplaceMutationError = ErrorType<ApiErrorResponse>;
+export type ArchiveWorkplaceMutationVariables = { clientId: string; workplaceId: string };
+
+/**
+ * @summary Archive a workplace
+ */
+export const useArchiveWorkplace = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof archiveWorkplace>>,
+      TError,
+      ArchiveWorkplaceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof archiveWorkplace>>,
+  TError,
+  ArchiveWorkplaceMutationVariables,
+  TContext
+> => {
+  return useMutation(getArchiveWorkplaceMutationOptions(options), queryClient);
+};
+
+export const getListResponsiblePersonsUrl = (clientId: string) => {
+  return `/clients/${clientId}/responsible-persons`;
+};
+
+/**
+ * By name. Archived rows are not listed.
+ * @summary List the people a client designates by decision
+ */
+export const listResponsiblePersons = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ResponsiblePersonListResponse> => {
+  return apiFetch<ResponsiblePersonListResponse>(getListResponsiblePersonsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListResponsiblePersonsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/responsible-persons`] as const;
+};
+
+export const getListResponsiblePersonsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePersons>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListResponsiblePersonsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listResponsiblePersons>>> = ({ signal }) =>
+    listResponsiblePersons(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePersons>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListResponsiblePersonsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listResponsiblePersons>>
+>;
+export type ListResponsiblePersonsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePersons>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listResponsiblePersons>>,
+          TError,
+          Awaited<ReturnType<typeof listResponsiblePersons>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePersons>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listResponsiblePersons>>,
+          TError,
+          Awaited<ReturnType<typeof listResponsiblePersons>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePersons>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the people a client designates by decision
+ */
+
+export function useListResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePersons>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListResponsiblePersonsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateResponsiblePersonUrl = (clientId: string) => {
+  return `/clients/${clientId}/responsible-persons`;
+};
+
+/**
+ * A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.
+ * @summary Add a responsible person to a client
+ */
+export const createResponsiblePerson = async (
+  clientId: string,
+  responsiblePersonRequest: ResponsiblePersonRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ResponsiblePersonResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ResponsiblePersonResponse>(getCreateResponsiblePersonUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(responsiblePersonRequest),
+  });
+};
+
+export const getCreateResponsiblePersonMutationKey = () => ['createResponsiblePerson'] as const;
+
+export const getCreateResponsiblePersonMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createResponsiblePerson>>,
+    TError,
+    CreateResponsiblePersonMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createResponsiblePerson>>,
+  TError,
+  CreateResponsiblePersonMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateResponsiblePersonMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createResponsiblePerson>>,
+    CreateResponsiblePersonMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createResponsiblePerson(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateResponsiblePersonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createResponsiblePerson>>
+>;
+export type CreateResponsiblePersonMutationBody = ResponsiblePersonRequest;
+export type CreateResponsiblePersonMutationError = ErrorType<ApiErrorResponse>;
+export type CreateResponsiblePersonMutationVariables = {
+  clientId: string;
+  data: ResponsiblePersonRequest;
+};
+
+/**
+ * @summary Add a responsible person to a client
+ */
+export const useCreateResponsiblePerson = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createResponsiblePerson>>,
+      TError,
+      CreateResponsiblePersonMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createResponsiblePerson>>,
+  TError,
+  CreateResponsiblePersonMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateResponsiblePersonMutationOptions(options), queryClient);
+};
+
+export const getUpdateResponsiblePersonUrl = (clientId: string, responsiblePersonId: string) => {
+  return `/clients/${clientId}/responsible-persons/${responsiblePersonId}`;
+};
+
+/**
+ * @summary Replace a responsible person
+ */
+export const updateResponsiblePerson = async (
+  clientId: string,
+  responsiblePersonId: string,
+  responsiblePersonRequest: ResponsiblePersonRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ResponsiblePersonResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ResponsiblePersonResponse>(
+    getUpdateResponsiblePersonUrl(clientId, responsiblePersonId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(responsiblePersonRequest),
+    }
+  );
+};
+
+export const getUpdateResponsiblePersonMutationKey = () => ['updateResponsiblePerson'] as const;
+
+export const getUpdateResponsiblePersonMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateResponsiblePerson>>,
+    TError,
+    UpdateResponsiblePersonMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateResponsiblePerson>>,
+  TError,
+  UpdateResponsiblePersonMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateResponsiblePersonMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateResponsiblePerson>>,
+    UpdateResponsiblePersonMutationVariables
+  > = (props) => {
+    const { clientId, responsiblePersonId, data } = props ?? {};
+
+    return updateResponsiblePerson(clientId, responsiblePersonId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateResponsiblePersonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateResponsiblePerson>>
+>;
+export type UpdateResponsiblePersonMutationBody = ResponsiblePersonRequest;
+export type UpdateResponsiblePersonMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateResponsiblePersonMutationVariables = {
+  clientId: string;
+  responsiblePersonId: string;
+  data: ResponsiblePersonRequest;
+};
+
+/**
+ * @summary Replace a responsible person
+ */
+export const useUpdateResponsiblePerson = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateResponsiblePerson>>,
+      TError,
+      UpdateResponsiblePersonMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateResponsiblePerson>>,
+  TError,
+  UpdateResponsiblePersonMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateResponsiblePersonMutationOptions(options), queryClient);
+};
+
+export const getArchiveResponsiblePersonUrl = (clientId: string, responsiblePersonId: string) => {
+  return `/clients/${clientId}/responsible-persons/${responsiblePersonId}`;
+};
+
+/**
+ * A soft delete: the row stays, and lists and documents leave it out.
+ * @summary Archive a responsible person
+ */
+export const archiveResponsiblePerson = async (
+  clientId: string,
+  responsiblePersonId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getArchiveResponsiblePersonUrl(clientId, responsiblePersonId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getArchiveResponsiblePersonMutationKey = () => ['archiveResponsiblePerson'] as const;
+
+export const getArchiveResponsiblePersonMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof archiveResponsiblePerson>>,
+    TError,
+    ArchiveResponsiblePersonMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof archiveResponsiblePerson>>,
+  TError,
+  ArchiveResponsiblePersonMutationVariables,
+  TContext
+> => {
+  const mutationKey = getArchiveResponsiblePersonMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof archiveResponsiblePerson>>,
+    ArchiveResponsiblePersonMutationVariables
+  > = (props) => {
+    const { clientId, responsiblePersonId } = props ?? {};
+
+    return archiveResponsiblePerson(clientId, responsiblePersonId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ArchiveResponsiblePersonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof archiveResponsiblePerson>>
+>;
+
+export type ArchiveResponsiblePersonMutationError = ErrorType<ApiErrorResponse>;
+export type ArchiveResponsiblePersonMutationVariables = {
+  clientId: string;
+  responsiblePersonId: string;
+};
+
+/**
+ * @summary Archive a responsible person
+ */
+export const useArchiveResponsiblePerson = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof archiveResponsiblePerson>>,
+      TError,
+      ArchiveResponsiblePersonMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof archiveResponsiblePerson>>,
+  TError,
+  ArchiveResponsiblePersonMutationVariables,
+  TContext
+> => {
+  return useMutation(getArchiveResponsiblePersonMutationOptions(options), queryClient);
 };
 
 export const getCreateOrganizationUrl = () => {
