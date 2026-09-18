@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 
-import { getGetMeQueryKey, useGetMe } from '../../api/generated/api';
+import { useMe } from '../../account/use-me';
 import { ApiHttpError } from '../../api/http';
 import { useAuth } from '../../auth/auth-context';
 
@@ -15,13 +15,7 @@ export const Route = createFileRoute('/_authenticated/dashboard')({
 export function DashboardPage() {
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const me = useGetMe({
-    request: apiRequest,
-    query: {
-      queryKey: [...getGetMeQueryKey(), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-    },
-  });
+  const me = useMe();
   if (!session) return null;
 
   return (

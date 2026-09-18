@@ -31,9 +31,10 @@ import {
 } from '@ssm-usor/ui/components/sidebar';
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
 import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
-import { ChevronsUpDown, LayoutDashboard, LogOut, Users } from 'lucide-react';
+import { Building2, ChevronsUpDown, LayoutDashboard, LogOut, UserRound, Users } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
+import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
 
 function loaderCrumb(loaderData: unknown) {
@@ -44,14 +45,27 @@ function loaderCrumb(loaderData: unknown) {
 const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard },
   { to: '/clients', label: 'Clienți', icon: Users },
+  { to: '/organization', label: 'Organizație', icon: Building2 },
 ] as const;
+
+// "Ana Popescu" becomes AP; without a name the email's first two letters stand in.
+function initials(name: string | undefined, email: string) {
+  const words = name?.split(/\s+/).filter(Boolean) ?? [];
+  const letters = words.length > 1 ? `${words[0]![0]}${words.at(-1)![0]}` : (words[0] ?? email);
+  return letters.slice(0, 2).toUpperCase();
+}
 
 function AppNavigation({
   email,
+  name,
+  organizationName,
   pending,
   onSignOut,
 }: {
   email: string;
+  // Both are missing while the account loads, and for an account that has neither.
+  name?: string;
+  organizationName?: string;
   pending: boolean;
   onSignOut: () => Promise<void>;
 }) {
@@ -99,13 +113,18 @@ function AppNavigation({
                   className="data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:p-0!"
                 >
                   <Avatar className="size-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">
-                      {email.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback className="rounded-lg">{initials(name, email)}</AvatarFallback>
                   </Avatar>
                   <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-medium">Contul meu</span>
-                    <span className="truncate text-xs text-muted-foreground">{email}</span>
+                    <span data-testid="account-name" className="truncate font-medium">
+                      {name ?? 'Contul meu'}
+                    </span>
+                    <span
+                      data-testid="account-organization"
+                      className="truncate text-xs text-muted-foreground"
+                    >
+                      {organizationName ?? email}
+                    </span>
                   </div>
                   <ChevronsUpDown
                     className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
@@ -119,7 +138,31 @@ function AppNavigation({
                 sideOffset={8}
                 className="w-64"
               >
-                <DropdownMenuLabel className="break-all">{email}</DropdownMenuLabel>
+                <DropdownMenuLabel className="grid gap-0.5">
+                  {name && <span className="truncate">{name}</span>}
+                  <span className="font-normal break-all text-muted-foreground">{email}</span>
+                  {organizationName && (
+                    <span
+                      data-testid="account-menu-organization"
+                      className="mt-1 truncate text-xs font-normal text-muted-foreground"
+                    >
+                      {organizationName}
+                    </span>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild data-testid="account-profile">
+                  <Link to="/profile">
+                    <UserRound aria-hidden="true" />
+                    Profilul meu
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild data-testid="account-organization-link">
+                  <Link to="/organization">
+                    <Building2 aria-hidden="true" />
+                    Organizație
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   data-testid="account-sign-out"
@@ -153,6 +196,8 @@ export function AppShell() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const email = session?.user.email ?? 'Contul meu';
+  // A failed load leaves the menu with the email alone; the pages report the failure.
+  const me = useMe();
 
   async function signOut() {
     setPending(true);
@@ -192,7 +237,13 @@ export function AppShell() {
         </div>
       </header>
       <div className="flex min-h-[calc(100svh-4rem)] flex-1">
-        <AppNavigation email={email} pending={pending} onSignOut={signOut} />
+        <AppNavigation
+          email={email}
+          name={me.data?.profile?.fullName}
+          organizationName={me.data?.membership?.organization.name}
+          pending={pending}
+          onSignOut={signOut}
+        />
         <div className="flex min-w-0 flex-1 flex-col">
           <main
             id="main-content"

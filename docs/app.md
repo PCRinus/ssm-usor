@@ -99,6 +99,8 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/login.tsx`                                                  | `/login`                             | Email/password form; an existing session redirects to `/dashboard`.                                                                                       |
 | `routes/_authenticated.tsx`                                         | pathless                             | Session guard and the app shell for every protected page.                                                                                                 |
 | `routes/_authenticated/dashboard.tsx`                               | `/dashboard`                         | Protected landing page with the account email and logout.                                                                                                 |
+| `routes/_authenticated/organization.tsx`                            | `/organization`                      | The organization's members for everyone; pending invitations and the invite dialog for owners.                                                            |
+| `routes/_authenticated/profile.tsx`                                 | `/profile`                           | The user's name (editable), email, and organization.                                                                                                      |
 | `routes/_authenticated/clients.tsx`                                 | pathless                             | Clients section layout carrying the breadcrumb title.                                                                                                     |
 | `routes/_authenticated/clients/index.tsx`                           | `/clients`                           | Protected, paginated and sortable list of the organization's active clients.                                                                              |
 | `routes/_authenticated/clients/new.tsx`                             | `/clients/new`                       | Protected form that creates a client, with ANAF prefill by CUI.                                                                                           |
@@ -226,6 +228,24 @@ mobile navigation link closes the Sheet.
   request, mirroring the API rule. Saving posts to `POST /clients/{clientId}/employees`,
   invalidates every filtered variant of the list, and returns to it; a duplicate CNP or
   number is shown on its field and an archived client on the form.
+
+- `/organization`: the organization's name, the caller's role, and the members from
+  `GET /organization/members`. An owner also gets the pending invitations with resend and
+  revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a
+  conflict decides the wording: an address that is already a member or was emailed in the
+  last 10 minutes is reported on the email field, the 20-invitation limit on the form.
+  Hiding the owner's tools is a courtesy; the API and the database enforce the rule. An
+  account without an organization is told to ask for an invitation.
+- `/profile`: a form for the user's name backed by `PATCH /me/profile`, with the email
+  read-only. Saving refreshes `/me`, so the account menu follows.
+
+`src/account/use-me.ts` is the one `/me` query the shell, the dashboard, and these pages
+share. The account menu shows the user's name and organization once it has loaded, and falls
+back to "Contul meu" and the email.
+
+Actions that leave the user on the same page (invitation sent, resent, revoked, profile
+saved) are confirmed with a Sonner toast, mounted once in `App.tsx`. Errors and field
+validation stay inline with `role="alert"`, next to their cause, so they persist.
 
 Sign-out is available from the sidebar account menu on every authenticated route.
 Failed sign-out keeps the session and displays a retry action in the shared layout.
