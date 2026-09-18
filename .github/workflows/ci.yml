@@ -231,6 +231,10 @@ jobs:
         if: env.RESEND_API_KEY == ''
         run: echo "::warning::RESEND_API_KEY is not set. The mail Worker will log emails instead of sending them."
 
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
       - name: Deploy validated mail bundle
         uses: cloudflare/wrangler-action@v4
         with:
@@ -238,7 +242,10 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/mail
           packageManager: pnpm
-          command: deploy .wrangler/release/worker/index.js --no-bundle --tag ${{ github.sha }}
+          command: >-
+            deploy .wrangler/release/worker/index.js --no-bundle
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
           # Uploaded only once the key exists, so the Worker can ship before the Resend account does.
           secrets: ${{ env.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
 
@@ -290,6 +297,10 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
       - name: Deploy validated API bundle
         uses: cloudflare/wrangler-action@v4
         env:
@@ -302,7 +313,10 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/api
           packageManager: pnpm
-          command: deploy .wrangler/release/worker/index.js --no-bundle --tag ${{ github.sha }}
+          command: >-
+            deploy .wrangler/release/worker/index.js --no-bundle
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
           vars: |
             SUPABASE_URL
             SUPABASE_PUBLISHABLE_KEY
@@ -349,6 +363,10 @@ jobs:
           name: release-app-${{ github.sha }}
           path: apps/app/.wrangler/release
 
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
       - name: Deploy validated SPA assets
         uses: cloudflare/wrangler-action@v4
         with:
@@ -356,7 +374,10 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/app
           packageManager: pnpm
-          command: deploy --assets .wrangler/release/dist --tag ${{ github.sha }}
+          command: >-
+            deploy --assets .wrangler/release/dist
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
 
       - name: Install Chromium for browser verification
         run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
@@ -412,13 +433,9 @@ jobs:
           name: release-marketing-${{ github.sha }}
           path: apps/marketing/.wrangler/release
 
-      - name: Prepare deployment metadata
+      - name: Prepare deployment message
         id: metadata
-        shell: bash
-        run: |
-          tag="$(git rev-parse --short=12 HEAD)"
-          subject="$(git log -1 --pretty=%s | LC_ALL=C tr -cd '[:alnum:] ._:/@+-' | cut -c1-240)"
-          printf 'message=CI: %s [%s]\n' "${subject:-Deploy commit $tag}" "$tag" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/deployment-message
 
       - name: Deploy validated marketing bundle and assets
         uses: cloudflare/wrangler-action@v4

@@ -68,7 +68,10 @@ Worker bundle and static assets instead of rebuilding. See [CI/CD](ci-cd.md) for
 caching, and failed-release recovery.
 
 Each deployment is annotated with the sanitized commit subject and short commit SHA in its
-message. The version tag is the full commit SHA, matching the API and SPA tags.
+message, built by the shared `.github/actions/deployment-message` action that the mail, API,
+and SPA deployments use too. The version tag is the full commit SHA on all four Workers.
+A version that only uploads a secret carries no message; the dashboard lists it next to the
+annotated one.
 
 ## Connect `ssmusor.ro` to Cloudflare
 

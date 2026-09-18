@@ -1,0 +1,19 @@
+name: Deployment message
+description: Build the message Cloudflare shows next to a Worker version, from the commit being deployed.
+
+outputs:
+  message:
+    description: '"CI: <commit subject> [<short sha>]", safe to pass inside double quotes.'
+    value: ${{ steps.metadata.outputs.message }}
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare deployment metadata
+      id: metadata
+      shell: bash
+      # The subject is reduced to characters that survive the wrangler command line.
+      run: |
+        tag="$(git rev-parse --short=12 HEAD)"
+        subject="$(git log -1 --pretty=%s | LC_ALL=C tr -cd '[:alnum:] ._:/@+-' | cut -c1-240)"
+        printf 'message=CI: %s [%s]\n' "${subject:-Deploy commit $tag}" "$tag" >> "$GITHUB_OUTPUT"
