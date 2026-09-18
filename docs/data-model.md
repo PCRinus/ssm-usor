@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, and the facts documents print  
+Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, the facts documents print, and generated documents  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -166,6 +166,58 @@ The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
 the generated client, so the form and the API validate against one list, and the database
 check constraint mirrors it.
+
+## Generated documents
+
+A document is generated from a versioned Word template and from then on its `.docx` file is
+the source of truth ([ADR 005](architecture/adr-005-document-generation.md)). The tables say
+which file is which; the files live in Supabase Storage.
+
+**Templates.** `document_templates` holds one row per document type (`type_key`, for example
+`decision_training`), with `organization_id` null for the built-in set. A provider's own
+templates will carry their organization. `document_template_versions` holds the files: a
+version number, the Storage path, and the SHA-256 of the file. The master copies of the
+built-in set live in the repository; `register_built_in_template_version(type, title, path,
+hash)`, reachable only with the secret key, registers one and is idempotent: the same hash
+is the version it already is, a new hash becomes the next version. Members read templates
+and have no write policy.
+
+**Documents.** Each client has one documentation set. `client_documents` holds a document
+type once per client (a unique constraint), with its title and, for decisions, the
+`decision_number`, which stays the same across revisions. `document_generations` records
+what was asked when generating: the `issue_date` and the `first_decision_number`. Users never
+see it; it keeps the inputs that are not facts about the client.
+
+**Revisions.** `document_revisions` holds a document's content over time:
+
+| Column                                  | Notes                                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `revision`                              | 1, 2, 3… per document.                                                                      |
+| `status`                                | `draft`, `issued`, or `superseded`. One draft and one issued revision per document at most. |
+| `template_version_id`, `generation_id`  | What it was generated from; both null for a file that was uploaded instead.                 |
+| `docx_path`                             | `<organization>/<client>/<document>/<revision>.docx`; a check ties it to the organization.  |
+| `data_snapshot`                         | The data merged into the file, so the app can tell that it has changed since.               |
+| `edited_at`, `edited_by`                | Last save from the editor or upload; null while the file is as generated.                   |
+| `docx_sha256`, `issued_by`, `issued_at` | Set by issuing. The hash is of the file as issued.                                          |
+| `superseded_at`                         | Set when the next revision is issued.                                                       |
+
+Members write drafts only: the policies require `status = 'draft'` before and after, and
+column grants limit an update to what regenerating and saving change. Issuing goes through
+`issue_document_revision(id, sha256)`, which locks the document, supersedes the issued
+revision if there is one, and marks this one issued with its hash (`DOC01` no such revision,
+`DOC02` not a draft). During an impersonation `issued_by` records the platform admin, as
+`created_by` does. A trigger then refuses any change to a revision that is not a draft, except
+being superseded, to everyone including the secret key (`DOC03`): an issued revision is
+evidence. A correction is a new draft revision of the same document.
+
+**Files.** Two private buckets, limited to Word and PDF files of 20 MiB. `document-templates`
+is read by members under `built-in/` and under their own organization, and written only with
+the secret key. In `documents`, a member reads everything under their organization's folder
+and can upload, replace, or delete a file only where a draft revision of their organization
+says it lives (`is_draft_document_path`). Issuing a revision therefore locks its file as
+well as its row, and tenancy and impersonation apply to files exactly as they do to rows,
+because the policies use `current_organization_id()`. Supabase's database backups cover these
+rows but not the files (issue #77).
 
 ## Profiles
 

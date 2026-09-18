@@ -3,6 +3,61 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      client_documents: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          decision_number: number | null;
+          id: string;
+          organization_id: string;
+          title: string;
+          type_key: string;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          decision_number?: number | null;
+          id?: string;
+          organization_id: string;
+          title: string;
+          type_key: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          decision_number?: number | null;
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          type_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_documents_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       client_responsible_persons: {
         Row: {
           archived_at: string | null;
@@ -220,6 +275,220 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'clients_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      document_generations: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          first_decision_number: number;
+          id: string;
+          issue_date: string;
+          organization_id: string;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          first_decision_number?: number;
+          id?: string;
+          issue_date: string;
+          organization_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          first_decision_number?: number;
+          id?: string;
+          issue_date?: string;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'document_generations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'document_generations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_generations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      document_revisions: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          data_snapshot: Json | null;
+          document_id: string;
+          docx_path: string;
+          docx_sha256: string | null;
+          edited_at: string | null;
+          edited_by: string | null;
+          generation_id: string | null;
+          id: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          organization_id: string;
+          revision: number;
+          status: Database['public']['Enums']['document_revision_status'];
+          superseded_at: string | null;
+          template_version_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          data_snapshot?: Json | null;
+          document_id: string;
+          docx_path: string;
+          docx_sha256?: string | null;
+          edited_at?: string | null;
+          edited_by?: string | null;
+          generation_id?: string | null;
+          id?: string;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          organization_id: string;
+          revision: number;
+          status?: Database['public']['Enums']['document_revision_status'];
+          superseded_at?: string | null;
+          template_version_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          data_snapshot?: Json | null;
+          document_id?: string;
+          docx_path?: string;
+          docx_sha256?: string | null;
+          edited_at?: string | null;
+          edited_by?: string | null;
+          generation_id?: string | null;
+          id?: string;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          organization_id?: string;
+          revision?: number;
+          status?: Database['public']['Enums']['document_revision_status'];
+          superseded_at?: string | null;
+          template_version_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'document_revisions_document_in_organization';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_documents';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_revisions_generation_id_fkey';
+            columns: ['generation_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_generations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'document_revisions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'document_revisions_template_version_id_fkey';
+            columns: ['template_version_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_template_versions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      document_template_versions: {
+        Row: {
+          created_at: string;
+          id: string;
+          sha256: string;
+          storage_path: string;
+          template_id: string;
+          version: number;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          sha256: string;
+          storage_path: string;
+          template_id: string;
+          version: number;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          sha256?: string;
+          storage_path?: string;
+          template_id?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'document_template_versions_template_id_fkey';
+            columns: ['template_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_templates';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      document_templates: {
+        Row: {
+          created_at: string;
+          id: string;
+          organization_id: string | null;
+          title: string;
+          type_key: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          organization_id?: string | null;
+          title: string;
+          type_key: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          organization_id?: string | null;
+          title?: string;
+          type_key?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'document_templates_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';
@@ -623,8 +892,13 @@ export type Database = {
       };
       current_organization_id: { Args: never; Returns: string };
       effective_user_id: { Args: never; Returns: string };
+      is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
+      issue_document_revision: {
+        Args: { p_docx_sha256: string; p_revision_id: string };
+        Returns: undefined;
+      };
       lock_members_as_owner: { Args: never; Returns: string };
       my_open_invitations: {
         Args: never;
@@ -658,6 +932,19 @@ export type Database = {
           user_id: string;
         }[];
       };
+      register_built_in_template_version: {
+        Args: {
+          p_sha256: string;
+          p_storage_path: string;
+          p_title: string;
+          p_type_key: string;
+        };
+        Returns: {
+          created: boolean;
+          template_version_id: string;
+          version: number;
+        }[];
+      };
       remove_organization_member: {
         Args: { member_user_id: string };
         Returns: boolean;
@@ -668,6 +955,7 @@ export type Database = {
       };
     };
     Enums: {
+      document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
       responsible_person_role:
@@ -793,6 +1081,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       organization_role: ['owner', 'specialist'],
       responsible_person_role: [

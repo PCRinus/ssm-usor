@@ -137,7 +137,11 @@ describe('client employees list', () => {
     expect(screen.getByText('RO1590082')).toBeTruthy();
     expect(screen.getByText('· Extracția petrolului brut')).toBeTruthy();
     expect(screen.getByText('Sector 1 Mun. București, București')).toBeTruthy();
-    expect(screen.getByTestId('client-section').getAttribute('aria-current')).toBe('page');
+    // Employees is the current one of the client's sections.
+    const current = screen
+      .getAllByTestId('client-section')
+      .filter((link) => link.getAttribute('aria-current') === 'page');
+    expect(current.map((link) => link.textContent)).toEqual(['Angajați']);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).queryByText('Spațiul de lucru')).toBeNull();
     expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();

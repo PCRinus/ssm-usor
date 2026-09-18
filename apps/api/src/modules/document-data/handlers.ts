@@ -120,10 +120,11 @@ async function findActiveClient(db: DataClient, clientId: string, refusal: strin
 }
 
 const documentDetailsColumns =
-  'legal_representative_role, periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to';
+  'legal_representative_name, legal_representative_role, periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to';
 
 type DocumentDetailsRow = Pick<
   Tables['clients']['Row'],
+  | 'legal_representative_name'
   | 'legal_representative_role'
   | 'periodic_training_hours'
   | 'administrative_training_interval_months'
@@ -135,6 +136,7 @@ type DocumentDetailsRow = Pick<
 
 function toDocumentDetails(row: DocumentDetailsRow): ClientDocumentDetails {
   return {
+    legalRepresentativeName: row.legal_representative_name,
     legalRepresentativeRole: row.legal_representative_role,
     periodicTrainingHours: row.periodic_training_hours,
     administrativeTrainingIntervalMonths: row.administrative_training_interval_months,
@@ -169,6 +171,7 @@ export const updateClientDocumentDetails: RouteHandler<
   const { data, error } = await createDataClient(c)
     .from('clients')
     .update({
+      legal_representative_name: body.legalRepresentativeName ?? null,
       legal_representative_role: body.legalRepresentativeRole ?? null,
       periodic_training_hours: body.periodicTrainingHours ?? null,
       administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,

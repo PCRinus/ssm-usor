@@ -891,6 +891,8 @@ export interface UpdateOrganizationLegalDetailsRequest {
 
 export type ClientDocumentDetailsResponseDocumentDetails = {
   /** @nullable */
+  legalRepresentativeName: string | null;
+  /** @nullable */
   legalRepresentativeRole: string | null;
   /**
    * @minimum 1
@@ -935,6 +937,12 @@ export interface ClientDocumentDetailsResponse {
 }
 
 export interface UpdateClientDocumentDetailsRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  legalRepresentativeName?: string | null;
   /**
    * @minLength 2
    * @maxLength 80
