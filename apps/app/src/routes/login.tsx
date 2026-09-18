@@ -26,11 +26,8 @@ export const Route = createFileRoute('/login')({
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const {
-    register,
-    onSubmit,
-    formState: { errors, isSubmitting },
-  } = useLoginForm(Route.useSearch().invitation);
+  const { form, onSubmit } = useLoginForm(Route.useSearch().invitation);
+  const { errors, isSubmitting } = form.formState;
 
   return (
     <main
@@ -66,7 +63,7 @@ export function LoginPage() {
                   id="email"
                   data-testid="login-email"
                   className="h-11"
-                  {...register('email')}
+                  {...form.register('email')}
                   type="email"
                   autoComplete="username"
                   autoCapitalize="none"
@@ -103,7 +100,7 @@ export function LoginPage() {
                     id="password"
                     data-testid="login-password"
                     className="h-11 pr-12"
-                    {...register('password')}
+                    {...form.register('password')}
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
