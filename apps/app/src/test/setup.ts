@@ -1,7 +1,13 @@
+import { toast } from '@ssm-usor/ui/lib/toast';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 afterEach(cleanup);
+
+// Sonner keeps its toasts in a module-level store, so one test's toast would show up in the next.
+afterEach(() => {
+  toast.dismiss();
+});
 
 beforeEach(() => vi.stubGlobal('scrollTo', vi.fn()));
 

@@ -6,6 +6,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { createFileRoute, useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
+import { ChangePasswordCard } from '../../account/change-password-card';
 import { profileFormSchema, type ProfileFormValues } from '../../account/profile-schema';
 import { useMe } from '../../account/use-me';
 import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '../../api/generated/api';
@@ -129,6 +130,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
           </form>
         </CardContent>
       </Card>
+      {me.user.email && <ChangePasswordCard email={me.user.email} />}
       {me.membership && (
         <Card>
           <CardHeader>

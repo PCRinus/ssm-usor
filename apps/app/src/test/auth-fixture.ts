@@ -39,6 +39,14 @@ export function authFixture(session: Session | null = null) {
       error: { message: 'Invalid login credentials', code: 'invalid_credentials' },
     }),
     signOut: vi.fn<AuthClient['signOut']>().mockResolvedValue({ error: null }),
+    resetPasswordForEmail: vi
+      .fn<AuthClient['resetPasswordForEmail']>()
+      .mockResolvedValue({ error: null }),
+    verifyOtp: vi.fn<AuthClient['verifyOtp']>().mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Token has expired or is invalid', code: 'otp_expired' },
+    }),
+    updateUser: vi.fn<AuthClient['updateUser']>().mockResolvedValue({ error: null }),
   };
   return {
     client,

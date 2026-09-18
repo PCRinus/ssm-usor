@@ -2,7 +2,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -87,7 +87,16 @@ export function LoginPage() {
                 )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Parolă</Label>
+                <div className="flex items-baseline justify-between gap-3">
+                  <Label htmlFor="password">Parolă</Label>
+                  <Link
+                    to="/forgot-password"
+                    data-testid="login-forgot-password"
+                    className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    Ai uitat parola?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"

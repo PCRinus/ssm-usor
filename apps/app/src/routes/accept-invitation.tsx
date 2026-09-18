@@ -1,11 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { currentTermsVersion } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { Eye, EyeOff } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -21,7 +19,10 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { useAuth } from '../auth/auth-context';
+import { newPasswordHint } from '../auth/password-schema';
 import { Field } from '../components/form-field';
+import { PasswordInput } from '../components/password-input';
+import { PublicFrame } from '../components/public-frame';
 import {
   createAccountSchema,
   type CreateAccountValues,
@@ -75,41 +76,9 @@ function acceptMessage(cause: unknown) {
   return 'Nu am putut accepta invitația. Verifică conexiunea și încearcă din nou.';
 }
 
-function Frame({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <main
-      data-testid="accept-invitation-page"
-      className="flex min-h-svh items-center justify-center bg-[color-mix(in_srgb,var(--brand-forest)_10%,var(--muted))] px-5 py-10 sm:px-8"
-    >
-      <div className="flex w-full max-w-md flex-col items-center gap-7">
-        <img
-          src="/brand/logo.png"
-          alt="SSM Ușor"
-          width={2172}
-          height={724}
-          className="h-auto w-48"
-        />
-        <Card className="w-full gap-7 py-8">
-          <CardHeader className="gap-2 text-center sm:px-8">
-            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-            {description && (
-              <CardDescription className="leading-relaxed">{description}</CardDescription>
-            )}
-          </CardHeader>
-          {children && <CardContent className="grid gap-5 sm:px-8">{children}</CardContent>}
-        </Card>
-      </div>
-    </main>
-  );
-}
+const Frame = (props: { title: string; description?: ReactNode; children?: ReactNode }) => (
+  <PublicFrame testId="accept-invitation-page" {...props} />
+);
 
 function FormError({ message }: { message?: string }) {
   if (!message) return null;
@@ -273,7 +242,6 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
   const { auth } = useAuth();
   const navigate = useNavigate();
   const accept = useAcceptInvitation({ request: apiRequest });
-  const [showPassword, setShowPassword] = useState(false);
   const form = useForm<CreateAccountValues>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: { fullName: '', password: '' },
@@ -343,34 +311,18 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
         <Field
           id="accept-password"
           label="Alege o parolă"
-          hint="Cel puțin 8 caractere, cu o literă mică, o literă mare și o cifră."
+          hint={newPasswordHint}
           error={errors.password}
         >
-          <div className="relative">
-            <Input
-              id="accept-password"
-              data-testid="accept-password"
-              className="h-11 pr-12"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              disabled={isSubmitting}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={errors.password ? 'accept-password-error' : 'accept-password-hint'}
-              {...form.register('password')}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute top-0 right-0 size-11 text-muted-foreground hover:bg-transparent hover:text-foreground"
-              aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
-              aria-controls="accept-password"
-              disabled={isSubmitting}
-              onClick={() => setShowPassword((visible) => !visible)}
-            >
-              {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-            </Button>
-          </div>
+          <PasswordInput
+            id="accept-password"
+            data-testid="accept-password"
+            autoComplete="new-password"
+            disabled={isSubmitting}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? 'accept-password-error' : 'accept-password-hint'}
+            {...form.register('password')}
+          />
         </Field>
         <FormError message={errors.root?.server?.message} />
         <Button
