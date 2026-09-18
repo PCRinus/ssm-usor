@@ -1,7 +1,7 @@
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { authorTemplate, documentText } from './author';
+import { authorTemplate, documentText, wordingReplacements } from './author';
 import { renderDocument, TemplateError, templatePlaceholders } from './render';
 
 // The smallest file Word opens: a content type list, the package relationship, and a body.
@@ -164,6 +164,41 @@ describe('authorTemplate', () => {
   });
 });
 
+describe('wordingReplacements', () => {
+  const wording = {
+    words: { in: 'în', munca: 'muncă', si: 'și', securitatii: 'securității' },
+    phrases: [{ find: 'pe baza de teste', replace: 'pe bază de teste' }],
+  };
+  const fix = (text: string) =>
+    documentText(authorTemplate(docx(paragraph(run(text))), wordingReplacements(wording)).template);
+
+  it('fixes whole words in lower, capitalised and upper case, also before a full stop', () => {
+    expect(fix('In domeniul SECURITATII si sanatatii in munca.')).toBe(
+      'În domeniul SECURITĂȚII și sanatatii în muncă.'
+    );
+  });
+
+  it('leaves longer words and placeholder names alone', () => {
+    expect(fix('din incinta {{client.in}} {{si}} {{training.munca}}')).toBe(
+      'din incinta {{client.in}} {{si}} {{training.munca}}'
+    );
+  });
+
+  it('applies phrases, none of which has to occur', () => {
+    expect(fix('Verificarea pe baza de teste')).toBe('Verificarea pe bază de teste');
+    expect(fix('Nimic de schimbat')).toBe('Nimic de schimbat');
+  });
+
+  it('keeps the formatting of a word it fixes', () => {
+    const source = docx(paragraph(run('instruirea '), run('periodica', true), run(' se face')));
+    const { template } = authorTemplate(
+      source,
+      wordingReplacements({ words: { periodica: 'periodică' }, phrases: [] })
+    );
+    expect(bodyXml(template)).toContain('<w:b/></w:rPr><w:t xml:space="preserve">periodică</w:t>');
+  });
+});
+
 describe('renderDocument', () => {
   const client = { legalName: 'S.C. CLIENT S.R.L.', representative: { name: 'Maria POPESCU' } };
 
@@ -212,6 +247,15 @@ describe('renderDocument', () => {
     expect(documentText(renderDocument(template, { months: ['Februarie', 'August'] }))).toBe(
       '- Februarie\n- August'
     );
+  });
+
+  it('drops the second full stop when a value that ends in one closes a sentence', () => {
+    const template = docx(
+      paragraph(run('din cadrul '), run('{{client.legalName}}', true), run('.')) +
+        paragraph(run('Si asa mai departe...'))
+    );
+    const rendered = renderDocument(template, { client: { legalName: 'S.C. CLIENT S.R.L.' } });
+    expect(documentText(rendered)).toBe('din cadrul S.C. CLIENT S.R.L.\nSi asa mai departe...');
   });
 
   it('refuses a missing value instead of leaving a blank, naming every one', () => {

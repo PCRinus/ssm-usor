@@ -83,6 +83,43 @@ runs after it. Formatting is untouched.
 - Honorifics go: "D-na Adnana – Valentina POPA in calitate de Administrator" becomes
   `{{client.representativeName}} in calitate de {{client.representativeRole}}`.
 
+## Wording
+
+The provider's originals carry years of small defects: most words without diacritics and some
+with, the old cedilla letters (ş, ţ) instead of comma-below ones (ș, ț), typos, double
+spaces, spaces before punctuation, and sentences that are only right for one person
+("Subsemnatul am luat cunoștință… ne obligăm"). Templates fix them instead of reproducing
+them. The rule: **reword once in the template rather than add a case at generation time.**
+A sentence that must read correctly for one designated person or for five is rewritten so it
+does ("fiecare persoană desemnată confirmă că a luat cunoștință…"), not branched on a count.
+
+`packages/document-engine/templates/wording.ro.json` is that editorial pass, shared by every
+template and committed, because it quotes no one. A spec opts in with
+`"wording": "../templates/wording.ro.json"`, and it runs after the spec's own replacements:
+
+- `words` is a dictionary, `"securitatii": "securității"`, applied as whole words in lower,
+  Capitalised, and UPPER case. Whole words only, so placeholder names and longer words are
+  safe, and word by word, so a bold or italic phrase keeps its formatting. A word whose
+  diacritics depend on its meaning ("munca" or "muncă") goes in only after every occurrence
+  in the documents has been read in context; "pe de alta parte" is a phrase for that reason,
+  since "la alta" elsewhere is correct as it is.
+- `phrases` are replacements like a spec's, none of which has to occur: rewordings, typos
+  that span words, the old letters, and spacing. Leading spaces are left alone, because the
+  originals align their signature blocks with them.
+
+What the pass does not touch is what the documents say: article references, durations, who
+decides what. That is the provider's professional content. Nor does it remove the empty
+numbered rows of the acknowledgement tables: the training decision has newly appointed
+people sign that same table later.
+
+One thing can only be fixed when values are in: a company name ending in a full stop that
+closes a sentence gives "S.R.L..". `renderDocument` drops the second full stop after
+merging, across runs, and leaves an ellipsis alone.
+
+After changing the wording file, remake the templates and read the result: render with the
+other sample client's data, convert to PDF, and read it through. The tests then pin it: no
+old letters, no double spaces, no space before punctuation, none of the known typos.
+
 Legacy `.doc` originals are converted to `.docx` first with LibreOffice, for example inside
 the Gotenberg image that will also make the PDFs:
 

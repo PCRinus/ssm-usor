@@ -1,8 +1,14 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { authorTemplate, documentText, type Replacement } from '../src/author';
+import {
+  authorTemplate,
+  documentText,
+  type Replacement,
+  type Wording,
+  wordingReplacements,
+} from '../src/author';
 import { templatePlaceholders } from '../src/render';
 
 // Makes a template from a provider's Word file, which stays outside the repository:
@@ -36,13 +42,29 @@ if (values.text) {
 const spec = JSON.parse(readFileSync(specPath!, 'utf8')) as {
   replacements: Replacement[];
   removeColors?: string[];
+  /** A wording file, relative to the spec, applied after the spec's own replacements. */
+  wording?: string;
 };
-const { template, report } = authorTemplate(source, spec.replacements, {
+const wording = spec.wording
+  ? wordingReplacements(
+      JSON.parse(readFileSync(resolve(dirname(specPath!), spec.wording), 'utf8')) as Wording
+    )
+  : [];
+const { template, report } = authorTemplate(source, [...spec.replacements, ...wording], {
   removeColors: spec.removeColors,
 });
 writeFileSync(outputPath!, template);
 
-for (const { part, find, count } of report) {
+// The spec's own replacements one by one; the shared wording as a total.
+const own = new Set(
+  spec.replacements.map(({ find, pattern }) => (pattern ? `/${pattern}/` : find))
+);
+for (const { part, find, count } of report.filter((entry) => own.has(entry.find))) {
   console.log(`${String(count).padStart(3)} × ${JSON.stringify(find)} in ${part}`);
+}
+const reworded = report.filter((entry) => !own.has(entry.find));
+if (wording.length > 0) {
+  const total = reworded.reduce((sum, entry) => sum + entry.count, 0);
+  console.log(`${String(total).padStart(3)} × wording fixes (${reworded.length} distinct)`);
 }
 console.log(`\n${basename(outputPath!)} uses: ${templatePlaceholders(template).join(', ')}`);

@@ -23,6 +23,32 @@ describe('built-in templates', () => {
   });
 });
 
+// The editorial pass of `wording.ro.json`: what the provider's originals got wrong.
+describe('wording', () => {
+  const texts = templateFiles.map((name) => [name, documentText(read(name))] as const);
+
+  it.each(texts)(
+    '%s uses comma-below letters, single spaces, no space before punctuation',
+    (_, text) => {
+      expect(text).not.toMatch(/[şţŞŢǎ]/);
+      expect(text).not.toMatch(/\S {2,}\S/);
+      expect(text).not.toMatch(/\S[ \u00a0]+[,;:](\s|$)/m);
+    }
+  );
+
+  it.each(texts)("%s has none of the originals' typos or missing diacritics", (_, text) => {
+    expect(text).not.toMatch(
+      /instuirii|activitatatilor|deasemeni|deoparte|în tabelului|securitatii|sanatatii|\bin munca\b|\bsi\b|functia|Subsemnat/
+    );
+  });
+
+  it.each(texts)('%s words the acknowledgement for one signer or several', (_, text) => {
+    expect(text).toContain(
+      'fiecare persoană desemnată confirmă că a luat cunoștință de prezenta decizie'
+    );
+  });
+});
+
 describe('decision_first_aid', () => {
   const template = read('decision_first_aid.docx');
   const data = {
@@ -61,17 +87,19 @@ describe('decision_first_aid', () => {
     const text = documentText(renderDocument(template, data));
 
     expect(text).not.toContain('{{');
-    expect(text).toContain('Nr. : 3 SSM  Din : 19.01.2026');
+    expect(text).toContain('Nr.: 3 SSM Din: 19.01.2026');
     expect(text).toContain(
-      'Maria POPESCU in calitate de Director general in cadrul S.C. CLIENT DEMO S.R.L.'
+      'Maria POPESCU în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text).toContain(
-      'Elena DUMITRU avand functia de Lucrător comercial in cadrul S.C. CLIENT DEMO S.R.L.'
+      'Elena DUMITRU având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     // Once in the decision, once in each of the two acknowledgement tables.
     expect(text.match(/Ion MARIN/g)).toHaveLength(4);
     expect(text.match(/^Lucrător comercial$/gm)).toHaveLength(2);
     expect(text).toContain('S.C. SERVICIU EXTERN S.R.L. – Ana IONESCU');
+    // Reads the same for one first aider or several.
+    expect(text).toContain('Ion MARIN, Elena DUMITRU, desemnate să acorde primul ajutor');
   });
 
   it('refuses to render without a first aider name list rather than leave a gap', () => {
@@ -119,18 +147,21 @@ describe('decision_training', () => {
 
     expect(text).not.toContain('{{');
     expect(text).toContain('durata instruirii periodice va fi de 2 ore');
+    // The original closes this sentence with the client's name and a full stop of its own.
+    expect(text).toContain('din cadrul S.C. CLIENT DEMO S.R.L.\n');
+    expect(text).not.toContain('..');
     expect(text).toContain(
-      'va fi instruit SEMESTRIAL respectiv in lunile Februarie, August, in perioada ( ziua) 2 – 7 ale lunii'
+      'va fi instruit SEMESTRIAL respectiv în lunile Februarie, August, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'va fi instruit TRIMESTRIAL respectiv in lunile Februarie, Mai, August, Noiembrie'
+      'va fi instruit TRIMESTRIAL respectiv în lunile Februarie, Mai, August, Noiembrie'
     );
     expect(text).toContain(
-      'Ion MARIN, avand functia de Manager magazin in cadrul societatii; Elena DUMITRU,'
+      'Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
     );
     expect(
       text.match(
-        /va efectua instruirea la locul de munca si instruirea periodica pentru intreg personalul/g
+        /va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul/g
       )
     ).toHaveLength(2);
     acknowledged(text);
@@ -160,10 +191,10 @@ describe('decision_risk_evaluation_team', () => {
     );
 
     expect(text).not.toContain('{{');
-    expect(text).toContain('Nr. : 2 SSM Din : 19.01.2026');
-    expect(text.match(/va indeplini si functia de membru al echipei de evaluare/g)).toHaveLength(2);
+    expect(text).toContain('Nr.: 2 SSM Din: 19.01.2026');
+    expect(text.match(/va îndeplini și funcția de membru al echipei de evaluare/g)).toHaveLength(2);
     expect(text).toContain(
-      'Ana IONESCU in calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L.'
+      'Ana IONESCU în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L.'
     );
     acknowledged(text);
   });
@@ -172,7 +203,7 @@ describe('decision_risk_evaluation_team', () => {
 describe('decision_imminent_danger', () => {
   it('names the designated people in each of the five measures', () => {
     const imminentDangerText = people
-      .map((person) => `${person.name} avand functia de ${person.jobTitle}`)
+      .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
       .join(', ');
     const text = documentText(
       renderDocument(read('decision_imminent_danger.docx'), {
@@ -186,9 +217,11 @@ describe('decision_imminent_danger', () => {
 
     expect(text).not.toContain('{{');
     expect(text).toContain(
-      'Ion MARIN in calitate de Manager magazin in cadrul S.C. CLIENT DEMO S.R.L. desemneaza'
+      `Ion MARIN în calitate de Manager magazin în cadrul S.C. CLIENT DEMO S.R.L. desemnează următorii lucrători: ${imminentDangerText}, cu următoarele atribuții:`
     );
-    expect(text.split(imminentDangerText)).toHaveLength(6);
+    // Named once; each of the five measures then refers to them.
+    expect(text.split(imminentDangerText)).toHaveLength(2);
+    expect(text.match(/: lucrătorii desemnați/g)).toHaveLength(5);
     acknowledged(text);
   });
 });

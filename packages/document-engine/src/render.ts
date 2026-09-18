@@ -1,6 +1,8 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
+import { isTextPart, replaceInXml } from './author';
+
 // Merges data into a Word template (ADR 005). Templates carry `{{ }}` placeholders:
 //
 //   {{client.legalName}}                       a value, by dotted path
@@ -98,7 +100,20 @@ export function renderDocument(template: Uint8Array, data: TemplateData): Uint8A
     const names = [...missing].sort();
     throw new TemplateError(`The template has no value for: ${names.join(', ')}.`, names);
   }
-  return document.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
+  return tidy(document.getZip()).generate({ type: 'uint8array', compression: 'DEFLATE' });
+}
+
+// What only shows once values are in. A company name that ends in a full stop, closing a
+// sentence, gives "S.R.L..": the template cannot know, so the engine drops the second one. An
+// ellipsis is left alone.
+const punctuation = [{ pattern: '(?<!\\.)\\.\\.(?!\\.)', replace: '.' }];
+
+function tidy(zip: PizZip) {
+  for (const name of Object.keys(zip.files).filter(isTextPart)) {
+    // The two full stops are often in different runs, so the XML cannot be searched for "..".
+    zip.file(name, replaceInXml(zip.file(name)!.asText(), punctuation));
+  }
+  return zip;
 }
 
 /**

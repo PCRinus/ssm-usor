@@ -133,6 +133,40 @@ const label = ({ find, pattern }: Replacement) =>
 // A paragraph holding only a loop tag. The engine removes it when it renders the loop.
 const tagParagraph = (tag: string) => `<w:p><w:r><w:t>${tag}</w:t></w:r></w:p>`;
 
+/** A shared editorial pass: a dictionary of whole words, then phrases. */
+export interface Wording {
+  /** "securitatii": "securității". Applied as whole words, in lower, Capitalised and UPPER case. */
+  words: Record<string, string>;
+  /** Rewordings, as replacements. None of them has to occur in every document. */
+  phrases: Replacement[];
+}
+
+const letters = 'A-Za-zĂÂÎȘȚăâîșțŞŢşţ';
+const capitalise = (word: string) => word.charAt(0).toLocaleUpperCase('ro') + word.slice(1);
+
+/** Turns a wording file into replacements. Phrases go first: they are written against the original text. */
+export function wordingReplacements({ words, phrases }: Wording): Replacement[] {
+  const replacements: Replacement[] = phrases.map((phrase) => ({ min: 0, ...phrase }));
+  for (const [from, to] of Object.entries(words)) {
+    const variants = new Map([
+      [from, to],
+      [capitalise(from), capitalise(to)],
+      [from.toLocaleUpperCase('ro'), to.toLocaleUpperCase('ro')],
+    ]);
+    for (const [find, replace] of variants) {
+      // A whole word, never the inside of a longer one or of a placeholder's dotted name. A
+      // full stop after the word is fine: it ends the sentence.
+      const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      replacements.push({
+        pattern: `(?<![${letters}{])(?<![A-Za-z]\\.)${escaped}(?![${letters}}])(?!\\.[A-Za-z])`,
+        replace,
+        min: 0,
+      });
+    }
+  }
+  return replacements;
+}
+
 export interface AuthoringOptions {
   /**
    * Font colours to drop, as Word writes them ("FF0000"). Providers mark what they replace by
@@ -140,6 +174,24 @@ export interface AuthoringOptions {
    */
   removeColors?: string[];
 }
+
+/** Applies replacements to every paragraph of one XML part, across run boundaries. */
+export function replaceInXml(xml: string, replacements: Replacement[]) {
+  let result = xml;
+  for (const replacement of replacements) {
+    const match = matcherFor(replacement);
+    result = result.replace(
+      paragraphPattern,
+      (paragraph) =>
+        replaceInParagraph(paragraph, match, replacement.replace, replacement.whole ?? false)
+          .paragraph
+    );
+  }
+  return result;
+}
+
+export const isTextPart = (name: string) =>
+  /^word\/(document|header\d*|footer\d*)\.xml$/.test(name);
 
 /** Replaces text in the body, the headers, and the footers of a `.docx`. */
 export function authorTemplate(

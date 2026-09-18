@@ -1,0 +1,200 @@
+{
+  "words": {
+    "activitatatilor": "activităților",
+    "activitatile": "activitățile",
+    "anterioara": "anterioară",
+    "anuleaza": "anulează",
+    "anuntare": "anunțare",
+    "anuntarea": "anunțarea",
+    "aparitia": "apariția",
+    "asigurata": "asigurată",
+    "atributii": "atribuții",
+    "atributiile": "atribuțiile",
+    "avand": "având",
+    "catre": "către",
+    "cerintele": "cerințele",
+    "comunica": "comunică",
+    "conducatorul": "conducătorul",
+    "consultanta": "consultanță",
+    "cunostinta": "cunoștință",
+    "cunostintelor": "cunoștințelor",
+    "deasemeni": "de asemenea",
+    "desemnati": "desemnați",
+    "desemneaza": "desemnează",
+    "desfasoare": "desfășoare",
+    "desfasurate": "desfășurate",
+    "dupa": "după",
+    "efectuarii": "efectuării",
+    "evaluarii": "evaluării",
+    "executie": "execuție",
+    "faca": "facă",
+    "fisa": "fișa",
+    "functia": "funcția",
+    "functii": "funcții",
+    "generala": "generală",
+    "identificarii": "identificării",
+    "imbolnavire": "îmbolnăvire",
+    "imediata": "imediată",
+    "in": "în",
+    "incadrate": "încadrate",
+    "incheiat": "încheiat",
+    "incheierii": "încheierii",
+    "indeplini": "îndeplini",
+    "instructiunilor": "instrucțiunilor",
+    "instuirii": "instruirii",
+    "insusirea": "însușirea",
+    "interventiei": "intervenției",
+    "intreg": "întreg",
+    "lucratori": "lucrători",
+    "lucratorii": "lucrătorii",
+    "lucratorilor": "lucrătorilor",
+    "masurile": "măsurile",
+    "maxima": "maximă",
+    "mentionate": "menționate",
+    "mentionati": "menționați",
+    "mica": "mică",
+    "munca": "muncă",
+    "obligatiile": "obligațiile",
+    "periculoasa": "periculoasă",
+    "periodica": "periodică",
+    "profesionala": "profesională",
+    "protectie": "protecție",
+    "raspunderile": "răspunderile",
+    "sa": "să",
+    "salariatilor": "salariaților",
+    "sanatatii": "sănătății",
+    "schimba": "schimbă",
+    "securitatii": "securității",
+    "sefi": "șefi",
+    "sefii": "șefii",
+    "seful": "șeful",
+    "semnatura": "semnătura",
+    "si": "și",
+    "societatii": "societății",
+    "specialistii": "specialiștii",
+    "starii": "stării",
+    "suplimentara": "suplimentară",
+    "urmatoarele": "următoarele",
+    "urmatorii": "următorii",
+    "urmeaza": "urmează",
+    "vazand": "văzând",
+    "angajati": "angajați",
+    "angajatii": "angajații",
+    "angajatilor": "angajaților",
+    "activitătii": "activității"
+  },
+  "phrases": [
+    {
+      "pattern": "Subsemnat(ul|ii) am luat [^.]*? ce reies din decizia",
+      "replace": "Prin semnătura din tabelul nominal de mai jos, fiecare persoană desemnată confirmă că a luat cunoștință de prezenta decizie și se obligă să respecte întocmai obligațiile, atribuțiile și răspunderile ce reies din decizia"
+    },
+    {
+      "find": "cu ocazia instruirii persoanelor:",
+      "replace": "cu ocazia instruirii suplimentare a următoarelor persoane:"
+    },
+    {
+      "pattern": ", care urmeaza să acorde primul ajutor precum si masurile de prevenire si stingere a incendiilor\\. Aceștia au\\s+fost instruiți suplimentar de către conducatorul serviciului extern",
+      "replace": ", desemnate să acorde primul ajutor și să aplice măsurile de prevenire și stingere a incendiilor. Instruirea suplimentară a fost efectuată de către conducătorul serviciului extern"
+    },
+    {
+      "pattern": "desemneaza urmatorii lucratori\\s*, dupa cum urmeaza:",
+      "replace": "desemnează următorii lucrători: {{imminentDangerText}}, cu următoarele atribuții:"
+    },
+    {
+      "pattern": "\\{\\{imminentDangerText\\}\\} in cadrul\\s+\\{\\{client\\.legalName\\}\\}",
+      "replace": "lucrătorii desemnați"
+    },
+    {
+      "find": "sau dupa caz personalul aflat la program",
+      "replace": "sau, după caz, personalul aflat la program"
+    },
+    {
+      "find": "pe deoparte si pe de alta parte",
+      "replace": "pe de o parte și, pe de altă parte,"
+    },
+    {
+      "find": "Prezenta salariatilor la instructaj",
+      "replace": "Prezența salariaților la instructaj"
+    },
+    {
+      "find": "în tabelului nominal",
+      "replace": "în tabelul nominal"
+    },
+    {
+      "find": "LUARE LA CUNOSTINTA",
+      "replace": "LUARE LA CUNOȘTINȚĂ"
+    },
+    {
+      "find": "( ziua)",
+      "replace": "(ziua)"
+    },
+    {
+      "find": "Numele si prenumele",
+      "replace": "Numele și prenumele"
+    },
+    {
+      "find": "Semnatura primire",
+      "replace": "Semnătura de primire"
+    },
+    {
+      "pattern": "(?<=[a-zăâîșțşţ,] )In(?= [a-zăâîșțşţ])",
+      "replace": "în"
+    },
+    {
+      "pattern": "protec[țţ]ie\\.\"",
+      "replace": "protecție."
+    },
+    {
+      "find": "pe baza de teste",
+      "replace": "pe bază de teste"
+    },
+    {
+      "find": "exemplar a prezentei",
+      "replace": "exemplar al prezentei"
+    },
+    {
+      "find": "modul de respectare al prevederilor",
+      "replace": "modul de respectare a prevederilor"
+    },
+    {
+      "find": "ş",
+      "replace": "ș"
+    },
+    {
+      "find": "ţ",
+      "replace": "ț"
+    },
+    {
+      "find": "Ş",
+      "replace": "Ș"
+    },
+    {
+      "find": "Ţ",
+      "replace": "Ț"
+    },
+    {
+      "find": "ǎ",
+      "replace": "ă"
+    },
+    {
+      "pattern": "(?<=[^\\s.]) +(?=\\.(\\s|$))",
+      "replace": ""
+    },
+    {
+      "pattern": "(?<=\\S)[ \\u00a0]{2,}(?=\\S)",
+      "replace": " "
+    },
+    {
+      "pattern": "(?<=[^\\s\\u00a0])[ \\u00a0]+(?=[,;:]([\\s\\u00a0]|$))",
+      "replace": ""
+    },
+    {
+      "pattern": "(?<=[^\\s\\u00a0.])[ \\u00a0]+(?=\\.([\\s\\u00a0]|$))",
+      "replace": ""
+    },
+    {
+      "pattern": ",(?=[A-Za-zăâîșț{])",
+      "replace": ", "
+    }
+  ]
+}
