@@ -113,6 +113,49 @@ describe('authorTemplate', () => {
     );
   });
 
+  it('matches a pattern, for a phrase the original spells several ways', () => {
+    const source = docx(
+      paragraph(run('in cadrul S.C. VELOCITA URBANA  S.R.L, din')) +
+        paragraph(run('la S.C. VELOCITA'), run(' URBANA SRL;'))
+    );
+    const { template, report } = authorTemplate(source, [
+      {
+        pattern: 'S\\.C\\.\\s+VELOCITA URBANA\\s+S\\.?R\\.?L\\.?',
+        replace: '{{client.legalName}}',
+        min: 2,
+      },
+    ]);
+    expect(documentText(template)).toBe(
+      'in cadrul {{client.legalName}}, din\nla {{client.legalName}};'
+    );
+    expect(report[0]!.count).toBe(2);
+  });
+
+  it('drops the font colours a provider used to mark text, and keeps the others', () => {
+    const colored = (text: string, color: string) =>
+      `<w:r><w:rPr><w:b/><w:color w:val="${color}"/></w:rPr><w:t>${text}</w:t></w:r>`;
+    const source = docx(
+      paragraph(colored('S.C. CLIENT S.R.L.', 'FF0000'), colored(' titlu', '1F497D'))
+    );
+    const { template } = authorTemplate(
+      source,
+      [{ find: 'S.C. CLIENT S.R.L.', replace: '{{client.legalName}}' }],
+      { removeColors: ['FF0000'] }
+    );
+    expect(bodyXml(template)).not.toContain('FF0000');
+    expect(bodyXml(template)).toContain(
+      '<w:rPr><w:b/></w:rPr><w:t xml:space="preserve">{{client.legalName}}'
+    );
+    expect(bodyXml(template)).toContain('1F497D');
+  });
+
+  it('fails when a text is found less often than the spec expects', () => {
+    const source = docx(paragraph(run('15.02.2024')));
+    expect(() =>
+      authorTemplate(source, [{ find: '15.02.2024', replace: '{{issueDate}}', min: 2 }])
+    ).toThrow(/15\.02\.2024/);
+  });
+
   it('fails when a text is not in the document, naming it', () => {
     const source = docx(paragraph(run('Nimic de înlocuit.')));
     expect(() => authorTemplate(source, [{ find: 'PIPETECH', replace: '{{x}}' }])).toThrow(

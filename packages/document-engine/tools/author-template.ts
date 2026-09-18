@@ -33,8 +33,13 @@ if (values.text) {
   process.exit(0);
 }
 
-const spec = JSON.parse(readFileSync(specPath!, 'utf8')) as { replacements: Replacement[] };
-const { template, report } = authorTemplate(source, spec.replacements);
+const spec = JSON.parse(readFileSync(specPath!, 'utf8')) as {
+  replacements: Replacement[];
+  removeColors?: string[];
+};
+const { template, report } = authorTemplate(source, spec.replacements, {
+  removeColors: spec.removeColors,
+});
 writeFileSync(outputPath!, template);
 
 for (const { part, find, count } of report) {

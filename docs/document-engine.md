@@ -73,6 +73,11 @@ runs after it. Formatting is untouched.
   as opposed to that name inside a sentence.
 - `loopParagraph` wraps the matched paragraph in loop tags of their own paragraphs, which is
   what makes the paragraph repeat per item.
+- `pattern` is a regular expression instead of `find`, for a phrase the original spells
+  several ways: the samples write one company as "S.C. X S.R.L.", "S.C. X SRL", and
+  "S.C. X S.R.L,".
+- `removeColors`, next to `replacements`, drops font colours. The provider marks in red what
+  they replace by hand; a generated document should not carry that.
 - `min` is how many times the text must be found, default 1. A text that is not found fails
   the run, so a spec cannot silently stop matching when the original changes.
 - Honorifics go: "D-na Adnana – Valentina POPA in calitate de Administrator" becomes
@@ -92,6 +97,13 @@ carries a real name fails.
 
 ## Built-in templates
 
-| `type_key`           | Document                                                                 | Data                                                                                    |
-| -------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `decision_first_aid` | Decision naming who gives first aid, with its two acknowledgement tables | `decisionNumber`, `issueDate`, `client`, `provider`, `firstAiders[]`, `firstAiderNames` |
+| `type_key`                      | Document                                                                 | Data beyond `decisionNumber`, `issueDate`, `client`, `provider`                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `decision_training`             | Decision no. 1: who trains whom, and the periodic training schedule      | `workplaceManagers[]`, `training` (`periodicDuration`, `administrativeFrequency`, `administrativeMonths`, `workerFrequency`, `workerMonths`, `dayFrom`, `dayTo`) |
+| `decision_risk_evaluation_team` | Decision no. 2: the risk evaluation team                                 | `evaluationTeam[]`, `specialist` (`name`, `professionalTitle`)                                                                                                   |
+| `decision_first_aid`            | Decision no. 3: who gives first aid, with its two acknowledgement tables | `firstAiders[]`, `firstAiderNames`                                                                                                                               |
+| `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
+
+`client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
+and `representativeName`. A person in a list is `name` and `jobTitle`. Every decision ends with
+an acknowledgement table that repeats a row per designated person.

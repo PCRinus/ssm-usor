@@ -11,7 +11,12 @@ import PizZip from 'pizzip';
 
 export interface Replacement {
   /** Literal text as it reads in the document, spaces included. */
-  find: string;
+  find?: string;
+  /**
+   * A regular expression instead of `find`, for a phrase the original spells several ways:
+   * "S.C. X  S.R.L.", "S.C. X SRL", "S.C. X S.R.L,". Matched per paragraph.
+   */
+  pattern?: string;
   replace: string;
   /** Fail unless the text is found at least this many times. Default 1. */
   min?: number;
@@ -30,6 +35,7 @@ export interface Replacement {
 
 export interface AuthoringReport {
   part: string;
+  /** The `find` text, or the `pattern` between slashes. */
   find: string;
   count: number;
 }
@@ -48,22 +54,49 @@ const decode = (text: string) =>
 const encode = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function replaceInParagraph(paragraph: string, find: string, replace: string, whole: boolean) {
+type Matcher = (text: string, from: number) => { start: number; length: number } | null;
+
+function matcherFor({ find, pattern }: Replacement): Matcher {
+  if (pattern !== undefined) {
+    return (text, from) => {
+      const expression = new RegExp(pattern, 'g');
+      expression.lastIndex = from;
+      const match = expression.exec(text);
+      // An empty match would never advance.
+      return match && match[0].length > 0 ? { start: match.index, length: match[0].length } : null;
+    };
+  }
+  if (!find) throw new Error('A replacement needs `find` or `pattern`.');
+  return (text, from) => {
+    const start = text.indexOf(find, from);
+    return start === -1 ? null : { start, length: find.length };
+  };
+}
+
+function replaceInParagraph(paragraph: string, match: Matcher, replace: string, whole: boolean) {
   let texts: string[] = [];
   paragraph.replace(textPattern, (_, __, text: string) => {
     texts.push(decode(text));
     return '';
   });
   if (texts.length === 0) return { paragraph, count: 0 };
-  if (whole && texts.join('').trim() !== find) return { paragraph, count: 0 };
+  if (whole) {
+    const text = texts.join('');
+    const lead = text.length - text.trimStart().length;
+    const found = match(text, 0);
+    if (!found || found.start !== lead || found.length !== text.trim().length) {
+      return { paragraph, count: 0 };
+    }
+  }
 
   let count = 0;
   let searchFrom = 0;
   for (;;) {
     const joined = texts.join('');
-    const start = joined.indexOf(find, searchFrom);
-    if (start === -1) break;
-    const end = start + find.length;
+    const found = match(joined, searchFrom);
+    if (!found) break;
+    const { start } = found;
+    const end = start + found.length;
     count += 1;
 
     // Which run owns each character of the paragraph.
@@ -94,11 +127,26 @@ function replaceInParagraph(paragraph: string, find: string, replace: string, wh
   return { paragraph: rewritten, count };
 }
 
+const label = ({ find, pattern }: Replacement) =>
+  pattern !== undefined ? `/${pattern}/` : (find ?? '');
+
 // A paragraph holding only a loop tag. The engine removes it when it renders the loop.
 const tagParagraph = (tag: string) => `<w:p><w:r><w:t>${tag}</w:t></w:r></w:p>`;
 
+export interface AuthoringOptions {
+  /**
+   * Font colours to drop, as Word writes them ("FF0000"). Providers mark what they replace by
+   * hand in red; a generated document should not carry their markings.
+   */
+  removeColors?: string[];
+}
+
 /** Replaces text in the body, the headers, and the footers of a `.docx`. */
-export function authorTemplate(source: Uint8Array, replacements: Replacement[]) {
+export function authorTemplate(
+  source: Uint8Array,
+  replacements: Replacement[],
+  { removeColors = [] }: AuthoringOptions = {}
+) {
   const zip = new PizZip(source);
   const parts = Object.keys(zip.files).filter((name) =>
     /^word\/(document|header\d*|footer\d*)\.xml$/.test(name)
@@ -108,10 +156,13 @@ export function authorTemplate(source: Uint8Array, replacements: Replacement[]) 
 
   for (const part of parts) {
     let xml = zip.file(part)!.asText();
-    for (const { find, replace, whole = false, loopParagraph } of replacements) {
+    for (const replacement of replacements) {
+      const { replace, whole = false, loopParagraph } = replacement;
+      const find = label(replacement);
+      const match = matcherFor(replacement);
       let count = 0;
       xml = xml.replace(paragraphPattern, (paragraph) => {
-        const result = replaceInParagraph(paragraph, find, replace, whole);
+        const result = replaceInParagraph(paragraph, match, replace, whole);
         count += result.count;
         if (result.count === 0 || !loopParagraph) return result.paragraph;
         return `${tagParagraph(`{{#${loopParagraph}}}`)}${result.paragraph}${tagParagraph(`{{/${loopParagraph}}}`)}`;
@@ -119,13 +170,18 @@ export function authorTemplate(source: Uint8Array, replacements: Replacement[]) 
       if (count > 0) report.push({ part, find, count });
       totals.set(find, (totals.get(find) ?? 0) + count);
     }
+    for (const color of removeColors) {
+      xml = xml.replace(new RegExp(`<w:color w:val="${color}"[^>]*/>`, 'gi'), '');
+    }
     zip.file(part, xml);
   }
 
-  const notFound = replacements.filter(({ find, min = 1 }) => (totals.get(find) ?? 0) < min);
+  const notFound = replacements.filter(
+    (replacement) => (totals.get(label(replacement)) ?? 0) < (replacement.min ?? 1)
+  );
   if (notFound.length > 0) {
     throw new Error(
-      `Text not found in the document: ${notFound.map(({ find }) => JSON.stringify(find)).join(', ')}`
+      `Text not found often enough in the document: ${notFound.map((replacement) => JSON.stringify(label(replacement))).join(', ')}`
     );
   }
   return {
