@@ -20,7 +20,8 @@ Single-context: the apps and packages serve one product and share one vocabulary
 ├── docs/architecture/
 │   ├── adr-001-web-applications-and-cloudflare.md
 │   ├── adr-002-transactional-email.md
-│   └── adr-003-organization-invitations.md
+│   ├── adr-003-organization-invitations.md
+│   └── adr-004-registration-and-onboarding.md
 └── apps/, packages/
 ```
 
