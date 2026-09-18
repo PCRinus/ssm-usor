@@ -90,9 +90,14 @@ describe('typesetting', () => {
       const body = bodyOf(name).replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:tbl/>');
       const texts = paragraphsOf(body).map(documentTextOf);
       expect(texts.filter((text) => /^[ \u00a0\t]/.test(text))).toEqual([]);
-      // Loop tags stand alone in a paragraph; the one paragraph Word needs after a closing table
-      // is the only empty one.
-      expect(texts.filter((text) => text.trim() === '').length).toBeLessThanOrEqual(1);
+      // Loop tags stand alone in a paragraph. The only empty paragraphs are the ones Word needs
+      // after a table: at the end, or between two tables that would otherwise be saved as one.
+      const empty = paragraphsOf(body).filter(
+        (paragraph) => documentTextOf(paragraph).trim() === ''
+      );
+      for (const paragraph of empty) {
+        expect(body.slice(0, body.indexOf(paragraph)).trimEnd()).toMatch(/<w:tbl\/>$/);
+      }
     }
   );
 
@@ -118,11 +123,13 @@ describe('typesetting', () => {
       ].map((match) => match[1])
     );
     expect([...fonts]).toEqual(['Arial']);
-    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page; 8 pt in a table too wide
-    // for the body size. Nothing else, and no heading smaller than the text under it.
-    expect([...sizes].filter((size) => ![8, 10, 12, 14, 16].includes(size))).toEqual([]);
+    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page. Smaller only inside a
+    // table too wide for the body size, never for a heading over running text.
+    expect([...sizes].filter((size) => ![7, 8, 9, 10, 12, 14, 16].includes(size))).toEqual([]);
     const outsideTables = xml.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '');
-    expect(outsideTables).not.toMatch(/<w:sz w:val="16"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/);
+    expect(outsideTables).not.toMatch(
+      /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(14|16|18)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/
+    );
     expect([...languages]).toEqual(['ro-RO']);
   });
 

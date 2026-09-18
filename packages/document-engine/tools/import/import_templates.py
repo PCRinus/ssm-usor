@@ -31,6 +31,7 @@ import uno
 from com.sun.star.beans import PropertyValue
 from com.sun.star.lang import Locale
 from com.sun.star.style.BreakType import NONE as NO_BREAK
+from com.sun.star.style.BreakType import PAGE_BEFORE
 from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
 from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
@@ -49,6 +50,14 @@ ROMANIAN = Locale('ro', 'RO', '')
 
 # What counts as a title or a heading, per kind of document. Matched on a whole paragraph.
 KINDS = {
+    'test': {
+        'title': [r'^TESTARE DE VERIFICARE'],
+        'subtitle': [r'^\((ANGAJARE|PERIODIC)'],
+        'headings': [r'^SPECIMEN'],
+        # A question, typed with its number, and an answer typed with its letter.
+        'questions': [r'^\d+\. '],
+        'answers': [r'^[a-z]\)\s'],
+    },
     'regulation': {
         'title': [r'^REGULAMENT INTERN'],
         'subtitle': [],
@@ -75,6 +84,8 @@ WIDE_TABLE_COLUMNS = 6
 # ParaAdjust reads back as a number: justified, and justified with a stretched last line.
 JUSTIFIED = (2, 4)
 SMALL_PRINT = 8.0
+# A table drawn from a definition has the sizes it was given.
+DRAWN = 'Drawn'
 
 SIGNATURE_BLOCK = [
     '{{client.legalName}}',
@@ -151,7 +162,9 @@ def descriptor(document, replacement):
         search.SearchRegularExpression = True
         search.SearchString = replacement['pattern']
         # "$" and "&" mean something in a regular expression replacement.
-        search.ReplaceString = replacement['replace'].replace('\\', '\\\\').replace('$', '\\$').replace('&', '\\&')
+        # `groups` lets the replacement name what the pattern captured ("$1").
+        search.ReplaceString = replacement['replace'] if replacement.get('groups') else \
+            replacement['replace'].replace('\\', '\\\\').replace('$', '\\$').replace('&', '\\&')
     else:
         search.SearchString = replacement['find']
         search.ReplaceString = replacement['replace']
@@ -315,6 +328,7 @@ def rebuild_table(document, definition):
     table.initialize(len(rows), columns)
     text.insertTextContent(text.createTextCursorByRange(following.getStart()), table, False)
     table.HoriOrient = FULL_WIDTH
+    table.Name = f"{DRAWN}{definition['replaceTable']}"
     total, position = sum(definition['widths']), 0
     separators = table.TableColumnSeparators
     for separator, width in zip(separators, definition['widths']):
@@ -325,6 +339,7 @@ def rebuild_table(document, definition):
     size = definition.get('size', BODY_SIZE)
     header_rows = definition.get('headerRows', 1)
     left = set(definition.get('left', []))
+    bold_columns = set(definition.get('boldColumns', []))
     merges = []
     for row_index, row in enumerate(rows):
         for column_index, content in enumerate(row):
@@ -334,7 +349,8 @@ def rebuild_table(document, definition):
             lines = cell_definition['text'].split('\n')
             cell_cursor = cell.createTextCursor()
             for index, line in enumerate(lines):
-                write_paragraph(cell, cell_cursor, line, size=size, bold=row_index < header_rows,
+                write_paragraph(cell, cell_cursor, line, size=size,
+                                bold=row_index < header_rows or column_index in bold_columns,
                                 adjust=LEFT if column_index in left and row_index >= header_rows else CENTER,
                                 below=0, first=index == 0)
             spans = (cell_definition.get('colspan', 1), cell_definition.get('rowspan', 1))
@@ -350,6 +366,14 @@ def rebuild_table(document, definition):
         merge.mergeRange()
     if header_rows > 1:
         table.HeaderRowCount = header_rows
+    if definition.get('rowHeight'):
+        # Room to write by hand, as padding: a row's least height is not something the API
+        # offers, and padding reads the same in every viewer.
+        padding = max(0, round((definition['rowHeight'] * 100 - size * POINT * 1.2) / 2))
+        for cell_name in table.getCellNames():
+            cell = table.getCellByName(cell_name)
+            cell.TopBorderDistance = padding
+            cell.BottomBorderDistance = padding
     return table
 
 
@@ -443,6 +467,36 @@ def build_header(document, details):
         closing.ParaBottomMargin = 0
 
 
+def join_typed_answers(document, rules):
+    """A test typed by hand: "a) …" with the letter typed, and a long answer broken into lines
+    with the Enter key. The lines go back into their answer and the letter gets a tab, so the
+    typesetting can hang the answer from it."""
+    previous = None
+    for element in list(_elements(document.Text)):
+        if not element.supportsService('com.sun.star.text.Paragraph'):
+            previous = None
+            continue
+        text = element.getString().strip()
+        listed = element.NumberingIsNumber and element.ListLabelString
+        if not text or listed:
+            previous = None
+        elif matches(text, rules['answers']):
+            previous = element
+        elif matches(text, rules['questions'] + rules['title'] + rules['subtitle'] + rules['headings']):
+            previous = None
+        elif previous is not None:
+            end = document.Text.createTextCursorByRange(previous.getEnd())
+            document.Text.insertString(end, ' ' + text, False)
+            document.Text.removeTextContent(element)
+    for element in _elements(document.Text):
+        if element.supportsService('com.sun.star.text.Paragraph') and not element.ListLabelString \
+                and matches(element.getString(), rules['answers']):
+            cursor = document.Text.createTextCursorByRange(element.getStart())
+            cursor.goRight(2, False)
+            cursor.goRight(1, True)
+            cursor.setString('\t')
+
+
 def strip_spacing(document):
     """Spaces were doing the work of alignment and of spacing. Without them a paragraph of
     spaces is an empty one, which the typesetting removes with the rest."""
@@ -486,13 +540,17 @@ def normalise_characters(document):
             cursor.CharHeightComplex = size
         cursor.CharLocale = ROMANIAN
         cursor.CharColor = -1
+        # Letters spread apart or squeezed to make a line fit.
+        cursor.CharKerning = 0
+        cursor.CharScaleWidth = 100
 
     def apply_tables(text, size):
         for element in _elements(text):
             if element.supportsService('com.sun.star.text.TextTable'):
                 wide = column_count(element) > WIDE_TABLE_COLUMNS
+                drawn = element.Name.startswith(DRAWN)
                 for name in element.getCellNames():
-                    apply(element.getCellByName(name), SMALL_PRINT if wide else size)
+                    apply(element.getCellByName(name), None if drawn else SMALL_PRINT if wide else size)
 
     apply(document.Text, BODY_SIZE)
     apply_tables(document.Text, BODY_SIZE)
@@ -628,16 +686,26 @@ def typeset(document, kind):
         body.append(elements.nextElement())
     removed = 0
     for index, element in enumerate(body[:-1]):
-        if not element.supportsService('com.sun.star.text.Paragraph') or element.getString().strip():
+        if element is None or not element.supportsService('com.sun.star.text.Paragraph') or element.getString().strip():
             continue
         if element.createContentEnumeration('com.sun.star.text.TextContent').hasMoreElements():
             continue
         following = body[index + 1]
+        before = next((item for item in reversed(body[:index]) if item is not None), None)
+        if before is not None and before.supportsService('com.sun.star.text.TextTable') \
+                and following.supportsService('com.sun.star.text.TextTable'):
+            # Two tables with nothing between them are saved as one.
+            element.CharHeight = 4.0
+            element.ParaTopMargin = 0
+            element.ParaBottomMargin = 0
+            continue
         if element.BreakType != NO_BREAK and following.supportsService('com.sun.star.text.Paragraph'):
             following.BreakType = element.BreakType
         document.Text.removeTextContent(element)
+        body[index] = None
         removed += 1
 
+    body = [item for item in body if item is not None]
     previous = None
     for element in [item for item in _elements(document.Text)]:
         if element.supportsService('com.sun.star.text.TextTable'):
@@ -669,8 +737,17 @@ def typeset(document, kind):
             listed[0].ParaLeftMargin = 0
             listed[0].ParaFirstLineIndent = 0
 
+    seen_title = False
+    after_question = False
     for paragraph, in_table in paragraphs(document.Text):
         text = paragraph.getString().strip()
+        if not in_table and after_question and paragraph.NumberingIsNumber and paragraph.ListLabelString:
+            # Each question's answers start again from a): the originals run one list through
+            # the whole test, so the specimen's answers read d), e), f).
+            paragraph.ParaIsNumberingRestart = True
+            paragraph.NumberingStartValue = 1
+        if not in_table:
+            after_question = False
         # Again on the paragraph: its end mark keeps formatting of its own, out of a cursor's
         # reach, and that is where a stray language or size survives.
         paragraph.CharFontName = FONT
@@ -719,8 +796,27 @@ def typeset(document, kind):
             paragraph.CharHeight = TITLE_SIZE
             paragraph.CharWeight = 150
             paragraph.ParaAdjust = CENTER
-            paragraph.ParaBottomMargin = 0
+            paragraph.ParaBottomMargin = 0 if rules['subtitle'] else round(12 * POINT)
             paragraph.ParaKeepTogether = True
+            if seen_title:
+                # A second title opens a second part: the specimen of a test.
+                paragraph.BreakType = PAGE_BEFORE
+            seen_title = True
+        elif matches(text, rules.get('questions', [])) and not listed:
+            paragraph.CharWeight = 150
+            paragraph.ParaTopMargin = round(6 * POINT)
+            paragraph.ParaBottomMargin = round(2 * POINT)
+            paragraph.ParaKeepTogether = True
+            after_question = True
+            continue
+        elif matches(text, rules.get('answers', [])) and not listed:
+            paragraph.ParaLeftMargin = LIST_TIERS[0]
+            paragraph.ParaFirstLineIndent = LIST_HANG
+            paragraph.ParaBottomMargin = round(2 * POINT)
+            paragraph.setPropertyToDefault('ParaTabStops')
+            label = paragraph.getText().createTextCursorByRange(paragraph.getStart())
+            label.goRight(2, True)
+            label.CharWeight = 150
         elif matches(text, rules['subtitle']):
             paragraph.ParaAdjust = CENTER
             paragraph.ParaBottomMargin = round(12 * POINT)
@@ -739,6 +835,20 @@ def typeset(document, kind):
             paragraph.ParaTopMargin = round(24 * POINT) if position == 0 else 0
             paragraph.ParaBottomMargin = [0, round(12 * POINT), round(24 * POINT)][position]
             paragraph.ParaKeepTogether = position < 2
+
+    # A Word file has no space around a table: it comes from the paragraphs beside it.
+    elements = list(_elements(document.Text))
+    for index, element in enumerate(elements):
+        if not element.supportsService('com.sun.star.text.TextTable'):
+            continue
+        if index and elements[index - 1].supportsService('com.sun.star.text.Paragraph'):
+            before = elements[index - 1]
+            if before.getString().strip():
+                before.ParaBottomMargin = max(before.ParaBottomMargin, round(6 * POINT))
+        if index + 1 < len(elements) and elements[index + 1].supportsService('com.sun.star.text.Paragraph'):
+            after = elements[index + 1]
+            if after.getString().strip():
+                after.ParaTopMargin = max(after.ParaTopMargin, round(6 * POINT))
 
     # From a heading to the table it introduces, everything moves to the next page together.
     block = []
@@ -785,11 +895,25 @@ def import_template(desktop, spec_path, wording, output):
         if spec.get('header'):
             build_header(document, spec['header'])
         strip_spacing(document)
+        if 'answers' in KINDS[spec.get('kind', 'decision')]:
+            join_typed_answers(document, KINDS[spec['kind']])
         for definition in spec.get('tables', []):
             rebuild_table(document, definition)
         rules = wording_replacements(wording, document_words(document))
         fixes = sum(apply(document, replacement) for replacement in rules)
         removed = typeset(document, spec.get('kind', 'decision'))
+        # A table that still does not fit at the small print, by its place in the body.
+        body_tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
+        for index, size in spec.get('tableSizes', {}).items():
+            for cell_name in body_tables[int(index)].getCellNames():
+                cell = body_tables[int(index)].getCellByName(cell_name)
+                cell.LeftBorderDistance = 30
+                cell.RightBorderDistance = 30
+                cursor = cell.createTextCursor()
+                cursor.gotoEnd(True)
+                cursor.CharHeight = size
+                for paragraph, _ in paragraphs(cell):
+                    paragraph.CharHeight = size
         # After the typesetting, which would flatten the room left for signatures.
         if spec.get('handover') and not replace_handover(document):
             problems.append('the hand-over block was not found')

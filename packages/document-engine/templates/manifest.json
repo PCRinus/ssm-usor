@@ -100,17 +100,17 @@
       "number": "5.1",
       "original": "5.1._Test_angajare_S.S.M",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "test_hiring",
+      "title": "Test de verificare a cunoștințelor la angajare",
+      "file": "5.1_test_hiring.docx"
     },
     {
       "number": "5.2",
       "original": "5.2._Test_anual_S.S.M",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "test_periodic",
+      "title": "Test de verificare periodică (anual)",
+      "file": "5.2_test_periodic.docx"
     },
     {
       "number": "6",

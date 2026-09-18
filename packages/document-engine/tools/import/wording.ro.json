@@ -2526,9 +2526,38 @@
     "impreuna": "împreună",
     "desfasurata": "desfășurată",
     "intreaga": "întreaga",
-    "legatura": "legătura"
+    "legatura": "legătura",
+    "manusi": "mănuși",
+    "manusile": "mănușile",
+    "rosu": "roșu",
+    "bratele": "brațele",
+    "pisica": "pisică"
   },
   "phrases": [
+    {
+      "find": "ã",
+      "replace": "ă"
+    },
+    {
+      "find": "Ã",
+      "replace": "Ă"
+    },
+    {
+      "pattern": "(?<=\\p{L})º|º(?=\\p{L})",
+      "replace": "ș"
+    },
+    {
+      "pattern": "(?<=\\p{L})þ|þ(?=\\p{L})",
+      "replace": "ț"
+    },
+    {
+      "pattern": "ª(?=\\p{L})",
+      "replace": "Ș"
+    },
+    {
+      "pattern": "Þ(?=\\p{L})",
+      "replace": "Ț"
+    },
     {
       "pattern": "^\\{\\{client\\.representativeRole\\}\\}[ \\u00a0]*:$",
       "replace": "{{client.representativeRole}}"
@@ -2736,6 +2765,131 @@
     {
       "pattern": "\\bart\\.(?=\\d)",
       "replace": "art. "
+    },
+    {
+      "find": "vatamarea violenta",
+      "replace": "vătămarea violentă"
+    },
+    {
+      "find": "intoxicatia acuta",
+      "replace": "intoxicația acută"
+    },
+    {
+      "find": "cind consideram noi ca este",
+      "replace": "când considerăm noi că este"
+    },
+    {
+      "find": "fizica si psihica",
+      "replace": "fizică și psihică"
+    },
+    {
+      "find": "care constata orice defectiune tehnica sau alta situatie",
+      "replace": "care constată orice defecțiune tehnică sau altă situație"
+    },
+    {
+      "find": "cu indiferenta situatia creata",
+      "replace": "cu indiferență situația creată"
+    },
+    {
+      "find": "permisa parasirea",
+      "replace": "permisă părăsirea"
+    },
+    {
+      "find": "de natura electrica",
+      "replace": "de natură electrică"
+    },
+    {
+      "pattern": "[ \\x{00A0}]+([?!])",
+      "replace": "$1",
+      "groups": true
+    },
+    {
+      "find": "noapte nedormita",
+      "replace": "noapte nedormită"
+    },
+    {
+      "find": "care indica decesul",
+      "replace": "care indică decesul"
+    },
+    {
+      "find": "lipsa aparenta a semnelor principale de viata-a respiratiei",
+      "replace": "lipsa aparentă a semnelor principale de viață: a respirației"
+    },
+    {
+      "find": "ochilor uscata",
+      "replace": "ochilor uscată"
+    },
+    {
+      "find": "ochiul de pisica",
+      "replace": "ochiul de pisică"
+    },
+    {
+      "find": "actiunea imediata",
+      "replace": "acțiunea imediată"
+    },
+    {
+      "find": "fara a sta ape ganduri",
+      "replace": "fără a sta pe gânduri"
+    },
+    {
+      "find": "indifferent",
+      "replace": "indiferent"
+    },
+    {
+      "find": "se considerată muncă",
+      "replace": "se consideră muncă"
+    },
+    {
+      "find": "care necesita statul",
+      "replace": "care necesită statul"
+    },
+    {
+      "find": "nu este considerata timp",
+      "replace": "nu este considerată timp"
+    },
+    {
+      "find": "Avand in vedere ca",
+      "replace": "Având în vedere că"
+    },
+    {
+      "find": "in deplina siguranta",
+      "replace": "în deplină siguranță"
+    },
+    {
+      "find": "o sarcina de munca care consta",
+      "replace": "o sarcină de muncă care constă"
+    },
+    {
+      "find": "fata de care",
+      "replace": "față de care"
+    },
+    {
+      "find": "cartea tehnica",
+      "replace": "cartea tehnică"
+    },
+    {
+      "find": "m-i le voi insusi",
+      "replace": "mi le voi însuși"
+    },
+    {
+      "find": "asa cum",
+      "replace": "așa cum"
+    },
+    {
+      "find": "sa m-i se ofere",
+      "replace": "să mi se ofere"
+    },
+    {
+      "find": "nici o informatie",
+      "replace": "nicio informație"
+    },
+    {
+      "find": "o singura persoana",
+      "replace": "o singură persoană"
+    },
+    {
+      "pattern": "miscarile extreme,\\s*miscarile,\\s*brustmiscarile repetative",
+      "replace": "mișcările extreme, mișcările bruște, mișcările repetitive"
     }
   ],
   "context": [

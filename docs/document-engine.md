@@ -99,6 +99,15 @@ A spec can ask for three larger repairs, where tidying what is there would not d
 | `handover: true` | Replaces the five lines of "Am întocmit și predat un exemplar … Am primit un exemplar", aligned with tabs and runs of spaces, with the two-column block the covers use: what each side confirms, room to sign, who signs                                                                                                          |
 | `tables`         | Replaces the n-th table of the body (`replaceTable`) with one drawn from a definition: `widths`, `rows` of cells as text or `{text, colspan, rowspan}`, `headerRows`, the columns set `left`, a `size`, and a `heading` paragraph above it. For a table whose columns are a letter wide or whose cells are aligned with tabs      |
 
+A spec's `kind` picks the rules that recognise a document's parts: `decision`, `regulation`,
+or `test`. A test has questions and answers on top of a title: a question typed with its number
+is set bold and kept with its answers; each question's answers start again from a), where the
+originals run one list through the whole test so that the specimen reads d), e), f); answers
+typed by hand (" a) …", long ones broken with the Enter key) are joined back together and
+hung from their letter; a second title opens the specimen on a new page. `tableSizes` sets one
+table smaller than the small print, for pictogram captions. A replacement may set
+`groups: true` to use what its pattern captured (`$1`).
+
 `originals/` is git-ignored, specs included, because both quote real people by name.
 
 **2. Wording.** `tools/import/wording.ro.json`, committed because it quotes no one, is an
@@ -172,6 +181,8 @@ Covers need `provider.representativeRole` besides what the decisions use.
 | `decision_risk_evaluation_team` | Decision no. 2: the risk evaluation team                                 | `evaluationTeam[]`, `specialist` (`name`, `professionalTitle`)                                                                                                   |
 | `decision_first_aid`            | Decision no. 3: who gives first aid, with its two acknowledgement tables | `firstAiders[]`, `firstAiderNames`                                                                                                                               |
 | `control_regulation`            | The internal regulation on the employer's own checks, with its schedule  | `issueYear`, `followingYear` for the schedule's heading                                                                                                          |
+| `test_hiring`                   | The test after the general introductory training, with its specimen      | None                                                                                                                                                             |
+| `test_periodic`                 | The yearly test, with its specimen                                       | None                                                                                                                                                             |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
