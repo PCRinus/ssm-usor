@@ -119,6 +119,12 @@ describe('typesetting', () => {
     expect([...languages]).toEqual(['ro-RO']);
   });
 
+  it.each(templateFiles)('%s contains no hyperlinks', (name) => {
+    // The originals carry dead internal links, and clearing them carelessly wraps all the text
+    // in a link to nowhere, which some viewers draw as links.
+    expect(bodyOf(name)).not.toContain('<w:hyperlink');
+  });
+
   it.each(templateFiles)('%s has the house margins and nothing in a header or footer', (name) => {
     const xml = bodyOf(name);
     // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.

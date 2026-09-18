@@ -12,8 +12,11 @@ import { renderDocument } from '../src/render';
 // every role and short names, then three people and names long enough to test the layout.
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const templates = `${root}templates/`;
-const output = `${root}originals/preview/`;
+// preview [templates-dir] [output-dir], both relative to the package.
+const [templatesArgument = 'templates', outputArgument = 'originals/preview'] =
+  process.argv.slice(2);
+const templates = `${root}${templatesArgument}/`;
+const output = `${root}${outputArgument}/`;
 
 const person = (name: string, jobTitle: string) => ({ name, jobTitle });
 const described = (people: { name: string; jobTitle: string }[]) =>

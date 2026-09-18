@@ -43,6 +43,14 @@ pnpm --filter @ssm-usor/document-engine import-templates   # all specs, or name 
 pnpm --filter @ssm-usor/document-engine preview            # PDFs to read, in originals/preview/
 ```
 
+To compare a style choice, import a variant next to the real templates and preview it on its
+own. Both folders are git-ignored:
+
+```bash
+pnpm --filter @ssm-usor/document-engine import-templates --align left --out originals/compare/left
+pnpm --filter @ssm-usor/document-engine preview originals/compare/left originals/preview-left
+```
+
 Both run LibreOffice inside the Gotenberg Docker image, the same one that will make the PDFs,
 so nothing is installed on the host. `tools/import/import_templates.py` drives it through its
 UNO API, which opens the original as a document, not as XML. That matters: Word stores what

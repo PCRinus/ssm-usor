@@ -31,7 +31,7 @@ import uno
 from com.sun.star.beans import PropertyValue
 from com.sun.star.lang import Locale
 from com.sun.star.style.BreakType import NONE as NO_BREAK
-from com.sun.star.style.ParagraphAdjust import CENTER
+from com.sun.star.style.ParagraphAdjust import BLOCK, CENTER, LEFT
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
@@ -224,9 +224,19 @@ def normalise_characters(document):
         cursor.CharHeightComplex = BODY_SIZE
         cursor.CharLocale = ROMANIAN
         cursor.CharColor = -1
-        cursor.HyperLinkURL = ''
-        # The link's character style is what underlined it.
-        cursor.setPropertyToDefault('CharStyleName')
+
+    # The dead internal links ("#") of the originals, one portion at a time. Writing an empty
+    # address over everything does the opposite: it is saved as a link to nowhere around all
+    # the text, which some viewers then draw as links.
+    for paragraph, _ in paragraphs(document.Text):
+        portions = paragraph.createEnumeration()
+        while portions.hasMoreElements():
+            portion = portions.nextElement()
+            if portion.HyperLinkURL or portion.HyperLinkName or portion.HyperLinkTarget:
+                for name in ('HyperLinkURL', 'HyperLinkName', 'HyperLinkTarget',
+                             'UnvisitedCharStyleName', 'VisitedCharStyleName', 'CharStyleName'):
+                    portion.setPropertyToDefault(name)
+                portion.CharUnderline = 0
         cursor.CharUnderline = 0
 
 
@@ -263,8 +273,9 @@ def matches(text, patterns):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
-def typeset(document, kind):
+def typeset(document, kind, align):
     rules = KINDS[kind]
+    running_text = LEFT if align == 'left' else BLOCK
 
     # One page setup.
     page_styles = document.StyleFamilies.getByName('PageStyles')
@@ -345,6 +356,8 @@ def typeset(document, kind):
 
         paragraph.ParaTopMargin = 0
         paragraph.ParaBottomMargin = round(6 * POINT)
+        # Running text and list items; titles, headings and the signature block centre below.
+        paragraph.ParaAdjust = running_text
         listed = paragraph.NumberingIsNumber and paragraph.NumberingRules is not None and (
             paragraph.ListLabelString or paragraph.ParaLeftMargin
             or any(item.Name == 'IndentAt' and item.Value for item in
@@ -415,7 +428,7 @@ def _elements(text):
         yield elements.nextElement()
 
 
-def import_template(desktop, spec_path, wording):
+def import_template(desktop, spec_path, wording, align, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
     name = os.path.basename(spec_path)[: -len('.spec.json')]
@@ -431,10 +444,11 @@ def import_template(desktop, spec_path, wording):
                 problems.append(f'{label!r} found {count} times, expected at least {replacement.get("min", 1)}')
         strip_spacing(document)
         fixes = sum(apply(document, replacement) for replacement in wording)
-        removed = typeset(document, spec.get('kind', 'decision'))
+        removed = typeset(document, spec.get('kind', 'decision'), align)
         if problems:
             raise RuntimeError('; '.join(problems))
-        target = f'{ROOT}/templates/{name}.docx'
+        os.makedirs(f'{ROOT}/{output}', exist_ok=True)
+        target = f'{ROOT}/{output}/{name}.docx'
         document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
         print(f'{name}: {fixes} wording fixes, {removed} empty paragraphs removed')
     finally:
@@ -442,7 +456,19 @@ def import_template(desktop, spec_path, wording):
 
 
 def main():
-    names = sys.argv[1:]
+    # import_templates.py [--align left|justify] [--out DIR] [name ...]
+    # The alignment of running text is a house style choice; `--out` writes a variant next to
+    # the real templates, to compare.
+    arguments = sys.argv[1:]
+    align, output, names = 'justify', 'templates', []
+    while arguments:
+        argument = arguments.pop(0)
+        if argument == '--align':
+            align = arguments.pop(0)
+        elif argument == '--out':
+            output = arguments.pop(0)
+        else:
+            names.append(argument)
     specs = sorted(glob.glob(f'{ROOT}/originals/*.spec.json'))
     if names:
         specs = [path for path in specs if os.path.basename(path)[: -len('.spec.json')] in names]
@@ -456,7 +482,7 @@ def main():
     try:
         for path in specs:
             try:
-                import_template(desktop, path, wording)
+                import_template(desktop, path, wording, align, output)
             except Exception as error:  # noqa: BLE001 - report every document, then fail
                 failed = True
                 print(f'{os.path.basename(path)}: FAILED: {error!r}')
