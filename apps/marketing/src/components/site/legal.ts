@@ -1,5 +1,5 @@
 /**
- * Identity of the entity that operates ssmusor.ro. Used by /termeni and /confidentialitate.
+ * Identity of the entity that operates ssmusor.ro. Used by /termeni, /confidentialitate, and /prelucrare-date.
  *
  * While `filled` is false the pages highlight these values and show a note that they are
  * placeholders. Optional fields left empty are omitted from the text.

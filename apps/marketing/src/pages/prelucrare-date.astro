@@ -1,0 +1,156 @@
+---
+import { links } from '../components/site/copy';
+import { legalEntity } from '../components/site/legal';
+import LegalPage from '../components/site/LegalPage.astro';
+
+/** Highlights entity details until they are filled in. */
+const M = legalEntity.filled ? 'span' : 'mark';
+---
+
+<LegalPage
+  title="Acord de prelucrare a datelor"
+  description="Condițiile în care SSM Ușor prelucrează date personale în numele serviciilor externe de prevenire și protecție, conform articolului 28 din GDPR."
+  updated="18 septembrie 2026"
+>
+  <p>
+    Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și se
+    aplică de fiecare dată când prelucrăm date personale în numele unui serviciu extern de prevenire și
+    protecție („Furnizorul”). Îl accepți odată cu Termenii, la crearea organizației în Platformă. Termenii
+    folosiți aici au înțelesul din Regulamentul (UE) 2016/679 („GDPR”).
+  </p>
+
+  <h2>1. Părțile și rolurile</h2>
+  <p>
+    Furnizorul încarcă în Platformă date despre firmele sale client, despre angajații acestora și
+    despre reprezentanții lor. Pentru aceste date Furnizorul este operator sau, după caz, persoană
+    împuternicită a angajatorului client. În ambele situații, <M>{legalEntity.name}</M> („SSM Ușor”) le
+    prelucrează doar în numele Furnizorului, ca persoană împuternicită a acestuia.
+  </p>
+  <p>
+    Pentru datele contului de utilizator și ale vizitatorilor site-ului suntem operator; acestea
+    sunt descrise în <a href="/confidentialitate/">Politica de confidențialitate</a> și nu fac obiectul
+    acestui acord.
+  </p>
+
+  <h2>2. Ce prelucrăm, de ce și cât timp</h2>
+  <ul>
+    <li>
+      <strong>Persoane vizate:</strong> angajații firmelor client, reprezentanții legali și persoanele
+      de contact ale acestora, membrii echipei Furnizorului.
+    </li>
+    <li>
+      <strong>Categorii de date:</strong> date de identificare (nume, CNP, date din actul de identitate
+      atunci când Furnizorul le introduce), date despre locul de muncă (funcție, loc de muncă, data angajării
+      și a plecării), date de contact, evidența instruirilor, testărilor și semnăturilor. Platforma nu
+      este destinată datelor privind sănătatea; Furnizorul nu le încarcă.
+    </li>
+    <li>
+      <strong>Scop:</strong> furnizarea Platformei, adică stocarea, afișarea și generarea documentelor
+      și evidențelor de securitate și sănătate în muncă, la comanda Furnizorului.
+    </li>
+    <li>
+      <strong>Durată:</strong> cât timp Furnizorul are cont în Platformă, plus perioada de export și ștergere
+      de la punctul 9.
+    </li>
+  </ul>
+
+  <h2>3. Instrucțiunile Furnizorului</h2>
+  <p>
+    Prelucrăm datele doar pe baza instrucțiunilor documentate ale Furnizorului. Acestea sunt
+    Termenii, acest acord și acțiunile pe care utilizatorii Furnizorului le fac în Platformă. Dacă o
+    instrucțiune ni se pare contrară legii, îl anunțăm pe Furnizor. Dacă legea ne obligă la o altă
+    prelucrare, îl informăm înainte, în măsura în care legea permite.
+  </p>
+  <p>
+    Furnizorul răspunde de temeiul legal al prelucrării, de informarea persoanelor vizate și de
+    corectitudinea datelor pe care le încarcă.
+  </p>
+
+  <h2>4. Confidențialitate</h2>
+  <p>
+    Au acces la date doar persoanele care au nevoie de el pentru a furniza și a întreține Platforma.
+    Acestea sunt ținute de o obligație de confidențialitate. Accesul nostru la datele unui cont,
+    pentru asistență, se face cu motiv înregistrat și pe durată limitată.
+  </p>
+
+  <h2>5. Securitate</h2>
+  <p>Aplicăm măsuri tehnice și organizatorice potrivite riscului, între care:</p>
+  <ul>
+    <li>separarea datelor fiecărui Furnizor la nivelul bazei de date;</li>
+    <li>criptarea datelor în tranzit și în repaus;</li>
+    <li>roluri și drepturi de acces în Platformă, cu autentificare pentru fiecare utilizator;</li>
+    <li>afișarea mascată a CNP-ului, cu dezvăluire doar la cerere;</li>
+    <li>actualizări de securitate ale infrastructurii, asigurate de furnizorii de găzduire.</li>
+  </ul>
+
+  <h2>6. Subîmputerniciți</h2>
+  <p>
+    Furnizorul ne autorizează, în general, să folosim subîmputerniciți. La data acestui acord
+    aceștia sunt:
+  </p>
+  <ul>
+    <li>Cloudflare, Inc.: găzduirea și livrarea Platformei;</li>
+    <li>Supabase, Inc.: autentificare și bază de date, cu stocare în Uniunea Europeană;</li>
+    <li><M>{legalEntity.emailProvider}</M>: email tranzacțional;</li>
+    <li>
+      <M>{legalEntity.signatureProvider}</M>: semnătură electronică, pentru documentele trimise la
+      semnat.
+    </li>
+  </ul>
+  <p>
+    Le impunem obligații de protecție a datelor echivalente cu cele de aici și răspundem față de
+    Furnizor pentru ele. Anunțăm adăugarea sau înlocuirea unui subîmputernicit cu cel puțin 15 zile
+    înainte, prin email sau în Platformă. Furnizorul se poate opune din motive întemeiate în acest
+    termen; dacă nu găsim o soluție, poate înceta contractul fără penalități.
+  </p>
+
+  <h2>7. Transferuri în afara Spațiului Economic European</h2>
+  <p>
+    Unii subîmputerniciți au sediul în afara Spațiului Economic European. Transferurile se fac în
+    baza unei decizii de adecvare sau a clauzelor contractuale standard aprobate de Comisia
+    Europeană.
+  </p>
+
+  <h2>8. Sprijin pentru Furnizor și încălcări de securitate</h2>
+  <ul>
+    <li>
+      Dacă o persoană vizată ni se adresează direct cu o cerere privind datele din contul unui
+      Furnizor, o îndrumăm către acesta și nu răspundem în locul lui.
+    </li>
+    <li>
+      Îl ajutăm pe Furnizor, în limite rezonabile, să răspundă cererilor persoanelor vizate, să facă
+      evaluări de impact și să consulte autoritatea de supraveghere, cu informațiile pe care le
+      avem.
+    </li>
+    <li>
+      Dacă aflăm de o încălcare a securității care afectează datele Furnizorului, îl anunțăm fără
+      întârzieri nejustificate și nu mai târziu de 48 de ore, cu ce știm despre natura ei, datele
+      afectate și măsurile luate.
+    </li>
+  </ul>
+
+  <h2>9. La încetarea contractului</h2>
+  <p>
+    Furnizorul își poate exporta documentele pe durata contractului și timp de 30 de zile după
+    încetarea lui. După acest termen ștergem datele prelucrate în numele său, cu excepția celor pe
+    care legea ne obligă să le păstrăm. Eventualele copii de siguranță se suprascriu în ciclul lor
+    obișnuit.
+  </p>
+
+  <h2>10. Verificare</h2>
+  <p>
+    Punem la dispoziția Furnizorului informațiile necesare pentru a arăta că respectăm acest acord.
+    O dată pe an, sau ori de câte ori există o încălcare a securității, Furnizorul poate cere o
+    verificare, anunțată cu 30 de zile înainte, desfășurată fără a afecta ceilalți clienți și cu
+    păstrarea confidențialității. Costurile verificării sunt suportate de Furnizor.
+  </p>
+
+  <h2>11. Dispoziții finale</h2>
+  <p>
+    Pentru protecția datelor, acest acord prevalează față de Termeni. Limitarea răspunderii din
+    Termeni se aplică și aici, în măsura permisă de lege. Modificările se anunță la fel ca
+    modificările Termenilor. Întrebările se trimit la <a href={`mailto:${links.email}`}
+      >{links.email}</a
+    >.
+  </p>
+</LegalPage>
