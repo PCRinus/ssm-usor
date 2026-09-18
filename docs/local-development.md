@@ -81,7 +81,7 @@ The marketing site does not need Supabase settings.
 | ----------------- | ---------------------- |
 | React SPA         | http://localhost:5173  |
 | Hono API          | http://localhost:8787  |
-| Mail Worker       | http://localhost:8788  |
+| Mail Worker       | http://localhost:8790  |
 | Marketing         | http://localhost:4321  |
 | Supabase API/Auth | http://127.0.0.1:54321 |
 | Supabase Studio   | http://127.0.0.1:54323 |
