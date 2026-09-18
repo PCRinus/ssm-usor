@@ -12,19 +12,19 @@ for pushes it compares the pre-push commit with the pushed revision, including e
 in that push. The workflow itself is not path-filtered, so **Validate repository** remains
 available as a required PR check, including on documentation-only changes.
 
-| Changed files                                                                                                                             | Build/deployment targets             |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `apps/marketing/**`                                                                                                                       | Marketing                            |
-| `apps/app/**`                                                                                                                             | SPA                                  |
-| `apps/api/**` (except the shared contract below)                                                                                          | API                                  |
-| `apps/mail/**`                                                                                                                            | Mail Worker                          |
-| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                    |
-| `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker            |
-| `apps/api/openapi.json`                                                                                                                   | API and SPA                          |
-| `orval.config.ts`                                                                                                                         | SPA                                  |
-| `supabase/config.toml`, `supabase/migrations/**`                                                                                          | Database (hosted migrations)         |
-| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All four                             |
-| Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs |
+| Changed files                                                                                                                             | Build/deployment targets                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `apps/marketing/**`                                                                                                                       | Marketing                                      |
+| `apps/app/**`                                                                                                                             | SPA                                            |
+| `apps/api/**` (except the shared contract below)                                                                                          | API                                            |
+| `apps/mail/**`                                                                                                                            | Mail Worker                                    |
+| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                              |
+| `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker                      |
+| `apps/api/openapi.json`                                                                                                                   | API and SPA                                    |
+| `orval.config.ts`                                                                                                                         | SPA                                            |
+| `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration) |
+| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All four                                       |
+| Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs           |
 
 Rules are intentionally conservative: an application-local test or configuration change also
 selects that application. A lockfile change selects all four; we do not maintain custom
@@ -65,6 +65,13 @@ written; `[remotes.production]` holds the values that differ from the local stac
 does not ask for confirmation in CI, so the job prints `supabase config diff` first and
 refuses to run when the file has no `[remotes]` block for the project. It needs
 `SUPABASE_AUTH_HOOK_SECRET`, which the API deployment uploads too.
+
+Selection compares a push with the commit before it, so a deployment that failed is not
+retried by a later push that leaves its files alone. The database and configuration
+deployments do nothing when there is nothing to apply, which is why workflow files select
+them: the commit that fixes a broken workflow retries them. A job that waits for the API
+treats a skipped API deployment as fine only when the API was not selected; selected and
+skipped means something before it failed.
 Browser tests run after SPA deployment and remain advisory; API smoke-test failures block
 an accompanying SPA release. There is no check of the old live release before deployment.
 

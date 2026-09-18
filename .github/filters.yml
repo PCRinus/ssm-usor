@@ -33,7 +33,12 @@ marketing:
   - *shared
   - *ui
   - 'apps/marketing/**'
-# Schema changes deploy to the hosted Supabase project from main.
+# Schema and configuration changes deploy to the hosted Supabase project from main. Both
+# deployments do nothing when there is nothing to apply, so the workflow files select them
+# too: a run that failed because of the workflow is then retried by the commit that fixes it.
 database:
+  - '.github/filters.yml'
+  - '.github/actions/**'
+  - '.github/workflows/**'
   - 'supabase/config.toml'
   - 'supabase/migrations/**'
