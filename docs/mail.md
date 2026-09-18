@@ -7,9 +7,10 @@ It has no route and no public hostname. Other Workers call it through a service 
 methods are described by the `MailService` interface in `packages/contracts`, which the mail
 Worker implements and callers use to type their binding.
 
-| Method                     | Email                                                        |
-| -------------------------- | ------------------------------------------------------------ |
-| `sendWaitlistConfirmation` | Asks a waitlist subscriber to confirm their address by link. |
+| Method                       | Email                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| `sendWaitlistConfirmation`   | Asks a waitlist subscriber to confirm their address by link.                 |
+| `sendOrganizationInvitation` | Invites a person into an organization; the link opens the SPA's accept page. |
 
 Every method validates its input, renders the template, hands the result to the provider, and
 resolves with `{ id }`, the provider's message id. It rejects when the provider refuses the
@@ -31,8 +32,9 @@ apps/mail/src/
 
 ## Writing a template
 
-1. Add `emails/<name>.tsx`. Export the component as the default export, its `subject`, and
-   `PreviewProps` with sample data for the preview server.
+1. Add `emails/<name>.tsx`. Export the component as the default export, its `subject` (a
+   function when the subject names something, as the invitation's does), and `PreviewProps`
+   with sample data for the preview server.
 2. Build it from the shared components in `emails/_components` so every email keeps the same
    frame; the underscore keeps that folder out of the preview server's list. Use inline styles
    with values from `theme.ts`; email clients ignore CSS variables, flexbox, grid, and most
