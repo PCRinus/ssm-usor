@@ -221,6 +221,31 @@ describe('CORS', () => {
     }
   );
 
+  // A browser refuses a method the preflight does not list, and mocked handler tests cannot
+  // see that. Every method a route uses must be allowed.
+  it('allows every method the documented routes use', async () => {
+    const app = createApp();
+    const document = (await (await app.request('/openapi.json', {}, env)).json()) as {
+      paths: Record<string, Record<string, unknown>>;
+    };
+    const used = new Set(
+      Object.values(document.paths).flatMap((operations) =>
+        Object.keys(operations).map((method) => method.toUpperCase())
+      )
+    );
+    const response = await app.request(
+      '/organization/legal-details',
+      {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://app.ssmusor.ro', 'Access-Control-Request-Method': 'PUT' },
+      },
+      env
+    );
+    const allowed = response.headers.get('Access-Control-Allow-Methods')?.split(',') ?? [];
+    expect(used.has('PUT')).toBe(true);
+    expect(allowed.map((method) => method.trim())).toEqual(expect.arrayContaining([...used]));
+  });
+
   it.each(['https://app.ssmusor.ro.attacker.example', 'null'])(
     'does not allow unlisted origins: %s',
     async (origin) => {
