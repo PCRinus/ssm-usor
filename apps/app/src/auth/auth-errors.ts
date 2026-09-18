@@ -44,3 +44,18 @@ export function forgotPasswordErrorMessage(error: unknown): string {
       return 'Nu am putut trimite emailul. Verifică conexiunea și încearcă din nou.';
   }
 }
+
+export function registerErrorMessage(error: unknown): string {
+  switch (codeOf(error)) {
+    case 'weak_password':
+      return 'Parola este prea slabă. Alege una mai greu de ghicit.';
+    case 'signup_disabled':
+    case 'email_provider_disabled':
+      return 'Crearea de conturi nu este disponibilă momentan.';
+    case 'over_request_rate_limit':
+    case 'over_email_send_rate_limit':
+      return 'Prea multe încercări. Așteaptă un minut și încearcă din nou.';
+    default:
+      return 'Nu am putut crea contul. Verifică conexiunea și încearcă din nou.';
+  }
+}

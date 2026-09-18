@@ -15,7 +15,10 @@ function mockApi() {
       return Response.json({
         user: { id: 'user-one', email: 'review@example.test' },
         profile: { fullName: 'Ana Popescu', termsVersion: null, termsAcceptedAt: null },
-        membership: null,
+        membership: {
+          organization: { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' },
+          role: 'specialist',
+        },
       });
     }
     throw new Error(`Unexpected request: ${pathname}`);

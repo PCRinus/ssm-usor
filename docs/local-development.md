@@ -91,13 +91,17 @@ Postgres listens on `127.0.0.1:54322` (database/user/password: `postgres`).
 Studio can inspect local Auth users and future application tables. Storage, Realtime,
 Edge Functions, and analytics are disabled until needed.
 
-### Password reset emails
+### Emails from the local Auth
 
-The local stack's Auth hands its emails to `http://host.docker.internal:8787/hooks/supabase/send-email`,
-so a recovery email needs the API running (`pnpm dev`) with the `SUPABASE_AUTH_HOOK_SECRET`
-from `apps/api/.dev.vars.example`. The mail Worker then logs the email, or sends it when it
-has a Resend key. A stack started before the hook was added picks it up after
-`pnpm supabase:stop` and `pnpm supabase:start`.
+The local stack's Auth hands its emails (signup confirmation, password reset) to
+`http://host.docker.internal:8797/hooks/supabase/send-email`: the API that the browser flow
+tests start, which keeps emails in memory. Outside those tests nothing listens there, and
+signing up or asking for a reset against the local stack fails.
+
+To receive them from your own `pnpm dev` instead, point the `uri` in `supabase/config.toml`
+at port 8787, restart the stack (`pnpm supabase:stop`, `pnpm supabase:start`), and give the API
+the `SUPABASE_AUTH_HOOK_SECRET` from `apps/api/.dev.vars.example`. The mail Worker then logs
+the email, or sends it when it holds a Resend key. Do not commit that change.
 
 ## Stop or switch back
 

@@ -38,7 +38,11 @@ function mockApi({
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     if (pathname === '/invitations/lookup') return lookup();
-    if (pathname === '/invitations/accept') return accept();
+    if (pathname === '/invitations/accept') {
+      const response = accept();
+      member = response.ok;
+      return response;
+    }
     if (pathname === '/invitations/join') {
       const response = join();
       member = response.ok;

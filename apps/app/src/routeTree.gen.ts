@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated';
 import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation';
+import { Route as ConfirmEmailRouteImport } from './routes/confirm-email';
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password';
 import { Route as LoginRouteImport } from './routes/login';
+import { Route as OnboardingRouteImport } from './routes/onboarding';
+import { Route as RegisterRouteImport } from './routes/register';
 import { Route as ResetPasswordRouteImport } from './routes/reset-password';
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
@@ -42,6 +45,11 @@ const AcceptInvitationRoute = AcceptInvitationRouteImport.update({
   path: '/accept-invitation',
   getParentRoute: () => rootRouteImport,
 } as any);
+const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
+  id: '/confirm-email',
+  path: '/confirm-email',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -50,6 +58,16 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any);
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -129,8 +147,11 @@ const AuthenticatedClientsClientIdEmployeesNewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/accept-invitation': typeof AcceptInvitationRoute;
+  '/confirm-email': typeof ConfirmEmailRoute;
   '/forgot-password': typeof ForgotPasswordRoute;
   '/login': typeof LoginRoute;
+  '/onboarding': typeof OnboardingRoute;
+  '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
   '/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
@@ -148,8 +169,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/accept-invitation': typeof AcceptInvitationRoute;
+  '/confirm-email': typeof ConfirmEmailRoute;
   '/forgot-password': typeof ForgotPasswordRoute;
   '/login': typeof LoginRoute;
+  '/onboarding': typeof OnboardingRoute;
+  '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/organization': typeof AuthenticatedOrganizationRoute;
@@ -166,8 +190,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/_authenticated': typeof AuthenticatedRouteWithChildren;
   '/accept-invitation': typeof AcceptInvitationRoute;
+  '/confirm-email': typeof ConfirmEmailRoute;
   '/forgot-password': typeof ForgotPasswordRoute;
   '/login': typeof LoginRoute;
+  '/onboarding': typeof OnboardingRoute;
+  '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
@@ -187,8 +214,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/accept-invitation'
+    | '/confirm-email'
     | '/forgot-password'
     | '/login'
+    | '/onboarding'
+    | '/register'
     | '/reset-password'
     | '/clients'
     | '/dashboard'
@@ -206,8 +236,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/accept-invitation'
+    | '/confirm-email'
     | '/forgot-password'
     | '/login'
+    | '/onboarding'
+    | '/register'
     | '/reset-password'
     | '/dashboard'
     | '/organization'
@@ -223,8 +256,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/accept-invitation'
+    | '/confirm-email'
     | '/forgot-password'
     | '/login'
+    | '/onboarding'
+    | '/register'
     | '/reset-password'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
@@ -244,8 +280,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
   AcceptInvitationRoute: typeof AcceptInvitationRoute;
+  ConfirmEmailRoute: typeof ConfirmEmailRoute;
   ForgotPasswordRoute: typeof ForgotPasswordRoute;
   LoginRoute: typeof LoginRoute;
+  OnboardingRoute: typeof OnboardingRoute;
+  RegisterRoute: typeof RegisterRoute;
   ResetPasswordRoute: typeof ResetPasswordRoute;
 }
 
@@ -272,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcceptInvitationRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/confirm-email': {
+      id: '/confirm-email';
+      path: '/confirm-email';
+      fullPath: '/confirm-email';
+      preLoaderRoute: typeof ConfirmEmailRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/forgot-password': {
       id: '/forgot-password';
       path: '/forgot-password';
@@ -284,6 +330,20 @@ declare module '@tanstack/react-router' {
       path: '/login';
       fullPath: '/login';
       preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/onboarding': {
+      id: '/onboarding';
+      path: '/onboarding';
+      fullPath: '/onboarding';
+      preLoaderRoute: typeof OnboardingRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/register': {
+      id: '/register';
+      path: '/register';
+      fullPath: '/register';
+      preLoaderRoute: typeof RegisterRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/reset-password': {
@@ -457,8 +517,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AcceptInvitationRoute: AcceptInvitationRoute,
+  ConfirmEmailRoute: ConfirmEmailRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 };
 export const routeTree = rootRouteImport

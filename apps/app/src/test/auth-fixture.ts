@@ -42,6 +42,9 @@ export function authFixture(session: Session | null = null) {
     resetPasswordForEmail: vi
       .fn<AuthClient['resetPasswordForEmail']>()
       .mockResolvedValue({ error: null }),
+    signUp: vi
+      .fn<AuthClient['signUp']>()
+      .mockResolvedValue({ data: { session: null }, error: null }),
     verifyOtp: vi.fn<AuthClient['verifyOtp']>().mockResolvedValue({
       data: { session: null },
       error: { message: 'Token has expired or is invalid', code: 'otp_expired' },

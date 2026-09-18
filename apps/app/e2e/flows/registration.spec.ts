@@ -1,0 +1,56 @@
+import { expect, test } from '@playwright/test';
+
+import { addressOf, cleanUp, emailedLink, password, signIn, signOut } from './support';
+
+test.afterAll(cleanUp);
+
+test('a person registers, confirms their address, and sets up their organization', async ({
+  page,
+}) => {
+  const email = addressOf('founder');
+
+  await page.goto('/register');
+  await page.getByTestId('register-email').fill(email);
+  await page.getByTestId('register-password').fill(password);
+  await page.getByTestId('register-submit').click();
+  await expect(page.getByTestId('register-sent')).toContainText(email);
+
+  // An unconfirmed account cannot sign in yet.
+  await signIn(page, email);
+  await expect(page.getByTestId('login-auth-error')).toBeVisible();
+
+  // Supabase handed the confirmation to the API's Send Email hook. Opening the link does
+  // not confirm; pressing the button does, and signs the person in.
+  const link = await emailedLink(email, 'signup-confirmation');
+  expect(new URL(link).pathname).toBe('/confirm-email');
+  await page.goto(link);
+  await page.reload();
+  await page.getByTestId('confirm-submit').click();
+  await expect(page).toHaveURL(/\/onboarding$/);
+
+  // The app itself is closed to an account without an organization.
+  await page.goto('/clients');
+  await expect(page).toHaveURL(/\/onboarding$/);
+
+  await page.getByTestId('onboarding-full-name').fill('Felicia Fondatoare');
+  await page.getByTestId('onboarding-organization').fill('Prevent SSM E2E SRL');
+  await page.getByTestId('onboarding-submit').click();
+  await expect(page.getByTestId('onboarding-terms-error')).toBeVisible();
+  await page.getByTestId('onboarding-terms').click();
+  await page.getByTestId('onboarding-submit').click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByTestId('account-name')).toHaveText('Felicia Fondatoare');
+  await expect(page.getByTestId('account-organization')).toHaveText('Prevent SSM E2E SRL');
+
+  // They own it: the organization page offers the owner's tools.
+  await page.getByTestId('nav-organization').click();
+  await expect(page.getByTestId('invite-open')).toBeVisible();
+  await expect(page.getByTestId('member-row')).toContainText('Administrator');
+
+  // The confirmation link works once.
+  await signOut(page);
+  await page.goto(link);
+  await page.getByTestId('confirm-submit').click();
+  await expect(page.getByTestId('confirm-email-invalid')).toBeVisible();
+});
