@@ -346,12 +346,15 @@ jobs:
     name: Deploy Supabase configuration
     needs: [changes, validate, deploy-api]
     # After the API: the Send Email hook must not point at an endpoint that is not deployed yet.
+    # A skipped API deployment is fine only when the API was not selected; when it was selected
+    # and skipped, something before it failed and the endpoint may be missing.
     if: >-
       !cancelled() &&
       github.event_name == 'push' && github.ref == 'refs/heads/main' &&
       needs.changes.outputs.database == 'true' &&
       needs.validate.result == 'success' &&
-      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped')
+      (needs.deploy-api.result == 'success' ||
+        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -395,7 +398,8 @@ jobs:
       !cancelled() &&
       needs.changes.outputs.app == 'true' &&
       needs.build.result == 'success' &&
-      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped')
+      (needs.deploy-api.result == 'success' ||
+        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
