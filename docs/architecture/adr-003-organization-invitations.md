@@ -15,7 +15,9 @@ Every user belongs to at most one organization, and that stays. Membership of se
 
 ### Who invites
 
-Only an `owner` invites, resends, and revokes. The owner picks the invitee's role, `specialist` by default or `owner`. This is the first role check in the system. It is enforced by row-level security through a `public.is_organization_owner()` helper, and the API repeats it to answer with a clear `403`. Owner routes act for a signed-in user, so they use the per-user client.
+Only an `owner` invites, resends, and revokes. The owner picks the invitee's role, `specialist` by default or `owner`. This is the first role check in the system. It is enforced in the database through a `public.is_organization_owner()` helper, and the API repeats it to answer with a clear `403`.
+
+Owner routes act for a signed-in user, so they use the per-user client. Owners read invitations under row-level security and write them through `security definer` functions that carry the checks: the role, the membership test against `auth.users`, and the limits. The per-user client never writes a token hash. A browser holds the same credentials as that client, so an owner allowed to write a hash could mint a link of their own. The API sets the hash with the admin client once the owner's call has succeeded.
 
 ### Invitation records
 
@@ -38,13 +40,13 @@ The link opens the SPA at `/accept-invitation?token=…`, built from a new `APP_
 Public signup stays disabled. What happens depends on the invited email:
 
 - **No account.** The page asks for a full name and a password that meets the Supabase password policy. The API creates the user through the Auth Admin API with `email_confirm: true`, then calls one SQL function that, in a single transaction, locks the invitation, checks that it is open, inserts the membership and the profile, and marks the invitation accepted. If that function fails, the API deletes the user it just created. The SPA then signs in with the password the person typed, so no session is passed through a URL.
-- **An account without a membership.** The page asks the person to sign in, then accept. This path runs as the signed-in user through a `security definer` function that compares the invitation's email with the email in the JWT, so it needs no admin client. It is also how a failed cleanup of the previous path recovers.
+- **An account without a membership.** The page asks the person to sign in, then accept. This path runs as the signed-in user through a `security definer` function that compares the invitation's email with the confirmed email of the signed-in account, so it needs no admin client. It is also how a failed cleanup of the previous path recovers.
 - **An account in another organization.** Acceptance is refused with a message saying so. The primary key on `organization_members` enforces the rule; the function adds no check of its own.
 - **Signed in as someone else.** The page names both addresses and offers to sign out.
 
 Accepting twice is safe: the second call finds the invitation accepted and points the person to the login page.
 
-The admin client is imported by the invitations module for the public lookup and the new-account path only.
+The invitations module uses the admin client for three things only: setting the token hash when an invitation is sent, the public lookup, and the new-account path.
 
 ### Profiles
 
@@ -74,7 +76,7 @@ Password reset through Supabase's Send Email hook follows as the next piece of w
 
 - A new person's password passes through `apps/api` once, on its way to the Auth Admin API. It is never logged or stored. The alternative, a Supabase-generated link, would send Supabase's own email and fail for existing accounts.
 - Invitation acceptance replaces email confirmation for invited people. That holds only while the link reaches nobody but the mailbox owner, which is why no endpoint returns it.
-- A second module imports the admin client. Review keeps it to the two public operations.
+- A second module imports the admin client. Review keeps it to the token hash and the two public operations.
 - Until password reset ships, an invited person who forgets their password needs help from us.
 - An owner invited by mistake can be corrected only in the database until member management exists.
 - A person who already belongs to an organization cannot join another. Lifting that later is contained: every policy resolves the organization through `current_organization_id()` and `current_membership()`.
