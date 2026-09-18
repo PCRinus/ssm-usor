@@ -1,7 +1,7 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
-import { isTextPart, replaceInXml } from './author';
+import { isTextPart, replaceText } from './text';
 
 // Merges data into a Word template (ADR 005). Templates carry `{{ }}` placeholders:
 //
@@ -106,12 +106,12 @@ export function renderDocument(template: Uint8Array, data: TemplateData): Uint8A
 // What only shows once values are in. A company name that ends in a full stop, closing a
 // sentence, gives "S.R.L..": the template cannot know, so the engine drops the second one. An
 // ellipsis is left alone.
-const punctuation = [{ pattern: '(?<!\\.)\\.\\.(?!\\.)', replace: '.' }];
+const doubledFullStop = /(?<!\.)\.\.(?!\.)/;
 
 function tidy(zip: PizZip) {
   for (const name of Object.keys(zip.files).filter(isTextPart)) {
     // The two full stops are often in different runs, so the XML cannot be searched for "..".
-    zip.file(name, replaceInXml(zip.file(name)!.asText(), punctuation));
+    zip.file(name, replaceText(zip.file(name)!.asText(), doubledFullStop, '.'));
   }
   return zip;
 }

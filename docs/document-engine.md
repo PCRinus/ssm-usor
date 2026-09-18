@@ -31,19 +31,41 @@ The engine uses docxtemplater with a parser of its own, because docxtemplater's 
 a single property name and its expression parser needs `eval`, which Workers forbid. Ours
 splits a dotted path and evaluates nothing.
 
-## Making a template
+## Importing a template
 
-What is committed under `packages/document-engine/templates` is the template alone. The
-provider's original files, and the specs that say how each template is made from its
-original, live in `packages/document-engine/originals/`, which git ignores: both quote real
-people by name. Whoever makes templates keeps that folder; losing it loses no template, only
-the shortcut for remaking one when the provider changes the wording. A spec:
+Templates are imported once from the provider's original Word files, and from then on **the
+template in `packages/document-engine/templates` is the source of truth**. A later change of
+wording is made to the template, in the app's editor once it exists, not by importing again.
+The import is a tool, not part of the product: the engine in `src/` only fills placeholders.
+
+```bash
+pnpm --filter @ssm-usor/document-engine import-templates   # all specs, or name some
+pnpm --filter @ssm-usor/document-engine preview            # PDFs to read, in originals/preview/
+```
+
+Both run LibreOffice inside the Gotenberg Docker image, the same one that will make the PDFs,
+so nothing is installed on the host. `tools/import/import_templates.py` drives it through its
+UNO API, which opens the original as a document, not as XML. That matters: Word stores what
+reads as one phrase in several runs ("S.C. VELOCITA URBANA" + " " + "S.R.L."), which a search
+over the XML never finds and LibreOffice's own search does. The script also converts nothing
+by hand: legacy `.doc` files are converted to `.docx` with the same image first
+(`soffice --headless --convert-to 'docx:MS Word 2007 XML'`).
+
+For each spec it does three things.
+
+**1. Placeholders.** A spec in `originals/` lists the texts that vary and what replaces them:
 
 ```json
 {
-  "source": "1.3._Decizie_privind_responsabili_primul_ajutor.doc",
+  "source": "1.3._Decizie_privind_responsabili_primul_ajutor.docx",
+  "kind": "decision",
   "replacements": [
     { "find": "Nr. : 3 SSM", "replace": "Nr. : {{decisionNumber}} SSM" },
+    {
+      "pattern": "S\\.C\\.\\s+VELOCITA URBANA\\s+S\\.?R\\.?L\\.?",
+      "replace": "{{client.legalName}}",
+      "min": 5
+    },
     {
       "find": "Paolo - Antonio LUCA",
       "replace": "{{#firstAiders}}{{name}}",
@@ -54,83 +76,51 @@ the shortcut for remaking one when the provider changes the wording. A spec:
 }
 ```
 
-```bash
-# The text of a file, to write the spec from
-pnpm --filter @ssm-usor/document-engine author -- --text originals/x.docx
-# Apply a spec
-pnpm --filter @ssm-usor/document-engine author -- originals/x.docx originals/x.spec.json templates/x.docx
-```
+`pattern` is a regular expression, for a phrase the original spells several ways. `whole`
+matches only a paragraph that holds nothing else, such as a table cell with a name.
+`loopParagraph` puts loop tags in paragraphs of their own around the match, which is what
+makes the engine repeat a paragraph per person. `min` is how often the text must be found;
+a text found less often fails the import. Honorifics go: "D-na … in calitate de Administrator"
+becomes `{{client.representativeName}} in calitate de {{client.representativeRole}}`.
 
-Why a tool and not find-and-replace in Word: Word stores what reads as one phrase in several
-runs, one per formatting change or editing session. "S.C. VELOCITA URBANA S.R.L." was three
-runs in the sample, so a search over the XML never finds it. `authorTemplate` works on a
-paragraph's text as a reader sees it, maps each character back to its run, puts the
-placeholder in the run where the match starts, and empties the matched characters from the
-runs after it. Formatting is untouched.
+`originals/` is git-ignored, specs included, because both quote real people by name.
 
-- Replacements apply in order, so a longer text goes before a shorter one it contains.
-- `whole` matches only a paragraph whose entire text is `find`: a table cell holding a name,
-  as opposed to that name inside a sentence.
-- `loopParagraph` wraps the matched paragraph in loop tags of their own paragraphs, which is
-  what makes the paragraph repeat per item.
-- `pattern` is a regular expression instead of `find`, for a phrase the original spells
-  several ways: the samples write one company as "S.C. X S.R.L.", "S.C. X SRL", and
-  "S.C. X S.R.L,".
-- `removeColors`, next to `replacements`, drops font colours. The provider marks in red what
-  they replace by hand; a generated document should not carry that.
-- `min` is how many times the text must be found, default 1. A text that is not found fails
-  the run, so a spec cannot silently stop matching when the original changes.
-- Honorifics go: "D-na Adnana – Valentina POPA in calitate de Administrator" becomes
-  `{{client.representativeName}} in calitate de {{client.representativeRole}}`.
+**2. Wording.** `tools/import/wording.ro.json`, committed because it quotes no one, is an
+editorial pass shared by every template. The originals carry years of small defects: most
+words without diacritics and some with, the old cedilla letters (ş, ţ), typos, double spaces,
+spaces before punctuation, and sentences that are only right for one person ("Subsemnatul am
+luat cunoștință… ne obligăm"). The rule is to **reword once in the template rather than add a
+case at generation time**: a sentence that must read right for one person or five is rewritten
+so it does. `words` is a dictionary applied as whole words in lower, Capitalised, and UPPER
+case; a word whose diacritics depend on meaning goes in only after every occurrence has been
+read in context. `phrases` are replacements, none of which has to occur. What the documents
+_say_ is not touched: article references, durations, who decides what. Nor are the empty
+numbered rows of the acknowledgement tables, where newly appointed people sign later.
 
-## Wording
+**3. Typesetting**, to one house style:
 
-The provider's originals carry years of small defects: most words without diacritics and some
-with, the old cedilla letters (ş, ţ) instead of comma-below ones (ș, ț), typos, double
-spaces, spaces before punctuation, and sentences that are only right for one person
-("Subsemnatul am luat cunoștință… ne obligăm"). Templates fix them instead of reproducing
-them. The rule: **reword once in the template rather than add a case at generation time.**
-A sentence that must read correctly for one designated person or for five is rewritten so it
-does ("fiecare persoană desemnată confirmă că a luat cunoștință…"), not branched on a count.
+|                  |                                                                                                                                                                                                                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text             | Arial 10 pt; the document title bold 12 pt; headings ("DECIDE:", "PROCES VERBAL…") bold 10 pt, centred                                                                                                                                                                                        |
+| Page             | A4, margins 25 mm left for binding and 20 mm elsewhere; an empty header or footer is switched off                                                                                                                                                                                             |
+| Spacing          | Paragraph margins, 6 pt between paragraphs and 2 pt between list items. Every empty paragraph used as spacing is removed, and so are the spaces paragraphs were aligned with                                                                                                                  |
+| Lists            | Items snapped to three indent tiers, in the list's own definition, whatever list they came from. The originals build one hierarchy from a dozen unrelated lists with paragraph indents on top. A list of one item loses its lone "1.". Article labels ("Art. 1.") stay automatic list numbers |
+| Signature block  | The client's name, the representative's role and name: centred, so a long name grows both ways instead of drifting off a column of spaces                                                                                                                                                     |
+| Staying together | From a heading to the table it introduces, everything moves to the next page together; a short table does not split; two lines at least stay together at a page break                                                                                                                         |
+| Characters       | Romanian as the language, no font colours (the provider marks in red what they replace by hand), no dead internal hyperlinks and the underline they left                                                                                                                                      |
+| The end          | A document that closes with a table keeps the one paragraph Word needs after it, at 1 pt, so it cannot spill onto an empty last page                                                                                                                                                          |
 
-`packages/document-engine/templates/wording.ro.json` is that editorial pass, shared by every
-template and committed, because it quotes no one. A spec opts in with
-`"wording": "../templates/wording.ro.json"`, and it runs after the spec's own replacements:
-
-- `words` is a dictionary, `"securitatii": "securității"`, applied as whole words in lower,
-  Capitalised, and UPPER case. Whole words only, so placeholder names and longer words are
-  safe, and word by word, so a bold or italic phrase keeps its formatting. A word whose
-  diacritics depend on its meaning ("munca" or "muncă") goes in only after every occurrence
-  in the documents has been read in context; "pe de alta parte" is a phrase for that reason,
-  since "la alta" elsewhere is correct as it is.
-- `phrases` are replacements like a spec's, none of which has to occur: rewordings, typos
-  that span words, the old letters, and spacing. Leading spaces are left alone, because the
-  originals align their signature blocks with them.
-
-What the pass does not touch is what the documents say: article references, durations, who
-decides what. That is the provider's professional content. Nor does it remove the empty
-numbered rows of the acknowledgement tables: the training decision has newly appointed
-people sign that same table later.
+Then **read the result**. `preview` renders every template twice, with one person and short
+names and with three people and names long enough to test the layout, converts to PDF, and
+prints the page counts. No check replaces reading the pages.
 
 One thing can only be fixed when values are in: a company name ending in a full stop that
-closes a sentence gives "S.R.L..". `renderDocument` drops the second full stop after
-merging, across runs, and leaves an ellipsis alone.
+closes a sentence gives "S.R.L..". `renderDocument` drops the second full stop after merging,
+across runs, and leaves an ellipsis alone.
 
-After changing the wording file, remake the templates and read the result: render with the
-other sample client's data, convert to PDF, and read it through. The tests then pin it: no
-old letters, no double spaces, no space before punctuation, none of the known typos.
-
-Legacy `.doc` originals are converted to `.docx` first with LibreOffice, for example inside
-the Gotenberg image that will also make the PDFs:
-
-```bash
-docker run --rm --entrypoint soffice -v "$PWD:/work" gotenberg/gotenberg:8 \
-  --headless --convert-to 'docx:MS Word 2007 XML' --outdir /work/out /work/original.doc
-```
-
-The tests render every committed template's text against a list of what the originals printed
-(the two sample clients, the provider, their people, any date), so a template that still
-carries a real name fails.
+`templates/manifest.json` lists all 23 originals of the provider's pack under their own
+numbers, ported or not, with the stage each belongs to. A ported template is named
+`<number>_<type_key>.docx`, so the folder shows what is still to do.
 
 ## Built-in templates
 

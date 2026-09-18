@@ -1,0 +1,188 @@
+{
+  "templates": [
+    {
+      "number": "1.0",
+      "original": "1.0._Coperta_Decizii",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "1.1",
+      "original": "1.1._Decizia_privind_responsabilii_cu_instructaje",
+      "stage": 1,
+      "typeKey": "decision_training",
+      "title": "Decizia privind responsabilii cu instruirea",
+      "file": "1.1_decision_training.docx"
+    },
+    {
+      "number": "1.2",
+      "original": "1.2._Decizie_echipa_evaluare",
+      "stage": 1,
+      "typeKey": "decision_risk_evaluation_team",
+      "title": "Decizia privind echipa de evaluare a riscurilor",
+      "file": "1.2_decision_risk_evaluation_team.docx"
+    },
+    {
+      "number": "1.3",
+      "original": "1.3._Decizie_privind_responsabili_primul_ajutor",
+      "stage": 1,
+      "typeKey": "decision_first_aid",
+      "title": "Decizia privind responsabilii cu primul ajutor",
+      "file": "1.3_decision_first_aid.docx"
+    },
+    {
+      "number": "1.4",
+      "original": "1.4._Decizie_privind_pericolul grav si iminent",
+      "stage": 1,
+      "typeKey": "decision_imminent_danger",
+      "title": "Decizia privind pericolul grav și iminent",
+      "file": "1.4_decision_imminent_danger.docx"
+    },
+    {
+      "number": "2.1",
+      "original": "2.1._Coperta_MISSMIG",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "2.2",
+      "original": "2.2._MISSMIG",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "3.1",
+      "original": "3.1._Coperta_IPSSM",
+      "stage": 2,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "3.2",
+      "original": "3.2._IPSSM",
+      "stage": 2,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "4.1",
+      "original": "4.1._Coperta_Tematica",
+      "stage": 2,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "4.2",
+      "original": "4.2._Tematica_de_instruire",
+      "stage": 2,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "5.0",
+      "original": "5.0._Coperta_Testari",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "5.1",
+      "original": "5.1._Test_angajare_S.S.M",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "5.2",
+      "original": "5.2._Test_anual_S.S.M",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "6",
+      "original": "6._LEIP",
+      "stage": 2,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "7.1",
+      "original": "7.1_Coperta_Registre",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "7.2",
+      "original": "7.2_Registre_de_evidenta_a_evenimentelor",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "8",
+      "original": "8._REFERAT_S.S.M",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "9",
+      "original": "9._Evaluarea_riscurilor",
+      "stage": 3,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "10",
+      "original": "10._Plan_de_prevenire_si_protectie",
+      "stage": 3,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "11.1",
+      "original": "11.1._Coperta_Informare angajator",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "11",
+      "original": "11._Informare_angajator",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    },
+    {
+      "number": "12",
+      "original": "12._Regulament_de_control_propriu_S.S.M",
+      "stage": 1,
+      "typeKey": null,
+      "title": null,
+      "file": null
+    }
+  ]
+}

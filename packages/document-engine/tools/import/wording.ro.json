@@ -85,6 +85,10 @@
   },
   "phrases": [
     {
+      "pattern": "^\\{\\{client\\.representativeRole\\}\\}[ \\u00a0]*:$",
+      "replace": "{{client.representativeRole}}"
+    },
+    {
       "pattern": "Subsemnat(ul|ii) am luat [^.]*? ce reies din decizia",
       "replace": "Prin semnătura din tabelul nominal de mai jos, fiecare persoană desemnată confirmă că a luat cunoștință de prezenta decizie și se obligă să respecte întocmai obligațiile, atribuțiile și răspunderile ce reies din decizia"
     },

@@ -4,11 +4,14 @@ import { fileURLToPath } from 'node:url';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { documentText } from './author';
 import { renderDocument, templatePlaceholders } from './render';
+import { documentText } from './text';
 
 const templatesUrl = new URL('../templates/', import.meta.url);
 const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
+const documentTextOf = (paragraph: string) =>
+  [...paragraph.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
+
 const templateFiles = readdirSync(fileURLToPath(templatesUrl)).filter((name) =>
   name.endsWith('.docx')
 );
@@ -23,7 +26,130 @@ describe('built-in templates', () => {
   });
 });
 
-// The editorial pass of `wording.ro.json`: what the provider's originals got wrong.
+// Every original of the provider's pack is listed, ported or not, under its own number, so
+// the folder shows at a glance what is still to do.
+describe('manifest', () => {
+  const manifest = JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8')) as {
+    templates: {
+      number: string;
+      original: string;
+      stage: number;
+      typeKey: string | null;
+      title: string | null;
+      file: string | null;
+    }[];
+  };
+  const ported = manifest.templates.filter((entry) => entry.file);
+
+  it('lists all 23 originals once', () => {
+    expect(manifest.templates).toHaveLength(23);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(23);
+  });
+
+  it('names each ported template after its original number and its type', () => {
+    for (const entry of ported) {
+      expect(entry.file).toBe(`${entry.number}_${entry.typeKey}.docx`);
+      expect(entry.typeKey).toMatch(/^[a-z][a-z0-9_]{1,59}$/);
+      expect(entry.title).toBeTruthy();
+    }
+    expect(new Set(ported.map((entry) => entry.typeKey)).size).toBe(ported.length);
+  });
+
+  it('matches the files in the folder exactly', () => {
+    expect(ported.map((entry) => entry.file).sort()).toEqual([...templateFiles].sort());
+  });
+});
+
+const bodyOf = (name: string) => new PizZip(read(name)).file('word/document.xml')!.asText();
+
+// The house style the import script typesets every template to.
+describe('typesetting', () => {
+  const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+
+  it.each(templateFiles)('%s centres the signature block instead of spacing it out', (name) => {
+    for (const placeholder of [
+      '{{client.legalName}}',
+      '{{client.representativeRole}}',
+      '{{client.representativeName}}',
+    ]) {
+      const block = paragraphsOf(bodyOf(name)).filter(
+        (paragraph) => documentTextOf(paragraph) === placeholder
+      );
+      expect(block.length, placeholder).toBeGreaterThan(0);
+      for (const paragraph of block) expect(paragraph).toContain('<w:jc w:val="center"/>');
+    }
+  });
+
+  it.each(templateFiles)(
+    '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
+    (name) => {
+      const body = bodyOf(name).replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:tbl/>');
+      const texts = paragraphsOf(body).map(documentTextOf);
+      expect(texts.filter((text) => /^[ \u00a0\t]/.test(text))).toEqual([]);
+      // Loop tags stand alone in a paragraph; the one paragraph Word needs after a closing table
+      // is the only empty one.
+      expect(texts.filter((text) => text.trim() === '').length).toBeLessThanOrEqual(1);
+    }
+  );
+
+  it.each(templateFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
+    const xml = bodyOf(name);
+    const fonts = new Set(
+      [...xml.matchAll(/<w:rFonts [^>]*w:ascii="([^"]+)"/g)].map((match) => match[1])
+    );
+    const sizes = new Set(
+      [
+        ...xml.matchAll(
+          /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(\d+)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+        ),
+      ].map((match) => Number(match[1]) / 2)
+    );
+    // Of the runs that carry text: that is what spell-check and hyphenation read. A paragraph's
+    // end mark may keep a language of its own, which nothing shows.
+    const languages = new Set(
+      [
+        ...xml.matchAll(
+          /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:lang [^>]*w:val="([^"]+)"(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+        ),
+      ].map((match) => match[1])
+    );
+    expect([...fonts]).toEqual(['Arial']);
+    // 10 pt body and the 12 pt title, on the runs that carry text.
+    expect([...sizes].sort((a, b) => a - b)).toEqual([10, 12]);
+    expect([...languages]).toEqual(['ro-RO']);
+  });
+
+  it.each(templateFiles)('%s has the house margins and nothing in a header or footer', (name) => {
+    const xml = bodyOf(name);
+    // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.
+    expect(xml).toMatch(/<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/);
+    expect(xml).toMatch(
+      /<w:pgMar [^>]*w:top="1134"[^>]*w:bottom="1134"|<w:pgMar [^>]*w:bottom="1134"[^>]*w:top="1134"/
+    );
+    // LibreOffice keeps a reference to an even-page footer; what matters is that it is empty.
+    const zip = new PizZip(read(name));
+    for (const part of Object.keys(zip.files).filter((file) =>
+      /word\/(header|footer)\d*\.xml/.test(file)
+    )) {
+      expect(documentTextOf(zip.file(part)!.asText()).trim(), part).toBe('');
+    }
+  });
+
+  it.each(templateFiles)(
+    '%s keeps a heading, what follows it, and its table on one page',
+    (name) => {
+      const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
+        documentTextOf(paragraph).includes('PROCES VERBAL DE LUARE LA CUNOȘTINȚĂ')
+      );
+      expect(heading).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
+      // A table that may not split is written as rows that keep with the next one.
+      const table = bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>/)![0];
+      expect(table).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
+    }
+  );
+});
+
+// The editorial pass of `tools/import/wording.ro.json`: what the originals got wrong.
 describe('wording', () => {
   const texts = templateFiles.map((name) => [name, documentText(read(name))] as const);
 
@@ -50,7 +176,7 @@ describe('wording', () => {
 });
 
 describe('decision_first_aid', () => {
-  const template = read('decision_first_aid.docx');
+  const template = read('1.3_decision_first_aid.docx');
   const data = {
     decisionNumber: 3,
     issueDate: '19.01.2026',
@@ -126,7 +252,7 @@ const acknowledged = (text: string) =>
   expect(text.match(/^Lucrător comercial$/gm), 'one table row per person').toHaveLength(1);
 
 describe('decision_training', () => {
-  const template = read('decision_training.docx');
+  const template = read('1.1_decision_training.docx');
   const data = {
     ...shared,
     decisionNumber: 1,
@@ -182,7 +308,7 @@ describe('decision_training', () => {
 describe('decision_risk_evaluation_team', () => {
   it("names the team and the provider's specialist with their title", () => {
     const text = documentText(
-      renderDocument(read('decision_risk_evaluation_team.docx'), {
+      renderDocument(read('1.2_decision_risk_evaluation_team.docx'), {
         ...shared,
         decisionNumber: 2,
         evaluationTeam: people,
@@ -206,7 +332,7 @@ describe('decision_imminent_danger', () => {
       .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
       .join(', ');
     const text = documentText(
-      renderDocument(read('decision_imminent_danger.docx'), {
+      renderDocument(read('1.4_decision_imminent_danger.docx'), {
         ...shared,
         decisionNumber: 4,
         workplaceManager: people[0],
