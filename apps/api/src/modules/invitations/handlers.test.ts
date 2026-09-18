@@ -12,7 +12,11 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
   SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   APP_ORIGIN: 'https://app.example.ro',
-  MAIL: { sendWaitlistConfirmation: vi.fn(), sendOrganizationInvitation },
+  MAIL: {
+    sendWaitlistConfirmation: vi.fn(),
+    sendOrganizationInvitation,
+    sendPasswordReset: vi.fn(),
+  },
 };
 
 const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
