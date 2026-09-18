@@ -291,18 +291,27 @@ export type Database = {
           created_at: string;
           id: string;
           name: string;
+          terms_accepted_at: string | null;
+          terms_accepted_by: string | null;
+          terms_version: string | null;
           updated_at: string;
         };
         Insert: {
           created_at?: string;
           id?: string;
           name: string;
+          terms_accepted_at?: string | null;
+          terms_accepted_by?: string | null;
+          terms_version?: string | null;
           updated_at?: string;
         };
         Update: {
           created_at?: string;
           id?: string;
           name?: string;
+          terms_accepted_at?: string | null;
+          terms_accepted_by?: string | null;
+          terms_version?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -396,6 +405,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      create_organization: {
+        Args: {
+          accepted_terms_version: string;
+          organization_name: string;
+          owner_full_name: string;
+        };
+        Returns: string;
+      };
       create_organization_invitation: {
         Args: {
           invitee_email: string;
@@ -423,6 +440,15 @@ export type Database = {
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
       lock_members_as_owner: { Args: never; Returns: string };
+      my_open_invitations: {
+        Args: never;
+        Returns: {
+          expires_at: string;
+          inviter_name: string;
+          organization_name: string;
+          role: Database['public']['Enums']['organization_role'];
+        }[];
+      };
       organization_invitation_by_token: {
         Args: { invitation_token_hash: string };
         Returns: {
