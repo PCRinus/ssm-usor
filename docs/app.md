@@ -327,7 +327,12 @@ mobile navigation link closes the Sheet.
   with `trainingMonths` from the contracts, the same function the documents will use. Workers
   are offered no interval above six months. `PUT /clients/{clientId}/document-details`
   replaces every field, so an emptied input clears what was saved. An archived client is
-  shown read-only. Workplaces and responsible persons join this section next.
+  shown read-only. The second card lists the registered office and the points of work from
+  `GET /clients/{clientId}/workplaces`, the registered office first with a badge. "Adaugă" and
+  a row's "Modifică" open one dialog; the API's `409` for a second registered office is
+  reported on the checkbox and keeps the dialog open. "Arhivează" asks first, and a `404`
+  refreshes the list. An archived client gets the list without add or row actions.
+  Responsible persons join this section next.
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and
   revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a

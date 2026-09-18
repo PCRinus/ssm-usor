@@ -84,7 +84,8 @@ export async function cleanUp() {
     await admin.auth.admin.deleteUser(id);
   }
   for (const id of created.organizations) {
-    // Clients restrict the deletion of their organization.
+    // Clients restrict the deletion of their organization, and their rows that of the client.
+    await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }

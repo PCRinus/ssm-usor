@@ -87,3 +87,50 @@ test("a specialist sets a client's representative role and training schedule", a
   await expect(page.getByText('Instruiri în: Februarie, August.')).toBeVisible();
   await expect(page.getByTestId('document-details-save')).toBeDisabled();
 });
+
+test('a client gets a registered office and a point of work, one of which is then archived', async ({
+  page,
+}) => {
+  const owner = await createAccount('workplaces-owner', 'Petra Punct');
+  const organizationId = await createOrganization('Puncte de lucru E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT PUNCTE E2E SRL');
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/document-data`);
+  await expect(page.getByTestId('workplaces-empty')).toBeVisible();
+
+  await page.getByTestId('workplace-add').click();
+  await page.getByTestId('workplace-save').click();
+  await expect(page.getByTestId('workplace-name-error')).toContainText('Introdu denumirea');
+  await page.getByTestId('workplace-name').fill('Sediu social');
+  await page.getByTestId('workplace-registered-office').click();
+  await page.getByTestId('workplace-locality').fill('București');
+  await page.getByTestId('workplace-save').click();
+  await expect(page.getByText('Punctul de lucru a fost adăugat.')).toBeVisible();
+
+  // The database allows one registered office per client; the dialog says so and stays open.
+  await page.getByTestId('workplace-add').click();
+  await page.getByTestId('workplace-name').fill('Magazin Timișoara');
+  await page.getByTestId('workplace-registered-office').click();
+  await page.getByTestId('workplace-save').click();
+  await expect(page.getByTestId('workplace-registered-office-error')).toContainText(
+    'are deja un sediu social'
+  );
+  await page.getByTestId('workplace-registered-office').click();
+  await page.getByTestId('workplace-save').click();
+  await expect(page.getByTestId('workplace-row')).toHaveCount(2);
+  // The registered office comes first whatever the names.
+  await expect(page.getByTestId('workplace-row').first()).toContainText('Sediu social');
+
+  await page
+    .getByTestId('workplace-row')
+    .filter({ hasText: 'Magazin Timișoara' })
+    .getByTestId('workplace-actions')
+    .click();
+  await page.getByTestId('workplace-archive').click();
+  await page.getByTestId('workplace-archive-confirm').click();
+  await expect(page.getByText('Magazin Timișoara a fost arhivat.')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId('workplace-row')).toHaveCount(1);
+});
