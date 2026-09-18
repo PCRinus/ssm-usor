@@ -198,6 +198,62 @@ export type Database = {
         };
         Relationships: [];
       };
+      organization_invitations: {
+        Row: {
+          accepted_at: string | null;
+          accepted_by: string | null;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string | null;
+          organization_id: string;
+          revoked_at: string | null;
+          role: Database['public']['Enums']['organization_role'];
+          sent_at: string | null;
+          token_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          organization_id: string;
+          revoked_at?: string | null;
+          role?: Database['public']['Enums']['organization_role'];
+          sent_at?: string | null;
+          token_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          organization_id?: string;
+          revoked_at?: string | null;
+          role?: Database['public']['Enums']['organization_role'];
+          sent_at?: string | null;
+          token_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_invitations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organization_members: {
         Row: {
           created_at: string;
@@ -251,6 +307,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          created_at: string;
+          full_name: string;
+          terms_accepted_at: string | null;
+          terms_version: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          full_name: string;
+          terms_accepted_at?: string | null;
+          terms_version?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          full_name?: string;
+          terms_accepted_at?: string | null;
+          terms_version?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       waitlist_subscribers: {
         Row: {
           confirmation_sent_at: string | null;
@@ -289,6 +372,37 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_invitation_as: {
+        Args: {
+          accepted_terms_version: string;
+          accepting_user_id: string;
+          invitation_token_hash: string;
+          new_full_name: string;
+        };
+        Returns: string;
+      };
+      accept_organization_invitation: {
+        Args: {
+          accepted_terms_version?: string;
+          invitation_token_hash: string;
+          new_full_name?: string;
+        };
+        Returns: string;
+      };
+      create_organization_invitation: {
+        Args: {
+          invitee_email: string;
+          invitee_role?: Database['public']['Enums']['organization_role'];
+        };
+        Returns: {
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          role: Database['public']['Enums']['organization_role'];
+          sent_at: string;
+        }[];
+      };
       current_membership: {
         Args: never;
         Returns: {
@@ -299,7 +413,34 @@ export type Database = {
       };
       current_organization_id: { Args: never; Returns: string };
       effective_user_id: { Args: never; Returns: string };
+      is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
+      organization_invitation_by_token: {
+        Args: { invitation_token_hash: string };
+        Returns: {
+          account_exists: boolean;
+          email: string;
+          expires_at: string;
+          inviter_name: string;
+          organization_name: string;
+          role: Database['public']['Enums']['organization_role'];
+          status: string;
+        }[];
+      };
+      organization_member_list: {
+        Args: never;
+        Returns: {
+          email: string;
+          full_name: string;
+          joined_at: string;
+          role: Database['public']['Enums']['organization_role'];
+          user_id: string;
+        }[];
+      };
+      revoke_organization_invitation: {
+        Args: { invitation_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       employee_status: 'active' | 'terminated';

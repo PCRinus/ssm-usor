@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, impersonations, clients, and employees  
+Status: implemented for organizations, memberships, profiles, invitations, impersonations, clients, and employees  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -13,8 +13,8 @@ and writes through PostgREST with the caller's own access token, so the row-leve
 An **organization** is one external SSM provider using the app: the paying customer. Every
 Supabase auth user belongs to at most one organization through **organization_members**,
 whose primary key is the user id. Roles are `owner` (administers the organization: team,
-settings, archiving) and `specialist` (does the SSM work). Nothing distinguishes them yet;
-the column exists so the seed can mark the first user and future policies can check it.
+settings, archiving) and `specialist` (does the SSM work). `public.is_organization_owner()`
+is true for an owner; inviting people is the first thing it guards.
 
 Every business table carries an `organization_id`. Policies compare it with
 `public.current_organization_id()`, which resolves the caller's **effective** user (see
@@ -26,8 +26,8 @@ Roles and organizations are never stored in Supabase user metadata. The only cla
 trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
 
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
-Organizations and memberships are created by the seed for now; owner-managed invitations will
-need the Auth Admin API, which requires a secret key the Worker does not hold.
+Organizations are created by the seed for now. Memberships come from the seed and from
+accepted invitations; no policy lets a signed-in user write `organization_members`.
 
 ## Platform admins and impersonation
 
@@ -107,6 +107,46 @@ The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
 the generated client, so the form and the API validate against one list, and the database
 check constraint mirrors it.
+
+## Profiles
+
+`profiles` names a user: `full_name`, plus `terms_version` and `terms_accepted_at` for people
+who created their account through an invitation. The email stays in `auth.users` and is not
+copied. A user reads the profiles of their own organization, creates their own, and changes
+only their own `full_name`; column grants keep the terms columns for acceptance to write.
+
+`public.organization_member_list()` returns the members of the caller's organization with
+their email, name, role, and join date. It runs as `security definer` because `auth.users`
+is not readable by signed-in users.
+
+## Organization invitations
+
+`organization_invitations` holds an owner's invitation for one email address
+([ADR 003](architecture/adr-003-organization-invitations.md)). Its status is derived:
+accepted, revoked, expired once `expires_at` has passed (7 days), otherwise open. A partial
+unique index allows one open invitation per address in an organization, so inviting an
+address again renews the row.
+
+Owners read their organization's invitations under row-level security, without the
+`token_hash` column, and write through functions that check the role themselves:
+
+| Function                                      | Caller    | What it does                                                                                                               |
+| --------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `create_organization_invitation(email, role)` | owner     | Creates or renews an invitation. Refuses a member of the same organization (`INV01`) and a 21st open invitation (`INV02`). |
+| `revoke_organization_invitation(id)`          | owner     | Revokes an open invitation; false when there was nothing to revoke.                                                        |
+| `accept_organization_invitation(hash, …)`     | signed in | For an account without a membership: accepts as the real signed-in user.                                                   |
+| `organization_invitation_by_token(hash)`      | API key   | What the accept page shows, including whether the address has an account.                                                  |
+| `accept_invitation_as(hash, user, …)`         | API key   | For an account the API has just created.                                                                                   |
+
+Accepting locks the invitation, requires it to be open (`INV03` with the status otherwise)
+and sent to the account's confirmed email (`INV04`), then adds the membership and the
+profile and marks it accepted, all in one transaction. The primary key on
+`organization_members` refuses an account that already belongs to an organization (`INV05`).
+
+Nobody signed in can write a token hash. A browser holds the same credentials as the API's
+per-user client, so an owner able to write a hash could mint a link and create a confirmed
+account for someone else's address. The API sets the hash with its secret key after the
+owner's call succeeds. During an impersonation `invited_by` records the platform admin.
 
 ## Waitlist subscribers
 

@@ -43,6 +43,7 @@ jobs:
       SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
       SEED_ADMIN_EMAIL_INPUT: ${{ vars.SEED_ADMIN_EMAIL }}
       SEED_ORGANIZATION_NAME_INPUT: ${{ vars.SEED_ORGANIZATION_NAME }}
+      SEED_ADMIN_NAME_INPUT: ${{ vars.SEED_ADMIN_NAME }}
       SEED_ALLOW_FAKE: ${{ vars.SEED_ALLOW_FAKE }}
     steps:
       - name: Check seed configuration
@@ -71,6 +72,7 @@ jobs:
         run: |
           [[ -n "$SEED_ADMIN_EMAIL_INPUT" ]] && export SEED_ADMIN_EMAIL="$SEED_ADMIN_EMAIL_INPUT"
           [[ -n "$SEED_ORGANIZATION_NAME_INPUT" ]] && export SEED_ORGANIZATION_NAME="$SEED_ORGANIZATION_NAME_INPUT"
+          [[ -n "$SEED_ADMIN_NAME_INPUT" ]] && export SEED_ADMIN_NAME="$SEED_ADMIN_NAME_INPUT"
           args=()
           if [[ "${{ inputs.fake }}" == "true" ]]; then
             args+=(--fake --clients "${{ inputs.clients }}" --seed "${{ inputs.seed }}")

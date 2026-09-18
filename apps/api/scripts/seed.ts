@@ -68,6 +68,7 @@ function configFromLocalCli() {
       SUPABASE_SECRET_KEY: status.SECRET_KEY,
       SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL,
       SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
+      SEED_ADMIN_NAME: process.env.SEED_ADMIN_NAME,
       SEED_ORGANIZATION_NAME: process.env.SEED_ORGANIZATION_NAME,
     });
   } catch {
@@ -126,7 +127,12 @@ try {
   );
   console.log(`${action} development admin ${user.email} (${user.id}) in ${host}.`);
 
-  const { organization } = await seedOrganization(client, config.SEED_ORGANIZATION_NAME, user.id);
+  const { organization } = await seedOrganization(
+    client,
+    config.SEED_ORGANIZATION_NAME,
+    user.id,
+    config.SEED_ADMIN_NAME
+  );
   console.log(`Organization "${organization.name}" (${organization.id}) owned by ${user.email}.`);
 
   // Fake data is opt-in on hosted projects; the local stack always gets it.
