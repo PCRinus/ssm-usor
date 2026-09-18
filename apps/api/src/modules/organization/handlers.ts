@@ -1,11 +1,17 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type { MemberErrorReason, OrganizationMemberListResponse } from '@ssm-usor/contracts';
+import type {
+  MemberErrorReason,
+  OnboardingErrorReason,
+  OrganizationMemberListResponse,
+  OrganizationMembership,
+} from '@ssm-usor/contracts';
 
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type {
   changeMemberRoleRoute,
+  createOrganizationRoute,
   listOrganizationMembersRoute,
   removeMemberRoute,
 } from './routes';
@@ -27,6 +33,47 @@ function fromMemberError(error: PostgrestError, context: string): ApiError {
   }
   return fromDatabaseError(error, context);
 }
+
+// Runs as the caller, who has no membership yet, so no policy could allow the writes: the
+// database function checks the confirmed email and the missing membership itself.
+export const createOrganization: RouteHandler<typeof createOrganizationRoute, ApiEnv> = async (
+  c
+) => {
+  const { organizationName, fullName, termsVersion } = c.req.valid('json');
+
+  const { data: id, error } = await createDataClient(c).rpc('create_organization', {
+    organization_name: organizationName,
+    owner_full_name: fullName,
+    accepted_terms_version: termsVersion,
+  });
+  if (error) {
+    if (error.code === 'ORG01') {
+      throw new ApiError(
+        'conflict',
+        'This account already belongs to an organization.',
+        undefined,
+        'already_in_organization' satisfies OnboardingErrorReason
+      );
+    }
+    if (error.code === '42501') {
+      throw new ApiError(
+        'forbidden',
+        'Confirm your email address first.',
+        undefined,
+        'email_not_confirmed' satisfies OnboardingErrorReason
+      );
+    }
+    throw fromDatabaseError(error, 'organization create');
+  }
+
+  return c.json(
+    {
+      organization: { id, name: organizationName },
+      role: 'owner',
+    } satisfies OrganizationMembership,
+    201
+  );
+};
 
 const noSuchMember = () => new ApiError('not_found', 'The member does not exist.');
 

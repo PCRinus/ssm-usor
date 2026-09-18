@@ -50,6 +50,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /hooks/supabase/send-email`                         | Supabase Auth, by signature           | `200 {}` after handing the recovery or signup email to the mail Worker                             |
 | `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                           |
 | `PATCH /me/profile`                                       | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                            |
+| `GET /me/invitations`                                     | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token               |
+| `POST /organization`                                      | Verified user without a membership    | `201` with the new membership, after creating the organization                                     |
 | `GET /organization/members`                               | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                 |
 | `PATCH /organization/members/{userId}`                    | Owner                                 | `204` after changing the member's role                                                             |
 | `DELETE /organization/members/{userId}`                   | Owner                                 | `204` after removing the membership; the account stays                                             |
@@ -175,6 +177,22 @@ Invitation errors carry a `reason` so the SPA can word them: `already_member`,
 
 The owner routes need `SUPABASE_SECRET_KEY` and the `MAIL` binding and answer `503` before
 creating anything while either is missing.
+
+## Onboarding
+
+[ADR 004](architecture/adr-004-registration-and-onboarding.md). Registration itself is
+Supabase's signup, which the SPA calls directly; the API's part starts once the person is
+signed in without a membership.
+
+`POST /organization` takes `{ organizationName, fullName, termsVersion }` and calls
+`create_organization` as the caller. It needs no membership, unlike every other organization
+route. `409` with `reason: already_in_organization` for an account that has one, `403` with
+`reason: email_not_confirmed` otherwise refused. `termsVersion` must be the current one from
+the contracts: the checkbox on the page accepts that version and no other.
+
+`GET /me/invitations` lists the open invitations sent to the caller's confirmed address, so
+the page can point them out before the person creates an organization of their own. It carries
+no id and no token; only the emailed link accepts an invitation.
 
 ## Members
 

@@ -1,14 +1,58 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   changeMemberRoleRequestSchema,
+  createOrganizationRequestSchema,
+  membershipSchema,
   organizationMemberListResponseSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership, requireOwner } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
+import {
+  authErrors,
+  bearerSecurity,
+  errorContent,
+  membershipErrors,
+  ownerErrors,
+} from '../../lib/openapi';
 
 const memberParams = z.object({ userId: z.uuid() });
+
+export const createOrganizationRoute = createRoute({
+  method: 'post',
+  path: '/organization',
+  operationId: 'createOrganization',
+  summary: 'Create an organization and become its owner',
+  description:
+    'Onboarding. For a signed-in account with a confirmed email and no membership. Names the caller and records their acceptance of the terms on the organization.',
+  security: bearerSecurity,
+  middleware: [requireAuth] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: createOrganizationRequestSchema.meta({ id: 'CreateOrganizationRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "The caller's new membership",
+      content: {
+        'application/json': { schema: membershipSchema.meta({ id: 'MembershipResponse' }) },
+      },
+    },
+    400: { description: 'Invalid request body', content: errorContent },
+    403: { description: "The account's email is not confirmed", content: errorContent },
+    409: {
+      description: 'The account already belongs to an organization; see `reason`',
+      content: errorContent,
+    },
+    ...authErrors,
+  },
+});
 
 export const listOrganizationMembersRoute = createRoute({
   method: 'get',

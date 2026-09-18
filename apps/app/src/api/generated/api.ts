@@ -126,6 +126,26 @@ export interface UpdateProfileRequest {
   fullName: string;
 }
 
+export type PendingInvitationListResponseItemsItemRole =
+  (typeof PendingInvitationListResponseItemsItemRole)[keyof typeof PendingInvitationListResponseItemsItemRole];
+
+export const PendingInvitationListResponseItemsItemRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export type PendingInvitationListResponseItemsItem = {
+  organizationName: string;
+  /** @nullable */
+  inviterName: string | null;
+  role: PendingInvitationListResponseItemsItemRole;
+  expiresAt: string;
+};
+
+export interface PendingInvitationListResponse {
+  items: PendingInvitationListResponseItemsItem[];
+}
+
 /**
  * @nullable
  */
@@ -684,6 +704,45 @@ export type UpdateEmployeeStatusRequest =
   | {
       status: 'active';
     };
+
+export type MembershipResponseOrganization = {
+  id: string;
+  name: string;
+};
+
+export type MembershipResponseRole =
+  (typeof MembershipResponseRole)[keyof typeof MembershipResponseRole];
+
+export const MembershipResponseRole = {
+  owner: 'owner',
+  specialist: 'specialist',
+} as const;
+
+export interface MembershipResponse {
+  organization: MembershipResponseOrganization;
+  role: MembershipResponseRole;
+}
+
+export type CreateOrganizationRequestTermsVersion =
+  (typeof CreateOrganizationRequestTermsVersion)[keyof typeof CreateOrganizationRequestTermsVersion];
+
+export const CreateOrganizationRequestTermsVersion = {
+  '2026-09': '2026-09',
+} as const;
+
+export interface CreateOrganizationRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  organizationName: string;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   */
+  fullName: string;
+  termsVersion: CreateOrganizationRequestTermsVersion;
+}
 
 export type OrganizationMemberListResponseItemsItemRole =
   (typeof OrganizationMemberListResponseItemsItemRole)[keyof typeof OrganizationMemberListResponseItemsItemRole];
@@ -1334,6 +1393,122 @@ export const useUpdateProfile = <TError = ErrorType<ApiErrorResponse>, TContext 
 > => {
   return useMutation(getUpdateProfileMutationOptions(options), queryClient);
 };
+
+export const getListMyInvitationsUrl = () => {
+  return `/me/invitations`;
+};
+
+/**
+ * For onboarding, so a person is told about an invitation before creating an organization of their own. Carries no id and no token: only the emailed link accepts an invitation.
+ * @summary List open invitations sent to the authenticated user's address
+ */
+export const listMyInvitations = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PendingInvitationListResponse> => {
+  return apiFetch<PendingInvitationListResponse>(getListMyInvitationsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListMyInvitationsQueryKey = () => {
+  return [`/me/invitations`] as const;
+};
+
+export const getListMyInvitationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMyInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyInvitations>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMyInvitationsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyInvitations>>> = ({ signal }) =>
+    listMyInvitations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMyInvitations>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListMyInvitationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMyInvitations>>
+>;
+export type ListMyInvitationsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListMyInvitations<
+  TData = Awaited<ReturnType<typeof listMyInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyInvitations>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMyInvitations>>,
+          TError,
+          Awaited<ReturnType<typeof listMyInvitations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMyInvitations<
+  TData = Awaited<ReturnType<typeof listMyInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyInvitations>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMyInvitations>>,
+          TError,
+          Awaited<ReturnType<typeof listMyInvitations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMyInvitations<
+  TData = Awaited<ReturnType<typeof listMyInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyInvitations>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List open invitations sent to the authenticated user's address
+ */
+
+export function useListMyInvitations<
+  TData = Awaited<ReturnType<typeof listMyInvitations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyInvitations>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListMyInvitationsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListClientsUrl = (params?: ListClientsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -2321,6 +2496,113 @@ export const useUpdateEmployeeStatus = <TError = ErrorType<ApiErrorResponse>, TC
   TContext
 > => {
   return useMutation(getUpdateEmployeeStatusMutationOptions(options), queryClient);
+};
+
+export const getCreateOrganizationUrl = () => {
+  return `/organization`;
+};
+
+/**
+ * Onboarding. For a signed-in account with a confirmed email and no membership. Names the caller and records their acceptance of the terms on the organization.
+ * @summary Create an organization and become its owner
+ */
+export const createOrganization = async (
+  createOrganizationRequest: CreateOrganizationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<MembershipResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<MembershipResponse>(getCreateOrganizationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createOrganizationRequest),
+  });
+};
+
+export const getCreateOrganizationMutationKey = () => ['createOrganization'] as const;
+
+export const getCreateOrganizationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrganization>>,
+    TError,
+    CreateOrganizationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createOrganization>>,
+  TError,
+  CreateOrganizationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateOrganizationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createOrganization>>,
+    CreateOrganizationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createOrganization(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateOrganizationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createOrganization>>
+>;
+export type CreateOrganizationMutationBody = CreateOrganizationRequest;
+export type CreateOrganizationMutationError = ErrorType<ApiErrorResponse>;
+export type CreateOrganizationMutationVariables = { data: CreateOrganizationRequest };
+
+/**
+ * @summary Create an organization and become its owner
+ */
+export const useCreateOrganization = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createOrganization>>,
+      TError,
+      CreateOrganizationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createOrganization>>,
+  TError,
+  CreateOrganizationMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateOrganizationMutationOptions(options), queryClient);
 };
 
 export const getListOrganizationMembersUrl = () => {

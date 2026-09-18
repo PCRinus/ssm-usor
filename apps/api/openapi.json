@@ -159,6 +159,36 @@
         },
         "required": ["fullName"]
       },
+      "PendingInvitationListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "organizationName": {
+                  "type": "string"
+                },
+                "inviterName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "role": {
+                  "type": "string",
+                  "enum": ["owner", "specialist"]
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": ["organizationName", "inviterName", "role", "expiresAt"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "ClientListResponse": {
         "type": "object",
         "properties": {
@@ -956,6 +986,49 @@
           }
         ]
       },
+      "MembershipResponse": {
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "name"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "specialist"]
+          }
+        },
+        "required": ["organization", "role"]
+      },
+      "CreateOrganizationRequest": {
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "termsVersion": {
+            "type": "string",
+            "enum": ["2026-09"]
+          }
+        },
+        "required": ["organizationName", "fullName", "termsVersion"]
+      },
       "OrganizationMemberListResponse": {
         "type": "object",
         "properties": {
@@ -1358,6 +1431,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/invitations": {
+      "get": {
+        "operationId": "listMyInvitations",
+        "summary": "List open invitations sent to the authenticated user's address",
+        "description": "For onboarding, so a person is told about an invitation before creating an organization of their own. Carries no id and no token: only the emailed link accepts an invitation.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Open invitations, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingInvitationListResponse"
                 }
               }
             }
@@ -2235,6 +2362,100 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization": {
+      "post": {
+        "operationId": "createOrganization",
+        "summary": "Create an organization and become its owner",
+        "description": "Onboarding. For a signed-in account with a confirmed email and no membership. Names the caller and records their acceptance of the terms on the organization.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The caller's new membership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account's email is not confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The account already belongs to an organization; see `reason`",
             "content": {
               "application/json": {
                 "schema": {
