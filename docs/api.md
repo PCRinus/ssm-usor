@@ -45,6 +45,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | --------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `GET /openapi.json`                                       | Public                                | Generated OpenAPI contract                                                                         |
 | `GET /health`                                             | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                    |
+| `POST /waitlist`                                          | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                |
+| `GET /waitlist/confirm`                                   | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                       |
 | `GET /me`                                                 | Verified, non-anonymous Supabase user | `{ "user": { "id": "…", "email": "…" } }`                                                          |
 | `GET /clients`                                            | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients; `?page=&pageSize=&sort=&order=` |
 | `POST /clients`                                           | Verified user with a membership       | `201 { "client": { … } }`                                                                          |
@@ -93,13 +95,39 @@ timeout. No user session, cookie, or refresh token is stored in the Worker. Logi
 refresh, and logout stay in the browser SDK. JWT access tokens can remain usable until expiry
 after sign-out; this scaffold does not implement immediate token revocation.
 
-Only a publishable key is needed. A service-role or secret key is neither required nor accepted
-by this configuration. Supabase owns its Auth schema; business tables live in SQL migrations
+Routes acting for a signed-in user need only the publishable key. The waitlist acts for nobody
+signed in, so it uses `createAdminClient(c)` from `src/lib/admin-db.ts`, which holds
+`SUPABASE_SECRET_KEY` and bypasses row-level security. Import that client only in a module
+with the same need (invitations will be the next); never reach for it to work around a policy.
+Supabase owns its Auth schema; business tables live in SQL migrations
 and are protected by row-level security. User-editable `user_metadata` never grants permissions.
 
 New authenticated routes should attach `requireAuth`, and `requireMembership` when they touch
 organization data, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
 Transport schemas live in `packages/contracts`.
+
+## Waitlist
+
+`POST /waitlist` takes `{ email, consentVersion, turnstileToken }` from the marketing site's
+form. It checks the Turnstile token, stores the normalized address in `waitlist_subscribers`
+as pending, and asks the [mail Worker](mail.md) over the `MAIL` service binding to send a
+confirmation link. The subscription is double opt-in: only following the link sets
+`confirmed_at`.
+
+The answer is always `202 { "status": "confirmation_pending" }`, whether the address is new,
+pending, or already confirmed, so the endpoint does not reveal who subscribed. A confirmed
+address is not emailed again, and a pending one at most once every ten minutes. Each email
+carries a fresh random token of which only the SHA-256 hash is stored; sending a new one
+invalidates the previous link. If the email cannot be sent the answer is `503` and the sent
+time is left alone, so an immediate retry works.
+
+`GET /waitlist/confirm?token=…` is opened in a browser. It redirects to
+`/abonare/confirmata/` on the marketing site, also when the link is followed a second time,
+and to `/abonare/link-invalid/` for an unknown or missing token.
+
+The route needs `SUPABASE_SECRET_KEY`, `TURNSTILE_SECRET_KEY`, and the `MAIL` binding, and
+answers `503` while any is missing. `API_ORIGIN` builds the emailed link and
+`MARKETING_ORIGIN` is both the redirect target and the only origin CORS allows on `/waitlist`.
 
 ## Source layout
 
@@ -107,7 +135,7 @@ Transport schemas live in `packages/contracts`.
 src/
   app.ts               cross-cutting: headers, CORS, module mounting, OpenAPI document, errors
   router.ts            createRouter(): an OpenAPIHono with the shared validation error hook
-  lib/                 auth, db, env, errors, membership, shared OpenAPI pieces
+  lib/                 auth, db, admin-db, turnstile, env, errors, membership, shared OpenAPI pieces
   modules/<domain>/    routes.ts (OpenAPI route definitions), handlers.ts, index.ts (router), tests
 ```
 
@@ -133,7 +161,8 @@ All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "me
 Upstream error details are not returned to callers; database failures are logged by context
 only. Authentication failures include `WWW-Authenticate: Bearer`.
 
-`CORS_ORIGINS` is a comma-separated list of exact browser origins. Production defaults to
+`CORS_ORIGINS` is a comma-separated list of exact browser origins for every route except
+`/waitlist`, which allows only `MARKETING_ORIGIN`. Production defaults to
 `https://app.ssmusor.ro`; `.dev.vars` allows the local Vite origins instead. OPTIONS preflight
 does not require authentication and allows GET and POST requests with Authorization/Content-Type headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
@@ -141,8 +170,8 @@ authentication still applies independently, including to non-browser clients.
 
 ## Deployment and verification
 
-`apps/api/wrangler.jsonc` declares the `ssm-usor-api` Worker at `api.ssmusor.ro` and its
-production CORS origin. The **CI** workflow supplies the public Supabase bindings and deploys
+`apps/api/wrangler.jsonc` declares the `ssm-usor-api` Worker at `api.ssmusor.ro`, its
+production origins, and the service binding to `ssm-usor-mail`, which therefore deploys first. The **CI** workflow supplies the public Supabase bindings and deploys
 and checks the API when its inputs change on `main`. If the SPA also changed, its deployment
 waits for the API checks; otherwise the SPA is left untouched. `.dev.vars` is local only.
 See the [application deployment guide](app-deployment.md) for GitHub configuration and release steps.

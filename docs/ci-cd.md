@@ -52,7 +52,8 @@ already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. 
 job runs lint, tests, application builds, or code generation again before publishing.
 
 Database migrations deploy first when selected, from the `production` environment's Supabase
-credentials. API, mail, and marketing deploy independently. The mail deployment uploads
+credentials. Mail and marketing deploy independently; the API waits for the mail Worker when
+both are selected, because its service binding needs that Worker to exist. The mail deployment uploads
 `RESEND_API_KEY` when the `production` environment has it and warns when it does not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
 Browser tests run after SPA deployment and remain advisory; API smoke-test failures block

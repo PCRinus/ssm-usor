@@ -251,6 +251,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      waitlist_subscribers: {
+        Row: {
+          confirmation_sent_at: string | null;
+          confirmation_token_hash: string;
+          confirmed_at: string | null;
+          consent_version: string;
+          created_at: string;
+          email: string;
+          id: string;
+          updated_at: string;
+        };
+        Insert: {
+          confirmation_sent_at?: string | null;
+          confirmation_token_hash: string;
+          confirmed_at?: string | null;
+          consent_version: string;
+          created_at?: string;
+          email: string;
+          id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          confirmation_sent_at?: string | null;
+          confirmation_token_hash?: string;
+          confirmed_at?: string | null;
+          consent_version?: string;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
