@@ -40,4 +40,13 @@ const { title, description, home, noindex = false } = Astro.props;
   :global(body) {
     background: #ffffff;
   }
+  /* Short pages still fill the window, so the footer sits at its bottom edge. */
+  .flux {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  main {
+    flex: 1;
+  }
 </style>
