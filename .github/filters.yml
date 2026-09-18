@@ -25,6 +25,10 @@ app:
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
   - 'orval.config.ts'
+mail:
+  - *shared
+  - 'apps/mail/**'
+  - 'packages/contracts/**'
 marketing:
   - *shared
   - *ui

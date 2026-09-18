@@ -2,7 +2,7 @@ import { Scalar } from '@scalar/hono-api-reference';
 import type { ApiErrorResponse } from '@ssm-usor/contracts';
 import { cors } from 'hono/cors';
 
-import { allowedOrigins } from './lib/env';
+import { allowedOrigins, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { clientsRouter } from './modules/clients';
@@ -10,6 +10,7 @@ import { companiesRouter } from './modules/companies';
 import { employeesRouter } from './modules/employees';
 import { healthRouter } from './modules/health';
 import { meRouter } from './modules/me';
+import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
 
 // Cross-cutting concerns live here; each domain module owns its routes and handlers.
@@ -22,7 +23,8 @@ export function createApp() {
   });
   app.use('*', (c, next) =>
     cors({
-      origin: allowedOrigins(c.env),
+      // The waitlist form is the only thing the marketing site may call.
+      origin: c.req.path === '/waitlist' ? [marketingOrigin(c.env)] : allowedOrigins(c.env),
       allowHeaders: ['Authorization', 'Content-Type'],
       allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
       maxAge: 600,
@@ -34,6 +36,7 @@ export function createApp() {
   app.route('/', clientsRouter);
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
+  app.route('/', waitlistRouter);
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',

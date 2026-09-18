@@ -1,0 +1,223 @@
+---
+/**
+ * The "tell me when accounts open" form. It posts to the API's double opt-in waitlist,
+ * protected by Turnstile. Without a Turnstile site key at build time the form cannot work,
+ * so it falls back to the mailto link it replaced.
+ */
+import { cta, links, waitlist } from './copy';
+
+const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'https://api.ssmusor.ro';
+---
+
+{
+  siteKey ? (
+    <form
+      class="waitlist"
+      id="anunta-ma"
+      data-endpoint={`${apiUrl}/waitlist`}
+      data-sitekey={siteKey}
+      data-consent-version={waitlist.consentVersion}
+      data-sending={waitlist.sending}
+      data-success={waitlist.success}
+      data-error={waitlist.error}
+      data-challenge-failed={waitlist.challengeFailed}
+    >
+      <label for="waitlist-email">{cta.notify}</label>
+      <div class="row">
+        <input
+          id="waitlist-email"
+          name="email"
+          type="email"
+          required
+          maxlength="254"
+          autocomplete="email"
+          placeholder={waitlist.placeholder}
+          aria-describedby="waitlist-consent"
+        />
+        <button class="button primary light" type="submit">
+          {waitlist.submit}
+        </button>
+      </div>
+      <p class="consent" id="waitlist-consent">
+        {waitlist.consent} <a href="/confidentialitate/">{waitlist.consentLink}</a>
+      </p>
+      <div class="challenge" data-challenge />
+      <p class="feedback" role="status" aria-live="polite" data-feedback />
+    </form>
+  ) : (
+    <p class="waitlist-fallback" id="anunta-ma">
+      <a class="button ghost" href={links.notifyHref}>
+        {cta.notify}
+      </a>
+    </p>
+  )
+}
+
+<script>
+  type Turnstile = {
+    render(
+      container: HTMLElement,
+      options: {
+        sitekey: string;
+        appearance: 'interaction-only';
+        callback(token: string): void;
+        'error-callback'(): void;
+      }
+    ): string;
+    reset(widgetId: string): void;
+  };
+
+  const form = document.querySelector<HTMLFormElement>('form.waitlist');
+
+  if (form) {
+    const { endpoint, sitekey, consentVersion, sending, success, error, challengeFailed } =
+      form.dataset as Record<string, string>;
+    const input = form.querySelector<HTMLInputElement>('input[type="email"]')!;
+    const button = form.querySelector<HTMLButtonElement>('button')!;
+    const feedback = form.querySelector<HTMLElement>('[data-feedback]')!;
+    const challenge = form.querySelector<HTMLElement>('[data-challenge]')!;
+
+    let widgetId: string | undefined;
+    let token: string | undefined;
+    let waiting: ((token: string | undefined) => void) | undefined;
+
+    const settle = (value: string | undefined) => {
+      token = value;
+      waiting?.(value);
+      waiting = undefined;
+    };
+
+    // Turnstile loads on first interaction, so visitors who never touch the form skip it.
+    let loading: Promise<void> | undefined;
+    const loadTurnstile = () =>
+      (loading ??= new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.onload = () => {
+          const turnstile = (window as unknown as { turnstile: Turnstile }).turnstile;
+          widgetId = turnstile.render(challenge, {
+            sitekey: sitekey!,
+            appearance: 'interaction-only',
+            callback: settle,
+            'error-callback': () => settle(undefined),
+          });
+          resolve();
+        };
+        script.onerror = () => reject(new Error('Turnstile failed to load'));
+        document.head.append(script);
+      }));
+
+    const nextToken = async () => {
+      await loadTurnstile();
+      if (token) return token;
+      return new Promise<string | undefined>((resolve) => {
+        waiting = resolve;
+      });
+    };
+
+    const show = (message: string, state: 'pending' | 'done' | 'failed') => {
+      feedback.textContent = message;
+      form.dataset.state = state;
+    };
+
+    form.addEventListener('focusin', () => void loadTurnstile().catch(() => {}), { once: true });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      show(sending!, 'pending');
+
+      try {
+        const turnstileToken = await nextToken();
+        if (!turnstileToken) return show(challengeFailed!, 'failed');
+
+        const response = await fetch(endpoint!, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: input.value, consentVersion, turnstileToken }),
+        });
+        if (!response.ok) return show(error!, 'failed');
+
+        show(success!, 'done');
+        input.value = '';
+      } catch {
+        show(error!, 'failed');
+      } finally {
+        // A Turnstile token is valid for one request only.
+        token = undefined;
+        if (widgetId) (window as unknown as { turnstile: Turnstile }).turnstile.reset(widgetId);
+        button.disabled = false;
+      }
+    });
+  }
+</script>
+
+<style>
+  .waitlist {
+    max-width: 520px;
+  }
+  label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  input {
+    flex: 1 1 220px;
+    min-height: 48px;
+    padding: 0 18px;
+    border: 1px solid #5a7a6f;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+  }
+  input::placeholder {
+    color: #9fb39c;
+  }
+  input:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+  }
+  button {
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+  .consent {
+    margin-top: 12px;
+    color: #c5d3cc;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  .consent a {
+    color: inherit;
+    text-underline-offset: 3px;
+  }
+  .challenge:not(:empty) {
+    margin-top: 12px;
+  }
+  .feedback {
+    margin-top: 12px;
+    font-size: 0.98rem;
+    line-height: 1.45;
+  }
+  .feedback:empty {
+    display: none;
+  }
+  .waitlist[data-state='done'] .feedback {
+    color: var(--lime);
+  }
+  .waitlist[data-state='failed'] .feedback {
+    color: #ffc9c2;
+  }
+</style>

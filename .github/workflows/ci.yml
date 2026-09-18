@@ -27,6 +27,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       app: ${{ steps.filter.outputs.app }}
+      mail: ${{ steps.filter.outputs.mail }}
       marketing: ${{ steps.filter.outputs.marketing }}
       database: ${{ steps.filter.outputs.database }}
       projects: ${{ steps.projects.outputs.projects }}
@@ -127,6 +128,8 @@ jobs:
       VITE_API_URL: https://api.ssmusor.ro
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      # Optional: without it the marketing waitlist form falls back to a mailto link.
+      PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
     steps:
       - uses: actions/checkout@v7
 
@@ -158,7 +161,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/release"
           cp -R "apps/$PROJECT/.wrangler/deploy" "$RUNNER_TEMP/release/worker"
-          if [[ "$PROJECT" != api ]]; then
+          if [[ "$PROJECT" != api && "$PROJECT" != mail ]]; then
             cp -R "apps/$PROJECT/dist" "$RUNNER_TEMP/release/dist"
           fi
 
@@ -205,15 +208,51 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_ID"
           supabase db push
 
+  deploy-mail:
+    name: Deploy mail Worker
+    needs: [changes, build]
+    if: needs.changes.outputs.mail == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-mail-${{ github.sha }}
+          path: apps/mail/.wrangler/release
+
+      - name: Report missing provider key
+        if: env.RESEND_API_KEY == ''
+        run: echo "::warning::RESEND_API_KEY is not set. The mail Worker will log emails instead of sending them."
+
+      - name: Deploy validated mail bundle
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/mail
+          packageManager: pnpm
+          command: deploy .wrangler/release/worker/index.js --no-bundle --tag ${{ github.sha }}
+          # Uploaded only once the key exists, so the Worker can ship before the Resend account does.
+          secrets: ${{ env.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
+
   deploy-api:
     name: Deploy API
-    needs: [changes, build, deploy-database]
-    # Migrations land before code that depends on them; a skipped database job is fine.
+    needs: [changes, build, deploy-database, deploy-mail]
+    # Migrations and the mail Worker land before code that depends on them: the API's
+    # service binding cannot deploy against a Worker that does not exist. Skipped jobs are fine.
     if: >-
       !cancelled() &&
       needs.changes.outputs.api == 'true' &&
       needs.build.result == 'success' &&
-      (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped')
+      (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped') &&
+      (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -231,11 +270,33 @@ jobs:
           name: release-api-${{ github.sha }}
           path: apps/api/.wrangler/release
 
+      # The waitlist answers 503 until both exist, so a missing secret warns instead of failing.
+      - name: Select configured API secrets
+        id: secrets
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+        shell: bash
+        run: |
+          {
+            echo 'names<<EOF'
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY; do
+              if [[ -n "${!name}" ]]; then
+                echo "$name"
+              else
+                echo "::warning::$name is not set. POST /waitlist will answer 503." >&2
+              fi
+            done
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Deploy validated API bundle
         uses: cloudflare/wrangler-action@v4
         env:
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -245,6 +306,7 @@ jobs:
           vars: |
             SUPABASE_URL
             SUPABASE_PUBLISHABLE_KEY
+          secrets: ${{ steps.secrets.outputs.names }}
 
       - name: Check deployed API and browser access
         id: api-checks

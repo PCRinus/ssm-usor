@@ -1,0 +1,31 @@
+{
+  "name": "@ssm-usor/mail",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "wrangler dev --port 8790 --inspector-port 9239",
+    "email:dev": "email dev --dir src/emails --port 3001",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@ssm-usor/contracts": "workspace:*",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-email": "^6.9.5",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260911.1",
+    "@react-email/ui": "^6.9.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.131.1"
+  }
+}

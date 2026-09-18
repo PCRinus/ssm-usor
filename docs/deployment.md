@@ -106,6 +106,29 @@ The first Custom Domain certificate can take a few minutes to become available. 
 deployment, Cloudflare showing **No Workers connected** for the zone is expected; the workflow
 creates the Worker, so no Worker needs to be created manually in the dashboard.
 
+## Waitlist form
+
+The "Anunță-mă când se deschid conturile" form (`src/components/site/WaitlistForm.astro`) posts to
+the API's [waitlist](api.md#waitlist) and is protected by Cloudflare Turnstile. Two public
+settings are read at build time:
+
+| Name                        | Value                                                                      |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `PUBLIC_TURNSTILE_SITE_KEY` | The widget's site key. Without it the form is replaced by the mailto link. |
+| `PUBLIC_API_URL`            | Defaults to `https://api.ssmusor.ro`.                                      |
+
+To switch the form on in production, create a Turnstile widget for `ssmusor.ro` in the
+Cloudflare dashboard (managed mode), save its site key as the `TURNSTILE_SITE_KEY` variable
+and its secret as the `TURNSTILE_SECRET_KEY` secret of the `production` environment, then
+redeploy marketing and the API. Turnstile's script loads only when a visitor focuses the form.
+
+Locally, copy `apps/marketing/.env.example` to `.env`: it holds Cloudflare's test site key,
+which always passes and pairs with the test secret in `apps/api/.dev.vars.example`. Run
+`pnpm dev:api` and `pnpm dev:mail` next to the site; the confirmation link is printed by the
+mail Worker. The pages under `/abonare/` are where that link lands; they are `noindex` and
+left out of the sitemap. When the consent sentence changes, bump `waitlist.consentVersion` in
+`copy.ts`, because the version is stored with every subscription.
+
 ## Local development and preview
 
 For normal landing-page work, use Astro's development server for the fastest feedback loop:

@@ -51,8 +51,11 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_LOCAL_KEY
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-Use the same local publishable key in both files. The secret/service-role key belongs only
-in server-side administration; neither the SPA nor the Hono API needs it here.
+Use the same local publishable key in both files. The SPA never gets the secret key. The API
+needs it only for the waitlist; to try that locally, add the commented settings from
+`apps/api/.dev.vars.example` (local secret key, Turnstile's test secret, local origins) and
+run `pnpm dev:mail` next to `pnpm dev:api`. The mail Worker prints the confirmation email,
+link included, to its console.
 Existing hosted environment files are not automatically rewritten by these commands.
 Remove any exported `VITE_*` overrides that point to the hosted project.
 
@@ -78,6 +81,7 @@ The marketing site does not need Supabase settings.
 | ----------------- | ---------------------- |
 | React SPA         | http://localhost:5173  |
 | Hono API          | http://localhost:8787  |
+| Mail Worker       | http://localhost:8790  |
 | Marketing         | http://localhost:4321  |
 | Supabase API/Auth | http://127.0.0.1:54321 |
 | Supabase Studio   | http://127.0.0.1:54323 |

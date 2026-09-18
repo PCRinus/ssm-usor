@@ -1,0 +1,37 @@
+---
+/** A short standalone message page, such as the result of following an emailed link. */
+import FluxLayout from '../../layouts/FluxLayout.astro';
+
+interface Props {
+  title: string;
+  action: { href: string; label: string };
+}
+
+const { title, action } = Astro.props;
+---
+
+<FluxLayout title={`${title} — SSM Ușor`} description={title} noindex>
+  <section class="notice wrap">
+    <h1>{title}</h1>
+    <p><slot /></p>
+    <a class="button primary" href={action.href}>{action.label}</a>
+  </section>
+</FluxLayout>
+
+<style>
+  .notice {
+    max-width: 640px;
+    padding: 96px 0 120px;
+  }
+  h1 {
+    margin-bottom: 20px;
+    font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+    line-height: 1.05;
+  }
+  p {
+    margin-bottom: 32px;
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+</style>

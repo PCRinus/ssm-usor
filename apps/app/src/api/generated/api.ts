@@ -632,6 +632,31 @@ export type UpdateEmployeeStatusRequest =
       status: 'active';
     };
 
+export type WaitlistSubscribeResponseStatus =
+  (typeof WaitlistSubscribeResponseStatus)[keyof typeof WaitlistSubscribeResponseStatus];
+
+export const WaitlistSubscribeResponseStatus = {
+  confirmation_pending: 'confirmation_pending',
+} as const;
+
+export interface WaitlistSubscribeResponse {
+  status: WaitlistSubscribeResponseStatus;
+}
+
+export interface WaitlistSubscribeRequest {
+  email: string;
+  /**
+   * @minLength 1
+   * @maxLength 40
+   */
+  consentVersion: string;
+  /**
+   * @minLength 1
+   * @maxLength 2048
+   */
+  turnstileToken: string;
+}
+
 export type ListClientsParams = {
   /**
    * @minimum 1
@@ -705,6 +730,13 @@ export const ListEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
 } as const;
+
+export type ConfirmWaitlistSubscriptionParams = {
+  /**
+   * @maxLength 200
+   */
+  token?: string;
+};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -1936,3 +1968,259 @@ export const useUpdateEmployeeStatus = <TError = ErrorType<ApiErrorResponse>, TC
 > => {
   return useMutation(getUpdateEmployeeStatusMutationOptions(options), queryClient);
 };
+
+export const getSubscribeToWaitlistUrl = () => {
+  return `/waitlist`;
+};
+
+/**
+ * Public. Stores the address as pending and emails a confirmation link. The response is the same whether or not the address was already known.
+ * @summary Ask to be told when accounts open
+ */
+export const subscribeToWaitlist = async (
+  waitlistSubscribeRequest: WaitlistSubscribeRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<WaitlistSubscribeResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<WaitlistSubscribeResponse>(getSubscribeToWaitlistUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(waitlistSubscribeRequest),
+  });
+};
+
+export const getSubscribeToWaitlistMutationKey = () => ['subscribeToWaitlist'] as const;
+
+export const getSubscribeToWaitlistMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeToWaitlist>>,
+    TError,
+    SubscribeToWaitlistMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeToWaitlist>>,
+  TError,
+  SubscribeToWaitlistMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSubscribeToWaitlistMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeToWaitlist>>,
+    SubscribeToWaitlistMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribeToWaitlist(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeToWaitlistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeToWaitlist>>
+>;
+export type SubscribeToWaitlistMutationBody = WaitlistSubscribeRequest;
+export type SubscribeToWaitlistMutationError = ErrorType<ApiErrorResponse>;
+export type SubscribeToWaitlistMutationVariables = { data: WaitlistSubscribeRequest };
+
+/**
+ * @summary Ask to be told when accounts open
+ */
+export const useSubscribeToWaitlist = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof subscribeToWaitlist>>,
+      TError,
+      SubscribeToWaitlistMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeToWaitlist>>,
+  TError,
+  SubscribeToWaitlistMutationVariables,
+  TContext
+> => {
+  return useMutation(getSubscribeToWaitlistMutationOptions(options), queryClient);
+};
+
+export const getConfirmWaitlistSubscriptionUrl = (params?: ConfirmWaitlistSubscriptionParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/waitlist/confirm?${stringifiedParams}`
+    : `/waitlist/confirm`;
+};
+
+/**
+ * Opened in a browser. Always redirects to a page on the marketing site.
+ * @summary Confirm a waitlist subscription from the emailed link
+ */
+export const confirmWaitlistSubscription = async (
+  params?: ConfirmWaitlistSubscriptionParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<unknown> => {
+  return apiFetch<unknown>(getConfirmWaitlistSubscriptionUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getConfirmWaitlistSubscriptionQueryKey = (
+  params?: ConfirmWaitlistSubscriptionParams
+) => {
+  return [`/waitlist/confirm`, ...(params ? [params] : [])] as const;
+};
+
+export const getConfirmWaitlistSubscriptionQueryOptions = <
+  TData = Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+  TError = ErrorType<void>,
+>(
+  params?: ConfirmWaitlistSubscriptionParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof confirmWaitlistSubscription>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getConfirmWaitlistSubscriptionQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof confirmWaitlistSubscription>>> = ({
+    signal,
+  }) => confirmWaitlistSubscription(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ConfirmWaitlistSubscriptionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof confirmWaitlistSubscription>>
+>;
+export type ConfirmWaitlistSubscriptionQueryError = ErrorType<void>;
+
+export function useConfirmWaitlistSubscription<
+  TData = Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+  TError = ErrorType<void>,
+>(
+  params: undefined | ConfirmWaitlistSubscriptionParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof confirmWaitlistSubscription>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+          TError,
+          Awaited<ReturnType<typeof confirmWaitlistSubscription>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useConfirmWaitlistSubscription<
+  TData = Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+  TError = ErrorType<void>,
+>(
+  params?: ConfirmWaitlistSubscriptionParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof confirmWaitlistSubscription>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+          TError,
+          Awaited<ReturnType<typeof confirmWaitlistSubscription>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useConfirmWaitlistSubscription<
+  TData = Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+  TError = ErrorType<void>,
+>(
+  params?: ConfirmWaitlistSubscriptionParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof confirmWaitlistSubscription>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Confirm a waitlist subscription from the emailed link
+ */
+
+export function useConfirmWaitlistSubscription<
+  TData = Awaited<ReturnType<typeof confirmWaitlistSubscription>>,
+  TError = ErrorType<void>,
+>(
+  params?: ConfirmWaitlistSubscriptionParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof confirmWaitlistSubscription>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getConfirmWaitlistSubscriptionQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}

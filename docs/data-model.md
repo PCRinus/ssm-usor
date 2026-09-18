@@ -108,6 +108,20 @@ The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives
 the generated client, so the form and the API validate against one list, and the database
 check constraint mirrors it.
 
+## Waitlist subscribers
+
+`waitlist_subscribers` holds the people who asked on the marketing site to be told when
+accounts open. It belongs to no organization. Row-level security is on with no policies and
+both `anon` and `authenticated` are revoked, so only the API's secret key reaches it.
+
+| Column                    | Notes                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `email`                   | Trimmed and lowercased by the API, enforced by a check; unique.                  |
+| `confirmation_token_hash` | SHA-256 of the token in the latest confirmation email; the token is not kept.    |
+| `consent_version`         | Version of the consent text shown next to the form.                              |
+| `confirmation_sent_at`    | When the latest confirmation email was handed to the provider; throttles more.   |
+| `confirmed_at`            | Set when the emailed link is followed. Only confirmed rows get the launch email. |
+
 ## Working with the schema
 
 ```bash

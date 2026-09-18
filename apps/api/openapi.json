@@ -880,6 +880,35 @@
             "required": ["status"]
           }
         ]
+      },
+      "WaitlistSubscribeResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["confirmation_pending"]
+          }
+        },
+        "required": ["status"]
+      },
+      "WaitlistSubscribeRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "consentVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "turnstileToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        "required": ["email", "consentVersion", "turnstileToken"]
       }
     },
     "parameters": {}
@@ -1833,6 +1862,88 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/waitlist": {
+      "post": {
+        "operationId": "subscribeToWaitlist",
+        "summary": "Ask to be told when accounts open",
+        "description": "Public. Stores the address as pending and emails a confirmation link. The response is the same whether or not the address was already known.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaitlistSubscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "A confirmation email is on its way, unless one was sent recently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistSubscribeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body or failed Turnstile check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/confirm": {
+      "get": {
+        "operationId": "confirmWaitlistSubscription",
+        "summary": "Confirm a waitlist subscription from the emailed link",
+        "description": "Opened in a browser. Always redirects to a page on the marketing site.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the confirmed or the invalid-link page"
           }
         }
       }

@@ -3,6 +3,7 @@ import FluxLayout from '../../layouts/FluxLayout.astro';
 import { copy, cta, links, status } from './copy';
 import PhoneFlow from './PhoneFlow.astro';
 import ShowcasePanels from './ShowcasePanels.astro';
+import WaitlistForm from './WaitlistForm.astro';
 
 const scattered = [
   { label: 'Word', x: 6, y: 8, r: -6 },
@@ -31,7 +32,7 @@ const scattered = [
         <small>{cta.signupNote}</small>
       </span>
     </div>
-    <p class="notify"><a href={links.notifyHref}>{cta.notify}</a></p>
+    <p class="notify"><a href="#anunta-ma">{cta.notify}</a></p>
 
     <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
       <div class="before">
@@ -141,10 +142,10 @@ const scattered = [
     <div class="wrap access-grid">
       <div>
         <h2>Conturile noi se deschid în curând.</h2>
-        <div class="actions start">
-          <a class="button primary light" href={links.login}>{cta.login}</a>
-          <a class="button ghost" href={links.notifyHref}>{cta.notify}</a>
-        </div>
+        <WaitlistForm />
+        <p class="have-account">
+          Ai deja cont? <a href={links.login}>{cta.login}</a>
+        </p>
       </div>
       <ul class="trust">
         {copy.trust.map((item) => <li>{item}</li>)}
@@ -505,6 +506,14 @@ const scattered = [
   .access h2 {
     margin-bottom: 24px;
     color: #fff;
+  }
+  .have-account {
+    margin-top: 28px;
+    color: #c5d3cc;
+  }
+  .have-account a {
+    color: #fff;
+    text-underline-offset: 3px;
   }
   .trust {
     display: grid;
