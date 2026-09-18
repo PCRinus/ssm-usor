@@ -1,11 +1,14 @@
 **/dist
+**/dist-e2e
 **/.astro
 **/.turbo
 **/.wrangler
 node_modules
 pnpm-lock.yaml
 **/playwright-report
+**/playwright-report-flows
 **/test-results
+**/test-results-flows
 
 **/supabase/.temp
 **/supabase/.branches

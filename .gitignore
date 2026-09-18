@@ -12,7 +12,10 @@ dist/
 .DS_Store
 *.tsbuildinfo
 playwright-report/
+playwright-report-flows/
 test-results/
+test-results-flows/
+dist-e2e/
 .claude/worktrees/
 
 # TanStack Router generator scratch files

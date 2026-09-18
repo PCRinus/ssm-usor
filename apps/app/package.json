@@ -10,6 +10,7 @@
     "test": "vitest run",
     "generate:routes": "tsr generate",
     "test:e2e": "playwright test",
+    "test:e2e:flows": "playwright test --config playwright.flows.config.ts",
     "preview": "vite preview --port 4173",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "pnpm build && wrangler deploy"

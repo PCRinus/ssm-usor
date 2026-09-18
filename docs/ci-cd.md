@@ -74,6 +74,11 @@ deployments do nothing when there is nothing to apply, which is why workflow fil
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
 skipped means something before it failed.
+**Browser flow tests** run beside validation on pull requests and on `main`, when the SPA, the
+API, or the database is selected. They use a local Supabase stack, the API served by Node
+with an in-memory mailer, and a preview build of the SPA, so they can create users and
+"send" email without touching production. No deployment waits for them.
+
 Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
 finished and been reported, and remain advisory. They run against production with a real
 account, so they stay small; flows that create users or send email are tested against a

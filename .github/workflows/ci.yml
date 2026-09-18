@@ -113,6 +113,75 @@ jobs:
           done
           pnpm exec turbo run deploy:dry-run "${filters[@]}"
 
+  # Browser flows that create users: invitations, member management, passwords. They run
+  # against a throwaway local stack (local Supabase, the API served by Node with an in-memory
+  # mailer, a preview build of the SPA), never against production, and sit beside validation
+  # rather than in front of any deployment.
+  flows:
+    name: Browser flow tests
+    needs: changes
+    if: >-
+      needs.changes.outputs.app == 'true' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.database == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: ci-flows-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'true'
+          cache-scope: flows
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      - name: Start the local Supabase stack
+        run: supabase start -x studio,imgproxy,mailpit,postgres-meta,edge-runtime,logflare,vector,supavisor,storage-api,realtime
+
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @ssm-usor/app exec playwright --version | tr -cd '0-9.')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Chromium download
+        id: chromium-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
+
+      - name: Install Chromium's system packages
+        if: steps.chromium-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
+
+      # The API's e2e server imports the contracts package from its build output.
+      - name: Build the contracts package
+        run: pnpm --filter @ssm-usor/contracts build
+
+      - name: Run the browser flows
+        run: pnpm --filter @ssm-usor/app test:e2e:flows
+
+      - name: Upload the flow test report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-flows
+          path: |
+            apps/app/playwright-report-flows/
+            apps/app/test-results-flows/
+          retention-days: 7
+          overwrite: true
+
   build:
     name: Build production ${{ matrix.project }}
     # Alongside validation, to keep it off the critical path. Nothing built here is deployed
