@@ -1,5 +1,11 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { documentReadinessResponseSchema } from '@ssm-usor/contracts';
+import {
+  clientDocumentListResponseSchema,
+  documentDownloadResponseSchema,
+  documentReadinessResponseSchema,
+  generateDocumentsRequestSchema,
+  generateDocumentsResponseSchema,
+} from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
@@ -8,6 +14,12 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 // A client's generated documentation (ADR 005).
 
 const clientParams = z.object({ clientId: z.uuid() });
+const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
+
+const noSuchClient = {
+  description: 'The client does not exist in the organization',
+  content: errorContent,
+};
 
 export const getDocumentReadinessRoute = createRoute({
   method: 'get',
@@ -29,7 +41,91 @@ export const getDocumentReadinessRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const listClientDocumentsRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/documents',
+  operationId: 'listClientDocuments',
+  summary: "List a client's documents with their current draft and issued revisions",
+  description:
+    'In the order of the documentation set. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams },
+  responses: {
+    200: {
+      description: 'The documents',
+      content: {
+        'application/json': {
+          schema: clientDocumentListResponseSchema.meta({ id: 'ClientDocumentListResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const generateClientDocumentsRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/documents/generate',
+  operationId: 'generateClientDocuments',
+  summary: "Generate the documents a client's documentation does not have yet",
+  description:
+    'Every built-in document type the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`. Refused with the reason `missing_document_data` while the readiness list is not empty.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: clientParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: generateDocumentsRequestSchema.meta({ id: 'GenerateDocumentsRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'The documents that were created',
+      content: {
+        'application/json': {
+          schema: generateDocumentsResponseSchema.meta({ id: 'GenerateDocumentsResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: noSuchClient,
+    409: { description: 'Data is missing, or the client is archived', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const getDocumentDownloadRoute = createRoute({
+  method: 'get',
+  path: '/documents/{documentId}/revisions/{revisionId}/download',
+  operationId: 'getDocumentDownload',
+  summary: "Get a short-lived link to a revision's Word file",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: revisionParams },
+  responses: {
+    200: {
+      description: 'The link',
+      content: {
+        'application/json': {
+          schema: documentDownloadResponseSchema.meta({ id: 'DocumentDownloadResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: { description: 'The revision does not exist in the organization', content: errorContent },
     ...membershipErrors,
   },
 });

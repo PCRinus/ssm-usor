@@ -1777,6 +1777,342 @@
         },
         "required": ["ready", "missing"]
       },
+      "ClientDocumentListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "typeKey": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "decisionNumber": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "draft": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["draft", "issued", "superseded"]
+                    },
+                    "issueDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "dataChanged": {
+                      "type": "boolean"
+                    },
+                    "editedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "status",
+                    "issueDate",
+                    "dataChanged",
+                    "editedAt",
+                    "issuedAt",
+                    "createdAt"
+                  ]
+                },
+                "issued": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["draft", "issued", "superseded"]
+                    },
+                    "issueDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "dataChanged": {
+                      "type": "boolean"
+                    },
+                    "editedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "status",
+                    "issueDate",
+                    "dataChanged",
+                    "editedAt",
+                    "issuedAt",
+                    "createdAt"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "typeKey",
+                "title",
+                "decisionNumber",
+                "draft",
+                "issued"
+              ]
+            }
+          },
+          "lastGeneration": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "issueDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "firstDecisionNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9999
+              }
+            },
+            "required": ["issueDate", "firstDecisionNumber"]
+          }
+        },
+        "required": ["items", "lastGeneration"]
+      },
+      "GenerateDocumentsResponse": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "typeKey": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "decisionNumber": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "draft": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["draft", "issued", "superseded"]
+                    },
+                    "issueDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "dataChanged": {
+                      "type": "boolean"
+                    },
+                    "editedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "status",
+                    "issueDate",
+                    "dataChanged",
+                    "editedAt",
+                    "issuedAt",
+                    "createdAt"
+                  ]
+                },
+                "issued": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["draft", "issued", "superseded"]
+                    },
+                    "issueDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "dataChanged": {
+                      "type": "boolean"
+                    },
+                    "editedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "status",
+                    "issueDate",
+                    "dataChanged",
+                    "editedAt",
+                    "issuedAt",
+                    "createdAt"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "typeKey",
+                "title",
+                "decisionNumber",
+                "draft",
+                "issued"
+              ]
+            }
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["created", "skipped"]
+      },
+      "GenerateDocumentsRequest": {
+        "type": "object",
+        "properties": {
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "firstDecisionNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9996,
+            "default": 1
+          }
+        },
+        "required": ["issueDate"]
+      },
+      "DocumentDownloadResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": ["url", "fileName", "expiresInSeconds"]
+      },
       "MembershipResponse": {
         "type": "object",
         "properties": {
@@ -4446,6 +4782,319 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/documents": {
+      "get": {
+        "operationId": "listClientDocuments",
+        "summary": "List a client's documents with their current draft and issued revisions",
+        "description": "In the order of the documentation set. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/documents/generate": {
+      "post": {
+        "operationId": "generateClientDocuments",
+        "summary": "Generate the documents a client's documentation does not have yet",
+        "description": "Every built-in document type the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`. Refused with the reason `missing_document_data` while the readiness list is not empty.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateDocumentsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The documents that were created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateDocumentsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Data is missing, or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{documentId}/revisions/{revisionId}/download": {
+      "get": {
+        "operationId": "getDocumentDownload",
+        "summary": "Get a short-lived link to a revision's Word file",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "revisionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDownloadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The revision does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {

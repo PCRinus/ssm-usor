@@ -24,7 +24,7 @@ need to copy the example. Wrangler reads `.dev.vars` from the API workspace; res
 changing these values. Do not put the API configuration in the repository root `.env`.
 
 ```bash
-pnpm --filter @ssm-usor/contracts build
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
 pnpm dev:api
 ```
 
@@ -77,6 +77,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                               |
 | `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                |
 | `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                           |
+| `GET /clients/{clientId}/documents/readiness`                          | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating is waiting for                                    |
+| `GET /clients/{clientId}/documents`                                    | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }`, in the order of the pack; not paginated                    |
+| `POST /clients/{clientId}/documents/generate`                          | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                       |
+| `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                             |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                       |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
@@ -237,6 +241,36 @@ optionally an `employeeId`: an employee of another client is `400` with the issu
 
 `PATCH /me/profile` also takes `professionalTitle`: left out it stays, `null` clears it.
 `GET /organization/members` returns it for each member.
+
+## Generated documents
+
+The `documents` module generates a client's documentation from the built-in Word templates
+([ADR 005](architecture/adr-005-document-generation.md), [the document engine](document-engine.md)).
+
+`GET …/documents/readiness` lists what is missing as codes grouped by where it is filled in:
+`provider.*`, `specialist.*` (the caller's own profile), `client.representativeName`,
+`client.representativeRole`, `client.trainingSchedule`, and `responsible.<role>` for every
+role nobody holds. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
+(default 1) and is `409` with the reason `missing_document_data` until that list is empty,
+`409` for an archived client, and `503` while no template is registered
+(`pnpm templates:register`).
+
+Generating creates every document type the client does not have yet as revision 1, in draft:
+the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private
+`documents` bucket, because the storage policies only accept the file of a draft revision. If
+the file cannot be stored the revision is taken back, so a second call finishes the job.
+Documents that exist are left alone and returned under `skipped`; generating one document
+again is its own action, since it discards what was edited by hand. Decisions are numbered
+from the first number in the order training, evaluation team, first aid, imminent danger.
+
+Each revision keeps the part of the data its template printed. The list compares it with the
+stored facts and sets `dataChanged` on a draft that would now print differently: a new
+first-aider marks the first aid decision, not the whole set. All files go through
+`src/lib/files.ts`, as the verified user; downloads are signed links that carry the
+document's title as the file name.
+
+The whole set, 18 documents, merges and uploads in under a second against the local stack,
+inside `workerd` as well as in Node.
 
 ## Supabase Auth emails
 

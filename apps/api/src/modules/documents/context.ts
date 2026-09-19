@@ -1,6 +1,5 @@
 import {
   decisionTypeKeys,
-  type DocumentTypeKey,
   type MissingDocumentData,
   type ResponsiblePersonRole,
   trainingMonths,
@@ -204,10 +203,35 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
   };
 }
 
-/** What one template is merged with: a decision also gets its number. */
-export function documentData(context: DocumentContext, typeKey: DocumentTypeKey) {
-  const { decisionNumbers, ...shared } = context;
-  return typeKey in decisionNumbers
-    ? { ...shared, decisionNumber: decisionNumbers[typeKey as keyof typeof decisionNumbers] }
-    : shared;
+/**
+ * What one template is merged with: a decision also gets its number, the one the document
+ * already has when it is generated again.
+ */
+export function documentData(
+  context: DocumentContext,
+  typeKey: string,
+  decisionNumber: number | null = decisionNumberOf(context, typeKey)
+) {
+  const shared: Record<string, unknown> = { ...context };
+  delete shared.decisionNumbers;
+  return decisionNumber === null ? shared : { ...shared, decisionNumber };
+}
+
+/** The number a decision gets in this generation; null for any other document. */
+export function decisionNumberOf(context: DocumentContext, typeKey: string) {
+  return typeKey in context.decisionNumbers
+    ? context.decisionNumbers[typeKey as keyof DocumentContext['decisionNumbers']]
+    : null;
+}
+
+/** JSON with sorted keys: the database stores a snapshot as jsonb, which reorders them. */
+export function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : 1));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }

@@ -165,9 +165,9 @@ jobs:
         if: steps.chromium-cache.outputs.cache-hit == 'true'
         run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
 
-      # The API's e2e server imports the contracts package from its build output.
-      - name: Build the contracts package
-        run: pnpm --filter @ssm-usor/contracts build
+      # The API's e2e server imports both packages from their build output.
+      - name: Build the contracts and the document engine
+        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
 
       - name: Run the browser flows
         run: pnpm --filter @ssm-usor/app test:e2e:flows

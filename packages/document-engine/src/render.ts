@@ -47,21 +47,26 @@ function lookup(scope: unknown, path: string[]): unknown {
 // docxtemplater's own parser reads one property name. This one reads a dotted path and looks
 // it up from the innermost scope outwards, so a row of a list can still print the client.
 // It evaluates nothing, which is what Workers require: no `eval`, no `new Function`.
-function parser(tag: string) {
-  const path = tag.trim();
-  return {
-    get(scope: unknown, context: ParserContext) {
-      if (path === '.') return scope;
-      if (path === '$index') return (context.scopePathItem.at(-1) ?? 0) + 1;
-      const keys = path.split('.');
-      for (let index = context.num; index >= 0; index -= 1) {
-        const value = lookup(context.scopeList[index], keys);
-        if (value !== undefined) return value;
-      }
-      return undefined;
-    },
+// `used` collects the top-level names that gave a value, which is what a document depends on.
+const parserRecording = (used: Set<string>) =>
+  function parser(tag: string) {
+    const path = tag.trim();
+    return {
+      get(scope: unknown, context: ParserContext) {
+        if (path === '.') return scope;
+        if (path === '$index') return (context.scopePathItem.at(-1) ?? 0) + 1;
+        const keys = path.split('.');
+        for (let index = context.num; index >= 0; index -= 1) {
+          const value = lookup(context.scopeList[index], keys);
+          if (value !== undefined) {
+            if (index === 0) used.add(keys[0]!);
+            return value;
+          }
+        }
+        return undefined;
+      },
+    };
   };
-}
 
 interface DocxtemplaterFailure {
   properties?: { errors?: { properties?: { explanation?: string; id?: string } }[] };
@@ -79,7 +84,19 @@ function explain(cause: unknown) {
 
 /** Returns the merged `.docx`. Throws a `TemplateError` for a broken template or a missing value. */
 export function renderDocument(template: Uint8Array, data: TemplateData): Uint8Array {
+  return renderTemplate(template, data).document;
+}
+
+/**
+ * Merges like `renderDocument`, and also says which top-level names of the data the template
+ * printed: what the document depends on, so a caller can tell later whether it is out of date.
+ */
+export function renderTemplate(
+  template: Uint8Array,
+  data: TemplateData
+): { document: Uint8Array; usedNames: string[] } {
   const missing = new Set<string>();
+  const used = new Set<string>();
   let document: Docxtemplater;
   try {
     document = new Docxtemplater(new PizZip(template), {
@@ -87,7 +104,7 @@ export function renderDocument(template: Uint8Array, data: TemplateData): Uint8A
       // Loop tags alone in their paragraphs leave no empty paragraphs behind.
       paragraphLoop: true,
       linebreaks: true,
-      parser,
+      parser: parserRecording(used),
       nullGetter: (part: { value?: string; module?: string }) => {
         // A loop over nothing is an empty list, which is a legitimate value.
         if (part.module === 'loop') return [];
@@ -103,7 +120,10 @@ export function renderDocument(template: Uint8Array, data: TemplateData): Uint8A
     const names = [...missing].sort();
     throw new TemplateError(`The template has no value for: ${names.join(', ')}.`, names);
   }
-  return tidy(document.getZip()).generate({ type: 'uint8array', compression: 'DEFLATE' });
+  return {
+    document: tidy(document.getZip()).generate({ type: 'uint8array', compression: 'DEFLATE' }),
+    usedNames: [...used].sort(),
+  };
 }
 
 // What only shows once values are in. A company name that ends in a full stop, closing a
