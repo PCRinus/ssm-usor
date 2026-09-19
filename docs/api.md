@@ -81,6 +81,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/documents`                                    | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }`, in the order of the pack; not paginated                    |
 | `POST /clients/{clientId}/documents/generate`                          | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                       |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                             |
+| `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                         |
+| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                   |
+| `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                        |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                       |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
@@ -268,6 +271,16 @@ stored facts and sets `dataChanged` on a draft that would now print differently:
 first-aider marks the first aid decision, not the whole set. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
 document's title as the file name.
+
+`POST /documents/{documentId}/regenerate` merges one document again from the stored facts. A
+draft is overwritten in place, hand edits included; an issued document gets the next revision
+as a draft and stays in force until that one is issued. The date is the one the document
+carries unless `issueDate` is given, and a decision keeps its number. `POST …/issue` reads the
+draft's file, and the database locks the revision with its SHA-256 and supersedes the one
+issued before, which stays downloadable. From then on no policy lets anyone write that file
+or change that row; a correction is a new draft. `DELETE …/draft` removes the file, then the
+row, and is `409` when there is no draft, so an issued revision is never touched. Both roles
+can do all three, as the ADR decided.
 
 The whole set, 18 documents, merges and uploads in under a second against the local stack,
 inside `workerd` as well as in Node.
