@@ -6,7 +6,7 @@ How the engineering skills should consume this repo's domain documentation when 
 
 - **`CONTEXT.md`** at the repo root.
 - **`docs/architecture/`**: ADRs, named `adr-NNN-<slug>.md`. Read the ones that touch the area you're about to work in. New ADRs go here too, numbered after the latest.
-- **`docs/data-model.md`** and **`docs/api.md`**: until `CONTEXT.md` exists, these hold the working vocabulary (organization, member, owner, specialist, client, employee).
+- **`docs/data-model.md`** and **`docs/api.md`** for how the terms of `CONTEXT.md` are stored and served.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 
@@ -22,7 +22,8 @@ Single-context: the apps and packages serve one product and share one vocabulary
 │   ├── adr-002-transactional-email.md
 │   ├── adr-003-organization-invitations.md
 │   ├── adr-004-registration-and-onboarding.md
-│   └── adr-005-document-generation.md
+│   ├── adr-005-document-generation.md
+│   └── adr-006-job-positions.md
 └── apps/, packages/
 ```
 
