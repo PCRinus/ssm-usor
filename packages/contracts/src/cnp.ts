@@ -1,4 +1,3 @@
-// Romanian personal numeric code (CNP) helpers.
 // Format: S AA LL ZZ JJ NNN C — sex/century, year, month, day, county, sequence, control.
 // The stored value is the thirteen digits; the code is optional on an employee.
 
@@ -30,9 +29,8 @@ function daysInMonth(year: number, month: number) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-// Thirteen digits, a leading sex/century digit, a plausible calendar date, and a
-// valid control digit. The county field is not validated: the issuing list changed
-// over time and mistakes there do not affect any workflow.
+// The county field is not validated: the issuing list changed over time and mistakes
+// there do not affect any workflow.
 export function isValidCnp(digits: string) {
   if (!/^[1-9][0-9]{12}$/.test(digits)) return false;
   const month = Number(digits.slice(3, 5));
@@ -45,7 +43,6 @@ export function isValidCnp(digits: string) {
   return cnpControlDigit(digits.slice(0, -1)) === Number(digits.at(-1));
 }
 
-// Accepts user input with spaces or dashes; returns the digits or null when malformed.
 export function normalizeCnp(input: string) {
   const compact = input.replace(/[\s.-]/g, '');
   return /^[0-9]{13}$/.test(compact) ? compact : null;
@@ -58,7 +55,7 @@ export function isValidCnpInput(input: string) {
 
 export type CnpSex = 'male' | 'female';
 
-// Data encoded in a valid CNP. The birth date is null when the century is not encoded.
+// The birth date is null when the century is not encoded.
 export function decodeCnp(digits: string): { birthDate: string | null; sex: CnpSex | null } {
   const sexDigit = digits[0]!;
   const sex: CnpSex | null =
@@ -75,7 +72,6 @@ export function decodeCnp(digits: string): { birthDate: string | null; sex: CnpS
   };
 }
 
-// Masked for display: the last four digits only.
 export function maskCnp(cnp: string) {
   return `•••••••••${cnp.slice(-4)}`;
 }

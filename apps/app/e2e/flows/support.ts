@@ -102,7 +102,6 @@ export async function completeDocumentData(
   if (person.error) throw person.error;
 }
 
-// An employee of a client, for pickers that list them.
 export async function createEmployee(
   organizationId: string,
   clientId: string,
@@ -126,7 +125,6 @@ export async function recoveryTokenHash(email: string) {
   return data.properties.hashed_token;
 }
 
-// The link in the newest email the API's in-memory mailer holds for an address.
 export async function emailedLink(to: string, kind: string) {
   const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
   url.searchParams.set('to', to);

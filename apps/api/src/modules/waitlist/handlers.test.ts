@@ -29,7 +29,6 @@ type Row = {
 
 const fetchMock = vi.fn<typeof fetch>();
 
-// Stands in for Turnstile and for PostgREST's waitlist_subscribers resource.
 function mockUpstream({ turnstile = true, row = null }: { turnstile?: boolean; row?: Row | null }) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));

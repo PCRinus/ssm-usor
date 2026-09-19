@@ -1,5 +1,3 @@
--- pgTAP checks that the waitlist is closed to every signed-in or anonymous caller.
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(6);
 

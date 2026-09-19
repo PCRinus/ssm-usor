@@ -1,5 +1,3 @@
--- pgTAP checks for changing roles and removing members.
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(15);
 
@@ -128,7 +126,6 @@ select is(
   'and no longer sees the organization''s clients'
 );
 
--- What removal leaves behind ------------------------------------------------------
 reset role;
 insert into public.organization_members (user_id, organization_id, role)
 values ('aaaaaaaa-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'owner');

@@ -70,7 +70,6 @@ enabled = true
 uri = "http://host.docker.internal:8797/hooks/supabase/send-email"
 secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 
-# Enable additional services here when the application starts using them.
 [realtime]
 enabled = false
 
@@ -85,7 +84,7 @@ enabled = false
 [analytics]
 enabled = false
 
-# The hosted project. Only what must differ from the local values above is listed.
+# Only what must differ from the local values above is listed.
 [remotes.production]
 project_id = "xvhiwymggufbvjdfywjg"
 

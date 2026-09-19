@@ -6,7 +6,6 @@ import { ApiError } from './errors';
 
 const endpoint = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-/** Resolves to whether Cloudflare Turnstile accepts the token the browser obtained. */
 export async function verifyTurnstile(c: Context<ApiEnv>, token: string): Promise<boolean> {
   const secret = c.env.TURNSTILE_SECRET_KEY;
   if (!secret) throw new ApiError('service_unavailable');

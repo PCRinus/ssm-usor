@@ -62,7 +62,6 @@ type Confirming = {
   document: ClientDocument;
 } | null;
 
-// What each confirmation says and does. Regenerating and deleting lose work; issuing locks it.
 const confirmations = {
   regenerate: {
     title: 'Generezi documentul din nou?',
@@ -121,8 +120,7 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
     : 'Se creează o ciornă nouă, completată cu datele de acum ale clientului. Revizia emisă rămâne în vigoare până când emiți ciorna.';
 }
 
-// A client's generated documentation (ADR 005). `readOnly` is an archived client: what exists
-// can still be downloaded.
+// `readOnly` is an archived client: what exists can still be downloaded.
 export function DocumentsCard({
   clientId,
   userId,
@@ -160,7 +158,6 @@ export function DocumentsCard({
       ? [{ typeKey, title: uploadedDocumentTypes[typeKey], document: null }]
       : [];
   });
-  // Anything outside the pack keeps the place the API gave it, after the pack.
   const known = new Set<string>(packDocumentTypeKeys);
   const rows = [
     ...packRows,

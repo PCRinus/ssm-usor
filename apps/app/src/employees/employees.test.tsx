@@ -55,7 +55,6 @@ const createdEmployee = {
 
 const employeesPath = `/clients/${clientId}/employees`;
 
-// The list envelope for one page of items.
 const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
   items,
   page: meta.page ?? 1,
@@ -137,7 +136,6 @@ describe('client employees list', () => {
     expect(screen.getByText('RO1590082')).toBeTruthy();
     expect(screen.getByText('· Extracția petrolului brut')).toBeTruthy();
     expect(screen.getByText('Sector 1 Mun. București, București')).toBeTruthy();
-    // Employees is the current one of the client's sections.
     const current = screen
       .getAllByTestId('client-section')
       .filter((link) => link.getAttribute('aria-current') === 'page');

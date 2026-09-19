@@ -16,7 +16,6 @@ import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedOrganization } from './lib/seed-organization';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
-// Development seed: the admin user, its organization, and optionally fake clients with employees.
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
 //   pnpm seed:local           local Docker stack, includes fake clients and employees; account from .env.seed too
 //   --fake [--clients 25] [--seed 20260917]   opt in to fake data anywhere
@@ -51,7 +50,6 @@ function parseArgs(args: string[]) {
 
 function configFromLocalCli() {
   const local = localSupabase();
-  // Local mode ignores the hosted URL and key but keeps the configured seed account.
   return seedConfigSchema.parse({
     SUPABASE_URL: local.url,
     SUPABASE_SECRET_KEY: local.secret,
@@ -97,7 +95,6 @@ try {
   );
   console.log(`Organization "${organization.name}" (${organization.id}) owned by ${user.email}.`);
 
-  // Fake data is opt-in on hosted projects; the local stack always gets it.
   if (options.fake || options.local) {
     const rows = fakeClients(options.clients, options.seed, organization.id, user.id);
     const clients = await seedClients(client, rows);
@@ -105,7 +102,6 @@ try {
     const employees = fakeEmployees(clients, options.seed, organization.id, user.id);
     const employeeCount = await seedEmployees(client, employees);
     console.log(`Upserted ${employeeCount} fake employees across those clients.`);
-    // What the documents print (ADR 005). Each step keeps what has been entered by hand.
     const filled = await seedOrganizationLegalDetails(client, config.SEED_ADMIN_NAME);
     await seedProfessionalTitle(client, user.id);
     console.log(

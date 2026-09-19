@@ -6,8 +6,8 @@ import { listQuerySchema, pageSchema } from './list';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
-// Request body for creating a client. The CUI accepts an optional RO prefix and spacing;
-// the API stores digits only and treats a present prefix as VAT registration.
+// The CUI accepts an optional RO prefix and spacing; the API stores digits only and
+// treats a present prefix as VAT registration.
 export const createClientRequestSchema = z.object({
   legalName: z.string().trim().min(2).max(200),
   cui: z
@@ -55,7 +55,6 @@ export const clientResponseSchema = z.object({ client: clientSchema });
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
-// List parameters: one sort key at a time; "legalName" is the default order.
 export const clientSortKeys = ['legalName', 'cui', 'declaredEmployeeCount'] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
 

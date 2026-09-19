@@ -34,7 +34,6 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await createOrganization('Protect SSM E2E', owner.id);
   const invitee = addressOf('invitee');
 
-  // The owner invites from the organization page.
   await signIn(page, owner.email);
   await page.getByTestId('nav-organization').click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Protect SSM E2E');
@@ -45,14 +44,12 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await expect(page.getByText(`Invitația a fost trimisă la ${invitee}.`)).toBeVisible();
   await expect(page.getByTestId('invitation-row')).toContainText(invitee);
 
-  // Inviting the same address again right away is refused next to the field.
   await page.getByTestId('invite-open').click();
   await page.getByTestId('invite-email').fill(invitee);
   await page.getByTestId('invite-submit').click();
   await expect(page.getByTestId('invite-email-error')).toContainText('în ultimele 10 minute');
   await page.keyboard.press('Escape');
 
-  // The invited person opens the emailed link in a browser of their own.
   const link = await emailedLink(invitee, 'invitation');
   expect(new URL(link).pathname).toBe('/accept-invitation');
   const theirs = await browser.newContext();
@@ -64,7 +61,6 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await guest.getByTestId('accept-password').fill(password);
   await guest.getByTestId('accept-submit').click();
 
-  // They land in the app, signed in, as a specialist of the organization.
   await expect(guest).toHaveURL(/\/dashboard$/);
   await expect(guest.getByTestId('account-name')).toHaveText('Ion Invitat');
   await guest.getByTestId('nav-organization').click();
@@ -72,14 +68,12 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await expect(guest.getByTestId('invite-open')).toHaveCount(0);
   await expect(guest.getByTestId('member-actions')).toHaveCount(0);
 
-  // The link works once.
   const again = await (await browser.newContext()).newPage();
   await again.goto(link);
   await expect(
     again.getByRole('heading', { name: 'Invitația a fost deja acceptată' })
   ).toBeVisible();
 
-  // The owner sees the new member, promotes them, then removes them.
   await page.reload();
   const row = page.getByTestId('member-row').filter({ hasText: 'Ion Invitat' });
   await expect(row).toContainText('Specialist');
@@ -93,7 +87,6 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await page.getByTestId('member-remove-confirm').click();
   await expect(page.getByTestId('member-row')).toHaveCount(1);
 
-  // The removed person keeps their account, and is offered an organization of their own.
   await guest.reload();
   await expect(guest).toHaveURL(/\/onboarding$/);
   await expect(guest.getByTestId('onboarding-full-name')).toHaveValue('Ion Invitat');
@@ -119,7 +112,6 @@ test('a person who already has an account signs in to accept', async ({ page, br
   await expect(guest.getByTestId('accept-has-account')).toBeVisible();
   await guest.getByTestId('accept-login').click();
 
-  // Login brings them back to the invitation, where one click accepts.
   await guest.getByTestId('login-email').fill(existing.email);
   await guest.getByTestId('login-password').fill(password);
   await guest.getByTestId('login-submit').click();

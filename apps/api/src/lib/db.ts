@@ -5,7 +5,6 @@ import type { Database } from '../database.types';
 import { type ApiEnv, supabaseConfigSchema } from './env';
 import { ApiError } from './errors';
 
-// Bound the upstream call to the request lifetime and a fixed timeout.
 export function requestFetch(c: Context<ApiEnv>, timeoutMs: number): typeof fetch {
   return (input, init) =>
     fetch(input, {
@@ -20,8 +19,8 @@ export function supabaseConfig(c: Context<ApiEnv>) {
   return config.data;
 }
 
-// A per-request PostgREST client acting as the verified user. Row-level security
-// in the database is the authorization layer; the Worker holds no secret key.
+// Row-level security in the database is the authorization layer: this client acts with the
+// caller's token, never the secret key.
 export function createDataClient(c: Context<ApiEnv>) {
   const config = supabaseConfig(c);
   return createClient<Database>(config.SUPABASE_URL, config.SUPABASE_PUBLISHABLE_KEY, {

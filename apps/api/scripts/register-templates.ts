@@ -9,8 +9,7 @@ import type { Database } from '../src/database.types';
 import { manifestSchema, registerTemplates } from './lib/register-templates';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
-// Uploads the built-in templates of packages/document-engine/templates and registers a version
-// for every file that changed. Run after the migrations, on any environment:
+// Run after the migrations, on any environment:
 //   pnpm templates:register          hosted project from SUPABASE_URL (apps/api/.env.seed)
 //   pnpm templates:register:local    local Docker stack
 

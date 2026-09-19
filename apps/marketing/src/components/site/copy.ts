@@ -1,6 +1,4 @@
 /**
- * Copy for the landing page and the shared header and footer.
- *
  * Narrative: an external SSM service adds a client, adds its employees, creates the documents,
  * contracts and tests for them, and gets everything signed by the right people, in one place.
  * Portfolio, deadlines, visits and evidence exist but stay secondary.

@@ -1,4 +1,3 @@
-/* Framework-neutral brand and semantic tokens shared by all web applications. */
 @layer base {
   :root {
     --brand-forest: #18342e;

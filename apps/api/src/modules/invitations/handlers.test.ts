@@ -47,7 +47,6 @@ const lookupRow = {
 const databaseError = (code: string, message: string) =>
   Response.json({ code, message, details: null, hint: null }, { status: 400 });
 
-// What Supabase answers; each test overrides the parts it cares about.
 const upstreamDefaults = {
   role: 'owner',
   create: () => Response.json([invitationRow]),

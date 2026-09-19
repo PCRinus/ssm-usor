@@ -16,8 +16,6 @@ import { requireAuth } from '../../lib/auth';
 import { requireMembership, requireOwner } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
 
-// The facts a client's SSM documentation prints (ADR 005).
-
 const clientParams = z.object({ clientId: z.uuid() });
 const workplaceParams = clientParams.extend({ workplaceId: z.uuid() });
 const responsiblePersonParams = clientParams.extend({ responsiblePersonId: z.uuid() });

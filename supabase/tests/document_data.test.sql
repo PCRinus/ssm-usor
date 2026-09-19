@@ -1,6 +1,3 @@
--- pgTAP checks for the facts documents print: the provider's legal details, professional
--- titles, client workplaces, and responsible persons (ADR 005).
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(21);
 
@@ -47,8 +44,6 @@ returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', app_metadata)::text, true);
 $$;
-
--- Schema rules that hold regardless of the caller ------------------------------------
 
 select throws_ok(
   $$ insert into public.client_workplaces (organization_id, client_id, name)

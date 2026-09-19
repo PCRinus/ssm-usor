@@ -4,7 +4,6 @@ import { validity } from './_components/validity';
 
 export type PasswordResetProps = {
   resetUrl: string;
-  /** How long the link works, as configured in Supabase Auth. */
   expiresInMinutes: number;
 };
 

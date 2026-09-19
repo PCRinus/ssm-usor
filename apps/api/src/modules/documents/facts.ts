@@ -4,8 +4,7 @@ import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { DocumentFacts } from './context';
 
-// Reads what the documents print about a provider and one of its clients. Row-level security
-// scopes every query to the caller's organization.
+// Row-level security scopes every query to the caller's organization.
 
 export type StoredDocumentFacts = Omit<DocumentFacts, 'issueDate' | 'firstDecisionNumber'> & {
   clientArchived: boolean;

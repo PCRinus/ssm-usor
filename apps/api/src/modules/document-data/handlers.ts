@@ -28,8 +28,6 @@ import type {
 
 type Tables = Database['public']['Tables'];
 
-// The organization ----------------------------------------------------------------------
-
 const legalDetailsColumns =
   'legal_name, cui, trade_register_number, county_code, locality, address_line, legal_representative_name, legal_representative_role';
 
@@ -96,8 +94,6 @@ export const updateOrganizationLegalDetails: RouteHandler<
   if (error) throw fromDatabaseError(error, 'update organization legal details');
   return c.json({ legalDetails: toLegalDetails(data) }, 200);
 };
-
-// The client ------------------------------------------------------------------------------
 
 const noSuchClient = () =>
   new ApiError('not_found', 'This client does not exist in your organization.');
@@ -187,8 +183,6 @@ export const updateClientDocumentDetails: RouteHandler<
   if (!data) throw noSuchClient();
   return c.json({ documentDetails: toDocumentDetails(data) }, 200);
 };
-
-// Workplaces --------------------------------------------------------------------------------
 
 const workplaceColumns =
   'id, client_id, name, is_registered_office, county_code, locality, address_line, created_at, updated_at';
@@ -310,8 +304,6 @@ export const archiveWorkplace: RouteHandler<typeof archiveWorkplaceRoute, ApiEnv
   return c.body(null, 204);
 };
 
-// Responsible persons -------------------------------------------------------------------------
-
 const responsiblePersonColumns =
   'id, client_id, employee_id, full_name, job_title, roles, created_at, updated_at';
 
@@ -343,7 +335,6 @@ function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
 const noSuchResponsiblePerson = () =>
   new ApiError('not_found', 'This responsible person does not exist under this client.');
 
-// 23505: the employee already has a row. 23503: the employee is not of this client.
 function responsiblePersonError(error: { code: string }, context: string) {
   if (error.code === '23505') {
     return new ApiError('conflict', 'This employee is already a responsible person.');

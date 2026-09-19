@@ -3,7 +3,6 @@ import { createRouter, type RouterHistory } from '@tanstack/react-router';
 import type { RouterContext } from './routes/__root';
 import { routeTree } from './routeTree.gen';
 
-// Routes are file-based under src/routes; the plugin generates routeTree.gen.ts.
 export function createAppRouter(context: RouterContext, history?: RouterHistory) {
   return createRouter({
     routeTree,

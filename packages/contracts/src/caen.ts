@@ -1037,7 +1037,6 @@ export const caenClasses: readonly CaenClass[] = [
 
 const caenByCode = new Map(caenClasses.map((entry) => [entry.code, entry.name]));
 
-// The activity name for a class code, or null when the code is not in CAEN Rev. 3.
 export function caenClassName(code: string | null | undefined) {
   return code ? (caenByCode.get(code) ?? null) : null;
 }

@@ -29,8 +29,7 @@ function saveAs(bytes: Uint8Array, fileName: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
-// One document in the in-app editor: the draft for editing, or the issued revision for
-// reading when there is no draft. `readOnly` is an archived client.
+// `readOnly` is an archived client.
 export function DocumentEditorPage({
   clientId,
   documentId,
@@ -83,7 +82,6 @@ export function DocumentEditorPage({
     };
   }, [apiRequest, documentId, revisionId, loaded?.revisionId, failedRevisionId]);
 
-  // Leaving with unsaved changes asks first, inside the app and when closing the tab.
   useBlocker({
     shouldBlockFn: () =>
       dirty && !window.confirm('Ai modificări nesalvate. Părăsești pagina fără să le salvezi?'),

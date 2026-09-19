@@ -6,9 +6,8 @@ import {
   unfilledMark,
 } from '@ssm-usor/contracts';
 
-// From the facts stored about a provider and its client to the names the templates print
-// (docs/document-engine.md). Pure: reading the database and merging happen elsewhere. The
-// result is also what a revision keeps as its data snapshot.
+// Pure: reading the database and merging happen elsewhere. The result is also what a revision
+// keeps as its data snapshot.
 
 export type DocumentFacts = {
   /** ISO date, "2026-01-19". */
@@ -132,7 +131,6 @@ const months = (firstMonth: number, intervalMonths: number) =>
     .map((month) => monthNames[month - 1])
     .join(', ');
 
-/** "19.01.2026", as the documents print a date. */
 export function printedDate(isoDate: string) {
   const [year, month, day] = isoDate.split('-');
   return `${day}.${month}.${year}`;

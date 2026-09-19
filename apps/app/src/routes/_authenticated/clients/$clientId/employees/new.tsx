@@ -34,7 +34,6 @@ export function NewEmployeePage() {
     formState: { errors },
   } = form;
   const today = todayIso();
-  // Shared attributes for inputs and selects.
   const control = (name: keyof EmployeeFormValues, hint?: boolean) => ({
     disabled: isSaving,
     'aria-invalid': Boolean(errors[name]),

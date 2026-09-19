@@ -40,7 +40,6 @@ test('generating waits for the data the documents print, and says where it is fi
   await expect(places.nth(2)).toContainText('programul instruirilor periodice');
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
-  // The link leads to where the client's part is filled in.
   await places.nth(2).getByRole('link').click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/document-data$`));
 });
@@ -71,7 +70,6 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(firstAid).toContainText('19.01.2026');
   await expect(firstAid.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
 
-  // The file is a real Word document, named after the document.
   const download = page.waitForEvent('download');
   await act(page, firstAid, 'document-download-draft');
   const file = await download;
@@ -105,7 +103,6 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
     expect((await readFile(await pdf.path())).subarray(0, 5).toString()).toBe('%PDF-');
   }
 
-  // A correction is a new draft beside the issued revision, and can be dropped again.
   await act(page, firstAid, 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(firstAid.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
@@ -151,7 +148,6 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
   await expect(assessment.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
 
-  // Over a draft, the file is asked about first.
   chooser = page.waitForEvent('filechooser');
   await act(page, assessment, 'document-upload');
   await expect(page.getByTestId('document-confirm-dialog')).toContainText('ia locul ciornei');
@@ -207,7 +203,6 @@ test('a draft is corrected in the in-app editor, and the correction is still the
     .filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
   await expect(firstAid.getByTestId('document-edited')).toHaveText('Modificat');
 
-  // Issued, it opens for reading only.
   await act(page, firstAid, 'document-issue');
   await page.getByTestId('document-confirm').click();
   await expect(firstAid.getByTestId('document-issued')).toBeVisible();

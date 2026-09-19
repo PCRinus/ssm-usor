@@ -18,7 +18,6 @@ const decode = (text: string) =>
 const encode = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** The parts of a `.docx` that hold text a reader sees: the body, the headers, the footers. */
 export const isTextPart = (name: string) =>
   /^word\/(document|header\d*|footer\d*)\.xml$/.test(name);
 
@@ -69,7 +68,6 @@ function replaceInParagraph(paragraph: string, pattern: RegExp, replace: string)
   });
 }
 
-/** Replaces a pattern in every paragraph of one XML part, across run boundaries. */
 export function replaceText(xml: string, pattern: RegExp, replace: string) {
   return xml.replace(paragraphPattern, (paragraph) =>
     replaceInParagraph(paragraph, pattern, replace)

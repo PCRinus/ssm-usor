@@ -51,7 +51,6 @@ export const missingDataLabels: Record<
   },
 };
 
-/** What is missing, grouped by the page it is filled in on, in the order of the pages. */
 export function groupMissing(missing: readonly MissingDocumentData[]) {
   const places: MissingPlace[] = ['organization', 'profile', 'client'];
   return places

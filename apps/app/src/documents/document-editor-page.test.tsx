@@ -154,7 +154,6 @@ describe('the document editor page', () => {
     expect(screen.getByTestId<HTMLButtonElement>('editor-save').disabled).toBe(true);
     // A full page: the client's header and sections make room for the document.
     expect(screen.queryByTestId('client-section')).toBeNull();
-    // The breadcrumb ends in the document, by its name.
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText(/primul ajutor/)).toBeTruthy();
     expect(within(breadcrumb).queryByText('Document')).toBeNull();

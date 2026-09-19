@@ -3,8 +3,6 @@ import type { ReactNode } from 'react';
 
 import { CommitVersion } from './commit-version';
 
-// The centered card that pages outside the app shell share: the logo, a title, an optional
-// explanation, and the page's own content.
 export function PublicFrame({
   testId,
   title,

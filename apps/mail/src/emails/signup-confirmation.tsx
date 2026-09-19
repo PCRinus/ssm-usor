@@ -4,7 +4,6 @@ import { validity } from './_components/validity';
 
 export type SignupConfirmationProps = {
   confirmUrl: string;
-  /** How long the link works, as configured in Supabase Auth. */
   expiresInMinutes: number;
 };
 

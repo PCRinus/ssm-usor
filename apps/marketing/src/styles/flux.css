@@ -1,5 +1,4 @@
 /*
- * Type, palette roles and controls for the landing page and its legal pages.
  * Brand colors come from @ssm-usor/design-tokens (imported in global.css); the site-specific
  * roles below derive from them so a palette change in the tokens package reaches both apps.
  */
@@ -58,7 +57,6 @@
   list-style: none;
 }
 
-/* Controls */
 .flux .button {
   display: inline-flex;
   align-items: center;

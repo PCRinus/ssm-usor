@@ -34,8 +34,6 @@ const unavailable = {
   503: { description: 'A dependency is temporarily unavailable', content: errorContent },
 };
 
-// Owner side ------------------------------------------------------------------------
-
 export const listInvitationsRoute = createRoute({
   method: 'get',
   path: '/organization/invitations',
@@ -123,8 +121,6 @@ export const revokeInvitationRoute = createRoute({
     ...ownerErrors,
   },
 });
-
-// Invitee side ----------------------------------------------------------------------
 
 export const lookupInvitationRoute = createRoute({
   method: 'post',

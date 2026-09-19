@@ -79,8 +79,6 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # Apply every migration to a fresh local database, run the pgTAP policy tests,
-      # and verify the committed database types match the schema.
       - name: Set up Supabase CLI
         if: needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true'
         uses: supabase/setup-cli@v3

@@ -12,8 +12,6 @@
 //
 // The local stack's Send Email hook points here, so signing up or asking for a password
 // reset through Supabase lands in the same in-memory mailbox.
-//
-// GET /__e2e/emails?to=<address> returns what that address was sent, newest last.
 import { createServer } from 'node:http';
 
 import type { MailService } from '@ssm-usor/contracts';

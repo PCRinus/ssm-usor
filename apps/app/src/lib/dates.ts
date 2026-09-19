@@ -17,14 +17,11 @@ export function isoToDate(value: string) {
   return dateToIso(date) === value ? date : undefined;
 }
 
-// "01.03.2020" for "2020-03-01"; an empty or malformed value gives an empty string.
 export function formatRoDate(value: string) {
   const match = iso.exec(value);
   return match ? `${match[3]}.${match[2]}.${match[1]}` : '';
 }
 
-// Parses what a person types: d.m.yyyy, dd.mm.yyyy, with dots, slashes, or dashes.
-// Returns the ISO date, or null when the text is not a real calendar date.
 export function parseRoDate(text: string) {
   const match = romanian.exec(text);
   if (!match) return null;

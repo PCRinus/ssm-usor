@@ -320,7 +320,6 @@ describe('decision_first_aid', () => {
   });
 });
 
-// The three other decisions, rendered with two designated people each.
 const people = [
   { name: 'Ion MARIN', jobTitle: 'Manager magazin' },
   { name: 'Elena DUMITRU', jobTitle: 'Lucrător comercial' },

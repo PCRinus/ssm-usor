@@ -18,7 +18,6 @@ import { organizationRouter } from './modules/organization';
 import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
 
-// Cross-cutting concerns live here; each domain module owns its routes and handlers.
 export function createApp() {
   const app = createRouter();
 

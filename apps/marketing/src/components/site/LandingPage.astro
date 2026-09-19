@@ -169,7 +169,6 @@ const scattered = [
 </FluxLayout>
 
 <script>
-  // Reveal-on-scroll for the showcase and phone figures. Each figure animates once.
   const targets = document.querySelectorAll<HTMLElement>('[data-reveal]');
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver(
@@ -190,7 +189,6 @@ const scattered = [
 </script>
 
 <style>
-  /* Hero */
   .hero {
     display: flex;
     flex-direction: column;
@@ -369,7 +367,6 @@ const scattered = [
     }
   }
 
-  /* Section heads */
   .section-head {
     display: flex;
     flex-wrap: wrap;
@@ -382,7 +379,6 @@ const scattered = [
     color: var(--ink-2);
   }
 
-  /* Steps */
   .steps-section {
     padding: 64px 0 88px;
   }
@@ -413,7 +409,6 @@ const scattered = [
     color: var(--ink-2);
   }
 
-  /* Documents */
   .documents {
     padding: 88px 0;
     background: var(--ink);
@@ -442,7 +437,6 @@ const scattered = [
     color: #c6d4ce;
   }
 
-  /* Signers */
   .signers-section {
     padding: 88px 0;
   }
@@ -466,7 +460,6 @@ const scattered = [
     color: var(--ink-2);
   }
 
-  /* Also */
   .also {
     padding: 88px 0;
   }
@@ -491,7 +484,6 @@ const scattered = [
     font-size: 0.98rem;
   }
 
-  /* Access */
   .access {
     padding: 88px 0;
     background: var(--ink);
@@ -525,7 +517,6 @@ const scattered = [
     color: #c6d4ce;
   }
 
-  /* FAQ, full width */
   .faq {
     padding: 88px 0;
   }

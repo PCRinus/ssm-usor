@@ -7,7 +7,6 @@ export const seedOrganizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 
 export type SeedClient = SupabaseClient<Database>;
 
-// Creates or updates the seeded organization, makes the user its owner, and names them.
 export async function seedOrganization(
   db: SeedClient,
   name: string,

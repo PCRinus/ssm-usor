@@ -9,7 +9,6 @@ const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protec
 
 const fetchMock = vi.fn<typeof fetch>();
 
-// The profile the API holds; a successful PATCH changes it, as the real one would.
 function mockApi({ fullName = 'Ana Popescu' as string | null, failSave = false } = {}) {
   let saved = fullName;
   let title: string | null = null;

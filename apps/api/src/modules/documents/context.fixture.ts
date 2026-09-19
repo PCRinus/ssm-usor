@@ -1,6 +1,5 @@
 import type { DocumentFacts } from './context';
 
-/** Complete facts about a provider and a client, for tests. */
 export const facts: DocumentFacts = {
   issueDate: '2026-01-19',
   firstDecisionNumber: 5,

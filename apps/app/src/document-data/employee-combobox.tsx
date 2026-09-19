@@ -23,8 +23,8 @@ function employeeFilter(value: string, search: string) {
 
 const listParams = { page: 1, pageSize: maxPageSize, sort: 'name', order: 'asc' } as const;
 
-// Picks one of the client's current employees. The first page by name is enough for the
-// handful of people a client designates; anyone else is typed in by hand.
+// The first page by name is enough for the handful of people a client designates; anyone else
+// is typed in by hand.
 export function EmployeeCombobox({
   id,
   clientId,

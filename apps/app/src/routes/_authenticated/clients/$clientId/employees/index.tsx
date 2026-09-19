@@ -69,7 +69,6 @@ export function EmployeesPage() {
     query: {
       queryKey: [...getListEmployeesQueryKey(clientId, params), session?.user.id],
       enabled: Boolean(session && apiRequest.baseUrl),
-      // Keep the current page on screen while the next one loads.
       placeholderData: keepPreviousData,
     },
   });

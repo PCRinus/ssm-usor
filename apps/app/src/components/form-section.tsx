@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-// A form section: what it is for on the left, its fields on the right.
 export function FormSection({
   title,
   description,

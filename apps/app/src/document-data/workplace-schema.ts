@@ -57,7 +57,6 @@ const countyNames = new Map<string, string>(
   romanianCounties.map((county) => [county.code, county.name])
 );
 
-// "Str. Goethe 2, Timișoara, Timiș", with whatever parts exist.
 export function workplaceAddress(workplace: Workplace) {
   const county = workplace.countyCode ? countyNames.get(workplace.countyCode) : null;
   return [workplace.addressLine, workplace.locality, county].filter(Boolean).join(', ');

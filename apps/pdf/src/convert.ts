@@ -1,7 +1,7 @@
 import { pdfConversionFailed } from '@ssm-usor/contracts';
 
-// Asks Gotenberg for the PDF of a Word document. On its own so it can be tested without a
-// container: all it needs is something that answers requests.
+// On its own so it can be tested without a container: all it needs is something that
+// answers requests.
 
 export type Fetcher = (request: Request) => Promise<Response>;
 

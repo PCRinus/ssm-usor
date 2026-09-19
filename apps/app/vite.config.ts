@@ -25,7 +25,6 @@ export default defineConfig({
     // The router plugin must run before React so file routes are generated first.
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     tailwindcss(),
-    // React Compiler memoizes components and hooks automatically; lint enforces its rules.
     react({ compiler: true }),
   ],
   resolve: {

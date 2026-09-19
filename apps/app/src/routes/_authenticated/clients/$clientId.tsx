@@ -18,7 +18,7 @@ import { getGetClientQueryKey, getGetClientQueryOptions } from '../../../api/gen
 import { ApiHttpError } from '../../../api/http';
 import { registeredOffice } from '../../../clients/client-columns';
 
-// Sections of a client. The documents follow the data they print.
+// The documents follow the data they print.
 const sections = [
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound },
   { to: '/clients/$clientId/document-data', label: 'Date pentru documente', icon: ClipboardList },
@@ -51,7 +51,6 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   errorComponent: ClientError,
 });
 
-// One labelled value of the client summary strip.
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0 bg-card px-5 py-3.5">

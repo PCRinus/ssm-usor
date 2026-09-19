@@ -8,7 +8,6 @@ import { createQueryClient } from '../lib/query-client';
 
 const runtimes: AppRuntime[] = [];
 
-// Mounts the full app at a path with an in-memory history and a local API base URL.
 export function mountApp(client: AuthClient | null, path = '/dashboard') {
   const runtime = createAppRuntime(
     client,

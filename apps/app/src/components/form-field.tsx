@@ -12,7 +12,6 @@ export function FieldMessage({ id, error }: { id: string; error?: FieldError }) 
   );
 }
 
-// A labelled form control with an optional hint and its validation message.
 // Describe the control with `${id}-error` when invalid, otherwise `${id}-hint`.
 export function Field({
   id,

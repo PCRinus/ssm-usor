@@ -12,7 +12,7 @@ type ClientRow = Database['public']['Tables']['clients']['Row'];
 export const clientColumns =
   'id, legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, declared_employee_count, created_at, updated_at, archived_at';
 
-// The columns above; the documentation fields of ADR 005 get their own routes.
+// The documentation fields of ADR 005 get their own routes.
 type SelectedClientRow = Pick<
   ClientRow,
   | 'id'
@@ -51,7 +51,7 @@ export function toClient(row: SelectedClientRow): Client {
   };
 }
 
-// Sort keys map to column lists; the id keeps every order stable across pages.
+// The id keeps every order stable across pages.
 const sortColumns: Record<ClientSortKey, string[]> = {
   legalName: ['legal_name'],
   cui: ['cui'],

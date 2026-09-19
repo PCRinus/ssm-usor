@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Mirrors `newPasswordSchema` in the contracts, which mirrors the Supabase password policy
-// in supabase/config.toml. Used wherever a person chooses a password.
+// in supabase/config.toml.
 export const newPasswordField = z
   .string()
   .min(8, 'Parola trebuie să aibă cel puțin 8 caractere.')

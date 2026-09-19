@@ -99,7 +99,7 @@ function conflictMessage(detail: string | undefined) {
   return 'This employee conflicts with an existing one.';
 }
 
-// Sort keys map to column lists; the id keeps every order stable across pages.
+// The id keeps every order stable across pages.
 const sortColumns: Record<EmployeeSortKey, string[]> = {
   name: ['last_name', 'first_name'],
   jobTitle: ['job_title', 'last_name', 'first_name'],

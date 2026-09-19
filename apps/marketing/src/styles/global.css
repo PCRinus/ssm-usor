@@ -1,7 +1,6 @@
-/* Brand and semantic tokens shared with the app (colors, radii, font fallback). */
 @import '@ssm-usor/design-tokens/tokens.css';
 
-/* Minimal base styles. The site uses no CSS framework; page styles are scoped per component. */
+/* The site uses no CSS framework; page styles are scoped per component. */
 @layer base {
   :root {
     font-synthesis: none;

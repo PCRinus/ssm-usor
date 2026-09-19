@@ -29,8 +29,6 @@ import {
 } from './context';
 import { loadDocumentFacts, type StoredDocumentFacts } from './facts';
 
-// A client's documentation set: listing it and generating what it does not have yet.
-
 type Tables = Database['public']['Tables'];
 type RevisionRow = Pick<
   Tables['document_revisions']['Row'],
@@ -158,7 +156,6 @@ export async function listClientDocuments(db: DataClient, actor: Actor, clientId
 
 type Template = { typeKey: string; title: string; versionId: string; storagePath: string };
 
-/** The newest registered version of every built-in template that can be generated. */
 async function builtInTemplates(
   db: DataClient,
   typeKeys: readonly string[] = documentTypeKeys
@@ -209,7 +206,6 @@ export function merge(template: Uint8Array, data: Record<string, unknown>, typeK
 }
 
 /**
- * Generates every document type the client does not have yet, as revision 1 in draft.
  * Documents that exist are left alone: generating one again is asked for one document at a
  * time, because it discards what was edited by hand.
  */
@@ -368,9 +364,8 @@ const newest = (document: DocumentRow) =>
   );
 
 /**
- * Merges one document again from the stored facts. A draft is overwritten, hand edits
- * included, which is what the person asked for; an issued document gets a new draft revision
- * and stays as it is until that one is issued.
+ * A draft is overwritten, hand edits included, which is what the person asked for; an issued
+ * document gets a new draft revision and stays as it is until that one is issued.
  */
 export async function regenerateDocument(
   db: DataClient,
@@ -692,7 +687,7 @@ export async function uploadDocumentFile(
   return toDocument(await readDocument(db, documentId), facts);
 }
 
-/** Deletes the draft and its file. What was issued before stays as it is. */
+/** What was issued before stays as it is. */
 export async function deleteDraft(db: DataClient, files: FileStore, documentId: string) {
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
@@ -705,7 +700,6 @@ export async function deleteDraft(db: DataClient, files: FileStore, documentId: 
   if (error) throw fromDatabaseError(error, 'delete document revision');
 }
 
-/** A link to the Word file of one revision, named after the document. */
 export async function documentDownloadLink(
   db: DataClient,
   files: FileStore,

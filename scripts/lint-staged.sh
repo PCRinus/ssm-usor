@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Pre-commit helper: runs eslint or prettier on the staged files matching the given
-# git pathspecs, then re-stages what the tool fixed.
-#
 # The staged file list is read from git here instead of being interpolated into the
 # hook command, so route files such as `$clientId.tsx` are never re-parsed by a shell.
 # Works with the macOS system bash (3.2).

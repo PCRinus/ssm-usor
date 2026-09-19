@@ -3,8 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
-// Where the operator scripts find a Supabase project and its secret key. Keys are captured in
-// memory; CLI output is never echoed or written into the workspace.
+// Keys are captured in memory; CLI output is never echoed or written into the workspace.
 
 export function localSupabase() {
   try {

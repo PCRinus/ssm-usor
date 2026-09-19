@@ -41,7 +41,6 @@ function fakeCui() {
   return `${body}${cuiControlDigit(body)}`;
 }
 
-// What the documents print about a client (ADR 005), for clients seeded with complete data.
 // Derived from the CUI, not drawn from faker: another draw would shift every later client of
 // the sequence, and a rerun would insert new clients next to the ones it should update.
 function documentDetails(cui: string, complete: boolean) {
@@ -100,7 +99,6 @@ export function fakeClients(
   return rows;
 }
 
-// Returns the stored rows so dependent seeds (employees) can reference their ids.
 export async function seedClients(db: SeedClient, rows: ClientInsert[]) {
   const { data, error } = await db
     .from('clients')

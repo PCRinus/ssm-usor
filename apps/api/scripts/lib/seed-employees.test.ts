@@ -40,7 +40,6 @@ describe('fake employees', () => {
       expect((row.status === 'terminated') === (row.terminated_at != null)).toBe(true);
       if (row.terminated_at) expect(row.terminated_at >= row.hired_at).toBe(true);
       if (row.birth_date) expect(row.birth_date < row.hired_at).toBe(true);
-      // The seed rows must pass the same validation as the API request body.
       const body = createEmployeeRequestSchema.safeParse({
         lastName: row.last_name,
         firstName: row.first_name,

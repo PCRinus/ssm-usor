@@ -34,7 +34,6 @@ interface ClientSummary {
   archivedAt: string | null;
 }
 
-// The legal representative and the training schedule that the first decision sets.
 export function DocumentDetailsCard({ client, userId }: { client: ClientSummary; userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const details = useGetClientDocumentDetails(client.id, {
@@ -80,7 +79,6 @@ export function DocumentDetailsCard({ client, userId }: { client: ClientSummary;
   );
 }
 
-// "Februarie, Mai, August, Noiembrie", or nothing until both values are chosen.
 function monthsPreview(firstMonth: string, interval: string) {
   if (!firstMonth || !interval) return null;
   return trainingMonths(Number(firstMonth), Number(interval))

@@ -39,7 +39,6 @@ function actionMessage(cause: unknown, email: string) {
   return 'Acțiunea nu a reușit. Verifică conexiunea și încearcă din nou.';
 }
 
-// Owners only: the invitations nobody has accepted yet, with resend and revoke.
 export function InvitationsCard({ userId }: { userId: string }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const queryKey = [...getListInvitationsQueryKey(), userId];
