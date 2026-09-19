@@ -210,3 +210,32 @@ export const deleteDocumentDraftRoute = createRoute({
     ...membershipErrors,
   },
 });
+
+export const saveDocumentDraftFileRoute = createRoute({
+  method: 'put',
+  path: '/documents/{documentId}/draft/file',
+  operationId: 'saveDocumentDraftFile',
+  summary: "Replace the Word file of a document's draft",
+  description:
+    'Takes the bytes of a `.docx`, as the in-app editor saves them or as edited elsewhere, up to 15 MB. The draft is marked as edited. An issued revision has no file that can be written.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: documentParams,
+    body: {
+      required: true,
+      content: {
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+          schema: z.string().openapi({ type: 'string', format: 'binary' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'The document with its edited draft', content: documentContent },
+    400: { description: 'Invalid path, or not a Word document', content: errorContent },
+    404: noSuchDocument,
+    409: { description: 'The document has no draft', content: errorContent },
+    ...membershipErrors,
+  },
+});

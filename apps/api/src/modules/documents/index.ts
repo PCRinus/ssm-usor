@@ -7,6 +7,7 @@ import {
   issueDocument,
   listClientDocuments,
   regenerateDocument,
+  saveDocumentDraftFile,
 } from './handlers';
 import {
   deleteDocumentDraftRoute,
@@ -16,6 +17,7 @@ import {
   issueDocumentRoute,
   listClientDocumentsRoute,
   regenerateDocumentRoute,
+  saveDocumentDraftFileRoute,
 } from './routes';
 
 export const documentsRouter = createRouter()
@@ -25,4 +27,5 @@ export const documentsRouter = createRouter()
   .openapi(getDocumentDownloadRoute, getDocumentDownload)
   .openapi(regenerateDocumentRoute, regenerateDocument)
   .openapi(issueDocumentRoute, issueDocument)
-  .openapi(deleteDocumentDraftRoute, deleteDocumentDraft);
+  .openapi(deleteDocumentDraftRoute, deleteDocumentDraft)
+  .openapi(saveDocumentDraftFileRoute, saveDocumentDraftFile);

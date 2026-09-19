@@ -13,6 +13,7 @@ import {
   issueDocument as issue,
   listClientDocuments as list,
   regenerateDocument as regenerate,
+  saveDraftFile,
 } from './documents';
 import { loadDocumentFacts } from './facts';
 import type {
@@ -23,6 +24,7 @@ import type {
   issueDocumentRoute,
   listClientDocumentsRoute,
   regenerateDocumentRoute,
+  saveDocumentDraftFileRoute,
 } from './routes';
 
 // During an impersonation the documents belong to the impersonated member's organization and
@@ -108,4 +110,21 @@ export const deleteDocumentDraft: RouteHandler<typeof deleteDocumentDraftRoute, 
   const { documentId } = c.req.valid('param');
   await deleteDraft(createDataClient(c), createFileStore(c), documentId);
   return c.body(null, 204);
+};
+
+export const saveDocumentDraftFile: RouteHandler<
+  typeof saveDocumentDraftFileRoute,
+  ApiEnv
+> = async (c) => {
+  const { documentId } = c.req.valid('param');
+  // The body is the file itself, not JSON, so it is read here rather than validated above.
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const document = await saveDraftFile(
+    createDataClient(c),
+    createFileStore(c),
+    actorOf(c),
+    documentId,
+    bytes
+  );
+  return c.json({ document }, 200);
 };

@@ -605,3 +605,63 @@ describe('DELETE /documents/{documentId}/draft', () => {
     expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(0);
   });
 });
+
+describe('PUT /documents/{documentId}/draft/file', () => {
+  const docx = new Uint8Array([
+    0x50,
+    0x4b,
+    0x03,
+    0x04,
+    ...new TextEncoder().encode('…word/document.xml…'),
+  ]);
+  const save = (body: Uint8Array) =>
+    createApp().request(
+      `/documents/${documentId}/draft/file`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: 'Bearer test-access-token',
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+        body,
+      },
+      env
+    );
+  const withDraft = () => Response.json({ ...documentRow, document_revisions: [revisionRow] });
+
+  it('writes the bytes over the draft and marks it as edited by the caller', async () => {
+    mockUpstream({ documents: withDraft });
+    const response = await save(docx);
+    expect(response.status).toBe(200);
+    expect(clientDocumentResponseSchema.parse(await response.json()).document.id).toBe(documentId);
+
+    const [upload] = calls('/storage/v1/object/documents/', 'POST');
+    expect(new URL(String(upload![0])).pathname).toContain(`${documentId}/1.docx`);
+    expect(new Headers(upload![1]?.headers).get('x-upsert')).toBe('true');
+    const patch = sentBody('/rest/v1/document_revisions', 0, 'PATCH');
+    expect(patch.edited_by).toBe(user.id);
+    expect(Date.parse(String(patch.edited_at))).not.toBeNaN();
+    expect(Object.keys(patch).sort()).toEqual(['edited_at', 'edited_by']);
+  });
+
+  it('refuses what is not a Word document, before touching anything', async () => {
+    mockUpstream({ documents: withDraft });
+    for (const body of [
+      new Uint8Array(),
+      new TextEncoder().encode('%PDF-1.7 word/document.xml'),
+      new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3]),
+    ]) {
+      expect((await save(body)).status).toBe(400);
+    }
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses a document without a draft, so an issued file is never written', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [issuedRevision] }),
+    });
+    expect((await save(docx)).status).toBe(409);
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
+});
