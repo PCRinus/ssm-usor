@@ -15,6 +15,7 @@ export * from './invitations';
 export * from './list';
 export * from './mail';
 export * from './organizations';
+export * from './pdf';
 export * from './profile';
 export * from './waitlist';
 

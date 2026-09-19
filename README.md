@@ -38,6 +38,7 @@ The pnpm/Turborepo workspace contains:
 - `apps/app` — the client-only React/Vite application shell;
 - `apps/api` — the Cloudflare Worker API;
 - `apps/mail` — the internal Worker that renders and sends email;
+- `apps/pdf` — the internal Worker that turns a Word file into a PDF, with its container ([guide](docs/pdf.md));
 - `packages/contracts` — runtime schemas and shared transport types.
 - `packages/design-tokens` — shared brand colors, typography, radii, and Tailwind theme;
 - `packages/ui` — shared shadcn React primitives and the Tailwind CSS entry point.

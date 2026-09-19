@@ -30,6 +30,11 @@ mail:
   - *shared
   - 'apps/mail/**'
   - 'packages/contracts/**'
+# The Worker that owns the Word-to-PDF container. Only its interface lives in the contracts.
+pdf:
+  - *shared
+  - 'apps/pdf/**'
+  - 'packages/contracts/src/pdf.ts'
 marketing:
   - *shared
   - *ui

@@ -28,6 +28,7 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       app: ${{ steps.filter.outputs.app }}
       mail: ${{ steps.filter.outputs.mail }}
+      pdf: ${{ steps.filter.outputs.pdf }}
       marketing: ${{ steps.filter.outputs.marketing }}
       database: ${{ steps.filter.outputs.database }}
       projects: ${{ steps.projects.outputs.projects }}
@@ -237,7 +238,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/release"
           cp -R "apps/$PROJECT/.wrangler/deploy" "$RUNNER_TEMP/release/worker"
-          if [[ "$PROJECT" != api && "$PROJECT" != mail ]]; then
+          if [[ "$PROJECT" != api && "$PROJECT" != mail && "$PROJECT" != pdf ]]; then
             cp -R "apps/$PROJECT/dist" "$RUNNER_TEMP/release/dist"
           fi
 
@@ -324,6 +325,42 @@ jobs:
       # version it was, so this does nothing when no template changed.
       - name: Upload and register the built-in templates
         run: pnpm templates:register
+
+  deploy-pdf:
+    name: Deploy PDF Worker
+    needs: [changes, validate, build]
+    if: needs.changes.outputs.pdf == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-pdf-${{ github.sha }}
+          path: apps/pdf/.wrangler/release
+
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
+      # Besides the Worker, this builds the container image from apps/pdf/Dockerfile with the
+      # runner's Docker and pushes it to Cloudflare's registry, which the API token must be
+      # allowed to do (docs/pdf.md).
+      - name: Deploy validated PDF bundle and its container image
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/pdf
+          packageManager: pnpm
+          command: >-
+            deploy .wrangler/release/worker/index.js --no-bundle
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
 
   deploy-mail:
     name: Deploy mail Worker

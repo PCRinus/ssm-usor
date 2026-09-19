@@ -30,6 +30,7 @@
     "deploy:app": "pnpm --filter @ssm-usor/app deploy",
     "deploy:api": "pnpm --filter @ssm-usor/api deploy",
     "deploy:mail": "pnpm --filter @ssm-usor/mail deploy",
+    "deploy:pdf": "pnpm --filter @ssm-usor/pdf deploy",
     "prepare": "lefthook install",
     "generate:api": "pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
     "generate:routes": "pnpm --filter @ssm-usor/app generate:routes",
