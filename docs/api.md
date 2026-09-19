@@ -84,6 +84,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                         |
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                   |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                        |
+| `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                      |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                       |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
@@ -281,6 +282,12 @@ issued before, which stays downloadable. From then on no policy lets anyone writ
 or change that row; a correction is a new draft. `DELETE …/draft` removes the file, then the
 row, and is `409` when there is no draft, so an issued revision is never touched. Both roles
 can do all three, as the ADR decided.
+
+`PUT /documents/{documentId}/draft/file` takes the bytes of a `.docx` as the request body, as
+the in-app editor saves them or as edited elsewhere, up to 15 MB. It checks that the bytes
+are a zip naming `word/document.xml`, writes them over the draft's file, and sets `edited_at`
+and `edited_by`, which the list shows and "Generează din nou" warns about. `409` when the
+document has no draft; an issued file cannot be written by anyone.
 
 The whole set, 18 documents, merges and uploads in under a second against the local stack,
 inside `workerd` as well as in Node.

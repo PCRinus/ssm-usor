@@ -503,6 +503,56 @@ export async function issueDocument(
   return toDocument(await readDocument(db, documentId), facts);
 }
 
+const maxDraftBytes = 15 * 1024 * 1024;
+const bytesOf = (text: string) => new TextEncoder().encode(text);
+const zipSignature = [0x50, 0x4b, 0x03, 0x04];
+const documentPart = bytesOf('word/document.xml');
+
+function includes(haystack: Uint8Array, needle: Uint8Array) {
+  outer: for (let start = 0; start <= haystack.length - needle.length; start += 1) {
+    for (let index = 0; index < needle.length; index += 1) {
+      if (haystack[start + index] !== needle[index]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+// A zip that names the main part of a Word document. File names are stored as they are, so
+// this needs no unzipping; it keeps a PDF or a picture out, not a determined forger.
+const looksLikeDocx = (bytes: Uint8Array) =>
+  zipSignature.every((byte, index) => bytes[index] === byte) && includes(bytes, documentPart);
+
+/**
+ * Stores what the editor saved, or a file edited elsewhere, as the draft's file. From then on
+ * the draft is "edited": generating it again would discard this.
+ */
+export async function saveDraftFile(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string,
+  bytes: Uint8Array
+) {
+  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
+    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
+  }
+  if (!looksLikeDocx(bytes)) {
+    throw new ApiError('validation_error', 'The file is not a Word document (.docx).');
+  }
+  const document = await readDocument(db, documentId);
+  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  if (!draft) throw new ApiError('conflict', 'This document has no draft to save to.');
+  await files.writeDocument(draft.docx_path, bytes, { replace: true });
+  const updated = await db
+    .from('document_revisions')
+    .update({ edited_at: new Date().toISOString(), edited_by: actor.createdBy })
+    .eq('id', draft.id);
+  if (updated.error) throw fromDatabaseError(updated.error, 'mark document revision edited');
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
 /** Deletes the draft and its file. What was issued before stays as it is. */
 export async function deleteDraft(db: DataClient, files: FileStore, documentId: string) {
   const document = await readDocument(db, documentId);

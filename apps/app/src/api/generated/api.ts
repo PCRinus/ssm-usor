@@ -5551,6 +5551,117 @@ export const useDeleteDocumentDraft = <TError = ErrorType<ApiErrorResponse>, TCo
   return useMutation(getDeleteDocumentDraftMutationOptions(options), queryClient);
 };
 
+export const getSaveDocumentDraftFileUrl = (documentId: string) => {
+  return `/documents/${documentId}/draft/file`;
+};
+
+/**
+ * Takes the bytes of a `.docx`, as the in-app editor saves them or as edited elsewhere, up to 15 MB. The draft is marked as edited. An issued revision has no file that can be written.
+ * @summary Replace the Word file of a document's draft
+ */
+export const saveDocumentDraftFile = async (
+  documentId: string,
+  saveDocumentDraftFileBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientDocumentResponse>(getSaveDocumentDraftFileUrl(documentId), {
+    ...options,
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ...getHeaders(options?.headers),
+    },
+    body: saveDocumentDraftFileBody,
+  });
+};
+
+export const getSaveDocumentDraftFileMutationKey = () => ['saveDocumentDraftFile'] as const;
+
+export const getSaveDocumentDraftFileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveDocumentDraftFile>>,
+    TError,
+    SaveDocumentDraftFileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveDocumentDraftFile>>,
+  TError,
+  SaveDocumentDraftFileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveDocumentDraftFileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveDocumentDraftFile>>,
+    SaveDocumentDraftFileMutationVariables
+  > = (props) => {
+    const { documentId, data } = props ?? {};
+
+    return saveDocumentDraftFile(documentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveDocumentDraftFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveDocumentDraftFile>>
+>;
+export type SaveDocumentDraftFileMutationBody = Blob;
+export type SaveDocumentDraftFileMutationError = ErrorType<ApiErrorResponse>;
+export type SaveDocumentDraftFileMutationVariables = { documentId: string; data: Blob };
+
+/**
+ * @summary Replace the Word file of a document's draft
+ */
+export const useSaveDocumentDraftFile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveDocumentDraftFile>>,
+      TError,
+      SaveDocumentDraftFileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveDocumentDraftFile>>,
+  TError,
+  SaveDocumentDraftFileMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveDocumentDraftFileMutationOptions(options), queryClient);
+};
+
 export const getCreateOrganizationUrl = () => {
   return `/organization`;
 };
