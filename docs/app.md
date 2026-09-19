@@ -117,6 +117,7 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`       | `/clients/:id/employees`             | The client's employees with a status filter in the search params.                                                                                         |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`         | `/clients/:id/employees/new`         | Form that adds an employee to the client.                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/document-data.tsx`         | `/clients/:id/document-data`         | What the client's generated documents print: the representative, the training schedule, workplaces, and responsible persons.                              |
+| `routes/_authenticated/clients/$clientId/documents.tsx`             | `/clients/:id/documents`             | The client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx` | `/clients/:id/employees/:employeeId` | Employee record, the only page that can reveal the CNP.                                                                                                   |
 | `routes/__root.tsx`                                                 | other paths                          | Not-found screen with a link back to the start; route error screen.                                                                                       |
 
@@ -234,7 +235,8 @@ See the [deployment guide](app-deployment.md#playwright-deployment-tests) for se
 Browser flow tests live in `e2e/flows/` and run with `pnpm --filter @ssm-usor/app test:e2e:flows`
 after `pnpm supabase:start`. They cover what creates users: inviting, accepting with a new
 and with an existing account, changing a role, removing a member, resetting and changing a
-password, and registering through to a new organization. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
+password, registering through to a new organization, and generating a client's documentation
+from the real templates (`pnpm templates:register:local` first), down to the downloaded file's name. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
 pointed at the local Supabase stack, and a preview of a production build of the SPA. That API
 refuses any Supabase URL that is not local and keeps emails in memory instead of calling the
@@ -340,6 +342,23 @@ mobile navigation link closes the Sheet.
   the order the decisions list them. A `409` means the employee is already listed and a `400`
   on `employeeId` that they belong to another client; both are reported on the employee
   field.
+- `/clients/:clientId/documents`: the "Documente" section of a client (ADR 005), in
+  `src/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
+  pack: title, the decision's number, badges for the issued revision and the draft, the
+  date the document carries, and "Date modificate" on a draft whose printed data has changed
+  since. "Generează documentația" (or "Generează documentele lipsă" when some exist) shows
+  while a built-in type from the contracts' `documentTypeKeys` is missing. Its dialog asks
+  `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
+  what is missing, grouped by the page it is filled in on with a link to each (the
+  organization, the profile, the client's document data; a specialist is told that the owner
+  fills in the organization's details). When ready it asks for the date and the first
+  decision number, filled in from the last generation. A row's menu downloads the draft or
+  the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
+  confirmation that says what is lost or locked. A download fetches the signed link and
+  saves a blob, so the file gets the document's name with its diacritics: browsers ignore
+  `download` on a link to another origin, and Storage percent-encodes the name in its own
+  header. A `404` or `409` reloads the list. An archived client only gets the downloads.
+
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and
   revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a
