@@ -102,3 +102,59 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
   await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
 });
+
+test('a draft is corrected in the in-app editor, and the correction is still there afterwards', async ({
+  page,
+}) => {
+  const owner = await createAccount('documents-editor', 'Dana Documente');
+  const organizationId = await createOrganization('Editor E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT EDITOR E2E S.R.L.');
+  await completeDocumentData(organizationId, owner.id, clientId);
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/documents`);
+  await page.getByTestId('documents-generate').click();
+  await page.getByTestId('generate-submit').click();
+  await expect(page.getByTestId('document-row')).toHaveCount(18);
+
+  await page.getByRole('link', { name: 'Decizia privind responsabilii cu primul ajutor' }).click();
+  const frame = page.getByTestId('editor-frame');
+  await expect(frame).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
+  await expect(page.getByTestId('editor-state')).toHaveText('Ciornă · rev. 1');
+  // The document as generated, numbering included.
+  await expect(frame.getByText('DECIDE:')).toBeVisible();
+  await expect(frame.getByText('Art. 1.')).toBeVisible();
+  await expect(page.getByTestId('editor-save')).toBeDisabled();
+
+  await frame.getByText('DECIDE:').click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' CORECTAT ÎN APLICAȚIE');
+  await expect(page.getByTestId('editor-saved-state')).toHaveText('Modificări nesalvate');
+  await page.getByTestId('editor-save').click();
+  await expect(page.getByText('Documentul a fost salvat.')).toBeVisible();
+  await expect(page.getByTestId('editor-saved-state')).toHaveText('Salvat');
+
+  // From Storage again, not from memory.
+  await page.reload();
+  await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('editor-frame').getByText('CORECTAT ÎN APLICAȚIE')).toBeVisible();
+
+  await page.getByTestId('editor-back').click();
+  const firstAid = page
+    .getByTestId('document-row')
+    .filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
+  await expect(firstAid.getByTestId('document-edited')).toHaveText('Modificat');
+
+  // Issued, it opens for reading only.
+  await act(page, firstAid, 'document-issue');
+  await page.getByTestId('document-confirm').click();
+  await expect(firstAid.getByTestId('document-issued')).toBeVisible();
+  await firstAid.getByTestId('document-title').click();
+  await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('editor-state')).toHaveText('Emis · rev. 1');
+  await expect(page.getByTestId('editor-save')).toHaveCount(0);
+});

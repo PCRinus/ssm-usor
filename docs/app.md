@@ -117,7 +117,8 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`       | `/clients/:id/employees`             | The client's employees with a status filter in the search params.                                                                                         |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`         | `/clients/:id/employees/new`         | Form that adds an employee to the client.                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/document-data.tsx`         | `/clients/:id/document-data`         | What the client's generated documents print: the representative, the training schedule, workplaces, and responsible persons.                              |
-| `routes/_authenticated/clients/$clientId/documents.tsx`             | `/clients/:id/documents`             | The client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                 |
+| `routes/_authenticated/clients/$clientId/documents/index.tsx`       | `/clients/:id/documents`             | The client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                 |
+| `routes/_authenticated/clients/$clientId/documents/$documentId.tsx` | `/clients/:id/documents/:documentId` | One document in the in-app Word editor; a full page.                                                                                                      |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx` | `/clients/:id/employees/:employeeId` | Employee record, the only page that can reveal the CNP.                                                                                                   |
 | `routes/__root.tsx`                                                 | other paths                          | Not-found screen with a link back to the start; route error screen.                                                                                       |
 
@@ -236,7 +237,8 @@ Browser flow tests live in `e2e/flows/` and run with `pnpm --filter @ssm-usor/ap
 after `pnpm supabase:start`. They cover what creates users: inviting, accepting with a new
 and with an existing account, changing a role, removing a member, resetting and changing a
 password, registering through to a new organization, and generating a client's documentation
-from the real templates (`pnpm templates:register:local` first), down to the downloaded file's name. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
+from the real templates (`pnpm templates:register:local` first), down to the downloaded file's
+name, and correcting a draft in the real editor: type, save, reload, and find the text again. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
 pointed at the local Supabase stack, and a preview of a production build of the SPA. That API
 refuses any Supabase URL that is not local and keeps emails in memory instead of calling the
@@ -358,6 +360,25 @@ mobile navigation link closes the Sheet.
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own
   header. A `404` or `409` reloads the list. An archived client only gets the downloads.
+
+- `/clients/:clientId/documents/:documentId`: one document in the in-app Word editor (ADR 005,
+  [the trial](document-editor-trial.md)). The page finds the document in the client's list,
+  takes the draft, or the issued revision when there is no draft, fetches its file through
+  the signed link, and hands the bytes to `@docx-editor.dev/react`. A draft of an active
+  client opens in `edit` mode; an issued revision and anything of an archived client open in
+  `view` mode. The editor lives in `src/documents/document-editor.tsx`, loaded with `lazy`,
+  so its 0.8 MB (gzipped) and its WebAssembly text shaper are fetched only when a document is
+  opened; the menu bar, the rulers and the outline pane are off. Our own controls sit in its
+  title bar: the revision badge, "Modificări nesalvate" or "Salvat", "Descarcă", and
+  "Salvează", which is also Ctrl+S. Unsaved means the document's revision differs from the one
+  at load or at the last save, because opening a file reports layout changes of its own.
+  Saving sends the bytes to `PUT /documents/{documentId}/draft/file`; a `409` says the draft
+  is gone and to download the file, and "Descarcă" always gives what is on screen, edits
+  included. Leaving with unsaved changes asks first, in the app and when closing the tab. A
+  document the editor cannot lay out throws outside React and never reports ready: an error
+  on the page before that, or 30 seconds of silence, shows a message with the download
+  instead. The list links every title to this page and marks a draft saved from here as
+  "Modificat", which "Generează din nou" then names as what would be lost.
 
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and
