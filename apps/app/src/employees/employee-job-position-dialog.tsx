@@ -19,19 +19,17 @@ import {
   getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
-  useCreateJobPosition,
   useUpdateEmployeeJobPosition,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { JobPositionCombobox } from '../job-positions/job-position-combobox';
-import { useJobPositionOptions } from '../job-positions/use-job-position-options';
 
 type Employee = EmployeeResponse['employee'];
 
 const schema = z.object({
-  // The id of one of the client's job positions, or the name of one to create.
-  jobPosition: z.string().trim().min(2, 'Alege postul de lucru sau scrie unul nou.').max(160),
+  // The id of one of the client's job positions.
+  jobPosition: z.uuid('Alege postul de lucru.'),
   jobTitle: z
     .string()
     .trim()
@@ -83,32 +81,20 @@ function Form({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const move = useUpdateEmployeeJobPosition({ request: apiRequest });
-  const createPosition = useCreateJobPosition({ request: apiRequest });
-  const positions = useJobPositionOptions(clientId, userId);
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { jobPosition: employee.jobPosition.id, jobTitle: employee.jobTitle },
   });
   const { errors } = form.formState;
-  const busy = move.isPending || createPosition.isPending;
+  const busy = move.isPending;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      let jobPositionId = positions.data?.items.find((item) => item.id === values.jobPosition)?.id;
-      if (!jobPositionId) {
-        const created = await createPosition.mutateAsync({
-          clientId,
-          data: { name: values.jobPosition },
-        });
-        jobPositionId = created.jobPosition.id;
-        // Kept, so that a failure further down does not create it twice.
-        form.setValue('jobPosition', jobPositionId);
-      }
       await move.mutateAsync({
         clientId,
         employeeId: employee.id,
         data: {
-          jobPositionId,
+          jobPositionId: values.jobPosition,
           ...(values.jobTitle === employee.jobTitle ? {} : { jobTitle: values.jobTitle }),
         },
       });

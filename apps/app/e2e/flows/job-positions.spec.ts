@@ -100,10 +100,18 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await page.getByTestId('employee-first-name').fill('Dan');
   await page.getByTestId('employee-hired-at').fill('10.01.2024');
 
-  // A post the client does not have yet is typed in place; the contract title follows it.
+  // The way to a post the client lacks is a row of the list, there before anything is typed.
+  // It opens the dialog of "Posturi de lucru" with what was typed, where the post gets its
+  // category; saved, it is the choice, and the contract title follows it.
   await page.getByTestId('employee-job-position').click();
+  await expect(page.getByTestId('employee-job-position-add')).toBeVisible();
   await page.getByTestId('employee-job-position-search').fill('Electrician');
-  await page.getByRole('option', { name: /Adaugă postul „Electrician”/ }).click();
+  await page.getByTestId('employee-job-position-add').click();
+  await expect(page.getByTestId('job-position-name')).toHaveValue('Electrician');
+  await page.getByTestId('job-position-zone').fill('Teren');
+  await page.getByTestId('job-position-save').click();
+  await expect(page.getByTestId('job-position-dialog')).toHaveCount(0);
+  await expect(page.getByTestId('employee-job-position')).toContainText('Electrician');
   await expect(page.getByTestId('employee-job-title')).toHaveValue('Electrician');
   await page.getByTestId('employee-job-title').fill('Electrician întreținere');
   await page.getByTestId('employee-submit').click();
@@ -129,5 +137,15 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await page.getByTestId('employee-job-position-save').click();
   await expect(page.getByText('Postul de lucru a fost schimbat.')).toBeVisible();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Sudor');
+
+  // From inside this dialog too, a new post is one row away.
+  await page.getByTestId('employee-job-position-change').click();
+  await page.getByTestId('employee-position').click();
+  await page.getByTestId('employee-position-add').click();
+  await page.getByTestId('job-position-name').fill('Șef de echipă');
+  await page.getByTestId('job-position-save').click();
+  await expect(page.getByTestId('job-position-dialog')).toHaveCount(0);
+  await page.getByTestId('employee-job-position-save').click();
+  await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');
   await expect(page.getByText('Electrician întreținere')).toBeVisible();
 });

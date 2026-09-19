@@ -48,12 +48,8 @@ export const employeeFormSchema = z
       .string()
       .trim()
       .regex(/^(\+?[0-9][0-9 ().-]{3,18})?$/, 'Introdu un număr de telefon valid.'),
-    // The id of one of the client's job positions, or the name of one to create (ADR 006).
-    jobPosition: z
-      .string()
-      .trim()
-      .min(2, 'Alege postul de lucru sau scrie unul nou.')
-      .max(160, 'Denumirea postului poate avea cel mult 160 de caractere.'),
+    // The id of one of the client's job positions (ADR 006).
+    jobPosition: z.uuid('Alege postul de lucru.'),
     jobTitle: z
       .string()
       .trim()
@@ -124,12 +120,9 @@ export function birthDateFromCnp(input: string) {
 
 const textOrNull = (value: string) => (value ? value : null);
 
-export function toCreateEmployeeRequest(
-  values: EmployeeFormValues,
-  jobPositionId: string
-): CreateEmployeeRequest {
+export function toCreateEmployeeRequest(values: EmployeeFormValues): CreateEmployeeRequest {
   return {
-    jobPositionId,
+    jobPositionId: values.jobPosition,
     lastName: values.lastName,
     firstName: values.firstName,
     cnp: values.cnp ? normalizeCnp(values.cnp) : null,

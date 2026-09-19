@@ -32,10 +32,7 @@ export function NewEmployeePage() {
   const { session } = useAuth();
   // The shell renders this only for a signed-in user.
   const userId = session?.user.id ?? '';
-  const { form, onSubmit, prefillBirthDate, choosePosition, isSaving } = useEmployeeForm(
-    clientId,
-    userId
-  );
+  const { form, onSubmit, prefillBirthDate, choosePosition, isSaving } = useEmployeeForm(clientId);
   const {
     register,
     control: formControl,
@@ -149,7 +146,7 @@ export function NewEmployeePage() {
             <Field
               id="jobPosition"
               label="Post de lucru"
-              hint="Munca pe care o face, cu riscurile și instruirea ei. Un post nou intră la „Personal de execuție” și se poate descrie apoi în „Posturi de lucru”."
+              hint="Munca pe care o face, cu riscurile și instruirea ei. Dacă postul lipsește din listă, adaugă-l de acolo."
               error={errors.jobPosition}
             >
               <Controller
