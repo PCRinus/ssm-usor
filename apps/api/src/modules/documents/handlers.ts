@@ -14,6 +14,7 @@ import {
   listClientDocuments as list,
   regenerateDocument as regenerate,
   saveDraftFile,
+  uploadDocumentFile as upload,
 } from './documents';
 import { loadDocumentFacts } from './facts';
 import type {
@@ -25,6 +26,7 @@ import type {
   listClientDocumentsRoute,
   regenerateDocumentRoute,
   saveDocumentDraftFileRoute,
+  uploadClientDocumentRoute,
 } from './routes';
 
 // During an impersonation the documents belong to the impersonated member's organization and
@@ -131,6 +133,22 @@ export const saveDocumentDraftFile: RouteHandler<
     createFileStore(c),
     actorOf(c),
     documentId,
+    bytes
+  );
+  return c.json({ document }, 200);
+};
+
+export const uploadClientDocument: RouteHandler<typeof uploadClientDocumentRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, typeKey } = c.req.valid('param');
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const document = await upload(
+    createDataClient(c),
+    createFileStore(c),
+    actorOf(c),
+    clientId,
+    typeKey,
     bytes
   );
   return c.json({ document }, 200);

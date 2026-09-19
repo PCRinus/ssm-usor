@@ -68,6 +68,7 @@ function mockApi({
   generate = (() =>
     Response.json({ created: [firstAid, report], skipped: [] }, { status: 201 })) as Route,
   action = (() => Response.json({ document: firstAid })) as Route,
+  upload = (() => Response.json({ document: firstAid })) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -88,6 +89,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}/documents/readiness`) return Response.json(readiness);
     if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
+    if (pathname.endsWith('/upload')) return upload(init);
     if (pathname.endsWith('/download')) {
       return Response.json({
         url: 'https://files.example.test/signed',
@@ -325,6 +327,67 @@ describe('client documents', () => {
 
     expect(await screen.findByText(/a fost emis\./)).toBeTruthy();
     expect(requests(`/documents/${firstAidId}/issue`, 'POST')).toHaveLength(2);
+  });
+
+  it('waits for a file where the app cannot write the document, and takes one', async () => {
+    mockApi({ items: [firstAid] });
+    mount();
+    const user = userEvent.setup();
+
+    const slots = await screen.findAllByTestId('document-slot');
+    expect(slots.map((slot) => slot.textContent)).toEqual([
+      expect.stringContaining('Instrucțiuni proprii'),
+      expect.stringContaining('Tematica'),
+      expect.stringContaining('Lista internă de dotare'),
+      expect.stringContaining('Evaluarea riscurilor'),
+      expect.stringContaining('Planul de prevenire'),
+    ]);
+    expect(slots[3]!.textContent).toContain('Neîncărcat');
+
+    await user.click(within(slots[3]!).getByTestId('document-slot-upload'));
+    const file = new File([new Uint8Array([80, 75, 3, 4])], 'evaluare.docx');
+    await user.upload(screen.getByTestId<HTMLInputElement>('document-file-input'), file);
+
+    expect(await screen.findByText(/Evaluarea riscurilor.*a fost încărcat ca ciornă/)).toBeTruthy();
+    const [[url, init]] = requests('/documents/risk_assessment/upload', 'POST') as [
+      [string, RequestInit],
+    ];
+    expect(String(url)).toContain(`/clients/${clientId}/documents/risk_assessment/upload`);
+    expect(init.body).toBe(file);
+  });
+
+  it('asks before a file replaces a draft, offers no regeneration for an uploaded document, and says what a refused file is', async () => {
+    const assessment = {
+      ...firstAid,
+      id: 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f607',
+      typeKey: 'risk_assessment',
+      title: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+      decisionNumber: null,
+      draft: revision({ editedAt: '2026-09-19T12:00:00+00:00', issueDate: null }),
+    };
+    mockApi({
+      items: [firstAid, assessment],
+      upload: () =>
+        Response.json({ code: 'validation_error', message: 'Not a docx.' }, { status: 400 }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const row = await openMenu(user, 'Evaluarea riscurilor');
+    expect(within(row).getByTestId('document-uploaded').textContent).toBe('Încărcat');
+    expect(within(row).queryByTestId('document-edited')).toBeNull();
+    expect(screen.queryByTestId('document-regenerate')).toBeNull();
+    await user.click(screen.getByTestId('document-upload'));
+    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+      'ia locul ciornei'
+    );
+    await user.click(screen.getByTestId('document-confirm'));
+    await user.upload(
+      screen.getByTestId<HTMLInputElement>('document-file-input'),
+      new File(['text'], 'evaluare.docx')
+    );
+
+    expect((await screen.findByTestId('documents-error')).textContent).toContain('.docx');
   });
 
   it('warns that regenerating a draft loses hand edits, and deletes a draft', async () => {

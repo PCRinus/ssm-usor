@@ -1,4 +1,11 @@
-import { documentTypeKeys, unfilledMark } from '@ssm-usor/contracts';
+import {
+  documentTypeKeys,
+  isUploadedDocumentType,
+  type PackDocumentTypeKey,
+  packDocumentTypeKeys,
+  unfilledMark,
+  uploadedDocumentTypes,
+} from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
@@ -28,8 +35,8 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { FileText, MoreHorizontal, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { FileText, MoreHorizontal, Sparkles, Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -39,6 +46,7 @@ import {
   useIssueDocument,
   useListClientDocuments,
   useRegenerateDocument,
+  useUploadClientDocument,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { formatRoDate } from '../lib/dates';
@@ -46,9 +54,11 @@ import type { ClientDocument } from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 
 type Revision = NonNullable<ClientDocument['draft']>;
+// A document, or the place of one that waits for a file.
+type Row = { typeKey: string; title: string; document: ClientDocument | null };
 type Confirming = {
   // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
-  action: 'regenerate' | 'issue' | 'issueUnfilled' | 'delete';
+  action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
   document: ClientDocument;
 } | null;
 
@@ -72,6 +82,12 @@ const confirmations = {
     pending: 'Se emite…',
     destructive: false,
   },
+  upload: {
+    title: 'Înlocuiești ciorna cu un fișier?',
+    confirm: 'Alege fișierul',
+    pending: 'Se încarcă…',
+    destructive: false,
+  },
   delete: {
     title: 'Ștergi ciorna?',
     confirm: 'Șterge ciorna',
@@ -83,6 +99,9 @@ const confirmations = {
 function confirmationText({ action, document }: NonNullable<Confirming>) {
   if (action === 'issueUnfilled') {
     return `În fișier scrie încă „${unfilledMark}”, acolo unde aplicația nu a avut ce completa. Deschide documentul și înlocuiește textul, apoi emite-l. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`;
+  }
+  if (action === 'upload') {
+    return 'Fișierul Word pe care îl alegi ia locul ciornei. Ce conține ciorna acum se pierde; dacă vrei să o păstrezi, descarc-o înainte.';
   }
   if (action === 'issue') {
     return document.issued
@@ -121,14 +140,58 @@ export function DocumentsCard({
   const regenerate = useRegenerateDocument({ request: apiRequest });
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
+  const upload = useUploadClientDocument({ request: apiRequest });
+  // One file input for the whole card; what it was opened for waits here until a file is chosen.
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploadTarget = useRef<{ typeKey: PackDocumentTypeKey; title: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | null>(null);
-  const busy = regenerate.isPending || issue.isPending || remove.isPending;
+  const busy = regenerate.isPending || issue.isPending || remove.isPending || upload.isPending;
 
   const items = documents.data?.items ?? [];
   const existing = new Set(items.map((item) => item.typeKey));
   const lacking = documentTypeKeys.filter((key) => !existing.has(key)).length;
+  // The documents the app cannot write yet wait for a file, in their place in the pack.
+  const packRows = packDocumentTypeKeys.flatMap((typeKey): Row[] => {
+    const document = items.find((item) => item.typeKey === typeKey);
+    if (document) return [{ typeKey, title: document.title, document }];
+    return isUploadedDocumentType(typeKey)
+      ? [{ typeKey, title: uploadedDocumentTypes[typeKey], document: null }]
+      : [];
+  });
+  // Anything outside the pack keeps the place the API gave it, after the pack.
+  const known = new Set<string>(packDocumentTypeKeys);
+  const rows = [
+    ...packRows,
+    ...items
+      .filter((item) => !known.has(item.typeKey))
+      .map((document): Row => ({ typeKey: document.typeKey, title: document.title, document })),
+  ];
+
+  function chooseFile(typeKey: string, title: string) {
+    uploadTarget.current = { typeKey: typeKey as PackDocumentTypeKey, title };
+    fileInput.current?.click();
+  }
+
+  async function uploadFile(file: File | undefined) {
+    const target = uploadTarget.current;
+    if (!file || !target) return;
+    setError(null);
+    try {
+      await upload.mutateAsync({ clientId, typeKey: target.typeKey, data: file });
+      toast.success(`„${target.title}” a fost încărcat ca ciornă.`);
+    } catch (cause) {
+      setError(
+        cause instanceof ApiHttpError && cause.status === 400
+          ? 'Fișierul nu este un document Word (.docx) sau are peste 15 MB. Dacă este un .doc mai vechi, salvează-l din Word ca .docx.'
+          : cause instanceof ApiHttpError && cause.status === 409
+            ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
+            : `Nu am putut încărca fișierul pentru „${target.title}”. Verifică conexiunea și încearcă din nou.`
+      );
+    }
+    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
+  }
 
   async function download(document: ClientDocument, revision: Revision) {
     setError(null);
@@ -154,6 +217,12 @@ export function DocumentsCard({
 
   async function run({ action, document }: NonNullable<Confirming>) {
     setError(null);
+    if (action === 'upload') {
+      // Still inside the click, which is what lets a page open the file picker.
+      chooseFile(document.typeKey, document.title);
+      setConfirming(null);
+      return;
+    }
     try {
       if (action === 'regenerate') {
         await regenerate.mutateAsync({ documentId: document.id, data: {} });
@@ -251,8 +320,39 @@ export function DocumentsCard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((document) => {
+              {rows.map(({ typeKey, title, document }) => {
+                if (!document) {
+                  return (
+                    <TableRow key={typeKey} data-testid="document-slot">
+                      <TableCell className="font-medium text-muted-foreground">{title}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          title="Aplicația nu scrie încă acest document. Încarcă fișierul Word scris în altă parte, ca documentația să fie completă."
+                        >
+                          Neîncărcat
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell>
+                        {!readOnly && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid="document-slot-upload"
+                            aria-label={`Încarcă ${title}`}
+                            disabled={busy}
+                            onClick={() => chooseFile(typeKey, title)}
+                          >
+                            <Upload aria-hidden="true" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
                 const current = document.draft ?? document.issued;
+                const uploaded = isUploadedDocumentType(document.typeKey);
                 return (
                   <TableRow key={document.id} data-testid="document-row">
                     <TableCell>
@@ -282,7 +382,12 @@ export function DocumentsCard({
                             Ciornă · rev. {document.draft.revision}
                           </Badge>
                         )}
-                        {document.draft?.editedAt && (
+                        {document.draft?.editedAt && uploaded && (
+                          <Badge variant="outline" data-testid="document-uploaded">
+                            Încărcat
+                          </Badge>
+                        )}
+                        {document.draft?.editedAt && !uploaded && (
                           <Badge
                             variant="outline"
                             data-testid="document-edited"
@@ -345,11 +450,23 @@ export function DocumentsCard({
                           {!readOnly && (
                             <>
                               <DropdownMenuSeparator />
+                              {!uploaded && (
+                                <DropdownMenuItem
+                                  data-testid="document-regenerate"
+                                  onSelect={() => setConfirming({ action: 'regenerate', document })}
+                                >
+                                  Generează din nou
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
-                                data-testid="document-regenerate"
-                                onSelect={() => setConfirming({ action: 'regenerate', document })}
+                                data-testid="document-upload"
+                                onSelect={() =>
+                                  document.draft
+                                    ? setConfirming({ action: 'upload', document })
+                                    : chooseFile(document.typeKey, document.title)
+                                }
                               >
-                                Generează din nou
+                                Încarcă un fișier
                               </DropdownMenuItem>
                               {document.draft && (
                                 <>
@@ -381,6 +498,19 @@ export function DocumentsCard({
           </Table>
         )}
       </CardContent>
+      <input
+        ref={fileInput}
+        type="file"
+        data-testid="document-file-input"
+        className="hidden"
+        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          // Emptied, so that choosing the same file again is still a change.
+          event.target.value = '';
+          void uploadFile(file);
+        }}
+      />
       <GenerateDocumentsDialog
         clientId={clientId}
         userId={userId}

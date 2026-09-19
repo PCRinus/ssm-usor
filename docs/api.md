@@ -85,6 +85,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                   |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                        |
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                      |
+| `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                        |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                       |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
@@ -292,6 +293,19 @@ the in-app editor saves them or as edited elsewhere, up to 15 MB. It checks that
 are a zip naming `word/document.xml`, writes them over the draft's file, and sets `edited_at`
 and `edited_by`, which the list shows and "Generează din nou" warns about. `409` when the
 document has no draft; an issued file cannot be written by anyone.
+
+`POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
+the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
+its order. Five of them are `uploadedDocumentTypes`, which the app cannot write until stages
+2 and 3 (the own instructions, the training themes, the protective equipment list, the risk
+assessment, the prevention plan): for those the upload is how the document comes to exist, as
+revision 1 in draft under the title its template will carry, so a client's set can be
+complete today. For a document that exists, the file replaces the draft, or starts the next
+draft beside the issued revision, keeping the generation and so the date. An uploaded
+revision has no template and no data snapshot, so it never reports `dataChanged`, and it
+cannot be regenerated. A generated type that does not exist yet answers `409` with the reason
+`not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
+downloading and the editor work on an uploaded document as on any other.
 
 The whole set, 18 documents, merges and uploads in under a second against the local stack,
 inside `workerd` as well as in Node.

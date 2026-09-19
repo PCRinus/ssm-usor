@@ -113,6 +113,38 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(material.getByTestId('document-issued')).toHaveCount(0);
   await page.getByRole('button', { name: 'Emite oricum' }).click();
   await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+
+  // The risk assessment is written elsewhere and uploaded; any Word file will do here. A file
+  // uploaded again after issuing is the next draft, beside the issued revision.
+  await expect(page.getByTestId('document-slot')).toHaveCount(5);
+  const wordFile = await file.path();
+  const slot = page.getByTestId('document-slot').filter({ hasText: 'Evaluarea riscurilor' });
+  await expect(slot).toContainText('Neîncărcat');
+  let chooser = page.waitForEvent('filechooser');
+  await slot.getByTestId('document-slot-upload').click();
+  await (await chooser).setFiles(wordFile);
+  const assessment = rows.filter({ hasText: 'Evaluarea riscurilor' });
+  await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
+  await expect(assessment.getByTestId('document-uploaded')).toHaveText('Încărcat');
+  await expect(page.getByTestId('document-slot')).toHaveCount(4);
+
+  await act(page, assessment, 'document-issue');
+  await page.getByTestId('document-confirm').click();
+  await expect(assessment.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  chooser = page.waitForEvent('filechooser');
+  await act(page, assessment, 'document-upload');
+  await (await chooser).setFiles(wordFile);
+  await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
+  await expect(assessment.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+
+  // Over a draft, the file is asked about first.
+  chooser = page.waitForEvent('filechooser');
+  await act(page, assessment, 'document-upload');
+  await expect(page.getByTestId('document-confirm-dialog')).toContainText('ia locul ciornei');
+  await page.getByTestId('document-confirm').click();
+  await (await chooser).setFiles(wordFile);
+  await expect(page.getByText(/a fost încărcat ca ciornă/).last()).toBeVisible();
+  await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
 });
 
 test('a draft is corrected in the in-app editor, and the correction is still there afterwards', async ({
