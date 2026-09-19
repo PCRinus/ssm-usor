@@ -300,6 +300,33 @@ describe('client documents', () => {
     expect(requests(`/documents/${firstAidId}/issue`, 'POST')).toHaveLength(1);
   });
 
+  it('asks again before issuing a file that still has text to fill in', async () => {
+    mockApi({
+      items: [firstAid],
+      action: (init) =>
+        JSON.parse(String(init?.body ?? '{}')).acceptUnfilled === true
+          ? Response.json({ document: firstAid })
+          : Response.json(
+              { code: 'conflict', message: 'Unfilled.', reason: 'unfilled_text' },
+              { status: 409 }
+            ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-issue'));
+    await user.click(await screen.findByTestId('document-confirm'));
+
+    const confirm = await screen.findByRole('button', { name: 'Emite oricum' });
+    expect(screen.getByTestId('document-confirm-dialog').textContent).toContain('„DE COMPLETAT”');
+    expect(screen.queryByTestId('documents-error')).toBeNull();
+    await user.click(confirm);
+
+    expect(await screen.findByText(/a fost emis\./)).toBeTruthy();
+    expect(requests(`/documents/${firstAidId}/issue`, 'POST')).toHaveLength(2);
+  });
+
   it('warns that regenerating a draft loses hand edits, and deletes a draft', async () => {
     mockApi({ items: [firstAid] });
     mount();

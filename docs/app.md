@@ -123,7 +123,8 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/__root.tsx`                                                 | other paths                          | Not-found screen with a link back to the start; route error screen.                                                                                       |
 
 A route whose breadcrumb label depends on data (the client name) returns `crumb` from its
-loader instead of `staticData.title`; the shell reads either.
+loader instead of `staticData.title`; the shell reads either, and prefers the crumb, so a
+route can keep a static title for when its loader has no name to give (the document page).
 
 Each route file exports `Route` with its guard, loader, and component. A route sets
 `staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
@@ -356,7 +357,9 @@ mobile navigation link closes the Sheet.
   fills in the organization's details). When ready it asks for the date and the first
   decision number, filled in from the last generation. A row's menu downloads the draft or
   the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
-  confirmation that says what is lost or locked. A download fetches the signed link and
+  confirmation that says what is lost or locked. When issuing is refused with the reason
+  `unfilled_text`, the same dialog asks a second question, "Documentul mai are text de
+  completat", and "Emite oricum" sends `acceptUnfilled`. A download fetches the signed link and
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own
   header. A `404` or `409` reloads the list. An archived client only gets the downloads.
@@ -375,7 +378,10 @@ mobile navigation link closes the Sheet.
   built to Arial's metrics, served from our own origin, 0.8 MB once per browser. The house
   style sets all text in Arial, so no other family is allowed to load. Its notice about
   unavailable fonts names the families a document's styles fall back to; the templates name
-  none since their style defaults were cleaned. Our own controls sit in its
+  none since their style defaults were cleaned. The editor ships ten interface languages and
+  Romanian is not one: `src/documents/editor-strings.ro.ts` is our catalogue, in Word's own
+  Romanian terms, passed as `i18n`; a key it leaves out shows in English, which is what to
+  look for after upgrading the editor. Our own controls sit in its
   title bar: the revision badge, "Modificări nesalvate" or "Salvat", "Descarcă", and
   "Salvează", which is also Ctrl+S. Unsaved means the document's revision differs from the one
   at load or at the last save, because opening a file reports layout changes of its own.

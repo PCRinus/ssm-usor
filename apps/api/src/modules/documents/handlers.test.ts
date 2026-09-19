@@ -11,9 +11,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app';
 
 // The engine is tested in its own package, against the real templates. Here it prints the
-// client and, for a decision, its number.
+// client and, for a decision, its number, and a file's text is its bytes read as text.
 vi.mock('@ssm-usor/document-engine', () => ({
   TemplateError: class TemplateError extends Error {},
+  documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
   renderTemplate: (_template: Uint8Array, data: Record<string, unknown>) => ({
     document: new Uint8Array([80, 75, 3, 4]),
     usedNames: ['client', ...('decisionNumber' in data ? ['decisionNumber'] : [])],
@@ -130,6 +131,7 @@ type Upstream =
   | 'templates'
   | 'revisions'
   | 'issue'
+  | 'file'
   | 'upload';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -145,7 +147,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       return new Response(new Uint8Array([1, 2, 3]));
     }
     if (url.pathname.startsWith('/storage/v1/object/documents')) {
-      if (method === 'GET') return new Response(new Uint8Array([1, 2, 3]));
+      if (method === 'GET') {
+        return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
+      }
       if (method === 'DELETE') return Response.json([]);
       return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
     }
@@ -547,7 +551,7 @@ describe('POST /documents/{documentId}/regenerate', () => {
 });
 
 describe('POST /documents/{documentId}/issue', () => {
-  const issue = () => request(`/documents/${documentId}/issue`, 'POST');
+  const issue = (body?: unknown) => request(`/documents/${documentId}/issue`, 'POST', body);
 
   it('issues the draft with the hash of its file', async () => {
     mockUpstream({
@@ -560,6 +564,22 @@ describe('POST /documents/{documentId}/issue', () => {
       // sha256 of the three bytes the storage mock serves.
       p_docx_sha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
     });
+  });
+
+  it('asks before issuing a file that still has text to fill in', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      file: () => new Response('Riscuri specifice: DE COMPLETAT'),
+    });
+    const refused = await issue();
+    expect(refused.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await refused.json()).reason).toBe('unfilled_text');
+    expect(calls('/rest/v1/rpc/issue_document_revision', 'POST')).toHaveLength(0);
+
+    expect((await issue({ acceptUnfilled: false })).status).toBe(409);
+    expect((await issue({ acceptUnfilled: true })).status).toBe(200);
+    expect(calls('/rest/v1/rpc/issue_document_revision', 'POST')).toHaveLength(1);
+    expect((await issue({ acceptUnfilled: 'yes' })).status).toBe(400);
   });
 
   it('refuses a document without a draft, and a draft someone else just issued', async () => {

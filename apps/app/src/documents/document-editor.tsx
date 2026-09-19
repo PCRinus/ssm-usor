@@ -4,6 +4,8 @@ import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 
+import { editorStrings } from './editor-strings.ro';
+
 // The Word editor itself, in a module of its own so that its three megabytes are only
 // fetched when a document is opened. It takes bytes and gives bytes back (ADR 005), so
 // replacing it touches this file and nothing that is stored.
@@ -88,6 +90,8 @@ export default function DocumentEditor({
       rulers={false}
       navigation={false}
       locale="ro-RO"
+      // A module constant: a catalogue with a new identity rebuilds the whole interface.
+      i18n={editorStrings}
       fonts={fonts}
       renderTitleBarRight={() => actions}
       onReady={() => {

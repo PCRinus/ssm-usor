@@ -3,6 +3,7 @@ import {
   type MissingDocumentData,
   type ResponsiblePersonRole,
   trainingMonths,
+  unfilledMark,
 } from '@ssm-usor/contracts';
 
 // From the facts stored about a provider and its client to the names the templates print
@@ -199,7 +200,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     },
     // The unit's own risks come from the risk assessment, which is not in the app yet: the
     // chapter is generated as a row to fill in by hand (ADR 005).
-    unitRisks: [{ risk: 'DE COMPLETAT', measure: 'DE COMPLETAT' }],
+    unitRisks: [{ risk: unfilledMark, measure: unfilledMark }],
   };
 }
 

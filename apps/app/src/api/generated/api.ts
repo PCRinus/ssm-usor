@@ -1557,6 +1557,10 @@ export interface RegenerateDocumentRequest {
   issueDate?: string;
 }
 
+export interface IssueDocumentRequest {
+  acceptUnfilled?: boolean;
+}
+
 export type MembershipResponseOrganization = {
   id: string;
   name: string;
@@ -5387,16 +5391,38 @@ export const getIssueDocumentUrl = (documentId: string) => {
 };
 
 /**
- * Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft.
+ * Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. A draft whose file still reads "DE COMPLETAT" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.
  * @summary Issue the draft of a document
  */
 export const issueDocument = async (
   documentId: string,
+  issueDocumentRequest?: IssueDocumentRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientDocumentResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
   return apiFetch<ClientDocumentResponse>(getIssueDocumentUrl(documentId), {
     ...options,
     method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(issueDocumentRequest),
   });
 };
 
@@ -5430,18 +5456,18 @@ export const getIssueDocumentMutationOptions = <
     Awaited<ReturnType<typeof issueDocument>>,
     IssueDocumentMutationVariables
   > = (props) => {
-    const { documentId } = props ?? {};
+    const { documentId, data } = props ?? {};
 
-    return issueDocument(documentId, requestOptions);
+    return issueDocument(documentId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
 export type IssueDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof issueDocument>>>;
-
+export type IssueDocumentMutationBody = IssueDocumentRequest | undefined;
 export type IssueDocumentMutationError = ErrorType<ApiErrorResponse>;
-export type IssueDocumentMutationVariables = { documentId: string };
+export type IssueDocumentMutationVariables = { documentId: string; data?: IssueDocumentRequest };
 
 /**
  * @summary Issue the draft of a document

@@ -159,3 +159,19 @@ export const regenerateDocumentRequestSchema = z.object({
 });
 
 export type RegenerateDocumentRequest = z.infer<typeof regenerateDocumentRequestSchema>;
+
+/**
+ * What a generated file says where the app has nothing to print yet, and what a person is
+ * meant to replace before the document is issued.
+ */
+export const unfilledMark = 'DE COMPLETAT';
+
+/** `reason` values on document errors, so the SPA can word them itself. */
+export const documentErrorReasons = ['missing_document_data', 'unfilled_text'] as const;
+
+export const issueDocumentRequestSchema = z.object({
+  // Issue the draft although its file still reads `unfilledMark` somewhere.
+  acceptUnfilled: z.boolean().optional(),
+});
+
+export type IssueDocumentRequest = z.infer<typeof issueDocumentRequestSchema>;

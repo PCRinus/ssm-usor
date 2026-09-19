@@ -279,7 +279,11 @@ as a draft and stays in force until that one is issued. The date is the one the 
 carries unless `issueDate` is given, and a decision keeps its number. `POST …/issue` reads the
 draft's file, and the database locks the revision with its SHA-256 and supersedes the one
 issued before, which stays downloadable. From then on no policy lets anyone write that file
-or change that row; a correction is a new draft. `DELETE …/draft` removes the file, then the
+or change that row; a correction is a new draft. A file that still reads "DE COMPLETAT"
+(the contracts' `unfilledMark`, which generation prints where the app has nothing to say yet)
+is refused with `409` and the reason `unfilled_text`, until the optional body carries
+`acceptUnfilled: true`. The file itself is searched, across the runs Word splits a phrase
+into, so a draft corrected in the editor or elsewhere is judged as it stands. `DELETE …/draft` removes the file, then the
 row, and is `409` when there is no draft, so an issued revision is never touched. Both roles
 can do all three, as the ADR decided.
 

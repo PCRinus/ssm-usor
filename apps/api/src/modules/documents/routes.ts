@@ -6,6 +6,7 @@ import {
   documentReadinessResponseSchema,
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
+  issueDocumentRequestSchema,
   regenerateDocumentRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -181,15 +182,29 @@ export const issueDocumentRoute = createRoute({
   operationId: 'issueDocument',
   summary: 'Issue the draft of a document',
   description:
-    'Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft.',
+    'Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. A draft whose file still reads "DE COMPLETAT" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: documentParams },
+  request: {
+    params: documentParams,
+    body: {
+      // Optional, so issuing without a body keeps working.
+      required: false,
+      content: {
+        'application/json': {
+          schema: issueDocumentRequestSchema.meta({ id: 'IssueDocumentRequest' }),
+        },
+      },
+    },
+  },
   responses: {
     200: { description: 'The document with its issued revision', content: documentContent },
-    400: { description: 'Invalid path', content: errorContent },
+    400: { description: 'Invalid path or body', content: errorContent },
     404: noSuchDocument,
-    409: { description: 'The document has no draft', content: errorContent },
+    409: {
+      description: 'The document has no draft, or its file still has text to fill in',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

@@ -3,9 +3,11 @@ import {
   type DocumentRevision,
   documentTypeKeys,
   type GenerateDocumentsRequest,
+  type IssueDocumentRequest,
   type RegenerateDocumentRequest,
+  unfilledMark,
 } from '@ssm-usor/contracts';
-import { renderTemplate, TemplateError } from '@ssm-usor/document-engine';
+import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
 import type { Database, Json } from '../../database.types';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
@@ -478,19 +480,43 @@ async function sha256(bytes: Uint8Array) {
 }
 
 /**
+ * Whether the file still reads the mark a person was meant to replace. Asked of the file
+ * itself, when it matters, because a draft changes by more roads than generation: the editor,
+ * a file edited elsewhere. A file that cannot be read as a `.docx` has nothing to find.
+ */
+function hasUnfilledText(bytes: Uint8Array) {
+  try {
+    return documentText(bytes).includes(unfilledMark);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Issues the draft: the database supersedes the issued revision, if any, and locks this one
- * with the hash of its file, which from then on no policy lets anyone write.
+ * with the hash of its file, which from then on no policy lets anyone write. A file that still
+ * has text to fill in is issued only when the person says so: an issued document is final.
  */
 export async function issueDocument(
   db: DataClient,
   files: FileStore,
   actor: Actor,
-  documentId: string
+  documentId: string,
+  input: IssueDocumentRequest = {}
 ) {
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
   if (!draft) throw new ApiError('conflict', 'This document has no draft to issue.');
-  const hash = await sha256(await files.readDocument(draft.docx_path));
+  const bytes = await files.readDocument(draft.docx_path);
+  if (!input.acceptUnfilled && hasUnfilledText(bytes)) {
+    throw new ApiError(
+      'conflict',
+      `The draft still reads "${unfilledMark}". Fill it in, or issue it as it is with acceptUnfilled.`,
+      undefined,
+      'unfilled_text'
+    );
+  }
+  const hash = await sha256(bytes);
   const { error } = await db.rpc('issue_document_revision', {
     p_revision_id: draft.id,
     p_docx_sha256: hash,
