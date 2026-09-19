@@ -186,11 +186,12 @@ export function AppShell() {
   const { auth, session } = useAuth();
   const navigate = useNavigate();
   // Matched routes with a title form the breadcrumb, for example Clienți › Client nou.
-  // A route whose title depends on data returns it as `crumb` from its loader.
+  // A route whose title depends on data returns it as `crumb` from its loader; a static title
+  // beside it stands in when the loader has no name to give.
   const trail = useMatches({
     select: (matches) =>
       matches.flatMap((match) => {
-        const label = match.staticData.title ?? loaderCrumb(match.loaderData);
+        const label = loaderCrumb(match.loaderData) ?? match.staticData.title;
         return label ? [{ to: match.pathname, label }] : [];
       }),
   });

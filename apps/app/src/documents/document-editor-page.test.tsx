@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -153,6 +153,10 @@ describe('the document editor page', () => {
     expect(screen.getByTestId<HTMLButtonElement>('editor-save').disabled).toBe(true);
     // A full page: the client's header and sections make room for the document.
     expect(screen.queryByTestId('client-section')).toBeNull();
+    // The breadcrumb ends in the document, by its name.
+    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(within(breadcrumb).getByText(/primul ajutor/)).toBeTruthy();
+    expect(within(breadcrumb).queryByText('Document')).toBeNull();
   });
 
   it("saves what the editor holds as the draft's file, from the button and from Ctrl+S", async () => {
