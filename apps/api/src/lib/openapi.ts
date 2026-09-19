@@ -1,7 +1,5 @@
 import { apiErrorResponseSchema } from '@ssm-usor/contracts';
 
-// Shared OpenAPI building blocks for module route definitions.
-
 export const errorContent = {
   'application/json': { schema: apiErrorResponseSchema.meta({ id: 'ApiErrorResponse' }) },
 };

@@ -18,7 +18,6 @@ export const seedConfigSchema = z.object({
 const seedMarker = 'ssm-usor-development-admin';
 const pageSize = 1000;
 
-// Refuse to overwrite an unrelated account if the configured email is already taken.
 export async function seedAdmin(
   admin: SupabaseClient['auth']['admin'],
   email: string,
@@ -39,7 +38,6 @@ export async function seedAdmin(
     );
   }
 
-  // The password is set when the account is created, and on rerun only when asked.
   const attributes = {
     email,
     email_confirm: true,

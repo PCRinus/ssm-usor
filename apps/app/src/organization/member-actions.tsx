@@ -41,8 +41,7 @@ function actionMessage(cause: unknown, name: string) {
   return 'Acțiunea nu a reușit. Verifică conexiunea și încearcă din nou.';
 }
 
-// An owner's tools for one other member: switch the role, or remove them after a
-// confirmation. `onError` reports to the card, where the message persists.
+// `onError` reports to the card, where the message persists.
 export function MemberActions({
   member,
   onError,

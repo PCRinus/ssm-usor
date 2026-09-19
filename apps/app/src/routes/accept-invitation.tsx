@@ -53,7 +53,6 @@ const closedMessages: Record<string, { title: string; text: string }> = {
   },
 };
 
-// What the API's `reason` means to the person accepting.
 function acceptMessage(cause: unknown) {
   const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
   switch (body?.reason) {
@@ -235,8 +234,8 @@ interface AcceptFormProps {
   description: ReactNode;
 }
 
-// No account yet: name and password. The API creates the account already confirmed,
-// because the token reached the invited mailbox, then we sign in with what was typed.
+// The API creates the account already confirmed, because the token reached the invited
+// mailbox, then we sign in with what was typed.
 function CreateAccountForm({ token, invitation, description }: AcceptFormProps) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const { auth } = useAuth();
@@ -339,8 +338,6 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
   );
 }
 
-// Signed in with the invited address: accept as that account. The name is asked for only
-// when the account has no profile yet.
 function JoinForm({ token, invitation, description }: AcceptFormProps) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();

@@ -18,7 +18,7 @@ import { isTextPart, replaceText } from './text';
 
 export type TemplateData = Record<string, unknown>;
 
-/** A template that could not be merged. `missing` lists the placeholders without a value. */
+/** `missing` lists the placeholders without a value. */
 export class TemplateError extends Error {
   constructor(
     message: string,
@@ -82,7 +82,7 @@ function explain(cause: unknown) {
       : 'The template could not be read.';
 }
 
-/** Returns the merged `.docx`. Throws a `TemplateError` for a broken template or a missing value. */
+/** Throws a `TemplateError` for a broken template or a missing value. */
 export function renderDocument(template: Uint8Array, data: TemplateData): Uint8Array {
   return renderTemplate(template, data).document;
 }
@@ -139,10 +139,7 @@ function tidy(zip: PizZip) {
   return zip;
 }
 
-/**
- * Every placeholder a template uses, for checking a template against the data it will get.
- * Names inside a loop are listed as written, relative to the loop's items.
- */
+/** Names inside a loop are listed as written, relative to the loop's items. */
 export function templatePlaceholders(template: Uint8Array): string[] {
   const names = new Set<string>();
   const collector = (tag: string) => {

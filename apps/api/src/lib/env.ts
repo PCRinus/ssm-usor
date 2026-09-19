@@ -18,9 +18,7 @@ export type ApiEnv = {
     APP_ORIGIN?: string;
     // Where this API is reachable from an email; the request URL is not reliable under wrangler dev.
     API_ORIGIN?: string;
-    // Service binding to apps/mail.
     MAIL?: MailService;
-    // Service binding to apps/pdf, which turns an issued Word file into its PDF.
     PDF?: PdfService;
     // "service" where apps/pdf is deployed and the binding above is to be used.
     PDF_CONVERSION?: string;

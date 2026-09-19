@@ -25,9 +25,8 @@ export interface DatePickerProps {
   className?: string;
 }
 
-// A date field with a text input for people who know the date (dd.mm.yyyy) and a calendar
-// for people who need to look it up. The form only ever sees ISO dates: an unfinished or
-// impossible text reports an empty value, and the form's own validation names the field.
+// The form only ever sees ISO dates: an unfinished or impossible text reports an empty value,
+// and the form's own validation names the field.
 export function DatePicker({
   id,
   value,

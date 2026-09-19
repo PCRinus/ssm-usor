@@ -35,10 +35,7 @@ export function createFileStore(c: Context<ApiEnv>) {
     readTemplate: (path: string) => read(templatesBucket, path, 'read template'),
     readDocument: (path: string) => read(documentsBucket, path, 'read document'),
 
-    /**
-     * Writes the Word file of a draft revision, or the PDF beside it; the row must exist
-     * first, the policies check it.
-     */
+    /** The row must exist first, the policies check it. */
     async writeDocument(path: string, bytes: Uint8Array, options: { replace: boolean }) {
       const { error } = await storage.from(documentsBucket).upload(path, bytes, {
         contentType: path.endsWith('.pdf') ? 'application/pdf' : docxType,
@@ -52,7 +49,6 @@ export function createFileStore(c: Context<ApiEnv>) {
       if (error) throw fileError('remove document', error);
     },
 
-    /** A link that downloads the file under the given name, for a minute by default. */
     async documentLink(path: string, fileName: string, expiresInSeconds = 60) {
       const { data, error } = await storage
         .from(documentsBucket)

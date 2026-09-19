@@ -3,7 +3,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Eye, EyeOff } from 'lucide-react';
 import { type ComponentProps, useState } from 'react';
 
-// A password field with a show/hide toggle. Spread a form library's register() onto it.
 export function PasswordInput({
   id,
   className,

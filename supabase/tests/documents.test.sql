@@ -1,6 +1,3 @@
--- pgTAP checks for generated documents: templates, revisions, issuing, and the storage
--- policies that follow them (ADR 005).
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(36);
 
@@ -48,8 +45,6 @@ returns void language sql as $$
   select set_config('role', 'postgres', true), set_config('request.jwt.claims', '', true);
 $$;
 
--- Built-in templates --------------------------------------------------------------------------
-
 select results_eq(
   $$ select version, created from public.register_built_in_template_version(
        'decision_training', 'Decizia privind instruirea', 'built-in/decision_training/aaa.docx', repeat('a', 64)) $$,
@@ -76,8 +71,6 @@ select is(
   'Decizia privind responsabilii cu instruirea',
   'registering keeps the template title current'
 );
-
--- Schema rules that hold regardless of the caller ------------------------------------------
 
 select throws_ok(
   $$ insert into public.document_revisions (organization_id, document_id, revision, docx_path)
@@ -169,7 +162,6 @@ select throws_ok(
   'a member cannot issue by updating the row'
 );
 
--- Storage follows the draft.
 select lives_ok(
   $$ insert into storage.objects (bucket_id, name) values ('documents',
      '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/1.docx') $$,
@@ -213,7 +205,6 @@ select throws_ok(
   'a member cannot write a template file'
 );
 
--- Issuing.
 select throws_ok(
   $$ select public.issue_document_revision('e2e2e2e2-0000-4000-8000-000000000001', repeat('c', 64)) $$,
   'DOC01',

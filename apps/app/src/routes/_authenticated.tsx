@@ -4,7 +4,6 @@ import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
 import { AppShell } from '../components/app-shell';
 
-// Pathless layout: every child route requires a session and renders inside the shell.
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context: { auth } }) => {
     await auth.ready;

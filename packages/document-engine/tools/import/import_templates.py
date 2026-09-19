@@ -224,7 +224,6 @@ def python_pattern(replacement):
 
 
 def apply(document, replacement):
-    """Applies one replacement and returns how many times it matched."""
     if replacement.get('whole'):
         # A paragraph that holds nothing else: a table cell with just a name.
         pattern = python_pattern(replacement)
@@ -349,7 +348,6 @@ def wording_replacements(wording, present):
 
 def write_paragraph(text, cursor, content, *, size=BODY_SIZE, bold=False, italic=False,
                     adjust=CENTER, above=0, below=6, keep=False, first=False):
-    """Appends a paragraph in the house style at the cursor."""
     if not first:
         text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
     text.insertString(cursor, content, False)
@@ -373,7 +371,6 @@ def write_paragraph(text, cursor, content, *, size=BODY_SIZE, bold=False, italic
 
 
 def insert_handover(document, text, cursor, sides, signing_room=42):
-    """Two columns without borders: what each side confirms, room to sign, who signs."""
     table = document.createInstance('com.sun.star.text.TextTable')
     table.initialize(1, 2)
     text.insertTextContent(cursor, table, False)
@@ -554,8 +551,7 @@ def rebuild_table(document, definition):
 
 
 def replace_handover(document, sides=None):
-    """Swaps the tab-aligned hand-over lines for the two-column block. Returns whether it
-    found them."""
+    """Returns whether it found the hand-over lines."""
     body = list(_elements(document.Text))
     for index, element in enumerate(body):
         if not element.supportsService('com.sun.star.text.Paragraph'):
@@ -600,7 +596,6 @@ HEADER_PARTIES = {
 
 
 def build_header(document, details):
-    """Writes the document details into the header of every page style."""
     page_styles = document.StyleFamilies.getByName('PageStyles')
     for style_name in page_styles.getElementNames():
         style = page_styles.getByName(style_name)
@@ -856,7 +851,6 @@ def matches(text, patterns):
 def typeset(document, kind, shrink_empty=False):
     rules = KINDS[kind]
 
-    # One page setup.
     page_styles = document.StyleFamilies.getByName('PageStyles')
     # Every page style, not only the ones in use: an unused one still exports its footer.
     for name in page_styles.getElementNames():
@@ -1007,7 +1001,6 @@ def typeset(document, kind, shrink_empty=False):
             paragraph.setPropertyToDefault('ListAutoFormat')
         except Exception:  # noqa: BLE001 - older LibreOffice has no such property
             pass
-        # No boxes, shadows or shading around a paragraph.
         for name in ('LeftBorder', 'RightBorder', 'TopBorder', 'BottomBorder', 'ParaShadowFormat',
                      'ParaBackColor', 'ParaBackTransparent'):
             paragraph.setPropertyToDefault(name)

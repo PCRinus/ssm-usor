@@ -5,7 +5,6 @@ import type { ResponsiblePersonListResponse, ResponsiblePersonRequest } from '..
 
 export type ResponsiblePerson = ResponsiblePersonListResponse['items'][number];
 
-// What each role means in the decisions, worded for the person ticking the box.
 export const responsibleRoleLabels: Record<
   ResponsiblePersonRole,
   { label: string; description: string }

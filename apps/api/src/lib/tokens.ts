@@ -1,4 +1,4 @@
-/** A URL-safe random token: 32 bytes, 43 characters. Only its hash is stored. */
+/** Only its hash is stored. */
 export function createToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return btoa(String.fromCharCode(...bytes))

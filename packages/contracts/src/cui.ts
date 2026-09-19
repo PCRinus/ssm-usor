@@ -1,4 +1,3 @@
-// Romanian fiscal identification code (CUI/CIF) helpers.
 // The stored value is digits only; VAT registration is a separate flag.
 
 const controlKey = [7, 5, 3, 2, 1, 7, 5, 3, 2];
@@ -10,14 +9,11 @@ export function cuiControlDigit(body: string) {
   return remainder === 10 ? 0 : remainder;
 }
 
-// Between two and ten digits, no leading zero, and a valid control digit.
 export function isValidCui(digits: string) {
   if (!/^[1-9][0-9]{1,9}$/.test(digits)) return false;
   return cuiControlDigit(digits.slice(0, -1)) === Number(digits.at(-1));
 }
 
-// Accepts user input such as "RO 1590082", "ro1590082", or "1 590 082".
-// Returns the digits and whether a VAT prefix was present, or null when malformed.
 export function normalizeCui(input: string) {
   const compact = input.replace(/[\s.-]/g, '').toUpperCase();
   const match = compact.match(/^(RO)?([0-9]+)$/);
@@ -30,7 +26,6 @@ export function isValidCuiInput(input: string) {
   return normalized !== null && isValidCui(normalized.cui);
 }
 
-// Format for display: "RO1590082" for VAT payers, "1590082" otherwise.
 export function formatCui(cui: string, vatPayer: boolean) {
   return vatPayer ? `RO${cui}` : cui;
 }

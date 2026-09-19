@@ -1,5 +1,3 @@
--- pgTAP checks for employee tenancy, the active-client rule, and identifier uniqueness.
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(15);
 
@@ -31,8 +29,6 @@ returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', app_metadata)::text, true);
 $$;
-
--- Schema rules that hold regardless of the caller ------------------------------------
 
 select throws_ok(
   $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at)

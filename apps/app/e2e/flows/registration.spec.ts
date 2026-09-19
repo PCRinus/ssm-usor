@@ -15,7 +15,6 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('register-submit').click();
   await expect(page.getByTestId('register-sent')).toContainText(email);
 
-  // An unconfirmed account cannot sign in yet.
   await signIn(page, email);
   await expect(page.getByTestId('login-auth-error')).toBeVisible();
 
@@ -28,7 +27,6 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('confirm-submit').click();
   await expect(page).toHaveURL(/\/onboarding$/);
 
-  // The app itself is closed to an account without an organization.
   await page.goto('/clients');
   await expect(page).toHaveURL(/\/onboarding$/);
 
@@ -43,12 +41,10 @@ test('a person registers, confirms their address, and sets up their organization
   await expect(page.getByTestId('account-name')).toHaveText('Felicia Fondatoare');
   await expect(page.getByTestId('account-organization')).toHaveText('Prevent SSM E2E SRL');
 
-  // They own it: the organization page offers the owner's tools.
   await page.getByTestId('nav-organization').click();
   await expect(page.getByTestId('invite-open')).toBeVisible();
   await expect(page.getByTestId('member-row')).toContainText('Administrator');
 
-  // The confirmation link works once.
   await signOut(page);
   await page.goto(link);
   await page.getByTestId('confirm-submit').click();

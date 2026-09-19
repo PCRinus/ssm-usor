@@ -1,4 +1,3 @@
-# The conversion service behind apps/pdf: Gotenberg, which drives a headless LibreOffice.
 # Pinned, because a LibreOffice upgrade can move a page break. Its Liberation fonts are
 # metric-compatible with the Arial the documents are set in (docs/pdf.md).
 FROM gotenberg/gotenberg:8.37.0

@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-// Shared shape of paginated list endpoints: offset pagination with page numbers, one sort
-// key at a time from a per-resource whitelist, and a common response envelope.
-
 export const defaultPageSize = 25;
 export const maxPageSize = 100;
 

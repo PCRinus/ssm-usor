@@ -46,8 +46,8 @@ function serverMessage(cause: unknown) {
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';
 }
 
-// Confirms a status change. Marking a leaver asks for the leave date; reactivating is for
-// undoing a mistake, since a rehire after a gap is a new employee.
+// Marking a leaver asks for the leave date; reactivating is for undoing a mistake, since a
+// rehire after a gap is a new employee.
 export function EmployeeStatusDialog({
   clientId,
   change,

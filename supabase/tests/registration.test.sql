@@ -1,5 +1,3 @@
--- pgTAP checks for onboarding: creating an organization and listing one's open invitations.
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(14);
 

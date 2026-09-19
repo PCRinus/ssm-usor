@@ -10,7 +10,6 @@ function Calendar({
   classNames,
   showOutsideDays = true,
   captionLayout = 'label',
-  // The product is Romanian-first; callers can still pass another locale.
   locale = ro,
   buttonVariant = 'ghost',
   formatters,

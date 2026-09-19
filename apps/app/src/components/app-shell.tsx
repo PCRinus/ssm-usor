@@ -49,7 +49,6 @@ const navigation = [
   { to: '/organization', label: 'Organizație', icon: Building2 },
 ] as const;
 
-// "Ana Popescu" becomes AP; without a name the email's first two letters stand in.
 function initials(name: string | undefined, email: string) {
   const words = name?.split(/\s+/).filter(Boolean) ?? [];
   const letters = words.length > 1 ? `${words[0]![0]}${words.at(-1)![0]}` : (words[0] ?? email);
@@ -185,7 +184,6 @@ function AppNavigation({
 export function AppShell() {
   const { auth, session } = useAuth();
   const navigate = useNavigate();
-  // Matched routes with a title form the breadcrumb, for example Clienți › Client nou.
   // A route whose title depends on data returns it as `crumb` from its loader; a static title
   // beside it stands in when the loader has no name to give.
   const trail = useMatches({

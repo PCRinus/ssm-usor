@@ -39,7 +39,7 @@ import { ApiHttpError } from '../api/http';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
 import { type Workplace, workplaceAddress } from './workplace-schema';
 
-// A client's registered office and points of work. `readOnly` is an archived client.
+// `readOnly` is an archived client.
 export function WorkplacesCard({
   clientId,
   userId,

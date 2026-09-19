@@ -46,7 +46,7 @@ import {
   responsibleRoleOrder,
 } from './responsible-person-schema';
 
-// The people a client designates by decision. `readOnly` is an archived client.
+// `readOnly` is an archived client.
 export function ResponsiblePersonsCard({
   clientId,
   userId,

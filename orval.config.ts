@@ -8,7 +8,6 @@ export default defineConfig({
       client: 'react-query',
       formatter: 'prettier',
       override: {
-        // Attach the current bearer token and handle HTTP errors centrally.
         mutator: { path: './apps/app/src/api/http.ts', name: 'apiFetch' },
         // Our adapter returns the JSON body, without a { data, status } wrapper.
         fetch: { includeHttpResponseReturnType: false },

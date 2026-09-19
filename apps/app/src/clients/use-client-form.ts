@@ -40,7 +40,6 @@ export function useClientForm() {
   const create = useCreateClient({ request: apiRequest });
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
 
-  // Prefill from ANAF's public registry. Failure keeps manual entry available.
   async function lookupCui() {
     const input = form.getValues('cui');
     if (!isValidCuiInput(input)) {

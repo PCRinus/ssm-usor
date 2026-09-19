@@ -1,5 +1,3 @@
--- pgTAP checks for profiles and organization invitations (ADR 003).
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(45);
 
@@ -171,7 +169,6 @@ select throws_ok(
   'accepting on behalf of a chosen user is not callable by signed-in users'
 );
 
--- Other readers -------------------------------------------------------------------
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
 select is(
   (select count(*) from public.organization_invitations),
@@ -192,7 +189,6 @@ select is(
   'an owner cannot revoke what they cannot see'
 );
 
--- Lookup and the new-person path (secret key) ---------------------------------------
 reset role;
 select pg_temp.set_token('new@test', 'a');
 select pg_temp.set_token('owner-b@test', 'b');
@@ -248,7 +244,6 @@ select throws_ok(
   'an account that belongs to an organization cannot join another'
 );
 
--- The signed-in path --------------------------------------------------------------
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000002');
 select throws_ok(
   $$ select public.accept_organization_invitation(repeat('c', 64), 'Not Me', '2026-09') $$,
@@ -268,7 +263,6 @@ select results_eq(
   'and becomes a member of the inviting organization'
 );
 
--- Revoking and expiry -------------------------------------------------------------
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select lives_ok(
   $$ select * from public.create_organization_invitation('revoked@test') $$,
@@ -308,7 +302,6 @@ select throws_ok(
   'an expired invitation cannot be accepted'
 );
 
--- The limit -----------------------------------------------------------------------
 reset role;
 insert into public.organization_invitations (organization_id, email, expires_at)
 select '22222222-0000-4000-8000-000000000002', 'open-' || n || '@test', now() + interval '1 day'
@@ -328,7 +321,6 @@ select throws_ok(
   'an organization holds at most 20 open invitations'
 );
 
--- Impersonation -------------------------------------------------------------------
 reset role;
 insert into public.impersonations (admin_user_id, target_user_id, reason)
 values ('cccccccc-0000-4000-8000-000000000003', 'aaaaaaaa-0000-4000-8000-000000000001', 'help with invitations');

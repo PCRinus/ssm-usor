@@ -56,7 +56,6 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/employee
   errorComponent: EmployeeError,
 });
 
-// A titled group of labelled values.
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-lg border bg-card">

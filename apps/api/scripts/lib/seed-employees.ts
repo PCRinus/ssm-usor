@@ -11,7 +11,6 @@ export interface SeedClientRef {
   declared_employee_count: number | null;
 }
 
-// Common occupations among small and medium employers (funcția, free text).
 const jobTitles = [
   'Sudor',
   'Electrician',
@@ -39,7 +38,6 @@ function pad(value: number, length: number) {
   return String(value).padStart(length, '0');
 }
 
-// A valid CNP for a person born on the given date; sequence digits are random.
 function fakeCnp(birthDate: Date, female: boolean) {
   const year = birthDate.getUTCFullYear();
   const century = year >= 2000 ? (female ? 6 : 5) : female ? 2 : 1;

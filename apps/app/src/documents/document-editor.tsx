@@ -40,7 +40,6 @@ export default function DocumentEditor({
   title: string;
   editable: boolean;
   handle: Ref<DocumentEditorHandle>;
-  /** Our own controls, at the right of the editor's title bar. */
   actions: ReactNode;
   onReady: () => void;
   /** The editor could not lay the document out; it shows nothing in that case. */

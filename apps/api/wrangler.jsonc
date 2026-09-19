@@ -16,7 +16,7 @@
   // apps/mail has no routes; this binding is the only way to reach it.
   "services": [
     { "binding": "MAIL", "service": "ssm-usor-mail", "entrypoint": "Mail" },
-    // apps/pdf has no routes either. It makes the PDF of a document that is being issued.
+    // apps/pdf has no routes either.
     { "binding": "PDF", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
   ],
   "observability": {

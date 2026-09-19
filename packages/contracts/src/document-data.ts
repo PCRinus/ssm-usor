@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput } from './cui';
 
-// The facts a client's SSM documentation prints (ADR 005). Every field is optional while it
-// is being filled in; generating a document is what requires them.
+// Every field is optional while it is being filled in; generating a document is what
+// requires them.
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
-/** The provider's legal details, as documents print them. Owners only. */
+/** Owners only. */
 export const organizationLegalDetailsSchema = z.object({
   legalName: z.string().nullable(),
   cui: z.string().nullable(),
@@ -62,7 +62,6 @@ const trainingScheduleFields = {
   trainingDayTo: z.int().min(1).max(31),
 };
 
-/** What documents print about a client beyond its registration data. */
 export const clientDocumentDetailsSchema = z.object({
   // Also asked when the client is created; this is where it is corrected or filled in later.
   legalRepresentativeName: z.string().nullable(),
@@ -109,7 +108,6 @@ export type UpdateClientDocumentDetailsRequest = z.infer<
   typeof updateClientDocumentDetailsRequestSchema
 >;
 
-/** A client's registered office or point of work. */
 export const workplaceSchema = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
@@ -133,7 +131,6 @@ export const workplaceListResponseSchema = z.object({ items: z.array(workplaceSc
 
 export type WorkplaceListResponse = z.infer<typeof workplaceListResponseSchema>;
 
-// Used to create and to replace a workplace.
 export const workplaceRequestSchema = z.object({
   name: z.string().trim().min(2).max(160),
   isRegisteredOffice: z.boolean().default(false),
@@ -183,7 +180,6 @@ export const responsiblePersonListResponseSchema = z.object({
 
 export type ResponsiblePersonListResponse = z.infer<typeof responsiblePersonListResponseSchema>;
 
-// Used to create and to replace a responsible person.
 export const responsiblePersonRequestSchema = z.object({
   employeeId: z.uuid().nullish(),
   fullName: z.string().trim().min(2).max(160),
@@ -199,8 +195,7 @@ export type ResponsiblePersonRequest = z.infer<typeof responsiblePersonRequestSc
 
 /**
  * The months of the year with a periodic training: the first month, then every `interval`
- * months until the year ends. February every 3 months gives 2, 5, 8, 11. Documents print
- * this list, and the form previews it.
+ * months until the year ends. February every 3 months gives 2, 5, 8, 11.
  */
 export function trainingMonths(firstMonth: number, intervalMonths: number): number[] {
   const months: number[] = [];

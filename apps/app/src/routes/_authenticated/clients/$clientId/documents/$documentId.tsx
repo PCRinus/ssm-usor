@@ -8,10 +8,9 @@ import {
 import { useAuth } from '../../../../../auth/auth-context';
 import { DocumentEditorPage } from '../../../../../documents/document-editor-page';
 
-// One document of a client, opened in the in-app Word editor (ADR 005). A full page: the
-// editor needs the room, and the breadcrumb keeps the context. The loader warms the list the
-// page reads, under the same key, and names the crumb after the document; when it cannot, the
-// static title stands and the page says what went wrong.
+// A full page: the editor needs the room, and the breadcrumb keeps the context. The loader warms
+// the list the page reads, under the same key, and names the crumb after the document; when it
+// cannot, the static title stands and the page says what went wrong.
 export const Route = createFileRoute('/_authenticated/clients/$clientId/documents/$documentId')({
   params: { parse: (params) => ({ documentId: z.uuid().parse(params.documentId) }) },
   staticData: { title: 'Document', fullPage: true },

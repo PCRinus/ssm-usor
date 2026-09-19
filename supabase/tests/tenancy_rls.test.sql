@@ -1,5 +1,3 @@
--- pgTAP checks for tenancy isolation and platform-admin impersonation.
--- Run with: pnpm supabase:test (supabase test db)
 begin;
 select plan(13);
 

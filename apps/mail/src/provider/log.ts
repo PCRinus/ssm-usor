@@ -1,6 +1,5 @@
 import type { MailProvider } from './index';
 
-/** Local development default: print the email instead of sending it. */
 export function logProvider(): MailProvider {
   return {
     async send({ to, subject, text }) {

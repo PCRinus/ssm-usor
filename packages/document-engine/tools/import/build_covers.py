@@ -78,7 +78,6 @@ def build(desktop, definition, cover):
     handover = definition['handover']
     paragraph(text, cursor, handover['heading'], bold=True, above=72, below=6, keep=True)
 
-    # Two columns without borders: what each side confirms, room to sign, who signs.
     table = document.createInstance('com.sun.star.text.TextTable')
     table.initialize(1, 2)
     text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)

@@ -97,7 +97,6 @@ function LegalDetailsForm({
   const busy = update.isPending || lookup.status === 'loading';
   const locked = busy || !canEdit;
 
-  // Prefill from ANAF's public registry, as the new client form does.
   async function lookupCui() {
     const input = form.getValues('cui');
     if (!isValidCuiInput(input)) {

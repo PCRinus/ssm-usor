@@ -5,8 +5,6 @@ import { currentTermsVersion, fullNameSchema, newPasswordSchema } from './profil
 
 const invitedEmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
-// Owner side ------------------------------------------------------------------------
-
 export const createInvitationRequestSchema = z.object({
   email: invitedEmailSchema,
   role: organizationRoleSchema.default('specialist'),
@@ -31,8 +29,6 @@ export type Invitation = z.infer<typeof invitationSchema>;
 export const invitationListResponseSchema = z.object({ items: z.array(invitationSchema) });
 
 export type InvitationListResponse = z.infer<typeof invitationListResponseSchema>;
-
-// Invitee side ----------------------------------------------------------------------
 
 // Lenient on purpose: a mangled token is an unknown invitation, not a malformed request.
 const invitationTokenSchema = z.string().min(1).max(200);

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-/** The version of the terms a person sees when they create their account. */
 export const currentTermsVersion = '2026-09';
 
 export const fullNameSchema = z.string().trim().min(2).max(120);

@@ -11,8 +11,8 @@ import {
 
 test.afterAll(cleanUp);
 
-// The facts generated documents print (ADR 005). These run the production build, where the
-// React Compiler is on, so a validation message that never appears is caught here.
+// These run the production build, where the React Compiler is on, so a validation message
+// that never appears is caught here.
 
 test('an owner fills in the legal details, and they are still there after a reload', async ({
   page,
@@ -77,7 +77,6 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByTestId('document-details-save').click();
   await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
 
-  // The name given when the client was created can be corrected here.
   await page.getByTestId('details-representative-name').fill('Maria-Ioana Popescu');
   await page.getByTestId('details-representative-role').fill('Administrator');
   await page.getByTestId('details-training-hours').selectOption('2');

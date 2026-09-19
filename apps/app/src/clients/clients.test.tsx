@@ -35,7 +35,6 @@ const sampleCompany = {
   inactive: false,
 };
 
-// The list envelope for one page of items.
 const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
   items,
   page: meta.page ?? 1,

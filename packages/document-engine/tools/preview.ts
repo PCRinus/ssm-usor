@@ -4,10 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 import { renderDocument } from '../src/render';
 
-// Renders every template with sample data and converts the results to PDF, for reading:
-//
-//   pnpm --filter @ssm-usor/document-engine preview
-//
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
 // every role and short names, then three people and names long enough to test the layout.
 

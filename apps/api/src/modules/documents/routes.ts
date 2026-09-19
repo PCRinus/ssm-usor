@@ -16,8 +16,6 @@ import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
 
-// A client's generated documentation (ADR 005).
-
 const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
 const uploadParams = z.object({ clientId: z.uuid(), typeKey: packDocumentTypeKeySchema });

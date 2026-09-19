@@ -1,9 +1,9 @@
 import type { DocxEditorProps } from '@docx-editor.dev/react';
 
-// The editor's interface in Romanian. The package ships ten languages and Romanian is not one
-// of them; a key left out here shows in English. The terms are the ones Word uses in Romanian,
-// since that is where the people correcting these documents learned them. `_lang` picks the
-// plural rules ("2 rezultate", "20 de rezultate"). Keyboard shortcuts are left to English.
+// The package ships ten languages and Romanian is not one of them; a key left out here shows in
+// English. The terms are the ones Word uses in Romanian, since that is where the people
+// correcting these documents learned them. `_lang` picks the plural rules ("2 rezultate",
+// "20 de rezultate"). Keyboard shortcuts are left to English.
 export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
   _lang: 'ro',
   common: {

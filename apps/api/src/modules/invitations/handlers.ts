@@ -55,8 +55,6 @@ function toInvitation(row: InvitationRow): Invitation {
   };
 }
 
-// Owner side ------------------------------------------------------------------------
-
 export const listInvitations: RouteHandler<typeof listInvitationsRoute, ApiEnv> = async (c) => {
   const { data, error } = await createDataClient(c)
     .from('organization_invitations')
@@ -70,9 +68,8 @@ export const listInvitations: RouteHandler<typeof listInvitationsRoute, ApiEnv> 
   return c.json({ items: data.map(toInvitation) } satisfies InvitationListResponse, 200);
 };
 
-// Creates or renews the invitation as the owner, then gives it a token and emails the
-// link. Only the secret key can write the token hash: an owner who could would be able to
-// mint a link and create a confirmed account for someone else's address.
+// Only the secret key can write the token hash: an owner who could would be able to mint a
+// link and create a confirmed account for someone else's address.
 async function sendInvitation(c: Context<ApiEnv>, email: string, role: OrganizationRole) {
   const mail = c.env.MAIL;
   if (!mail) throw new ApiError('service_unavailable');
@@ -170,8 +167,6 @@ export const revokeInvitation: RouteHandler<typeof revokeInvitationRoute, ApiEnv
 
   return c.body(null, 204);
 };
-
-// Invitee side ----------------------------------------------------------------------
 
 async function findByToken(c: Context<ApiEnv>, token: string) {
   const admin = createAdminClient(c);

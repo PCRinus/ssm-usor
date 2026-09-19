@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-// A client's generated documentation (ADR 005).
-
 /**
  * The built-in documents that can be generated, in the order of the provider's pack. Mirrors
  * the manifest of `packages/document-engine/templates`, without the templates whose content
@@ -113,7 +111,6 @@ export const missingDocumentDataSchema = z.enum(missingDocumentData);
 
 export type MissingDocumentData = z.infer<typeof missingDocumentDataSchema>;
 
-/** Whether a client's documentation can be generated, and what is in the way. */
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
@@ -128,7 +125,6 @@ export const documentRevisionStatusSchema = z.enum(documentRevisionStatuses);
 
 export type DocumentRevisionStatus = z.infer<typeof documentRevisionStatusSchema>;
 
-/** One version of a document. Its file is fetched through a download link. */
 export const documentRevisionSchema = z.object({
   id: z.uuid(),
   revision: z.int().min(1),
@@ -148,7 +144,6 @@ export const documentRevisionSchema = z.object({
 
 export type DocumentRevision = z.infer<typeof documentRevisionSchema>;
 
-/** One document type in a client's documentation set, with the revisions that matter now. */
 export const clientDocumentSchema = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
@@ -183,7 +178,7 @@ export const generateDocumentsRequestSchema = z.object({
 
 export type GenerateDocumentsRequest = z.infer<typeof generateDocumentsRequestSchema>;
 
-/** The documents that were created. Types the client already has are left as they are. */
+/** Types the client already has are left as they are. */
 export const generateDocumentsResponseSchema = z.object({
   created: z.array(clientDocumentSchema),
   skipped: z.array(z.string()),
@@ -191,8 +186,6 @@ export const generateDocumentsResponseSchema = z.object({
 
 export type GenerateDocumentsResponse = z.infer<typeof generateDocumentsResponseSchema>;
 
-/** A short-lived link to a revision's Word file. */
-/** The Word file, or the PDF made from it when the revision was issued. */
 export const documentFileFormats = ['docx', 'pdf'] as const;
 
 export type DocumentFileFormat = (typeof documentFileFormats)[number];

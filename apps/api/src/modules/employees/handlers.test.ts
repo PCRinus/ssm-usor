@@ -59,7 +59,6 @@ const employeeRow = {
   archived_at: null,
 };
 
-// What the list query selects: everything but the CNP and the training-sheet details.
 const employeeListRow = Object.fromEntries(
   Object.entries(employeeRow).filter(
     ([key]) =>

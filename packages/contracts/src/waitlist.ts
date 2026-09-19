@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const waitlistSubscribeRequestSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
-  // The version of the consent text shown next to the form.
   consentVersion: z.string().trim().min(1).max(40),
   turnstileToken: z.string().min(1).max(2048),
 });

@@ -260,7 +260,6 @@ describe('client documents', () => {
     expect(within(decision!).getByTestId('document-edited').textContent).toBe('Modificat');
     expect(within(form!).queryByTestId('document-edited')).toBeNull();
 
-    // Generating it again says exactly what would be lost.
     await openMenu(user, 'primul ajutor');
     expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide și modifică');
     await user.click(screen.getByTestId('document-regenerate'));

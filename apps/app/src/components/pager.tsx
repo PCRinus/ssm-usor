@@ -2,8 +2,8 @@ import { pageBounds, pageCount, type PageMeta } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-// Footer of a paginated list: "26–50 din 120" with previous and next controls. The page
-// itself lives in the route's search params; the parent turns the callback into navigation.
+// The page itself lives in the route's search params; the parent turns the callback into
+// navigation.
 export function Pager({
   meta,
   noun,

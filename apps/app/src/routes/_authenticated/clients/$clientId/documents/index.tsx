@@ -3,7 +3,6 @@ import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { useAuth } from '../../../../../auth/auth-context';
 import { DocumentsCard } from '../../../../../documents/documents-card';
 
-// A client's generated SSM documentation (ADR 005).
 export const Route = createFileRoute('/_authenticated/clients/$clientId/documents/')({
   component: DocumentsPage,
 });

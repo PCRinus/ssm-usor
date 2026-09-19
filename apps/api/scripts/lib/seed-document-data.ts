@@ -21,8 +21,8 @@ interface SeededEmployee {
   job_title: string;
 }
 
-// What the documents print about the provider (ADR 005). Filled in only while the legal
-// name is empty, so what an owner has typed on the organization page is kept.
+// Filled in only while the legal name is empty, so what an owner has typed on the organization
+// page is kept.
 export async function seedOrganizationLegalDetails(db: SeedClient, ownerName: string) {
   const { data, error } = await db
     .from('organizations')
@@ -53,7 +53,6 @@ export async function seedProfessionalTitle(db: SeedClient, ownerUserId: string)
   if (error) throw new Error(`Could not seed the professional title: ${error.message}`);
 }
 
-// A registered office from the client's own address, for a client with an address.
 export function workplaceFor(client: SeededClient, createdBy: string): WorkplaceInsert | null {
   if (!client.locality) return null;
   return {

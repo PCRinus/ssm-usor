@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 import type { Database } from '../../src/database.types';
 
-// The built-in templates, from the repository into Storage and the template registry (ADR 005).
 // Safe to run again: a file already in Storage stays, and a hash already registered is the
 // version it was; only a changed file becomes a new version.
 

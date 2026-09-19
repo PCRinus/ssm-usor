@@ -19,8 +19,8 @@ export interface ComboboxItem {
   search?: string;
 }
 
-// A single-select combobox with a search box, styled like an input. The filter receives
-// each item's search text and the query and returns a rank (0 hides the item).
+// The filter receives each item's search text and the query and returns a rank (0 hides the
+// item).
 export function SearchCombobox({
   id,
   testId,

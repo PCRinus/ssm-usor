@@ -6,7 +6,6 @@ import { useAuth } from './auth-context';
 import { loginErrorMessage } from './auth-errors';
 import { loginSchema, type LoginValues } from './login-schema';
 
-// With an invitation token, a successful login returns to the accept page.
 export function useLoginForm(invitation?: string) {
   const { auth } = useAuth();
   const navigate = useNavigate();

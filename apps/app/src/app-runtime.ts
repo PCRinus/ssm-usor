@@ -6,10 +6,6 @@ import { type AuthClient, createAuthStore } from './auth/auth-store';
 import { createQueryClient } from './lib/query-client';
 import { createAppRouter } from './router';
 
-// Composition root: builds the one auth store, query client, router, and API request
-// configuration an app instance needs, and keeps them consistent with each other.
-// main.tsx calls it once with the browser Supabase client; tests call it per test with a
-// mocked auth client, a memory history, and a local API URL, then dispose() it.
 export function createAppRuntime(
   client: AuthClient | null,
   queryClient: QueryClient = createQueryClient(),

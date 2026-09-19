@@ -9,7 +9,6 @@ const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protec
 
 const fetchMock = vi.fn<typeof fetch>();
 
-// An account that belongs to no organization until POST /organization succeeds.
 function mockApi({
   invitations = [] as unknown[],
   create = () => Response.json({ organization, role: 'owner' }, { status: 201 }),
