@@ -36,6 +36,8 @@
     "check:generated": "node scripts/check-generated.mjs",
     "seed": "pnpm --filter @ssm-usor/api seed",
     "seed:local": "pnpm --filter @ssm-usor/api seed:local",
+    "templates:register": "pnpm --filter @ssm-usor/api templates:register",
+    "templates:register:local": "pnpm --filter @ssm-usor/api templates:register:local",
     "generate:db": "supabase gen types typescript --local --schema public > apps/api/src/database.types.ts && prettier --write apps/api/src/database.types.ts",
     "supabase:test": "supabase test db",
     "supabase:start": "supabase start",

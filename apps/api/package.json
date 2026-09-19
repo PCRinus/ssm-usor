@@ -13,7 +13,9 @@
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "e2e:server": "node --import tsx scripts/e2e-server.ts",
     "seed": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts",
-    "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local"
+    "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local",
+    "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",
+    "templates:register:local": "node --import tsx scripts/register-templates.ts --local"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
