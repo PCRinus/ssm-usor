@@ -105,8 +105,8 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
   }
   if (action === 'issue') {
     return document.issued
-      ? `Ciorna devine revizia ${document.draft?.revision} și o înlocuiește pe cea emisă acum, care rămâne descărcabilă. Un document emis nu se mai modifică; o corectură este o ciornă nouă.`
-      : 'Un document emis nu se mai modifică; o corectură este o ciornă nouă, care îl înlocuiește la emitere.';
+      ? `Ciorna devine revizia ${document.draft?.revision} și o înlocuiește pe cea emisă acum, care rămâne descărcabilă. Un document emis nu se mai modifică; o corectură este o ciornă nouă. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.`
+      : 'Un document emis nu se mai modifică; o corectură este o ciornă nouă, care îl înlocuiește la emitere. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.';
   }
   if (action === 'delete') {
     return document.issued
@@ -193,10 +193,14 @@ export function DocumentsCard({
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
-  async function download(document: ClientDocument, revision: Revision) {
+  async function download(
+    document: ClientDocument,
+    revision: Revision,
+    format: 'docx' | 'pdf' = 'docx'
+  ) {
     setError(null);
     try {
-      const link = await getDocumentDownload(document.id, revision.id, apiRequest);
+      const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
       // Saved from a blob, so the file gets the document's name with its diacritics: a
       // browser ignores `download` on a link to another origin, and Storage's own header
       // percent-encodes the name.
@@ -245,11 +249,13 @@ export function DocumentsCard({
         return;
       }
       setError(
-        body?.reason === 'missing_document_data'
-          ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
-          : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
-            ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-            : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
+        body?.reason === 'pdf_unavailable'
+          ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
+          : body?.reason === 'missing_document_data'
+            ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
+            : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
+              ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
+              : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
       );
     }
     setConfirming(null);
@@ -445,6 +451,14 @@ export function DocumentsCard({
                               onSelect={() => void download(document, document.issued!)}
                             >
                               Descarcă documentul emis
+                            </DropdownMenuItem>
+                          )}
+                          {document.issued?.hasPdf && (
+                            <DropdownMenuItem
+                              data-testid="document-download-pdf"
+                              onSelect={() => void download(document, document.issued!, 'pdf')}
+                            >
+                              Descarcă PDF-ul documentului emis
                             </DropdownMenuItem>
                           )}
                           {!readOnly && (

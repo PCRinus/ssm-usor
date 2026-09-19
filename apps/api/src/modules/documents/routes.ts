@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientDocumentListResponseSchema,
   clientDocumentResponseSchema,
+  documentDownloadQuerySchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
   generateDocumentsRequestSchema,
@@ -117,10 +118,12 @@ export const getDocumentDownloadRoute = createRoute({
   method: 'get',
   path: '/documents/{documentId}/revisions/{revisionId}/download',
   operationId: 'getDocumentDownload',
-  summary: "Get a short-lived link to a revision's Word file",
+  summary: "Get a short-lived link to a revision's Word file, or to its PDF",
+  description:
+    '`format=pdf` links to the PDF made when the revision was issued. A draft has none, and neither has a revision issued where no converter was configured: `404`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: revisionParams },
+  request: { params: revisionParams, query: documentDownloadQuerySchema },
   responses: {
     200: {
       description: 'The link',
@@ -130,8 +133,11 @@ export const getDocumentDownloadRoute = createRoute({
         },
       },
     },
-    400: { description: 'Invalid path', content: errorContent },
-    404: { description: 'The revision does not exist in the organization', content: errorContent },
+    400: { description: 'Invalid path or format', content: errorContent },
+    404: {
+      description: 'The revision does not exist in the organization, or has no PDF',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -184,7 +190,7 @@ export const issueDocumentRoute = createRoute({
   operationId: 'issueDocument',
   summary: 'Issue the draft of a document',
   description:
-    'Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. A draft whose file still reads "DE COMPLETAT" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.',
+    'Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. Where a converter is configured, the PDF of the file is made and stored first, and issuing locks both. A draft whose file still reads "DE COMPLETAT" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -208,6 +214,12 @@ export const issueDocumentRoute = createRoute({
       content: errorContent,
     },
     ...membershipErrors,
+    // After the shared 503, which it replaces for this route.
+    503: {
+      description:
+        'Supabase is unavailable, or the PDF could not be made (reason `pdf_unavailable`); nothing was issued',
+      content: errorContent,
+    },
   },
 });
 

@@ -35,11 +35,15 @@ export function createFileStore(c: Context<ApiEnv>) {
     readTemplate: (path: string) => read(templatesBucket, path, 'read template'),
     readDocument: (path: string) => read(documentsBucket, path, 'read document'),
 
-    /** Writes the file of a draft revision; the row must exist first, the policies check it. */
+    /**
+     * Writes the Word file of a draft revision, or the PDF beside it; the row must exist
+     * first, the policies check it.
+     */
     async writeDocument(path: string, bytes: Uint8Array, options: { replace: boolean }) {
-      const { error } = await storage
-        .from(documentsBucket)
-        .upload(path, bytes, { contentType: docxType, upsert: options.replace });
+      const { error } = await storage.from(documentsBucket).upload(path, bytes, {
+        contentType: path.endsWith('.pdf') ? 'application/pdf' : docxType,
+        upsert: options.replace,
+      });
       if (error) throw fileError('write document', error);
     },
 

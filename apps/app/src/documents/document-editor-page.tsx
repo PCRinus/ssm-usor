@@ -69,7 +69,7 @@ export function DocumentEditorPage({
     let cancelled = false;
     void (async () => {
       try {
-        const link = await getDocumentDownload(documentId, revisionId, apiRequest);
+        const link = await getDocumentDownload(documentId, revisionId, undefined, apiRequest);
         const response = await fetch(link.url);
         if (!response.ok) throw new Error(`Download failed (${response.status}).`);
         const bytes = new Uint8Array(await response.arrayBuffer());

@@ -1,4 +1,4 @@
-import type { CurrentUser, MailService } from '@ssm-usor/contracts';
+import type { CurrentUser, MailService, PdfService } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { Membership } from './membership';
@@ -20,6 +20,12 @@ export type ApiEnv = {
     API_ORIGIN?: string;
     // Service binding to apps/mail.
     MAIL?: MailService;
+    // Service binding to apps/pdf, which turns an issued Word file into its PDF.
+    PDF?: PdfService;
+    // "service" where apps/pdf is deployed and the binding above is to be used.
+    PDF_CONVERSION?: string;
+    // A Gotenberg reached by URL instead, for local development and the flow tests.
+    GOTENBERG_URL?: string;
   };
   Variables: { user: CurrentUser; accessToken: string; membership: Membership };
 };

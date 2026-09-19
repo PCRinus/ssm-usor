@@ -2,7 +2,7 @@
 -- policies that follow them (ADR 005).
 -- Run with: pnpm supabase:test (supabase test db)
 begin;
-select plan(32);
+select plan(36);
 
 -- Fixtures: organizations A and B with one member and one client each, an archived client
 -- in A, a document in each organization, and a draft revision in each.
@@ -176,6 +176,20 @@ select lives_ok(
   'a member uploads the file of their draft'
 );
 
+select lives_ok(
+  $$ insert into storage.objects (bucket_id, name) values ('documents',
+     '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/1.pdf') $$,
+  'a member uploads the PDF of their draft, which issuing is about to lock'
+);
+
+select throws_ok(
+  $$ update public.document_revisions set pdf_path = '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/1.pdf', pdf_sha256 = repeat('e', 64)
+     where id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'a member cannot give a revision a PDF by updating the row'
+);
+
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name) values ('documents',
      '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/99.docx') $$,
@@ -207,16 +221,25 @@ select throws_ok(
   'a member cannot issue a revision of another organization'
 );
 
+select throws_ok(
+  $$ select public.issue_document_revision('e1e1e1e1-0000-4000-8000-000000000001', repeat('c', 64),
+       '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/other.pdf', repeat('e', 64)) $$,
+  '23514',
+  null,
+  'the PDF lives beside the Word file, under its name'
+);
+
 select lives_ok(
-  $$ select public.issue_document_revision('e1e1e1e1-0000-4000-8000-000000000001', repeat('c', 64)) $$,
-  'a member issues their draft'
+  $$ select public.issue_document_revision('e1e1e1e1-0000-4000-8000-000000000001', repeat('c', 64),
+       '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/1.pdf', repeat('e', 64)) $$,
+  'a member issues their draft, with its PDF'
 );
 
 select results_eq(
-  $$ select status::text, docx_sha256 = repeat('c', 64), issued_by
+  $$ select status::text, docx_sha256 = repeat('c', 64), pdf_sha256 = repeat('e', 64), right(pdf_path, 6), issued_by
      from public.document_revisions where id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
-  $$ values ('issued', true, 'aaaaaaaa-0000-4000-8000-000000000001'::uuid) $$,
-  'issuing records the hash and who issued'
+  $$ values ('issued', true, true, '/1.pdf', 'aaaaaaaa-0000-4000-8000-000000000001'::uuid) $$,
+  'issuing records both hashes and who issued'
 );
 
 select throws_ok(
@@ -247,10 +270,19 @@ select results_eq(
   'a member cannot replace the file of an issued revision'
 );
 
+update storage.objects set metadata = '{"forged": true}'
+where name = '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/1.pdf';
+
+select results_eq(
+  $$ select metadata is null from storage.objects where name = '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d1d1d1d1-0000-4000-8000-000000000001/1.pdf' $$,
+  $$ values (true) $$,
+  'nor the PDF of an issued revision'
+);
+
 select is(
   (select count(*)::int from storage.objects where bucket_id = 'documents'),
-  1,
-  'a member still reads the issued file'
+  2,
+  'a member still reads the issued file and its PDF'
 );
 
 -- A correction is a new revision; issuing it supersedes the earlier one.

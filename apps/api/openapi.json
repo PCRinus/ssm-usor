@@ -1837,6 +1837,9 @@
                       "nullable": true,
                       "format": "date-time"
                     },
+                    "hasPdf": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -1850,6 +1853,7 @@
                     "dataChanged",
                     "editedAt",
                     "issuedAt",
+                    "hasPdf",
                     "createdAt"
                   ]
                 },
@@ -1887,6 +1891,9 @@
                       "nullable": true,
                       "format": "date-time"
                     },
+                    "hasPdf": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -1900,6 +1907,7 @@
                     "dataChanged",
                     "editedAt",
                     "issuedAt",
+                    "hasPdf",
                     "createdAt"
                   ]
                 }
@@ -1994,6 +2002,9 @@
                       "nullable": true,
                       "format": "date-time"
                     },
+                    "hasPdf": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2007,6 +2018,7 @@
                     "dataChanged",
                     "editedAt",
                     "issuedAt",
+                    "hasPdf",
                     "createdAt"
                   ]
                 },
@@ -2044,6 +2056,9 @@
                       "nullable": true,
                       "format": "date-time"
                     },
+                    "hasPdf": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2057,6 +2072,7 @@
                     "dataChanged",
                     "editedAt",
                     "issuedAt",
+                    "hasPdf",
                     "createdAt"
                   ]
                 }
@@ -2171,6 +2187,9 @@
                     "nullable": true,
                     "format": "date-time"
                   },
+                  "hasPdf": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2184,6 +2203,7 @@
                   "dataChanged",
                   "editedAt",
                   "issuedAt",
+                  "hasPdf",
                   "createdAt"
                 ]
               },
@@ -2221,6 +2241,9 @@
                     "nullable": true,
                     "format": "date-time"
                   },
+                  "hasPdf": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2234,6 +2257,7 @@
                   "dataChanged",
                   "editedAt",
                   "issuedAt",
+                  "hasPdf",
                   "createdAt"
                 ]
               }
@@ -5173,7 +5197,8 @@
     "/documents/{documentId}/revisions/{revisionId}/download": {
       "get": {
         "operationId": "getDocumentDownload",
-        "summary": "Get a short-lived link to a revision's Word file",
+        "summary": "Get a short-lived link to a revision's Word file, or to its PDF",
+        "description": "`format=pdf` links to the PDF made when the revision was issued. A draft has none, and neither has a revision issued where no converter was configured: `404`.",
         "security": [
           {
             "bearerAuth": []
@@ -5197,6 +5222,16 @@
             "required": true,
             "name": "revisionId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["docx", "pdf"],
+              "default": "docx"
+            },
+            "required": false,
+            "name": "format",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5211,7 +5246,7 @@
             }
           },
           "400": {
-            "description": "Invalid path",
+            "description": "Invalid path or format",
             "content": {
               "application/json": {
                 "schema": {
@@ -5241,7 +5276,7 @@
             }
           },
           "404": {
-            "description": "The revision does not exist in the organization",
+            "description": "The revision does not exist in the organization, or has no PDF",
             "content": {
               "application/json": {
                 "schema": {
@@ -5392,7 +5427,7 @@
       "post": {
         "operationId": "issueDocument",
         "summary": "Issue the draft of a document",
-        "description": "Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. A draft whose file still reads \"DE COMPLETAT\" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.",
+        "description": "Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. Where a converter is configured, the PDF of the file is made and stored first, and issuing locks both. A draft whose file still reads \"DE COMPLETAT\" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.",
         "security": [
           {
             "bearerAuth": []
@@ -5491,7 +5526,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Supabase is unavailable, or the PDF could not be made (reason `pdf_unavailable`); nothing was issued",
             "content": {
               "application/json": {
                 "schema": {
