@@ -64,9 +64,9 @@ function sample(
       training: {
         periodicDuration: '2 ore',
         administrativeFrequency: 'SEMESTRIAL',
-        administrativeMonths: 'Februarie, August',
+        administrativeMonths: 'februarie, august',
         workerFrequency: 'TRIMESTRIAL',
-        workerMonths: 'Februarie, Mai, August, Noiembrie',
+        workerMonths: 'februarie, mai, august, noiembrie',
         dayFrom: 2,
         dayTo: 7,
       },

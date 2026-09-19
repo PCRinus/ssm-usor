@@ -9,6 +9,7 @@ import { authHooksRouter } from './modules/auth-hooks';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
 import { documentDataRouter } from './modules/document-data';
+import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
 import { healthRouter } from './modules/health';
 import { invitationsRouter } from './modules/invitations';
@@ -41,6 +42,7 @@ export function createApp() {
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
   app.route('/', documentDataRouter);
+  app.route('/', documentsRouter);
   app.route('/', organizationRouter);
   app.route('/', invitationsRouter);
   app.route('/', waitlistRouter);

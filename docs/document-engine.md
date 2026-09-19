@@ -247,6 +247,30 @@ On `main`, the job "Register document templates" runs the same script after the 
 whenever a template, the script, or a migration changed. A wiped environment gets everything
 back from the migrations and this one command.
 
+## The merge context
+
+The API builds the data once per generation and merges every template with it
+(`apps/api/src/modules/documents/context.ts`, pure and tested without a database):
+
+- `missingDocumentData(facts)` lists what is in the way, as codes grouped by where the user
+  fills it in: `provider.*` (the organization's legal details), `specialist.*` (the profile of
+  the member who generates), `client.representativeName`, `client.representativeRole`,
+  `client.trainingSchedule`, and `responsible.<role>` for every role nobody holds.
+  `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
+  it is empty, because a data field is never left blank.
+- `buildDocumentContext(facts)` turns the stored facts into the names of the table below:
+  dates as `19.01.2026`, people under the roles they hold in the order they were designated,
+  the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`),
+  and `branding`. The decisions are numbered from the first decision number in the order
+  training, evaluation team, first aid, imminent danger; `documentData(context, typeKey)` gives
+  one template its number. The context is what a revision keeps as its data snapshot.
+- `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
+
+A test merges every registered template with this context; the engine throws on a placeholder
+without a value, so a template that asks for a new name fails there first. The list of
+document types in `packages/contracts/src/documents.ts` is checked against the manifest by the
+same test.
+
 ## Built-in templates
 
 | `type_key`                      | Document                                                                     | Data beyond `decisionNumber`, `issueDate`, `client`, `provider`                                                                                                  |

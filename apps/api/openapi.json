@@ -1748,6 +1748,35 @@
         },
         "required": ["fullName", "jobTitle", "roles"]
       },
+      "DocumentReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "provider.legalName",
+                "provider.representativeName",
+                "provider.representativeRole",
+                "specialist.name",
+                "specialist.professionalTitle",
+                "client.representativeName",
+                "client.representativeRole",
+                "client.trainingSchedule",
+                "responsible.workplace_manager",
+                "responsible.first_aid",
+                "responsible.risk_evaluation_team",
+                "responsible.imminent_danger"
+              ]
+            }
+          }
+        },
+        "required": ["ready", "missing"]
+      },
       "MembershipResponse": {
         "type": "object",
         "properties": {
@@ -4322,6 +4351,101 @@
           },
           "404": {
             "description": "The responsible person does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/documents/readiness": {
+      "get": {
+        "operationId": "getDocumentReadiness",
+        "summary": "Whether a client's documentation can be generated, and what is missing",
+        "description": "Documents never leave a data field blank, so generating is refused until the list is empty. The specialist is the caller: their name and professional title come from their profile.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What is missing, by where it is filled in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentReadinessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {

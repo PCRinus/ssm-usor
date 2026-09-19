@@ -65,6 +65,9 @@ importers:
       '@ssm-usor/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@ssm-usor/document-engine':
+        specifier: workspace:*
+        version: link:../../packages/document-engine
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
