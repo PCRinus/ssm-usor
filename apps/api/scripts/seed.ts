@@ -1,7 +1,5 @@
-import { execFileSync } from 'node:child_process';
 import console from 'node:console';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
 
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -16,6 +14,7 @@ import {
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedOrganization } from './lib/seed-organization';
+import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
 // Development seed: the admin user, its organization, and optionally fake clients with employees.
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
@@ -51,58 +50,16 @@ function parseArgs(args: string[]) {
 }
 
 function configFromLocalCli() {
-  try {
-    const output = execFileSync('supabase', ['status', '--output', 'json'], {
-      cwd: fileURLToPath(new URL('../../../', import.meta.url)),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 30_000,
-    });
-    const status = z
-      .object({
-        API_URL: z.url().refine((value) => {
-          const url = new URL(value);
-          return url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname);
-        }),
-        SECRET_KEY: z.string().startsWith('sb_secret_'),
-      })
-      .parse(JSON.parse(output));
-    // Local mode ignores the hosted URL and key but keeps the configured seed account.
-    return seedConfigSchema.parse({
-      SUPABASE_URL: status.API_URL,
-      SUPABASE_SECRET_KEY: status.SECRET_KEY,
-      SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL,
-      SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
-      SEED_ADMIN_NAME: process.env.SEED_ADMIN_NAME,
-      SEED_ORGANIZATION_NAME: process.env.SEED_ORGANIZATION_NAME,
-    });
-  } catch {
-    throw new Error(
-      'Could not read local Supabase settings. Run pnpm supabase:start first (CLI 2.117.0 or newer).'
-    );
-  }
-}
-
-function secretFromCli(url: string) {
-  const projectRef = new URL(url).hostname.match(/^([a-z]{20})\.supabase\.co$/)?.[1];
-  if (!projectRef)
-    throw new Error('Set SUPABASE_SECRET_KEY when using a local or custom Supabase URL.');
-  try {
-    // Capture keys in memory; never echo CLI output or write keys into the workspace.
-    const output = execFileSync(
-      'supabase',
-      ['projects', 'api-keys', '--project-ref', projectRef, '--reveal', '--output', 'json'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000 }
-    );
-    const keys = z.array(z.object({ api_key: z.string() })).parse(JSON.parse(output));
-    const secret = keys.find((key) => key.api_key.startsWith('sb_secret_'))?.api_key;
-    if (!secret) throw new Error('No secret key returned.');
-    return secret;
-  } catch {
-    throw new Error(
-      'Could not read the project secret key through the Supabase CLI. Run supabase login or set SUPABASE_SECRET_KEY for this script.'
-    );
-  }
+  const local = localSupabase();
+  // Local mode ignores the hosted URL and key but keeps the configured seed account.
+  return seedConfigSchema.parse({
+    SUPABASE_URL: local.url,
+    SUPABASE_SECRET_KEY: local.secret,
+    SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL,
+    SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
+    SEED_ADMIN_NAME: process.env.SEED_ADMIN_NAME,
+    SEED_ORGANIZATION_NAME: process.env.SEED_ORGANIZATION_NAME,
+  });
 }
 
 try {

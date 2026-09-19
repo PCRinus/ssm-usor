@@ -43,3 +43,13 @@ database:
   - '.github/workflows/**'
   - 'supabase/config.toml'
   - 'supabase/migrations/**'
+# The built-in Word templates are uploaded to Storage and registered from main. Registering
+# does nothing for a file that did not change.
+templates:
+  - '.github/filters.yml'
+  - '.github/actions/**'
+  - '.github/workflows/**'
+  - 'packages/document-engine/templates/**'
+  - 'apps/api/scripts/register-templates.ts'
+  - 'apps/api/scripts/lib/register-templates.ts'
+  - 'supabase/migrations/**'

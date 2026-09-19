@@ -15,8 +15,12 @@ From the repository root:
 ```bash
 pnpm supabase:start
 pnpm seed:local
+pnpm templates:register:local
 pnpm supabase:status
 ```
+
+`templates:register:local` uploads the built-in Word templates to Storage and registers them,
+which document generation needs; see [the document engine](document-engine.md#registering-the-templates).
 
 The first start downloads Docker images. Subsequent starts reuse them and the local data.
 Starting applies every migration under `supabase/migrations`. The seed creates the admin
@@ -127,6 +131,7 @@ supabase db reset        # rebuild the local database from all migrations
 pnpm supabase:test       # pgTAP policy tests in supabase/tests
 pnpm generate:db         # refresh apps/api/src/database.types.ts (checked in CI)
 pnpm seed:local
+pnpm templates:register:local   # a reset also empties the template registry
 ```
 
 See the [data model](data-model.md) for the tenancy design and the migration workflow.

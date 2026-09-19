@@ -30,6 +30,7 @@ jobs:
       mail: ${{ steps.filter.outputs.mail }}
       marketing: ${{ steps.filter.outputs.marketing }}
       database: ${{ steps.filter.outputs.database }}
+      templates: ${{ steps.filter.outputs.templates }}
       projects: ${{ steps.projects.outputs.projects }}
     steps:
       - uses: actions/checkout@v7
@@ -43,13 +44,13 @@ jobs:
           base: ${{ github.ref }}
           filters: .github/filters.yml
 
-      # The database filter selects the migration job, not a deployable workspace.
+      # The database and templates filters select their own jobs, not a deployable workspace.
       - name: Select deployable applications
         id: projects
         env:
           CHANGES: ${{ steps.filter.outputs.changes }}
         shell: bash
-        run: echo "projects=$(jq -c 'map(select(. != "database"))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+        run: echo "projects=$(jq -c 'map(select(. != "database" and . != "templates"))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -281,6 +282,43 @@ jobs:
         run: |
           supabase link --project-ref "$SUPABASE_PROJECT_ID"
           supabase db push
+
+  deploy-templates:
+    name: Register document templates
+    needs: [changes, validate, deploy-database]
+    # After the migrations: the registry and the bucket come from one. A skipped migration job
+    # is fine only when the database was not selected.
+    if: >-
+      !cancelled() &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.templates == 'true' &&
+      needs.validate.result == 'success' &&
+      (needs.deploy-database.result == 'success' ||
+        (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+    concurrency:
+      group: register-document-templates
+      cancel-in-progress: false
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - name: Check template registration settings
+        shell: bash
+        run: |
+          : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
+          : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      # A file already in Storage is not sent again, and a hash already registered stays the
+      # version it was, so this does nothing when no template changed.
+      - name: Upload and register the built-in templates
+        run: pnpm templates:register
 
   deploy-mail:
     name: Deploy mail Worker

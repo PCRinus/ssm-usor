@@ -226,6 +226,27 @@ the four decisions that exist.
 
 Covers need `provider.representativeRole` besides what the decisions use.
 
+## Registering the templates
+
+The API does not read the repository: it takes a template from Storage, by the version the
+registry gives it. One script brings the two in line with `templates/`:
+
+```bash
+pnpm templates:register:local   # the local stack
+pnpm templates:register         # the hosted project, from SUPABASE_URL in apps/api/.env.seed
+```
+
+For every entry of the manifest it uploads the file to the private bucket `document-templates`
+as `built-in/<type_key>/<sha256>.docx` and calls `register_built_in_template_version`. The path
+holds the hash, so a file that is already there is not sent again, and a hash that is already
+registered stays the version it was. A changed file becomes the next version; revisions
+generated from the earlier one keep pointing at it. Entries marked `contentPending` are left
+out, so nothing offers them for generation yet.
+
+On `main`, the job "Register document templates" runs the same script after the migrations
+whenever a template, the script, or a migration changed. A wiped environment gets everything
+back from the migrations and this one command.
+
 ## Built-in templates
 
 | `type_key`                      | Document                                                                     | Data beyond `decisionNumber`, `issueDate`, `client`, `provider`                                                                                                  |
