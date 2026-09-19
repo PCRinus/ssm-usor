@@ -105,7 +105,7 @@ export function RegisterPage() {
             autoComplete="new-password"
             disabled={isSubmitting}
             aria-invalid={Boolean(errors.password)}
-            aria-describedby={`${errors.password ? 'register-password-error' : 'register-password-hint'}${password ? ' register-password-strength' : ''}`}
+            aria-describedby={`${errors.password ? 'register-password-error' : 'register-password-hint'} register-password-strength`}
             {...form.register('password')}
           />
           <PasswordStrengthIndicator

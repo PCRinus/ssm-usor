@@ -4,6 +4,21 @@ import { addressOf, cleanUp, emailedLink, password, signIn, signOut } from './su
 
 test.afterAll(cleanUp);
 
+test('the password meter keeps the registration layout steady', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/register');
+
+  const submit = page.getByTestId('register-submit');
+  const top = await submit.evaluate((element) => element.getBoundingClientRect().top);
+  await page.getByTestId('register-password').fill('Password123');
+  await expect(page.getByTestId('register-password-strength-label')).toHaveText('Slabă');
+  expect(await submit.evaluate((element) => element.getBoundingClientRect().top)).toBe(top);
+
+  await page.getByTestId('register-password').fill('');
+  await expect(page.getByTestId('register-password-strength-label')).toHaveText('Necompletată');
+  expect(await submit.evaluate((element) => element.getBoundingClientRect().top)).toBe(top);
+});
+
 test('a person registers, confirms their address, and sets up their organization', async ({
   page,
 }) => {
@@ -11,7 +26,11 @@ test('a person registers, confirms their address, and sets up their organization
 
   await page.goto('/register');
   await page.getByTestId('register-email').fill(email);
-  await expect(page.getByTestId('register-password-strength')).toHaveCount(0);
+  await expect(page.getByTestId('register-password-strength')).toContainText('Necompletată');
+  await expect(page.getByRole('progressbar', { name: 'Puterea parolei' })).toHaveAttribute(
+    'aria-valuenow',
+    '0'
+  );
   await page.getByTestId('register-password').fill('Password123');
   await expect(page.getByTestId('register-password-strength-label')).toHaveText('Slabă');
   await expect(page.getByTestId('register-password-strength')).toContainText(

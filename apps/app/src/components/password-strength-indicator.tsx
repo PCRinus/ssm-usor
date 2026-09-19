@@ -58,9 +58,13 @@ export function PasswordStrengthIndicator({
     [password, email, estimator]
   );
 
-  if (!password || loadFailed) return null;
-
-  const label = score === null ? 'Se evaluează…' : strengthLabels[score];
+  const label = !password
+    ? 'Necompletată'
+    : loadFailed
+      ? 'Indisponibilă'
+      : score === null
+        ? 'Se evaluează…'
+        : strengthLabels[score];
   const meetsRules = newPasswordField.safeParse(password).success;
   const color =
     score === null
@@ -87,9 +91,13 @@ export function PasswordStrengthIndicator({
         indicatorClassName={color}
       />
       <p className={cn('text-xs', meetsRules ? 'text-primary' : 'text-muted-foreground')}>
-        {meetsRules
-          ? 'Parola respectă cerințele minime.'
-          : 'Parola nu respectă încă toate cerințele de mai jos.'}
+        {!password
+          ? 'Introdu o parolă.'
+          : loadFailed
+            ? 'Verifică cerințele de mai jos.'
+            : meetsRules
+              ? 'Parola respectă cerințele minime.'
+              : 'Mai sunt cerințe de îndeplinit.'}
       </p>
     </div>
   );
