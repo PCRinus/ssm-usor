@@ -55,9 +55,10 @@ ROMANIAN = Locale('ro', 'RO', '')
 KINDS = {
     # The training materials: chapters of articles, no title of their own (the cover has it).
     'material': {
-        'title': [],
-        'subtitle': [],
-        'headings': [r'^Capitolul', r'^Subcapitolul', r'^Cuprins', r'^TABEL \d+\.', r'^Tabel(ul)? \d+'],
+        'title': [r'^PLANUL DE PREVENIRE', r'^LISTA INTERN[AĂ]', r'^EVALUAREA\s+RISCURILOR\s+DE\s+ACCIDENTARE'],
+        'subtitle': [r'^DIN CADRUL', r'^PENTRU$', r'^\{\{client\.legalName\}\}$'],
+        'headings': [r'^(Capitolul|CAPITOLUL|Subcapitolul|SUBCAPITOLUL|Cuprins|CUPRINS)', r'^TABEL \d+\.',
+                     r'^Tabel(ul)? \d+'],
         'answers': [r'^[a-z]\)\s'],
     },
     'briefing': {
@@ -70,11 +71,15 @@ KINDS = {
     # A form drawn from its spec, on an empty document.
     'form': {'title': [], 'subtitle': [], 'headings': []},
     'register': {
+        # A second title opens a second part, on a new page.
+        'titleOpensPart': True,
         'title': [r'^REGISTRUL UNIC'],
         'subtitle': [r'^PENTRU '],
         'headings': [],
     },
     'test': {
+        # A second title opens a second part, on a new page.
+        'titleOpensPart': True,
         'title': [r'^TESTARE DE VERIFICARE'],
         'subtitle': [r'^\((ANGAJARE|PERIODIC)'],
         'headings': [r'^SPECIMEN'],
@@ -175,6 +180,20 @@ def paragraphs(text, in_table=False):
                 yield from paragraphs(element.getCellByName(name), True)
 
 
+def frame_texts(document):
+    """What Word calls a floating table arrives inside a text frame, outside the body's flow."""
+    frames = document.TextFrames
+    # A frame is a text itself; its getText() is the text it is anchored in.
+    return [frames.getByIndex(index) for index in range(frames.getCount())]
+
+
+def all_paragraphs(document):
+    """The body's paragraphs, then the frames', which are set like the inside of a table."""
+    yield from paragraphs(document.Text)
+    for text in frame_texts(document):
+        yield from paragraphs(text, True)
+
+
 def set_text(paragraph, text):
     """Replaces a paragraph's text, keeping the formatting it starts with."""
     cursor = paragraph.getText().createTextCursorByRange(paragraph.getStart())
@@ -210,7 +229,7 @@ def apply(document, replacement):
         # A paragraph that holds nothing else: a table cell with just a name.
         pattern = python_pattern(replacement)
         count = 0
-        for paragraph, _ in paragraphs(document.Text):
+        for paragraph, _ in all_paragraphs(document):
             if pattern.fullmatch(paragraph.getString().strip()):
                 set_text(paragraph, replacement['replace'])
                 count += 1
@@ -247,17 +266,15 @@ def document_words(document):
     """Every word of the document, lowercased, to apply only the corrections it needs. The
     dictionary holds thousands; a document uses a few hundred of them."""
     chunks = []
-    roots = [document.Text]
+    roots = [document.Text] + frame_texts(document)
     page_styles = document.StyleFamilies.getByName('PageStyles')
     for name in page_styles.getElementNames():
         style = page_styles.getByName(name)
         roots += [style.HeaderText] if style.HeaderIsOn else []
         roots += [style.FooterText] if style.FooterIsOn else []
     for root in roots:
-        chunks.append(root.getString())
-        for element in _elements(root):
-            if element.supportsService('com.sun.star.text.TextTable'):
-                chunks.extend(element.getCellByName(name).getString() for name in element.getCellNames())
+        # Paragraph by paragraph: a frame that holds only a table has no string of its own.
+        chunks.extend(paragraph.getString() for paragraph, _ in paragraphs(root))
     # As the letters will read once the old code-page ones are replaced.
     text = ' '.join(chunks).translate(str.maketrans('şţŞŢãÃ', 'șțȘȚăĂ'))
     return {word.lower() for word in re.findall(r"[^\W\d_]+", text)}
@@ -514,14 +531,14 @@ def rebuild_table(document, definition):
     return table
 
 
-def replace_handover(document):
+def replace_handover(document, sides=None):
     """Swaps the tab-aligned hand-over lines for the two-column block. Returns whether it
     found them."""
     body = list(_elements(document.Text))
     for index, element in enumerate(body):
         if not element.supportsService('com.sun.star.text.Paragraph'):
             continue
-        if not re.match(r'\s*Am [iî]ntocmit [sș]i predat', element.getString()):
+        if not re.match(r'\s*Am ([iî]ntocmit|predat)', element.getString()):
             continue
         # The opening line and what follows it, up to the line with the two names.
         block = [element]
@@ -532,7 +549,18 @@ def replace_handover(document):
             if len([item for item in block if item.getString().strip()]) == 5:
                 break
         cursor = document.Text.createTextCursorByRange(block[0].getStart())
-        insert_handover(document, document.Text, cursor, HANDOVER)
+        insert_handover(document, document.Text, cursor, sides or HANDOVER)
+        if index and body[index - 1].supportsService('com.sun.star.text.Paragraph'):
+            # The title above: a Word file has no space around a table.
+            body[index - 1].ParaBottomMargin = round(12 * POINT)
+        after = body[index + len(block)] if index + len(block) < len(body) else None
+        if after is not None and after.supportsService('com.sun.star.text.TextTable'):
+            # Straight into a table: one line stays between them, or they are saved as one.
+            spacer = block.pop()
+            set_text(spacer, '')
+            spacer.CharHeight = 6.0
+            spacer.ParaTopMargin = 0
+            spacer.ParaBottomMargin = 0
         for paragraph in block:
             document.Text.removeTextContent(paragraph)
         return True
@@ -694,6 +722,12 @@ def normalise_characters(document):
 
     apply(document.Text, BODY_SIZE)
     apply_tables(document.Text, BODY_SIZE)
+    for text in frame_texts(document):
+        try:
+            apply(text, BODY_SIZE)
+        except Exception:  # noqa: BLE001 - a frame that starts with a table gives no cursor
+            pass
+        apply_tables(text, BODY_SIZE)
     page_styles = document.StyleFamilies.getByName('PageStyles')
     for name in page_styles.getElementNames():
         style = page_styles.getByName(name)
@@ -705,7 +739,7 @@ def normalise_characters(document):
     # The dead internal links ("#") of the originals, one portion at a time. Writing an empty
     # address over everything does the opposite: it is saved as a link to nowhere around all
     # the text, which some viewers then draw as links.
-    for paragraph, _ in paragraphs(document.Text):
+    for paragraph, _ in all_paragraphs(document):
         portions = paragraph.createEnumeration()
         while portions.hasMoreElements():
             portion = portions.nextElement()
@@ -737,8 +771,9 @@ def add_branding(page_style):
     footer = page_style.FooterText
     for paragraph in list(_elements(footer)):
         # Empty lines the original spaced its footer with.
-        if paragraph.supportsService('com.sun.star.text.Paragraph') and not paragraph.getString().strip() \
-                and len(list(_elements(footer))) > 1:
+        # And a page number of the original's: the box of document details has "Pag. X din Y".
+        if paragraph.supportsService('com.sun.star.text.Paragraph') \
+                and re.fullmatch(r'\d*', paragraph.getString().strip()) and len(list(_elements(footer))) > 1:
             footer.removeTextContent(paragraph)
     if BRANDING in footer.getString():
         return
@@ -796,7 +831,7 @@ def matches(text, patterns):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
-def typeset(document, kind):
+def typeset(document, kind, shrink_empty=False):
     rules = KINDS[kind]
 
     # One page setup.
@@ -826,11 +861,14 @@ def typeset(document, kind):
 
     # Boxes drawn behind a title for decoration. One that holds text stays.
     page = document.DrawPage
-    for index in reversed(range(page.getCount())):
-        shape = page.getByIndex(index)
-        if shape.ShapeType in ('com.sun.star.drawing.CustomShape', 'com.sun.star.drawing.RectangleShape') \
-                and not shape.getString().strip():
-            page.remove(shape)
+    shapes = [page.getByIndex(index) for index in range(page.getCount())]
+    for shape in shapes:
+        try:
+            if shape.ShapeType in ('com.sun.star.drawing.CustomShape', 'com.sun.star.drawing.RectangleShape') \
+                    and not shape.getString().strip():
+                page.remove(shape)
+        except Exception:  # noqa: BLE001 - a shape that went with its group
+            pass
 
     # Empty paragraphs were the spacing. Paragraph margins replace them. One that carries a
     # page break hands it to the paragraph after it.
@@ -843,6 +881,11 @@ def typeset(document, kind):
         if element is None or not element.supportsService('com.sun.star.text.Paragraph') or element.getString().strip():
             continue
         if element.createContentEnumeration('com.sun.star.text.TextContent').hasMoreElements():
+            # It anchors a picture or a frame, so it stays; where empties are shrunk, so is it.
+            if shrink_empty:
+                element.CharHeight = 1.0
+                element.ParaTopMargin = 0
+                element.ParaBottomMargin = 0
             continue
         following = body[index + 1]
         before = next((item for item in reversed(body[:index]) if item is not None), None)
@@ -853,7 +896,21 @@ def typeset(document, kind):
             element.ParaTopMargin = 0
             element.ParaBottomMargin = 0
             continue
-        if element.BreakType != NO_BREAK and following.supportsService('com.sun.star.text.Paragraph'):
+        if shrink_empty:
+            # Where removing them breaks the file (LibreOffice then fails to save one original,
+            # for no reason it gives): left in place at 1 pt, where they take no room.
+            element.CharHeight = 1.0
+            element.ParaTopMargin = 0
+            element.ParaBottomMargin = 0
+            continue
+        if element.PageDescName:
+            # It switches the page style, to landscape and back: what follows takes that over,
+            # and where it cannot, the paragraph stays.
+            try:
+                following.PageDescName = element.PageDescName
+            except Exception:  # noqa: BLE001
+                continue
+        elif element.BreakType != NO_BREAK and following.supportsService('com.sun.star.text.Paragraph'):
             following.BreakType = element.BreakType
         document.Text.removeTextContent(element)
         body[index] = None
@@ -871,6 +928,13 @@ def typeset(document, kind):
                 element.Split = False
             element.TopMargin = round(6 * POINT)
             element.BottomMargin = round(6 * POINT)
+            if not element.Name.startswith(DRAWN):
+                # Text that touches the rules of its cell: some originals have no padding at all.
+                for cell_name in element.getCellNames():
+                    cell = element.getCellByName(cell_name)
+                    for side, least in (('Left', 80), ('Right', 80), ('Top', 30), ('Bottom', 30)):
+                        if getattr(cell, f'{side}BorderDistance') < least:
+                            setattr(cell, f'{side}BorderDistance', least)
             if previous is not None:
                 previous.ParaKeepTogether = True
         previous = element if element.supportsService('com.sun.star.text.Paragraph') else None
@@ -883,7 +947,7 @@ def typeset(document, kind):
 
     # A list of one item is not a list: the lone "1." in front of it goes.
     items = {}
-    for paragraph, _ in paragraphs(document.Text):
+    for paragraph, _ in all_paragraphs(document):
         if paragraph.NumberingIsNumber and paragraph.ListLabelString:
             items.setdefault(paragraph.ListId, []).append(paragraph)
     for listed in items.values():
@@ -896,7 +960,7 @@ def typeset(document, kind):
     after_question = False
     under_number = False
     letter_tier = None
-    for paragraph, in_table in paragraphs(document.Text):
+    for paragraph, in_table in all_paragraphs(document):
         text = paragraph.getString().strip()
         if not in_table and after_question and paragraph.NumberingIsNumber and paragraph.ListLabelString:
             # Each question's answers start again from a): the originals run one list through
@@ -979,7 +1043,7 @@ def typeset(document, kind):
             paragraph.ParaAdjust = CENTER
             paragraph.ParaBottomMargin = 0 if rules['subtitle'] else round(12 * POINT)
             paragraph.ParaKeepTogether = True
-            if seen_title:
+            if seen_title and rules.get('titleOpensPart'):
                 # A second title opens a second part: the specimen of a test.
                 paragraph.BreakType = PAGE_BEFORE
             seen_title = True
@@ -1059,6 +1123,17 @@ def typeset(document, kind):
         elif block:
             block.append(element)
 
+    if shrink_empty:
+        # Last, so nothing above gives them their size and spacing back.
+        for element in _elements(document.Text):
+            if element.supportsService('com.sun.star.text.Paragraph') and not element.getString().strip():
+                cursor = document.Text.createTextCursorByRange(element.getStart())
+                cursor.gotoEndOfParagraph(True)
+                cursor.CharHeight = 1.0
+                element.CharHeight = 1.0
+                element.ParaTopMargin = 0
+                element.ParaBottomMargin = 0
+
     # Word wants a paragraph after a closing table. Small, it cannot be what spills onto an
     # empty last page.
     last = body[-1]
@@ -1122,7 +1197,7 @@ def import_template(desktop, spec_path, wording, output):
             rebuild_table(document, definition)
         rules = wording_replacements(wording, document_words(document))
         fixes = sum(apply(document, replacement) for replacement in rules)
-        removed = typeset(document, spec.get('kind', 'decision'))
+        removed = typeset(document, spec.get('kind', 'decision'), spec.get('emptyParagraphs') == 'shrink')
         # A table that still does not fit at the small print, by its place in the body.
         body_tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
         for index, size in spec.get('tableSizes', {}).items():
@@ -1136,7 +1211,12 @@ def import_template(desktop, spec_path, wording, output):
                 for paragraph, _ in paragraphs(cell):
                     paragraph.CharHeight = size
         # After the typesetting, which would flatten the room left for signatures.
-        if spec.get('handover') and not replace_handover(document):
+        sides = None
+        if isinstance(spec.get('handover'), dict):
+            # The same block under other words: "Am predat", "Am primit și aprobat".
+            sides = tuple((spec['handover'].get(side, list(default[0])),) + default[1:]
+                          for side, default in zip(('provider', 'client'), HANDOVER))
+        if spec.get('handover') and not replace_handover(document, sides):
             problems.append('the hand-over block was not found')
         if problems:
             raise RuntimeError('; '.join(problems))

@@ -68,9 +68,10 @@
       "number": "3.2",
       "original": "3.2._IPSSM",
       "stage": 2,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "own_instructions",
+      "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
+      "file": "3.2_own_instructions.docx",
+      "contentPending": true
     },
     {
       "number": "4.1",
@@ -84,9 +85,10 @@
       "number": "4.2",
       "original": "4.2._Tematica_de_instruire",
       "stage": 2,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "training_themes",
+      "title": "Tematica și programul de instruire",
+      "file": "4.2_training_themes.docx",
+      "contentPending": true
     },
     {
       "number": "5.0",
@@ -116,9 +118,10 @@
       "number": "6",
       "original": "6._LEIP",
       "stage": 2,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "protective_equipment_list",
+      "title": "Lista internă de dotare cu echipament individual de protecție",
+      "file": "6_protective_equipment_list.docx",
+      "contentPending": true
     },
     {
       "number": "7.1",
@@ -148,17 +151,19 @@
       "number": "9",
       "original": "9._Evaluarea_riscurilor",
       "stage": 3,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "risk_assessment",
+      "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
+      "file": "9_risk_assessment.docx",
+      "contentPending": true
     },
     {
       "number": "10",
       "original": "10._Plan_de_prevenire_si_protectie",
       "stage": 3,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "prevention_plan",
+      "title": "Planul de prevenire și protecție",
+      "file": "10_prevention_plan.docx",
+      "contentPending": true
     },
     {
       "number": "11.1",
