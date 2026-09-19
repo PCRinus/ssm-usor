@@ -59,6 +59,49 @@ export async function createClientCompany(organizationId: string, legalName: str
   return client.data.id as string;
 }
 
+// Everything the documents print, so that generating is not held back (ADR 005).
+export async function completeDocumentData(
+  organizationId: string,
+  userId: string,
+  clientId: string
+) {
+  const organization = await admin
+    .from('organizations')
+    .update({
+      legal_name: 'S.C. SERVICIU EXTERN E2E S.R.L.',
+      legal_representative_name: 'Ana IONESCU',
+      legal_representative_role: 'Administrator',
+    })
+    .eq('id', organizationId);
+  if (organization.error) throw organization.error;
+  const profile = await admin
+    .from('profiles')
+    .update({ professional_title: 'Evaluator de risc SSM' })
+    .eq('user_id', userId);
+  if (profile.error) throw profile.error;
+  const client = await admin
+    .from('clients')
+    .update({
+      legal_representative_role: 'Administrator',
+      periodic_training_hours: 2,
+      administrative_training_interval_months: 6,
+      worker_training_interval_months: 3,
+      training_first_month: 2,
+      training_day_from: 2,
+      training_day_to: 7,
+    })
+    .eq('id', clientId);
+  if (client.error) throw client.error;
+  const person = await admin.from('client_responsible_persons').insert({
+    organization_id: organizationId,
+    client_id: clientId,
+    full_name: 'Maria POPESCU',
+    job_title: 'Administrator',
+    roles: ['workplace_manager', 'first_aid', 'risk_evaluation_team', 'imminent_danger'],
+  });
+  if (person.error) throw person.error;
+}
+
 // An employee of a client, for pickers that list them.
 export async function createEmployee(
   organizationId: string,
@@ -101,6 +144,16 @@ export async function cleanUp() {
     await admin.auth.admin.deleteUser(id);
   }
   for (const id of created.organizations) {
+    // Generated files first, then the rows that say where they are.
+    const revisions = await admin
+      .from('document_revisions')
+      .select('docx_path')
+      .eq('organization_id', id);
+    const paths = (revisions.data ?? []).map((revision) => revision.docx_path as string);
+    if (paths.length > 0) await admin.storage.from('documents').remove(paths);
+    await admin.from('document_revisions').delete().eq('organization_id', id);
+    await admin.from('client_documents').delete().eq('organization_id', id);
+    await admin.from('document_generations').delete().eq('organization_id', id);
     // Clients restrict the deletion of their organization, and their rows that of the client.
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);

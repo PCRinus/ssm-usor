@@ -10,7 +10,7 @@ import {
   useMatches,
   useRouter,
 } from '@tanstack/react-router';
-import { Building2, FileText, UsersRound } from 'lucide-react';
+import { Building2, ClipboardList, FileText, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -18,10 +18,11 @@ import { getGetClientQueryKey, getGetClientQueryOptions } from '../../../api/gen
 import { ApiHttpError } from '../../../api/http';
 import { registeredOffice } from '../../../clients/client-columns';
 
-// Sections of a client. The documents themselves will follow the data they print.
+// Sections of a client. The documents follow the data they print.
 const sections = [
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound },
-  { to: '/clients/$clientId/document-data', label: 'Date pentru documente', icon: FileText },
+  { to: '/clients/$clientId/document-data', label: 'Date pentru documente', icon: ClipboardList },
+  { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText },
 ] as const;
 
 // Row-level security hides other organizations' clients, so a 404 from the API is the

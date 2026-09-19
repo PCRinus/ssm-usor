@@ -169,6 +169,10 @@ jobs:
       - name: Build the contracts and the document engine
         run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
 
+      # Generating documents reads the templates from Storage.
+      - name: Register the document templates in the local stack
+        run: pnpm templates:register:local
+
       - name: Run the browser flows
         run: pnpm --filter @ssm-usor/app test:e2e:flows
 

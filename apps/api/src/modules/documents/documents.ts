@@ -530,7 +530,8 @@ export async function documentDownloadLink(
   if (error) throw fromDatabaseError(error, 'find document revision');
   if (!data) throw new ApiError('not_found', 'This document revision does not exist.');
   const expiresInSeconds = 60;
-  const fileName = `${fileNameOf(data.client_documents.title)} (rev. ${data.revision}).docx`;
+  // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
+  const fileName = `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.docx`;
   return {
     url: await files.documentLink(data.docx_path, fileName, expiresInSeconds),
     fileName,

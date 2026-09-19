@@ -461,7 +461,7 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
     expect(response.status).toBe(200);
     const body = documentDownloadResponseSchema.parse(await response.json());
-    expect(body.fileName).toBe('Copertă - Deciziile interne (rev. 1).docx');
+    expect(body.fileName).toBe('Copertă - Deciziile interne - rev. 1.docx');
     expect(body.expiresInSeconds).toBe(60);
     expect(body.url).toContain('https://example.supabase.co/storage/v1/object/sign/documents/');
     expect(body.url).toContain('download=');
