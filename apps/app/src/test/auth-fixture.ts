@@ -23,13 +23,15 @@ export function makeSession(id = 'user-one', email = 'review@example.test'): Ses
 
 export function authFixture(session: Session | null = null) {
   let listener: ((event: AuthChangeEvent, session: Session | null) => void) | undefined;
+  // Like the real client, getSession() answers with the session last announced.
+  let current = session;
   const unsubscribe = vi.fn(() => {
     listener = undefined;
   });
   const client = {
-    getSession: vi
-      .fn<AuthClient['getSession']>()
-      .mockResolvedValue({ data: { session }, error: null }),
+    getSession: vi.fn<AuthClient['getSession']>(() =>
+      Promise.resolve({ data: { session: current }, error: null })
+    ),
     onAuthStateChange: vi.fn<AuthClient['onAuthStateChange']>((callback) => {
       listener = callback;
       return { data: { subscription: { unsubscribe } } };
@@ -54,6 +56,9 @@ export function authFixture(session: Session | null = null) {
   return {
     client,
     unsubscribe,
-    emit: (event: AuthChangeEvent, next: Session | null) => listener?.(event, next),
+    emit: (event: AuthChangeEvent, next: Session | null) => {
+      current = next;
+      listener?.(event, next);
+    },
   };
 }

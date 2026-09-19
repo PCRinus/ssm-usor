@@ -35,6 +35,20 @@ describe('session transitions', () => {
     auth.dispose();
   });
 
+  it('asks the client for the token so a request never carries an expired one', async () => {
+    const fixture = authFixture(makeSession());
+    const auth = createAuthStore(fixture.client, createQueryClient());
+    await auth.ready;
+    // The client has renewed the token, but the event has not reached the store yet.
+    fixture.client.getSession.mockResolvedValue({
+      data: { session: { ...makeSession(), access_token: 'refreshed-token' } },
+      error: null,
+    });
+    expect(auth.getSnapshot().session?.access_token).toBe('test-access-token');
+    expect(await auth.getAccessToken()).toBe('refreshed-token');
+    auth.dispose();
+  });
+
   it('cancels in-flight queries when the session ends', async () => {
     const fixture = authFixture(makeSession());
     const queries = createQueryClient();

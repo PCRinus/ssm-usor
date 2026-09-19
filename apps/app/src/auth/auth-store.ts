@@ -86,6 +86,17 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
   return {
     ready,
     getSnapshot: () => snapshot,
+    // The token for an API request. The snapshot can hold an expired one: after the computer
+    // wakes from sleep, queries refetch before Supabase's refresh reaches onAuthStateChange.
+    // getSession() waits for a refresh in progress and renews an expired token itself.
+    async getAccessToken() {
+      await ready;
+      if (!client || !snapshot.session) return null;
+      const { data, error } = await client.getSession();
+      // The refresh failed, most likely offline. The request fails either way.
+      if (error) return snapshot.session?.access_token ?? null;
+      return data.session?.access_token ?? null;
+    },
     subscribe(listener: () => void) {
       listeners.add(listener);
       return () => {

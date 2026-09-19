@@ -20,10 +20,7 @@ export function createAppRuntime(
   const auth = createAuthStore(client, queryClient);
   const apiRequest: ApiRequestOptions = {
     baseUrl: apiBaseUrl,
-    getAccessToken: async () => {
-      await auth.ready;
-      return auth.getSnapshot().session?.access_token ?? null;
-    },
+    getAccessToken: () => auth.getAccessToken(),
   };
   const router = createAppRouter({ auth, queryClient, apiRequest }, history);
   // Route guards read the session at navigation time only. When the signed-in user changes
