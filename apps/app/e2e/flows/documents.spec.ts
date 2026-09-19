@@ -101,6 +101,18 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByTestId('document-confirm').click();
   await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
   await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+
+  // The training material's chapter of the unit's own risks is left for a person to write,
+  // so issuing it asks a second time.
+  const material = page
+    .getByTestId('document-row')
+    .filter({ hasText: /^Material de instruire introductiv-generală/ });
+  await act(page, material, 'document-issue');
+  await page.getByTestId('document-confirm').click();
+  await expect(page.getByTestId('document-confirm-dialog')).toContainText('„DE COMPLETAT”');
+  await expect(material.getByTestId('document-issued')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Emite oricum' }).click();
+  await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
 });
 
 test('a draft is corrected in the in-app editor, and the correction is still there afterwards', async ({
@@ -125,6 +137,8 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   await expect(frame.getByText('DECIDE:')).toBeVisible();
   await expect(frame.getByText('Art. 1.')).toBeVisible();
   await expect(page.getByTestId('editor-save')).toBeDisabled();
+  // The editor's own interface is in Romanian too.
+  await expect(frame.getByRole('button', { name: /^Aldin/ })).toBeVisible();
 
   await frame.getByText('DECIDE:').click();
   await page.keyboard.press('End');

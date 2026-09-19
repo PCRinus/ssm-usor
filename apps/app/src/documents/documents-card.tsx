@@ -1,4 +1,4 @@
-import { documentTypeKeys } from '@ssm-usor/contracts';
+import { documentTypeKeys, unfilledMark } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
@@ -46,7 +46,11 @@ import type { ClientDocument } from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 
 type Revision = NonNullable<ClientDocument['draft']>;
-type Confirming = { action: 'regenerate' | 'issue' | 'delete'; document: ClientDocument } | null;
+type Confirming = {
+  // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
+  action: 'regenerate' | 'issue' | 'issueUnfilled' | 'delete';
+  document: ClientDocument;
+} | null;
 
 // What each confirmation says and does. Regenerating and deleting lose work; issuing locks it.
 const confirmations = {
@@ -62,6 +66,12 @@ const confirmations = {
     pending: 'Se emite…',
     destructive: false,
   },
+  issueUnfilled: {
+    title: 'Documentul mai are text de completat',
+    confirm: 'Emite oricum',
+    pending: 'Se emite…',
+    destructive: false,
+  },
   delete: {
     title: 'Ștergi ciorna?',
     confirm: 'Șterge ciorna',
@@ -71,6 +81,9 @@ const confirmations = {
 } as const;
 
 function confirmationText({ action, document }: NonNullable<Confirming>) {
+  if (action === 'issueUnfilled') {
+    return `În fișier scrie încă „${unfilledMark}”, acolo unde aplicația nu a avut ce completa. Deschide documentul și înlocuiește textul, apoi emite-l. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`;
+  }
   if (action === 'issue') {
     return document.issued
       ? `Ciorna devine revizia ${document.draft?.revision} și o înlocuiește pe cea emisă acum, care rămâne descărcabilă. Un document emis nu se mai modifică; o corectură este o ciornă nouă.`
@@ -145,8 +158,11 @@ export function DocumentsCard({
       if (action === 'regenerate') {
         await regenerate.mutateAsync({ documentId: document.id, data: {} });
         toast.success(`„${document.title}” a fost generat din nou.`);
-      } else if (action === 'issue') {
-        await issue.mutateAsync({ documentId: document.id });
+      } else if (action === 'issue' || action === 'issueUnfilled') {
+        await issue.mutateAsync({
+          documentId: document.id,
+          data: { acceptUnfilled: action === 'issueUnfilled' },
+        });
         toast.success(`„${document.title}” a fost emis.`);
       } else {
         await remove.mutateAsync({ documentId: document.id });
@@ -154,6 +170,11 @@ export function DocumentsCard({
       }
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      if (body?.reason === 'unfilled_text') {
+        // Not a failure: the same dialog asks its second question.
+        setConfirming({ action: 'issueUnfilled', document });
+        return;
+      }
       setError(
         body?.reason === 'missing_document_data'
           ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'

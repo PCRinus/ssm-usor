@@ -100,7 +100,14 @@ export const regenerateDocument: RouteHandler<typeof regenerateDocumentRoute, Ap
 
 export const issueDocument: RouteHandler<typeof issueDocumentRoute, ApiEnv> = async (c) => {
   const { documentId } = c.req.valid('param');
-  const document = await issue(createDataClient(c), createFileStore(c), actorOf(c), documentId);
+  const document = await issue(
+    createDataClient(c),
+    createFileStore(c),
+    actorOf(c),
+    documentId,
+    // No body at all is an empty one.
+    c.req.valid('json') ?? {}
+  );
   return c.json({ document }, 200);
 };
 
