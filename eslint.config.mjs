@@ -28,6 +28,8 @@ export default defineConfig([
     '**/dist/**',
     '**/dist-e2e/**',
     'apps/app/src/api/generated/**',
+    // The provider's originals, specs, and scratch previews; git ignores them too.
+    'packages/document-engine/originals/**',
     'apps/app/src/routeTree.gen.ts',
     '**/node_modules/**',
     '**/playwright-report/**',

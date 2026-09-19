@@ -1,0 +1,68 @@
+{
+  "motto": "Instrucțiunile în domeniul securității și sănătății în muncă sunt obligatorii și se aplică în cadrul tuturor compartimentelor de muncă.",
+  "covers": [
+    {
+      "number": "1.0",
+      "typeKey": "cover_decisions",
+      "title": "DECIZIILE INTERNE",
+      "subtitle": "la nivelul unității, în domeniul securității și sănătății în muncă, pentru",
+      "items": [
+        "Efectuarea instruirilor în domeniul securității și sănătății în muncă la personalul angajat;",
+        "Persoanele care fac parte din echipa de identificare și evaluare a riscurilor de accidentare și îmbolnăvire profesională pentru locurile de muncă încadrate și care desfășoară aceste activități în cadrul orelor de program;",
+        "Aplicarea măsurilor de prim ajutor la personalul angajat;",
+        "Numirea lucrătorilor desemnați cu luarea măsurilor în caz de pericol grav și iminent."
+      ]
+    },
+    {
+      "number": "2.1",
+      "typeKey": "cover_general_training_material",
+      "motto": true,
+      "title": "MATERIAL DE INSTRUIRE ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ PENTRU INSTRUIREA INTRODUCTIV-GENERALĂ",
+      "subtitle": "pentru"
+    },
+    {
+      "number": "3.1",
+      "typeKey": "cover_own_instructions",
+      "motto": true,
+      "title": "INSTRUCȚIUNI PROPRII ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
+      "subtitle": "specifice pentru"
+    },
+    {
+      "number": "4.1",
+      "typeKey": "cover_training_themes",
+      "motto": true,
+      "title": "TEMATICA DE INSTRUIRE PENTRU TOATE FAZELE DE INSTRUIRE ȘI PROGRAMUL DE INSTRUIRE – TESTARE LA NIVELUL UNITĂȚII ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
+      "subtitle": "pentru"
+    },
+    {
+      "number": "5.0",
+      "typeKey": "cover_tests",
+      "title": "TESTE DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SECURITATEA ȘI SĂNĂTATEA ÎN MUNCĂ",
+      "subtitle": "Testările de verificare a cunoștințelor la angajare și verificarea anuală a personalului angajat al"
+    },
+    {
+      "number": "7.1",
+      "typeKey": "cover_event_registers",
+      "title": "REGISTRELE DE EVIDENȚĂ A EVENIMENTELOR",
+      "subtitle": "pentru",
+      "itemsAfterClient": true,
+      "items": [
+        "Registrul unic de evidență a accidentaților în muncă;",
+        "Registrul unic de evidență a incidentelor periculoase;",
+        "Registrul unic de evidență a accidentelor ușoare;",
+        "Registrul unic de evidență a accidentaților în muncă ce au ca urmare incapacitate de muncă mai mare de 3 zile de lucru."
+      ]
+    },
+    {
+      "number": "11.1",
+      "typeKey": "cover_employer_briefing",
+      "title": "MATERIAL DE INFORMARE A ANGAJATORULUI CU PRIVIRE LA PREVEDERILE LEGISLATIVE ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
+      "subtitle": "pentru"
+    }
+  ],
+  "handover": {
+    "heading": "PERSOANE IMPLICATE ÎN PROCESUL DE PREDARE / PRIMIRE A DOCUMENTULUI",
+    "client": ["Am luat la cunoștință", "Am primit un exemplar", "Aprob documentul"],
+    "provider": ["Am întocmit documentul", "Am informat angajatorul", "Am predat un exemplar"]
+  }
+}
