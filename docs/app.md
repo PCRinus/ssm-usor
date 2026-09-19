@@ -338,6 +338,16 @@ mobile navigation link closes the Sheet.
   employees; a `409` with `job_position_held` covers people who joined in the meantime. The
   empty state says positions also come from adding employees. An archived client is
   read-only.
+- Employees and their job position: the list's column is "Post de lucru" and sorts by it. The
+  new-employee form has a "Post de lucru" picker (`src/job-positions/job-position-combobox.tsx`)
+  that lists the client's positions and takes a name the client lacks, "Adaugă postul „X”":
+  the field then holds that name, and saving creates the position first, in the execution
+  category, to be described later in its own section. "Funcția din contract" follows the
+  chosen position while it is empty or still reads what the last choice put there, and keeps
+  anything the person typed. The employee page shows the two apart, and "Schimbă…" beside the
+  position opens a dialog that moves the person and sends the contract title only when it was
+  changed. Creating, moving, marking a leaver and reactivating all refresh the positions list,
+  whose counts they change.
 - `/clients/:clientId/document-data`: the "Date pentru documente" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005). The first card holds
   the legal representative's name and role, and the periodic training

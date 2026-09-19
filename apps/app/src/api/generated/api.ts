@@ -503,6 +503,11 @@ export interface CompanyLookupResponse {
   company: CompanyLookupResponseCompany;
 }
 
+export type EmployeeListResponseItemsItemJobPosition = {
+  id: string;
+  name: string;
+};
+
 export type EmployeeListResponseItemsItemStatus =
   (typeof EmployeeListResponseItemsItemStatus)[keyof typeof EmployeeListResponseItemsItemStatus];
 
@@ -523,6 +528,7 @@ export type EmployeeListResponseItemsItem = {
   /** @nullable */
   phone: string | null;
   jobTitle: string;
+  jobPosition: EmployeeListResponseItemsItemJobPosition;
   hiredAt: string;
   status: EmployeeListResponseItemsItemStatus;
   /** @nullable */
@@ -543,6 +549,11 @@ export interface EmployeeListResponse {
   /** @minimum 0 */
   total: number;
 }
+
+export type EmployeeResponseEmployeeJobPosition = {
+  id: string;
+  name: string;
+};
 
 export type EmployeeResponseEmployeeStatus =
   (typeof EmployeeResponseEmployeeStatus)[keyof typeof EmployeeResponseEmployeeStatus];
@@ -591,6 +602,7 @@ export type EmployeeResponseEmployee = {
   /** @nullable */
   phone: string | null;
   jobTitle: string;
+  jobPosition: EmployeeResponseEmployeeJobPosition;
   hiredAt: string;
   status: EmployeeResponseEmployeeStatus;
   /** @nullable */
@@ -679,6 +691,8 @@ export interface CreateEmployeeRequest {
    * @maxLength 160
    */
   jobTitle: string;
+  /** @nullable */
+  jobPositionId?: string | null;
   hiredAt: string;
   /** @nullable */
   birthDate?: string | null;
@@ -714,6 +728,15 @@ export type UpdateEmployeeStatusRequest =
   | {
       status: 'active';
     };
+
+export interface UpdateEmployeeJobPositionRequest {
+  jobPositionId: string;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  jobTitle?: string;
+}
 
 export type JobPositionListResponseItemsItemStaffCategory =
   (typeof JobPositionListResponseItemsItemStaffCategory)[keyof typeof JobPositionListResponseItemsItemStaffCategory];
@@ -1968,6 +1991,7 @@ export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmpl
 export const ListEmployeesSort = {
   name: 'name',
   jobTitle: 'jobTitle',
+  jobPosition: 'jobPosition',
   hiredAt: 'hiredAt',
 } as const;
 
@@ -3455,6 +3479,122 @@ export const useUpdateEmployeeStatus = <TError = ErrorType<ApiErrorResponse>, TC
   TContext
 > => {
   return useMutation(getUpdateEmployeeStatusMutationOptions(options), queryClient);
+};
+
+export const getUpdateEmployeeJobPositionUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/job-position`;
+};
+
+/**
+ * The contract title stays as it is unless `jobTitle` is given: a person can change post without a new contract, and the other way round (ADR 006).
+ * @summary Move an employee to another of the client's job positions
+ */
+export const updateEmployeeJobPosition = async (
+  clientId: string,
+  employeeId: string,
+  updateEmployeeJobPositionRequest: UpdateEmployeeJobPositionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EmployeeResponse>(getUpdateEmployeeJobPositionUrl(clientId, employeeId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateEmployeeJobPositionRequest),
+  });
+};
+
+export const getUpdateEmployeeJobPositionMutationKey = () => ['updateEmployeeJobPosition'] as const;
+
+export const getUpdateEmployeeJobPositionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEmployeeJobPosition>>,
+    TError,
+    UpdateEmployeeJobPositionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEmployeeJobPosition>>,
+  TError,
+  UpdateEmployeeJobPositionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateEmployeeJobPositionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEmployeeJobPosition>>,
+    UpdateEmployeeJobPositionMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return updateEmployeeJobPosition(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEmployeeJobPositionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEmployeeJobPosition>>
+>;
+export type UpdateEmployeeJobPositionMutationBody = UpdateEmployeeJobPositionRequest;
+export type UpdateEmployeeJobPositionMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEmployeeJobPositionMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: UpdateEmployeeJobPositionRequest;
+};
+
+/**
+ * @summary Move an employee to another of the client's job positions
+ */
+export const useUpdateEmployeeJobPosition = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateEmployeeJobPosition>>,
+      TError,
+      UpdateEmployeeJobPositionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateEmployeeJobPosition>>,
+  TError,
+  UpdateEmployeeJobPositionMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateEmployeeJobPositionMutationOptions(options), queryClient);
 };
 
 export const getListJobPositionsUrl = (clientId: string) => {

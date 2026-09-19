@@ -22,6 +22,7 @@ import {
 import { ApiHttpError } from '../../../../../api/http';
 import { useAuth } from '../../../../../auth/auth-context';
 import { formatDate, formatTenure, todayIso } from '../../../../../employees/employee-format';
+import { EmployeeJobPositionDialog } from '../../../../../employees/employee-job-position-dialog';
 import {
   type EmployeeStatusChange,
   EmployeeStatusDialog,
@@ -112,6 +113,7 @@ export function EmployeePage() {
     },
   });
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
+  const [moving, setMoving] = useState(false);
   const employee = query.data?.employee;
   if (!employee) return <EmployeePending />;
   const former = employee.status === 'terminated';
@@ -134,7 +136,7 @@ export function EmployeePage() {
               {formatEmployeeName(employee)}
             </h1>
             <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <span>{employee.jobTitle}</span>
+              <span>{employee.jobPosition.name}</span>
               <Badge variant={former ? 'outline' : 'secondary'} data-testid="employee-status">
                 {former ? 'Fost angajat' : 'Angajat actual'}
               </Badge>
@@ -160,7 +162,23 @@ export function EmployeePage() {
         </Section>
 
         <Section title="Angajare">
-          <Fact label="Funcție">{employee.jobTitle}</Fact>
+          <Fact label="Post de lucru">
+            <span className="flex flex-wrap items-center gap-2">
+              <span data-testid="employee-job-position">{employee.jobPosition.name}</span>
+              {!former && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  data-testid="employee-job-position-change"
+                  onClick={() => setMoving(true)}
+                >
+                  Schimbă…
+                </Button>
+              )}
+            </span>
+          </Fact>
+          <Fact label="Funcția din contract">{employee.jobTitle}</Fact>
           <Fact label="Data angajării">{formatDate(employee.hiredAt)}</Fact>
           <Fact label={former ? 'Vechime la plecare' : 'Vechime'}>
             {formatTenure(employee.hiredAt, employee.terminatedAt ?? todayIso())}
@@ -202,6 +220,12 @@ export function EmployeePage() {
         </Section>
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
+      <EmployeeJobPositionDialog
+        clientId={clientId}
+        userId={session?.user.id ?? ''}
+        employee={moving ? employee : null}
+        onClose={() => setMoving(false)}
+      />
     </div>
   );
 }

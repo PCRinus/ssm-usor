@@ -34,6 +34,7 @@ const sampleEmployee = {
   email: 'ion.popescu@example.com',
   phone: '0721 000 000',
   jobTitle: 'Sudor',
+  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
   hiredAt: '2020-03-01',
   status: 'active',
   terminatedAt: null,
@@ -64,11 +65,51 @@ const page = (items: unknown[], meta: Partial<{ page: number; total: number }> =
 
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
 
+const positionsPath = `/clients/${clientId}/job-positions`;
+const newPositionId = '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d';
+const welderPosition = {
+  id: sampleEmployee.jobPosition.id,
+  clientId,
+  name: 'Sudor',
+  staffCategory: 'execution',
+  workZone: null,
+  activities: null,
+  employeeCount: 1,
+  createdAt: '2026-09-20T10:00:00.000Z',
+  updatedAt: '2026-09-20T10:00:00.000Z',
+};
+
+// Opens the position picker, types, and takes the option that shows.
+async function pickPosition(
+  user: ReturnType<typeof userEvent.setup>,
+  search: string,
+  option: RegExp,
+  testId = 'employee-job-position'
+) {
+  await user.click(await screen.findByTestId(testId));
+  await user.type(screen.getByTestId(`${testId}-search`), search);
+  await user.click(
+    await within(await screen.findByRole('listbox')).findByRole('option', { name: option })
+  );
+}
+
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
   routes: Partial<
-    Record<'me' | 'clients' | 'client' | 'list' | 'detail' | 'create' | 'status', Route>
+    Record<
+      | 'me'
+      | 'clients'
+      | 'client'
+      | 'list'
+      | 'detail'
+      | 'create'
+      | 'status'
+      | 'positions'
+      | 'createPosition'
+      | 'move',
+      Route
+    >
   > = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -102,6 +143,27 @@ function mockApi(
       return (
         routes.create?.(init, url) ?? Response.json({ employee: createdEmployee }, { status: 201 })
       );
+    }
+    if (url.pathname === positionsPath) {
+      if (method === 'POST') {
+        return (
+          routes.createPosition?.(init, url) ??
+          Response.json(
+            {
+              jobPosition: {
+                ...welderPosition,
+                id: newPositionId,
+                ...JSON.parse(String(init?.body)),
+              },
+            },
+            { status: 201 }
+          )
+        );
+      }
+      return routes.positions?.(init, url) ?? Response.json({ items: [welderPosition] });
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/job-position`) {
+      return routes.move?.(init, url) ?? Response.json({ employee: sampleEmployee });
     }
     throw new Error(`Unexpected request: ${method} ${url}`);
   });
@@ -382,7 +444,7 @@ describe('employee creation', () => {
     expect(birthDate.value).toBe('01.01.1990');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
     await user.type(screen.getByTestId('employee-first-name'), 'Ion');
-    await user.type(screen.getByTestId('employee-job-title'), 'Sudor');
+    await pickPosition(user, 'sud', /Sudor/);
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     setDate(birthDate, '1990-01-02');
     await user.click(screen.getByTestId('employee-submit'));
@@ -401,7 +463,7 @@ describe('employee creation', () => {
     await user.type(screen.getByTestId('employee-first-name'), 'Ion');
     await user.type(screen.getByTestId('employee-cnp'), '1900101 400127');
     await user.type(screen.getByTestId('employee-number'), 'A-17');
-    await user.type(screen.getByTestId('employee-job-title'), 'Sudor');
+    await pickPosition(user, 'sud', /Sudor/);
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     await user.type(screen.getByTestId('employee-email'), 'Ion.Popescu@Example.com');
     await user.type(screen.getByTestId('employee-phone'), '0721 000 000');
@@ -420,6 +482,8 @@ describe('employee creation', () => {
       employeeNumber: 'A-17',
       email: 'ion.popescu@example.com',
       phone: '0721 000 000',
+      jobPositionId: sampleEmployee.jobPosition.id,
+      // Filled from the position; nobody typed it.
       jobTitle: 'Sudor',
       hiredAt: '2020-03-01',
       birthDate: '1990-01-01',
@@ -438,7 +502,7 @@ describe('employee creation', () => {
     await screen.findByTestId('new-employee-page');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
     await user.type(screen.getByTestId('employee-first-name'), 'Ion');
-    await user.type(screen.getByTestId('employee-job-title'), 'Sudor');
+    await pickPosition(user, 'sud', /Sudor/);
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
@@ -476,7 +540,7 @@ describe('employee creation', () => {
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
     await user.type(screen.getByTestId('employee-first-name'), 'Ion');
     await user.type(screen.getByTestId('employee-cnp'), '1900101400127');
-    await user.type(screen.getByTestId('employee-job-title'), 'Sudor');
+    await pickPosition(user, 'sud', /Sudor/);
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('cnp-error')).textContent).toContain('acest CNP');
@@ -728,5 +792,119 @@ describe('employee detail', () => {
     });
     mountApp(authFixture(makeSession()).client, detailPath);
     await screen.findByTestId('employee-not-found');
+  });
+});
+
+describe('job positions on employees (ADR 006)', () => {
+  const fillRequired = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
+    await user.type(screen.getByTestId('employee-first-name'), 'Ion');
+    setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
+  };
+
+  it('lists employees by the post they fill', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([
+            {
+              ...sampleEmployee,
+              jobPosition: { ...sampleEmployee.jobPosition, name: 'Sudor autorizat' },
+            },
+          ])
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}?sort=jobPosition&order=desc`);
+    const row = await screen.findByTestId('employees-row');
+    expect(row.textContent).toContain('Sudor autorizat');
+    expect(screen.getByRole('columnheader', { name: /Post de lucru/ })).toBeTruthy();
+    const [input] = requests(employeesPath, 'GET')[0]!;
+    expect(new URL(String(input)).searchParams.get('sort')).toBe('jobPosition');
+  });
+
+  it('creates a post the client lacks, then the employee in it, in one form', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await fillRequired(user);
+    await pickPosition(user, 'Electrician', /Adaugă postul „Electrician”/);
+    expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe('Electrician');
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+
+    const [, position] = requests(positionsPath, 'POST')[0]!;
+    expect(JSON.parse(String(position?.body))).toEqual({ name: 'Electrician' });
+    const [, employee] = requests(employeesPath, 'POST')[0]!;
+    expect(JSON.parse(String(employee?.body))).toMatchObject({
+      jobPositionId: newPositionId,
+      jobTitle: 'Electrician',
+    });
+  });
+
+  it('keeps a contract title the person typed, whatever post is chosen after', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await fillRequired(user);
+    await user.type(screen.getByTestId('employee-job-title'), 'Lăcătuș mecanic');
+    await pickPosition(user, 'sud', /Sudor/);
+    expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe(
+      'Lăcătuș mecanic'
+    );
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+    const [, employee] = requests(employeesPath, 'POST')[0]!;
+    expect(JSON.parse(String(employee?.body))).toMatchObject({
+      jobPositionId: sampleEmployee.jobPosition.id,
+      jobTitle: 'Lăcătuș mecanic',
+    });
+    expect(requests(positionsPath, 'POST')).toHaveLength(0);
+  });
+
+  it('asks for a post before saving', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await fillRequired(user);
+    await user.type(screen.getByTestId('employee-job-title'), 'Sudor');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('jobPosition-error')).textContent).toContain(
+      'Alege postul de lucru'
+    );
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+  });
+
+  it('shows the post and the contract title apart, and moves the person to another post', async () => {
+    const helper = { ...welderPosition, id: newPositionId, name: 'Ajutor sudor', employeeCount: 0 };
+    mockApi({
+      detail: () =>
+        Response.json({ employee: { ...sampleEmployee, jobTitle: 'Muncitor calificat' } }),
+      positions: () => Response.json({ items: [helper, welderPosition] }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/${sampleEmployee.id}`);
+    const user = userEvent.setup();
+    expect((await screen.findByTestId('employee-job-position')).textContent).toBe('Sudor');
+    expect(screen.getByText('Muncitor calificat')).toBeTruthy();
+
+    await user.click(screen.getByTestId('employee-job-position-change'));
+    const dialog = await screen.findByTestId('employee-job-position-dialog');
+    expect(within(dialog).getByTestId<HTMLInputElement>('employee-contract-title').value).toBe(
+      'Muncitor calificat'
+    );
+    await pickPosition(user, 'ajut', /Ajutor sudor/, 'employee-position');
+    await user.click(screen.getByTestId('employee-job-position-save'));
+
+    await waitFor(() =>
+      expect(requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')).toHaveLength(
+        1
+      )
+    );
+    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')[0]!;
+    // The contract did not change, so its title is not sent.
+    expect(JSON.parse(String(init?.body))).toEqual({ jobPositionId: newPositionId });
+    expect(await screen.findByText('Postul de lucru a fost schimbat.')).toBeTruthy();
   });
 });

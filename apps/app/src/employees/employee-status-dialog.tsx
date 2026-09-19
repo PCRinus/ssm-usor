@@ -17,6 +17,7 @@ import {
   type EmployeeListResponse,
   getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
+  getListJobPositionsQueryKey,
   useUpdateEmployeeStatus,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
@@ -107,6 +108,8 @@ function StatusForm({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
         queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
+        // A leaver no longer counts in their job position; someone reactivated does again.
+        queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
       ]);
       onClose();
     } catch (cause) {

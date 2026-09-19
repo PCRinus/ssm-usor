@@ -4,6 +4,7 @@ import {
   employeeListResponseSchema,
   employeeResponseSchema,
   listEmployeesQuerySchema,
+  updateEmployeeJobPositionRequestSchema,
   updateEmployeeStatusRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -133,6 +134,44 @@ export const updateEmployeeStatusRoute = createRoute({
       description: 'The employee does not exist under this client in the organization',
       content: errorContent,
     },
+    ...membershipErrors,
+  },
+});
+
+export const updateEmployeeJobPositionRoute = createRoute({
+  method: 'patch',
+  path: '/clients/{clientId}/employees/{employeeId}/job-position',
+  operationId: 'updateEmployeeJobPosition',
+  summary: "Move an employee to another of the client's job positions",
+  description:
+    'The contract title stays as it is unless `jobTitle` is given: a person can change post without a new contract, and the other way round (ADR 006).',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: employeeParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateEmployeeJobPositionRequestSchema.meta({
+            id: 'UpdateEmployeeJobPositionRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The employee in the new position',
+      content: {
+        'application/json': { schema: employeeResponseSchema.meta({ id: 'EmployeeResponse' }) },
+      },
+    },
+    400: {
+      description: 'Invalid path or body, or a job position that is not one of this client',
+      content: errorContent,
+    },
+    404: { description: 'The employee does not exist under this client', content: errorContent },
     ...membershipErrors,
   },
 });

@@ -716,6 +716,19 @@
                 "jobTitle": {
                   "type": "string"
                 },
+                "jobPosition": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
                 "hiredAt": {
                   "type": "string",
                   "format": "date"
@@ -747,6 +760,7 @@
                 "email",
                 "phone",
                 "jobTitle",
+                "jobPosition",
                 "hiredAt",
                 "status",
                 "terminatedAt",
@@ -809,6 +823,19 @@
               },
               "jobTitle": {
                 "type": "string"
+              },
+              "jobPosition": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
               },
               "hiredAt": {
                 "type": "string",
@@ -874,6 +901,7 @@
               "email",
               "phone",
               "jobTitle",
+              "jobPosition",
               "hiredAt",
               "status",
               "terminatedAt",
@@ -931,6 +959,11 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 160
+          },
+          "jobPositionId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
           },
           "hiredAt": {
             "type": "string",
@@ -999,6 +1032,21 @@
             "required": ["status"]
           }
         ]
+      },
+      "UpdateEmployeeJobPositionRequest": {
+        "type": "object",
+        "properties": {
+          "jobPositionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          }
+        },
+        "required": ["jobPositionId"]
       },
       "JobPositionListResponse": {
         "type": "object",
@@ -3410,7 +3458,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["name", "jobTitle", "hiredAt"],
+              "enum": ["name", "jobTitle", "jobPosition", "hiredAt"],
               "default": "name"
             },
             "required": false,
@@ -3809,6 +3857,120 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/job-position": {
+      "patch": {
+        "operationId": "updateEmployeeJobPosition",
+        "summary": "Move an employee to another of the client's job positions",
+        "description": "The contract title stays as it is unless `jobTitle` is given: a person can change post without a new contract, and the other way round (ADR 006).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeJobPositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The employee in the new position",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or a job position that is not one of this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client",
             "content": {
               "application/json": {
                 "schema": {

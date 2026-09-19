@@ -34,6 +34,7 @@ const membership = {
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const activeClient = { id: clientId, archived_at: null };
+const positionId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 
 const employeeRow = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
@@ -45,6 +46,7 @@ const employeeRow = {
   email: 'ion.popescu@example.com',
   phone: '+40 721 000 000',
   job_title: 'Sudor',
+  job_positions: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
   hired_at: '2020-03-01',
   status: 'active',
   terminated_at: null,
@@ -80,7 +82,7 @@ type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(
-  handlers: Partial<Record<'auth' | 'membership' | 'clients' | 'employees', Handler>>
+  handlers: Partial<Record<'auth' | 'membership' | 'clients' | 'employees' | 'positions', Handler>>
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -90,6 +92,9 @@ function mockUpstream(
     }
     if (url.pathname === '/rest/v1/clients') {
       return handlers.clients?.(init, url) ?? Response.json([activeClient]);
+    }
+    if (url.pathname === '/rest/v1/job_positions') {
+      return handlers.positions?.(init, url) ?? Response.json({ id: positionId });
     }
     if (url.pathname === '/rest/v1/employees') {
       return (
@@ -154,6 +159,7 @@ describe('GET /clients/{clientId}/employees', () => {
           email: 'ion.popescu@example.com',
           phone: '+40 721 000 000',
           jobTitle: 'Sudor',
+          jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
           hiredAt: '2020-03-01',
           status: 'active',
           terminatedAt: null,
@@ -528,6 +534,75 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     mockUpstream({ employees: () => Response.json([]) });
     const response = await patchStatus({ status: 'active' });
     expect(response.status).toBe(404);
+  });
+});
+
+describe('job positions on employees (ADR 006)', () => {
+  const employeePath = `${employeesPath}/${employeeRow.id}`;
+  const sentToEmployees = (index = 0) =>
+    JSON.parse(
+      String(
+        calls('/rest/v1/employees').filter(([, init]) => (init?.method ?? 'GET') !== 'GET')[
+          index
+        ]![1]?.body
+      )
+    ) as Record<string, unknown>;
+  const body = { lastName: 'Popescu', firstName: 'Ion', jobTitle: 'Sudor', hiredAt: '2020-03-01' };
+
+  it('sorts the list by the name of the position', async () => {
+    mockUpstream({});
+    expect((await request(`${employeesPath}?sort=jobPosition&order=desc`)).status).toBe(200);
+    const order = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams.get('order');
+    expect(order).toBe('job_positions(name).desc,last_name.desc,first_name.desc,id.asc');
+  });
+
+  it('leaves the position to the database when the form names none', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    const response = await postEmployee(body);
+    expect(response.status).toBe(201);
+    expect(employeeResponseSchema.parse(await response.json()).employee.jobPosition.name).toBe(
+      'Sudor autorizat'
+    );
+    expect(sentToEmployees()).not.toHaveProperty('job_position_id');
+    expect(calls('/rest/v1/job_positions')).toHaveLength(0);
+  });
+
+  it('puts the employee in the chosen position, once it is one of this client', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await postEmployee({ ...body, jobPositionId: positionId })).status).toBe(201);
+    expect(sentToEmployees().job_position_id).toBe(positionId);
+    const lookup = new URL(String(calls('/rest/v1/job_positions')[0]![0])).searchParams;
+    expect([lookup.get('client_id'), lookup.get('archived_at')]).toEqual([
+      `eq.${clientId}`,
+      'is.null',
+    ]);
+
+    mockUpstream({ positions: () => Response.json(null) });
+    const refused = await postEmployee({ ...body, jobPositionId: positionId });
+    expect(refused.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await refused.json()).issues?.[0]?.path).toBe(
+      'jobPositionId'
+    );
+  });
+
+  it('moves an employee to another position, and the contract title only when told', async () => {
+    const move = (payload: unknown) =>
+      request(`${employeePath}/job-position`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await move({ jobPositionId: positionId })).status).toBe(200);
+    expect(sentToEmployees()).toEqual({ job_position_id: positionId });
+    expect((await move({ jobPositionId: positionId, jobTitle: ' Sudor-șef ' })).status).toBe(200);
+    expect(sentToEmployees(1)).toEqual({ job_position_id: positionId, job_title: 'Sudor-șef' });
+
+    mockUpstream({ employees: () => Response.json(null) });
+    expect((await move({ jobPositionId: positionId })).status).toBe(404);
+    mockUpstream({ positions: () => Response.json(null) });
+    expect((await move({ jobPositionId: positionId })).status).toBe(400);
+    expect((await move({})).status).toBe(400);
   });
 });
 

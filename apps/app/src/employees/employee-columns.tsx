@@ -18,7 +18,7 @@ export type EmployeeRow = EmployeeListResponse['items'][number];
 
 const helper = createDataTableColumns<EmployeeRow>();
 
-// Sortable column ids are the API sort keys: name, jobTitle, hiredAt.
+// Sortable column ids are the API sort keys: name, jobPosition, hiredAt.
 export function employeeColumns(onStatusChange: (change: EmployeeStatusChange) => void) {
   return helper.columns([
     helper.accessor((row) => formatEmployeeName(row), {
@@ -48,9 +48,10 @@ export function employeeColumns(onStatusChange: (change: EmployeeStatusChange) =
         </>
       ),
     }),
-    helper.accessor('jobTitle', {
-      id: 'jobTitle',
-      header: 'Funcție',
+    // The post the person fills; the contract title is on their page (ADR 006).
+    helper.accessor((row) => row.jobPosition.name, {
+      id: 'jobPosition',
+      header: 'Post de lucru',
       enableSorting: true,
       meta: { skeletonClassName: 'w-28' },
     }),

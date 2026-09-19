@@ -80,3 +80,54 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await expect(page.getByTestId('job-position-remove-dialog')).toContainText('2 angajați');
   await expect(page.getByTestId('job-position-remove-confirm')).toBeDisabled();
 });
+
+test('a new hire goes into a post from the employee form, and can be moved to another', async ({
+  page,
+}) => {
+  const owner = await createAccount('employee-post', 'Paula Posturi');
+  const organizationId = await createOrganization('Angajat și post E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT ANGAJAT E2E S.R.L.');
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Ion',
+    lastName: 'Sudoru',
+    jobTitle: 'Sudor',
+  });
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/employees/new`);
+
+  await page.getByTestId('employee-last-name').fill('Electricu');
+  await page.getByTestId('employee-first-name').fill('Dan');
+  await page.getByTestId('employee-hired-at').fill('10.01.2024');
+
+  // A post the client does not have yet is typed in place; the contract title follows it.
+  await page.getByTestId('employee-job-position').click();
+  await page.getByTestId('employee-job-position-search').fill('Electrician');
+  await page.getByRole('option', { name: /Adaugă postul „Electrician”/ }).click();
+  await expect(page.getByTestId('employee-job-title')).toHaveValue('Electrician');
+  await page.getByTestId('employee-job-title').fill('Electrician întreținere');
+  await page.getByTestId('employee-submit').click();
+
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/employees$`));
+  const row = page.getByTestId('employees-row').filter({ hasText: 'Electricu' });
+  await expect(row).toContainText('Electrician');
+
+  // The post exists now, with one person in it.
+  await page.getByRole('link', { name: 'Posturi de lucru' }).click();
+  const electrician = page.getByTestId('job-position-row').filter({ hasText: 'Electrician' });
+  await expect(electrician.getByTestId('job-position-employees')).toHaveText('Un angajat');
+
+  // On the person's page the two facts stand apart, and the post can change on its own.
+  await page.getByRole('link', { name: 'Angajați' }).first().click();
+  await row.getByRole('link').first().click();
+  await expect(page.getByTestId('employee-job-position')).toHaveText('Electrician');
+  await expect(page.getByText('Electrician întreținere')).toBeVisible();
+  await page.getByTestId('employee-job-position-change').click();
+  await page.getByTestId('employee-position').click();
+  await page.getByTestId('employee-position-search').fill('sud');
+  await page.getByRole('option', { name: /Sudor/ }).click();
+  await page.getByTestId('employee-job-position-save').click();
+  await expect(page.getByText('Postul de lucru a fost schimbat.')).toBeVisible();
+  await expect(page.getByTestId('employee-job-position')).toHaveText('Sudor');
+  await expect(page.getByText('Electrician întreținere')).toBeVisible();
+});
