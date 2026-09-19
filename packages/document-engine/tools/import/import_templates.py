@@ -58,7 +58,7 @@ KINDS = {
         'title': [r'^PLANUL DE PREVENIRE', r'^LISTA INTERN[AĂ]', r'^EVALUAREA\s+RISCURILOR\s+DE\s+ACCIDENTARE'],
         'subtitle': [r'^DIN CADRUL', r'^PENTRU$', r'^\{\{client\.legalName\}\}$'],
         'headings': [r'^(Capitolul|CAPITOLUL|Subcapitolul|SUBCAPITOLUL|Cuprins|CUPRINS)', r'^TABEL \d+\.',
-                     r'^Tabel(ul)? \d+'],
+                     r'^Tabel(ul)? \d+', r'^Loc de munc[aă] / Post de lucru:'],
         'answers': [r'^[a-z]\)\s'],
     },
     'briefing': {
@@ -413,12 +413,26 @@ def rebuild_table(document, definition):
                 column = ord(cell_name[0]) - ord('A')
                 row = int(cell_name[1:]) - 1
                 rows_read.setdefault(row, [None] * width)[column] = old.getCellByName(cell_name).getString().strip()
+            counts = collections.Counter(int(cell_name[1:]) - 1 for cell_name in names)
+            definition = dict(definition)
+            if definition.get('headingFromColumn') is not None:
+                # A column with one value for the whole table says it once, above the table:
+                # "Loc de muncă / Post de lucru: …". Drop the column with `dropColumns`.
+                column = definition['headingFromColumn']
+                values = [row[column] for index, row in sorted(rows_read.items())
+                          if index >= definition.get('headerRows', 1) and row[column]
+                          and index not in definition.get('dropRows', [])]
+                lines = [line.strip() for line in values[0].split('\n') if line.strip()]
+                value = re.sub(definition.get('headingStrip', '^$'), '', ', '.join(lines).replace(', /, ', ' / '))
+                definition['heading'] = f'{rows_read[0][column]}: {value}'
             for dropped in sorted(definition.get('dropColumns', []), reverse=True):
                 # A column that cannot stay true: page numbers typed by hand.
                 for row in rows_read.values():
                     del row[dropped]
-            counts = collections.Counter(int(cell_name[1:]) - 1 for cell_name in names)
-            definition = dict(definition, rows=[rows_read[index] for index in sorted(rows_read)])
+            for dropped in definition.get('dropRows', []):
+                # A row that numbers the columns means nothing once one of them is gone.
+                del rows_read[dropped]
+            definition['rows'] = [rows_read[index] for index in sorted(rows_read)]
             if definition.get('keepRows') is not None:
                 definition['rows'] = definition['rows'][:definition['keepRows']] + definition.get('addRows', [])
             if counts[0] == 1 and width > 1:
@@ -455,6 +469,8 @@ def rebuild_table(document, definition):
         heading.ParaAdjust = CENTER
         heading.ParaKeepTogether = True
         heading.NumberingIsNumber = False
+        if definition.get('pageBreak'):
+            heading.BreakType = PAGE_BEFORE
         following.CharWeight = 100
 
     rows = definition['rows']
@@ -486,7 +502,8 @@ def rebuild_table(document, definition):
         for column_index, content in enumerate(row):
             cell_definition = content if isinstance(content, dict) else {'text': content}
             cell = table.getCellByPosition(column_index, row_index)
-            cell.VertOrient = 2
+            # Centred in its row, or from the top where a row of long text runs over pages.
+            cell.VertOrient = 1 if definition.get('top') and row_index >= definition.get('headerRows', 1) else 2
             lines = cell_definition['text'].split('\n')
             cell_cursor = cell.createTextCursor()
             for index, line in enumerate(lines):
@@ -495,7 +512,8 @@ def rebuild_table(document, definition):
                                 bold=row_index < header_rows or column_index in bold_columns
                                 or cell_definition.get('bold', False),
                                 adjust={'left': LEFT, 'center': CENTER}[aligned] if aligned else
-                                LEFT if column_index in left and row_index >= header_rows else CENTER,
+                                LEFT if column_index in left and row_index >= header_rows
+                                and not re.fullmatch(r'-+', line) else CENTER,
                                 below=0, first=index == 0)
             spans = (cell_definition.get('colspan', 1), cell_definition.get('rowspan', 1))
             if spans != (1, 1):
@@ -510,6 +528,10 @@ def rebuild_table(document, definition):
         merge.mergeRange()
     if header_rows > 1 and not spans_rows:
         table.HeaderRowCount = header_rows
+    if definition.get('wholeRows'):
+        # A row of a few lines reads better moved to the next page than cut in two.
+        for row in table.getRows():
+            row.IsSplitAllowed = False
     for row_number, height in definition.get('rowHeights', {}).items():
         # One row taller than the rest: the blank space of a form.
         padding = max(0, round((height * 100 - size * POINT * 1.2) / 2))

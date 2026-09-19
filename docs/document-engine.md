@@ -116,6 +116,16 @@ a first row merged across the table becomes the caption above it, and a cell the
 merged downwards stays merged. Tables of up to a dozen rows do not split; longer ones do, or
 most of a page stays empty before them. Letters under a numbered point are set one tier in.
 
+A column that holds one value for the whole table is said once, above it: `headingFromColumn`
+turns the column's heading and its value into a line over the table ("Loc de muncă / Post de
+lucru: MANAGER MAGAZIN"), `headingStrip` removes a pattern from that value, and `dropColumns`
+takes the column out, which leaves its width to the ones that carry text. `dropRows` removes
+rows, such as one that numbers the columns. `top: true` starts the cells of long rows from the
+top, `wholeRows: true` moves a row to the next page instead of cutting it in two, and
+`pageBreak: true` opens a new page before the table. The prevention plan's three tables are set
+this way: the original merged the workplace cell down the whole table, which some viewers
+cannot carry over a page and cut off instead.
+
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
 the original lays it out in text frames, which LibreOffice cannot read back as a table. In a
