@@ -157,8 +157,8 @@ the training records, from which "currently absent" is derived.
 
 Not on the employee row, on purpose: training completion, signatures, and medical fitness.
 Those are evidence records with dates and actors (a `training_records` table follows), because a
-flag would be wrong the day after the periodic training expires. Department and SSM post are
-their own future entities; no free-text stand-ins were added. Workplaces exist as
+flag would be wrong the day after the periodic training expires. The post a person fills is
+a job position, below. Departments are a future entity; no free-text stand-in was added. Workplaces exist as
 `client_workplaces`, and an employee does not point at one yet. Contract type, working
 hours, and salary are HR data the product avoids.
 
@@ -166,6 +166,34 @@ The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
 the generated client, so the form and the API validate against one list, and the database
 check constraint mirrors it.
+
+## Job positions
+
+`job_positions` holds the posts a client employs people in, as occupational safety sees them
+([ADR 006](architecture/adr-006-job-positions.md)). A position belongs to the client, not to
+a workplace, and exists whether or not anyone is in it. It carries the same `client_id`,
+`organization_id` and composite foreign key as `employees`.
+
+| Column           | Notes                                                                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`           | Unique per client among positions that are not archived, compared in lower case without the spaces around it.                                                    |
+| `staff_category` | `technical_administrative` or `execution`: the two kinds of staff the training decision gives an interval each. Defaults to `execution`, the shorter interval.   |
+| `work_zone`      | Optional free text, "Birou", "Atelier, teren": the kind of place the work happens in. Not a workplace, which is an address.                                      |
+| `activities`     | Optional: what the person in it actually does. Tells apart two positions close in name.                                                                          |
+| `archived_at`    | Set instead of deleting once an employee points at the position. A trigger refuses it (`JOB01`) while current employees are in it; people who left do not count. |
+
+`employees.job_position_id` is required: one position per employee. ADR 006 spoke of a link
+table; a required column keeps the rule in the database and the insert in one statement, and
+allowing several positions later is one migration either way. `employees.job_title` stays
+and means the title in the employment contract, a fact of its own that usually reads the
+same. A trigger gives an employee inserted without a position the one named like their
+contract title, creating it when the client lacks it; the migration did the same for the
+employees that existed, merging titles that differed only in case or spacing. The trigger
+runs as the person inserting, so the policies decide, as everywhere.
+
+Members read, create, update and delete the positions of their organization; updates are
+granted on the descriptive columns and `archived_at` only. Deleting succeeds only for a
+position no employee points at: the foreign key keeps the rest.
 
 ## Generated documents
 

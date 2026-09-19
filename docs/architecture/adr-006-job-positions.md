@@ -19,7 +19,7 @@ A **job position** (_post de lucru_) is a post as occupational safety sees it: a
 
 Positions belong to the client, not to a workplace. The documents are per client, the packs never tie a post to an address, and a post that differs from one site to another is two positions.
 
-An employee holds one position. A person who does mixed work fills one position that says so ("Administrator – vânzător"), which is also how their risks are assessed and how the packs model it. The assignment is stored in a link table, so that allowing several positions later is a small change; the interface and the documents know one.
+An employee holds one position. A person who does mixed work fills one position that says so ("Administrator – vânzător"), which is also how their risks are assessed and how the packs model it. The interface and the documents know one. (Amended while building: the assignment is a required column on the employee, not the link table first written here. A column keeps "every employee has a position" a rule of the database and the insert a single statement; a link table cannot do either through the API's one-request-per-statement access. Allowing several positions later is one migration from either shape.)
 
 ### The contract title stays on the employee
 

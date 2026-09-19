@@ -12,6 +12,7 @@ export * from './document-data';
 export * from './documents';
 export * from './employees';
 export * from './invitations';
+export * from './job-positions';
 export * from './list';
 export * from './mail';
 export * from './organizations';

@@ -13,6 +13,7 @@ import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
 import { healthRouter } from './modules/health';
 import { invitationsRouter } from './modules/invitations';
+import { jobPositionsRouter } from './modules/job-positions';
 import { meRouter } from './modules/me';
 import { organizationRouter } from './modules/organization';
 import { waitlistRouter } from './modules/waitlist';
@@ -40,6 +41,7 @@ export function createApp() {
   app.route('/', clientsRouter);
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
+  app.route('/', jobPositionsRouter);
   app.route('/', documentDataRouter);
   app.route('/', documentsRouter);
   app.route('/', organizationRouter);

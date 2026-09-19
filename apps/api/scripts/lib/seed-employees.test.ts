@@ -70,11 +70,24 @@ describe('seed writes', () => {
     });
     expect(await seedEmployees(db, [])).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();
-    fetchMock.mockResolvedValueOnce(Response.json([{ id: 'a' }, { id: 'b' }]));
+    fetchMock
+      .mockResolvedValueOnce(Response.json([{ id: 'a' }, { id: 'b' }]))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
     const rows = fakeEmployees([clients[0]!], 1, organizationId, userId).slice(0, 2);
     expect(await seedEmployees(db, rows)).toBe(2);
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(new URL(String(url)).searchParams.get('on_conflict')).toBe('id');
     expect(JSON.parse(String(init?.body))).toHaveLength(2);
+    // No employee names a job position: the database assigns the one named like the title.
+    expect(JSON.parse(String(init?.body))[0]).not.toHaveProperty('job_position_id');
+
+    // The office titles among the positions that created are moved to their category.
+    const [positionsUrl, positionsInit] = fetchMock.mock.calls[1]!;
+    expect(new URL(String(positionsUrl)).pathname).toBe('/rest/v1/job_positions');
+    expect(new URL(String(positionsUrl)).searchParams.get('name')).toContain('Contabil');
+    expect(JSON.parse(String(positionsInit?.body))).toEqual({
+      staff_category: 'technical_administrative',
+      work_zone: 'Birou',
+    });
   });
 });

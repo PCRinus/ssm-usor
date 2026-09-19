@@ -91,6 +91,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                        |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating               |
+| `GET /clients/{clientId}/job-positions`                                | Verified user with a membership       | `{ "items": [ … ] }`, by name, each with `employeeCount`                                           |
+| `POST /clients/{clientId}/job-positions`                               | Verified user with a membership       | `201 { "jobPosition": { … } }`                                                                     |
+| `PUT /clients/{clientId}/job-positions/{jobPositionId}`                | Verified user with a membership       | `{ "jobPosition": { … } }` after the change                                                        |
+| `DELETE /clients/{clientId}/job-positions/{jobPositionId}`             | Verified user with a membership       | `204`: deleted, or archived when people who left still point at it                                 |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -121,6 +125,18 @@ lowercases the email, and rejects a birth date that contradicts the CNP. `PATCH 
 takes `{ "status": "terminated", "terminatedAt": "YYYY-MM-DD" }` or `{ "status": "active" }`;
 a leave date before the hire date answers `400` with an issue on `terminatedAt`. Reactivating
 is for undoing a mistake; a rehire after a gap is a new employee.
+
+Job positions ([ADR 006](architecture/adr-006-job-positions.md)) are the posts a client
+employs people in. The list is not paginated, since a client has a handful, leaves archived
+positions out, and counts the current employees of each in the database. A name the client
+already has, in any case, answers `409` with the reason `job_position_name_taken` and an
+issue on `name`. `PUT` replaces the descriptive fields; renaming never rewrites the contract
+title of the employees in the position. `DELETE` removes a position entered by mistake; one
+an employee points at is archived instead, which releases its name, and while current
+employees are in it the answer is `409` with the reason `job_position_held`. `POST
+…/employees` still takes only `jobTitle`, now the contract title: the database assigns the
+position of that name, creating it when the client lacks it, until the form learns to choose
+one.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in

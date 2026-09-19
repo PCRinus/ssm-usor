@@ -61,7 +61,9 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
   };
 }
 
-export function toEmployee(row: Omit<EmployeeRow, 'organization_id' | 'created_by'>): Employee {
+export function toEmployee(
+  row: Omit<EmployeeRow, 'organization_id' | 'created_by' | 'job_position_id'>
+): Employee {
   return {
     ...toEmployeeListItem(row),
     cnp: row.cnp,
@@ -161,7 +163,9 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       rh_factor: body.rhFactor ?? null,
       notes: body.notes ?? null,
       created_by: c.get('user').id,
-    })
+      // Left out, the database assigns the job position named like the contract title,
+      // creating it if the client lacks it (ADR 006). The generated types cannot know that.
+    } as Database['public']['Tables']['employees']['Insert'])
     .select(employeeColumns)
     .single();
   if (error) {

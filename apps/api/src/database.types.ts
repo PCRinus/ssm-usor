@@ -518,6 +518,7 @@ export type Database = {
           hired_at: string;
           home_address: string | null;
           id: string;
+          job_position_id: string;
           job_title: string;
           last_name: string;
           notes: string | null;
@@ -543,6 +544,7 @@ export type Database = {
           hired_at: string;
           home_address?: string | null;
           id?: string;
+          job_position_id: string;
           job_title: string;
           last_name: string;
           notes?: string | null;
@@ -568,6 +570,7 @@ export type Database = {
           hired_at?: string;
           home_address?: string | null;
           id?: string;
+          job_position_id?: string;
           job_title?: string;
           last_name?: string;
           notes?: string | null;
@@ -592,6 +595,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_job_position_in_client';
+            columns: ['job_position_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_positions';
+            referencedColumns: ['id', 'client_id'];
           },
           {
             foreignKeyName: 'employees_organization_id_fkey';
@@ -631,6 +641,70 @@ export type Database = {
           target_user_id?: string;
         };
         Relationships: [];
+      };
+      job_positions: {
+        Row: {
+          activities: string | null;
+          archived_at: string | null;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          staff_category: Database['public']['Enums']['staff_category'];
+          updated_at: string;
+          work_zone: string | null;
+        };
+        Insert: {
+          activities?: string | null;
+          archived_at?: string | null;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          staff_category?: Database['public']['Enums']['staff_category'];
+          updated_at?: string;
+          work_zone?: string | null;
+        };
+        Update: {
+          activities?: string | null;
+          archived_at?: string | null;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          staff_category?: Database['public']['Enums']['staff_category'];
+          updated_at?: string;
+          work_zone?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'job_positions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_positions_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_positions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       organization_invitations: {
         Row: {
@@ -971,6 +1045,7 @@ export type Database = {
       organization_role: 'owner' | 'specialist';
       responsible_person_role:
         'workplace_manager' | 'first_aid' | 'risk_evaluation_team' | 'imminent_danger';
+      staff_category: 'technical_administrative' | 'execution';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1101,6 +1176,7 @@ export const Constants = {
         'risk_evaluation_team',
         'imminent_danger',
       ],
+      staff_category: ['technical_administrative', 'execution'],
     },
   },
 } as const;
