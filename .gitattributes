@@ -1,0 +1,2 @@
+# Word templates are zip archives; never diff or merge them as text.
+*.docx binary

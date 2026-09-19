@@ -15,6 +15,7 @@ api:
     - 'patches/**'
   - 'apps/api/**'
   - 'packages/contracts/**'
+  - 'packages/document-engine/**'
 app:
   - *shared
   - 'apps/app/**'
