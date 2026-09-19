@@ -104,6 +104,16 @@ describe('renderDocument', () => {
     );
   });
 
+  it('numbers the items of a list from 1 with {{$index}}', () => {
+    const template = docx(
+      paragraph(run('{{#risks}}')) +
+        paragraph(run('{{$index}}. {{risk}}')) +
+        paragraph(run('{{/risks}}'))
+    );
+    const data = { risks: [{ risk: 'Alunecare' }, { risk: 'Electrocutare' }] };
+    expect(documentText(renderDocument(template, data))).toBe('1. Alunecare\n2. Electrocutare');
+  });
+
   it('drops the second full stop when a value that ends in one closes a sentence', () => {
     const template = docx(
       paragraph(run('din cadrul '), run('{{client.legalName}}', true), run('.')) +

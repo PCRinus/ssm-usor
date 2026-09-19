@@ -23,6 +23,7 @@ import json
 import os
 import collections
 import re
+import zipfile
 import subprocess
 import sys
 import time
@@ -52,6 +53,13 @@ ROMANIAN = Locale('ro', 'RO', '')
 
 # What counts as a title or a heading, per kind of document. Matched on a whole paragraph.
 KINDS = {
+    # The training materials: chapters of articles, no title of their own (the cover has it).
+    'material': {
+        'title': [],
+        'subtitle': [],
+        'headings': [r'^Capitolul', r'^Subcapitolul', r'^Cuprins', r'^TABEL \d+\.', r'^Tabel(ul)? \d+'],
+        'answers': [r'^[a-z]\)\s'],
+    },
     'briefing': {
         'title': [r'^MATERIAL DE INFORMARE'],
         'subtitle': [],
@@ -260,7 +268,7 @@ def document_words(document):
 # their diacritics yet.
 WORD_START = rf'(?<![{LETTER}{{.])'
 WORD_END = rf'(?![{LETTER}}}])'
-AUXILIARIES = ('va|vor|a|ar|poate|pot|putea|voi|vom|vă|va fi|se va|se vor|se poate|se pot|nu va|nu vor|își va|isi va|'
+AUXILIARIES = ('va|vor|a|ar|poate|pot|putea|poată|poata|putut|puteți|puteti|putem|voi|vom|vă|va fi|se va|se vor|se poate|se pot|nu va|nu vor|își va|isi va|'
                'le va|îl va|il va|o va|a se|a le|a-și|a-si|a-i|a-l|de a|nu se va')
 INDEFINITE_BEFORE = 'o|nicio|nici o|orice|fiecare|aceasta|această|aceeasi|aceeași|alta|altă|vreo|cate o|câte o'
 PREPOSITIONS = ('de|în|in|la|pe|cu|din|prin|pentru|sub|fără|fara|după|dupa|ca|spre|către|catre|peste|între|intre|'
@@ -382,14 +390,20 @@ def rebuild_table(document, definition):
             # The original's own text, in columns that fit it. `number` writes the first column
             # out, where the original numbered its rows with a list.
             names = old.getCellNames()
-            width = len(definition['widths'])
+            width = len(definition['widths']) + len(definition.get('dropColumns', []))
             rows_read = {}
             for cell_name in names:
                 column = ord(cell_name[0]) - ord('A')
                 row = int(cell_name[1:]) - 1
                 rows_read.setdefault(row, [None] * width)[column] = old.getCellByName(cell_name).getString().strip()
+            for dropped in sorted(definition.get('dropColumns', []), reverse=True):
+                # A column that cannot stay true: page numbers typed by hand.
+                for row in rows_read.values():
+                    del row[dropped]
             counts = collections.Counter(int(cell_name[1:]) - 1 for cell_name in names)
             definition = dict(definition, rows=[rows_read[index] for index in sorted(rows_read)])
+            if definition.get('keepRows') is not None:
+                definition['rows'] = definition['rows'][:definition['keepRows']] + definition.get('addRows', [])
             if counts[0] == 1 and width > 1:
                 # A first row merged across the table is its caption: a heading above it.
                 definition['heading'] = definition['rows'].pop(0)[0]
@@ -881,6 +895,7 @@ def typeset(document, kind):
     seen_title = False
     after_question = False
     under_number = False
+    letter_tier = None
     for paragraph, in_table in paragraphs(document.Text):
         text = paragraph.getString().strip()
         if not in_table and after_question and paragraph.NumberingIsNumber and paragraph.ListLabelString:
@@ -925,6 +940,7 @@ def typeset(document, kind):
         paragraph.ParaAdjust = LEFT
         if not (paragraph.NumberingIsNumber and paragraph.ListLabelString) or paragraph.ListLabelString.startswith('Art.'):
             under_number = False
+            letter_tier = None
         listed = paragraph.NumberingIsNumber and paragraph.NumberingRules is not None and (
             paragraph.ListLabelString or paragraph.ParaLeftMargin
             or any(item.Name == 'IndentAt' and item.Value for item in
@@ -939,10 +955,17 @@ def typeset(document, kind):
             label = paragraph.ListLabelString
             if re.fullmatch(r'\d+[.)]', label):
                 under_number = True
-            elif under_number and re.fullmatch(r'[a-z][.)]', label):
+                letter_tier = None
+            elif re.fullmatch(r'[a-z][.)]', label):
                 # Letters under a numbered point: one tier in, which the originals leave flush
                 # with the numbers. On the paragraph, because both may share one list.
-                paragraph.ParaLeftMargin = LIST_TIERS[1]
+                letter_tier = 1 if under_number else 0
+                if under_number:
+                    paragraph.ParaLeftMargin = LIST_TIERS[1]
+                    paragraph.ParaFirstLineIndent = LIST_HANG
+            elif letter_tier is not None and not re.search(r'[\w]', label):
+                # Dashes under a letter: one tier further in.
+                paragraph.ParaLeftMargin = LIST_TIERS[letter_tier + 1]
                 paragraph.ParaFirstLineIndent = LIST_HANG
         elif paragraph.ParaLeftMargin:
             # A note inside a list: "(Preluare din H.G. 1425/2006 – Art. 98)".
@@ -1057,6 +1080,22 @@ def _elements(text):
         yield elements.nextElement()
 
 
+def sweep(path):
+    """A last pass over the saved file, for the two things LibreOffice's API reaches in most
+    places and not in all: a dead link that survives clearing, and an empty paragraph it
+    writes as justified though its own model says otherwise."""
+    with zipfile.ZipFile(path) as archive:
+        entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for item, data in entries:
+            if re.fullmatch(r'word/(document|header\d*|footer\d*)\.xml', item.filename):
+                xml = data.decode('utf8')
+                xml = re.sub(r'<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>', r'\1', xml, flags=re.S)
+                xml = xml.replace('<w:jc w:val="both"/>', '<w:jc w:val="left"/>')
+                data = xml.encode('utf8')
+            archive.writestr(item, data)
+
+
 def import_template(desktop, spec_path, wording, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
@@ -1104,6 +1143,7 @@ def import_template(desktop, spec_path, wording, output):
         os.makedirs(f'{ROOT}/{output}', exist_ok=True)
         target = f'{ROOT}/{output}/{name}.docx'
         document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
+        sweep(target)
         print(f'{name}: {fixes} wording fixes, {removed} empty paragraphs removed')
     finally:
         document.close(True)

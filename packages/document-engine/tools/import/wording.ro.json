@@ -2697,7 +2697,52 @@
     "initiativa": "inițiativa",
     "carti": "cărți",
     "fise": "fișe",
-    "asiguratorului": "asigurătorului"
+    "asiguratorului": "asigurătorului",
+    "coborirea": "coborârea",
+    "angalatorului": "angajatorului",
+    "sitingere": "stingere",
+    "decuritatii": "securității",
+    "professional": "profesional",
+    "stabileăte": "stabilește",
+    "brașelor": "brațelor",
+    "puteric": "puternic",
+    "bilogic": "biologic",
+    "ecipament": "echipament",
+    "puratrea": "purtarea",
+    "sabilesc": "stabilesc",
+    "delimiata": "delimitată",
+    "imbolanavirea": "îmbolnăvirea",
+    "stress": "stres",
+    "defasoara": "desfășoară",
+    "serviul": "serviciul",
+    "traumatizmului": "traumatismului",
+    "miinile": "mâinile",
+    "utilizind": "utilizând",
+    "actionind": "acționând",
+    "combustibul": "combustibil",
+    "dotatarea": "dotarea",
+    "întreprinderei": "întreprinderii",
+    "decit": "decât",
+    "deplsa": "deplasa",
+    "locuilor": "locurilor",
+    "fringhie": "frânghie",
+    "manfestare": "manifestare",
+    "sezanda": "șezândă",
+    "hiperbarica": "hiperbarică",
+    "multifactoriala": "multifactorială",
+    "semnalizata": "semnalizată",
+    "nesemnalizarii": "nesemnalizării",
+    "dezinfectanti": "dezinfectanți",
+    "obilatorilu": "obligatoriu",
+    "antsepticile": "antisepticele",
+    "scrut": "scurt",
+    "oameno": "oameni",
+    "sigurantal": "siguranță",
+    "stabilț": "stabilă",
+    "ovedeți": "vedeți",
+    "împreuna": "împreună",
+    "partii": "părții",
+    "accidentarii": "accidentării"
   },
   "phrases": [
     {
@@ -2709,7 +2754,7 @@
       "replace": "Ă"
     },
     {
-      "pattern": "(?<=\\p{L})º|º(?=\\p{L})",
+      "pattern": "(?<=\\p{Ll})º|º(?=\\p{Ll})",
       "replace": "ș"
     },
     {
@@ -2723,6 +2768,10 @@
     {
       "pattern": "Þ(?=\\p{L})",
       "replace": "Ț"
+    },
+    {
+      "pattern": "(?<=\\p{L})[ \\x{00A0}]+,(?=\\p{L})",
+      "replace": ", "
     },
     {
       "pattern": "^\\{\\{client\\.representativeRole\\}\\}[ \\u00a0]*:$",
@@ -3104,6 +3153,162 @@
     {
       "find": "prevederile legislative domeniul",
       "replace": "prevederile legislative din domeniul"
+    },
+    {
+      "find": "precumsiintr-o",
+      "replace": "precum și într-o"
+    },
+    {
+      "find": "astfelincat",
+      "replace": "astfel încât"
+    },
+    {
+      "find": "sta tiilor",
+      "replace": "stațiilor"
+    },
+    {
+      "find": "legitima tiilor",
+      "replace": "legitimațiilor"
+    },
+    {
+      "find": "dup a caz",
+      "replace": "după caz"
+    },
+    {
+      "find": "laechipamentele",
+      "replace": "la echipamentele"
+    },
+    {
+      "find": "aniimpliniti",
+      "replace": "ani împliniți"
+    },
+    {
+      "find": "fiinsotite",
+      "replace": "fi însoțite"
+    },
+    {
+      "find": "sauinscrisuri",
+      "replace": "sau înscrisuri"
+    },
+    {
+      "find": "care saii permită",
+      "replace": "care să îi permită"
+    },
+    {
+      "find": "care saii permita",
+      "replace": "care să îi permită"
+    },
+    {
+      "find": "vehiculintr",
+      "replace": "vehicul într"
+    },
+    {
+      "find": "numaiinsotit",
+      "replace": "numai însoțit"
+    },
+    {
+      "find": "datoritaincarcaturii",
+      "replace": "datorită încărcăturii"
+    },
+    {
+      "find": "saindrume",
+      "replace": "să îndrume"
+    },
+    {
+      "find": "sâfie",
+      "replace": "să fie"
+    },
+    {
+      "find": "încâlzi",
+      "replace": "încălzi"
+    },
+    {
+      "find": "fevenimentul",
+      "replace": "evenimentul"
+    },
+    {
+      "find": "persoane diferite responsabilile cu",
+      "replace": "persoane diferite responsabile cu"
+    },
+    {
+      "find": "deschidețile",
+      "replace": "deschideți-le"
+    },
+    {
+      "find": "deschidetile",
+      "replace": "deschideți-le"
+    },
+    {
+      "find": "dezbrăcațile",
+      "replace": "dezbrăcați-le"
+    },
+    {
+      "find": "dezbracatile",
+      "replace": "dezbrăcați-le"
+    },
+    {
+      "find": "cunos-țintelor",
+      "replace": "cunoștințelor"
+    },
+    {
+      "find": "cunos-tintelor",
+      "replace": "cunoștințelor"
+    },
+    {
+      "find": "consti-tuind",
+      "replace": "constituind"
+    },
+    {
+      "find": "comportamen-tului",
+      "replace": "comportamentului"
+    },
+    {
+      "find": "în úntate",
+      "replace": "în unitate"
+    },
+    {
+      "find": "in úntate",
+      "replace": "în unitate"
+    },
+    {
+      "find": "care patrun dintr-o",
+      "replace": "care pătrund într-o"
+    },
+    {
+      "find": "căile de aces",
+      "replace": "căile de acces"
+    },
+    {
+      "find": "caile de aces",
+      "replace": "căile de acces"
+    },
+    {
+      "find": "procesul de muna",
+      "replace": "procesul de muncă"
+    },
+    {
+      "find": "o data cu",
+      "replace": "odată cu"
+    },
+    {
+      "find": "in forma scrisa",
+      "replace": "în formă scrisă"
+    },
+    {
+      "find": "în forma scrisa",
+      "replace": "în formă scrisă"
+    },
+    {
+      "find": "sub forma scrisa",
+      "replace": "sub formă scrisă"
+    },
+    {
+      "find": "Masura pentru eliminarea",
+      "replace": "Măsura pentru eliminarea"
+    },
+    {
+      "find": "cu mana",
+      "replace": "cu mâna"
     }
   ],
   "context": [
@@ -3554,7 +3759,10 @@
       "expandata": "expandată",
       "nervurata": "nervurată",
       "preconizata": "preconizată",
-      "egala": "egală"
+      "egala": "egală",
+      "intrerupta": "întreruptă",
+      "întrerupta": "întreruptă",
+      "rupta": "ruptă"
     },
     "adjectivesAfterNoun": {
       "fizica": "fizică",
@@ -3728,7 +3936,11 @@
       "viata": ["viața", "viață"],
       "fisa": ["fișa", "fișă"],
       "apa": ["apa", "apă"],
-      "gheata": ["gheața", "gheață"]
+      "gheata": ["gheața", "gheață"],
+      "practica": ["practica", "practică"],
+      "tehnica": ["tehnica", "tehnică"],
+      "fizica": ["fizica", "fizică"],
+      "statistica": ["statistica", "statistică"]
     }
   }
 }

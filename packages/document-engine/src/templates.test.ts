@@ -219,7 +219,7 @@ describe('wording', () => {
 
   it.each(texts)("%s has none of the originals' typos or missing diacritics", (_, text) => {
     expect(text).not.toMatch(
-      /instuirii|activitatatilor|deasemeni|deoparte|în tabelului|securitatii|sanatatii|\bin munca\b|\bsi\b|functia|Subsemnat/
+      /instuirii|activitatatilor|deasemeni|deoparte|în tabelului|securitatii|sanatatii|(?<!\p{L})in munca(?!\p{L})|(?<!\p{L})si(?!\p{L})|functia|Subsemnat/u
     );
   });
 

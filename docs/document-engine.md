@@ -16,6 +16,7 @@ Templates are ordinary `.docx` files with `{{ }}` placeholders:
 | `{{client.legalName}}`                  | A value, by dotted path.                                  |
 | `{{#firstAiders}}` … `{{/firstAiders}}` | A repeated block; inside, `{{name}}` reads from the item. |
 | `{{.}}`                                 | The current item of a list of strings.                    |
+| `{{$index}}`                            | The item's number in its list, from 1.                    |
 
 Where the two loop tags sit decides what repeats. Both in one table row: the row. Each alone
 in a paragraph of its own: the paragraphs between them. Anywhere else: the text between
@@ -152,7 +153,9 @@ What the documents
 _say_ is not touched: article references, durations, who decides what. Nor are the empty
 numbered rows of the acknowledgement tables, where newly appointed people sign later.
 
-**3. Typesetting**, to one house style:
+**3. Typesetting**, to one house style, followed by a last sweep over the saved XML for the
+two things LibreOffice's API reaches in most places and not in all: a dead link that survives
+clearing, and an empty paragraph written as justified:
 
 |                  |                                                                                                                                                                                                                                                                                                                             |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -210,6 +213,7 @@ Covers need `provider.representativeRole` besides what the decisions use.
 | `event_registers`               | The four registers of accidents and dangerous incidents, A4 landscape    | None                                                                                                                                                             |
 | `control_report`                | The report form filled in by hand at each control visit                  | None                                                                                                                                                             |
 | `employer_briefing`             | What the law asks of the employer, chapter by chapter, about 30 pages    | None                                                                                                                                                             |
+| `general_training_material`     | The material for the general introductory training, about 85 pages       | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`

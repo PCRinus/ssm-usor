@@ -11,6 +11,7 @@ import { isTextPart, replaceText } from './text';
 //                                              alone in its own paragraph it repeats the
 //                                              paragraphs between them; otherwise inline
 //   {{.}}                                      the current item of a list of strings
+//   {{$index}}                                 the item's number in its list, from 1
 //
 // A placeholder without a value is an error, never a blank: a generated document must not
 // leave a gap where a name belongs.
@@ -30,6 +31,7 @@ export class TemplateError extends Error {
 
 interface ParserContext {
   scopeList: unknown[];
+  scopePathItem: number[];
   num: number;
 }
 
@@ -50,6 +52,7 @@ function parser(tag: string) {
   return {
     get(scope: unknown, context: ParserContext) {
       if (path === '.') return scope;
+      if (path === '$index') return (context.scopePathItem.at(-1) ?? 0) + 1;
       const keys = path.split('.');
       for (let index = context.num; index >= 0; index -= 1) {
         const value = lookup(context.scopeList[index], keys);

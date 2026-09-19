@@ -35,6 +35,17 @@ function sample(
       decisionNumber: 1,
       issueDate: '19.01.2026',
       issueYear: '2026',
+      unitRisks: [
+        {
+          risk: 'Cădere de la același nivel pe pardoseală alunecoasă.',
+          measure:
+            'Întreținerea curățeniei în spațiile de lucru și purtarea de încălțăminte adecvată.',
+        },
+        {
+          risk: 'Electrocutare prin atingere directă sau indirectă.',
+          measure: 'Verificări PRAM anuale și verificarea vizuală a integrității cablurilor.',
+        },
+      ],
       followingYear: '2027',
       client: { legalName, representativeName, representativeRole: 'Administrator' },
       provider: {
