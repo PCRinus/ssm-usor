@@ -1177,10 +1177,32 @@ def _elements(text):
         yield elements.nextElement()
 
 
+# Fonts LibreOffice writes as the defaults of every file it saves. No text uses them, and a
+# viewer that lacks them warns about substitutes.
+OFFICE_DEFAULT_FONTS = re.compile(r'"(Liberation (Serif|Sans)|Noto (Serif|Sans)( Mono)? CJK SC|Noto Sans Devanagari)"')
+
+
+def inline_drawing(match):
+    """A picture that floats above and below the text stands on a line of its own anyway. As
+    a character it stays where it is, and the in-app editor can lay the page out."""
+    anchor = match.group(0)
+    if '<wp:wrapTopAndBottom' not in anchor:
+        return anchor
+    # Only one that already sits at the left of its column, or it would jump there.
+    horizontal = re.search(r'<wp:positionH\b.*?</wp:positionH>', anchor, flags=re.S).group(0)
+    offset = re.search(r'<wp:posOffset>(-?\d+)</wp:posOffset>', horizontal)
+    if not offset or abs(int(offset.group(1))) > 360000:  # 10 mm, in EMU
+        return anchor
+    extent = re.search(r'<wp:extent [^>]*/>', anchor).group(0)
+    rest = anchor[anchor.index('<wp:docPr'):].replace('</wp:anchor>', '</wp:inline>')
+    return f'<wp:inline distT="0" distB="0" distL="0" distR="0">{extent}<wp:effectExtent l="0" t="0" r="0" b="0"/>{rest}'
+
+
 def sweep(path):
-    """A last pass over the saved file, for the two things LibreOffice's API reaches in most
-    places and not in all: a dead link that survives clearing, and an empty paragraph it
-    writes as justified though its own model says otherwise."""
+    """A last pass over the saved file, for what LibreOffice's API reaches in most places and
+    not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
+    as justified though its own model says otherwise, a picture floating between two lines,
+    and its own fonts as the defaults of the styles. Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
@@ -1189,7 +1211,10 @@ def sweep(path):
                 xml = data.decode('utf8')
                 xml = re.sub(r'<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>', r'\1', xml, flags=re.S)
                 xml = xml.replace('<w:jc w:val="both"/>', '<w:jc w:val="left"/>')
+                xml = re.sub(r'<wp:anchor .*?</wp:anchor>', inline_drawing, xml, flags=re.S)
                 data = xml.encode('utf8')
+            elif item.filename == 'word/styles.xml':
+                data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
             archive.writestr(item, data)
 
 
@@ -1252,16 +1277,26 @@ def import_template(desktop, spec_path, wording, output):
 
 
 def main():
-    # import_templates.py [--out DIR] [name ...]
+    # import_templates.py [--out DIR] [--sweep] [name ...]
     # `--out` writes next to the real templates, to try a change of style before adopting it.
+    # `--sweep` only runs the last pass over the templates that exist, covers included: a
+    # change to it then needs no originals and no office.
     arguments = sys.argv[1:]
-    output, names = 'templates', []
+    output, names, sweep_only = 'templates', [], False
     while arguments:
         argument = arguments.pop(0)
         if argument == '--out':
             output = arguments.pop(0)
+        elif argument == '--sweep':
+            sweep_only = True
         else:
             names.append(argument)
+    if sweep_only:
+        for path in sorted(glob.glob(f'{ROOT}/{output}/*.docx')):
+            if not names or os.path.basename(path)[: -len('.docx')] in names:
+                sweep(path)
+                print(f'{os.path.basename(path)}: swept')
+        return
     specs = sorted(glob.glob(f'{ROOT}/originals/*.spec.json'))
     if names:
         specs = [path for path in specs if os.path.basename(path)[: -len('.spec.json')] in names]
