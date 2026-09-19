@@ -32,6 +32,55 @@ export const documentTypeKeySchema = z.enum(documentTypeKeys);
 
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
+/**
+ * The documents of the pack the app cannot write yet, because their content follows the
+ * client's job titles or is the risk assessment itself (ADR 005, stages 2 and 3). Until it
+ * can, the provider writes them elsewhere and uploads the file, so the set is complete.
+ */
+export const uploadedDocumentTypes = {
+  own_instructions: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+  training_themes: 'Tematica și programul de instruire',
+  protective_equipment_list: 'Lista internă de dotare cu echipament individual de protecție',
+  risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+  prevention_plan: 'Planul de prevenire și protecție',
+} as const;
+
+export type UploadedDocumentTypeKey = keyof typeof uploadedDocumentTypes;
+
+export const isUploadedDocumentType = (typeKey: string): typeKey is UploadedDocumentTypeKey =>
+  Object.hasOwn(uploadedDocumentTypes, typeKey);
+
+/** Every document of the pack, generated or uploaded, in the pack's order. */
+export const packDocumentTypeKeys = [
+  'cover_decisions',
+  'decision_training',
+  'decision_risk_evaluation_team',
+  'decision_first_aid',
+  'decision_imminent_danger',
+  'cover_general_training_material',
+  'general_training_material',
+  'cover_own_instructions',
+  'own_instructions',
+  'cover_training_themes',
+  'training_themes',
+  'cover_tests',
+  'test_hiring',
+  'test_periodic',
+  'protective_equipment_list',
+  'cover_event_registers',
+  'event_registers',
+  'control_report',
+  'risk_assessment',
+  'prevention_plan',
+  'cover_employer_briefing',
+  'employer_briefing',
+  'control_regulation',
+] as const satisfies readonly (DocumentTypeKey | UploadedDocumentTypeKey)[];
+
+export const packDocumentTypeKeySchema = z.enum(packDocumentTypeKeys);
+
+export type PackDocumentTypeKey = z.infer<typeof packDocumentTypeKeySchema>;
+
 /** The decisions, in the order they are numbered from the first decision number. */
 export const decisionTypeKeys = [
   'decision_training',
@@ -167,7 +216,11 @@ export type RegenerateDocumentRequest = z.infer<typeof regenerateDocumentRequest
 export const unfilledMark = 'DE COMPLETAT';
 
 /** `reason` values on document errors, so the SPA can word them itself. */
-export const documentErrorReasons = ['missing_document_data', 'unfilled_text'] as const;
+export const documentErrorReasons = [
+  'missing_document_data',
+  'unfilled_text',
+  'not_generated_yet',
+] as const;
 
 export const issueDocumentRequestSchema = z.object({
   // Issue the draft although its file still reads `unfilledMark` somewhere.

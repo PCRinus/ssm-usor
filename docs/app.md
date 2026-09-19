@@ -359,7 +359,13 @@ mobile navigation link closes the Sheet.
   the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
   confirmation that says what is lost or locked. When issuing is refused with the reason
   `unfilled_text`, the same dialog asks a second question, "Documentul mai are text de
-  completat", and "Emite oricum" sends `acceptUnfilled`. A download fetches the signed link and
+  completat", and "Emite oricum" sends `acceptUnfilled`. The five documents the app cannot
+  write yet (`uploadedDocumentTypes`) show in their place in the pack as "Neîncărcat" rows
+  with an upload button, once the client has any document; every other row's menu has
+  "Încarcă un fișier", which asks first when it would replace a draft. One hidden file input
+  serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An
+  uploaded document reads "Încărcat" instead of "Modificat" and has no "Generează din nou".
+  A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. A download fetches the signed link and
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own
   header. A `404` or `409` reloads the list. An archived client only gets the downloads.

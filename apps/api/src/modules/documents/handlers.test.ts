@@ -686,3 +686,104 @@ describe('PUT /documents/{documentId}/draft/file', () => {
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
   });
 });
+
+describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
+  const docx = new Uint8Array([
+    0x50,
+    0x4b,
+    0x03,
+    0x04,
+    ...new TextEncoder().encode('…word/document.xml…'),
+  ]);
+  const upload = (typeKey: string, body: Uint8Array = docx) =>
+    createApp().request(
+      `/clients/${clientId}/documents/${typeKey}/upload`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer test-access-token',
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+        body: new Uint8Array(body),
+      },
+      env
+    );
+  // The list of a client's documents is an array; one document, read again, is an object.
+  const documents =
+    (rows: unknown[]): Handler =>
+    (init, url) =>
+      init?.method === 'POST'
+        ? Response.json({ id: documentId })
+        : url?.searchParams.has('id')
+          ? Response.json(rows[0] ?? { ...documentRow, type_key: 'risk_assessment' })
+          : Response.json(rows);
+
+  it('creates a document the app cannot generate, as revision 1 in draft', async () => {
+    mockUpstream({ documents: documents([]) });
+    const response = await upload('risk_assessment');
+    expect(response.status).toBe(200);
+
+    expect(sentBody('/rest/v1/client_documents')).toMatchObject({
+      client_id: clientId,
+      type_key: 'risk_assessment',
+      title: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+    });
+    const revision = sentBody('/rest/v1/document_revisions');
+    expect(revision).toMatchObject({
+      revision: 1,
+      generation_id: null,
+      docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
+      edited_by: user.id,
+    });
+    expect(revision.template_version_id).toBeUndefined();
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(1);
+  });
+
+  it("replaces the draft's file of a document that has one", async () => {
+    mockUpstream({ documents: documents([documentRow]) });
+    expect((await upload('decision_first_aid')).status).toBe(200);
+    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+    expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH').edited_by).toBe(user.id);
+    const [file] = calls('/storage/v1/object/documents/', 'POST');
+    expect(new Headers(file![1]?.headers).get('x-upsert')).toBe('true');
+  });
+
+  it('starts the next draft beside an issued revision, keeping its date', async () => {
+    const issued = { ...issuedRevision, generation_id: generationId };
+    mockUpstream({ documents: documents([{ ...documentRow, document_revisions: [issued] }]) });
+    expect((await upload('decision_first_aid')).status).toBe(200);
+    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
+    expect(sentBody('/rest/v1/document_revisions')).toMatchObject({
+      revision: 2,
+      generation_id: generationId,
+      docx_path: `${organizationId}/${clientId}/${documentId}/2.docx`,
+    });
+  });
+
+  it('removes the revision again when the file cannot be stored', async () => {
+    mockUpstream({
+      documents: documents([]),
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await upload('risk_assessment')).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
+  });
+
+  it('refuses a generated type that does not exist yet, other files, and unknown types', async () => {
+    mockUpstream({ documents: documents([]) });
+    const early = await upload('decision_first_aid');
+    expect(early.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await early.json()).reason).toBe('not_generated_yet');
+    expect((await upload('risk_assessment', new Uint8Array([1, 2, 3]))).status).toBe(400);
+    expect((await upload('anything_else')).status).toBe(400);
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
+
+  it('refuses an archived client', async () => {
+    mockUpstream({
+      documents: documents([]),
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    expect((await upload('risk_assessment')).status).toBe(409);
+  });
+});

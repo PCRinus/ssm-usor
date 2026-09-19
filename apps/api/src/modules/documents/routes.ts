@@ -7,6 +7,7 @@ import {
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
   issueDocumentRequestSchema,
+  packDocumentTypeKeySchema,
   regenerateDocumentRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -18,6 +19,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 
 const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
+const uploadParams = z.object({ clientId: z.uuid(), typeKey: packDocumentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 
 const noSuchClient = {
@@ -251,6 +253,38 @@ export const saveDocumentDraftFileRoute = createRoute({
     400: { description: 'Invalid path, or not a Word document', content: errorContent },
     404: noSuchDocument,
     409: { description: 'The document has no draft', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const uploadClientDocumentRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/documents/{typeKey}/upload',
+  operationId: 'uploadClientDocument',
+  summary: "Take a Word file written elsewhere as a document's draft",
+  description:
+    'Takes the bytes of a `.docx`, up to 15 MB. A type the app cannot generate yet (the own instructions, the training themes, the protective equipment list, the risk assessment, the prevention plan) comes to exist this way, as revision 1 in draft. For a document that exists, the file replaces the draft, or starts the next draft beside the issued revision. A generated type that does not exist yet is refused with the reason `not_generated_yet`.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: uploadParams,
+    body: {
+      required: true,
+      content: {
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+          schema: z.string().openapi({ type: 'string', format: 'binary' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'The document with the uploaded draft', content: documentContent },
+    400: { description: 'Invalid path, or not a Word document', content: errorContent },
+    404: noSuchClient,
+    409: {
+      description: 'The client is archived, or the document has to be generated first',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

@@ -5716,6 +5716,155 @@
         }
       }
     },
+    "/clients/{clientId}/documents/{typeKey}/upload": {
+      "post": {
+        "operationId": "uploadClientDocument",
+        "summary": "Take a Word file written elsewhere as a document's draft",
+        "description": "Takes the bytes of a `.docx`, up to 15 MB. A type the app cannot generate yet (the own instructions, the training themes, the protective equipment list, the risk assessment, the prevention plan) comes to exist this way, as revision 1 in draft. For a document that exists, the file replaces the draft, or starts the next draft beside the issued revision. A generated type that does not exist yet is refused with the reason `not_generated_yet`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cover_decisions",
+                "decision_training",
+                "decision_risk_evaluation_team",
+                "decision_first_aid",
+                "decision_imminent_danger",
+                "cover_general_training_material",
+                "general_training_material",
+                "cover_own_instructions",
+                "own_instructions",
+                "cover_training_themes",
+                "training_themes",
+                "cover_tests",
+                "test_hiring",
+                "test_periodic",
+                "protective_equipment_list",
+                "cover_event_registers",
+                "event_registers",
+                "control_report",
+                "risk_assessment",
+                "prevention_plan",
+                "cover_employer_briefing",
+                "employer_briefing",
+                "control_regulation"
+              ]
+            },
+            "required": true,
+            "name": "typeKey",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document with the uploaded draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, or not a Word document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived, or the document has to be generated first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/organization": {
       "post": {
         "operationId": "createOrganization",

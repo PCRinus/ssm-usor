@@ -4,8 +4,12 @@ import {
   documentTypeKeys,
   type GenerateDocumentsRequest,
   type IssueDocumentRequest,
+  isUploadedDocumentType,
+  type PackDocumentTypeKey,
+  packDocumentTypeKeys,
   type RegenerateDocumentRequest,
   unfilledMark,
+  uploadedDocumentTypes,
 } from '@ssm-usor/contracts';
 import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
@@ -32,6 +36,7 @@ type RevisionRow = Pick<
   | 'revision'
   | 'status'
   | 'docx_path'
+  | 'generation_id'
   | 'data_snapshot'
   | 'edited_at'
   | 'issued_at'
@@ -43,9 +48,9 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
+  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
 
-const typeOrder = new Map<string, number>(documentTypeKeys.map((key, index) => [key, index]));
+const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
 
 export type Actor = { userId: string; organizationId: string; createdBy: string };
 
@@ -549,6 +554,15 @@ function includes(haystack: Uint8Array, needle: Uint8Array) {
 const looksLikeDocx = (bytes: Uint8Array) =>
   zipSignature.every((byte, index) => bytes[index] === byte) && includes(bytes, documentPart);
 
+function requireDocx(bytes: Uint8Array) {
+  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
+    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
+  }
+  if (!looksLikeDocx(bytes)) {
+    throw new ApiError('validation_error', 'The file is not a Word document (.docx).');
+  }
+}
+
 /**
  * Stores what the editor saved, or a file edited elsewhere, as the draft's file. From then on
  * the draft is "edited": generating it again would discard this.
@@ -560,12 +574,7 @@ export async function saveDraftFile(
   documentId: string,
   bytes: Uint8Array
 ) {
-  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
-    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
-  }
-  if (!looksLikeDocx(bytes)) {
-    throw new ApiError('validation_error', 'The file is not a Word document (.docx).');
-  }
+  requireDocx(bytes);
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
   if (!draft) throw new ApiError('conflict', 'This document has no draft to save to.');
@@ -576,6 +585,90 @@ export async function saveDraftFile(
     .eq('id', draft.id);
   if (updated.error) throw fromDatabaseError(updated.error, 'mark document revision edited');
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
+/**
+ * Takes a file written elsewhere as a document's draft. For a type the app cannot generate
+ * yet this is how the document comes to exist; for any document it is the way around the
+ * editor. A draft's file is replaced; beside an issued revision a new draft starts, and the
+ * issued one stays in force until that is issued.
+ */
+export async function uploadDocumentFile(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  clientId: string,
+  typeKey: PackDocumentTypeKey,
+  bytes: Uint8Array
+) {
+  requireDocx(bytes);
+  const facts = await loadDocumentFacts(db, clientId, actor.userId);
+  if (facts.clientArchived) {
+    throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
+  }
+  const existing = (await readDocuments(db, clientId)).find(
+    (document) => document.type_key === typeKey
+  );
+  if (existing?.document_revisions.some((revision) => revision.status === 'draft')) {
+    return saveDraftFile(db, files, actor, existing.id, bytes);
+  }
+
+  let documentId = existing?.id;
+  if (!documentId) {
+    if (!isUploadedDocumentType(typeKey)) {
+      // A generated document is numbered and dated by its generation; uploading over nothing
+      // would skip both.
+      throw new ApiError(
+        'conflict',
+        'This document is generated first; a file can then replace its draft.',
+        undefined,
+        'not_generated_yet'
+      );
+    }
+    const document = await db
+      .from('client_documents')
+      .insert({
+        organization_id: actor.organizationId,
+        client_id: clientId,
+        type_key: typeKey,
+        title: uploadedDocumentTypes[typeKey],
+        created_by: actor.createdBy,
+      })
+      .select('id')
+      .single();
+    if (document.error) throw fromDatabaseError(document.error, 'create client document');
+    documentId = document.data.id;
+  }
+
+  const last = existing ? newest(existing) : null;
+  const number = (last?.revision ?? 0) + 1;
+  // The row before the file: the storage policies only accept the file of a draft revision.
+  const path = `${actor.organizationId}/${clientId}/${documentId}/${number}.docx`;
+  const now = new Date().toISOString();
+  const revision = await db
+    .from('document_revisions')
+    .insert({
+      organization_id: actor.organizationId,
+      document_id: documentId,
+      revision: number,
+      // No template and no snapshot: nothing was merged. The generation stays, for a document
+      // that had one, because it holds the date the document carries.
+      generation_id: last?.generation_id ?? null,
+      docx_path: path,
+      edited_at: now,
+      edited_by: actor.createdBy,
+      created_by: actor.createdBy,
+    })
+    .select('id')
+    .single();
+  if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
+  try {
+    await files.writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    await db.from('document_revisions').delete().eq('id', revision.data.id);
+    throw error;
+  }
   return toDocument(await readDocument(db, documentId), facts);
 }
 

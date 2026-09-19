@@ -5688,6 +5688,194 @@ export const useSaveDocumentDraftFile = <TError = ErrorType<ApiErrorResponse>, T
   return useMutation(getSaveDocumentDraftFileMutationOptions(options), queryClient);
 };
 
+export const getUploadClientDocumentUrl = (
+  clientId: string,
+  typeKey:
+    | 'cover_decisions'
+    | 'decision_training'
+    | 'decision_risk_evaluation_team'
+    | 'decision_first_aid'
+    | 'decision_imminent_danger'
+    | 'cover_general_training_material'
+    | 'general_training_material'
+    | 'cover_own_instructions'
+    | 'own_instructions'
+    | 'cover_training_themes'
+    | 'training_themes'
+    | 'cover_tests'
+    | 'test_hiring'
+    | 'test_periodic'
+    | 'protective_equipment_list'
+    | 'cover_event_registers'
+    | 'event_registers'
+    | 'control_report'
+    | 'risk_assessment'
+    | 'prevention_plan'
+    | 'cover_employer_briefing'
+    | 'employer_briefing'
+    | 'control_regulation'
+) => {
+  return `/clients/${clientId}/documents/${typeKey}/upload`;
+};
+
+/**
+ * Takes the bytes of a `.docx`, up to 15 MB. A type the app cannot generate yet (the own instructions, the training themes, the protective equipment list, the risk assessment, the prevention plan) comes to exist this way, as revision 1 in draft. For a document that exists, the file replaces the draft, or starts the next draft beside the issued revision. A generated type that does not exist yet is refused with the reason `not_generated_yet`.
+ * @summary Take a Word file written elsewhere as a document's draft
+ */
+export const uploadClientDocument = async (
+  clientId: string,
+  typeKey:
+    | 'cover_decisions'
+    | 'decision_training'
+    | 'decision_risk_evaluation_team'
+    | 'decision_first_aid'
+    | 'decision_imminent_danger'
+    | 'cover_general_training_material'
+    | 'general_training_material'
+    | 'cover_own_instructions'
+    | 'own_instructions'
+    | 'cover_training_themes'
+    | 'training_themes'
+    | 'cover_tests'
+    | 'test_hiring'
+    | 'test_periodic'
+    | 'protective_equipment_list'
+    | 'cover_event_registers'
+    | 'event_registers'
+    | 'control_report'
+    | 'risk_assessment'
+    | 'prevention_plan'
+    | 'cover_employer_briefing'
+    | 'employer_briefing'
+    | 'control_regulation',
+  uploadClientDocumentBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientDocumentResponse>(getUploadClientDocumentUrl(clientId, typeKey), {
+    ...options,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ...getHeaders(options?.headers),
+    },
+    body: uploadClientDocumentBody,
+  });
+};
+
+export const getUploadClientDocumentMutationKey = () => ['uploadClientDocument'] as const;
+
+export const getUploadClientDocumentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadClientDocument>>,
+    TError,
+    UploadClientDocumentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadClientDocument>>,
+  TError,
+  UploadClientDocumentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUploadClientDocumentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadClientDocument>>,
+    UploadClientDocumentMutationVariables
+  > = (props) => {
+    const { clientId, typeKey, data } = props ?? {};
+
+    return uploadClientDocument(clientId, typeKey, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadClientDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadClientDocument>>
+>;
+export type UploadClientDocumentMutationBody = Blob;
+export type UploadClientDocumentMutationError = ErrorType<ApiErrorResponse>;
+export type UploadClientDocumentMutationVariables = {
+  clientId: string;
+  typeKey:
+    | 'cover_decisions'
+    | 'decision_training'
+    | 'decision_risk_evaluation_team'
+    | 'decision_first_aid'
+    | 'decision_imminent_danger'
+    | 'cover_general_training_material'
+    | 'general_training_material'
+    | 'cover_own_instructions'
+    | 'own_instructions'
+    | 'cover_training_themes'
+    | 'training_themes'
+    | 'cover_tests'
+    | 'test_hiring'
+    | 'test_periodic'
+    | 'protective_equipment_list'
+    | 'cover_event_registers'
+    | 'event_registers'
+    | 'control_report'
+    | 'risk_assessment'
+    | 'prevention_plan'
+    | 'cover_employer_briefing'
+    | 'employer_briefing'
+    | 'control_regulation';
+  data: Blob;
+};
+
+/**
+ * @summary Take a Word file written elsewhere as a document's draft
+ */
+export const useUploadClientDocument = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof uploadClientDocument>>,
+      TError,
+      UploadClientDocumentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof uploadClientDocument>>,
+  TError,
+  UploadClientDocumentMutationVariables,
+  TContext
+> => {
+  return useMutation(getUploadClientDocumentMutationOptions(options), queryClient);
+};
+
 export const getCreateOrganizationUrl = () => {
   return `/organization`;
 };

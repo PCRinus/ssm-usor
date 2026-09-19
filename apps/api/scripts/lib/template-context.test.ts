@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { documentTypeKeys } from '@ssm-usor/contracts';
+import { documentTypeKeys, packDocumentTypeKeys, uploadedDocumentTypes } from '@ssm-usor/contracts';
 import { documentText, renderDocument } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
@@ -12,7 +12,7 @@ import { facts } from '../../src/modules/documents/context.fixture';
 
 const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8')) as {
-  templates: { typeKey: string; file: string; contentPending?: boolean }[];
+  templates: { typeKey: string; title: string; file: string; contentPending?: boolean }[];
 };
 
 describe('the built-in templates', () => {
@@ -20,6 +20,14 @@ describe('the built-in templates', () => {
 
   it('are the document types of the contracts, in the same order', () => {
     expect(ready.map((entry) => entry.typeKey)).toEqual([...documentTypeKeys]);
+  });
+
+  it('leave the rest of the pack to be uploaded, under the titles the templates will carry', () => {
+    expect(manifest.templates.map((entry) => entry.typeKey)).toEqual([...packDocumentTypeKeys]);
+    const pending = manifest.templates.filter((entry) => entry.contentPending);
+    expect(Object.fromEntries(pending.map((entry) => [entry.typeKey, entry.title]))).toEqual(
+      uploadedDocumentTypes
+    );
   });
 
   // The engine throws on a placeholder without a value, so this proves the context covers
