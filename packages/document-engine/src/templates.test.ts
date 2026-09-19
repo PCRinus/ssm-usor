@@ -151,6 +151,24 @@ describe('typesetting', () => {
     expect(bodyOf(name)).not.toContain('<w:jc w:val="both"/>');
   });
 
+  it.each(templateFiles)("%s names none of LibreOffice's own fonts in its styles", (name) => {
+    // No text uses them, but a viewer without them warns that it shows substitutes.
+    const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
+    expect(styles).not.toMatch(/"(Liberation (Serif|Sans)|Noto [^"]*)"/);
+  });
+
+  it.each(templateFiles)('%s has no picture floating at the left between two lines', (name) => {
+    // The in-app editor cannot lay out the page around one; as a character it looks the same.
+    const floating = bodyOf(name).match(/<wp:anchor .*?<\/wp:anchor>/gs) ?? [];
+    const atTheLeft = floating.filter((anchor) => {
+      const offset = /<wp:positionH\b.*?<wp:posOffset>(-?\d+)<\/wp:posOffset>/s.exec(anchor);
+      return (
+        anchor.includes('<wp:wrapTopAndBottom') && offset && Math.abs(Number(offset[1])) <= 360000
+      );
+    });
+    expect(atTheLeft).toHaveLength(0);
+  });
+
   it.each(templateFiles)('%s contains no hyperlinks', (name) => {
     // The originals carry dead internal links, and clearing them carelessly wraps all the text
     // in a link to nowhere, which some viewers draw as links.

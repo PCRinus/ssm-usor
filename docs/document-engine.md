@@ -165,9 +165,13 @@ abbreviations, product names, and medical terms.
 What the documents _say_ is not touched: article references, durations, who decides what. Nor are the empty
 numbered rows of the acknowledgement tables, where newly appointed people sign later.
 
-**3. Typesetting**, to one house style, followed by a last sweep over the saved XML for the
-two things LibreOffice's API reaches in most places and not in all: a dead link that survives
-clearing, and an empty paragraph written as justified:
+**3. Typesetting**, to one house style, followed by a last sweep over the saved XML for what
+LibreOffice's API reaches in most places and not in all, or not at all: a dead link that
+survives clearing, an empty paragraph written as justified, a picture that floats at the left
+between two lines (made a character, which looks the same and lets the in-app editor lay the
+page out), and LibreOffice's own fonts as the defaults of the styles (replaced with the house
+font, so no viewer warns about substitutes). `import-templates --sweep [name…]` runs only this
+pass over the templates that exist, covers included, without originals or an office:
 
 |                  |                                                                                                                                                                                                                                                                                                                             |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
