@@ -69,6 +69,8 @@ The trial ran on 19 September 2026 ([write-up](../document-editor-trial.md)): th
 
 The PDF is a static copy made when a revision is issued, stored beside the Word file, previewed by the browser, and later the file a person signs digitally. It does not come from the editor. Converting Word to PDF with its layout needs a layout engine, in practice headless LibreOffice, which cannot run in a Worker: Gotenberg runs in a Cloudflare Container behind the API, as ADR 001 anticipated for document conversion. It needs the templates' fonts or metric-compatible ones. A page break falling elsewhere than in the editor is acceptable for a file that is signed, not compared.
 
+As built ([PDF Worker](../pdf.md)): the container belongs to a Worker of its own, `apps/pdf`, reached by a service binding, so that Docker and the image registry stay out of the API's deployment. Conversion takes seconds, so issuing waits for it: the PDF, as PDF/A-2b, is stored beside the draft's file and the same database call locks both with their hashes. When it cannot be made, nothing is issued.
+
 ### Stages and order of work
 
 Stage 1 covers the names-and-dates files, with the first decision and the general training material as described. Stage 2 adds the files driven by job titles, which need job titles per client and the activity modules. Stage 3 is the risk assessment and the prevention plan, a module with its own ADR; until then the user uploads a risk assessment written elsewhere, so the set is complete.

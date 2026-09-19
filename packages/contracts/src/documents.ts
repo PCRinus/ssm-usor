@@ -141,6 +141,8 @@ export const documentRevisionSchema = z.object({
   // When the file was last saved from the editor or uploaded; null while it is as generated.
   editedAt: z.iso.datetime({ offset: true }).nullable(),
   issuedAt: z.iso.datetime({ offset: true }).nullable(),
+  // Whether a PDF was made when the revision was issued. Never for a draft.
+  hasPdf: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
@@ -190,6 +192,15 @@ export const generateDocumentsResponseSchema = z.object({
 export type GenerateDocumentsResponse = z.infer<typeof generateDocumentsResponseSchema>;
 
 /** A short-lived link to a revision's Word file. */
+/** The Word file, or the PDF made from it when the revision was issued. */
+export const documentFileFormats = ['docx', 'pdf'] as const;
+
+export type DocumentFileFormat = (typeof documentFileFormats)[number];
+
+export const documentDownloadQuerySchema = z.object({
+  format: z.enum(documentFileFormats).default('docx'),
+});
+
 export const documentDownloadResponseSchema = z.object({
   url: z.url(),
   fileName: z.string(),
@@ -220,6 +231,7 @@ export const documentErrorReasons = [
   'missing_document_data',
   'unfilled_text',
   'not_generated_yet',
+  'pdf_unavailable',
 ] as const;
 
 export const issueDocumentRequestSchema = z.object({

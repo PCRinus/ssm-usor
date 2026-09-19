@@ -88,8 +88,22 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
 
   await act(page, firstAid, 'document-issue');
   await page.getByTestId('document-confirm').click();
-  await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
+    timeout: 60_000,
+  });
   await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
+
+  // Where a converter runs, issuing also made the PDF, locked beside the Word file.
+  if (process.env.GOTENBERG_URL) {
+    const pdfDownload = page.waitForEvent('download');
+    await act(page, firstAid, 'document-download-pdf');
+    const pdf = await pdfDownload;
+    expect(pdf.suggestedFilename()).toBe(
+      'Decizia privind responsabilii cu primul ajutor - rev. 1.pdf'
+    );
+    const { readFile } = await import('node:fs/promises');
+    expect((await readFile(await pdf.path())).subarray(0, 5).toString()).toBe('%PDF-');
+  }
 
   // A correction is a new draft beside the issued revision, and can be dropped again.
   await act(page, firstAid, 'document-regenerate');

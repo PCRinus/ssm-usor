@@ -45,6 +45,7 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_AUTH_HOOK_SECRET: process.env.SUPABASE_AUTH_HOOK_SECRET,
   CORS_ORIGINS: process.env.CORS_ORIGINS,
   APP_ORIGIN: process.env.APP_ORIGIN,
+  GOTENBERG_URL: process.env.GOTENBERG_URL || undefined,
   MAIL: mail,
 };
 

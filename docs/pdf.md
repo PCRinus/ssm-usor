@@ -1,6 +1,6 @@
 # PDF Worker
 
-Status: the Worker and its container are deployed by CI; the API does not call it yet  
+Status: deployed by CI; the API calls it while issuing a document  
 Audience: engineering
 
 [ADR 005](architecture/adr-005-document-generation.md) makes the PDF a static copy produced
@@ -30,6 +30,26 @@ document, such as a container that did not start, is tried once more after two s
 
 LibreOffice converts almost anything it is handed, a text file included, so the caller checks
 that the bytes are a `.docx` before asking.
+
+## How the API uses it
+
+`apps/api/src/lib/pdf.ts` picks the converter:
+
+| Where                       | Converter                                                                                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployed                    | The `PDF` service binding, switched on by the variable `PDF_CONVERSION=service`, which only the deployment job sets                                                                                             |
+| Flow tests, local by choice | `GOTENBERG_URL`, a Gotenberg started by hand: `docker run --rm -p 3300:3000 gotenberg/gotenberg:8.37.0`, then `GOTENBERG_URL=http://localhost:3300` in `apps/api/.dev.vars` or in the shell that runs the flows |
+| `pnpm dev` with neither     | None: documents are issued without a PDF                                                                                                                                                                        |
+
+The variable exists because `wrangler dev` creates the binding too, with nothing behind it:
+`apps/pdf` is not part of `pnpm dev`.
+
+Issuing reads the draft's Word file, converts those bytes, writes the PDF beside the file
+(`…/<revision>.pdf`) while the revision is still a draft, which is what lets the storage
+policies accept it, and then calls `issue_document_revision` with both hashes. From then on
+neither file can be written. When the conversion fails nothing is issued: `503` with the
+reason `pdf_unavailable`, and the person tries again. A PDF left behind by an issuing that
+failed afterwards is overwritten by the next one and removed with the draft.
 
 ## The container
 

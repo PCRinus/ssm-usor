@@ -349,6 +349,8 @@ export type Database = {
           issued_at: string | null;
           issued_by: string | null;
           organization_id: string;
+          pdf_path: string | null;
+          pdf_sha256: string | null;
           revision: number;
           status: Database['public']['Enums']['document_revision_status'];
           superseded_at: string | null;
@@ -369,6 +371,8 @@ export type Database = {
           issued_at?: string | null;
           issued_by?: string | null;
           organization_id: string;
+          pdf_path?: string | null;
+          pdf_sha256?: string | null;
           revision: number;
           status?: Database['public']['Enums']['document_revision_status'];
           superseded_at?: string | null;
@@ -389,6 +393,8 @@ export type Database = {
           issued_at?: string | null;
           issued_by?: string | null;
           organization_id?: string;
+          pdf_path?: string | null;
+          pdf_sha256?: string | null;
           revision?: number;
           status?: Database['public']['Enums']['document_revision_status'];
           superseded_at?: string | null;
@@ -896,7 +902,12 @@ export type Database = {
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
       issue_document_revision: {
-        Args: { p_docx_sha256: string; p_revision_id: string };
+        Args: {
+          p_docx_sha256: string;
+          p_pdf_path?: string;
+          p_pdf_sha256?: string;
+          p_revision_id: string;
+        };
         Returns: undefined;
       };
       lock_members_as_owner: { Args: never; Returns: string };

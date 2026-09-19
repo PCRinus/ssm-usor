@@ -280,7 +280,11 @@ as a draft and stays in force until that one is issued. The date is the one the 
 carries unless `issueDate` is given, and a decision keeps its number. `POST …/issue` reads the
 draft's file, and the database locks the revision with its SHA-256 and supersedes the one
 issued before, which stays downloadable. From then on no policy lets anyone write that file
-or change that row; a correction is a new draft. A file that still reads "DE COMPLETAT"
+or change that row; a correction is a new draft. Where a converter is configured ([PDF Worker](pdf.md)), issuing first makes the PDF of those
+bytes and stores it beside the Word file, and the database records both hashes; when the PDF
+cannot be made nothing is issued, `503` with the reason `pdf_unavailable`. Revisions carry
+`hasPdf`, and `GET …/download?format=pdf` links to it (`404` when there is none: a draft, or
+a revision issued without a converter). A file that still reads "DE COMPLETAT"
 (the contracts' `unfilledMark`, which generation prints where the app has nothing to say yet)
 is refused with `409` and the reason `unfilled_text`, until the optional body carries
 `acceptUnfilled: true`. The file itself is searched, across the runs Word splits a phrase

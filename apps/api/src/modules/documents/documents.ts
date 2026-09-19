@@ -1,5 +1,6 @@
 import {
   type ClientDocument,
+  type DocumentFileFormat,
   type DocumentRevision,
   documentTypeKeys,
   type GenerateDocumentsRequest,
@@ -17,6 +18,7 @@ import type { Database, Json } from '../../database.types';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import type { PdfConverter } from '../../lib/pdf';
 import {
   buildDocumentContext,
   decisionNumberOf,
@@ -36,6 +38,7 @@ type RevisionRow = Pick<
   | 'revision'
   | 'status'
   | 'docx_path'
+  | 'pdf_path'
   | 'generation_id'
   | 'data_snapshot'
   | 'edited_at'
@@ -48,7 +51,7 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
+  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
 
 const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
 
@@ -92,6 +95,7 @@ function toRevision(
     dataChanged: dataChanged(document, revision, facts),
     editedAt: revision.edited_at,
     issuedAt: revision.issued_at,
+    hasPdf: revision.pdf_path !== null,
     createdAt: revision.created_at,
   };
 }
@@ -478,6 +482,9 @@ export async function regenerateDocument(
   return toDocument(await readDocument(db, documentId), facts);
 }
 
+// The PDF lives beside the Word file, under its name; the database holds them to that.
+const pdfPathOf = (docxPath: string) => docxPath.replace(/\.docx$/, '.pdf');
+
 async function sha256(bytes: Uint8Array) {
   // A copy with a plain ArrayBuffer behind it, which is what the digest is typed to take.
   const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
@@ -507,7 +514,8 @@ export async function issueDocument(
   files: FileStore,
   actor: Actor,
   documentId: string,
-  input: IssueDocumentRequest = {}
+  input: IssueDocumentRequest = {},
+  pdf: PdfConverter | null = null
 ) {
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
@@ -522,9 +530,21 @@ export async function issueDocument(
     );
   }
   const hash = await sha256(bytes);
+  // The PDF is made from these same bytes and stored while the revision is still a draft,
+  // which is what lets the policies accept it; issuing then locks both files at once. When
+  // it cannot be made, nothing is issued: a set with some PDFs missing is worse than a
+  // second try.
+  let pdfFile: { path: string; hash: string } | null = null;
+  if (pdf) {
+    const converted = await pdf.convertDocx(bytes);
+    const path = pdfPathOf(draft.docx_path);
+    await files.writeDocument(path, converted, { replace: true });
+    pdfFile = { path, hash: await sha256(converted) };
+  }
   const { error } = await db.rpc('issue_document_revision', {
     p_revision_id: draft.id,
     p_docx_sha256: hash,
+    ...(pdfFile ? { p_pdf_path: pdfFile.path, p_pdf_sha256: pdfFile.hash } : {}),
   });
   // Someone else issued or deleted it in the meantime.
   if (error?.code === 'DOC01') throw new ApiError('not_found', 'This draft no longer exists.');
@@ -679,6 +699,8 @@ export async function deleteDraft(db: DataClient, files: FileStore, documentId: 
   if (!draft) throw new ApiError('conflict', 'This document has no draft to delete.');
   // The file while the policies still allow it: they follow the draft row.
   await files.removeDocument(draft.docx_path);
+  // Left behind by an issuing that made the PDF and then failed. Removing nothing is fine.
+  await files.removeDocument(pdfPathOf(draft.docx_path));
   const { error } = await db.from('document_revisions').delete().eq('id', draft.id);
   if (error) throw fromDatabaseError(error, 'delete document revision');
 }
@@ -688,21 +710,24 @@ export async function documentDownloadLink(
   db: DataClient,
   files: FileStore,
   documentId: string,
-  revisionId: string
+  revisionId: string,
+  format: DocumentFileFormat = 'docx'
 ) {
   const { data, error } = await db
     .from('document_revisions')
-    .select('docx_path, revision, client_documents(title)')
+    .select('docx_path, pdf_path, revision, client_documents(title)')
     .eq('id', revisionId)
     .eq('document_id', documentId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find document revision');
   if (!data) throw new ApiError('not_found', 'This document revision does not exist.');
+  const path = format === 'pdf' ? data.pdf_path : data.docx_path;
+  if (!path) throw new ApiError('not_found', 'This revision has no PDF.');
   const expiresInSeconds = 60;
   // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
-  const fileName = `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.docx`;
+  const fileName = `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
   return {
-    url: await files.documentLink(data.docx_path, fileName, expiresInSeconds),
+    url: await files.documentLink(path, fileName, expiresInSeconds),
     fileName,
     expiresInSeconds,
   };

@@ -173,7 +173,16 @@ jobs:
       - name: Register the document templates in the local stack
         run: pnpm templates:register:local
 
+      # The image apps/pdf deploys, so issuing makes real PDFs in the flows.
+      - name: Start the PDF converter
+        run: |
+          image=$(grep -m1 '^FROM ' apps/pdf/Dockerfile | cut -d' ' -f2)
+          docker run -d --name gotenberg -p 3300:3000 "$image"
+          timeout 120 bash -c 'until curl -sf localhost:3300/health >/dev/null; do sleep 1; done'
+
       - name: Run the browser flows
+        env:
+          GOTENBERG_URL: http://localhost:3300
         run: pnpm --filter @ssm-usor/app test:e2e:flows
 
       - name: Upload the flow test report
@@ -405,7 +414,7 @@ jobs:
 
   deploy-api:
     name: Deploy API
-    needs: [changes, validate, build, deploy-database, deploy-mail]
+    needs: [changes, validate, build, deploy-database, deploy-mail, deploy-pdf]
     # Migrations and the mail Worker land before code that depends on them: the API's
     # service binding cannot deploy against a Worker that does not exist. Skipped jobs are fine.
     if: >-
@@ -414,7 +423,8 @@ jobs:
       needs.validate.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped') &&
-      (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped')
+      (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped') &&
+      (needs.deploy-pdf.result == 'success' || needs.deploy-pdf.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -465,6 +475,9 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+          # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
+          # so that `wrangler dev`, where nothing answers that binding, issues without one.
+          PDF_CONVERSION: service
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -477,6 +490,7 @@ jobs:
           vars: |
             SUPABASE_URL
             SUPABASE_PUBLISHABLE_KEY
+            PDF_CONVERSION
           secrets: ${{ steps.secrets.outputs.names }}
 
       - name: Check deployed API and browser access

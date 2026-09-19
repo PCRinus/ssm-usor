@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
+import { createPdfConverter } from '../../lib/pdf';
 import { missingDocumentData } from './context';
 import {
   type Actor,
@@ -81,7 +82,8 @@ export const getDocumentDownload: RouteHandler<typeof getDocumentDownloadRoute, 
     createDataClient(c),
     createFileStore(c),
     documentId,
-    revisionId
+    revisionId,
+    c.req.valid('query').format
   );
   return c.json(link, 200);
 };
@@ -108,7 +110,8 @@ export const issueDocument: RouteHandler<typeof issueDocumentRoute, ApiEnv> = as
     actorOf(c),
     documentId,
     // No body at all is an empty one.
-    c.req.valid('json') ?? {}
+    c.req.valid('json') ?? {},
+    createPdfConverter(c)
   );
   return c.json({ document }, 200);
 };

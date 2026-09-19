@@ -363,7 +363,10 @@ mobile navigation link closes the Sheet.
   write yet (`uploadedDocumentTypes`) show in their place in the pack as "Neîncărcat" rows
   with an upload button, once the client has any document; every other row's menu has
   "Încarcă un fișier", which asks first when it would replace a draft. One hidden file input
-  serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An
+  serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An issued
+  revision with `hasPdf` also offers "Descarcă PDF-ul documentului emis"; the issuing dialog
+  says that making the PDF can take a few seconds, and a `503` with `pdf_unavailable` says
+  that nothing was issued. An
   uploaded document reads "Încărcat" instead of "Modificat" and has no "Generează din nou".
   A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. A download fetches the signed link and
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore

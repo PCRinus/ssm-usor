@@ -31,6 +31,7 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   dataChanged: false,
   editedAt: null,
   issuedAt: null,
+  hasPdf: false,
   createdAt: '2026-09-19T10:00:00+00:00',
   ...overrides,
 });
@@ -285,6 +286,55 @@ describe('client documents', () => {
     const anchor = click.mock.contexts[0] as HTMLAnchorElement;
     expect(anchor.download).toBe('Decizia privind responsabilii cu primul ajutor - rev. 1.docx');
     expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(1);
+  });
+
+  it('offers the PDF of an issued revision that has one, and asks the API for that format', async () => {
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    mockApi({
+      items: [
+        { ...firstAid, draft: null, issued: { ...issued, hasPdf: true } },
+        { ...report, draft: null, issued },
+      ],
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-download-pdf'));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    const [[url]] = requests('/download', 'GET') as [[string]];
+    expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
+
+    // Issued before PDFs were made, or where no converter runs.
+    await openMenu(user, report.title);
+    expect(await screen.findByTestId('document-download-issued')).toBeTruthy();
+    expect(screen.queryByTestId('document-download-pdf')).toBeNull();
+  });
+
+  it('says that nothing was issued when the PDF could not be made', async () => {
+    mockApi({
+      items: [firstAid],
+      action: () =>
+        Response.json(
+          { code: 'service_unavailable', message: 'No PDF.', reason: 'pdf_unavailable' },
+          { status: 503 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-issue'));
+    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain('PDF');
+    await user.click(screen.getByTestId('document-confirm'));
+    expect((await screen.findByTestId('documents-error')).textContent).toContain(
+      'documentul nu a fost emis'
+    );
   });
 
   it('issues a draft after a confirmation that says it becomes final', async () => {

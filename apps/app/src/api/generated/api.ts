@@ -1334,6 +1334,7 @@ export type ClientDocumentListResponseItemsItemDraft = {
   editedAt: string | null;
   /** @nullable */
   issuedAt: string | null;
+  hasPdf: boolean;
   createdAt: string;
 } | null;
 
@@ -1361,6 +1362,7 @@ export type ClientDocumentListResponseItemsItemIssued = {
   editedAt: string | null;
   /** @nullable */
   issuedAt: string | null;
+  hasPdf: boolean;
   createdAt: string;
 } | null;
 
@@ -1419,6 +1421,7 @@ export type GenerateDocumentsResponseCreatedItemDraft = {
   editedAt: string | null;
   /** @nullable */
   issuedAt: string | null;
+  hasPdf: boolean;
   createdAt: string;
 } | null;
 
@@ -1446,6 +1449,7 @@ export type GenerateDocumentsResponseCreatedItemIssued = {
   editedAt: string | null;
   /** @nullable */
   issuedAt: string | null;
+  hasPdf: boolean;
   createdAt: string;
 } | null;
 
@@ -1506,6 +1510,7 @@ export type ClientDocumentResponseDocumentDraft = {
   editedAt: string | null;
   /** @nullable */
   issuedAt: string | null;
+  hasPdf: boolean;
   createdAt: string;
 } | null;
 
@@ -1533,6 +1538,7 @@ export type ClientDocumentResponseDocumentIssued = {
   editedAt: string | null;
   /** @nullable */
   issuedAt: string | null;
+  hasPdf: boolean;
   createdAt: string;
 } | null;
 
@@ -1894,6 +1900,18 @@ export type ListEmployeesStatus = (typeof ListEmployeesStatus)[keyof typeof List
 export const ListEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
+} as const;
+
+export type GetDocumentDownloadParams = {
+  format?: GetDocumentDownloadFormat;
+};
+
+export type GetDocumentDownloadFormat =
+  (typeof GetDocumentDownloadFormat)[keyof typeof GetDocumentDownloadFormat];
+
+export const GetDocumentDownloadFormat = {
+  docx: 'docx',
+  pdf: 'pdf',
 } as const;
 
 export type ConfirmWaitlistSubscriptionParams = {
@@ -5129,26 +5147,54 @@ export const useGenerateClientDocuments = <
   return useMutation(getGenerateClientDocumentsMutationOptions(options), queryClient);
 };
 
-export const getGetDocumentDownloadUrl = (documentId: string, revisionId: string) => {
-  return `/documents/${documentId}/revisions/${revisionId}/download`;
+export const getGetDocumentDownloadUrl = (
+  documentId: string,
+  revisionId: string,
+  params?: GetDocumentDownloadParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/documents/${documentId}/revisions/${revisionId}/download?${stringifiedParams}`
+    : `/documents/${documentId}/revisions/${revisionId}/download`;
 };
 
 /**
- * @summary Get a short-lived link to a revision's Word file
+ * `format=pdf` links to the PDF made when the revision was issued. A draft has none, and neither has a revision issued where no converter was configured: `404`.
+ * @summary Get a short-lived link to a revision's Word file, or to its PDF
  */
 export const getDocumentDownload = async (
   documentId: string,
   revisionId: string,
+  params?: GetDocumentDownloadParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<DocumentDownloadResponse> => {
-  return apiFetch<DocumentDownloadResponse>(getGetDocumentDownloadUrl(documentId, revisionId), {
-    ...options,
-    method: 'GET',
-  });
+  return apiFetch<DocumentDownloadResponse>(
+    getGetDocumentDownloadUrl(documentId, revisionId, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
 };
 
-export const getGetDocumentDownloadQueryKey = (documentId: string, revisionId: string) => {
-  return [`/documents/${documentId}/revisions/${revisionId}/download`] as const;
+export const getGetDocumentDownloadQueryKey = (
+  documentId: string,
+  revisionId: string,
+  params?: GetDocumentDownloadParams
+) => {
+  return [
+    `/documents/${documentId}/revisions/${revisionId}/download`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getGetDocumentDownloadQueryOptions = <
@@ -5157,6 +5203,7 @@ export const getGetDocumentDownloadQueryOptions = <
 >(
   documentId: string,
   revisionId: string,
+  params?: GetDocumentDownloadParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
@@ -5166,10 +5213,11 @@ export const getGetDocumentDownloadQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDocumentDownloadQueryKey(documentId, revisionId);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDocumentDownloadQueryKey(documentId, revisionId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentDownload>>> = ({ signal }) =>
-    getDocumentDownload(documentId, revisionId, { signal, ...requestOptions });
+    getDocumentDownload(documentId, revisionId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -5196,6 +5244,7 @@ export function useGetDocumentDownload<
 >(
   documentId: string,
   revisionId: string,
+  params: undefined | GetDocumentDownloadParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
@@ -5218,6 +5267,7 @@ export function useGetDocumentDownload<
 >(
   documentId: string,
   revisionId: string,
+  params?: GetDocumentDownloadParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
@@ -5240,6 +5290,7 @@ export function useGetDocumentDownload<
 >(
   documentId: string,
   revisionId: string,
+  params?: GetDocumentDownloadParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
@@ -5249,7 +5300,7 @@ export function useGetDocumentDownload<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get a short-lived link to a revision's Word file
+ * @summary Get a short-lived link to a revision's Word file, or to its PDF
  */
 
 export function useGetDocumentDownload<
@@ -5258,6 +5309,7 @@ export function useGetDocumentDownload<
 >(
   documentId: string,
   revisionId: string,
+  params?: GetDocumentDownloadParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
@@ -5266,7 +5318,7 @@ export function useGetDocumentDownload<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetDocumentDownloadQueryOptions(documentId, revisionId, options);
+  const queryOptions = getGetDocumentDownloadQueryOptions(documentId, revisionId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -5391,7 +5443,7 @@ export const getIssueDocumentUrl = (documentId: string) => {
 };
 
 /**
- * Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. A draft whose file still reads "DE COMPLETAT" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.
+ * Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft. Where a converter is configured, the PDF of the file is made and stored first, and issuing locks both. A draft whose file still reads "DE COMPLETAT" is refused with the reason `unfilled_text` unless `acceptUnfilled` is set.
  * @summary Issue the draft of a document
  */
 export const issueDocument = async (

@@ -91,6 +91,7 @@ const revisionRow = {
   data_snapshot: { client: printedClient, decisionNumber: 3 },
   edited_at: null,
   issued_at: null,
+  pdf_path: null,
   created_at: '2026-09-19T10:00:00+00:00',
   document_generations: { issue_date: '2026-01-19' },
 };
@@ -471,6 +472,30 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     expect(body.url).toContain('download=');
   });
 
+  it('links to the PDF of an issued revision, and says when there is none', async () => {
+    const path = `${organizationId}/${clientId}/${documentId}/1`;
+    const revision = (pdf_path: string | null) => () =>
+      Response.json({
+        docx_path: `${path}.docx`,
+        pdf_path,
+        revision: 1,
+        client_documents: { title: 'Copertă – Deciziile interne' },
+      });
+    const url = `/documents/${documentId}/revisions/${revisionId}/download?format=pdf`;
+
+    mockUpstream({ revisions: revision(`${path}.pdf`) });
+    const response = await request(url);
+    expect(response.status).toBe(200);
+    expect(documentDownloadResponseSchema.parse(await response.json()).fileName).toBe(
+      'Copertă - Deciziile interne - rev. 1.pdf'
+    );
+    expect(String(calls('/storage/v1/object/sign/documents/', 'POST')[0]![0])).toContain('1.pdf');
+
+    mockUpstream({ revisions: revision(null) });
+    expect((await request(url)).status).toBe(404);
+    expect((await request(url.replace('pdf', 'odt'))).status).toBe(400);
+  });
+
   it('answers 404 for a revision of another organization', async () => {
     mockUpstream({ revisions: () => Response.json(null) });
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
@@ -564,6 +589,57 @@ describe('POST /documents/{documentId}/issue', () => {
       // sha256 of the three bytes the storage mock serves.
       p_docx_sha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
     });
+  });
+
+  // The converter is apps/pdf behind a service binding, switched on by the deployment.
+  const pdfBytes = new TextEncoder().encode('%PDF-1.7 converted');
+  const issueWith = (convertDocx: (docx: ArrayBuffer) => Promise<ArrayBuffer>) =>
+    createApp().request(
+      `/documents/${documentId}/issue`,
+      { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
+      { ...env, PDF_CONVERSION: 'service', PDF: { convertDocx } }
+    );
+
+  it('makes the PDF first, stores it beside the Word file, and issues both', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+    });
+    const convertDocx = vi.fn(async (docx: ArrayBuffer) => {
+      void docx;
+      return pdfBytes.slice().buffer;
+    });
+    expect((await issueWith(convertDocx)).status).toBe(200);
+
+    expect(new Uint8Array(convertDocx.mock.calls[0]![0])).toEqual(new Uint8Array([1, 2, 3]));
+    const [stored] = calls('/storage/v1/object/documents/', 'POST');
+    expect(new URL(String(stored![0])).pathname).toContain(`${documentId}/1.pdf`);
+    expect(new Headers(stored![1]?.headers).get('content-type')).toContain('application/pdf');
+    const sent = sentBody('/rest/v1/rpc/issue_document_revision');
+    expect(sent.p_pdf_path).toBe(`${organizationId}/${clientId}/${documentId}/1.pdf`);
+    expect(sent.p_pdf_sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(sent.p_pdf_sha256).not.toBe(sent.p_docx_sha256);
+  });
+
+  it('issues nothing when the PDF cannot be made, and ignores the binding unless switched on', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+    });
+    const failing = await issueWith(async () => Promise.reject(new Error('pdf_conversion_failed')));
+    expect(failing.status).toBe(503);
+    expect(apiErrorResponseSchema.parse(await failing.json()).reason).toBe('pdf_unavailable');
+    expect(calls('/rest/v1/rpc/issue_document_revision', 'POST')).toHaveLength(0);
+
+    // `wrangler dev` has the binding too, with nothing behind it.
+    const convertDocx = vi.fn();
+    const local = await createApp().request(
+      `/documents/${documentId}/issue`,
+      { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
+      { ...env, PDF: { convertDocx } }
+    );
+    expect(local.status).toBe(200);
+    expect(convertDocx).not.toHaveBeenCalled();
+    expect(sentBody('/rest/v1/rpc/issue_document_revision').p_pdf_path).toBeUndefined();
   });
 
   it('asks before issuing a file that still has text to fill in', async () => {
