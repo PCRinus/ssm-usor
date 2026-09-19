@@ -5,10 +5,11 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@ssm-usor/ui/components/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@ssm-usor/ui/components/popover';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 export interface ComboboxItem {
@@ -36,6 +37,7 @@ export function SearchCombobox({
   unknownValue,
   renderUnknown,
   unknownLabel = 'Folosește',
+  action,
   disabled,
   invalid,
   describedBy,
@@ -58,6 +60,9 @@ export function SearchCombobox({
   renderUnknown?: (candidate: string) => ReactNode;
   // The verb in front of the candidate: "Folosește „X”", "Adaugă postul „X”".
   unknownLabel?: string;
+  // A row under the list that stays whatever is typed, for what the list cannot offer: adding
+  // a new item. It receives the text typed so far.
+  action?: { label: string; testId: string; onSelect: (search: string) => void };
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
@@ -168,6 +173,27 @@ export function SearchCombobox({
                 </CommandItem>
               ))}
             </CommandGroup>
+            {action && (
+              <>
+                <CommandSeparator alwaysRender />
+                <CommandGroup forceMount>
+                  <CommandItem
+                    forceMount
+                    value="   adaugă"
+                    data-testid={action.testId}
+                    onSelect={() => {
+                      const typed = search.trim();
+                      setOpen(false);
+                      setSearch('');
+                      action.onSelect(typed);
+                    }}
+                  >
+                    <Plus aria-hidden="true" />
+                    {action.label}
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

@@ -822,19 +822,45 @@ describe('job positions on employees (ADR 006)', () => {
     expect(new URL(String(input)).searchParams.get('sort')).toBe('jobPosition');
   });
 
-  it('creates a post the client lacks, then the employee in it, in one form', async () => {
+  it('adds a post the client lacks from the picker, in the dialog of the section, and hires into it', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
     mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await fillRequired(user);
-    await pickPosition(user, 'Electrician', /Adaugă postul „Electrician”/);
+
+    // With a post already chosen the form is complete, so a submit that leaked from the dialog
+    // below would save the employee.
+    await pickPosition(user, 'sud', /Sudor/);
+
+    // The row is there before anything is typed, and stays when nothing matches.
+    await user.click(await screen.findByTestId('employee-job-position'));
+    expect(await screen.findByTestId('employee-job-position-add')).toBeTruthy();
+    await user.type(screen.getByTestId('employee-job-position-search'), 'Electrician');
+    await user.click(screen.getByTestId('employee-job-position-add'));
+
+    // The same dialog as "Adaugă un post", starting from what was typed, with its category.
+    const dialog = await screen.findByTestId('job-position-dialog');
+    expect(within(dialog).getByTestId<HTMLInputElement>('job-position-name').value).toBe(
+      'Electrician'
+    );
+    await user.selectOptions(
+      within(dialog).getByTestId('job-position-category'),
+      'technical_administrative'
+    );
+    await user.click(within(dialog).getByTestId('job-position-save'));
+    await waitFor(() => expect(screen.queryByTestId('job-position-dialog')).toBeNull());
     expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe('Electrician');
+    // Saving the post did not submit the form it was opened from.
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-
     const [, position] = requests(positionsPath, 'POST')[0]!;
-    expect(JSON.parse(String(position?.body))).toEqual({ name: 'Electrician' });
+    expect(JSON.parse(String(position?.body))).toMatchObject({
+      name: 'Electrician',
+      staffCategory: 'technical_administrative',
+    });
     const [, employee] = requests(employeesPath, 'POST')[0]!;
     expect(JSON.parse(String(employee?.body))).toMatchObject({
       jobPositionId: newPositionId,

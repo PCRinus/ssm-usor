@@ -40,10 +40,16 @@ export function JobPositionDialog({
   clientId,
   editing,
   onClose,
+  initialName,
+  onSaved,
 }: {
   clientId: string;
   editing: JobPositionEditing;
   onClose: () => void;
+  /** What a new position's name starts as: what was typed where the dialog was opened from. */
+  initialName?: string;
+  /** The position as saved, for a caller that goes on to use it. */
+  onSaved?: (position: JobPosition) => void;
 }) {
   return (
     <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
@@ -52,6 +58,8 @@ export function JobPositionDialog({
           key={editing === 'new' ? 'new' : editing.id}
           clientId={clientId}
           position={editing === 'new' ? null : editing}
+          initialName={initialName}
+          onSaved={onSaved}
           onClose={onClose}
         />
       )}
@@ -62,10 +70,14 @@ export function JobPositionDialog({
 function JobPositionForm({
   clientId,
   position,
+  initialName = '',
+  onSaved,
   onClose,
 }: {
   clientId: string;
   position: JobPosition | null;
+  initialName?: string;
+  onSaved?: (position: JobPosition) => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -73,7 +85,9 @@ function JobPositionForm({
   const update = useUpdateJobPosition({ request: apiRequest });
   const form = useForm<JobPositionFormValues>({
     resolver: zodResolver(jobPositionFormSchema),
-    defaultValues: position ? toJobPositionForm(position) : emptyJobPositionForm,
+    defaultValues: position
+      ? toJobPositionForm(position)
+      : { ...emptyJobPositionForm, name: initialName },
   });
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
@@ -81,12 +95,14 @@ function JobPositionForm({
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toJobPositionRequest(values);
     try {
-      if (position) await update.mutateAsync({ clientId, jobPositionId: position.id, data });
-      else await create.mutateAsync({ clientId, data });
+      const saved = position
+        ? await update.mutateAsync({ clientId, jobPositionId: position.id, data })
+        : await create.mutateAsync({ clientId, data });
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       toast.success(
         position ? 'Postul de lucru a fost salvat.' : 'Postul de lucru a fost adăugat.'
       );
+      onSaved?.(saved.jobPosition);
       onClose();
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
@@ -110,7 +126,17 @@ function JobPositionForm({
 
   return (
     <DialogContent data-testid="job-position-dialog" className="sm:max-w-lg">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        onSubmit={(event) => {
+          // The dialog also opens from inside other forms (the employee's position picker). It is
+          // drawn elsewhere on the page, but React events bubble through the component tree, and
+          // saving a position must not submit the form behind it.
+          event.stopPropagation();
+          void onSubmit(event);
+        }}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>
             {position ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}

@@ -340,9 +340,13 @@ mobile navigation link closes the Sheet.
   read-only.
 - Employees and their job position: the list's column is "Post de lucru" and sorts by it. The
   new-employee form has a "Post de lucru" picker (`src/job-positions/job-position-combobox.tsx`)
-  that lists the client's positions and takes a name the client lacks, "Adaugă postul „X”":
-  the field then holds that name, and saving creates the position first, in the execution
-  category, to be described later in its own section. "Funcția din contract" follows the
+  that lists the client's positions. Under the list, whatever is typed, stays the row "Adaugă
+  un post nou…": it opens the dialog of the "Posturi de lucru" section with the typed text as
+  the name, so a new post gets its category where it is created, and the position it saves
+  becomes the choice. The shared `SearchCombobox` takes such a row as its `action` prop. That
+  dialog stops its submit event: it is drawn elsewhere on the page, but React events bubble
+  through the component tree, and saving a post must not submit the form behind it.
+  "Funcția din contract" follows the
   chosen position while it is empty or still reads what the last choice put there, and keeps
   anything the person typed. The employee page shows the two apart, and "Schimbă…" beside the
   position opens a dialog that moves the person and sends the contract title only when it was

@@ -1,9 +1,10 @@
+import { useState } from 'react';
+
 import { normalizeSearch } from '../clients/caen-filter';
 import { type ComboboxItem, SearchCombobox } from '../components/search-combobox';
+import { JobPositionDialog } from './job-position-dialog';
 import { employeeCountLabel, staffCategoryShortLabels } from './job-position-schema';
 import { useJobPositionOptions } from './use-job-position-options';
-
-const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 // Any word of the position's name may start the match.
 function positionFilter(value: string, search: string) {
@@ -17,9 +18,10 @@ function positionFilter(value: string, search: string) {
     : 0;
 }
 
-// Picks one of the client's job positions (ADR 006), or takes a name the client does not
-// have yet: the value is then that name, and the form creates the position on save. A new hire
-// into a new post stays one form.
+// Picks one of the client's job positions (ADR 006). A row under the list, always there,
+// opens the same dialog as the "Posturi de lucru" section with the typed text as the name, and
+// the position it saves becomes the choice: a new hire into a new post stays one form, and the
+// post gets its category where it is created.
 export function JobPositionCombobox({
   id,
   testId,
@@ -37,7 +39,7 @@ export function JobPositionCombobox({
   testId: string;
   clientId: string;
   userId: string;
-  /** The id of a position, or the name of one to create. */
+  /** The id of one of the client's positions. */
   value: string;
   onChange: (value: string, name: string) => void;
   onBlur?: () => void;
@@ -48,6 +50,8 @@ export function JobPositionCombobox({
   modal?: boolean;
 }) {
   const positions = useJobPositionOptions(clientId, userId);
+  // `null` is closed; a string is what the new position's name starts as.
+  const [adding, setAdding] = useState<string | null>(null);
   const options = positions.data?.items ?? [];
   const items: ComboboxItem[] = options.map((position) => ({
     value: position.id,
@@ -57,34 +61,38 @@ export function JobPositionCombobox({
   }));
 
   return (
-    <SearchCombobox
-      id={id}
-      testId={testId}
-      items={items}
-      value={value}
-      onChange={(next) =>
-        onChange(next, options.find((position) => position.id === next)?.name ?? next)
-      }
-      onBlur={onBlur}
-      filter={positionFilter}
-      placeholder={
-        positions.isPending ? 'Se încarcă posturile…' : 'Alege postul sau scrie unul nou'
-      }
-      searchPlaceholder="Denumirea postului"
-      emptyMessage="Scrie cel puțin două litere ca să adaugi un post nou."
-      clearLabel="Renunță la postul ales"
-      unknownLabel="Adaugă postul"
-      unknownValue={(search) => {
-        const name = search.trim();
-        return name.length >= 2 && !options.some((position) => sameName(position.name, name))
-          ? name
-          : null;
-      }}
-      renderUnknown={() => 'post nou'}
-      disabled={disabled || positions.isPending}
-      invalid={invalid}
-      describedBy={describedBy}
-      modal={modal}
-    />
+    <>
+      <SearchCombobox
+        id={id}
+        testId={testId}
+        items={items}
+        value={value}
+        onChange={(next) =>
+          onChange(next, options.find((position) => position.id === next)?.name ?? '')
+        }
+        onBlur={onBlur}
+        filter={positionFilter}
+        placeholder={positions.isPending ? 'Se încarcă posturile…' : 'Alege postul de lucru'}
+        searchPlaceholder="Denumirea postului"
+        emptyMessage="Clientul nu are un post cu acest nume."
+        clearLabel="Renunță la postul ales"
+        action={{
+          label: 'Adaugă un post nou…',
+          testId: `${testId}-add`,
+          onSelect: setAdding,
+        }}
+        disabled={disabled || positions.isPending}
+        invalid={invalid}
+        describedBy={describedBy}
+        modal={modal}
+      />
+      <JobPositionDialog
+        clientId={clientId}
+        editing={adding === null ? null : 'new'}
+        initialName={adding ?? ''}
+        onSaved={(position) => onChange(position.id, position.name)}
+        onClose={() => setAdding(null)}
+      />
+    </>
   );
 }
