@@ -105,6 +105,9 @@ importers:
       '@docx-editor.dev/core':
         specifier: 2.21.0
         version: 2.21.0
+      '@docx-editor.dev/fonts':
+        specifier: 2.21.0
+        version: 2.21.0
       '@docx-editor.dev/react':
         specifier: 2.21.0
         version: 2.21.0(@docx-editor.dev/core@2.21.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -793,6 +796,9 @@ packages:
         optional: true
       yjs:
         optional: true
+
+  '@docx-editor.dev/fonts@2.21.0':
+    resolution: {integrity: sha512-/6cfKwQC1wqGzIAo8XW/TwG56NRRauly6eoBMWyDc1UKTd07Hl3aiILCBdX180vzkWJ1cyGyB04GNJblhF7A7Q==}
 
   '@docx-editor.dev/i18n@2.21.0':
     resolution: {integrity: sha512-Q9EZyPKLiaAuK8U7fObr3DMjJZxboNJM0MRdjY/2E3jVsL5ua3hh6Zf2WrFEwlBfuLyyPOJBX4TW94qrIuyI2w==}
@@ -7074,6 +7080,8 @@ snapshots:
       prosemirror-state: 1.4.4
       prosemirror-view: 1.42.4
       utif2: 4.1.0
+
+  '@docx-editor.dev/fonts@2.21.0': {}
 
   '@docx-editor.dev/i18n@2.21.0': {}
 

@@ -368,7 +368,14 @@ mobile navigation link closes the Sheet.
   client opens in `edit` mode; an issued revision and anything of an archived client open in
   `view` mode. The editor lives in `src/documents/document-editor.tsx`, loaded with `lazy`,
   so its 0.8 MB (gzipped) and its WebAssembly text shaper are fetched only when a document is
-  opened; the menu bar, the rulers and the outline pane are off. Our own controls sit in its
+  opened; the menu bar, the rulers and the outline pane are off. The editor bundles no fonts
+  and cannot read the machine's: without font bytes it measures text with whatever the
+  browser has, so a machine without Arial would break lines and pages differently. It is
+  given `packagedFonts({ allow: ['Arial'] })` from `@docx-editor.dev/fonts`: Liberation Sans,
+  built to Arial's metrics, served from our own origin, 0.8 MB once per browser. The house
+  style sets all text in Arial, so no other family is allowed to load. Its notice about
+  unavailable fonts names the families a document's styles fall back to; the templates name
+  none since their style defaults were cleaned. Our own controls sit in its
   title bar: the revision badge, "Modificări nesalvate" or "Salvat", "Descarcă", and
   "Salvează", which is also Ctrl+S. Unsaved means the document's revision differs from the one
   at load or at the last save, because opening a file reports layout changes of its own.
