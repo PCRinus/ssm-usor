@@ -78,9 +78,6 @@ down a long table is what breaks**. It is now a rule for every template we build
 - The title bar, the File menu, the rulers and the outline pane can each be switched off
   (`menu`, `rulers`, `navigation`), which leaves a toolbar and the page: the right amount for
   correcting a name or a sentence.
-- The acknowledgement tables of the decisions end with an empty numbered row ("2." under a
-  single person). That is in our templates, not the editor, and only shows here because the
-  trial looked closely. To be decided: keep as room for a late signature, or drop.
 
 ## Why not the two servers
 
