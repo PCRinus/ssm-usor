@@ -1,0 +1,193 @@
+{
+  "templates": [
+    {
+      "number": "1.0",
+      "original": "1.0._Coperta_Decizii",
+      "stage": 1,
+      "typeKey": "cover_decisions",
+      "title": "Copertă – Deciziile interne",
+      "file": "1.0_cover_decisions.docx"
+    },
+    {
+      "number": "1.1",
+      "original": "1.1._Decizia_privind_responsabilii_cu_instructaje",
+      "stage": 1,
+      "typeKey": "decision_training",
+      "title": "Decizia privind responsabilii cu instruirea",
+      "file": "1.1_decision_training.docx"
+    },
+    {
+      "number": "1.2",
+      "original": "1.2._Decizie_echipa_evaluare",
+      "stage": 1,
+      "typeKey": "decision_risk_evaluation_team",
+      "title": "Decizia privind echipa de evaluare a riscurilor",
+      "file": "1.2_decision_risk_evaluation_team.docx"
+    },
+    {
+      "number": "1.3",
+      "original": "1.3._Decizie_privind_responsabili_primul_ajutor",
+      "stage": 1,
+      "typeKey": "decision_first_aid",
+      "title": "Decizia privind responsabilii cu primul ajutor",
+      "file": "1.3_decision_first_aid.docx"
+    },
+    {
+      "number": "1.4",
+      "original": "1.4._Decizie_privind_pericolul grav si iminent",
+      "stage": 1,
+      "typeKey": "decision_imminent_danger",
+      "title": "Decizia privind pericolul grav și iminent",
+      "file": "1.4_decision_imminent_danger.docx"
+    },
+    {
+      "number": "2.1",
+      "original": "2.1._Coperta_MISSMIG",
+      "stage": 1,
+      "typeKey": "cover_general_training_material",
+      "title": "Copertă – Material de instruire introductiv-generală",
+      "file": "2.1_cover_general_training_material.docx"
+    },
+    {
+      "number": "2.2",
+      "original": "2.2._MISSMIG",
+      "stage": 1,
+      "typeKey": "general_training_material",
+      "title": "Material de instruire introductiv-generală",
+      "file": "2.2_general_training_material.docx"
+    },
+    {
+      "number": "3.1",
+      "original": "3.1._Coperta_IPSSM",
+      "stage": 2,
+      "typeKey": "cover_own_instructions",
+      "title": "Copertă – Instrucțiuni proprii",
+      "file": "3.1_cover_own_instructions.docx"
+    },
+    {
+      "number": "3.2",
+      "original": "3.2._IPSSM",
+      "stage": 2,
+      "typeKey": "own_instructions",
+      "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
+      "file": "3.2_own_instructions.docx",
+      "contentPending": true
+    },
+    {
+      "number": "4.1",
+      "original": "4.1._Coperta_Tematica",
+      "stage": 2,
+      "typeKey": "cover_training_themes",
+      "title": "Copertă – Tematica de instruire",
+      "file": "4.1_cover_training_themes.docx"
+    },
+    {
+      "number": "4.2",
+      "original": "4.2._Tematica_de_instruire",
+      "stage": 2,
+      "typeKey": "training_themes",
+      "title": "Tematica și programul de instruire",
+      "file": "4.2_training_themes.docx",
+      "contentPending": true
+    },
+    {
+      "number": "5.0",
+      "original": "5.0._Coperta_Testari",
+      "stage": 1,
+      "typeKey": "cover_tests",
+      "title": "Copertă – Teste de verificare a cunoștințelor",
+      "file": "5.0_cover_tests.docx"
+    },
+    {
+      "number": "5.1",
+      "original": "5.1._Test_angajare_S.S.M",
+      "stage": 1,
+      "typeKey": "test_hiring",
+      "title": "Test de verificare a cunoștințelor la angajare",
+      "file": "5.1_test_hiring.docx"
+    },
+    {
+      "number": "5.2",
+      "original": "5.2._Test_anual_S.S.M",
+      "stage": 1,
+      "typeKey": "test_periodic",
+      "title": "Test de verificare periodică (anual)",
+      "file": "5.2_test_periodic.docx"
+    },
+    {
+      "number": "6",
+      "original": "6._LEIP",
+      "stage": 2,
+      "typeKey": "protective_equipment_list",
+      "title": "Lista internă de dotare cu echipament individual de protecție",
+      "file": "6_protective_equipment_list.docx",
+      "contentPending": true
+    },
+    {
+      "number": "7.1",
+      "original": "7.1_Coperta_Registre",
+      "stage": 1,
+      "typeKey": "cover_event_registers",
+      "title": "Copertă – Registrele de evidență a evenimentelor",
+      "file": "7.1_cover_event_registers.docx"
+    },
+    {
+      "number": "7.2",
+      "original": "7.2_Registre_de_evidenta_a_evenimentelor",
+      "stage": 1,
+      "typeKey": "event_registers",
+      "title": "Registrele de evidență a evenimentelor",
+      "file": "7.2_event_registers.docx"
+    },
+    {
+      "number": "8",
+      "original": "8._REFERAT_S.S.M",
+      "stage": 1,
+      "typeKey": "control_report",
+      "title": "Referat de control",
+      "file": "8_control_report.docx"
+    },
+    {
+      "number": "9",
+      "original": "9._Evaluarea_riscurilor",
+      "stage": 3,
+      "typeKey": "risk_assessment",
+      "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
+      "file": "9_risk_assessment.docx",
+      "contentPending": true
+    },
+    {
+      "number": "10",
+      "original": "10._Plan_de_prevenire_si_protectie",
+      "stage": 3,
+      "typeKey": "prevention_plan",
+      "title": "Planul de prevenire și protecție",
+      "file": "10_prevention_plan.docx",
+      "contentPending": true
+    },
+    {
+      "number": "11.1",
+      "original": "11.1._Coperta_Informare angajator",
+      "stage": 1,
+      "typeKey": "cover_employer_briefing",
+      "title": "Copertă – Material de informare a angajatorului",
+      "file": "11.1_cover_employer_briefing.docx"
+    },
+    {
+      "number": "11",
+      "original": "11._Informare_angajator",
+      "stage": 1,
+      "typeKey": "employer_briefing",
+      "title": "Material de informare a angajatorului",
+      "file": "11_employer_briefing.docx"
+    },
+    {
+      "number": "12",
+      "original": "12._Regulament_de_control_propriu_S.S.M",
+      "stage": 1,
+      "typeKey": "control_regulation",
+      "title": "Regulament intern privind controlul propriu",
+      "file": "12_control_regulation.docx"
+    }
+  ]
+}

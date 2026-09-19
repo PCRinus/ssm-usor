@@ -1,7 +1,7 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
-import { isTextPart, replaceInXml } from './author';
+import { isTextPart, replaceText } from './text';
 
 // Merges data into a Word template (ADR 005). Templates carry `{{ }}` placeholders:
 //
@@ -11,6 +11,7 @@ import { isTextPart, replaceInXml } from './author';
 //                                              alone in its own paragraph it repeats the
 //                                              paragraphs between them; otherwise inline
 //   {{.}}                                      the current item of a list of strings
+//   {{$index}}                                 the item's number in its list, from 1
 //
 // A placeholder without a value is an error, never a blank: a generated document must not
 // leave a gap where a name belongs.
@@ -30,6 +31,7 @@ export class TemplateError extends Error {
 
 interface ParserContext {
   scopeList: unknown[];
+  scopePathItem: number[];
   num: number;
 }
 
@@ -50,6 +52,7 @@ function parser(tag: string) {
   return {
     get(scope: unknown, context: ParserContext) {
       if (path === '.') return scope;
+      if (path === '$index') return (context.scopePathItem.at(-1) ?? 0) + 1;
       const keys = path.split('.');
       for (let index = context.num; index >= 0; index -= 1) {
         const value = lookup(context.scopeList[index], keys);
@@ -106,12 +109,12 @@ export function renderDocument(template: Uint8Array, data: TemplateData): Uint8A
 // What only shows once values are in. A company name that ends in a full stop, closing a
 // sentence, gives "S.R.L..": the template cannot know, so the engine drops the second one. An
 // ellipsis is left alone.
-const punctuation = [{ pattern: '(?<!\\.)\\.\\.(?!\\.)', replace: '.' }];
+const doubledFullStop = /(?<!\.)\.\.(?!\.)/;
 
 function tidy(zip: PizZip) {
   for (const name of Object.keys(zip.files).filter(isTextPart)) {
     // The two full stops are often in different runs, so the XML cannot be searched for "..".
-    zip.file(name, replaceInXml(zip.file(name)!.asText(), punctuation));
+    zip.file(name, replaceText(zip.file(name)!.asText(), doubledFullStop, '.'));
   }
   return zip;
 }
