@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 import { FileText, MoreHorizontal, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
@@ -80,6 +80,9 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
     return document.issued
       ? 'Ciorna și fișierul ei se șterg definitiv. Revizia emisă rămâne neschimbată.'
       : 'Ciorna și fișierul ei se șterg definitiv. Documentul poate fi generat din nou oricând.';
+  }
+  if (document.draft?.editedAt) {
+    return 'Ciorna a fost modificată de mână. Dacă o generezi din nou, este completată cu datele de acum ale clientului, iar modificările tale se pierd.';
   }
   return document.draft
     ? 'Ciorna este completată din nou cu datele de acum ale clientului. Modificările făcute de mână în fișier se pierd.'
@@ -232,7 +235,14 @@ export function DocumentsCard({
                 return (
                   <TableRow key={document.id} data-testid="document-row">
                     <TableCell>
-                      <span className="font-medium">{document.title}</span>
+                      <Link
+                        to="/clients/$clientId/documents/$documentId"
+                        params={{ clientId, documentId: document.id }}
+                        data-testid="document-title"
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
+                        {document.title}
+                      </Link>
                       {document.decisionNumber !== null && (
                         <span className="block text-xs text-muted-foreground">
                           Decizia nr. {document.decisionNumber} SSM
@@ -249,6 +259,15 @@ export function DocumentsCard({
                         {document.draft && (
                           <Badge variant="secondary" data-testid="document-draft">
                             Ciornă · rev. {document.draft.revision}
+                          </Badge>
+                        )}
+                        {document.draft?.editedAt && (
+                          <Badge
+                            variant="outline"
+                            data-testid="document-edited"
+                            title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
+                          >
+                            Modificat
                           </Badge>
                         )}
                         {document.draft?.dataChanged && (
@@ -278,6 +297,14 @@ export function DocumentsCard({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild data-testid="document-open">
+                            <Link
+                              to="/clients/$clientId/documents/$documentId"
+                              params={{ clientId, documentId: document.id }}
+                            >
+                              {document.draft && !readOnly ? 'Deschide și modifică' : 'Deschide'}
+                            </Link>
+                          </DropdownMenuItem>
                           {document.draft && (
                             <DropdownMenuItem
                               data-testid="document-download-draft"

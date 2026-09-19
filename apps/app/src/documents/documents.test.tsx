@@ -243,6 +243,29 @@ describe('client documents', () => {
     expect(within(form!).queryByTestId('document-data-changed')).toBeNull();
   });
 
+  it('links every document to the editor and marks a draft edited by hand', async () => {
+    mockApi({
+      items: [{ ...firstAid, draft: revision({ editedAt: '2026-09-19T12:00:00+00:00' }) }, report],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const [decision, form] = await screen.findAllByTestId('document-row');
+    expect(within(decision!).getByTestId('document-title').getAttribute('href')).toBe(
+      `/clients/${clientId}/documents/${firstAidId}`
+    );
+    expect(within(decision!).getByTestId('document-edited').textContent).toBe('Modificat');
+    expect(within(form!).queryByTestId('document-edited')).toBeNull();
+
+    // Generating it again says exactly what would be lost.
+    await openMenu(user, 'primul ajutor');
+    expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide și modifică');
+    await user.click(screen.getByTestId('document-regenerate'));
+    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+      'modificările tale se pierd'
+    );
+  });
+
   it('downloads a draft under the name of the document', async () => {
     mockApi({ items: [firstAid] });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
