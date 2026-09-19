@@ -21,6 +21,7 @@ import, not part of the product; the engine in `src/` only fills placeholders.
 import glob
 import json
 import os
+import collections
 import re
 import subprocess
 import sys
@@ -32,6 +33,7 @@ from com.sun.star.beans import PropertyValue
 from com.sun.star.lang import Locale
 from com.sun.star.style.BreakType import NONE as NO_BREAK
 from com.sun.star.style.BreakType import PAGE_BEFORE
+from com.sun.star.style.PageStyleLayout import ALL as ALL_PAGES
 from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
 from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
@@ -50,6 +52,13 @@ ROMANIAN = Locale('ro', 'RO', '')
 
 # What counts as a title or a heading, per kind of document. Matched on a whole paragraph.
 KINDS = {
+    'briefing': {
+        'title': [r'^MATERIAL DE INFORMARE'],
+        'subtitle': [],
+        'headings': [r'^Capitolul', r'^Subcapitolul', r'^Cuprins ', r'^TABEL \d+\.'],
+        # Items of a list typed with their letter, inside an article.
+        'answers': [r'^[a-z]\)\s'],
+    },
     # A form drawn from its spec, on an empty document.
     'form': {'title': [], 'subtitle': [], 'headings': []},
     'register': {
@@ -61,9 +70,11 @@ KINDS = {
         'title': [r'^TESTARE DE VERIFICARE'],
         'subtitle': [r'^\((ANGAJARE|PERIODIC)'],
         'headings': [r'^SPECIMEN'],
-        # A question, typed with its number, and an answer typed with its letter.
+        # A question, typed with its number, and an answer typed with its letter, its lines
+        # broken with the Enter key.
         'questions': [r'^\d+\. '],
         'answers': [r'^[a-z]\)\s'],
+        'joinWrapped': True,
     },
     'regulation': {
         'title': [r'^REGULAMENT INTERN'],
@@ -239,7 +250,53 @@ def document_words(document):
         for element in _elements(root):
             if element.supportsService('com.sun.star.text.TextTable'):
                 chunks.extend(element.getCellByName(name).getString() for name in element.getCellNames())
-    return {word.lower() for word in re.findall(r"[^\W\d_]+", ' '.join(chunks))}
+    # As the letters will read once the old code-page ones are replaced.
+    text = ' '.join(chunks).translate(str.maketrans('şţŞŢãÃ', 'șțȘȚăĂ'))
+    return {word.lower() for word in re.findall(r"[^\W\d_]+", text)}
+
+
+# A word that is right both with and without its diacritics is decided by what stands beside
+# it. The rules are written against the original text, where the neighbours may or may not have
+# their diacritics yet.
+WORD_START = rf'(?<![{LETTER}{{.])'
+WORD_END = rf'(?![{LETTER}}}])'
+AUXILIARIES = ('va|vor|a|ar|poate|pot|putea|voi|vom|vă|va fi|se va|se vor|se poate|se pot|nu va|nu vor|își va|isi va|'
+               'le va|îl va|il va|o va|a se|a le|a-și|a-si|a-i|a-l|de a|nu se va')
+INDEFINITE_BEFORE = 'o|nicio|nici o|orice|fiecare|aceasta|această|aceeasi|aceeași|alta|altă|vreo|cate o|câte o'
+PREPOSITIONS = ('de|în|in|la|pe|cu|din|prin|pentru|sub|fără|fara|după|dupa|ca|spre|către|catre|peste|între|intre|'
+                'fata de|față de')
+NOT_A_NOUN = ('către|catre|după|dupa|fără|fara|despre|între|intre|asupra|împotriva|impotriva|contra|dintre|printre|'
+              'care|este|trebuie|poate|spre')
+
+
+def grammar_replacements(grammar, present):
+    rules = []
+    for source, target in grammar.get('verbs', {}).items():
+        if source in present:
+            # The infinitive after an auxiliary ("va asigura"); the present tense otherwise.
+            rules.append({'pattern': rf'(?<!(?<!{LETTER})(?:{AUXILIARIES}) ){WORD_START}{source}{WORD_END}',
+                          'replace': target})
+    for source, target in grammar.get('adjectives', {}).items():
+        if source in present:
+            # After its noun an adjective never takes the article, so never ends in "-a".
+            for find, replace in ((source, target), (source.upper(), target.upper())):
+                rules.append({'pattern': rf'{WORD_START}{find}{WORD_END}', 'replace': replace})
+    for source, target in grammar.get('adjectivesAfterNoun', {}).items():
+        if source in present:
+            # Also a noun ("tehnica securității"): an adjective only right after a feminine noun.
+            rules.append({'pattern': rf'(?<!(?<!{LETTER})(?:{NOT_A_NOUN}) )(?<={LETTER}{{3}}[aăe] ){source}{WORD_END}',
+                          'replace': target})
+    for source, (definite, indefinite) in grammar.get('nouns', {}).items():
+        if source not in present:
+            continue
+        rules.append({'pattern': rf'(?<=(?<!{LETTER})(?:{INDEFINITE_BEFORE}) ){source}{WORD_END}', 'replace': indefinite})
+        # "în perioadă." is wrong less often than "în perioada." is: a noun after a preposition,
+        # with nothing after it to make it definite.
+        rules.append({'pattern': rf'(?<=(?<!{LETTER})(?:{PREPOSITIONS}) ){source}(?=[.,;:)!?]|$| (?:și|si|sau|ori)(?!{LETTER}))',
+                      'replace': indefinite})
+        if definite != source:
+            rules.append({'pattern': rf'{WORD_START}{source}{WORD_END}', 'replace': definite})
+    return [dict(rule, min=0) for rule in rules]
 
 
 def wording_replacements(wording, present):
@@ -247,6 +304,7 @@ def wording_replacements(wording, present):
     then whole words in three cases."""
     replacements = [dict(phrase, min=0) for phrase in wording['phrases']]
     replacements += [dict(rule, min=0) for rule in wording.get('context', [])]
+    replacements += grammar_replacements(wording.get('grammar', {}), present)
     for source, target in wording['words'].items():
         if source not in present:
             continue
@@ -320,6 +378,37 @@ def rebuild_table(document, definition):
         tables = [item for item in body if item.supportsService('com.sun.star.text.TextTable')]
         old = tables[definition['replaceTable']]
         following = body[body.index(old) + 1]
+        if 'rows' not in definition:
+            # The original's own text, in columns that fit it. `number` writes the first column
+            # out, where the original numbered its rows with a list.
+            names = old.getCellNames()
+            width = len(definition['widths'])
+            rows_read = {}
+            for cell_name in names:
+                column = ord(cell_name[0]) - ord('A')
+                row = int(cell_name[1:]) - 1
+                rows_read.setdefault(row, [None] * width)[column] = old.getCellByName(cell_name).getString().strip()
+            counts = collections.Counter(int(cell_name[1:]) - 1 for cell_name in names)
+            definition = dict(definition, rows=[rows_read[index] for index in sorted(rows_read)])
+            if counts[0] == 1 and width > 1:
+                # A first row merged across the table is its caption: a heading above it.
+                definition['heading'] = definition['rows'].pop(0)[0]
+            # A cell the original does not have is covered by the one above it.
+            for row_index, row in enumerate(definition['rows']):
+                for column_index, content in enumerate(row):
+                    if content is not None:
+                        continue
+                    row[column_index] = ''
+                    above = next((index for index in range(row_index - 1, -1, -1)
+                                  if definition['rows'][index][column_index] != ''), None)
+                    if above is not None:
+                        cell = definition['rows'][above][column_index]
+                        cell = cell if isinstance(cell, dict) else {'text': cell}
+                        cell['rowspan'] = row_index - above + 1
+                        definition['rows'][above][column_index] = cell
+            if definition.get('number'):
+                for index, row in enumerate(definition['rows'][definition.get('headerRows', 1):]):
+                    row[0] = f'{index + 1}.'
         old.dispose()
     else:
         # A table of its own, at the end.
@@ -516,9 +605,9 @@ def join_typed_answers(document, rules):
             previous = None
         elif matches(text, rules['answers']):
             previous = element
-        elif matches(text, rules['questions'] + rules['title'] + rules['subtitle'] + rules['headings']):
+        elif matches(text, rules.get('questions', []) + rules['title'] + rules['subtitle'] + rules['headings']):
             previous = None
-        elif previous is not None:
+        elif previous is not None and rules.get('joinWrapped'):
             end = document.Text.createTextCursorByRange(previous.getEnd())
             document.Text.insertString(end, ' ' + text, False)
             document.Text.removeTextContent(element)
@@ -586,6 +675,8 @@ def normalise_characters(document):
                 drawn = DRAWN_SIZES.get(element.Name)
                 for name in element.getCellNames():
                     apply(element.getCellByName(name), drawn or (SMALL_PRINT if wide else size))
+                    # A table inside a cell.
+                    apply_tables(element.getCellByName(name), SMALL_PRINT if wide else size)
 
     apply(document.Text, BODY_SIZE)
     apply_tables(document.Text, BODY_SIZE)
@@ -625,7 +716,16 @@ def add_branding(page_style):
     # to the footer, then the line, then 4 mm to the text.
     page_style.BottomMargin = 1200
     page_style.FooterBodyDistance = 400
+    # As tall as what it holds: an original's fixed height would push the text up or clip it.
+    page_style.FooterIsDynamicHeight = True
+    # At least the line and its distance to the text, so the text ends 20 mm from the edge.
+    page_style.FooterHeight = 800
     footer = page_style.FooterText
+    for paragraph in list(_elements(footer)):
+        # Empty lines the original spaced its footer with.
+        if paragraph.supportsService('com.sun.star.text.Paragraph') and not paragraph.getString().strip() \
+                and len(list(_elements(footer))) > 1:
+            footer.removeTextContent(paragraph)
     if BRANDING in footer.getString():
         return
     cursor = footer.createTextCursor()
@@ -694,6 +794,8 @@ def typeset(document, kind):
             # A4, whichever way it is turned: some originals are on Letter.
             long_side, short_side = 29700, 21000
             style.Width, style.Height = (long_side, short_side) if style.IsLandscape else (short_side, long_side)
+            # The same margins on every page: mirrored ones move the text from side to side.
+            style.PageStyleLayout = ALL_PAGES
             for margin, value in MARGINS.items():
                 setattr(style, margin, value)
             # An empty header or footer still takes its height off every page.
@@ -750,7 +852,8 @@ def typeset(document, kind):
             # A short table moves to the next page whole, with the paragraph that introduces it.
             element.RepeatHeadline = 'Once' not in element.Name
             element.HoriOrient = FULL_WIDTH
-            if element.getRows().getCount() <= 25 and not element.Name.startswith(f'{DRAWN}Split'):
+            # Up to a dozen rows; a longer one kept whole leaves most of a page empty before it.
+            if element.getRows().getCount() <= 12 and not element.Name.startswith(f'{DRAWN}Split'):
                 element.Split = False
             element.TopMargin = round(6 * POINT)
             element.BottomMargin = round(6 * POINT)
@@ -777,6 +880,7 @@ def typeset(document, kind):
 
     seen_title = False
     after_question = False
+    under_number = False
     for paragraph, in_table in paragraphs(document.Text):
         text = paragraph.getString().strip()
         if not in_table and after_question and paragraph.NumberingIsNumber and paragraph.ListLabelString:
@@ -796,6 +900,12 @@ def typeset(document, kind):
         paragraph.CharColor = -1
         paragraph.ParaWidows = 2
         paragraph.ParaOrphans = 2
+        try:
+            # What the paragraph's end mark was formatted with, kept apart from the paragraph's
+            # own attributes: a font and a language nothing else reaches.
+            paragraph.setPropertyToDefault('ListAutoFormat')
+        except Exception:  # noqa: BLE001 - older LibreOffice has no such property
+            pass
         # No boxes, shadows or shading around a paragraph.
         for name in ('LeftBorder', 'RightBorder', 'TopBorder', 'BottomBorder', 'ParaShadowFormat',
                      'ParaBackColor', 'ParaBackTransparent'):
@@ -813,6 +923,8 @@ def typeset(document, kind):
         # justified line opens uneven gaps between words. Titles, headings and the signature
         # block centre below.
         paragraph.ParaAdjust = LEFT
+        if not (paragraph.NumberingIsNumber and paragraph.ListLabelString) or paragraph.ListLabelString.startswith('Art.'):
+            under_number = False
         listed = paragraph.NumberingIsNumber and paragraph.NumberingRules is not None and (
             paragraph.ListLabelString or paragraph.ParaLeftMargin
             or any(item.Name == 'IndentAt' and item.Value for item in
@@ -824,6 +936,14 @@ def typeset(document, kind):
         elif listed:
             snap_list_indent(paragraph)
             paragraph.ParaBottomMargin = round(2 * POINT)
+            label = paragraph.ListLabelString
+            if re.fullmatch(r'\d+[.)]', label):
+                under_number = True
+            elif under_number and re.fullmatch(r'[a-z][.)]', label):
+                # Letters under a numbered point: one tier in, which the originals leave flush
+                # with the numbers. On the paragraph, because both may share one list.
+                paragraph.ParaLeftMargin = LIST_TIERS[1]
+                paragraph.ParaFirstLineIndent = LIST_HANG
         elif paragraph.ParaLeftMargin:
             # A note inside a list: "(Preluare din H.G. 1425/2006 – Art. 98)".
             paragraph.ParaBottomMargin = round(2 * POINT)
@@ -874,6 +994,22 @@ def typeset(document, kind):
             paragraph.ParaBottomMargin = [0, round(12 * POINT), round(24 * POINT)][position]
             paragraph.ParaKeepTogether = position < 2
 
+    # A list sits close under the paragraph that introduces it, and what follows a list starts
+    # at a paragraph's distance.
+    flow = [item for item in _elements(document.Text)]
+    for index, element in enumerate(flow[:-1]):
+        following = flow[index + 1]
+        if not (element.supportsService('com.sun.star.text.Paragraph')
+                and following.supportsService('com.sun.star.text.Paragraph')):
+            continue
+        is_item = lambda item: bool(item.NumberingIsNumber and item.ListLabelString
+                                    and not item.ListLabelString.startswith('Art.')) or \
+            (item.ParaFirstLineIndent == LIST_HANG and item.ParaLeftMargin == LIST_TIERS[0])
+        if not is_item(element) and is_item(following) and element.ParaBottomMargin > round(3 * POINT):
+            element.ParaBottomMargin = round(3 * POINT)
+        elif is_item(element) and not is_item(following) and following.getString().strip():
+            element.ParaBottomMargin = round(6 * POINT)
+
     # A Word file has no space around a table: it comes from the paragraphs beside it.
     elements = list(_elements(document.Text))
     for index, element in enumerate(elements):
@@ -903,7 +1039,12 @@ def typeset(document, kind):
     # Word wants a paragraph after a closing table. Small, it cannot be what spills onto an
     # empty last page.
     last = body[-1]
-    if last.supportsService('com.sun.star.text.Paragraph') and not last.getString().strip():
+    closing = [item for item in _elements(document.Text)]
+    if len(closing) > 1 and closing[-2].supportsService('com.sun.star.text.Paragraph') \
+            and last.supportsService('com.sun.star.text.Paragraph') and not last.getString().strip():
+        # An empty last line after text, not after a table, has no reason to stay.
+        document.Text.removeTextContent(last)
+    elif last.supportsService('com.sun.star.text.Paragraph') and not last.getString().strip():
         last.CharHeight = 1.0
         last.ParaTopMargin = 0
         last.ParaBottomMargin = 0
@@ -948,8 +1089,8 @@ def import_template(desktop, spec_path, wording, output):
         for index, size in spec.get('tableSizes', {}).items():
             for cell_name in body_tables[int(index)].getCellNames():
                 cell = body_tables[int(index)].getCellByName(cell_name)
-                cell.LeftBorderDistance = 30
-                cell.RightBorderDistance = 30
+                cell.LeftBorderDistance = 50
+                cell.RightBorderDistance = 50
                 cursor = cell.createTextCursor()
                 cursor.gotoEnd(True)
                 cursor.CharHeight = size

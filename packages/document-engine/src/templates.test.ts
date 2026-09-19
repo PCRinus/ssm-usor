@@ -16,9 +16,10 @@ const allTemplateFiles = readdirSync(fileURLToPath(templatesUrl)).filter((name) 
   name.endsWith('.docx')
 );
 
-// What the provider's originals printed. None of it may survive in a template.
+// What the provider's originals printed. None of it may survive in a template. A date counts
+// from 2020 on: the laws the documents quote are dated too, and older.
 const originals =
-  /VELOCITA|PIPETECH|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|D-na|D-l |\b\d{2}\.\d{2}\.20\d{2}\b/;
+  /VELOCITA|PIPETECH|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|D-na|D-l |\b\d{2}\.\d{2}\.202\d\b/;
 
 // What only the decisions have: a signature block, an acknowledgement table, its wording.
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
@@ -103,8 +104,14 @@ describe('typesetting', () => {
 
   it.each(templateFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
     const xml = bodyOf(name);
+    // Of the runs that carry text, here and below: a paragraph's end mark may keep a font, a
+    // size or a language of its own, which nothing shows and LibreOffice does not let go of.
     const fonts = new Set(
-      [...xml.matchAll(/<w:rFonts [^>]*w:ascii="([^"]+)"/g)].map((match) => match[1])
+      [
+        ...xml.matchAll(
+          /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:rFonts [^>]*w:ascii="([^"]+)"(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+        ),
+      ].map((match) => match[1])
     );
     const sizes = new Set(
       [

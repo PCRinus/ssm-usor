@@ -109,6 +109,12 @@ title after the first opens a new page the same way. `tableSizes` sets one
 table smaller than the small print, for pictogram captions. A replacement may set
 `groups: true` to use what its pattern captured (`$1`).
 
+A `tables` entry without `rows` redraws the original's table from its own text in columns that
+fit it: `widths`, `number: true` to write out a first column the original numbered with a list,
+a first row merged across the table becomes the caption above it, and a cell the original
+merged downwards stays merged. Tables of up to a dozen rows do not split; longer ones do, or
+most of a page stays empty before them. Letters under a numbered point are set one tier in.
+
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
 the original lays it out in text frames, which LibreOffice cannot read back as a table. In a
@@ -131,7 +137,18 @@ Romanian spelling dictionary, and a plain word went in only if it is not itself 
 exactly one way of adding diacritics to it is. Only the words a document contains are applied
 to it. `context` holds the rules for words that are right both ways: "sa" is "să" except as a
 possessive ("activitatea sa"), "munca" is "muncă" after a preposition, "asigura" is "asigură"
-unless an auxiliary precedes it. `phrases` are replacements, none of which has to occur. What the documents
+unless an auxiliary precedes it. `phrases` are replacements, none of which has to occur. `grammar` decides the words that are right both ways, by what stands beside them. A verb is
+the infinitive after an auxiliary ("va asigura") and the present tense otherwise ("asigură").
+An adjective after its noun never takes the article, so "instruire periodica" is "periodică";
+the ones that are also nouns ("tehnica securității") change only right after a feminine noun.
+A noun is indefinite after "o", "orice", "această", or after a preposition with nothing
+following to make it definite ("în perioadă."), and otherwise keeps its article with its
+diacritics ("siguranța"). Participles and adjectives were collected with the spelling
+dictionary (the masculine and the infinitive must be words) and read through by hand.
+`tools`-side only: a checker in the scratch folder lists what an imported file still holds
+that is not a word, which is how the last typos were found.
+
+What the documents
 _say_ is not touched: article references, durations, who decides what. Nor are the empty
 numbered rows of the acknowledgement tables, where newly appointed people sign later.
 
@@ -192,6 +209,7 @@ Covers need `provider.representativeRole` besides what the decisions use.
 | `test_periodic`                 | The yearly test, with its specimen                                       | None                                                                                                                                                             |
 | `event_registers`               | The four registers of accidents and dangerous incidents, A4 landscape    | None                                                                                                                                                             |
 | `control_report`                | The report form filled in by hand at each control visit                  | None                                                                                                                                                             |
+| `employer_briefing`             | What the law asks of the employer, chapter by chapter, about 30 pages    | None                                                                                                                                                             |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                  | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`

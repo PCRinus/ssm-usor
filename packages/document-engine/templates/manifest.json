@@ -172,9 +172,9 @@
       "number": "11",
       "original": "11._Informare_angajator",
       "stage": 1,
-      "typeKey": null,
-      "title": null,
-      "file": null
+      "typeKey": "employer_briefing",
+      "title": "Material de informare a angajatorului",
+      "file": "11_employer_briefing.docx"
     },
     {
       "number": "12",
