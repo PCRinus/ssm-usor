@@ -1,11 +1,22 @@
 import '@docx-editor.dev/core/styles/editor.css';
 
+import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 
 // The Word editor itself, in a module of its own so that its three megabytes are only
 // fetched when a document is opened. It takes bytes and gives bytes back (ADR 005), so
 // replacing it touches this file and nothing that is stored.
+
+// Without font bytes the editor measures text with whatever the machine has, so a Linux
+// browser, which has no Arial, breaks lines and pages differently from Windows. Arial cannot
+// be shipped, but Liberation Sans can, and it is built to Arial's metrics: with its bytes
+// every machine lays a document out the same, and as Word does. The house style sets all
+// text in Arial, so that one family is all that is allowed to load, from our own origin,
+// about 0.8 MB once per browser. The other packaged families (Carlito as a stand-in for a
+// default the templates never use, serif and mono faces that styles merely declare) would
+// add 2.6 MB for nothing. One value for the whole app: a new identity remounts the editor.
+const fonts = packagedFonts({ allow: ['Arial'] });
 
 export interface DocumentEditorHandle {
   /** The document as a `.docx`, or null when the editor has nothing loaded. */
@@ -77,6 +88,7 @@ export default function DocumentEditor({
       rulers={false}
       navigation={false}
       locale="ro-RO"
+      fonts={fonts}
       renderTitleBarRight={() => actions}
       onReady={() => {
         ready.current = true;
