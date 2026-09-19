@@ -198,3 +198,30 @@ test('an employee is designated once, and the administrator is added by hand', a
   await page.reload();
   await expect(page.getByTestId('responsible-row')).toHaveCount(2);
 });
+
+test('employee choices scroll with the wheel inside the responsible-person dialog', async ({
+  page,
+}) => {
+  const owner = await createAccount('responsible-scroll-owner');
+  const organizationId = await createOrganization('Lista angajați E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT ANGAJAȚI E2E SRL');
+  for (let index = 0; index < 16; index++) {
+    await createEmployee(organizationId, clientId, {
+      firstName: `Angajat ${index + 1}`,
+      lastName: 'Test',
+      jobTitle: 'Electrician',
+    });
+  }
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/document-data`);
+  await page.getByTestId('responsible-add').click();
+  await page.getByTestId('responsible-employee').click();
+
+  const list = page.locator('[data-slot="command-list"]');
+  await expect(list).toBeVisible();
+  expect(await list.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await list.hover();
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+});

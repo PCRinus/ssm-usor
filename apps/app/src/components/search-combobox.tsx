@@ -38,6 +38,7 @@ export function SearchCombobox({
   disabled,
   invalid,
   describedBy,
+  modal = false,
 }: {
   id: string;
   testId: string;
@@ -57,6 +58,7 @@ export function SearchCombobox({
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
+  modal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -71,6 +73,7 @@ export function SearchCombobox({
 
   return (
     <Popover
+      modal={modal}
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
