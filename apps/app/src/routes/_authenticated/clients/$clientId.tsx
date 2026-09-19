@@ -10,7 +10,7 @@ import {
   useMatches,
   useRouter,
 } from '@tanstack/react-router';
-import { Building2, ClipboardList, FileText, UsersRound } from 'lucide-react';
+import { BriefcaseBusiness, Building2, ClipboardList, FileText, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -21,6 +21,7 @@ import { registeredOffice } from '../../../clients/client-columns';
 // The documents follow the data they print.
 const sections = [
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound },
+  { to: '/clients/$clientId/job-positions', label: 'Posturi de lucru', icon: BriefcaseBusiness },
   { to: '/clients/$clientId/document-data', label: 'Date pentru documente', icon: ClipboardList },
   { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText },
 ] as const;

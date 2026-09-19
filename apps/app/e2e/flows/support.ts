@@ -156,6 +156,8 @@ export async function cleanUp() {
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
+    // After the employees, who point at them.
+    await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }

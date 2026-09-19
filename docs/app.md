@@ -116,6 +116,7 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees.tsx`             | pathless                             | Employees section layout carrying the breadcrumb title.                                                                                                   |
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`       | `/clients/:id/employees`             | The client's employees with a status filter in the search params.                                                                                         |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`         | `/clients/:id/employees/new`         | Form that adds an employee to the client.                                                                                                                 |
+| `routes/_authenticated/clients/$clientId/job-positions.tsx`         | `/clients/:id/job-positions`         | The client's job positions (ADR 006): the posts it employs people in.                                                                                     |
 | `routes/_authenticated/clients/$clientId/document-data.tsx`         | `/clients/:id/document-data`         | What the client's generated documents print: the representative, the training schedule, workplaces, and responsible persons.                              |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`       | `/clients/:id/documents`             | The client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                 |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx` | `/clients/:id/documents/:documentId` | One document in the in-app Word editor; a full page.                                                                                                      |
@@ -324,6 +325,29 @@ mobile navigation link closes the Sheet.
   invalidates every filtered variant of the list, and returns to it; a duplicate CNP or
   number is shown on its field and an archived client on the form.
 
+- `/clients/:clientId/job-positions`: the "Posturi de lucru" section of a client, second after
+  "Angajați", in `src/job-positions/` ([ADR 006](architecture/adr-006-job-positions.md)). The
+  card lists `GET /clients/{clientId}/job-positions`: the name with the activities under it,
+  the staff category as a badge ("Execuție", "Tehnic-administrativ", the full wording in its
+  title), the work zone, and the current employees counted the Romanian way ("2 angajați",
+  "20 de angajați"). The dialog adds or replaces a position; the category defaults to
+  execution, the shorter training interval, and the zone's hint says it is a kind of place,
+  not an address. A `409` with the reason `job_position_name_taken` goes on the name field
+  with the way out: name the two apart. Editing says that contract titles do not follow a
+  rename. "Șterge" confirms first, and its button stays off while the position has current
+  employees; a `409` with `job_position_held` covers people who joined in the meantime. The
+  empty state says positions also come from adding employees. An archived client is
+  read-only.
+- Employees and their job position: the list's column is "Post de lucru" and sorts by it. The
+  new-employee form has a "Post de lucru" picker (`src/job-positions/job-position-combobox.tsx`)
+  that lists the client's positions and takes a name the client lacks, "Adaugă postul „X”":
+  the field then holds that name, and saving creates the position first, in the execution
+  category, to be described later in its own section. "Funcția din contract" follows the
+  chosen position while it is empty or still reads what the last choice put there, and keeps
+  anything the person typed. The employee page shows the two apart, and "Schimbă…" beside the
+  position opens a dialog that moves the person and sends the contract title only when it was
+  changed. Creating, moving, marking a leaver and reactivating all refresh the positions list,
+  whose counts they change.
 - `/clients/:clientId/document-data`: the "Date pentru documente" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005). The first card holds
   the legal representative's name and role, and the periodic training

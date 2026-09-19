@@ -39,7 +39,12 @@ export const createEmployeeRequestSchema = z
       .trim()
       .regex(/^\+?[0-9][0-9 ().-]{3,18}$/, { message: 'Invalid phone number.' })
       .nullish(),
+    // The title in the employment contract. Usually the name of the job position, and not the
+    // same fact (ADR 006).
     jobTitle: z.string().trim().min(2).max(160),
+    // The post the person fills. Left out, the position named like the contract title, which
+    // the client gets if it lacks it.
+    jobPositionId: z.uuid().nullish(),
     hiredAt: z.iso.date(),
     birthDate: z.iso.date().nullish(),
     birthPlace: optionalText(1, 160),
@@ -80,7 +85,7 @@ export type UpdateEmployeeStatusRequest = z.infer<typeof updateEmployeeStatusReq
 
 // Without a status the list returns current employees. "name" orders by last name then
 // first name.
-export const employeeSortKeys = ['name', 'jobTitle', 'hiredAt'] as const;
+export const employeeSortKeys = ['name', 'jobTitle', 'jobPosition', 'hiredAt'] as const;
 export type EmployeeSortKey = (typeof employeeSortKeys)[number];
 
 export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name').extend({
@@ -99,7 +104,10 @@ export const employeeSchema = z.object({
   employeeNumber: z.string().nullable(),
   email: z.string().nullable(),
   phone: z.string().nullable(),
+  // The title in the employment contract.
   jobTitle: z.string(),
+  // The post the person fills; one per employee.
+  jobPosition: z.object({ id: z.uuid(), name: z.string() }),
   hiredAt: z.iso.date(),
   status: employeeStatusSchema,
   terminatedAt: z.iso.date().nullable(),
@@ -125,6 +133,7 @@ export const employeeListItemSchema = employeeSchema.pick({
   email: true,
   phone: true,
   jobTitle: true,
+  jobPosition: true,
   hiredAt: true,
   status: true,
   terminatedAt: true,
@@ -133,6 +142,17 @@ export const employeeListItemSchema = employeeSchema.pick({
 });
 
 export type EmployeeListItem = z.infer<typeof employeeListItemSchema>;
+
+/** Moves an employee to another of the client's job positions. */
+export const updateEmployeeJobPositionRequestSchema = z.object({
+  jobPositionId: z.uuid(),
+  // Given when the contract changed with the post; left out, the contract title stays.
+  jobTitle: z.string().trim().min(2).max(160).optional(),
+});
+
+export type UpdateEmployeeJobPositionRequest = z.infer<
+  typeof updateEmployeeJobPositionRequestSchema
+>;
 
 export const employeeResponseSchema = z.object({ employee: employeeSchema });
 

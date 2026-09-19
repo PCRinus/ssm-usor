@@ -716,6 +716,19 @@
                 "jobTitle": {
                   "type": "string"
                 },
+                "jobPosition": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
                 "hiredAt": {
                   "type": "string",
                   "format": "date"
@@ -747,6 +760,7 @@
                 "email",
                 "phone",
                 "jobTitle",
+                "jobPosition",
                 "hiredAt",
                 "status",
                 "terminatedAt",
@@ -809,6 +823,19 @@
               },
               "jobTitle": {
                 "type": "string"
+              },
+              "jobPosition": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
               },
               "hiredAt": {
                 "type": "string",
@@ -874,6 +901,7 @@
               "email",
               "phone",
               "jobTitle",
+              "jobPosition",
               "hiredAt",
               "status",
               "terminatedAt",
@@ -931,6 +959,11 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 160
+          },
+          "jobPositionId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
           },
           "hiredAt": {
             "type": "string",
@@ -999,6 +1032,166 @@
             "required": ["status"]
           }
         ]
+      },
+      "UpdateEmployeeJobPositionRequest": {
+        "type": "object",
+        "properties": {
+          "jobPositionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          }
+        },
+        "required": ["jobPositionId"]
+      },
+      "JobPositionListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "staffCategory": {
+                  "type": "string",
+                  "enum": ["technical_administrative", "execution"]
+                },
+                "workZone": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "activities": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "employeeCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "name",
+                "staffCategory",
+                "workZone",
+                "activities",
+                "employeeCount",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "JobPositionResponse": {
+        "type": "object",
+        "properties": {
+          "jobPosition": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "staffCategory": {
+                "type": "string",
+                "enum": ["technical_administrative", "execution"]
+              },
+              "workZone": {
+                "type": "string",
+                "nullable": true
+              },
+              "activities": {
+                "type": "string",
+                "nullable": true
+              },
+              "employeeCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "name",
+              "staffCategory",
+              "workZone",
+              "activities",
+              "employeeCount",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["jobPosition"]
+      },
+      "JobPositionRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "staffCategory": {
+            "type": "string",
+            "enum": ["technical_administrative", "execution"],
+            "default": "execution"
+          },
+          "workZone": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "activities": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": ["name"]
       },
       "OrganizationLegalDetailsResponse": {
         "type": "object",
@@ -3265,7 +3458,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["name", "jobTitle", "hiredAt"],
+              "enum": ["name", "jobTitle", "jobPosition", "hiredAt"],
               "default": "name"
             },
             "required": false,
@@ -3664,6 +3857,556 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/job-position": {
+      "patch": {
+        "operationId": "updateEmployeeJobPosition",
+        "summary": "Move an employee to another of the client's job positions",
+        "description": "The contract title stays as it is unless `jobTitle` is given: a person can change post without a new contract, and the other way round (ADR 006).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeJobPositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The employee in the new position",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or a job position that is not one of this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/job-positions": {
+      "get": {
+        "operationId": "listJobPositions",
+        "summary": "List a client's job positions",
+        "description": "The posts the client employs people in (ADR 006), by name, each with the number of current employees in it. Archived positions are left out. Not paginated: a client has a handful.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPositionListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createJobPosition",
+        "summary": "Add a job position to a client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The job position",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPositionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived, or already has a position of this name (reason `job_position_name_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/job-positions/{jobPositionId}": {
+      "put": {
+        "operationId": "updateJobPosition",
+        "summary": "Replace a job position",
+        "description": "Renaming a position never rewrites the contract title of the employees in it: their contracts have not changed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobPositionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The job position after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPositionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client already has a position of this name (reason `job_position_name_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeJobPosition",
+        "summary": "Remove a job position",
+        "description": "A position no employee points at is deleted. One that people who have left still point at is archived instead: it leaves the lists and releases its name, and their history keeps it. Refused with the reason `job_position_held` while current employees are in it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobPositionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted or archived"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current employees are in this position",
             "content": {
               "application/json": {
                 "schema": {

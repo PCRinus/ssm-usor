@@ -4,7 +4,12 @@ import { bloodGroups, cnpControlDigit, rhFactors } from '@ssm-usor/contracts';
 import type { Database } from '../../src/database.types';
 import type { SeedClient } from './seed-organization';
 
-export type EmployeeInsert = Database['public']['Tables']['employees']['Insert'];
+// The database assigns the job position named like the title, creating it when the client
+// lacks it (ADR 006), so a seeded employee never names one.
+export type EmployeeInsert = Omit<
+  Database['public']['Tables']['employees']['Insert'],
+  'job_position_id'
+>;
 
 export interface SeedClientRef {
   id: string;
@@ -31,6 +36,15 @@ const jobTitles = [
   'Muncitor necalificat',
   'Zidar',
   'Instalator',
+  'Recepționer',
+];
+
+const officeJobTitles = [
+  'Contabil',
+  'Economist',
+  'Inginer',
+  'Programator',
+  'Asistent manager',
   'Recepționer',
 ];
 
@@ -127,8 +141,19 @@ export async function seedEmployees(db: SeedClient, rows: EmployeeInsert[]) {
   if (rows.length === 0) return 0;
   const { data, error } = await db
     .from('employees')
-    .upsert(rows, { onConflict: 'id' })
+    .upsert(rows as Database['public']['Tables']['employees']['Insert'][], { onConflict: 'id' })
     .select('id');
   if (error) throw new Error(`Could not seed employees: ${error.message}`);
+  // Positions are created in the category with the shorter interval; the office ones among
+  // the seeded titles belong in the other.
+  const organizationIds = [...new Set(rows.map((row) => row.organization_id))];
+  const categorized = await db
+    .from('job_positions')
+    .update({ staff_category: 'technical_administrative', work_zone: 'Birou' })
+    .in('organization_id', organizationIds)
+    .in('name', officeJobTitles);
+  if (categorized.error) {
+    throw new Error(`Could not categorize seeded job positions: ${categorized.error.message}`);
+  }
   return data.length;
 }

@@ -35,9 +35,11 @@ export function SearchCombobox({
   clearLabel,
   unknownValue,
   renderUnknown,
+  unknownLabel = 'Folosește',
   disabled,
   invalid,
   describedBy,
+  modal = false,
 }: {
   id: string;
   testId: string;
@@ -54,9 +56,12 @@ export function SearchCombobox({
   // outside the list. Returns the candidate value or null.
   unknownValue?: (search: string) => string | null;
   renderUnknown?: (candidate: string) => ReactNode;
+  // The verb in front of the candidate: "Folosește „X”", "Adaugă postul „X”".
+  unknownLabel?: string;
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
+  modal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -71,6 +76,7 @@ export function SearchCombobox({
 
   return (
     <Popover
+      modal={modal}
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
@@ -137,7 +143,7 @@ export function SearchCombobox({
               {candidate && (
                 <CommandItem value={candidate} onSelect={() => choose(candidate)}>
                   <span className="font-medium">
-                    Folosește „<span className="tabular-nums">{candidate}</span>”
+                    {unknownLabel} „<span className="tabular-nums">{candidate}</span>”
                   </span>
                   <span className="text-muted-foreground">{renderUnknown?.(candidate)}</span>
                 </CommandItem>

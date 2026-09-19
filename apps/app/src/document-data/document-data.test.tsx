@@ -98,7 +98,12 @@ describe('client document data', () => {
 
     expect(await screen.findByTestId('document-data-page')).toBeTruthy();
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).toEqual(['Angajați', 'Date pentru documente', 'Documente']);
+    expect(sections).toEqual([
+      'Angajați',
+      'Posturi de lucru',
+      'Date pentru documente',
+      'Documente',
+    ]);
     expect(await screen.findByTestId('details-representative-name')).toBeTruthy();
   });
 

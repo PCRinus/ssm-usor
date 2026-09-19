@@ -1,0 +1,53 @@
+import { z } from 'zod';
+
+// The posts a client employs people in, as occupational safety sees them (ADR 006).
+
+/** The two kinds of staff the training decision gives an interval each. */
+export const staffCategories = ['technical_administrative', 'execution'] as const;
+
+export const staffCategorySchema = z.enum(staffCategories);
+
+export type StaffCategory = z.infer<typeof staffCategorySchema>;
+
+const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
+
+export const jobPositionRequestSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  // Left out, the category with the shorter interval, so a mistake errs towards training
+  // too often.
+  staffCategory: staffCategorySchema.default('execution'),
+  // The kind of place the work happens in ("Birou", "Atelier, teren"). Not a workplace.
+  workZone: optionalText(1, 120),
+  // What the person in it actually does.
+  activities: optionalText(1, 2000),
+});
+
+export type JobPositionRequest = z.infer<typeof jobPositionRequestSchema>;
+
+export const jobPositionSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  name: z.string(),
+  staffCategory: staffCategorySchema,
+  workZone: z.string().nullable(),
+  activities: z.string().nullable(),
+  // Current employees in it: those who left, and rows archived as mistakes, do not count.
+  employeeCount: z.int().min(0),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+
+export type JobPosition = z.infer<typeof jobPositionSchema>;
+
+export const jobPositionListResponseSchema = z.object({ items: z.array(jobPositionSchema) });
+
+export type JobPositionListResponse = z.infer<typeof jobPositionListResponseSchema>;
+
+export const jobPositionResponseSchema = z.object({ jobPosition: jobPositionSchema });
+
+export type JobPositionResponse = z.infer<typeof jobPositionResponseSchema>;
+
+/** `reason` values on job position errors, so the SPA can word them itself. */
+export const jobPositionErrorReasons = ['job_position_name_taken', 'job_position_held'] as const;
+
+export type JobPositionErrorReason = (typeof jobPositionErrorReasons)[number];

@@ -15,13 +15,15 @@ import type {
   createEmployeeRoute,
   getEmployeeRoute,
   listEmployeesRoute,
+  updateEmployeeJobPositionRoute,
   updateEmployeeStatusRoute,
 } from './routes';
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
+// The job position rides along by its foreign key: every employee has exactly one.
 export const employeeListColumns =
-  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at';
+  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name)';
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at`;
@@ -41,7 +43,7 @@ type EmployeeListRow = Pick<
   | 'terminated_at'
   | 'created_at'
   | 'updated_at'
->;
+> & { job_positions: { id: string; name: string } };
 
 export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
   return {
@@ -53,6 +55,7 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
     email: row.email,
     phone: row.phone,
     jobTitle: row.job_title,
+    jobPosition: row.job_positions,
     hiredAt: row.hired_at,
     status: row.status,
     terminatedAt: row.terminated_at,
@@ -61,7 +64,10 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
   };
 }
 
-export function toEmployee(row: Omit<EmployeeRow, 'organization_id' | 'created_by'>): Employee {
+export function toEmployee(
+  row: Omit<EmployeeRow, 'organization_id' | 'created_by' | 'job_position_id'> &
+    Pick<EmployeeListRow, 'job_positions'>
+): Employee {
   return {
     ...toEmployeeListItem(row),
     cnp: row.cnp,
@@ -89,6 +95,23 @@ async function findClient(db: DataClient, clientId: string) {
   return data;
 }
 
+// A position of another client, or an archived one, is a wrong choice on the form.
+async function requireJobPosition(db: DataClient, clientId: string, jobPositionId: string) {
+  const { data, error } = await db
+    .from('job_positions')
+    .select('id')
+    .eq('id', jobPositionId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find job position');
+  if (!data) {
+    throw new ApiError('validation_error', 'This job position does not exist under this client.', [
+      { path: 'jobPositionId', message: 'This job position does not exist under this client.' },
+    ]);
+  }
+}
+
 function conflictMessage(detail: string | undefined) {
   if (detail?.includes('employees_client_cnp_key')) {
     return 'An employee with this CNP already exists for this client.';
@@ -103,6 +126,7 @@ function conflictMessage(detail: string | undefined) {
 const sortColumns: Record<EmployeeSortKey, string[]> = {
   name: ['last_name', 'first_name'],
   jobTitle: ['job_title', 'last_name', 'first_name'],
+  jobPosition: ['job_positions(name)', 'last_name', 'first_name'],
   hiredAt: ['hired_at', 'last_name', 'first_name'],
 };
 
@@ -140,6 +164,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
   if (client.archived_at) {
     throw new ApiError('conflict', 'This client is archived; employees cannot be added.');
   }
+  if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
   const { data, error } = await db
     .from('employees')
     .insert({
@@ -161,7 +186,10 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       rh_factor: body.rhFactor ?? null,
       notes: body.notes ?? null,
       created_by: c.get('user').id,
-    })
+      // Left out, the database assigns the job position named like the contract title,
+      // creating it if the client lacks it (ADR 006). The generated types cannot know that.
+      ...(body.jobPositionId ? { job_position_id: body.jobPositionId } : {}),
+    } as Database['public']['Tables']['employees']['Insert'])
     .select(employeeColumns)
     .single();
   if (error) {
@@ -219,6 +247,30 @@ export const updateEmployeeStatus: RouteHandler<typeof updateEmployeeStatusRoute
     .select(employeeColumns)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'update employee status');
+  if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
+  return c.json({ employee: toEmployee(data) }, 200);
+};
+
+export const updateEmployeeJobPosition: RouteHandler<
+  typeof updateEmployeeJobPositionRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await requireJobPosition(db, clientId, body.jobPositionId);
+  const { data, error } = await db
+    .from('employees')
+    .update({
+      job_position_id: body.jobPositionId,
+      // The contract title only changes when the person says the contract did.
+      ...(body.jobTitle ? { job_title: body.jobTitle } : {}),
+    })
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .select(employeeColumns)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'update employee job position');
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
   return c.json({ employee: toEmployee(data) }, 200);
 };

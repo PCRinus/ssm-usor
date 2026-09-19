@@ -7,12 +7,14 @@ import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { Controller } from 'react-hook-form';
 
+import { useAuth } from '../../../../../auth/auth-context';
 import { DatePicker } from '../../../../../components/date-picker';
 import { Field } from '../../../../../components/form-field';
 import { FormSection } from '../../../../../components/form-section';
 import type { EmployeeFormValues } from '../../../../../employees/employee-form-schema';
 import { todayIso } from '../../../../../employees/employee-format';
 import { useEmployeeForm } from '../../../../../employees/use-employee-form';
+import { JobPositionCombobox } from '../../../../../job-positions/job-position-combobox';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
   error ? `${id}-error` : hint ? `${id}-hint` : undefined;
@@ -27,7 +29,13 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/employee
 export function NewEmployeePage() {
   const { clientId } = Route.useParams();
   const { client } = clientRoute.useLoaderData();
-  const { form, onSubmit, prefillBirthDate, isSaving } = useEmployeeForm(clientId);
+  const { session } = useAuth();
+  // The shell renders this only for a signed-in user.
+  const userId = session?.user.id ?? '';
+  const { form, onSubmit, prefillBirthDate, choosePosition, isSaving } = useEmployeeForm(
+    clientId,
+    userId
+  );
   const {
     register,
     control: formControl,
@@ -136,9 +144,39 @@ export function NewEmployeePage() {
 
           <FormSection
             title="Angajare"
-            description="Funcția din contract și data de la care curg termenele de instruire."
+            description="Postul pe care lucrează, funcția din contract și data de la care curg termenele de instruire."
           >
-            <Field id="jobTitle" label="Funcție" error={errors.jobTitle}>
+            <Field
+              id="jobPosition"
+              label="Post de lucru"
+              hint="Munca pe care o face, cu riscurile și instruirea ei. Un post nou intră la „Personal de execuție” și se poate descrie apoi în „Posturi de lucru”."
+              error={errors.jobPosition}
+            >
+              <Controller
+                control={formControl}
+                name="jobPosition"
+                render={({ field }) => (
+                  <JobPositionCombobox
+                    id="jobPosition"
+                    testId="employee-job-position"
+                    clientId={clientId}
+                    userId={userId}
+                    value={field.value}
+                    onChange={choosePosition}
+                    onBlur={field.onBlur}
+                    disabled={isSaving}
+                    invalid={Boolean(errors.jobPosition)}
+                    describedBy={describedBy('jobPosition', errors.jobPosition, true)}
+                  />
+                )}
+              />
+            </Field>
+            <Field
+              id="jobTitle"
+              label="Funcția din contract"
+              hint="Se completează după post. Schimb-o dacă în contract scrie altfel."
+              error={errors.jobTitle}
+            >
               <Input
                 id="jobTitle"
                 data-testid="employee-job-title"
@@ -146,7 +184,7 @@ export function NewEmployeePage() {
                 {...register('jobTitle')}
                 autoComplete="organization-title"
                 required
-                {...control('jobTitle')}
+                {...control('jobTitle', true)}
               />
             </Field>
             <Field
