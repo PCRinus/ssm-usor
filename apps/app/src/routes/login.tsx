@@ -84,18 +84,11 @@ export function LoginPage() {
                   </p>
                 )}
               </div>
-              <div className="grid gap-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <Label htmlFor="password">Parolă</Label>
-                  <Link
-                    to="/forgot-password"
-                    data-testid="login-forgot-password"
-                    className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                  >
-                    Ai uitat parola?
-                  </Link>
-                </div>
-                <div className="relative">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2">
+                <Label htmlFor="password" className="col-start-1 row-start-1 self-baseline">
+                  Parolă
+                </Label>
+                <div className="relative col-span-2 row-start-2">
                   <Input
                     id="password"
                     data-testid="login-password"
@@ -121,12 +114,19 @@ export function LoginPage() {
                     {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                   </Button>
                 </div>
+                <Link
+                  to="/forgot-password"
+                  data-testid="login-forgot-password"
+                  className="col-start-2 row-start-1 self-baseline text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                >
+                  Ai uitat parola?
+                </Link>
                 {errors.password && (
                   <p
                     id="password-error"
                     data-testid="login-password-error"
                     role="alert"
-                    className="text-sm text-destructive"
+                    className="col-span-2 text-sm text-destructive"
                   >
                     {errors.password.message}
                   </p>
