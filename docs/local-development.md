@@ -63,10 +63,10 @@ link included, to its console.
 Existing hosted environment files are not automatically rewritten by these commands.
 Remove any exported `VITE_*` overrides that point to the hosted project.
 
-Build the shared contracts once:
+Build the packages the API imports once:
 
 ```bash
-pnpm --filter @ssm-usor/contracts build
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
 ```
 
 Then use the existing commands in separate terminals:

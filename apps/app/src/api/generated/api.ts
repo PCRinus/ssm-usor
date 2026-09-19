@@ -1310,6 +1310,178 @@ export interface DocumentReadinessResponse {
   missing: DocumentReadinessResponseMissingItem[];
 }
 
+export type ClientDocumentListResponseItemsItemDraftStatus =
+  (typeof ClientDocumentListResponseItemsItemDraftStatus)[keyof typeof ClientDocumentListResponseItemsItemDraftStatus];
+
+export const ClientDocumentListResponseItemsItemDraftStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemDraft = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ClientDocumentListResponseItemsItemDraftStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentListResponseItemsItemIssuedStatus =
+  (typeof ClientDocumentListResponseItemsItemIssuedStatus)[keyof typeof ClientDocumentListResponseItemsItemIssuedStatus];
+
+export const ClientDocumentListResponseItemsItemIssuedStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemIssued = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ClientDocumentListResponseItemsItemIssuedStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  typeKey: string;
+  title: string;
+  /** @nullable */
+  decisionNumber: number | null;
+  /** @nullable */
+  draft: ClientDocumentListResponseItemsItemDraft;
+  /** @nullable */
+  issued: ClientDocumentListResponseItemsItemIssued;
+};
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseLastGeneration = {
+  issueDate: string;
+  /**
+   * @minimum 1
+   * @maximum 9999
+   */
+  firstDecisionNumber: number;
+} | null;
+
+export interface ClientDocumentListResponse {
+  items: ClientDocumentListResponseItemsItem[];
+  /** @nullable */
+  lastGeneration: ClientDocumentListResponseLastGeneration;
+}
+
+export type GenerateDocumentsResponseCreatedItemDraftStatus =
+  (typeof GenerateDocumentsResponseCreatedItemDraftStatus)[keyof typeof GenerateDocumentsResponseCreatedItemDraftStatus];
+
+export const GenerateDocumentsResponseCreatedItemDraftStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemDraft = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: GenerateDocumentsResponseCreatedItemDraftStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  createdAt: string;
+} | null;
+
+export type GenerateDocumentsResponseCreatedItemIssuedStatus =
+  (typeof GenerateDocumentsResponseCreatedItemIssuedStatus)[keyof typeof GenerateDocumentsResponseCreatedItemIssuedStatus];
+
+export const GenerateDocumentsResponseCreatedItemIssuedStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemIssued = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: GenerateDocumentsResponseCreatedItemIssuedStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  createdAt: string;
+} | null;
+
+export type GenerateDocumentsResponseCreatedItem = {
+  id: string;
+  clientId: string;
+  typeKey: string;
+  title: string;
+  /** @nullable */
+  decisionNumber: number | null;
+  /** @nullable */
+  draft: GenerateDocumentsResponseCreatedItemDraft;
+  /** @nullable */
+  issued: GenerateDocumentsResponseCreatedItemIssued;
+};
+
+export interface GenerateDocumentsResponse {
+  created: GenerateDocumentsResponseCreatedItem[];
+  skipped: string[];
+}
+
+export interface GenerateDocumentsRequest {
+  issueDate: string;
+  /**
+   * @minimum 1
+   * @maximum 9996
+   */
+  firstDecisionNumber?: number;
+}
+
+export interface DocumentDownloadResponse {
+  url: string;
+  fileName: string;
+  expiresInSeconds: number;
+}
+
 export type MembershipResponseOrganization = {
   id: string;
   name: string;
@@ -4619,6 +4791,403 @@ export function useGetDocumentReadiness<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetDocumentReadinessQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListClientDocumentsUrl = (clientId: string) => {
+  return `/clients/${clientId}/documents`;
+};
+
+/**
+ * In the order of the documentation set. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.
+ * @summary List a client's documents with their current draft and issued revisions
+ */
+export const listClientDocuments = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentListResponse> => {
+  return apiFetch<ClientDocumentListResponse>(getListClientDocumentsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListClientDocumentsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/documents`] as const;
+};
+
+export const getListClientDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClientDocuments>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClientDocumentsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientDocuments>>> = ({ signal }) =>
+    listClientDocuments(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListClientDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClientDocuments>>
+>;
+export type ListClientDocumentsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListClientDocuments<
+  TData = Awaited<ReturnType<typeof listClientDocuments>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientDocuments>>,
+          TError,
+          Awaited<ReturnType<typeof listClientDocuments>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientDocuments<
+  TData = Awaited<ReturnType<typeof listClientDocuments>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientDocuments>>,
+          TError,
+          Awaited<ReturnType<typeof listClientDocuments>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientDocuments<
+  TData = Awaited<ReturnType<typeof listClientDocuments>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a client's documents with their current draft and issued revisions
+ */
+
+export function useListClientDocuments<
+  TData = Awaited<ReturnType<typeof listClientDocuments>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListClientDocumentsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGenerateClientDocumentsUrl = (clientId: string) => {
+  return `/clients/${clientId}/documents/generate`;
+};
+
+/**
+ * Every built-in document type the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`. Refused with the reason `missing_document_data` while the readiness list is not empty.
+ * @summary Generate the documents a client's documentation does not have yet
+ */
+export const generateClientDocuments = async (
+  clientId: string,
+  generateDocumentsRequest: GenerateDocumentsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<GenerateDocumentsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<GenerateDocumentsResponse>(getGenerateClientDocumentsUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(generateDocumentsRequest),
+  });
+};
+
+export const getGenerateClientDocumentsMutationKey = () => ['generateClientDocuments'] as const;
+
+export const getGenerateClientDocumentsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateClientDocuments>>,
+    TError,
+    GenerateClientDocumentsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateClientDocuments>>,
+  TError,
+  GenerateClientDocumentsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getGenerateClientDocumentsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateClientDocuments>>,
+    GenerateClientDocumentsMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return generateClientDocuments(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateClientDocumentsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateClientDocuments>>
+>;
+export type GenerateClientDocumentsMutationBody = GenerateDocumentsRequest;
+export type GenerateClientDocumentsMutationError = ErrorType<ApiErrorResponse>;
+export type GenerateClientDocumentsMutationVariables = {
+  clientId: string;
+  data: GenerateDocumentsRequest;
+};
+
+/**
+ * @summary Generate the documents a client's documentation does not have yet
+ */
+export const useGenerateClientDocuments = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof generateClientDocuments>>,
+      TError,
+      GenerateClientDocumentsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof generateClientDocuments>>,
+  TError,
+  GenerateClientDocumentsMutationVariables,
+  TContext
+> => {
+  return useMutation(getGenerateClientDocumentsMutationOptions(options), queryClient);
+};
+
+export const getGetDocumentDownloadUrl = (documentId: string, revisionId: string) => {
+  return `/documents/${documentId}/revisions/${revisionId}/download`;
+};
+
+/**
+ * @summary Get a short-lived link to a revision's Word file
+ */
+export const getDocumentDownload = async (
+  documentId: string,
+  revisionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DocumentDownloadResponse> => {
+  return apiFetch<DocumentDownloadResponse>(getGetDocumentDownloadUrl(documentId, revisionId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentDownloadQueryKey = (documentId: string, revisionId: string) => {
+  return [`/documents/${documentId}/revisions/${revisionId}/download`] as const;
+};
+
+export const getGetDocumentDownloadQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentDownloadQueryKey(documentId, revisionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentDownload>>> = ({ signal }) =>
+    getDocumentDownload(documentId, revisionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      documentId !== null &&
+      documentId !== undefined &&
+      revisionId !== null &&
+      revisionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDocumentDownloadQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentDownload>>
+>;
+export type GetDocumentDownloadQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentDownload<
+  TData = Awaited<ReturnType<typeof getDocumentDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentDownload>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentDownload>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentDownload<
+  TData = Awaited<ReturnType<typeof getDocumentDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentDownload>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentDownload>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentDownload<
+  TData = Awaited<ReturnType<typeof getDocumentDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get a short-lived link to a revision's Word file
+ */
+
+export function useGetDocumentDownload<
+  TData = Awaited<ReturnType<typeof getDocumentDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentDownload>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentDownloadQueryOptions(documentId, revisionId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

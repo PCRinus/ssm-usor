@@ -71,3 +71,80 @@ export const documentReadinessResponseSchema = z.object({
 });
 
 export type DocumentReadinessResponse = z.infer<typeof documentReadinessResponseSchema>;
+
+/** Mirrors the `document_revision_status` enum in the database. */
+export const documentRevisionStatuses = ['draft', 'issued', 'superseded'] as const;
+
+export const documentRevisionStatusSchema = z.enum(documentRevisionStatuses);
+
+export type DocumentRevisionStatus = z.infer<typeof documentRevisionStatusSchema>;
+
+/** One version of a document. Its file is fetched through a download link. */
+export const documentRevisionSchema = z.object({
+  id: z.uuid(),
+  revision: z.int().min(1),
+  status: documentRevisionStatusSchema,
+  // The date the document carries; null for a file that was uploaded instead of generated.
+  issueDate: z.iso.date().nullable(),
+  // Whether the stored facts differ from what a draft was generated from. Always false for
+  // an issued revision, which records what it was built from and does not follow the data.
+  dataChanged: z.boolean(),
+  // When the file was last saved from the editor or uploaded; null while it is as generated.
+  editedAt: z.iso.datetime({ offset: true }).nullable(),
+  issuedAt: z.iso.datetime({ offset: true }).nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+});
+
+export type DocumentRevision = z.infer<typeof documentRevisionSchema>;
+
+/** One document type in a client's documentation set, with the revisions that matter now. */
+export const clientDocumentSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  // A provider's own templates may add types later, so this is not limited to the built-in list.
+  typeKey: z.string(),
+  title: z.string(),
+  // Set for decisions.
+  decisionNumber: z.int().nullable(),
+  draft: documentRevisionSchema.nullable(),
+  issued: documentRevisionSchema.nullable(),
+});
+
+export type ClientDocument = z.infer<typeof clientDocumentSchema>;
+
+/** In the order of the documentation set. A client has a few dozen at most: not paginated. */
+export const clientDocumentListResponseSchema = z.object({
+  items: z.array(clientDocumentSchema),
+  // What the last generation asked, to fill the form in again.
+  lastGeneration: z
+    .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999) })
+    .nullable(),
+});
+
+export type ClientDocumentListResponse = z.infer<typeof clientDocumentListResponseSchema>;
+
+export const generateDocumentsRequestSchema = z.object({
+  // The date the documents carry, usually the start of the contract.
+  issueDate: z.iso.date(),
+  // Decisions are numbered from here: "Decizia nr. 1 SSM".
+  firstDecisionNumber: z.int().min(1).max(9996).default(1),
+});
+
+export type GenerateDocumentsRequest = z.infer<typeof generateDocumentsRequestSchema>;
+
+/** The documents that were created. Types the client already has are left as they are. */
+export const generateDocumentsResponseSchema = z.object({
+  created: z.array(clientDocumentSchema),
+  skipped: z.array(z.string()),
+});
+
+export type GenerateDocumentsResponse = z.infer<typeof generateDocumentsResponseSchema>;
+
+/** A short-lived link to a revision's Word file. */
+export const documentDownloadResponseSchema = z.object({
+  url: z.url(),
+  fileName: z.string(),
+  expiresInSeconds: z.int(),
+});
+
+export type DocumentDownloadResponse = z.infer<typeof documentDownloadResponseSchema>;

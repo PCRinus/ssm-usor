@@ -1,7 +1,7 @@
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { renderDocument, TemplateError, templatePlaceholders } from './render';
+import { renderDocument, renderTemplate, TemplateError, templatePlaceholders } from './render';
 import { documentText, replaceText } from './text';
 
 // The smallest file Word opens: a content type list, the package relationship, and a body.
@@ -112,6 +112,27 @@ describe('renderDocument', () => {
     );
     const data = { risks: [{ risk: 'Alunecare' }, { risk: 'Electrocutare' }] };
     expect(documentText(renderDocument(template, data))).toBe('1. Alunecare\n2. Electrocutare');
+  });
+
+  it('says which top-level names it printed, and none it did not', () => {
+    const template = docx(
+      paragraph(run('{{client.legalName}}')) +
+        paragraph(run('{{#people}}{{name}} {{issueDate}}; {{/people}}')) +
+        paragraph(run('{{#branding}}Generat{{/branding}}'))
+    );
+    const data = {
+      client: { legalName: 'S.C. CLIENT S.R.L.' },
+      people: [{ name: 'Ana' }],
+      issueDate: '19.01.2026',
+      branding: [],
+      provider: { legalName: 'unused' },
+    };
+    expect(renderTemplate(template, data).usedNames).toEqual([
+      'branding',
+      'client',
+      'issueDate',
+      'people',
+    ]);
   });
 
   it('drops the second full stop when a value that ends in one closes a sentence', () => {

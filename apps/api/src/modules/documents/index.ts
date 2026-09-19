@@ -1,8 +1,19 @@
 import { createRouter } from '../../router';
-import { getDocumentReadiness } from './handlers';
-import { getDocumentReadinessRoute } from './routes';
-
-export const documentsRouter = createRouter().openapi(
+import {
+  generateClientDocuments,
+  getDocumentDownload,
+  getDocumentReadiness,
+  listClientDocuments,
+} from './handlers';
+import {
+  generateClientDocumentsRoute,
+  getDocumentDownloadRoute,
   getDocumentReadinessRoute,
-  getDocumentReadiness
-);
+  listClientDocumentsRoute,
+} from './routes';
+
+export const documentsRouter = createRouter()
+  .openapi(getDocumentReadinessRoute, getDocumentReadiness)
+  .openapi(listClientDocumentsRoute, listClientDocuments)
+  .openapi(generateClientDocumentsRoute, generateClientDocuments)
+  .openapi(getDocumentDownloadRoute, getDocumentDownload);

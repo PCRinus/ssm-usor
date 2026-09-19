@@ -31,7 +31,7 @@
     "deploy:api": "pnpm --filter @ssm-usor/api deploy",
     "deploy:mail": "pnpm --filter @ssm-usor/mail deploy",
     "prepare": "lefthook install",
-    "generate:api": "pnpm --filter @ssm-usor/contracts build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
+    "generate:api": "pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
     "generate:routes": "pnpm --filter @ssm-usor/app generate:routes",
     "check:generated": "node scripts/check-generated.mjs",
     "seed": "pnpm --filter @ssm-usor/api seed",
