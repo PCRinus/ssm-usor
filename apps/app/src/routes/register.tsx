@@ -3,13 +3,14 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { useAuth } from '../auth/auth-context';
 import { registerErrorMessage } from '../auth/auth-errors';
 import { newPasswordHint, registerSchema, type RegisterValues } from '../auth/password-schema';
 import { Field } from '../components/form-field';
 import { PasswordInput } from '../components/password-input';
+import { PasswordStrengthIndicator } from '../components/password-strength-indicator';
 import { PublicFrame } from '../components/public-frame';
 
 // Registration is Supabase's own signup (ADR 004). The page creates an identity only; the
@@ -31,6 +32,8 @@ export function RegisterPage() {
     defaultValues: { email: '', password: '' },
   });
   const { errors, isSubmitting } = form.formState;
+  const password = useWatch({ control: form.control, name: 'password' });
+  const email = useWatch({ control: form.control, name: 'email' });
 
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
     try {
@@ -102,10 +105,13 @@ export function RegisterPage() {
             autoComplete="new-password"
             disabled={isSubmitting}
             aria-invalid={Boolean(errors.password)}
-            aria-describedby={
-              errors.password ? 'register-password-error' : 'register-password-hint'
-            }
+            aria-describedby={`${errors.password ? 'register-password-error' : 'register-password-hint'}${password ? ' register-password-strength' : ''}`}
             {...form.register('password')}
+          />
+          <PasswordStrengthIndicator
+            id="register-password-strength"
+            password={password}
+            email={email}
           />
         </Field>
         {errors.root?.auth && (

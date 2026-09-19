@@ -11,6 +11,14 @@ test('a person registers, confirms their address, and sets up their organization
 
   await page.goto('/register');
   await page.getByTestId('register-email').fill(email);
+  await expect(page.getByTestId('register-password-strength')).toHaveCount(0);
+  await page.getByTestId('register-password').fill('Password123');
+  await expect(page.getByTestId('register-password-strength-label')).toHaveText('Slabă');
+  await expect(page.getByTestId('register-password-strength')).toContainText(
+    'Parola respectă cerințele minime.'
+  );
+  await page.getByTestId('register-password').fill('Briza7!Cais41?Altitudine');
+  await expect(page.getByTestId('register-password-strength-label')).toHaveText('Puternică');
   await page.getByTestId('register-password').fill(password);
   await page.getByTestId('register-submit').click();
   await expect(page.getByTestId('register-sent')).toContainText(email);
