@@ -623,7 +623,8 @@ describe('PUT /documents/{documentId}/draft/file', () => {
           Authorization: 'Bearer test-access-token',
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         },
-        body,
+        // A copy with a plain ArrayBuffer behind it, which is what a request body is typed to take.
+        body: new Uint8Array(body),
       },
       env
     );
