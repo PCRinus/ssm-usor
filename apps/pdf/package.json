@@ -1,0 +1,24 @@
+{
+  "name": "@ssm-usor/pdf",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "start": "wrangler dev --port 8791 --inspector-port 9240",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7",
+    "@ssm-usor/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260911.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.131.1"
+  }
+}
