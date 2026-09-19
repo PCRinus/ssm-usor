@@ -1287,6 +1287,29 @@ export interface ResponsiblePersonRequest {
   roles: ResponsiblePersonRequestRolesItem[];
 }
 
+export type DocumentReadinessResponseMissingItem =
+  (typeof DocumentReadinessResponseMissingItem)[keyof typeof DocumentReadinessResponseMissingItem];
+
+export const DocumentReadinessResponseMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  specialistname: 'specialist.name',
+  specialistprofessionalTitle: 'specialist.professionalTitle',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  clienttrainingSchedule: 'client.trainingSchedule',
+  responsibleworkplace_manager: 'responsible.workplace_manager',
+  responsiblefirst_aid: 'responsible.first_aid',
+  responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
+  responsibleimminent_danger: 'responsible.imminent_danger',
+} as const;
+
+export interface DocumentReadinessResponse {
+  ready: boolean;
+  missing: DocumentReadinessResponseMissingItem[];
+}
+
 export type MembershipResponseOrganization = {
   id: string;
   name: string;
@@ -4466,6 +4489,143 @@ export const useArchiveResponsiblePerson = <
 > => {
   return useMutation(getArchiveResponsiblePersonMutationOptions(options), queryClient);
 };
+
+export const getGetDocumentReadinessUrl = (clientId: string) => {
+  return `/clients/${clientId}/documents/readiness`;
+};
+
+/**
+ * Documents never leave a data field blank, so generating is refused until the list is empty. The specialist is the caller: their name and professional title come from their profile.
+ * @summary Whether a client's documentation can be generated, and what is missing
+ */
+export const getDocumentReadiness = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DocumentReadinessResponse> => {
+  return apiFetch<DocumentReadinessResponse>(getGetDocumentReadinessUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentReadinessQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/documents/readiness`] as const;
+};
+
+export const getGetDocumentReadinessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentReadiness>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentReadinessQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentReadiness>>> = ({ signal }) =>
+    getDocumentReadiness(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDocumentReadinessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentReadiness>>
+>;
+export type GetDocumentReadinessQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentReadiness<
+  TData = Awaited<ReturnType<typeof getDocumentReadiness>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentReadiness>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentReadiness>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentReadiness<
+  TData = Awaited<ReturnType<typeof getDocumentReadiness>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentReadiness>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentReadiness>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentReadiness<
+  TData = Awaited<ReturnType<typeof getDocumentReadiness>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Whether a client's documentation can be generated, and what is missing
+ */
+
+export function useGetDocumentReadiness<
+  TData = Awaited<ReturnType<typeof getDocumentReadiness>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentReadinessQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getCreateOrganizationUrl = () => {
   return `/organization`;

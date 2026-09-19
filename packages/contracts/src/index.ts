@@ -9,6 +9,7 @@ export * from './cnp';
 export * from './counties';
 export * from './cui';
 export * from './document-data';
+export * from './documents';
 export * from './employees';
 export * from './invitations';
 export * from './list';
