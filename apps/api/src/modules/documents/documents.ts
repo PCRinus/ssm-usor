@@ -3,6 +3,7 @@ import {
   type DocumentRevision,
   documentTypeKeys,
   type GenerateDocumentsRequest,
+  type RegenerateDocumentRequest,
 } from '@ssm-usor/contracts';
 import { renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
@@ -25,7 +26,14 @@ import { loadDocumentFacts, type StoredDocumentFacts } from './facts';
 type Tables = Database['public']['Tables'];
 type RevisionRow = Pick<
   Tables['document_revisions']['Row'],
-  'id' | 'revision' | 'status' | 'data_snapshot' | 'edited_at' | 'issued_at' | 'created_at'
+  | 'id'
+  | 'revision'
+  | 'status'
+  | 'docx_path'
+  | 'data_snapshot'
+  | 'edited_at'
+  | 'issued_at'
+  | 'created_at'
 > & { document_generations: { issue_date: string } | null };
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
@@ -33,7 +41,7 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
+  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
 
 const typeOrder = new Map<string, number>(documentTypeKeys.map((key, index) => [key, index]));
 
@@ -140,12 +148,15 @@ export async function listClientDocuments(db: DataClient, actor: Actor, clientId
 type Template = { typeKey: string; title: string; versionId: string; storagePath: string };
 
 /** The newest registered version of every built-in template that can be generated. */
-async function builtInTemplates(db: DataClient): Promise<Template[]> {
+async function builtInTemplates(
+  db: DataClient,
+  typeKeys: readonly string[] = documentTypeKeys
+): Promise<Template[]> {
   const { data, error } = await db
     .from('document_templates')
     .select('type_key, title, document_template_versions(id, version, storage_path)')
     .is('organization_id', null)
-    .in('type_key', [...documentTypeKeys]);
+    .in('type_key', [...typeKeys]);
   if (error) throw fromDatabaseError(error, 'built-in templates');
   return data.flatMap((template) => {
     const newest = template.document_template_versions.reduce<
@@ -325,6 +336,182 @@ async function createDocument(
     throw error;
   }
   return documentId;
+}
+
+async function readDocument(db: DataClient, documentId: string) {
+  const { data, error } = await db
+    .from('client_documents')
+    .select(documentColumns)
+    .eq('id', documentId)
+    .returns<DocumentRow[]>()
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find client document');
+  if (!data) throw new ApiError('not_found', 'This document does not exist.');
+  return data;
+}
+
+const newest = (document: DocumentRow) =>
+  document.document_revisions.reduce<RevisionRow | null>(
+    (best, revision) => (!best || revision.revision > best.revision ? revision : best),
+    null
+  );
+
+/**
+ * Merges one document again from the stored facts. A draft is overwritten, hand edits
+ * included, which is what the person asked for; an issued document gets a new draft revision
+ * and stays as it is until that one is issued.
+ */
+export async function regenerateDocument(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string,
+  request: RegenerateDocumentRequest
+) {
+  const document = await readDocument(db, documentId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  if (facts.clientArchived) {
+    throw new ApiError('conflict', 'Documents are only generated for an active client.');
+  }
+  const latest = newest(document);
+  const issueDate = request.issueDate ?? latest?.document_generations?.issue_date;
+  if (!issueDate) {
+    // An uploaded file has no generation to take the date from.
+    throw new ApiError('validation_error', 'Say which date the document carries.', [
+      { path: 'issueDate', message: 'Required for a document that was not generated before.' },
+    ]);
+  }
+  const input = { ...facts, issueDate, firstDecisionNumber: 1 };
+  const missing = missingDocumentData(input);
+  if (missing.length > 0) {
+    throw new ApiError(
+      'conflict',
+      `Data the documents print is missing: ${missing.join(', ')}.`,
+      undefined,
+      'missing_document_data'
+    );
+  }
+  const [template] = await builtInTemplates(db, [document.type_key]);
+  if (!template) {
+    throw new ApiError('conflict', 'This document has no template to be generated from.');
+  }
+  const data = documentData(
+    buildDocumentContext(input),
+    document.type_key,
+    document.decision_number
+  );
+  const { bytes, snapshot } = merge(
+    await files.readTemplate(template.storagePath),
+    data,
+    document.type_key
+  );
+
+  // The form is filled in again from the last generation, so its first number carries over.
+  const previous = await db
+    .from('document_generations')
+    .select('first_decision_number')
+    .eq('client_id', document.client_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (previous.error) throw fromDatabaseError(previous.error, 'last document generation');
+  const generation = await db
+    .from('document_generations')
+    .insert({
+      organization_id: actor.organizationId,
+      client_id: document.client_id,
+      issue_date: issueDate,
+      first_decision_number: previous.data?.first_decision_number ?? 1,
+      created_by: actor.createdBy,
+    })
+    .select('id')
+    .single();
+  if (generation.error) throw fromDatabaseError(generation.error, 'create document generation');
+
+  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  if (draft) {
+    await files.writeDocument(draft.docx_path, bytes, { replace: true });
+    const updated = await db
+      .from('document_revisions')
+      .update({
+        template_version_id: template.versionId,
+        generation_id: generation.data.id,
+        data_snapshot: snapshot as Json,
+        // As generated again: nothing of the edit is left.
+        edited_at: null,
+        edited_by: null,
+      })
+      .eq('id', draft.id);
+    if (updated.error) throw fromDatabaseError(updated.error, 'update document revision');
+  } else {
+    const revisionNumber = (latest?.revision ?? 0) + 1;
+    const path = `${actor.organizationId}/${document.client_id}/${document.id}/${revisionNumber}.docx`;
+    const revision = await db
+      .from('document_revisions')
+      .insert({
+        organization_id: actor.organizationId,
+        document_id: document.id,
+        revision: revisionNumber,
+        template_version_id: template.versionId,
+        generation_id: generation.data.id,
+        docx_path: path,
+        data_snapshot: snapshot as Json,
+        created_by: actor.createdBy,
+      })
+      .select('id')
+      .single();
+    if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
+    try {
+      await files.writeDocument(path, bytes, { replace: true });
+    } catch (error) {
+      await db.from('document_revisions').delete().eq('id', revision.data.id);
+      throw error;
+    }
+  }
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
+async function sha256(bytes: Uint8Array) {
+  // A copy with a plain ArrayBuffer behind it, which is what the digest is typed to take.
+  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Issues the draft: the database supersedes the issued revision, if any, and locks this one
+ * with the hash of its file, which from then on no policy lets anyone write.
+ */
+export async function issueDocument(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string
+) {
+  const document = await readDocument(db, documentId);
+  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  if (!draft) throw new ApiError('conflict', 'This document has no draft to issue.');
+  const hash = await sha256(await files.readDocument(draft.docx_path));
+  const { error } = await db.rpc('issue_document_revision', {
+    p_revision_id: draft.id,
+    p_docx_sha256: hash,
+  });
+  // Someone else issued or deleted it in the meantime.
+  if (error?.code === 'DOC01') throw new ApiError('not_found', 'This draft no longer exists.');
+  if (error?.code === 'DOC02') throw new ApiError('conflict', 'This draft was already issued.');
+  if (error) throw fromDatabaseError(error, 'issue document revision');
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
+/** Deletes the draft and its file. What was issued before stays as it is. */
+export async function deleteDraft(db: DataClient, files: FileStore, documentId: string) {
+  const document = await readDocument(db, documentId);
+  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  if (!draft) throw new ApiError('conflict', 'This document has no draft to delete.');
+  // The file while the policies still allow it: they follow the draft row.
+  await files.removeDocument(draft.docx_path);
+  const { error } = await db.from('document_revisions').delete().eq('id', draft.id);
+  if (error) throw fromDatabaseError(error, 'delete document revision');
 }
 
 /** A link to the Word file of one revision, named after the document. */

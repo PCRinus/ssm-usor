@@ -1,6 +1,7 @@
 import {
   apiErrorResponseSchema,
   clientDocumentListResponseSchema,
+  clientDocumentResponseSchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
   generateDocumentsResponseSchema,
@@ -85,6 +86,7 @@ const revisionRow = {
   id: revisionId,
   revision: 1,
   status: 'draft',
+  docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
   data_snapshot: { client: printedClient, decisionNumber: 3 },
   edited_at: null,
   issued_at: null,
@@ -127,6 +129,7 @@ type Upstream =
   | 'generations'
   | 'templates'
   | 'revisions'
+  | 'issue'
   | 'upload';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -141,7 +144,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     if (url.pathname.startsWith('/storage/v1/object/document-templates/')) {
       return new Response(new Uint8Array([1, 2, 3]));
     }
-    if (url.pathname.startsWith('/storage/v1/object/documents/')) {
+    if (url.pathname.startsWith('/storage/v1/object/documents')) {
+      if (method === 'GET') return new Response(new Uint8Array([1, 2, 3]));
+      if (method === 'DELETE') return Response.json([]);
       return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
     }
     switch (url.pathname) {
@@ -169,6 +174,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
             ? Response.json({ id: generationId })
             : Response.json({ issue_date: '2026-01-19', first_decision_number: 3 }))
         );
+      case '/rest/v1/rpc/issue_document_revision':
+        return handlers.issue?.(init, url) ?? new Response(null, { status: 204 });
       case '/rest/v1/document_templates':
         return handlers.templates?.() ?? Response.json(templateRows);
       case '/rest/v1/document_revisions':
@@ -176,7 +183,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           handlers.revisions?.(init, url) ??
           (method === 'POST'
             ? Response.json({ id: revisionId })
-            : method === 'DELETE'
+            : method === 'DELETE' || method === 'PATCH'
               ? new Response(null, { status: 204 })
               : Response.json({
                   docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
@@ -196,8 +203,8 @@ const calls = (pathname: string, method = 'GET') =>
       new URL(String(input)).pathname.startsWith(pathname) && (init?.method ?? 'GET') === method
   );
 
-const sentBody = (pathname: string, index = 0) =>
-  JSON.parse(String(calls(pathname, 'POST')[index]![1]?.body)) as Record<string, unknown>;
+const sentBody = (pathname: string, index = 0, method = 'POST') =>
+  JSON.parse(String(calls(pathname, method)[index]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
   createApp().request(
@@ -464,5 +471,137 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     mockUpstream({ revisions: () => Response.json(null) });
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
     expect(response.status).toBe(404);
+  });
+});
+
+const issuedRevision = {
+  ...revisionRow,
+  status: 'issued',
+  issued_at: '2026-09-19T11:00:00+00:00',
+};
+
+describe('POST /documents/{documentId}/regenerate', () => {
+  const regenerate = (body: unknown = {}) =>
+    request(`/documents/${documentId}/regenerate`, 'POST', body);
+  // The handlers read one document with maybeSingle, which takes an object.
+  const oneDocument = (revisions: unknown[]) => () =>
+    Response.json({ ...documentRow, document_revisions: revisions });
+
+  it('overwrites the draft in place, keeping the date and the decision number', async () => {
+    mockUpstream({ documents: oneDocument([revisionRow]) });
+    const response = await regenerate();
+    expect(response.status).toBe(200);
+    expect(clientDocumentResponseSchema.parse(await response.json()).document.id).toBe(documentId);
+    expect(sentBody('/rest/v1/document_generations')).toMatchObject({
+      issue_date: '2026-01-19',
+      first_decision_number: 3,
+    });
+    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+    expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH')).toEqual({
+      template_version_id: 'v2',
+      generation_id: generationId,
+      data_snapshot: { client: printedClient, decisionNumber: 3 },
+      edited_at: null,
+      edited_by: null,
+    });
+    const [upload] = calls('/storage/v1/object/documents/', 'POST');
+    expect(new URL(String(upload![0])).pathname).toContain(`${documentId}/1.docx`);
+    expect(new Headers(upload![1]?.headers).get('x-upsert')).toBe('true');
+  });
+
+  it('starts revision 2 next to an issued revision, with a new date when given', async () => {
+    mockUpstream({ documents: oneDocument([issuedRevision]) });
+    const response = await regenerate({ issueDate: '2026-03-01' });
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/document_generations')).toMatchObject({ issue_date: '2026-03-01' });
+    expect(sentBody('/rest/v1/document_revisions')).toMatchObject({
+      revision: 2,
+      docx_path: `${organizationId}/${clientId}/${documentId}/2.docx`,
+    });
+    expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('asks for a date when the document was never generated', async () => {
+    mockUpstream({
+      documents: oneDocument([{ ...revisionRow, document_generations: null, data_snapshot: null }]),
+    });
+    const response = await regenerate();
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('issueDate');
+  });
+
+  it('refuses while data is missing, and a type without a template', async () => {
+    mockUpstream({ documents: oneDocument([revisionRow]), persons: () => Response.json([]) });
+    const missing = await regenerate();
+    expect(missing.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await missing.json()).reason).toBe('missing_document_data');
+
+    mockUpstream({ documents: oneDocument([revisionRow]), templates: () => Response.json([]) });
+    expect((await regenerate()).status).toBe(409);
+  });
+
+  it('answers 404 for a document of another organization', async () => {
+    mockUpstream({ documents: () => Response.json(null) });
+    expect((await regenerate()).status).toBe(404);
+  });
+});
+
+describe('POST /documents/{documentId}/issue', () => {
+  const issue = () => request(`/documents/${documentId}/issue`, 'POST');
+
+  it('issues the draft with the hash of its file', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+    });
+    const response = await issue();
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/rpc/issue_document_revision')).toEqual({
+      p_revision_id: revisionId,
+      // sha256 of the three bytes the storage mock serves.
+      p_docx_sha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+    });
+  });
+
+  it('refuses a document without a draft, and a draft someone else just issued', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [issuedRevision] }),
+    });
+    expect((await issue()).status).toBe(409);
+    expect(calls('/rest/v1/rpc/issue_document_revision', 'POST')).toHaveLength(0);
+
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      issue: () =>
+        Response.json(
+          { code: 'DOC02', message: 'Only a draft can be issued.', details: null, hint: null },
+          { status: 400 }
+        ),
+    });
+    expect((await issue()).status).toBe(409);
+  });
+});
+
+describe('DELETE /documents/{documentId}/draft', () => {
+  const remove = () => request(`/documents/${documentId}/draft`, 'DELETE');
+
+  it('removes the file, then the row', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+    });
+    const response = await remove();
+    expect(response.status).toBe(204);
+    const [file] = calls('/storage/v1/object/documents', 'DELETE');
+    expect(JSON.parse(String(file![1]?.body))).toEqual({ prefixes: [revisionRow.docx_path] });
+    const [row] = calls('/rest/v1/document_revisions', 'DELETE');
+    expect(new URL(String(row![0])).searchParams.get('id')).toBe(`eq.${revisionId}`);
+  });
+
+  it('refuses when there is no draft, so an issued revision is never touched', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [issuedRevision] }),
+    });
+    expect((await remove()).status).toBe(409);
+    expect(calls('/storage/v1/object/documents', 'DELETE')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(0);
   });
 });

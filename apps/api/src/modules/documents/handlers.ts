@@ -7,16 +7,22 @@ import { createFileStore } from '../../lib/files';
 import { missingDocumentData } from './context';
 import {
   type Actor,
+  deleteDraft,
   documentDownloadLink,
   generateClientDocuments as generate,
+  issueDocument as issue,
   listClientDocuments as list,
+  regenerateDocument as regenerate,
 } from './documents';
 import { loadDocumentFacts } from './facts';
 import type {
+  deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
+  issueDocumentRoute,
   listClientDocumentsRoute,
+  regenerateDocumentRoute,
 } from './routes';
 
 // During an impersonation the documents belong to the impersonated member's organization and
@@ -74,4 +80,32 @@ export const getDocumentDownload: RouteHandler<typeof getDocumentDownloadRoute, 
     revisionId
   );
   return c.json(link, 200);
+};
+
+export const regenerateDocument: RouteHandler<typeof regenerateDocumentRoute, ApiEnv> = async (
+  c
+) => {
+  const { documentId } = c.req.valid('param');
+  const document = await regenerate(
+    createDataClient(c),
+    createFileStore(c),
+    actorOf(c),
+    documentId,
+    c.req.valid('json')
+  );
+  return c.json({ document }, 200);
+};
+
+export const issueDocument: RouteHandler<typeof issueDocumentRoute, ApiEnv> = async (c) => {
+  const { documentId } = c.req.valid('param');
+  const document = await issue(createDataClient(c), createFileStore(c), actorOf(c), documentId);
+  return c.json({ document }, 200);
+};
+
+export const deleteDocumentDraft: RouteHandler<typeof deleteDocumentDraftRoute, ApiEnv> = async (
+  c
+) => {
+  const { documentId } = c.req.valid('param');
+  await deleteDraft(createDataClient(c), createFileStore(c), documentId);
+  return c.body(null, 204);
 };

@@ -1482,6 +1482,81 @@ export interface DocumentDownloadResponse {
   expiresInSeconds: number;
 }
 
+export type ClientDocumentResponseDocumentDraftStatus =
+  (typeof ClientDocumentResponseDocumentDraftStatus)[keyof typeof ClientDocumentResponseDocumentDraftStatus];
+
+export const ClientDocumentResponseDocumentDraftStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentDraft = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ClientDocumentResponseDocumentDraftStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentResponseDocumentIssuedStatus =
+  (typeof ClientDocumentResponseDocumentIssuedStatus)[keyof typeof ClientDocumentResponseDocumentIssuedStatus];
+
+export const ClientDocumentResponseDocumentIssuedStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentIssued = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ClientDocumentResponseDocumentIssuedStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentResponseDocument = {
+  id: string;
+  clientId: string;
+  typeKey: string;
+  title: string;
+  /** @nullable */
+  decisionNumber: number | null;
+  /** @nullable */
+  draft: ClientDocumentResponseDocumentDraft;
+  /** @nullable */
+  issued: ClientDocumentResponseDocumentIssued;
+};
+
+export interface ClientDocumentResponse {
+  document: ClientDocumentResponseDocument;
+}
+
+export interface RegenerateDocumentRequest {
+  issueDate?: string;
+}
+
 export type MembershipResponseOrganization = {
   id: string;
   name: string;
@@ -5195,6 +5270,286 @@ export function useGetDocumentDownload<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getRegenerateDocumentUrl = (documentId: string) => {
+  return `/documents/${documentId}/regenerate`;
+};
+
+/**
+ * A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number.
+ * @summary Merge one document again from the stored facts
+ */
+export const regenerateDocument = async (
+  documentId: string,
+  regenerateDocumentRequest: RegenerateDocumentRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientDocumentResponse>(getRegenerateDocumentUrl(documentId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(regenerateDocumentRequest),
+  });
+};
+
+export const getRegenerateDocumentMutationKey = () => ['regenerateDocument'] as const;
+
+export const getRegenerateDocumentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateDocument>>,
+    TError,
+    RegenerateDocumentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof regenerateDocument>>,
+  TError,
+  RegenerateDocumentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRegenerateDocumentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof regenerateDocument>>,
+    RegenerateDocumentMutationVariables
+  > = (props) => {
+    const { documentId, data } = props ?? {};
+
+    return regenerateDocument(documentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegenerateDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateDocument>>
+>;
+export type RegenerateDocumentMutationBody = RegenerateDocumentRequest;
+export type RegenerateDocumentMutationError = ErrorType<ApiErrorResponse>;
+export type RegenerateDocumentMutationVariables = {
+  documentId: string;
+  data: RegenerateDocumentRequest;
+};
+
+/**
+ * @summary Merge one document again from the stored facts
+ */
+export const useRegenerateDocument = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof regenerateDocument>>,
+      TError,
+      RegenerateDocumentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof regenerateDocument>>,
+  TError,
+  RegenerateDocumentMutationVariables,
+  TContext
+> => {
+  return useMutation(getRegenerateDocumentMutationOptions(options), queryClient);
+};
+
+export const getIssueDocumentUrl = (documentId: string) => {
+  return `/documents/${documentId}/issue`;
+};
+
+/**
+ * Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft.
+ * @summary Issue the draft of a document
+ */
+export const issueDocument = async (
+  documentId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  return apiFetch<ClientDocumentResponse>(getIssueDocumentUrl(documentId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getIssueDocumentMutationKey = () => ['issueDocument'] as const;
+
+export const getIssueDocumentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof issueDocument>>,
+    TError,
+    IssueDocumentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof issueDocument>>,
+  TError,
+  IssueDocumentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getIssueDocumentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof issueDocument>>,
+    IssueDocumentMutationVariables
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return issueDocument(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type IssueDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof issueDocument>>>;
+
+export type IssueDocumentMutationError = ErrorType<ApiErrorResponse>;
+export type IssueDocumentMutationVariables = { documentId: string };
+
+/**
+ * @summary Issue the draft of a document
+ */
+export const useIssueDocument = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof issueDocument>>,
+      TError,
+      IssueDocumentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof issueDocument>>,
+  TError,
+  IssueDocumentMutationVariables,
+  TContext
+> => {
+  return useMutation(getIssueDocumentMutationOptions(options), queryClient);
+};
+
+export const getDeleteDocumentDraftUrl = (documentId: string) => {
+  return `/documents/${documentId}/draft`;
+};
+
+/**
+ * @summary Delete the draft of a document, with its file
+ */
+export const deleteDocumentDraft = async (
+  documentId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteDocumentDraftUrl(documentId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteDocumentDraftMutationKey = () => ['deleteDocumentDraft'] as const;
+
+export const getDeleteDocumentDraftMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDocumentDraft>>,
+    TError,
+    DeleteDocumentDraftMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDocumentDraft>>,
+  TError,
+  DeleteDocumentDraftMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteDocumentDraftMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDocumentDraft>>,
+    DeleteDocumentDraftMutationVariables
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return deleteDocumentDraft(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDocumentDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDocumentDraft>>
+>;
+
+export type DeleteDocumentDraftMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteDocumentDraftMutationVariables = { documentId: string };
+
+/**
+ * @summary Delete the draft of a document, with its file
+ */
+export const useDeleteDocumentDraft = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteDocumentDraft>>,
+      TError,
+      DeleteDocumentDraftMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDocumentDraft>>,
+  TError,
+  DeleteDocumentDraftMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteDocumentDraftMutationOptions(options), queryClient);
+};
 
 export const getCreateOrganizationUrl = () => {
   return `/organization`;

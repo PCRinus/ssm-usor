@@ -148,3 +148,14 @@ export const documentDownloadResponseSchema = z.object({
 });
 
 export type DocumentDownloadResponse = z.infer<typeof documentDownloadResponseSchema>;
+
+export const clientDocumentResponseSchema = z.object({ document: clientDocumentSchema });
+
+export type ClientDocumentResponse = z.infer<typeof clientDocumentResponseSchema>;
+
+export const regenerateDocumentRequestSchema = z.object({
+  // Left out, the document keeps the date it carries now.
+  issueDate: z.iso.date().optional(),
+});
+
+export type RegenerateDocumentRequest = z.infer<typeof regenerateDocumentRequestSchema>;

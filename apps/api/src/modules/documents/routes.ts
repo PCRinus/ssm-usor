@@ -1,10 +1,12 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientDocumentListResponseSchema,
+  clientDocumentResponseSchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
+  regenerateDocumentRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -14,6 +16,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 // A client's generated documentation (ADR 005).
 
 const clientParams = z.object({ clientId: z.uuid() });
+const documentParams = z.object({ documentId: z.uuid() });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 
 const noSuchClient = {
@@ -126,6 +129,84 @@ export const getDocumentDownloadRoute = createRoute({
     },
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'The revision does not exist in the organization', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+const documentContent = {
+  'application/json': {
+    schema: clientDocumentResponseSchema.meta({ id: 'ClientDocumentResponse' }),
+  },
+};
+const noSuchDocument = {
+  description: 'The document does not exist in the organization',
+  content: errorContent,
+};
+
+export const regenerateDocumentRoute = createRoute({
+  method: 'post',
+  path: '/documents/{documentId}/regenerate',
+  operationId: 'regenerateDocument',
+  summary: 'Merge one document again from the stored facts',
+  description:
+    'A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: documentParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: regenerateDocumentRequestSchema.meta({ id: 'RegenerateDocumentRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'The document with its new draft', content: documentContent },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: noSuchDocument,
+    409: {
+      description: 'Data is missing, the client is archived, or the type has no template',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const issueDocumentRoute = createRoute({
+  method: 'post',
+  path: '/documents/{documentId}/issue',
+  operationId: 'issueDocument',
+  summary: 'Issue the draft of a document',
+  description:
+    'Locks the draft with the hash of its file and supersedes the revision issued before, which stays downloadable. An issued revision never changes; a correction is a new draft.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: documentParams },
+  responses: {
+    200: { description: 'The document with its issued revision', content: documentContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchDocument,
+    409: { description: 'The document has no draft', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const deleteDocumentDraftRoute = createRoute({
+  method: 'delete',
+  path: '/documents/{documentId}/draft',
+  operationId: 'deleteDocumentDraft',
+  summary: 'Delete the draft of a document, with its file',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: documentParams },
+  responses: {
+    204: { description: 'The draft is gone; issued revisions are untouched' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchDocument,
+    409: { description: 'The document has no draft', content: errorContent },
     ...membershipErrors,
   },
 });
