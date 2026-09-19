@@ -30,7 +30,6 @@ jobs:
       mail: ${{ steps.filter.outputs.mail }}
       marketing: ${{ steps.filter.outputs.marketing }}
       database: ${{ steps.filter.outputs.database }}
-      templates: ${{ steps.filter.outputs.templates }}
       projects: ${{ steps.projects.outputs.projects }}
     steps:
       - uses: actions/checkout@v7
@@ -44,7 +43,7 @@ jobs:
           base: ${{ github.ref }}
           filters: .github/filters.yml
 
-      # The database and templates filters select their own jobs, not a deployable workspace.
+      # The database filter selects its own job, not a deployable workspace.
       - name: Select deployable applications
         id: projects
         env:
@@ -290,12 +289,14 @@ jobs:
   deploy-templates:
     name: Register document templates
     needs: [changes, validate, deploy-database]
+    # On every push to main, not on a path filter: the filter compares with the push before,
+    # so a run that is superseded while it waits would leave its templates unregistered.
+    # Registering is cheap when nothing changed.
     # After the migrations: the registry and the bucket come from one. A skipped migration job
     # is fine only when the database was not selected.
     if: >-
       !cancelled() &&
       github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      needs.changes.outputs.templates == 'true' &&
       needs.validate.result == 'success' &&
       (needs.deploy-database.result == 'success' ||
         (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
