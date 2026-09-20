@@ -720,6 +720,97 @@ export interface CreateEmployeeRequest {
   notes?: string | null;
 }
 
+/**
+ * @nullable
+ */
+export type UpdateEmployeeRequestBloodGroup =
+  (typeof UpdateEmployeeRequestBloodGroup)[keyof typeof UpdateEmployeeRequestBloodGroup] | null;
+
+export const UpdateEmployeeRequestBloodGroup = {
+  '0(I)': '0(I)',
+  'A(II)': 'A(II)',
+  'B(III)': 'B(III)',
+  'AB(IV)': 'AB(IV)',
+} as const;
+
+/**
+ * @nullable
+ */
+export type UpdateEmployeeRequestRhFactor =
+  (typeof UpdateEmployeeRequestRhFactor)[keyof typeof UpdateEmployeeRequestRhFactor] | null;
+
+export const UpdateEmployeeRequestRhFactor = {
+  '+': '+',
+  '-': '-',
+} as const;
+
+export interface UpdateEmployeeRequest {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  lastName: string;
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  firstName: string;
+  /**
+   * @minLength 13
+   * @maxLength 20
+   * @nullable
+   */
+  cnp?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 40
+   * @nullable
+   */
+  employeeNumber?: string | null;
+  /**
+   * @maxLength 254
+   * @nullable
+   */
+  email?: string | null;
+  /**
+   * @nullable
+   * @pattern ^\+?[0-9][0-9 ().-]{3,18}$
+   */
+  phone?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  jobTitle: string;
+  /** @nullable */
+  jobPositionId?: string | null;
+  hiredAt: string;
+  /** @nullable */
+  birthDate?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  birthPlace?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   * @nullable
+   */
+  homeAddress?: string | null;
+  /** @nullable */
+  bloodGroup?: UpdateEmployeeRequestBloodGroup;
+  /** @nullable */
+  rhFactor?: UpdateEmployeeRequestRhFactor;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  notes?: string | null;
+}
+
 export type UpdateEmployeeStatusRequest =
   | {
       status: 'terminated';
@@ -3367,6 +3458,117 @@ export function useGetEmployee<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getUpdateEmployeeUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}`;
+};
+
+/**
+ * The same fields and rules as adding one. Left out, `jobPositionId` keeps the position the person is in. Whether they still work there is a status change, not part of this.
+ * @summary Replace what was entered about an employee
+ */
+export const updateEmployee = async (
+  clientId: string,
+  employeeId: string,
+  updateEmployeeRequest: UpdateEmployeeRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EmployeeResponse>(getUpdateEmployeeUrl(clientId, employeeId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateEmployeeRequest),
+  });
+};
+
+export const getUpdateEmployeeMutationKey = () => ['updateEmployee'] as const;
+
+export const getUpdateEmployeeMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEmployee>>,
+    TError,
+    UpdateEmployeeMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEmployee>>,
+  TError,
+  UpdateEmployeeMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateEmployeeMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEmployee>>,
+    UpdateEmployeeMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return updateEmployee(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmployee>>>;
+export type UpdateEmployeeMutationBody = UpdateEmployeeRequest;
+export type UpdateEmployeeMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEmployeeMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: UpdateEmployeeRequest;
+};
+
+/**
+ * @summary Replace what was entered about an employee
+ */
+export const useUpdateEmployee = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateEmployee>>,
+      TError,
+      UpdateEmployeeMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateEmployee>>,
+  TError,
+  UpdateEmployeeMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateEmployeeMutationOptions(options), queryClient);
+};
 
 export const getUpdateEmployeeStatusUrl = (clientId: string, employeeId: string) => {
   return `/clients/${clientId}/employees/${employeeId}/status`;

@@ -1,6 +1,6 @@
 # Document editor trial
 
-Status: trial done, recommendation to embed; nothing built in the app yet  
+Status: trial done and acted on: the editor is embedded (see [the app guide](app.md)); this is the record of the trial  
 Date: 19 September 2026  
 Audience: founders, product, engineering
 

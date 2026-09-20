@@ -537,6 +537,95 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
   });
 });
 
+describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
+  const employeePath = `${employeesPath}/${employeeRow.id}`;
+  const body = {
+    lastName: ' Popescu ',
+    firstName: 'Ioan',
+    cnp: '1900101 400127',
+    email: 'Ioan.Popescu@Example.com',
+    jobTitle: 'Sudor',
+    hiredAt: '2020-03-01',
+  };
+  const put = (payload: unknown) =>
+    request(employeePath, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  const patched = () =>
+    JSON.parse(
+      String(calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')![1]?.body)
+    ) as Record<string, unknown>;
+
+  it('replaces the fields with the same rules as adding, and leaves the position alone', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    const response = await put(body);
+    expect(response.status).toBe(200);
+    expect(employeeResponseSchema.parse(await response.json()).employee.id).toBe(employeeRow.id);
+    expect(patched()).toEqual({
+      last_name: 'Popescu',
+      first_name: 'Ioan',
+      cnp: '1900101400127',
+      employee_number: null,
+      email: 'ioan.popescu@example.com',
+      phone: null,
+      job_title: 'Sudor',
+      hired_at: '2020-03-01',
+      birth_date: null,
+      birth_place: null,
+      home_address: null,
+      blood_group: null,
+      rh_factor: null,
+      notes: null,
+    });
+    // Status, leave date and archive are not this route's to touch.
+    expect(Object.keys(patched())).not.toContain('status');
+  });
+
+  it('moves the person when a position of this client is named', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await put({ ...body, jobPositionId: positionId })).status).toBe(200);
+    expect(patched().job_position_id).toBe(positionId);
+    mockUpstream({
+      employees: () => Response.json(employeeRow),
+      positions: () => Response.json(null),
+    });
+    expect((await put({ ...body, jobPositionId: positionId })).status).toBe(400);
+  });
+
+  it('names the field for a bad CNP, a hire date after the leave date, and a taken CNP', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    const badCnp = await put({ ...body, cnp: '1900101400128' });
+    expect(badCnp.status).toBe(400);
+
+    mockUpstream({
+      employees: () => Response.json({ ...employeeRow, terminated_at: '2019-12-31' }),
+    });
+    const late = await put(body);
+    expect(late.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await late.json()).issues?.[0]?.path).toBe('hiredAt');
+
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: '23505', message: 'duplicate key "employees_client_cnp_key"', details: null },
+              { status: 409 }
+            )
+          : Response.json(employeeRow),
+    });
+    const taken = await put(body);
+    expect(taken.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await taken.json()).message).toContain('CNP');
+  });
+
+  it('answers 404 for an employee of another client', async () => {
+    mockUpstream({ employees: () => Response.json(null) });
+    expect((await put(body)).status).toBe(404);
+  });
+});
+
 describe('job positions on employees (ADR 006)', () => {
   const employeePath = `${employeesPath}/${employeeRow.id}`;
   const sentToEmployees = (index = 0) =>
