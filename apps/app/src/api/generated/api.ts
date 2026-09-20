@@ -1292,6 +1292,77 @@ export interface UpdateOrganizationLegalDetailsRequest {
   legalRepresentativeRole?: string | null;
 }
 
+export type OrganizationContractDetailsResponseContractDetails = {
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  iban: string | null;
+  /** @nullable */
+  bankName: string | null;
+  /** @nullable */
+  authorizationCertificateNumber: string | null;
+  /** @nullable */
+  authorizationCertificateDate: string | null;
+  /** @nullable */
+  authorizationCertificateIssuer: string | null;
+  vatPayer: boolean;
+  /** @nullable */
+  fireSafetyTechnicianName: string | null;
+  /** @nullable */
+  fireSafetyTechnicianCertificate: string | null;
+};
+
+export interface OrganizationContractDetailsResponse {
+  contractDetails: OrganizationContractDetailsResponseContractDetails;
+}
+
+export interface UpdateOrganizationContractDetailsRequest {
+  /**
+   * @minLength 5
+   * @maxLength 20
+   * @nullable
+   */
+  phone?: string | null;
+  /**
+   * @maxLength 42
+   * @nullable
+   */
+  iban?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   * @nullable
+   */
+  bankName?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 40
+   * @nullable
+   */
+  authorizationCertificateNumber?: string | null;
+  /** @nullable */
+  authorizationCertificateDate?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   * @nullable
+   */
+  authorizationCertificateIssuer?: string | null;
+  vatPayer?: boolean;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  fireSafetyTechnicianName?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   * @nullable
+   */
+  fireSafetyTechnicianCertificate?: string | null;
+}
+
 export type ClientDocumentDetailsResponseDocumentDetails = {
   /** @nullable */
   legalRepresentativeName: string | null;
@@ -5295,6 +5366,247 @@ export const useUpdateOrganizationLegalDetails = <
   TContext
 > => {
   return useMutation(getUpdateOrganizationLegalDetailsMutationOptions(options), queryClient);
+};
+
+export const getGetOrganizationContractDetailsUrl = () => {
+  return `/organization/contract-details`;
+};
+
+/**
+ * Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.
+ * @summary Read what a service contract prints about the organization
+ */
+export const getOrganizationContractDetails = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationContractDetailsResponse> => {
+  return apiFetch<OrganizationContractDetailsResponse>(getGetOrganizationContractDetailsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetOrganizationContractDetailsQueryKey = () => {
+  return [`/organization/contract-details`] as const;
+};
+
+export const getGetOrganizationContractDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrganizationContractDetailsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationContractDetails>>> = ({
+    signal,
+  }) => getOrganizationContractDetails({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetOrganizationContractDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrganizationContractDetails>>
+>;
+export type GetOrganizationContractDetailsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read what a service contract prints about the organization
+ */
+
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetOrganizationContractDetailsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateOrganizationContractDetailsUrl = () => {
+  return `/organization/contract-details`;
+};
+
+/**
+ * Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.
+ * @summary Replace what a service contract prints about the organization
+ */
+export const updateOrganizationContractDetails = async (
+  updateOrganizationContractDetailsRequest: UpdateOrganizationContractDetailsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationContractDetailsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<OrganizationContractDetailsResponse>(getUpdateOrganizationContractDetailsUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationContractDetailsRequest),
+  });
+};
+
+export const getUpdateOrganizationContractDetailsMutationKey = () =>
+  ['updateOrganizationContractDetails'] as const;
+
+export const getUpdateOrganizationContractDetailsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+    TError,
+    UpdateOrganizationContractDetailsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+  TError,
+  UpdateOrganizationContractDetailsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateOrganizationContractDetailsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+    UpdateOrganizationContractDetailsMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateOrganizationContractDetails(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOrganizationContractDetailsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrganizationContractDetails>>
+>;
+export type UpdateOrganizationContractDetailsMutationBody =
+  UpdateOrganizationContractDetailsRequest;
+export type UpdateOrganizationContractDetailsMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateOrganizationContractDetailsMutationVariables = {
+  data: UpdateOrganizationContractDetailsRequest;
+};
+
+/**
+ * @summary Replace what a service contract prints about the organization
+ */
+export const useUpdateOrganizationContractDetails = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+      TError,
+      UpdateOrganizationContractDetailsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+  TError,
+  UpdateOrganizationContractDetailsMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateOrganizationContractDetailsMutationOptions(options), queryClient);
 };
 
 export const getGetClientDocumentDetailsUrl = (clientId: string) => {

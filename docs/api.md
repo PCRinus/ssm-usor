@@ -73,6 +73,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
 | `PUT /organization/legal-details`                                      | Owner                                 | The legal details after replacing them                                                                                    |
+| `GET /organization/contract-details`                                   | Owner                                 | `{ "contractDetails": { … } }`: what a service contract prints about the provider                                         |
+| `PUT /organization/contract-details`                                   | Owner                                 | The contract details after replacing them                                                                                 |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule                             |
 | `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                 |
 | `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                                              |
@@ -125,6 +127,15 @@ holder is a lead, which is also the answer when the caller cannot see the holder
 specialist cannot) or `client_archived`.
 Archiving and restoring are an owner's, checked by `requireOwner` and again by a trigger;
 repeating either changes nothing and keeps the first date.
+
+`/organization/contract-details` holds what a service contract prints about the provider and
+the documentation set does not (ADR 007): `phone`, `iban` with `bankName`, the certificate of
+authorization (`authorizationCertificateNumber`, `…Date`, `…Issuer`), `vatPayer`, which decides
+the sentence about VAT beside the prices, and the fire-safety technician with their
+certificate, as text. Owners only, to read as well, because contracts are theirs. Everything is
+optional and `PUT` replaces all of it; generating a contract is what will ask for them. The
+IBAN is taken with or without spaces, checked by `isValidIban` (ISO 13616, mod 97) and stored
+bare in upper case; `formatIban` prints it in groups of four.
 
 A lead (ADR 007) is a client in an earlier stage and uses the same routes. `GET /clients` lists
 one stage at a time, `?stage=client` by default, and `POST /clients` takes `stage`; asking for

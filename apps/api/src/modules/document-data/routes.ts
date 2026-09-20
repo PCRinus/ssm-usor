@@ -1,11 +1,13 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientDocumentDetailsResponseSchema,
+  organizationContractDetailsResponseSchema,
   organizationLegalDetailsResponseSchema,
   responsiblePersonListResponseSchema,
   responsiblePersonRequestSchema,
   responsiblePersonResponseSchema,
   updateClientDocumentDetailsRequestSchema,
+  updateOrganizationContractDetailsRequestSchema,
   updateOrganizationLegalDetailsRequestSchema,
   workplaceListResponseSchema,
   workplaceRequestSchema,
@@ -96,6 +98,57 @@ export const updateOrganizationLegalDetailsRoute = createRoute({
   },
   responses: {
     200: { description: 'The legal details after the change', content: legalDetailsContent },
+    400: { description: 'Invalid request body', content: errorContent },
+    ...ownerErrors,
+  },
+});
+
+const contractDetailsContent = {
+  'application/json': {
+    schema: organizationContractDetailsResponseSchema.meta({
+      id: 'OrganizationContractDetailsResponse',
+    }),
+  },
+};
+
+export const getOrganizationContractDetailsRoute = createRoute({
+  method: 'get',
+  path: '/organization/contract-details',
+  operationId: 'getOrganizationContractDetails',
+  summary: 'Read what a service contract prints about the organization',
+  description:
+    'Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  responses: {
+    200: { description: 'The contract details', content: contractDetailsContent },
+    ...ownerErrors,
+  },
+});
+
+export const updateOrganizationContractDetailsRoute = createRoute({
+  method: 'put',
+  path: '/organization/contract-details',
+  operationId: 'updateOrganizationContractDetails',
+  summary: 'Replace what a service contract prints about the organization',
+  description:
+    'Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateOrganizationContractDetailsRequestSchema.meta({
+            id: 'UpdateOrganizationContractDetailsRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'The contract details after the change', content: contractDetailsContent },
     400: { description: 'Invalid request body', content: errorContent },
     ...ownerErrors,
   },

@@ -1714,6 +1714,119 @@
           }
         }
       },
+      "OrganizationContractDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "contractDetails": {
+            "type": "object",
+            "properties": {
+              "phone": {
+                "type": "string",
+                "nullable": true
+              },
+              "iban": {
+                "type": "string",
+                "nullable": true
+              },
+              "bankName": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizationCertificateNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizationCertificateDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "authorizationCertificateIssuer": {
+                "type": "string",
+                "nullable": true
+              },
+              "vatPayer": {
+                "type": "boolean"
+              },
+              "fireSafetyTechnicianName": {
+                "type": "string",
+                "nullable": true
+              },
+              "fireSafetyTechnicianCertificate": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "phone",
+              "iban",
+              "bankName",
+              "authorizationCertificateNumber",
+              "authorizationCertificateDate",
+              "authorizationCertificateIssuer",
+              "vatPayer",
+              "fireSafetyTechnicianName",
+              "fireSafetyTechnicianCertificate"
+            ]
+          }
+        },
+        "required": ["contractDetails"]
+      },
+      "UpdateOrganizationContractDetailsRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 5,
+            "maxLength": 20
+          },
+          "iban": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 42
+          },
+          "bankName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "authorizationCertificateNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "authorizationCertificateDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "authorizationCertificateIssuer": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "vatPayer": {
+            "type": "boolean",
+            "default": false
+          },
+          "fireSafetyTechnicianName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "fireSafetyTechnicianCertificate": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 80
+          }
+        }
+      },
       "ClientDocumentDetailsResponse": {
         "type": "object",
         "properties": {
@@ -5620,6 +5733,152 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OrganizationLegalDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/contract-details": {
+      "get": {
+        "operationId": "getOrganizationContractDetails",
+        "summary": "Read what a service contract prints about the organization",
+        "description": "Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationContractDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateOrganizationContractDetails",
+        "summary": "Replace what a service contract prints about the organization",
+        "description": "Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationContractDetailsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract details after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationContractDetailsResponse"
                 }
               }
             }

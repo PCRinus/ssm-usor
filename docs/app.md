@@ -451,6 +451,11 @@ mobile navigation link closes the Sheet.
   opens for reading with "Modifică" in the title bar, which starts the same draft in place:
   the page loads the new revision and becomes editable.
 
+- `/organization`, for an owner, ends with "Date pentru contracte" (`ContractDetailsCard`):
+  the phone, the VAT flag, the IBAN with its bank, the certificate of authorization (number,
+  date, issuer) and the fire-safety technician. Nothing is required; the IBAN is checked as
+  typed, with or without spaces, and shown in groups of four once saved. A specialist does
+  not get the card, and the app asks the API for nothing on their behalf.
 - `/leads`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
   routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the

@@ -164,6 +164,15 @@ key to the client, the same three policies, new rows only for an active client, 
 `archived_at` as the soft delete. The new address columns use the `county_code` domain;
 `clients.county_code` keeps its own check with the same values.
 
+### What a service contract prints about the provider
+
+`organizations` also holds, all optional (ADR 007): `phone`; `iban`, without spaces and in
+upper case, with a check of its shape (the API validates the check digits) and `bank_name`;
+`authorization_certificate_number`, `_date` and `_issuer`, the _certificat de abilitare_;
+`vat_payer`; `fire_safety_technician_name` and `_certificate`, as text, because that person
+may not be a member. The owners' update policy covers them, and they are added to the list of
+columns a member may write, which still leaves out `name` and the accepted terms.
+
 ## Employees
 
 `employees` stores the people employed by a client, one row per employment. A person working

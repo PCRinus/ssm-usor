@@ -11,6 +11,7 @@ export * from './cui';
 export * from './document-data';
 export * from './documents';
 export * from './employees';
+export * from './iban';
 export * from './invitations';
 export * from './job-positions';
 export * from './list';
