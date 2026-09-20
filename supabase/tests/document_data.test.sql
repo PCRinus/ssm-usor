@@ -151,7 +151,7 @@ select results_eq(
 select throws_ok(
   $$ insert into public.client_workplaces (organization_id, client_id, name)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Punct de lucru') $$,
-  '42501',
+  'CLA01',
   null,
   'an archived client takes no new workplaces'
 );

@@ -471,6 +471,21 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     });
   const terminatedRow = { ...employeeRow, status: 'terminated', terminated_at: '2026-09-10' };
 
+  it('passes on the refusal of the database for an archived client', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'CLA01', message: 'An archived client is not changed.' },
+              { status: 400 }
+            )
+          : Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),
+    });
+    const response = await patchStatus({ status: 'terminated', terminatedAt: '2026-09-10' });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+  });
+
   it('marks a leaver with the date and returns the employee', async () => {
     mockUpstream({
       employees: (init) =>

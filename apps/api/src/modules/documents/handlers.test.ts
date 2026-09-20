@@ -591,6 +591,18 @@ describe('POST /documents/{documentId}/issue', () => {
     });
   });
 
+  it('issues nothing for an archived client, before reading the file', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    const response = await issue();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+    expect(calls('/storage/v1/object/documents')).toHaveLength(0);
+    expect(calls('/rest/v1/rpc/issue_document_revision')).toHaveLength(0);
+  });
+
   // The converter is apps/pdf behind a service binding, switched on by the deployment.
   const pdfBytes = new TextEncoder().encode('%PDF-1.7 converted');
   const issueWith = (convertDocx: (docx: ArrayBuffer) => Promise<ArrayBuffer>) =>
@@ -680,6 +692,16 @@ describe('POST /documents/{documentId}/issue', () => {
 describe('DELETE /documents/{documentId}/draft', () => {
   const remove = () => request(`/documents/${documentId}/draft`, 'DELETE');
 
+  it('keeps the draft of an archived client, file and row', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    expect((await remove()).status).toBe(409);
+    expect(calls('/storage/v1/object/documents', 'DELETE')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(0);
+  });
+
   it('removes the file, then the row', async () => {
     mockUpstream({
       documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
@@ -739,6 +761,16 @@ describe('PUT /documents/{documentId}/draft/file', () => {
     expect(patch.edited_by).toBe(user.id);
     expect(Date.parse(String(patch.edited_at))).not.toBeNaN();
     expect(Object.keys(patch).sort()).toEqual(['edited_at', 'edited_by']);
+  });
+
+  it('writes nothing over the draft of an archived client', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    expect((await save(docx)).status).toBe(409);
+    expect(calls('/storage/v1/object/documents')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses what is not a Word document, before touching anything', async () => {

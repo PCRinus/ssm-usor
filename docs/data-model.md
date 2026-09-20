@@ -77,6 +77,15 @@ and maintenance, is let through. Archiving touches nothing under the client: emp
 positions and documents keep their own state, which is what makes restoring one column set
 back to null. An archived client keeps its CUI, so the same company cannot be added twice.
 
+An archived client is read-only. Triggers on `employees`, `job_positions`,
+`client_workplaces`, `client_responsible_persons`, `client_documents` and `document_revisions`
+refuse every insert, update and delete under it with the code `CLA01`, and the client's own row
+takes only the restore. They are triggers because an update policy that fails matches no row,
+which the API would report as "not found" for a row the caller can read; and because issuing
+a revision runs as its function's owner, past the policies. `is_draft_document_path` asks for
+an active client too, so the files follow. The secret key passes. Recording a leaver of an
+archived client used to be allowed; with restoring one click away it no longer is.
+
 Deferred on purpose: service status and contract period, financial data, contacts as their
 own table, and specialist assignment.
 
@@ -150,8 +159,8 @@ stay a one-line comparison like on `clients`.
 
 Both unique indexes are partial on `archived_at is null`, so archiving a mistaken row releases
 its CNP and employee number. The insert policy additionally requires the client to be active
-(`archived_at is null`); the update policy does not, so leavers of an archived client can still
-be recorded.
+(`archived_at is null`). The update policy does not; the freeze below is what keeps an archived
+client's employees as they are, leavers included.
 
 The CNP is optional per the product scope, protected by row-level security like every other
 column, and returned only by the detail route. It is not encrypted at the column level; an
