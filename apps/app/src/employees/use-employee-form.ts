@@ -83,6 +83,8 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
           params: { clientId, employeeId: employee.id },
         });
       } else {
+        // The list it returns to is sorted and paged, so the new row may not be in sight.
+        toast.success(`${values.lastName} ${values.firstName} a fost adăugat.`);
         await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
       }
     } catch (cause) {

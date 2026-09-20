@@ -148,8 +148,15 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await page.getByTestId('employee-job-position-save').click();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');
 
-  // What was entered about the person can be corrected; the post and the title stay.
-  await page.getByTestId('employee-edit').click();
+  // What was entered about the person can be corrected, from their page or from the list's
+  // row menu; the post and the title stay.
+  await page.getByTestId('employee-back').click();
+  await page
+    .getByTestId('employees-row')
+    .filter({ hasText: 'Electricu' })
+    .getByTestId('employees-row-menu')
+    .click();
+  await page.getByTestId('employees-edit').click();
   await expect(page.getByTestId('edit-employee-page')).toBeVisible();
   await expect(page.getByTestId('employee-job-title')).toHaveValue('Electrician întreținere');
   await page.getByTestId('employee-last-name').fill('Electricu-Pop');

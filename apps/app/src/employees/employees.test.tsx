@@ -479,6 +479,7 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
     expect(runtime.router.state.location.pathname).toBe(employeesPath);
+    expect(await screen.findByText('Popescu Ion a fost adăugat.')).toBeTruthy();
     await screen.findByTestId('employees-row');
     const [, init] = requests(employeesPath, 'POST')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
@@ -956,6 +957,20 @@ describe('employee editing', () => {
     archivedAt: null,
     jobTitle: 'Muncitor calificat',
   };
+
+  it('is also one click away from the list, in the row menu', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      detail: () => Response.json({ employee: stored }),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-edit'));
+    await screen.findByTestId('edit-employee-page');
+    expect(runtime.router.state.location.pathname).toBe(editPath);
+  });
 
   it('opens from the employee page with what was entered, contract title and post apart', async () => {
     mockApi({ detail: () => Response.json({ employee: stored }) });
