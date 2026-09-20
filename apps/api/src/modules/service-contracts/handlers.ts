@@ -1,16 +1,29 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  otherDocumentTypes,
   serviceContractConflictReasons,
   type ServiceContractResponse,
   serviceContractTypeKey,
 } from '@ssm-usor/contracts';
 
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { readOtherDocument } from '../documents/documents';
+import { createFileStore } from '../../lib/files';
+import { stableJson } from '../documents/context';
+import { generateOtherDocument, readOtherDocument } from '../documents/documents';
+import { buildServiceContractContext } from './context';
 import { loadServiceContractFacts, missingServiceContractData } from './facts';
-import type { getServiceContractRoute, saveServiceContractRoute } from './routes';
+import type {
+  generateServiceContractRoute,
+  getServiceContractRoute,
+  saveServiceContractRoute,
+} from './routes';
 
 // The register usually starts again each year, so the year of the contract decides.
 async function suggestedNumber(db: DataClient, year: number) {
@@ -32,11 +45,23 @@ async function suggestedNumber(db: DataClient, year: number) {
 async function respond(db: DataClient, clientId: string): Promise<ServiceContractResponse> {
   const facts = await loadServiceContractFacts(db, clientId);
   const year = Number((facts.contract?.contractDate ?? new Date().toISOString()).slice(0, 4));
-  const [suggested, document] = await Promise.all([
+  const [suggested, { document, draftSnapshot }] = await Promise.all([
     facts.contract ? null : suggestedNumber(db, year),
     readOtherDocument(db, clientId, serviceContractTypeKey),
   ]);
   const missing = missingServiceContractData(facts);
+  // What the draft printed against what it would print now. Only the names it printed count,
+  // and a draft that was uploaded printed none.
+  const current: Record<string, unknown> | null =
+    facts.contract && missing.length === 0
+      ? buildServiceContractContext({ ...facts, contract: facts.contract })
+      : null;
+  const draftOutdated =
+    current !== null &&
+    draftSnapshot !== null &&
+    Object.entries(draftSnapshot as Record<string, unknown>).some(
+      ([name, printed]) => stableJson(current[name]) !== stableJson(printed)
+    );
   return {
     contract: facts.contract,
     suggestedNumber: suggested,
@@ -46,6 +71,7 @@ async function respond(db: DataClient, clientId: string): Promise<ServiceContrac
     },
     readiness: { ready: missing.length === 0, missing },
     document,
+    draftOutdated,
   };
 }
 
@@ -126,5 +152,43 @@ export const saveServiceContract: RouteHandler<typeof saveServiceContractRoute, 
     );
   }
   if (saved.error) throw fromDatabaseError(saved.error, 'save service contract');
+  return c.json(await respond(db, clientId), 200);
+};
+
+export const generateServiceContract: RouteHandler<
+  typeof generateServiceContractRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  const facts = await loadServiceContractFacts(db, clientId);
+  if (facts.client.archived_at) throw archivedClientError();
+  const missing = missingServiceContractData(facts);
+  if (!facts.contract || missing.length > 0) {
+    throw new ApiError(
+      'conflict',
+      `Data the contract prints is missing: ${missing.join(', ')}.`,
+      undefined,
+      serviceContractConflictReasons.missingData
+    );
+  }
+  const membership = c.get('membership');
+  await generateOtherDocument(
+    db,
+    createFileStore(c),
+    // During an impersonation the row records the platform admin, as elsewhere.
+    {
+      userId: membership.userId,
+      organizationId: membership.organizationId,
+      createdBy: c.get('user').id,
+    },
+    clientId,
+    {
+      typeKey: serviceContractTypeKey,
+      title: otherDocumentTypes[serviceContractTypeKey],
+      ownersOnly: true,
+    },
+    buildServiceContractContext({ ...facts, contract: facts.contract })
+  );
   return c.json(await respond(db, clientId), 200);
 };

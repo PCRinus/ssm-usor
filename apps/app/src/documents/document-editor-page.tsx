@@ -4,7 +4,7 @@ import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useBlocker, useRouteContext } from '@tanstack/react-router';
 import { ArrowLeft, Download, Pencil, Save } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   getDocumentDownload,
@@ -16,6 +16,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
 import type { DocumentEditorHandle } from './document-editor';
+import type { ClientDocument } from './document-labels';
 
 const DocumentEditor = lazy(() => import('./document-editor'));
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -29,6 +30,19 @@ function saveAs(bytes: Uint8Array, fileName: string) {
   anchor.download = fileName;
   anchor.click();
   URL.revokeObjectURL(objectUrl);
+}
+
+// Where the page gets its document from, and goes back to. A document of the documentation
+// set is found in the client's list; the service contract comes with its own details.
+export interface DocumentSource {
+  document: ClientDocument | undefined;
+  isPending: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  refetch: () => void;
+  // After a save or a new draft, so that whatever listed the document shows it as it is.
+  invalidate: () => Promise<void>;
+  back: ReactNode;
 }
 
 // `readOnly` is an archived client.
@@ -48,6 +62,41 @@ export function DocumentEditorPage({
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
   });
+  return (
+    <DocumentEditorView
+      readOnly={readOnly}
+      source={{
+        document: documents.data?.items.find((item) => item.id === documentId),
+        isPending: documents.isPending,
+        isError: documents.isError,
+        isSuccess: documents.isSuccess,
+        refetch: () => void documents.refetch(),
+        invalidate: () =>
+          queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) }),
+        back: (
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/clients/$clientId/documents" params={{ clientId }} data-testid="editor-back">
+              <ArrowLeft aria-hidden="true" />
+              Documente
+            </Link>
+          </Button>
+        ),
+      }}
+    />
+  );
+}
+
+export function DocumentEditorView({
+  source,
+  readOnly,
+}: {
+  source: DocumentSource;
+  readOnly: boolean;
+}) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const documents = source;
+  const { document, back } = source;
+  const documentId = document?.id ?? '';
   const saveDraft = useSaveDocumentDraftFile({ request: apiRequest });
   const startDraft = useStartDocumentDraft({ request: apiRequest });
   const editor = useRef<DocumentEditorHandle>(null);
@@ -60,7 +109,6 @@ export function DocumentEditorPage({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [startError, setStartError] = useState(false);
 
-  const document = documents.data?.items.find((item) => item.id === documentId);
   const revision = document?.draft ?? document?.issued ?? null;
   const editable = !readOnly && document?.draft != null;
   const canStartDraft = !readOnly && document != null && !document.draft && document.issued != null;
@@ -105,7 +153,7 @@ export function DocumentEditorPage({
       });
       setDirty(false);
       toast.success('Documentul a fost salvat.');
-      await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
+      await source.invalidate();
     } catch (cause) {
       setSaveError(
         cause instanceof ApiHttpError && cause.status === 409
@@ -115,7 +163,7 @@ export function DocumentEditorPage({
             : 'Nu am putut salva documentul. Verifică conexiunea și încearcă din nou.'
       );
     }
-  }, [clientId, dirty, documentId, editable, queryClient, saveDraft]);
+  }, [dirty, documentId, editable, saveDraft, source]);
 
   async function startDraftFromIssued() {
     setStartError(false);
@@ -126,7 +174,7 @@ export function DocumentEditorPage({
       // A 409 is a draft someone else has just started: the list brings it.
       if (!(cause instanceof ApiHttpError && cause.status === 409)) setStartError(true);
     }
-    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
+    await source.invalidate();
   }
 
   // What is on screen, edits included, so that a failed save never costs the work.
@@ -135,15 +183,6 @@ export function DocumentEditorPage({
     const current = ready ? await editor.current?.save() : null;
     saveAs(current ?? loaded.bytes, loaded.fileName);
   }
-
-  const back = (
-    <Button asChild variant="ghost" size="sm">
-      <Link to="/clients/$clientId/documents" params={{ clientId }} data-testid="editor-back">
-        <ArrowLeft aria-hidden="true" />
-        Documente
-      </Link>
-    </Button>
-  );
 
   if (documents.isPending || (revision && !loaded && !loadError)) {
     return (
@@ -168,7 +207,7 @@ export function DocumentEditorPage({
             variant="outline"
             onClick={() => {
               setFailedRevisionId(null);
-              void documents.refetch();
+              documents.refetch();
             }}
           >
             Încearcă din nou

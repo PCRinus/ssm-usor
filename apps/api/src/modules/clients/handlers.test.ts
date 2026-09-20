@@ -139,6 +139,7 @@ describe('GET /clients', () => {
           contactEmail: null,
           contactPhone: null,
           promotedAt: null,
+          serviceContractState: null,
           createdAt: clientRow.created_at,
           updatedAt: clientRow.updated_at,
           archivedAt: null,
@@ -198,12 +199,40 @@ describe('GET /clients', () => {
     expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('stage')).toBe(
       'eq.lead'
     );
+    expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')).toContain(
+      'client_documents!client_documents_client_in_organization(type_key'
+    );
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     const refused = await request('/clients?stage=lead');
     expect(refused.status).toBe(403);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it.each([
+    [[], 'none'],
+    [[{ type_key: 'service_contract', document_revisions: [{ status: 'draft' }] }], 'draft'],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [{ status: 'superseded' }, { status: 'issued' }, { status: 'draft' }],
+        },
+      ],
+      'issued',
+    ],
+  ])('says where the contract of a lead stands: %#', async (documents, state) => {
+    mockUpstream({
+      clients: () =>
+        Response.json([{ ...clientRow, stage: 'lead', client_documents: documents }], {
+          headers: { 'Content-Range': '0-0/1' },
+        }),
+    });
+    const body = clientListResponseSchema.parse(
+      await (await request('/clients?stage=lead')).json()
+    );
+    expect(body.items[0]!.serviceContractState).toBe(state);
   });
 
   it('requires a bearer token', async () => {

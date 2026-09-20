@@ -318,6 +318,11 @@
                   "nullable": true,
                   "format": "date-time"
                 },
+                "serviceContractState": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["none", "draft", "issued", null]
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -349,6 +354,7 @@
                 "contactEmail",
                 "contactPhone",
                 "promotedAt",
+                "serviceContractState",
                 "createdAt",
                 "updatedAt",
                 "archivedAt"
@@ -484,6 +490,11 @@
                 "nullable": true,
                 "format": "date-time"
               },
+              "serviceContractState": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["none", "draft", "issued", null]
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -515,6 +526,7 @@
               "contactEmail",
               "contactPhone",
               "promotedAt",
+              "serviceContractState",
               "createdAt",
               "updatedAt",
               "archivedAt"
@@ -3155,9 +3167,19 @@
               }
             },
             "required": ["id", "clientId", "typeKey", "title", "decisionNumber", "draft", "issued"]
+          },
+          "draftOutdated": {
+            "type": "boolean"
           }
         },
-        "required": ["contract", "suggestedNumber", "clientRepresentative", "readiness", "document"]
+        "required": [
+          "contract",
+          "suggestedNumber",
+          "clientRepresentative",
+          "readiness",
+          "document",
+          "draftOutdated"
+        ]
       },
       "SaveServiceContractRequest": {
         "type": "object",
@@ -8559,6 +8581,111 @@
           },
           "409": {
             "description": "Another contract of that year has the number (`contract_number_taken`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/service-contract/generate": {
+      "post": {
+        "operationId": "generateServiceContract",
+        "summary": "Generate the service contract from its template, or generate it again",
+        "description": "Owners only. Merges the starter template with the organization, the client and the saved details. A draft is overwritten, hand edits included; beside an issued contract the next revision starts as a draft and the issued one stays in force. Prices are printed as \"DE COMPLETAT\" for the owner to write in the editor, and issuing warns while one is left. From then on the contract is a document like the others: saving, issuing, starting a draft from the issued file, deleting a draft and downloading go through `/documents/{documentId}`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Something the contract prints is missing (`missing_contract_data`), no template is registered (`template_missing`), or the client is archived",
             "content": {
               "application/json": {
                 "schema": {

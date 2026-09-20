@@ -124,6 +124,9 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`       | `/clients/:id/documents/:documentId`      | One document in the in-app Word editor; a full page.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`       | `/clients/:id/employees/:employeeId`      | Employee record, the only page that can reveal the CNP.                                                                                                           |
 | `routes/_authenticated/clients/$clientId/contact.tsx`                     | `/clients/:id/contact`                    | The client's contact person for the team, and the owners' notes for an owner.                                                                                     |
+| `routes/_authenticated/clients/$clientId/other-documents/index.tsx`       | `/clients/:id/other-documents`            | "Alte documente", for owners: the client's service contract (ADR 007).                                                                                            |
+| `routes/_authenticated/clients/$clientId/other-documents/contract.tsx`    | `/clients/:id/other-documents/contract`   | The client's contract in the editor; a full page.                                                                                                                 |
+| `routes/_authenticated/leads/$leadId/contract.tsx`                        | `/leads/:id/contract`                     | A lead's contract in the editor.                                                                                                                                  |
 | `routes/_authenticated/leads.tsx`                                         | pathless                                  | Leads section layout carrying the breadcrumb title.                                                                                                               |
 | `routes/_authenticated/leads/index.tsx`                                   | `/leads`                                  | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                           |
 | `routes/_authenticated/leads/new.tsx`                                     | `/leads/new`                              | The client form, adding a lead.                                                                                                                                   |
@@ -475,6 +478,26 @@ mobile navigation link closes the Sheet.
   neither of the other two. The two addresses of one record lead to each other: the client
   layout redirects a lead to `/leads/:id`, and the lead loader redirects a client to
   `/clients/:id/employees`, so a link kept from before the promotion still works.
+- The service contract (`src/service-contracts`): `ServiceContractCard` is on the lead's page
+  and, for a client, in "Alte documente", a section only an owner gets (a specialist who types
+  the address is told what is there and whose it is, and nothing is asked of the API). The
+  form keeps what the app reads about the contract: the number, which starts from the API's
+  suggestion and says so, the two dates, the duration, the renewal, the two services, and who
+  signs for the client, which is saved on the client because a lead has no other form for it.
+  Under it, while something is missing, a warning groups it by where it is filled in, with a
+  link to each place: the organization, the company's own form, this form. "Generează
+  contractul" waits for saved details and for nothing missing, and says which in its title;
+  over a draft it asks first, because prices written by hand are lost. The contract then
+  shows as a document: "Ciornă · rev. N", "Emis · rev. N", "Modificat", and "Date modificate"
+  when `draftOutdated`. It opens in the editor, downloads as Word or PDF, is issued behind a
+  confirmation that asks a second time while `DE COMPLETAT` is left (where the prices go),
+  and its draft can be deleted. The leads list has a "Contract" column from
+  `serviceContractState`.
+- The editor is one view for both kinds of document. `DocumentEditorView` takes a
+  `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
+  the way back); `DocumentEditorPage` builds one from the client's list of documents, and
+  `ServiceContractEditor` from `GET …/service-contract`, because that list is the
+  documentation set only. "Modifică" on an issued contract works as for any document.
 - `/clients/:id/contact`: the "Contact" section of a client, with the same two cards. The
   notes card is rendered for an owner only, and the API refuses anyone else.
 

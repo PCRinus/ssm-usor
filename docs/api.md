@@ -71,6 +71,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                     |
 | `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                      |
 | `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                             |
+| `POST /clients/{clientId}/service-contract/generate`                   | Owner                                 | The same, with the contract generated or generated again                                                                  |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
@@ -164,8 +165,23 @@ registration, address and representative, the contract's own details; the fire-s
 technician only when fire safety is covered), and `document`, the contract as a document once
 it is generated. `PUT` saves the details, and the client's representative when sent, which a
 lead has no other form for; a number used twice in a year answers `409` with
-`contract_number_taken`. Prices are not kept: they are written in the file. Generating arrives
-with the template. `GET /clients/{clientId}/documents` lists the documentation set only, and
+`contract_number_taken`. Prices are not kept: they are written in the file.
+
+`POST …/service-contract/generate` merges the starter template
+([document engine](document-engine.md)) with the context of
+`modules/service-contracts/context.ts` and writes the result as the contract's draft, through
+the same code that regenerates a document of the set: a draft is overwritten, hand edits
+included, and beside an issued contract the next revision starts. The document is created as
+`other` and `owners_only` the first time. `409` with `missing_contract_data` names what is
+missing, `template_missing` says that no template is registered, and an archived client is
+refused before anything is read. The response's `draftOutdated` says that the draft would now
+print something else: its snapshot is compared, name by name, with the context of today. From
+then on the contract goes through `/documents/{documentId}` like any document: saving from the
+editor, issuing (which warns about `DE COMPLETAT`, where the prices go), a draft from the
+issued file, deleting a draft, downloading. `GET /clients?stage=lead` adds
+`serviceContractState` (`none`, `draft`, `issued`) to each lead, from an embedded read that
+names its relationships, because `clients`, `client_documents` and `document_revisions` are
+each linked twice, by id and by id with organization; it is null in every other response. `GET /clients/{clientId}/documents` lists the documentation set only, and
 `POST /documents/{documentId}/regenerate` answers `409` for a document that is not part of it.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which

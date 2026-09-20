@@ -216,6 +216,19 @@ export const ClientListResponseItemsItemStage = {
   client: 'client',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ClientListResponseItemsItemServiceContractState =
+  | (typeof ClientListResponseItemsItemServiceContractState)[keyof typeof ClientListResponseItemsItemServiceContractState]
+  | null;
+
+export const ClientListResponseItemsItemServiceContractState = {
+  none: 'none',
+  draft: 'draft',
+  issued: 'issued',
+} as const;
+
 export type ClientListResponseItemsItem = {
   id: string;
   legalName: string;
@@ -244,6 +257,8 @@ export type ClientListResponseItemsItem = {
   contactPhone: string | null;
   /** @nullable */
   promotedAt: string | null;
+  /** @nullable */
+  serviceContractState: ClientListResponseItemsItemServiceContractState;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -322,6 +337,19 @@ export const ClientResponseClientStage = {
   client: 'client',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ClientResponseClientServiceContractState =
+  | (typeof ClientResponseClientServiceContractState)[keyof typeof ClientResponseClientServiceContractState]
+  | null;
+
+export const ClientResponseClientServiceContractState = {
+  none: 'none',
+  draft: 'draft',
+  issued: 'issued',
+} as const;
+
 export type ClientResponseClient = {
   id: string;
   legalName: string;
@@ -350,6 +378,8 @@ export type ClientResponseClient = {
   contactPhone: string | null;
   /** @nullable */
   promotedAt: string | null;
+  /** @nullable */
+  serviceContractState: ClientResponseClientServiceContractState;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -2173,6 +2203,7 @@ export interface ServiceContractResponse {
   readiness: ServiceContractResponseReadiness;
   /** @nullable */
   document: ServiceContractResponseDocument;
+  draftOutdated: boolean;
 }
 
 export interface SaveServiceContractRequest {
@@ -8415,6 +8446,95 @@ export const useSaveServiceContract = <TError = ErrorType<ApiErrorResponse>, TCo
   TContext
 > => {
   return useMutation(getSaveServiceContractMutationOptions(options), queryClient);
+};
+
+export const getGenerateServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract/generate`;
+};
+
+/**
+ * Owners only. Merges the starter template with the organization, the client and the saved details. A draft is overwritten, hand edits included; beside an issued contract the next revision starts as a draft and the issued one stays in force. Prices are printed as "DE COMPLETAT" for the owner to write in the editor, and issuing warns while one is left. From then on the contract is a document like the others: saving, issuing, starting a draft from the issued file, deleting a draft and downloading go through `/documents/{documentId}`.
+ * @summary Generate the service contract from its template, or generate it again
+ */
+export const generateServiceContract = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  return apiFetch<ServiceContractResponse>(getGenerateServiceContractUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getGenerateServiceContractMutationKey = () => ['generateServiceContract'] as const;
+
+export const getGenerateServiceContractMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateServiceContract>>,
+    TError,
+    GenerateServiceContractMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateServiceContract>>,
+  TError,
+  GenerateServiceContractMutationVariables,
+  TContext
+> => {
+  const mutationKey = getGenerateServiceContractMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateServiceContract>>,
+    GenerateServiceContractMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return generateServiceContract(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateServiceContractMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateServiceContract>>
+>;
+
+export type GenerateServiceContractMutationError = ErrorType<ApiErrorResponse>;
+export type GenerateServiceContractMutationVariables = { clientId: string };
+
+/**
+ * @summary Generate the service contract from its template, or generate it again
+ */
+export const useGenerateServiceContract = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof generateServiceContract>>,
+      TError,
+      GenerateServiceContractMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof generateServiceContract>>,
+  TError,
+  GenerateServiceContractMutationVariables,
+  TContext
+> => {
+  return useMutation(getGenerateServiceContractMutationOptions(options), queryClient);
 };
 
 export const getCreateOrganizationUrl = () => {

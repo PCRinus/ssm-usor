@@ -76,6 +76,29 @@ export async function createClientCompany(organizationId: string, legalName: str
   return client.data.id as string;
 }
 
+// What a service contract prints about the provider, save for the bank account, which the
+// flow fills in through the app (ADR 007).
+export async function completeContractDetails(organizationId: string) {
+  const organization = await admin
+    .from('organizations')
+    .update({
+      legal_name: 'S.C. SERVICIU EXTERN E2E S.R.L.',
+      cui: '1590082',
+      trade_register_number: 'J35/535/2022',
+      county_code: 'TM',
+      locality: 'Timișoara',
+      address_line: 'Str. Lungă 5',
+      legal_representative_name: 'Ana IONESCU',
+      legal_representative_role: 'Administrator',
+      phone: '0722 000 111',
+      authorization_certificate_number: '17664',
+      authorization_certificate_date: '2022-09-30',
+      authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
+    })
+    .eq('id', organizationId);
+  if (organization.error) throw organization.error;
+}
+
 // Everything the documents print, so that generating is not held back (ADR 005).
 export async function completeDocumentData(
   organizationId: string,
@@ -176,6 +199,7 @@ export async function cleanUp() {
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);
+    await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }

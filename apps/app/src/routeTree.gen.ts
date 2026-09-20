@@ -36,13 +36,17 @@ import { Route as AuthenticatedClientsClientIdDocumentsRouteImport } from './rou
 import { Route as AuthenticatedClientsClientIdEditRouteImport } from './routes/_authenticated/clients/$clientId/edit';
 import { Route as AuthenticatedClientsClientIdEmployeesRouteImport } from './routes/_authenticated/clients/$clientId/employees';
 import { Route as AuthenticatedClientsClientIdJobPositionsRouteImport } from './routes/_authenticated/clients/$clientId/job-positions';
+import { Route as AuthenticatedClientsClientIdOtherDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/other-documents';
 import { Route as AuthenticatedLeadsLeadIdIndexRouteImport } from './routes/_authenticated/leads/$leadId/index';
+import { Route as AuthenticatedLeadsLeadIdContractRouteImport } from './routes/_authenticated/leads/$leadId/contract';
 import { Route as AuthenticatedLeadsLeadIdEditRouteImport } from './routes/_authenticated/leads/$leadId/edit';
 import { Route as AuthenticatedClientsClientIdDocumentsIndexRouteImport } from './routes/_authenticated/clients/$clientId/documents/index';
 import { Route as AuthenticatedClientsClientIdDocumentsDocumentIdRouteImport } from './routes/_authenticated/clients/$clientId/documents/$documentId';
 import { Route as AuthenticatedClientsClientIdEmployeesIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/index';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId';
 import { Route as AuthenticatedClientsClientIdEmployeesNewRouteImport } from './routes/_authenticated/clients/$clientId/employees/new';
+import { Route as AuthenticatedClientsClientIdOtherDocumentsIndexRouteImport } from './routes/_authenticated/clients/$clientId/other-documents/index';
+import { Route as AuthenticatedClientsClientIdOtherDocumentsContractRouteImport } from './routes/_authenticated/clients/$clientId/other-documents/contract';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId_.edit';
 
 const IndexRoute = IndexRouteImport.update({
@@ -190,10 +194,22 @@ const AuthenticatedClientsClientIdJobPositionsRoute =
     path: '/job-positions',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
+const AuthenticatedClientsClientIdOtherDocumentsRoute =
+  AuthenticatedClientsClientIdOtherDocumentsRouteImport.update({
+    id: '/other-documents',
+    path: '/other-documents',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
 const AuthenticatedLeadsLeadIdIndexRoute =
   AuthenticatedLeadsLeadIdIndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => AuthenticatedLeadsLeadIdRoute,
+  } as any);
+const AuthenticatedLeadsLeadIdContractRoute =
+  AuthenticatedLeadsLeadIdContractRouteImport.update({
+    id: '/contract',
+    path: '/contract',
     getParentRoute: () => AuthenticatedLeadsLeadIdRoute,
   } as any);
 const AuthenticatedLeadsLeadIdEditRoute =
@@ -232,6 +248,18 @@ const AuthenticatedClientsClientIdEmployeesNewRoute =
     path: '/new',
     getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
   } as any);
+const AuthenticatedClientsClientIdOtherDocumentsIndexRoute =
+  AuthenticatedClientsClientIdOtherDocumentsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedClientsClientIdOtherDocumentsRoute,
+  } as any);
+const AuthenticatedClientsClientIdOtherDocumentsContractRoute =
+  AuthenticatedClientsClientIdOtherDocumentsContractRouteImport.update({
+    id: '/contract',
+    path: '/contract',
+    getParentRoute: () => AuthenticatedClientsClientIdOtherDocumentsRoute,
+  } as any);
 const AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute =
   AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport.update({
     id: '/$employeeId_/edit',
@@ -265,14 +293,18 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRoute;
+  '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
+  '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
   '/leads/$leadId/': typeof AuthenticatedLeadsLeadIdIndexRoute;
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/clients/$clientId/other-documents/contract': typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
   '/clients/$clientId/documents/': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/clients/$clientId/other-documents/': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 export interface FileRoutesByTo {
@@ -295,14 +327,17 @@ export interface FileRoutesByTo {
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRoute;
+  '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdIndexRoute;
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/clients/$clientId/other-documents/contract': typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
   '/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 export interface FileRoutesById {
@@ -333,14 +368,18 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/_authenticated/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/_authenticated/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRoute;
+  '/_authenticated/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
+  '/_authenticated/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/_authenticated/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/_authenticated/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
   '/_authenticated/leads/$leadId/': typeof AuthenticatedLeadsLeadIdIndexRoute;
   '/_authenticated/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   '/_authenticated/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/_authenticated/clients/$clientId/other-documents/contract': typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
   '/_authenticated/clients/$clientId/documents/': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/_authenticated/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/_authenticated/clients/$clientId/other-documents/': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId_/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 export interface FileRouteTypes {
@@ -371,14 +410,18 @@ export interface FileRouteTypes {
     | '/clients/$clientId/edit'
     | '/clients/$clientId/employees'
     | '/clients/$clientId/job-positions'
+    | '/clients/$clientId/other-documents'
+    | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
     | '/clients/$clientId/'
     | '/leads/$leadId/'
     | '/clients/$clientId/documents/$documentId'
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/employees/new'
+    | '/clients/$clientId/other-documents/contract'
     | '/clients/$clientId/documents/'
     | '/clients/$clientId/employees/'
+    | '/clients/$clientId/other-documents/'
     | '/clients/$clientId/employees/$employeeId/edit';
   fileRoutesByTo: FileRoutesByTo;
   to:
@@ -401,14 +444,17 @@ export interface FileRouteTypes {
     | '/clients/$clientId/document-data'
     | '/clients/$clientId/edit'
     | '/clients/$clientId/job-positions'
+    | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
     | '/clients/$clientId'
     | '/leads/$leadId'
     | '/clients/$clientId/documents/$documentId'
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/employees/new'
+    | '/clients/$clientId/other-documents/contract'
     | '/clients/$clientId/documents'
     | '/clients/$clientId/employees'
+    | '/clients/$clientId/other-documents'
     | '/clients/$clientId/employees/$employeeId/edit';
   id:
     | '__root__'
@@ -438,14 +484,18 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/edit'
     | '/_authenticated/clients/$clientId/employees'
     | '/_authenticated/clients/$clientId/job-positions'
+    | '/_authenticated/clients/$clientId/other-documents'
+    | '/_authenticated/leads/$leadId/contract'
     | '/_authenticated/leads/$leadId/edit'
     | '/_authenticated/clients/$clientId/'
     | '/_authenticated/leads/$leadId/'
     | '/_authenticated/clients/$clientId/documents/$documentId'
     | '/_authenticated/clients/$clientId/employees/$employeeId'
     | '/_authenticated/clients/$clientId/employees/new'
+    | '/_authenticated/clients/$clientId/other-documents/contract'
     | '/_authenticated/clients/$clientId/documents/'
     | '/_authenticated/clients/$clientId/employees/'
+    | '/_authenticated/clients/$clientId/other-documents/'
     | '/_authenticated/clients/$clientId/employees/$employeeId_/edit';
   fileRoutesById: FileRoutesById;
 }
@@ -652,11 +702,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdJobPositionsRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
+    '/_authenticated/clients/$clientId/other-documents': {
+      id: '/_authenticated/clients/$clientId/other-documents';
+      path: '/other-documents';
+      fullPath: '/clients/$clientId/other-documents';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
     '/_authenticated/leads/$leadId/': {
       id: '/_authenticated/leads/$leadId/';
       path: '/';
       fullPath: '/leads/$leadId/';
       preLoaderRoute: typeof AuthenticatedLeadsLeadIdIndexRouteImport;
+      parentRoute: typeof AuthenticatedLeadsLeadIdRoute;
+    };
+    '/_authenticated/leads/$leadId/contract': {
+      id: '/_authenticated/leads/$leadId/contract';
+      path: '/contract';
+      fullPath: '/leads/$leadId/contract';
+      preLoaderRoute: typeof AuthenticatedLeadsLeadIdContractRouteImport;
       parentRoute: typeof AuthenticatedLeadsLeadIdRoute;
     };
     '/_authenticated/leads/$leadId/edit': {
@@ -700,6 +764,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/$clientId/employees/new';
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesNewRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
+    };
+    '/_authenticated/clients/$clientId/other-documents/': {
+      id: '/_authenticated/clients/$clientId/other-documents/';
+      path: '/';
+      fullPath: '/clients/$clientId/other-documents/';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdOtherDocumentsIndexRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRoute;
+    };
+    '/_authenticated/clients/$clientId/other-documents/contract': {
+      id: '/_authenticated/clients/$clientId/other-documents/contract';
+      path: '/contract';
+      fullPath: '/clients/$clientId/other-documents/contract';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdOtherDocumentsContractRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRoute;
     };
     '/_authenticated/clients/$clientId/employees/$employeeId_/edit': {
       id: '/_authenticated/clients/$clientId/employees/$employeeId_/edit';
@@ -753,6 +831,24 @@ const AuthenticatedClientsClientIdEmployeesRouteWithChildren =
     AuthenticatedClientsClientIdEmployeesRouteChildren,
   );
 
+interface AuthenticatedClientsClientIdOtherDocumentsRouteChildren {
+  AuthenticatedClientsClientIdOtherDocumentsContractRoute: typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
+  AuthenticatedClientsClientIdOtherDocumentsIndexRoute: typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
+}
+
+const AuthenticatedClientsClientIdOtherDocumentsRouteChildren: AuthenticatedClientsClientIdOtherDocumentsRouteChildren =
+  {
+    AuthenticatedClientsClientIdOtherDocumentsContractRoute:
+      AuthenticatedClientsClientIdOtherDocumentsContractRoute,
+    AuthenticatedClientsClientIdOtherDocumentsIndexRoute:
+      AuthenticatedClientsClientIdOtherDocumentsIndexRoute,
+  };
+
+const AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren =
+  AuthenticatedClientsClientIdOtherDocumentsRoute._addFileChildren(
+    AuthenticatedClientsClientIdOtherDocumentsRouteChildren,
+  );
+
 interface AuthenticatedClientsClientIdRouteChildren {
   AuthenticatedClientsClientIdContactRoute: typeof AuthenticatedClientsClientIdContactRoute;
   AuthenticatedClientsClientIdDocumentDataRoute: typeof AuthenticatedClientsClientIdDocumentDataRoute;
@@ -760,6 +856,7 @@ interface AuthenticatedClientsClientIdRouteChildren {
   AuthenticatedClientsClientIdEditRoute: typeof AuthenticatedClientsClientIdEditRoute;
   AuthenticatedClientsClientIdEmployeesRoute: typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   AuthenticatedClientsClientIdJobPositionsRoute: typeof AuthenticatedClientsClientIdJobPositionsRoute;
+  AuthenticatedClientsClientIdOtherDocumentsRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   AuthenticatedClientsClientIdIndexRoute: typeof AuthenticatedClientsClientIdIndexRoute;
 }
 
@@ -777,6 +874,8 @@ const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRou
       AuthenticatedClientsClientIdEmployeesRouteWithChildren,
     AuthenticatedClientsClientIdJobPositionsRoute:
       AuthenticatedClientsClientIdJobPositionsRoute,
+    AuthenticatedClientsClientIdOtherDocumentsRoute:
+      AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren,
     AuthenticatedClientsClientIdIndexRoute:
       AuthenticatedClientsClientIdIndexRoute,
   };
@@ -803,12 +902,15 @@ const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren);
 
 interface AuthenticatedLeadsLeadIdRouteChildren {
+  AuthenticatedLeadsLeadIdContractRoute: typeof AuthenticatedLeadsLeadIdContractRoute;
   AuthenticatedLeadsLeadIdEditRoute: typeof AuthenticatedLeadsLeadIdEditRoute;
   AuthenticatedLeadsLeadIdIndexRoute: typeof AuthenticatedLeadsLeadIdIndexRoute;
 }
 
 const AuthenticatedLeadsLeadIdRouteChildren: AuthenticatedLeadsLeadIdRouteChildren =
   {
+    AuthenticatedLeadsLeadIdContractRoute:
+      AuthenticatedLeadsLeadIdContractRoute,
     AuthenticatedLeadsLeadIdEditRoute: AuthenticatedLeadsLeadIdEditRoute,
     AuthenticatedLeadsLeadIdIndexRoute: AuthenticatedLeadsLeadIdIndexRoute,
   };

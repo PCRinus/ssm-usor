@@ -18,6 +18,7 @@ import {
   Building2,
   ClipboardList,
   Contact,
+  Files,
   FileText,
   Pencil,
   UsersRound,
@@ -36,12 +37,29 @@ import { registeredOffice } from '../../../clients/client-columns';
 import { Notice } from '../../../components/notice';
 
 // The documents follow the data they print.
+// `ownerOnly`: the other documents are, so far, the service contract, which is an owner's.
 const sections = [
-  { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound },
-  { to: '/clients/$clientId/job-positions', label: 'Posturi de lucru', icon: BriefcaseBusiness },
-  { to: '/clients/$clientId/document-data', label: 'Date pentru documente', icon: ClipboardList },
-  { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText },
-  { to: '/clients/$clientId/contact', label: 'Contact', icon: Contact },
+  { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
+  {
+    to: '/clients/$clientId/job-positions',
+    label: 'Posturi de lucru',
+    icon: BriefcaseBusiness,
+    ownerOnly: false,
+  },
+  {
+    to: '/clients/$clientId/document-data',
+    label: 'Date pentru documente',
+    icon: ClipboardList,
+    ownerOnly: false,
+  },
+  { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText, ownerOnly: false },
+  {
+    to: '/clients/$clientId/other-documents',
+    label: 'Alte documente',
+    icon: Files,
+    ownerOnly: true,
+  },
+  { to: '/clients/$clientId/contact', label: 'Contact', icon: Contact, ownerOnly: false },
 ] as const;
 
 // Row-level security hides other organizations' clients, so a 404 from the API is the
@@ -172,21 +190,23 @@ export function ClientLayout() {
       )}
       <nav aria-label="Secțiunile clientului" className="sticky top-16 z-20 border-b bg-background">
         <ul className="-mb-px flex gap-1">
-          {sections.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
-              <Link
-                to={to}
-                params={{ clientId: client.id }}
-                resetScroll={false}
-                data-testid="client-section"
-                className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-                activeProps={{ 'aria-current': 'page' }}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {label}
-              </Link>
-            </li>
-          ))}
+          {sections
+            .filter((section) => isOwner || !section.ownerOnly)
+            .map(({ to, label, icon: Icon }) => (
+              <li key={to}>
+                <Link
+                  to={to}
+                  params={{ clientId: client.id }}
+                  resetScroll={false}
+                  data-testid="client-section"
+                  className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
+                  activeProps={{ 'aria-current': 'page' }}
+                >
+                  <Icon className="size-4" aria-hidden="true" />
+                  {label}
+                </Link>
+              </li>
+            ))}
         </ul>
       </nav>
       <Outlet />

@@ -141,7 +141,7 @@ async function readDocuments(db: DataClient, clientId: string) {
   return data;
 }
 
-export async function readOtherDocument(db: DataClient, clientId: string, typeKey: string) {
+async function readOtherDocumentRow(db: DataClient, clientId: string, typeKey: string) {
   const { data, error } = await db
     .from('client_documents')
     .select(documentColumns)
@@ -150,7 +150,15 @@ export async function readOtherDocument(db: DataClient, clientId: string, typeKe
     .returns<DocumentRow[]>()
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find other client document');
-  return data ? toDocument(data, null) : null;
+  return data;
+}
+
+/** With what its draft was merged from, for a caller that knows how to compare it. */
+export async function readOtherDocument(db: DataClient, clientId: string, typeKey: string) {
+  const row = await readOtherDocumentRow(db, clientId, typeKey);
+  if (!row) return { document: null, draftSnapshot: null };
+  const draft = row.document_revisions.find((revision) => revision.status === 'draft');
+  return { document: toDocument(row, null), draftSnapshot: draft?.data_snapshot ?? null };
 }
 
 export async function listClientDocuments(db: DataClient, actor: Actor, clientId: string) {
@@ -400,6 +408,119 @@ const newest = (document: DocumentRow) =>
   );
 
 /**
+ * What generating again does to a document: a draft is overwritten in place, hand edits
+ * included; beside an issued revision the next one starts as a draft.
+ */
+async function writeGeneratedDraft(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  document: DocumentRow,
+  generated: {
+    templateVersionId: string;
+    generationId: string | null;
+    bytes: Uint8Array;
+    snapshot: Record<string, unknown>;
+  }
+) {
+  const { bytes, snapshot, templateVersionId, generationId } = generated;
+  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  if (draft) {
+    await files.writeDocument(draft.docx_path, bytes, { replace: true });
+    const updated = await db
+      .from('document_revisions')
+      .update({
+        template_version_id: templateVersionId,
+        generation_id: generationId,
+        data_snapshot: snapshot as Json,
+        // As generated again: nothing of the edit is left.
+        edited_at: null,
+        edited_by: null,
+      })
+      .eq('id', draft.id);
+    if (updated.error) throw fromDatabaseError(updated.error, 'update document revision');
+  } else {
+    const revisionNumber = (newest(document)?.revision ?? 0) + 1;
+    const path = `${actor.organizationId}/${document.client_id}/${document.id}/${revisionNumber}.docx`;
+    const revision = await db
+      .from('document_revisions')
+      .insert({
+        organization_id: actor.organizationId,
+        document_id: document.id,
+        revision: revisionNumber,
+        template_version_id: templateVersionId,
+        generation_id: generationId,
+        docx_path: path,
+        data_snapshot: snapshot as Json,
+        created_by: actor.createdBy,
+      })
+      .select('id')
+      .single();
+    if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
+    try {
+      await files.writeDocument(path, bytes, { replace: true });
+    } catch (error) {
+      await db.from('document_revisions').delete().eq('id', revision.data.id);
+      throw error;
+    }
+  }
+}
+
+/**
+ * Generates one of a client's other documents (ADR 007) from its built-in template and the
+ * data its own module builds, or generates it again. No generation record: what such a
+ * document was asked with lives with its module.
+ */
+export async function generateOtherDocument(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  clientId: string,
+  type: { typeKey: string; title: string; ownersOnly: boolean },
+  data: Record<string, unknown>
+) {
+  const [template] = await builtInTemplates(db, [type.typeKey]);
+  if (!template) {
+    throw new ApiError(
+      'conflict',
+      'This document has no template to be generated from.',
+      undefined,
+      'template_missing'
+    );
+  }
+  const { bytes, snapshot } = merge(
+    await files.readTemplate(template.storagePath),
+    data,
+    type.typeKey
+  );
+  let document = await readOtherDocumentRow(db, clientId, type.typeKey);
+  if (!document) {
+    const created = await db
+      .from('client_documents')
+      .insert({
+        organization_id: actor.organizationId,
+        client_id: clientId,
+        type_key: type.typeKey,
+        title: type.title,
+        document_group: 'other',
+        owners_only: type.ownersOnly,
+        created_by: actor.createdBy,
+      })
+      .select('id')
+      .single();
+    if (created.error) throw fromDatabaseError(created.error, 'create other client document');
+    document = await readDocument(db, created.data.id);
+  }
+  await writeGeneratedDraft(db, files, actor, document, {
+    templateVersionId: template.versionId,
+    generationId: null,
+    bytes,
+    snapshot,
+  });
+  return toDocument(await readDocument(db, document.id), null);
+}
+
+/**
  * A draft is overwritten, hand edits included, which is what the person asked for; an issued
  * document gets a new draft revision and stays as it is until that one is issued.
  */
@@ -474,46 +595,12 @@ export async function regenerateDocument(
     .single();
   if (generation.error) throw fromDatabaseError(generation.error, 'create document generation');
 
-  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
-  if (draft) {
-    await files.writeDocument(draft.docx_path, bytes, { replace: true });
-    const updated = await db
-      .from('document_revisions')
-      .update({
-        template_version_id: template.versionId,
-        generation_id: generation.data.id,
-        data_snapshot: snapshot as Json,
-        // As generated again: nothing of the edit is left.
-        edited_at: null,
-        edited_by: null,
-      })
-      .eq('id', draft.id);
-    if (updated.error) throw fromDatabaseError(updated.error, 'update document revision');
-  } else {
-    const revisionNumber = (latest?.revision ?? 0) + 1;
-    const path = `${actor.organizationId}/${document.client_id}/${document.id}/${revisionNumber}.docx`;
-    const revision = await db
-      .from('document_revisions')
-      .insert({
-        organization_id: actor.organizationId,
-        document_id: document.id,
-        revision: revisionNumber,
-        template_version_id: template.versionId,
-        generation_id: generation.data.id,
-        docx_path: path,
-        data_snapshot: snapshot as Json,
-        created_by: actor.createdBy,
-      })
-      .select('id')
-      .single();
-    if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
-    try {
-      await files.writeDocument(path, bytes, { replace: true });
-    } catch (error) {
-      await db.from('document_revisions').delete().eq('id', revision.data.id);
-      throw error;
-    }
-  }
+  await writeGeneratedDraft(db, files, actor, document, {
+    templateVersionId: template.versionId,
+    generationId: generation.data.id,
+    bytes,
+    snapshot,
+  });
   return toDocument(await readDocument(db, documentId), facts);
 }
 

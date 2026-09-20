@@ -1,0 +1,258 @@
+{
+  "typeKey": "service_contract",
+  "title": "CONTRACT DE PRESTĂRI SERVICII",
+  "number": "Nr. {{contract.number}} din {{contract.date}}",
+  "chapters": [
+    {
+      "heading": "Părțile contractante",
+      "articles": [
+        {
+          "lead": "Prezentul contract se încheie între:",
+          "paragraphs": [
+            "{{provider.legalName}}, cu sediul în {{provider.address}}, telefon {{provider.phone}}, înregistrată la Registrul Comerțului sub nr. {{provider.tradeRegisterNumber}}, cod de înregistrare fiscală {{provider.cui}}, cont bancar {{provider.iban}} deschis la {{provider.bankName}}, reprezentată prin {{provider.representativeName}}, în calitate de {{provider.representativeRole}}, denumită în continuare „prestator”,",
+            "și",
+            "{{client.legalName}}, cu sediul în {{client.address}}{{#client.phone}}, telefon {{client.phone}}{{/client.phone}}, înregistrată la Registrul Comerțului sub nr. {{client.tradeRegisterNumber}}, cod de înregistrare fiscală {{client.cui}}{{#client.activity}}, având activitatea principală CAEN {{client.activity}}{{/client.activity}}, reprezentată prin {{client.representativeName}}, în calitate de {{client.representativeRole}}, denumită în continuare „beneficiar”."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Temeiul legal",
+      "articles": [
+        {
+          "condition": "contract.coversOccupationalSafety",
+          "lead": "Contractul se încheie în temeiul Legii securității și sănătății în muncă nr. 319/2006, art. 8 alin. (4), privind recurgerea la servicii externe de prevenire și protecție, și al Normelor metodologice de aplicare a acesteia, aprobate prin H.G. nr. 1425/2006."
+        },
+        {
+          "condition": "contract.coversOccupationalSafety",
+          "lead": "Prestatorul este serviciu extern de prevenire și protecție în sensul Legii nr. 319/2006, art. 5 lit. p), și își desfășoară activitatea în baza Certificatului de abilitare nr. {{provider.authorization.number}} din {{provider.authorization.date}}, emis de {{provider.authorization.issuer}}, a cărui copie este anexată prezentului contract."
+        },
+        {
+          "condition": "contract.coversFireSafety",
+          "lead": "În domeniul apărării împotriva incendiilor, contractul se încheie în temeiul Legii nr. 307/2006 privind apărarea împotriva incendiilor, art. 12 alin. (1) și (2) și art. 27, al Normelor generale de apărare împotriva incendiilor, aprobate prin Ordinul M.A.I. nr. 163/2007, art. 6 alin. (2), și al Ordinului M.A.I. nr. 106/2007 privind criteriile de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor."
+        },
+        {
+          "condition": "contract.coversFireSafety",
+          "lead": "Atribuțiile de cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor sunt îndeplinite, din partea prestatorului, de {{provider.fireSafetyTechnician.name}}, certificat {{provider.fireSafetyTechnician.certificate}}, a cărui copie este anexată prezentului contract."
+        }
+      ]
+    },
+    {
+      "heading": "Obiectul contractului în domeniul securității și sănătății în muncă",
+      "condition": "contract.coversOccupationalSafety",
+      "articles": [
+        {
+          "lead": "Prestatorul desfășoară pentru beneficiar activitățile de prevenire și protecție prevăzute de H.G. nr. 1425/2006, art. 15 alin. (1), în limitele stabilite de prezentul contract."
+        },
+        {
+          "lead": "Pe baza documentelor și a informațiilor puse la dispoziție de beneficiar, prestatorul:",
+          "items": [
+            "identifică pericolele și evaluează riscurile pentru fiecare componentă a sistemului de muncă (executant, sarcină de muncă, mijloace de muncă și mediu de muncă), pe locuri de muncă și posturi de lucru (H.G. nr. 1425/2006, art. 15 alin. (1) pct. 1);",
+            "elaborează și actualizează planul de prevenire și protecție, ori de câte ori se modifică condițiile de muncă, apar riscuri noi sau se reface evaluarea riscurilor (pct. 2);",
+            "elaborează instrucțiuni proprii pentru completarea și aplicarea reglementărilor de securitate și sănătate în muncă, ținând seama de particularitățile activităților, ale unității și ale posturilor de lucru (pct. 3);",
+            "propune, în scris, atribuțiile și răspunderile în domeniul securității și sănătății în muncă ce revin lucrătorilor, corespunzător funcțiilor exercitate, pentru a fi consemnate în fișa postului (pct. 4);",
+            "întocmește necesarul de documentații cu caracter tehnic de informare și instruire a lucrătorilor și necesarul de mijloace materiale în domeniu (pct. 6 și 31);",
+            "elaborează tematica pentru toate fazele de instruire și propune periodicitatea instruirii și a verificării cunoștințelor pentru fiecare loc de muncă (pct. 7);",
+            "elaborează programul de instruire-testare la nivelul unității și întocmește testele pentru instruirea la angajare și pentru cea periodică (pct. 8);",
+            "identifică echipamentele individuale de protecție necesare pentru posturile de lucru și întocmește necesarul de dotare a lucrătorilor, conform H.G. nr. 1048/2006 (pct. 20);",
+            "întocmește pentru angajator deciziile prin care se organizează activitățile de prevenire și protecție: instruirea lucrătorilor, primul ajutor, stingerea incendiilor și evacuarea lucrătorilor, pericolul grav și iminent, cercetarea evenimentelor;",
+            "efectuează instruirea introductiv-generală a personalului nou angajat și verifică însușirea informațiilor primite (pct. 7);",
+            "oferă sprijin de specialitate la instruirea periodică și la cea suplimentară, efectuate de conducătorii locurilor de muncă, și verifică anual, prin sondaj, cunoștințele lucrătorilor;",
+            "completează fișele individuale de instruire cu materialul predat, datele lucrătorului și rezultatul verificării cunoștințelor;",
+            "efectuează controale interne la locurile de muncă și informează în scris beneficiarul asupra deficiențelor constatate și a măsurilor propuse (pct. 17);",
+            "participă la cercetarea evenimentelor, potrivit competențelor prevăzute de H.G. nr. 1425/2006, art. 108–177 (pct. 22);",
+            "urmărește realizarea măsurilor dispuse de inspectorii de muncă cu prilejul vizitelor de control și al cercetării evenimentelor (pct. 25);",
+            "întocmește convențiile prin care se stabilește colaborarea cu alți angajatori, atunci când aceștia își desfășoară activitatea în locurile de muncă ale beneficiarului (pct. 27);",
+            "informează în scris beneficiarul ori de câte ori este necesară actualizarea planului de prevenire și protecție și a planului de evacuare (pct. 28);",
+            "propune sancțiuni și stimulente pentru lucrători, pe criteriul îndeplinirii atribuțiilor în domeniul securității și sănătății în muncă (pct. 29);",
+            "reface documentația întocmită atunci când se schimbă procesul tehnologic, legislația sau organigrama beneficiarului."
+          ]
+        },
+        {
+          "lead": "La solicitarea beneficiarului sau a organelor de control, prestatorul participă la controalele în domeniul securității și sănătății în muncă, pune la dispoziție documentația întocmită și oferă beneficiarului informațiile de specialitate necesare pentru realizarea la termen a măsurilor dispuse."
+        }
+      ]
+    },
+    {
+      "heading": "Obiectul contractului în domeniul apărării împotriva incendiilor",
+      "condition": "contract.coversFireSafety",
+      "articles": [
+        {
+          "lead": "Prestatorul îndeplinește pentru beneficiar atribuțiile pe linia apărării împotriva incendiilor, potrivit legislației în vigoare și specificului unității."
+        },
+        {
+          "lead": "Pe baza documentelor puse la dispoziție de beneficiar, prestatorul întocmește:",
+          "items": [
+            "dispoziția privind stabilirea modului de organizare și a responsabilităților privind apărarea împotriva incendiilor;",
+            "dispoziția privind organizarea instruirii personalului;",
+            "dispoziția privind reglementarea lucrului cu foc deschis și a fumatului;",
+            "dispoziția privind reglementarea lucrărilor în timpul sezonului rece și în perioadele caniculare și secetoase;",
+            "instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă;",
+            "dispoziția de numire a cadrului tehnic sau a personalului de specialitate cu atribuții în domeniul apărării împotriva incendiilor;",
+            "dispoziția privind colectarea deșeurilor, reziduurilor și ambalajelor combustibile și distrugerea acestora;",
+            "regulile și măsurile de apărare împotriva incendiilor la utilizarea, manipularea, transportul și depozitarea substanțelor periculoase, dacă este cazul;",
+            "registrul instalațiilor de detectare, semnalizare și stingere a incendiilor și registrul pentru evidența permiselor de lucru cu focul;",
+            "fișele de instruire în domeniul situațiilor de urgență, conform reglementărilor specifice;",
+            "rapoartele întocmite în urma controalelor preventive proprii."
+          ]
+        },
+        {
+          "lead": "Prestatorul efectuează anual controale tematice la locurile de muncă ale beneficiarului, îl informează în scris asupra deficiențelor constatate și propune măsuri. Pentru documentele care nu sunt în competența sa (planul de evacuare, planul de intervenție, planul de depozitare, scenariul de securitate la incendiu), prestatorul face propuneri și coordonează întocmirea lor de către persoanele autorizate."
+        }
+      ]
+    },
+    {
+      "heading": "Obligațiile beneficiarului",
+      "articles": [
+        {
+          "lead": "Beneficiarul:",
+          "items": [
+            "pune la dispoziția prestatorului documentele și informațiile solicitate: certificatul constatator, organigrama și lista posturilor de lucru, datele de identificare ale lucrătorilor, fișele de aptitudine, lista și cărțile tehnice ale echipamentelor de muncă, schițele clădirilor;",
+            "anunță în scris prestatorul, în cel mult 5 zile lucrătoare, despre orice angajare, încetare a unui contract de muncă, punct de lucru nou, echipament nou sau schimbare în procesul tehnologic ori în organigramă;",
+            "nu primește la lucru persoane fără contract individual de muncă, fără fișă de aptitudine valabilă și fără instruirea introductiv-generală și instruirea la locul de muncă efectuate și consemnate în fișa individuală de instruire;",
+            "asigură prezența lucrătorilor la instruirile programate și anunță prestatorul cu cel puțin 24 de ore înainte atunci când o instruire trebuie reprogramată;",
+            "asigură, prin conducătorii locurilor de muncă, instruirea la locul de muncă, instruirea periodică și cea suplimentară;",
+            "asigură supravegherea sănătății lucrătorilor prin medicul de medicina muncii și transmite prestatorului o copie a fiecărei fișe de aptitudine;",
+            "acordă lucrătorilor echipamentul individual de protecție corespunzător postului de lucru, îl întreține și îl înlocuiește la termen;",
+            "aprobă documentația întocmită de prestator, emite deciziile propuse și stabilește forma finală a fișelor de post;",
+            "suportă cheltuielile prevăzute în planul de prevenire și protecție;",
+            "anunță de îndată prestatorul și autoritățile competente despre orice eveniment, incident sau accident produs în unitate;",
+            "duce la îndeplinire, la termen, măsurile dispuse de inspectorii de muncă și de inspectorii pentru situații de urgență și comunică în scris modul de realizare;",
+            "informează prestatorul despre contractele încheiate cu alți angajatori care își desfășoară activitatea în locurile sale de muncă sau la care își desfășoară activitatea lucrătorii săi;",
+            "păstrează în siguranță fișele individuale de instruire și registrele de evidență."
+          ]
+        },
+        {
+          "condition": "contract.coversFireSafety",
+          "lead": "În domeniul apărării împotriva incendiilor, beneficiarul asigură și:",
+          "items": [
+            "existența avizelor și a autorizațiilor de securitate la incendiu și a documentației tehnice specifice, acolo unde legea le cere;",
+            "dotarea cu mijloace tehnice de apărare împotriva incendiilor, cu instalații de iluminat de siguranță și de alarmare, certificate potrivit legii, și întreținerea lor la termenele stabilite de producători;",
+            "cuprinderea în bugetul propriu a fondurilor necesare apărării împotriva incendiilor;",
+            "verificarea, prin conducătorii locurilor de muncă, a cunoașterii și aplicării de către lucrători a măsurilor de apărare împotriva incendiilor."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Prețul și modalitatea de plată",
+      "articles": [
+        {
+          "lead": "Prețul serviciilor, negociat de părți, este:",
+          "items": [
+            "DE COMPLETAT lei, la semnarea contractului, pentru întocmirea documentației inițiale;",
+            "DE COMPLETAT lei pe lună, pentru serviciile curente;",
+            "DE COMPLETAT lei pentru fiecare dosar de cercetare a unui eveniment."
+          ]
+        },
+        {
+          "condition": "provider.vatPayer",
+          "lead": "Prețurile nu includ TVA."
+        },
+        {
+          "condition": "provider.notVatPayer",
+          "lead": "Prestatorul nu este plătitor de TVA."
+        },
+        {
+          "lead": "Plata se face în termen de 7 zile calendaristice de la data emiterii facturii, în contul prestatorului menționat în prezentul contract. Pentru fiecare zi de întârziere peste acest termen, beneficiarul datorează o penalitate de 0,1% din suma neachitată, fără ca totalul penalităților să poată depăși suma asupra căreia sunt calculate."
+        },
+        {
+          "lead": "O întârziere la plată mai mare de 60 de zile calendaristice îndreptățește prestatorul să suspende serviciile, după o notificare scrisă transmisă cu 5 zile lucrătoare înainte. Pe durata suspendării, răspunderea pentru activitățile neefectuate revine beneficiarului."
+        },
+        {
+          "lead": "Serviciile care nu sunt cuprinse în obiectul contractului și cheltuielile de deplasare în afara localității sediului prestatorului se stabilesc prin anexe la prezentul contract, semnate de ambele părți."
+        }
+      ]
+    },
+    {
+      "heading": "Durata contractului",
+      "articles": [
+        {
+          "lead": "Contractul se încheie pe o durată de {{contract.durationText}}, începând cu {{contract.startDate}}."
+        },
+        {
+          "condition": "contract.renewsAutomatically",
+          "lead": "Dacă niciuna dintre părți nu notifică în scris celeilalte, cu cel puțin 30 de zile înainte de expirare, că nu dorește continuarea colaborării, contractul se prelungește de drept, pe perioade succesive de {{contract.durationText}}, în aceleași condiții."
+        },
+        {
+          "condition": "contract.endsWithoutRenewal",
+          "lead": "La expirarea duratei, contractul poate fi prelungit numai prin act adițional semnat de ambele părți."
+        }
+      ]
+    },
+    {
+      "heading": "Răspunderea părților",
+      "articles": [
+        {
+          "lead": "Prestatorul răspunde pentru neîndeplinirea sau îndeplinirea necorespunzătoare a obligațiilor asumate prin prezentul contract."
+        },
+        {
+          "lead": "Beneficiarul răspunde, potrivit legii, pentru asigurarea securității și sănătății lucrătorilor în toate aspectele legate de muncă. Încheierea prezentului contract nu îl exonerează de această răspundere (Legea nr. 319/2006, art. 6 alin. (2))."
+        },
+        {
+          "lead": "Prestatorul nu răspunde pentru consecințele informațiilor incomplete sau inexacte primite de la beneficiar și nici pentru cele ale schimbărilor de personal, de echipamente sau de locuri de muncă despre care nu a fost anunțat în scris."
+        },
+        {
+          "lead": "Partea care nu își îndeplinește obligațiile contractuale datorează celeilalte părți despăgubiri pentru prejudiciul dovedit."
+        }
+      ]
+    },
+    {
+      "heading": "Încetarea contractului",
+      "articles": [
+        {
+          "lead": "Contractul încetează la expirarea duratei, dacă nu a fost prelungit, prin acordul scris al părților sau prin denunțare unilaterală de către oricare dintre părți, cu un preaviz scris de 30 de zile."
+        },
+        {
+          "lead": "Oricare dintre părți poate rezilia contractul dacă cealaltă parte nu își îndeplinește o obligație esențială și nu remediază situația în 15 zile de la primirea unei notificări scrise."
+        },
+        {
+          "lead": "Încetarea contractului nu are efect asupra obligațiilor deja scadente între părți. La încetare, prestatorul predă beneficiarului documentația întocmită și neachitată numai după plata ei."
+        }
+      ]
+    },
+    {
+      "heading": "Forța majoră",
+      "articles": [
+        {
+          "lead": "Forța majoră, așa cum este definită de lege, exonerează de răspundere partea care o invocă, dacă aceasta o notifică celeilalte părți în cel mult 5 zile de la apariție și ia măsurile posibile pentru limitarea consecințelor."
+        }
+      ]
+    },
+    {
+      "heading": "Confidențialitatea și protecția datelor cu caracter personal",
+      "articles": [
+        {
+          "lead": "Părțile păstrează confidențialitatea informațiilor și a documentelor de care iau cunoștință în executarea contractului, inclusiv a prețurilor convenite, pe durata contractului și 3 ani după încetarea lui."
+        },
+        {
+          "lead": "Pentru întocmirea documentației și a fișelor de instruire, prestatorul prelucrează date cu caracter personal ale lucrătorilor beneficiarului, în numele acestuia, în calitate de persoană împuternicită în sensul Regulamentului (UE) 2016/679, art. 28. Prestatorul prelucrează datele numai pe baza instrucțiunilor documentate ale beneficiarului și numai în scopul executării contractului, asigură confidențialitatea și securitatea lor, nu le transmite unor terți fără acordul beneficiarului și, la încetarea contractului, le restituie sau le șterge, la alegerea acestuia, cu excepția celor pe care legea îl obligă să le păstreze."
+        }
+      ]
+    },
+    {
+      "heading": "Dispoziții finale",
+      "articles": [
+        {
+          "lead": "Documentația întocmită de prestator rămâne beneficiarului și nu poate fi transmisă de acesta unor terți, cu excepția autorităților de control, fără acordul scris al prestatorului."
+        },
+        {
+          "lead": "Pe durata contractului, beneficiarul nu încheie cu un alt prestator un contract având același obiect, pentru a evita suprapunerea răspunderilor."
+        },
+        {
+          "lead": "Contractul poate fi modificat numai prin act adițional semnat de ambele părți. Anexele fac parte integrantă din contract."
+        },
+        {
+          "lead": "Neînțelegerile dintre părți se rezolvă pe cale amiabilă, iar în lipsa unui acord, de instanțele judecătorești competente."
+        },
+        {
+          "lead": "Prezentul contract a fost încheiat astăzi, {{contract.date}}, în două exemplare, câte unul pentru fiecare parte."
+        }
+      ]
+    }
+  ],
+  "signatures": {
+    "provider": "Prestator,",
+    "client": "Beneficiar,"
+  }
+}

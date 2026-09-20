@@ -89,9 +89,16 @@ export const serviceContractResponseSchema = z.object({
   readiness: z.object({ ready: z.boolean(), missing: z.array(missingServiceContractDataSchema) }),
   // Null until the contract is generated.
   document: clientDocumentSchema.nullable(),
+  // The details or the facts changed since the draft was generated: generating again would
+  // print something else. Never for an issued revision, which records what it was built from.
+  draftOutdated: z.boolean(),
 });
 
 export type ServiceContractResponse = z.infer<typeof serviceContractResponseSchema>;
 
 // Reasons of a 409 that the app words itself.
-export const serviceContractConflictReasons = { numberTaken: 'contract_number_taken' } as const;
+export const serviceContractConflictReasons = {
+  numberTaken: 'contract_number_taken',
+  missingData: 'missing_contract_data',
+  templateMissing: 'template_missing',
+} as const;

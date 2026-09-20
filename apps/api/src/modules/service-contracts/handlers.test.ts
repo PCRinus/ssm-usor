@@ -2,6 +2,18 @@ import { apiErrorResponseSchema, serviceContractResponseSchema } from '@ssm-usor
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+
+// The engine is tested against the real template with the scripts. Here it prints whatever
+// the data holds, which is what the snapshot then records.
+vi.mock('@ssm-usor/document-engine', () => ({
+  TemplateError: class TemplateError extends Error {},
+  documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
+  renderTemplate: (_template: Uint8Array, data: Record<string, unknown>) => ({
+    document: new Uint8Array([80, 75, 3, 4]),
+    usedNames: Object.keys(data),
+  }),
+}));
+
 import type { ApiEnv } from '../../lib/env';
 import { endDateOf, missingServiceContractData, type ServiceContractFacts } from './facts';
 
@@ -67,6 +79,38 @@ const contractRow = {
   covers_occupational_safety: true,
   covers_fire_safety: false,
 };
+const documentId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
+const revisionId = '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d';
+const templateRow = {
+  type_key: 'service_contract',
+  title: 'Contract de prestări servicii',
+  document_template_versions: [
+    { id: 'v1', version: 1, storage_path: 'built-in/service_contract/a.docx' },
+  ],
+};
+const draftRow = {
+  id: revisionId,
+  revision: 1,
+  status: 'draft',
+  docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
+  pdf_path: null,
+  generation_id: null,
+  data_snapshot: null as unknown,
+  edited_at: null,
+  issued_at: null,
+  created_at: '2026-09-21T10:00:00+00:00',
+  document_generations: null,
+};
+const documentRow = {
+  id: documentId,
+  client_id: clientId,
+  type_key: 'service_contract',
+  title: 'Contract de prestări servicii',
+  decision_number: null,
+  document_group: 'other',
+  document_revisions: [draftRow],
+};
+
 const validBody = {
   contractNumber: 51,
   contractDate: '2026-02-15',
@@ -75,14 +119,37 @@ const validBody = {
 };
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
-type Upstream = 'membership' | 'clients' | 'organizations' | 'contracts' | 'documents';
+type Upstream =
+  | 'membership'
+  | 'clients'
+  | 'organizations'
+  | 'contracts'
+  | 'documents'
+  | 'templates'
+  | 'revisions'
+  | 'upload';
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.pathname.startsWith('/storage/v1/object/document-templates/')) {
+      return new Response(new Uint8Array([1, 2, 3]));
+    }
+    if (url.pathname.startsWith('/storage/v1/object/documents')) {
+      return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
+    }
     switch (url.pathname) {
+      case '/rest/v1/document_templates':
+        return handlers.templates?.(init, url) ?? Response.json([templateRow]);
+      case '/rest/v1/document_revisions':
+        return (
+          handlers.revisions?.(init, url) ??
+          (init?.method === 'POST'
+            ? Response.json({ id: revisionId })
+            : new Response(null, { status: 204 }))
+        );
       case '/auth/v1/user':
         return Response.json(user);
       case '/rest/v1/rpc/current_membership':
@@ -212,6 +279,7 @@ describe('GET /clients/{clientId}/service-contract', () => {
       clientRepresentative: { name: 'Adnana POPA', role: 'Administrator' },
       readiness: { ready: true, missing: [] },
       document: null,
+      draftOutdated: false,
     });
     const [documents] = calls('/rest/v1/client_documents')[0]!;
     expect(new URL(String(documents)).searchParams.get('type_key')).toBe('eq.service_contract');
@@ -352,5 +420,122 @@ describe('PUT /clients/{clientId}/service-contract', () => {
 
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await request('PUT', validBody)).status).toBe(403);
+  });
+});
+
+describe('POST /clients/{clientId}/service-contract/generate', () => {
+  const generate = () =>
+    createApp().request(
+      `/clients/${clientId}/service-contract/generate`,
+      { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
+      env
+    );
+  // A list of a client's documents by type is an array; one document by id is an object.
+  const documents =
+    (existing: unknown[], byId: unknown = documentRow): Handler =>
+    (init, url) =>
+      init?.method === 'POST'
+        ? Response.json({ id: documentId }, { status: 201 })
+        : url.searchParams.has('id')
+          ? Response.json(byId)
+          : Response.json(existing);
+
+  it('creates the contract as a document of the owners, with its first draft', async () => {
+    mockUpstream({ documents: documents([], { ...documentRow, document_revisions: [] }) });
+    const response = await generate();
+    expect(response.status).toBe(200);
+    const body = serviceContractResponseSchema.parse(await response.json());
+    expect(body.document).toBeNull();
+
+    expect(JSON.parse(String(calls('/rest/v1/client_documents', 'POST')[0]![1]?.body))).toEqual({
+      organization_id: organizationId,
+      client_id: clientId,
+      type_key: 'service_contract',
+      title: 'Contract de prestări servicii',
+      document_group: 'other',
+      owners_only: true,
+      created_by: user.id,
+    });
+    const revision = JSON.parse(String(calls('/rest/v1/document_revisions', 'POST')[0]![1]?.body));
+    expect(revision).toMatchObject({
+      revision: 1,
+      template_version_id: 'v1',
+      generation_id: null,
+      docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
+    });
+    expect(Object.keys(revision.data_snapshot).sort()).toEqual([
+      'branding',
+      'client',
+      'contract',
+      'provider',
+    ]);
+    expect(revision.data_snapshot.contract.number).toBe(51);
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input, init]) =>
+          String(input).includes('/storage/v1/object/documents/') && init?.method === 'POST'
+      )
+    ).toHaveLength(1);
+  });
+
+  it('overwrites the draft that is there, as not edited', async () => {
+    mockUpstream({ documents: documents([documentRow]) });
+    expect((await generate()).status).toBe(200);
+    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+    expect(
+      JSON.parse(String(calls('/rest/v1/document_revisions', 'PATCH')[0]![1]?.body))
+    ).toMatchObject({ template_version_id: 'v1', edited_at: null, edited_by: null });
+  });
+
+  it('says what is missing, and generates nothing', async () => {
+    mockUpstream({
+      organizations: () => Response.json({ ...organizationRow, iban: null }),
+      documents: documents([]),
+    });
+    const response = await generate();
+    expect(response.status).toBe(409);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.reason).toBe('missing_contract_data');
+    expect(error.message).toContain('provider.bankAccount');
+    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+  });
+
+  it('refuses an archived client, a missing template, and a specialist', async () => {
+    mockUpstream({
+      clients: () => Response.json([{ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }]),
+    });
+    const archived = await generate();
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
+
+    mockUpstream({ templates: () => Response.json([]), documents: documents([]) });
+    const untemplated = await generate();
+    expect(untemplated.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await untemplated.json()).reason).toBe('template_missing');
+
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await generate()).status).toBe(403);
+  });
+
+  it('tells a draft that would now print something else from one that would not', async () => {
+    const printed = (number: number) => ({
+      ...documentRow,
+      document_revisions: [{ ...draftRow, data_snapshot: { contract: { number } } }],
+    });
+    const request = () =>
+      createApp().request(
+        `/clients/${clientId}/service-contract`,
+        { headers: { Authorization: 'Bearer test-access-token' } },
+        env
+      );
+    mockUpstream({ documents: () => Response.json([printed(51)]) });
+    const same = serviceContractResponseSchema.parse(await (await request()).json());
+    // The snapshot of the test holds only the number, and the rest of `contract` differs.
+    expect(same.draftOutdated).toBe(true);
+
+    mockUpstream({ documents: () => Response.json([{ ...documentRow }]) });
+    const uploaded = serviceContractResponseSchema.parse(await (await request()).json());
+    expect(uploaded.document?.draft?.revision).toBe(1);
+    expect(uploaded.draftOutdated).toBe(false);
   });
 });

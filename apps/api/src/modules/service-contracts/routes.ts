@@ -66,3 +66,24 @@ export const saveServiceContractRoute = createRoute({
     },
   },
 });
+
+export const generateServiceContractRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/service-contract/generate',
+  operationId: 'generateServiceContract',
+  summary: 'Generate the service contract from its template, or generate it again',
+  description:
+    'Owners only. Merges the starter template with the organization, the client and the saved details. A draft is overwritten, hand edits included; beside an issued contract the next revision starts as a draft and the issued one stays in force. Prices are printed as "DE COMPLETAT" for the owner to write in the editor, and issuing warns while one is left. From then on the contract is a document like the others: saving, issuing, starting a draft from the issued file, deleting a draft and downloading go through `/documents/{documentId}`.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: { params: clientParams },
+  responses: {
+    ...responses,
+    400: { description: 'Invalid path', content: errorContent },
+    409: {
+      description:
+        'Something the contract prints is missing (`missing_contract_data`), no template is registered (`template_missing`), or the client is archived',
+      content: errorContent,
+    },
+  },
+});

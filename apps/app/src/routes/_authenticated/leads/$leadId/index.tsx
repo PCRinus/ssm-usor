@@ -14,6 +14,7 @@ import { ContactCard } from '../../../../clients/contact-card';
 import { OwnerNotesCard } from '../../../../clients/owner-notes-card';
 import { Notice } from '../../../../components/notice';
 import { PromoteLeadDialog } from '../../../../leads/promote-lead-dialog';
+import { ServiceContractCard } from '../../../../service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
   component: LeadPage,
@@ -119,6 +120,18 @@ export function LeadPage() {
       )}
       <div className="grid gap-6">
         <ContactCard client={lead} readOnly={archived} />
+        <ServiceContractCard
+          client={lead}
+          userId={session.user.id}
+          readOnly={archived}
+          editor={(children, testId) => (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/leads/$leadId/contract" params={{ leadId: lead.id }} data-testid={testId}>
+                {children}
+              </Link>
+            </Button>
+          )}
+        />
         <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={archived} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />

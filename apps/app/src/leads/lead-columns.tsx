@@ -1,4 +1,5 @@
 import { formatCui } from '@ssm-usor/contracts';
+import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -57,6 +58,25 @@ export function leadColumns(
               <span className="mt-0.5 block text-xs text-muted-foreground">{reach}</span>
             )}
           </>
+        );
+      },
+    }),
+    helper.display({
+      id: 'contract',
+      header: 'Contract',
+      meta: { skeletonClassName: 'w-20' },
+      cell: ({ row }) => {
+        const state = row.original.serviceContractState;
+        return state === 'issued' ? (
+          <Badge data-testid="leads-contract">Emis</Badge>
+        ) : state === 'draft' ? (
+          <Badge variant="secondary" data-testid="leads-contract">
+            Ciornă
+          </Badge>
+        ) : (
+          <span data-testid="leads-contract" className="text-muted-foreground">
+            Fără contract
+          </span>
         );
       },
     }),

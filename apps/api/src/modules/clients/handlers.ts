@@ -5,6 +5,7 @@ import {
   type ClientSortKey,
   normalizeCui,
   pageRange,
+  serviceContractTypeKey,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -57,7 +58,21 @@ type SelectedClientRow = Pick<
   | 'archived_at'
 >;
 
-export function toClient(row: SelectedClientRow): Client {
+type ContractDocuments = {
+  client_documents?: { type_key: string; document_revisions: { status: string }[] }[];
+};
+
+function serviceContractState({ client_documents: documents }: ContractDocuments) {
+  if (!documents) return null;
+  const statuses =
+    documents
+      .find((document) => document.type_key === serviceContractTypeKey)
+      ?.document_revisions.map((revision) => revision.status) ?? [];
+  // A draft beside an issued contract is a correction in progress: the contract is issued.
+  return statuses.includes('issued') ? 'issued' : statuses.includes('draft') ? 'draft' : 'none';
+}
+
+export function toClient(row: SelectedClientRow & ContractDocuments): Client {
   return {
     id: row.id,
     legalName: row.legal_name,
@@ -76,6 +91,7 @@ export function toClient(row: SelectedClientRow): Client {
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
     promotedAt: row.promoted_at,
+    serviceContractState: serviceContractState(row),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -102,10 +118,23 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
   if (stage === 'lead') requireOwnerForLeads(c.get('membership').role);
   const db = createDataClient(c);
   const listed = () => {
-    const clients = db.from('clients').select(clientColumns, { count: 'exact' }).eq('stage', stage);
-    return status === 'archived'
-      ? clients.not('archived_at', 'is', null)
-      : clients.is('archived_at', null);
+    const clients = db
+      .from('clients')
+      // The contract of a lead is what says where the lead stands. Owners only, as leads are.
+      // Each pair of tables is linked twice, by id and by id with organization, so the
+      // relationship is named.
+      .select(
+        stage === 'lead'
+          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status))`
+          : clientColumns,
+        { count: 'exact' }
+      )
+      .eq('stage', stage);
+    return (
+      status === 'archived'
+        ? clients.not('archived_at', 'is', null)
+        : clients.is('archived_at', null)
+    ).returns<(SelectedClientRow & ContractDocuments)[]>();
   };
   let query = listed();
   for (const column of sortColumns[sort])
