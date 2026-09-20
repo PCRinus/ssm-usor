@@ -160,7 +160,6 @@ function Form({
                   disabled={busy}
                   invalid={Boolean(errors.jobPosition)}
                   describedBy={errors.jobPosition ? 'employee-position-error' : undefined}
-                  modal
                 />
               )}
             />

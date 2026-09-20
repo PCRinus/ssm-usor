@@ -33,7 +33,9 @@ export function Field({
 }) {
   return (
     <div className={cn('grid min-w-0 content-start gap-2', className)}>
-      <Label htmlFor={id} className="gap-1">
+      {/* The label names the control for assistive technology but does not act for it: a click
+          beside a picker opened its list, and the row is as wide as the field. */}
+      <Label htmlFor={id} className="w-fit gap-1" onClick={(event) => event.preventDefault()}>
         {label}
         {mark === 'required' && (
           <>

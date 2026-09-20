@@ -10,7 +10,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@ssm-usor/ui/components/popover';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
 export interface ComboboxItem {
   value: string;
@@ -41,7 +41,7 @@ export function SearchCombobox({
   disabled,
   invalid,
   describedBy,
-  modal = false,
+  descriptionClassName,
 }: {
   id: string;
   testId: string;
@@ -62,14 +62,24 @@ export function SearchCombobox({
   unknownLabel?: string;
   // A row under the list that stays whatever is typed, for what the list cannot offer: adding
   // a new item. It receives the text typed so far.
-  action?: { label: string; testId: string; onSelect: (search: string) => void };
+  // The label may follow the text ("Folosește „X”"), and the row can wait for enough of it.
+  action?: {
+    label: string | ((search: string) => string);
+    testId: string;
+    onSelect: (search: string) => void;
+    disabled?: (search: string) => boolean;
+  };
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
-  modal?: boolean;
+  descriptionClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  // A dialog swallows wheel and touch scrolling outside its own content, and this popover is
+  // portaled out of it. A modal popover takes that lock over, so its list scrolls again.
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [insideDialog, setInsideDialog] = useState(false);
   const selected = items.find((item) => item.value === value);
   const candidate = unknownValue?.(search) ?? null;
 
@@ -81,9 +91,10 @@ export function SearchCombobox({
 
   return (
     <Popover
-      modal={modal}
+      modal={insideDialog}
       open={open}
       onOpenChange={(next) => {
+        if (next) setInsideDialog(Boolean(trigger.current?.closest('[role="dialog"]')));
         setOpen(next);
         if (!next) {
           setSearch('');
@@ -93,6 +104,7 @@ export function SearchCombobox({
     >
       <PopoverTrigger asChild>
         <button
+          ref={trigger}
           id={id}
           type="button"
           role="combobox"
@@ -162,7 +174,9 @@ export function SearchCombobox({
                 >
                   <span className="shrink-0 font-medium tabular-nums">{item.label}</span>
                   {item.description && (
-                    <span className="min-w-0 flex-1 leading-snug">{item.description}</span>
+                    <span className={cn('min-w-0 flex-1 leading-snug', descriptionClassName)}>
+                      {item.description}
+                    </span>
                   )}
                   <Check
                     className={cn(
@@ -182,6 +196,7 @@ export function SearchCombobox({
                     forceMount
                     value="   adaugă"
                     data-testid={action.testId}
+                    disabled={action.disabled?.(search.trim())}
                     onSelect={() => {
                       const typed = search.trim();
                       setOpen(false);
@@ -190,7 +205,7 @@ export function SearchCombobox({
                     }}
                   >
                     <Plus aria-hidden="true" />
-                    {action.label}
+                    {typeof action.label === 'string' ? action.label : action.label(search.trim())}
                   </CommandItem>
                 </CommandGroup>
               </>

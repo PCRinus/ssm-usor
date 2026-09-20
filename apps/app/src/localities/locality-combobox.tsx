@@ -29,6 +29,11 @@ export function LocalityCombobox({
     gcTime: Infinity,
   });
 
+  const listed = (typed: string) =>
+    localities.data?.find(
+      (item) => item.value.toLocaleLowerCase('ro') === typed.toLocaleLowerCase('ro')
+    )?.value;
+
   return (
     <SearchCombobox
       {...props}
@@ -40,14 +45,15 @@ export function LocalityCombobox({
       searchPlaceholder="Numele localității"
       emptyMessage="Nicio localitate cu acest nume."
       clearLabel="Șterge localitatea aleasă"
+      descriptionClassName="truncate text-muted-foreground"
       // The register does not know every way an address names a place ("București"), and a
       // value saved before this list existed has to stay selectable.
-      unknownValue={(search) => {
-        const typed = search.trim();
-        const listed = localities.data?.some(
-          (item) => item.value.toLocaleLowerCase('ro') === typed.toLocaleLowerCase('ro')
-        );
-        return typed.length >= 2 && !listed ? typed : null;
+      action={{
+        testId: `${props.testId}-other`,
+        label: (typed) =>
+          typed.length >= 2 ? `Folosește „${typed}”` : 'Nu e în listă? Scrie numele ei mai sus.',
+        disabled: (typed) => typed.length < 2,
+        onSelect: (typed) => props.onChange(listed(typed) ?? typed),
       }}
       disabled={props.disabled || (!load && !props.value)}
     />

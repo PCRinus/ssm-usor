@@ -71,7 +71,6 @@ export function EmployeeCombobox({
       searchPlaceholder="Numele sau funcția"
       emptyMessage="Niciun angajat cu acest nume."
       clearLabel="Renunță la angajatul ales"
-      modal
       disabled={disabled || employees.isPending}
       invalid={invalid}
       describedBy={describedBy}
