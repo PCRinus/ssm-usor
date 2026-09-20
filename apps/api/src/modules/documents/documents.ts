@@ -701,6 +701,64 @@ export async function uploadDocumentFile(
   return toDocument(await readDocument(db, documentId), facts);
 }
 
+/**
+ * A correction that keeps what was written by hand: the next draft starts as a copy of the
+ * issued file. Regenerating is the other way to one, from the template and today's data.
+ */
+export async function startDraftFromIssued(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string
+) {
+  const document = await readDocument(db, documentId);
+  if (document.document_revisions.some((revision) => revision.status === 'draft')) {
+    throw new ApiError('conflict', 'This document already has a draft.', undefined, 'draft_exists');
+  }
+  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  if (!issued)
+    throw new ApiError('conflict', 'This document has no issued revision to start from.');
+  await requireActiveClient(db, document.client_id);
+
+  const source = await db
+    .from('document_revisions')
+    .select('template_version_id, edited_at, edited_by')
+    .eq('id', issued.id)
+    .single();
+  if (source.error) throw fromDatabaseError(source.error, 'read issued document revision');
+  const bytes = await files.readDocument(issued.docx_path);
+
+  const number = (newest(document)?.revision ?? 0) + 1;
+  const path = `${actor.organizationId}/${document.client_id}/${document.id}/${number}.docx`;
+  const revision = await db
+    .from('document_revisions')
+    .insert({
+      organization_id: actor.organizationId,
+      document_id: document.id,
+      revision: number,
+      // The same file, so the same origin: the snapshot keeps saying what the file prints,
+      // and data changed since then shows on the draft as it would have on the issued one.
+      template_version_id: source.data.template_version_id,
+      generation_id: issued.generation_id,
+      data_snapshot: issued.data_snapshot,
+      edited_at: source.data.edited_at,
+      edited_by: source.data.edited_by,
+      docx_path: path,
+      created_by: actor.createdBy,
+    })
+    .select('id')
+    .single();
+  if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
+  try {
+    await files.writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    await db.from('document_revisions').delete().eq('id', revision.data.id);
+    throw error;
+  }
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
 /** What was issued before stays as it is. */
 export async function deleteDraft(db: DataClient, files: FileStore, documentId: string) {
   const document = await readDocument(db, documentId);

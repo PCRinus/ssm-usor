@@ -466,6 +466,30 @@ describe('client documents', () => {
     expect(requests(`/documents/${firstAidId}/draft`, 'DELETE')).toHaveLength(1);
   });
 
+  it('starts a draft from an issued document and opens it, and says what regenerating leaves out', async () => {
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    mockApi({ items: [{ ...firstAid, draft: null, issued }, report] });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'Referat de control');
+    expect(screen.queryByTestId('document-start-draft')).toBeNull();
+    await user.keyboard('{Escape}');
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-regenerate'));
+    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+      'Ca să le păstrezi, alege „Modifică documentul emis”'
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('document-confirm-dialog')).toBeNull());
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-start-draft'));
+    await waitFor(() => expect(requests(`/documents/${firstAidId}/draft`, 'POST')).toHaveLength(1));
+    expect(await screen.findByTestId('editor-back')).toBeTruthy();
+  });
+
   it('points to the generation form when regenerating is refused for missing data', async () => {
     mockApi({
       items: [firstAid],

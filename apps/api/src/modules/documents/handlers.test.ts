@@ -689,6 +689,82 @@ describe('POST /documents/{documentId}/issue', () => {
   });
 });
 
+describe('POST /documents/{documentId}/draft', () => {
+  const start = () => request(`/documents/${documentId}/draft`, 'POST');
+  const issued = { ...issuedRevision, generation_id: generationId };
+  const editedAt = '2026-09-19T10:30:00+00:00';
+  const revisions: Handler = (init) =>
+    init?.method === 'POST'
+      ? Response.json({ id: revisionId })
+      : init?.method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : Response.json({ template_version_id: 'v2', edited_at: editedAt, edited_by: user.id });
+  const issuedDocument = () => Response.json({ ...documentRow, document_revisions: [issued] });
+
+  it('copies the issued file into revision 2, with where it came from', async () => {
+    const file = new Uint8Array([80, 75, 3, 4, 9, 9]);
+    mockUpstream({ documents: issuedDocument, revisions, file: () => new Response(file) });
+    const response = await start();
+    expect(response.status).toBe(200);
+    clientDocumentResponseSchema.parse(await response.json());
+
+    expect(sentBody('/rest/v1/document_revisions')).toMatchObject({
+      revision: 2,
+      docx_path: `${organizationId}/${clientId}/${documentId}/2.docx`,
+      template_version_id: 'v2',
+      generation_id: generationId,
+      data_snapshot: issued.data_snapshot,
+      edited_at: editedAt,
+      edited_by: user.id,
+    });
+    const [read] = calls('/storage/v1/object/documents/');
+    expect(String(read![0])).toContain(issued.docx_path);
+    const [written] = calls('/storage/v1/object/documents/', 'POST');
+    expect(String(written![0])).toContain('/2.docx');
+    expect(new Uint8Array(await new Response(written![1]?.body).arrayBuffer())).toEqual(file);
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+  });
+
+  it('refuses a document that has a draft, and one with nothing issued', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          document_revisions: [issued, { ...revisionRow, revision: 2 }],
+        }),
+    });
+    const taken = await start();
+    expect(taken.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await taken.json()).reason).toBe('draft_exists');
+
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [] }),
+    });
+    expect((await start()).status).toBe(409);
+    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+  });
+
+  it('starts nothing for an archived client, before reading the file', async () => {
+    mockUpstream({
+      documents: issuedDocument,
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    expect((await start()).status).toBe(409);
+    expect(calls('/storage/v1/object/documents/')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+  });
+
+  it('removes the revision again when the file cannot be stored', async () => {
+    mockUpstream({
+      documents: issuedDocument,
+      revisions,
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await start()).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
+  });
+});
+
 describe('DELETE /documents/{documentId}/draft', () => {
   const remove = () => request(`/documents/${documentId}/draft`, 'DELETE');
 

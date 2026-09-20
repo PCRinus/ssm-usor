@@ -212,4 +212,15 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   });
   await expect(page.getByTestId('editor-state')).toHaveText('Emis · rev. 1');
   await expect(page.getByTestId('editor-save')).toHaveCount(0);
+
+  await page.getByTestId('editor-start-draft').click();
+  await expect(page.getByTestId('editor-state')).toHaveText('Ciornă · rev. 2');
+  await expect(page.getByTestId('editor-frame').getByText('CORECTAT ÎN APLICAȚIE')).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('editor-save')).toBeDisabled();
+  await page.getByTestId('editor-back').click();
+  await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await expect(firstAid.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
+  await expect(firstAid.getByTestId('document-edited')).toHaveText('Modificat');
 });
