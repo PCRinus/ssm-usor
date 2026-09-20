@@ -8,8 +8,9 @@ A separate manual **Seed database** workflow seeds the hosted project on demand;
 ## Change selection
 
 `dorny/paths-filter` reads `.github/filters.yml`. For PRs it uses GitHub's changed-file list;
-for pushes it compares the pre-push commit with the pushed revision, including every commit
-in that push. The workflow itself is not path-filtered, so **Validate repository** remains
+for pushes to `main` it compares the pushed revision with the commit of the last run on `main`
+that succeeded, so everything since the last complete deployment is in the comparison. A run
+started by hand skips the comparison and selects everything (see below). The workflow itself is not path-filtered, so **Validate repository** remains
 available as a required PR check, including on documentation-only changes.
 
 | Changed files                                                                                                                             | Build/deployment targets                             |
@@ -69,8 +70,9 @@ does not ask for confirmation in CI, so the job prints `supabase config diff` fi
 refuses to run when the file has no `[remotes]` block for the project. It needs
 `SUPABASE_AUTH_HOOK_SECRET`, which the API deployment uploads too.
 
-Selection compares a push with the commit before it, so a deployment that failed is not
-retried by a later push that leaves its files alone. The database and configuration
+Selection compares a push with the last run on `main` that succeeded, so what a failed,
+cancelled or superseded run carried is selected again by the next push, whatever that push
+touches. The database and configuration
 deployments do nothing when there is nothing to apply, which is why workflow files select
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
@@ -108,8 +110,21 @@ run to cancel an outstanding application's release. GitHub permits up to 100 pen
 overflow, manual cancellation, and workflow failures still require attention. PR validation
 jobs cancel superseded checks without canceling production work.
 
-There is no custom tracking of the last deployed commit. A failed API release is not
-implicitly retried by a later marketing-only push. Resolve deployment failures explicitly:
+The last deployed commit is taken to be the head of the last run on `main` that succeeded,
+read from the Actions API by the job "Select affected applications"; when there is none, or
+its commit is gone, the push before is used instead. Merging several pull requests in a row
+leaves one run alive, and that run now selects what the others would have deployed. A run
+that failed stays the concern of whoever merged: the next push retries what it carried, which
+is safe because every deployment here can be repeated, and may not be what is wanted when
+the failure was the change itself.
+
+**Deploying everything by hand.** Actions → CI → "Run workflow" on `main` runs the whole
+sequence with every application, the migrations, the configuration and the templates
+selected, whatever changed. It is for an environment that was wiped, a rotated secret, or a
+deployment that failed halfway and is easier to repeat whole. On any other branch it
+validates and deploys nothing.
+
+Otherwise, resolve deployment failures explicitly:
 
 1. Fix the underlying problem and rerun the failed deployment job while its artifact is
    available. Successful jobs need not be rerun.
@@ -121,5 +136,5 @@ implicitly retried by a later marketing-only push. Resolve deployment failures e
    in mind when rolling back either independently.
 
 GitHub processes queued runs by when they enter the queue, not by Git ancestry. Avoid
-replaying old runs after newer releases. Monitor failed or canceled main runs rather than
-assuming a later unrelated push has recovered them.
+replaying old runs after newer releases. A later push does pick up what a failed or cancelled
+run carried; check that it succeeded rather than assume it.

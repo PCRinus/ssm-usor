@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+  # Run by hand from the Actions tab, on main: deploys everything whatever changed. For an
+  # environment that was wiped, a rotated secret, or a deployment that failed halfway.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,7 +15,7 @@ permissions:
 # Serialize entire main runs, including validation, builds, and deployment.
 # PR runs use separate groups; their validation jobs cancel superseded checks below.
 concurrency:
-  group: ci-${{ github.event_name == 'push' && github.ref || github.run_id }}
+  group: ci-${{ github.event_name != 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: false
   queue: max
 
@@ -24,33 +27,66 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      # To find the last run that deployed.
+      actions: read
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      app: ${{ steps.filter.outputs.app }}
-      mail: ${{ steps.filter.outputs.mail }}
-      pdf: ${{ steps.filter.outputs.pdf }}
-      marketing: ${{ steps.filter.outputs.marketing }}
-      database: ${{ steps.filter.outputs.database }}
-      projects: ${{ steps.projects.outputs.projects }}
+      api: ${{ steps.select.outputs.api }}
+      app: ${{ steps.select.outputs.app }}
+      mail: ${{ steps.select.outputs.mail }}
+      pdf: ${{ steps.select.outputs.pdf }}
+      marketing: ${{ steps.select.outputs.marketing }}
+      database: ${{ steps.select.outputs.database }}
+      projects: ${{ steps.select.outputs.projects }}
+      # Whether this run deploys: a push to main, or a run started by hand on main.
+      deploy: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Detect changes across the PR or entire push
+      # A push is compared with the commit of the last run on main that succeeded, not with
+      # the push before it: a run that was cancelled, superseded or failed deployed nothing, so
+      # what it carried has to be selected again by the next one. Without such a run (or when
+      # its commit is gone) the comparison falls back to the push before.
+      - name: Find the last commit that was deployed
+        id: baseline
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty' || true)
+          if [[ -n "$sha" ]] && git fetch --no-tags --depth=1 origin "$sha" 2>/dev/null; then
+            echo "Comparing with $sha, the last commit a run on main succeeded for."
+            echo "base=$sha" >> "$GITHUB_OUTPUT"
+          else
+            echo "No usable successful run; comparing with the push before this one."
+            echo "base=$GITHUB_REF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect changes across the PR or since the last deployment
         id: filter
+        if: github.event_name != 'workflow_dispatch'
         uses: dorny/paths-filter@v4
         with:
-          # On pushes, comparing to the same branch uses the pre-push SHA.
-          # PRs use GitHub's changed-file list instead.
-          base: ${{ github.ref }}
+          # PRs use GitHub's changed-file list instead, whatever the base.
+          base: ${{ steps.baseline.outputs.base || github.ref }}
           filters: .github/filters.yml
 
-      # The database filter selects its own job, not a deployable workspace.
+      # The database filter selects its own job, not a deployable workspace. A run started by
+      # hand selects everything.
       - name: Select deployable applications
-        id: projects
+        id: select
         env:
-          CHANGES: ${{ steps.filter.outputs.changes }}
+          EVERYTHING: ${{ github.event_name == 'workflow_dispatch' }}
+          CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
-        run: echo "projects=$(jq -c 'map(select(. != "database" and . != "templates"))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+        run: |
+          all='["api","app","mail","pdf","marketing","database"]'
+          if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
+          for name in $(jq -r '.[]' <<< "$all"); do
+            echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          done
+          echo "projects=$(jq -c 'map(select(. != "database" and . != "templates"))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -199,7 +235,7 @@ jobs:
     # Alongside validation, to keep it off the critical path. Nothing built here is deployed
     # unless validation succeeds too: every deployment job needs both.
     needs: changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.projects != '[]'
+    if: needs.changes.outputs.deploy == 'true' && needs.changes.outputs.projects != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
@@ -262,7 +298,7 @@ jobs:
   deploy-database:
     name: Deploy database migrations
     needs: [changes, validate]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.database == 'true'
+    if: needs.changes.outputs.deploy == 'true' && needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -304,7 +340,7 @@ jobs:
     # is fine only when the database was not selected.
     if: >-
       !cancelled() &&
-      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.deploy == 'true' &&
       needs.validate.result == 'success' &&
       (needs.deploy-database.result == 'success' ||
         (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
@@ -514,7 +550,7 @@ jobs:
     # and skipped, something before it failed and the endpoint may be missing.
     if: >-
       !cancelled() &&
-      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.deploy == 'true' &&
       needs.changes.outputs.database == 'true' &&
       needs.validate.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
