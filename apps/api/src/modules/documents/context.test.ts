@@ -81,13 +81,17 @@ describe('the merge context', () => {
       ...facts,
       client: {
         ...facts.client,
-        periodicTrainingHours: 1,
+        periodicTrainingMinutes: 60,
         administrativeTrainingIntervalMonths: 12,
         workerTrainingIntervalMonths: 2,
         trainingFirstMonth: 9,
       },
     });
     expect(other.training.periodicDuration).toBe('1 oră');
+    expect(
+      buildDocumentContext({ ...facts, client: { ...facts.client, periodicTrainingMinutes: 90 } })
+        .training.periodicDuration
+    ).toBe('1 oră și 30 de minute');
     expect(other.training.administrativeFrequency).toBe('ANUAL');
     expect(other.training.administrativeMonths).toBe('septembrie');
     expect(other.training.workerFrequency).toBe('LA 2 LUNI');

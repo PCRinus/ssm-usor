@@ -1,5 +1,6 @@
 import {
   decisionTypeKeys,
+  formatTrainingDuration,
   type MissingDocumentData,
   type ResponsiblePersonRole,
   trainingMonths,
@@ -26,7 +27,7 @@ export type DocumentFacts = {
     legalName: string;
     representativeName: string | null;
     representativeRole: string | null;
-    periodicTrainingHours: number | null;
+    periodicTrainingMinutes: number | null;
     administrativeTrainingIntervalMonths: number | null;
     workerTrainingIntervalMonths: number | null;
     trainingFirstMonth: number | null;
@@ -74,7 +75,7 @@ const filled = (value: string | null | undefined): value is string =>
 export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[] {
   const { organization, specialist, client } = facts;
   const schedule = [
-    client.periodicTrainingHours,
+    client.periodicTrainingMinutes,
     client.administrativeTrainingIntervalMonths,
     client.workerTrainingIntervalMonths,
     client.trainingFirstMonth,
@@ -184,8 +185,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
       .join(', '),
     training: {
-      periodicDuration:
-        client.periodicTrainingHours === 1 ? '1 oră' : `${client.periodicTrainingHours} ore`,
+      periodicDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
       administrativeFrequency: frequency(client.administrativeTrainingIntervalMonths!),
       administrativeMonths: months(
         client.trainingFirstMonth!,

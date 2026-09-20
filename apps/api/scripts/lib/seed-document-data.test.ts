@@ -32,7 +32,7 @@ describe('fakeClients document details', () => {
     expect(incomplete.length).toBeGreaterThan(0);
     for (const row of complete) {
       expect(row.legal_representative_role).toMatch(/^(Administrator|Director general)$/);
-      expect([1, 2]).toContain(row.periodic_training_hours);
+      expect([30, 60, 90, 120]).toContain(row.periodic_training_minutes);
       expect([3, 6]).toContain(row.administrative_training_interval_months);
       expect(row.worker_training_interval_months).toBe(3);
       expect(row.training_day_from!).toBeLessThanOrEqual(row.training_day_to!);

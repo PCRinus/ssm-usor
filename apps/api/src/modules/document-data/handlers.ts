@@ -116,13 +116,13 @@ async function findActiveClient(db: DataClient, clientId: string, refusal: strin
 }
 
 const documentDetailsColumns =
-  'legal_representative_name, legal_representative_role, periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to';
+  'legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to';
 
 type DocumentDetailsRow = Pick<
   Tables['clients']['Row'],
   | 'legal_representative_name'
   | 'legal_representative_role'
-  | 'periodic_training_hours'
+  | 'periodic_training_minutes'
   | 'administrative_training_interval_months'
   | 'worker_training_interval_months'
   | 'training_first_month'
@@ -134,7 +134,7 @@ function toDocumentDetails(row: DocumentDetailsRow): ClientDocumentDetails {
   return {
     legalRepresentativeName: row.legal_representative_name,
     legalRepresentativeRole: row.legal_representative_role,
-    periodicTrainingHours: row.periodic_training_hours,
+    periodicTrainingMinutes: row.periodic_training_minutes,
     administrativeTrainingIntervalMonths: row.administrative_training_interval_months,
     workerTrainingIntervalMonths: row.worker_training_interval_months,
     trainingFirstMonth: row.training_first_month,
@@ -169,7 +169,7 @@ export const updateClientDocumentDetails: RouteHandler<
     .update({
       legal_representative_name: body.legalRepresentativeName ?? null,
       legal_representative_role: body.legalRepresentativeRole ?? null,
-      periodic_training_hours: body.periodicTrainingHours ?? null,
+      periodic_training_minutes: body.periodicTrainingMinutes ?? null,
       administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,
       worker_training_interval_months: body.workerTrainingIntervalMonths ?? null,
       training_first_month: body.trainingFirstMonth ?? null,

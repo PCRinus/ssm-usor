@@ -26,7 +26,7 @@ const sampleClient = {
 const emptyDetails = {
   legalRepresentativeName: null as string | null,
   legalRepresentativeRole: null,
-  periodicTrainingHours: null,
+  periodicTrainingMinutes: null,
   administrativeTrainingIntervalMonths: null,
   workerTrainingIntervalMonths: null,
   trainingFirstMonth: null,
@@ -37,7 +37,7 @@ const emptyDetails = {
 const savedDetails = {
   legalRepresentativeName: 'Maria Popescu',
   legalRepresentativeRole: 'Administrator',
-  periodicTrainingHours: 2,
+  periodicTrainingMinutes: 120,
   administrativeTrainingIntervalMonths: 6,
   workerTrainingIntervalMonths: 3,
   trainingFirstMonth: 2,
@@ -139,7 +139,7 @@ describe('client document data', () => {
     expect(name.value).toBe('');
     await user.type(name, ' Maria Popescu ');
     await user.type(screen.getByTestId('details-representative-role'), ' Administrator ');
-    await user.selectOptions(screen.getByTestId('details-training-hours'), '2');
+    await user.selectOptions(screen.getByTestId('details-training-duration'), '120');
     await user.selectOptions(screen.getByTestId('details-first-month'), '2');
     await user.selectOptions(screen.getByTestId('details-administrative-interval'), '6');
     await user.selectOptions(screen.getByTestId('details-worker-interval'), '3');
@@ -161,12 +161,12 @@ describe('client document data', () => {
     expect(screen.getByTestId<HTMLButtonElement>('document-details-save').disabled).toBe(true);
 
     await user.clear(role);
-    await user.selectOptions(screen.getByTestId('details-training-hours'), '');
+    await user.selectOptions(screen.getByTestId('details-training-duration'), '');
     await user.click(screen.getByTestId('document-details-save'));
 
     await waitFor(() =>
       expect(saves()).toEqual([
-        { ...savedDetails, legalRepresentativeRole: null, periodicTrainingHours: null },
+        { ...savedDetails, legalRepresentativeRole: null, periodicTrainingMinutes: null },
       ])
     );
   });

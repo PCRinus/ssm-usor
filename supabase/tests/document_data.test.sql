@@ -1,5 +1,5 @@
 begin;
-select plan(21);
+select plan(22);
 
 -- Fixtures: organization A with an owner and a specialist, organization B with an owner;
 -- one active client each, plus an archived client in A.
@@ -175,11 +175,19 @@ select lives_ok(
 
 select lives_ok(
   $$ update public.clients
-     set legal_representative_role = 'Administrator', periodic_training_hours = 2,
+     set legal_representative_role = 'Administrator', periodic_training_minutes = 120,
          administrative_training_interval_months = 6, worker_training_interval_months = 3,
          training_first_month = 2, training_day_from = 2, training_day_to = 7
      where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
   'a specialist sets the representative''s role and the training schedule'
+);
+
+select throws_ok(
+  $$ update public.clients set periodic_training_minutes = 180
+     where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'a periodic training lasts at most two hours'
 );
 
 update public.organizations set legal_name = 'S.C. HIJACKED S.R.L.'

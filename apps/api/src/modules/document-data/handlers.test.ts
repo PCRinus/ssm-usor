@@ -49,7 +49,7 @@ const legalDetailsRow = {
 const documentDetailsRow = {
   legal_representative_name: 'Maria Popescu',
   legal_representative_role: 'Administrator',
-  periodic_training_hours: 2,
+  periodic_training_minutes: 120,
   administrative_training_interval_months: 6,
   worker_training_interval_months: 3,
   training_first_month: 2,
@@ -207,7 +207,7 @@ describe('/clients/{clientId}/document-details', () => {
       documentDetails: {
         legalRepresentativeName: 'Maria Popescu',
         legalRepresentativeRole: 'Administrator',
-        periodicTrainingHours: 2,
+        periodicTrainingMinutes: 120,
         administrativeTrainingIntervalMonths: 6,
         workerTrainingIntervalMonths: 3,
         trainingFirstMonth: 2,
@@ -222,13 +222,13 @@ describe('/clients/{clientId}/document-details', () => {
     const response = await request(path, 'PUT', {
       legalRepresentativeName: ' Maria Popescu ',
       legalRepresentativeRole: 'Administrator',
-      periodicTrainingHours: 2,
+      periodicTrainingMinutes: 120,
     });
     expect(response.status).toBe(200);
     expect(sentBody('/rest/v1/clients')).toEqual({
       legal_representative_name: 'Maria Popescu',
       legal_representative_role: 'Administrator',
-      periodic_training_hours: 2,
+      periodic_training_minutes: 120,
       administrative_training_interval_months: null,
       worker_training_interval_months: null,
       training_first_month: null,

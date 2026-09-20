@@ -20,7 +20,7 @@ export async function loadDocumentFacts(
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, archived_at'
+        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, archived_at'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -65,7 +65,7 @@ export async function loadDocumentFacts(
       legalName: client.data.legal_name,
       representativeName: client.data.legal_representative_name,
       representativeRole: client.data.legal_representative_role,
-      periodicTrainingHours: client.data.periodic_training_hours,
+      periodicTrainingMinutes: client.data.periodic_training_minutes,
       administrativeTrainingIntervalMonths: client.data.administrative_training_interval_months,
       workerTrainingIntervalMonths: client.data.worker_training_interval_months,
       trainingFirstMonth: client.data.training_first_month,
