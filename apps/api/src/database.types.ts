@@ -1020,6 +1020,10 @@ export type Database = {
           user_id: string;
         }[];
       };
+      refuse_archived_client: {
+        Args: { p_client_id: string };
+        Returns: undefined;
+      };
       register_built_in_template_version: {
         Args: {
           p_sha256: string;
