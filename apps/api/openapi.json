@@ -1895,6 +1895,10 @@
                 "jobTitle": {
                   "type": "string"
                 },
+                "employeeJobTitle": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "roles": {
                   "type": "array",
                   "items": {
@@ -1923,6 +1927,7 @@
                 "employeeId",
                 "fullName",
                 "jobTitle",
+                "employeeJobTitle",
                 "roles",
                 "createdAt",
                 "updatedAt"
@@ -1957,6 +1962,10 @@
               "jobTitle": {
                 "type": "string"
               },
+              "employeeJobTitle": {
+                "type": "string",
+                "nullable": true
+              },
               "roles": {
                 "type": "array",
                 "items": {
@@ -1985,6 +1994,7 @@
               "employeeId",
               "fullName",
               "jobTitle",
+              "employeeJobTitle",
               "roles",
               "createdAt",
               "updatedAt"

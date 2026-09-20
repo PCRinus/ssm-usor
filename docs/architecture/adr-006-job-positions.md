@@ -25,7 +25,7 @@ An employee holds one position. A person who does mixed work fills one position 
 
 The title in the employment contract (_funcția din contract_) and the position are different facts that usually coincide. Two people with the contract title "inginer" can fill an office position and a site position; "vânzător" and "lucrător comercial" can fill the same one.
 
-The employee keeps the contract title as a field of its own, which is what the existing `job_title` column becomes. Choosing a position fills it with the position's name until the person types something else; renaming a position never rewrites it, because the contract has not changed. Documents about a person print the contract title. Documents about the work print the position.
+The employee keeps the contract title as a field of its own, which is what the existing `job_title` column becomes. Choosing a position fills it with the position's name until the person types something else, and a saved title that only repeats the old position's name counts as not typed, so it moves with the person to a new position; renaming a position never rewrites it, because the contract has not changed. Documents about a person print the contract title. Documents about the work print the position.
 
 Two lists with a mapping between them were rejected: most small firms would fill it in one-to-one, and the user would meet a distinction on every form that they need once in twenty.
 
@@ -52,7 +52,7 @@ The migration creates one position per distinct title per client, merging titles
 
 "Posturi de lucru" is a section of the client page beside "Angajați". Owners and specialists both edit it, as they do employees. The employee list shows the position; the employee's page also shows the contract title.
 
-A responsible person who is an employee keeps being entered with the contract title, copied when they are chosen and editable, because a decision is a legal act that names a person. People who are not employees stay free text.
+A responsible person who is an employee keeps being entered with the contract title, copied when they are chosen and editable, because a decision is a legal act that names a person. The copy never follows the employee by itself: when the contract title later differs, the list says so and offers to adopt it. People who are not employees stay free text.
 
 ### Generated documents do not change
 

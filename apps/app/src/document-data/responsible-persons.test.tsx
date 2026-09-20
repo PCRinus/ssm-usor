@@ -56,6 +56,7 @@ const manager = {
   employeeId: employee.id,
   fullName: 'Paolo-Antonio Luca',
   jobTitle: 'Manager magazin',
+  employeeJobTitle: 'Manager magazin',
   roles: ['workplace_manager', 'first_aid'],
   createdAt: '2026-09-18T10:00:00.000Z',
   updatedAt: '2026-09-18T10:00:00.000Z',
@@ -268,6 +269,32 @@ describe('client responsible persons', () => {
       ])
     );
     expect(await screen.findByText('Persoana a fost salvată.')).toBeTruthy();
+  });
+
+  it('shows a contract title that has moved on, and adopts it on request', async () => {
+    mockApi({ items: [{ ...manager, employeeJobTitle: 'Director magazin' }] });
+    mount();
+    const user = userEvent.setup();
+
+    const drift = await screen.findByTestId('responsible-title-drift');
+    expect(drift.textContent).toContain('Director magazin');
+    await user.click(within(drift).getByTestId('responsible-title-adopt'));
+
+    await waitFor(() => expect(requests(itemPath, 'PUT')).toHaveLength(1));
+    expect(requests(itemPath, 'PUT')[0]).toEqual({
+      employeeId: employee.id,
+      fullName: 'Paolo-Antonio Luca',
+      jobTitle: 'Director magazin',
+      roles: ['workplace_manager', 'first_aid'],
+    });
+    expect(screen.queryByTestId('responsible-dialog')).toBeNull();
+  });
+
+  it('says nothing while the two titles agree', async () => {
+    mockApi();
+    mount();
+    await screen.findByTestId('responsible-row');
+    expect(screen.queryByTestId('responsible-title-drift')).toBeNull();
   });
 
   it('removes a person only after confirmation', async () => {

@@ -1409,6 +1409,8 @@ export type ResponsiblePersonListResponseItemsItem = {
   employeeId: string | null;
   fullName: string;
   jobTitle: string;
+  /** @nullable */
+  employeeJobTitle: string | null;
   /** @minItems 1 */
   roles: ResponsiblePersonListResponseItemsItemRolesItem[];
   createdAt: string;
@@ -1436,6 +1438,8 @@ export type ResponsiblePersonResponseResponsiblePerson = {
   employeeId: string | null;
   fullName: string;
   jobTitle: string;
+  /** @nullable */
+  employeeJobTitle: string | null;
   /** @minItems 1 */
   roles: ResponsiblePersonResponseResponsiblePersonRolesItem[];
   createdAt: string;

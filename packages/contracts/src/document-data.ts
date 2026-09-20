@@ -176,7 +176,12 @@ export const responsiblePersonSchema = z.object({
   // Set when the person is one of the client's employees; the administrator often is not.
   employeeId: z.uuid().nullable(),
   fullName: z.string(),
+  // As the decisions print it: copied when the person was chosen and kept until someone
+  // changes it here, because a decision is a legal act (ADR 006).
   jobTitle: z.string(),
+  // The employee's contract title today, which the copy above may no longer match. Null for
+  // someone who is not an employee.
+  employeeJobTitle: z.string().nullable(),
   roles: z.array(responsiblePersonRoleSchema).min(1),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),

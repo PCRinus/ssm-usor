@@ -54,9 +54,9 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="min-w-0 bg-card px-5 py-3.5">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm font-medium">{children}</dd>
+    <div className="flex min-w-0 gap-1.5">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="truncate">{children}</dd>
     </div>
   );
 }
@@ -71,46 +71,36 @@ export function ClientLayout() {
   const caen = client.caenCode ? caenClassName(client.caenCode) : null;
   if (fullPage) return <Outlet />;
   return (
-    <div data-testid="client-page" className="space-y-7">
-      <header className="overflow-hidden rounded-lg border bg-card">
-        <div className="flex items-center gap-4 px-5 py-5 sm:px-6">
-          <div
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-            aria-hidden="true"
-          >
-            <Building2 className="size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Client
-            </p>
-            <h1 className="mt-0.5 truncate text-2xl font-semibold tracking-tight">
-              {client.legalName}
-            </h1>
-          </div>
+    <div data-testid="client-page" className="space-y-5">
+      <header className="flex items-center gap-3">
+        <div
+          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+          aria-hidden="true"
+        >
+          <Building2 className="size-4" />
         </div>
-        {/* Hairline dividers in any column count: a border-colored grid with card-colored cells. */}
-        <dl className="grid grid-cols-2 gap-px border-t bg-border lg:grid-cols-4">
-          <Fact label="CUI">
-            <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
-          </Fact>
-          <Fact label="Activitate principală">
-            {client.caenCode ? (
-              <>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-semibold tracking-tight">{client.legalName}</h1>
+          <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
+            <Fact label="CUI">
+              <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
+            </Fact>
+            {client.caenCode && (
+              <Fact label="CAEN">
                 <span className="tabular-nums">{client.caenCode}</span>
-                {caen && <span className="font-normal text-muted-foreground"> · {caen}</span>}
-              </>
-            ) : (
-              '—'
+                {caen && <span className="text-muted-foreground"> · {caen}</span>}
+              </Fact>
             )}
-          </Fact>
-          <Fact label="Sediu social">{office || '—'}</Fact>
-          <Fact label="Angajați declarați">
-            <span className="tabular-nums">{client.declaredEmployeeCount ?? '—'}</span>
-          </Fact>
-        </dl>
+            {office && <Fact label="Sediu">{office}</Fact>}
+            {client.declaredEmployeeCount !== null && (
+              <Fact label="Angajați declarați">
+                <span className="tabular-nums">{client.declaredEmployeeCount}</span>
+              </Fact>
+            )}
+          </dl>
+        </div>
       </header>
-      <nav aria-label="Secțiunile clientului" className="border-b">
+      <nav aria-label="Secțiunile clientului" className="sticky top-16 z-20 border-b bg-background">
         <ul className="-mb-px flex gap-1">
           {sections.map(({ to, label, icon: Icon }) => (
             <li key={to}>
@@ -136,8 +126,8 @@ export function ClientLayout() {
 
 function ClientPending() {
   return (
-    <div className="space-y-7" aria-busy="true">
-      <Skeleton className="h-40 w-full rounded-lg" />
+    <div className="space-y-5" aria-busy="true">
+      <Skeleton className="h-12 w-full rounded-lg" />
       <Skeleton className="h-10 w-full" />
     </div>
   );
