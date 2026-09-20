@@ -16,6 +16,7 @@ import type {
   getEmployeeRoute,
   listEmployeesRoute,
   updateEmployeeJobPositionRoute,
+  updateEmployeeRoute,
   updateEmployeeStatusRoute,
 } from './routes';
 
@@ -271,6 +272,59 @@ export const updateEmployeeJobPosition: RouteHandler<
     .select(employeeColumns)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'update employee job position');
+  if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
+  return c.json({ employee: toEmployee(data) }, 200);
+};
+
+export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = async (c) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  const current = await db
+    .from('employees')
+    .select('id, terminated_at')
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (current.error) throw fromDatabaseError(current.error, 'find employee');
+  if (!current.data) {
+    throw new ApiError('not_found', 'This employee does not exist under this client.');
+  }
+  // The database enforces the same rule; checking here names the field for the form.
+  if (current.data.terminated_at && body.hiredAt > current.data.terminated_at) {
+    throw new ApiError('validation_error', 'The hire date cannot follow the leave date.', [
+      { path: 'hiredAt', message: 'The hire date cannot follow the leave date.' },
+    ]);
+  }
+  if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
+  const { data, error } = await db
+    .from('employees')
+    .update({
+      last_name: body.lastName,
+      first_name: body.firstName,
+      cnp: body.cnp ? normalizeCnp(body.cnp) : null,
+      employee_number: body.employeeNumber ?? null,
+      email: body.email ?? null,
+      phone: body.phone ?? null,
+      job_title: body.jobTitle,
+      ...(body.jobPositionId ? { job_position_id: body.jobPositionId } : {}),
+      hired_at: body.hiredAt,
+      birth_date: body.birthDate ?? null,
+      birth_place: body.birthPlace ?? null,
+      home_address: body.homeAddress ?? null,
+      blood_group: body.bloodGroup ?? null,
+      rh_factor: body.rhFactor ?? null,
+      notes: body.notes ?? null,
+    })
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .select(employeeColumns)
+    .maybeSingle();
+  if (error) {
+    throw error.code === '23505'
+      ? new ApiError('conflict', conflictMessage(error.message))
+      : fromDatabaseError(error, 'update employee');
+  }
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
   return c.json({ employee: toEmployee(data) }, 200);
 };

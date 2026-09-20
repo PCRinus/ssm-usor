@@ -10,7 +10,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft, Eye, EyeOff, RotateCcw, UserRoundMinus } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { z } from 'zod';
 
@@ -142,14 +142,25 @@ export function EmployeePage() {
               </Badge>
             </p>
           </div>
-          <Button
-            variant="outline"
-            data-testid="employee-status-action"
-            onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
-          >
-            {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
-            {former ? 'Reactivează…' : 'Marchează plecarea…'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" data-testid="employee-edit">
+              <Link
+                to="/clients/$clientId/employees/$employeeId/edit"
+                params={{ clientId, employeeId }}
+              >
+                <Pencil aria-hidden="true" />
+                Modifică
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              data-testid="employee-status-action"
+              onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
+            >
+              {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
+              {former ? 'Reactivează…' : 'Marchează plecarea…'}
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -4,10 +4,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Link } from '@tanstack/react-router';
-import { MoreHorizontal, RotateCcw, UserRoundMinus } from 'lucide-react';
+import { MoreHorizontal, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
 
 import type { EmployeeListResponse } from '../api/generated/api';
 import { createDataTableColumns } from '../components/data-table/columns';
@@ -109,6 +110,16 @@ export function employeeColumns(onStatusChange: (change: EmployeeStatusChange) =
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild data-testid="employees-edit">
+                <Link
+                  to="/clients/$clientId/employees/$employeeId/edit"
+                  params={{ clientId: employee.clientId, employeeId: employee.id }}
+                >
+                  <Pencil aria-hidden="true" />
+                  Modifică
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {employee.status === 'active' ? (
                 <DropdownMenuItem
                   data-testid="employees-terminate"

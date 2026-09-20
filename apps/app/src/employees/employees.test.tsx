@@ -107,7 +107,8 @@ function mockApi(
       | 'status'
       | 'positions'
       | 'createPosition'
-      | 'move',
+      | 'move'
+      | 'update',
       Route
     >
   > = {}
@@ -129,6 +130,12 @@ function mockApi(
     }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'PUT') {
+      return (
+        routes.update?.(init, url) ??
+        Response.json({ employee: { ...sampleEmployee, ...JSON.parse(String(init?.body)) } })
+      );
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'GET') {
       return routes.detail?.(init, url) ?? Response.json({ employee: createdEmployee });
@@ -472,6 +479,7 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
     expect(runtime.router.state.location.pathname).toBe(employeesPath);
+    expect(await screen.findByText('Popescu Ion a fost adăugat.')).toBeTruthy();
     await screen.findByTestId('employees-row');
     const [, init] = requests(employeesPath, 'POST')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
@@ -932,5 +940,101 @@ describe('job positions on employees (ADR 006)', () => {
     // The contract did not change, so its title is not sent.
     expect(JSON.parse(String(init?.body))).toEqual({ jobPositionId: newPositionId });
     expect(await screen.findByText('Postul de lucru a fost schimbat.')).toBeTruthy();
+  });
+});
+
+describe('employee editing', () => {
+  const editPath = `${employeesPath}/${sampleEmployee.id}/edit`;
+  const stored = {
+    ...sampleEmployee,
+    cnp: '1900101400127',
+    birthDate: '1990-01-01',
+    birthPlace: null,
+    homeAddress: null,
+    bloodGroup: null,
+    rhFactor: null,
+    notes: null,
+    archivedAt: null,
+    jobTitle: 'Muncitor calificat',
+  };
+
+  it('is also one click away from the list, in the row menu', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      detail: () => Response.json({ employee: stored }),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-edit'));
+    await screen.findByTestId('edit-employee-page');
+    expect(runtime.router.state.location.pathname).toBe(editPath);
+  });
+
+  it('opens from the employee page with what was entered, contract title and post apart', async () => {
+    mockApi({ detail: () => Response.json({ employee: stored }) });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${employeesPath}/${sampleEmployee.id}`
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('employee-edit'));
+    await screen.findByTestId('edit-employee-page');
+    expect(runtime.router.state.location.pathname).toBe(editPath);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Modifică');
+    expect(screen.getByTestId<HTMLInputElement>('employee-last-name').value).toBe(stored.lastName);
+    expect(screen.getByTestId<HTMLInputElement>('employee-cnp').value).toBe('1900101400127');
+    expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe(
+      'Muncitor calificat'
+    );
+    expect((await screen.findByTestId('employee-job-position')).textContent).toContain('Sudor');
+  });
+
+  it('saves the correction, keeps the post, and returns to the employee page', async () => {
+    mockApi({ detail: () => Response.json({ employee: stored }) });
+    const runtime = mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    const phone = screen.getByTestId('employee-phone');
+    await user.clear(phone);
+    await user.type(phone, '0733 111 222');
+    const lastName = screen.getByTestId('employee-last-name');
+    await user.clear(lastName);
+    await user.type(lastName, 'Popescu-Ionescu');
+    await user.click(screen.getByTestId('employee-submit'));
+
+    await screen.findByTestId('employee-page');
+    expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/${sampleEmployee.id}`);
+    expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
+    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      lastName: 'Popescu-Ionescu',
+      phone: '0733 111 222',
+      cnp: '1900101400127',
+      jobTitle: 'Muncitor calificat',
+      jobPositionId: sampleEmployee.jobPosition.id,
+    });
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+  });
+
+  it('puts a CNP another employee has on the field, and an API issue where it belongs', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json(
+          {
+            code: 'conflict',
+            message: 'An employee with this CNP already exists for this client.',
+          },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('cnp-error')).textContent).toContain('CNP');
+    expect(screen.getByTestId('edit-employee-page')).toBeTruthy();
   });
 });

@@ -74,6 +74,14 @@ export const createEmployeeRequestSchema = z
 
 export type CreateEmployeeRequest = z.infer<typeof createEmployeeRequestSchema>;
 
+/**
+ * Replaces what was entered about an employee: the same fields and rules as creating one.
+ * Whether the person still works there is not among them; that is a status change.
+ */
+export const updateEmployeeRequestSchema = createEmployeeRequestSchema;
+
+export type UpdateEmployeeRequest = z.infer<typeof updateEmployeeRequestSchema>;
+
 // Marking a leaver needs the leave date; reactivating clears it and is meant for undoing
 // a mistake. A rehire after a gap is a new employee row.
 export const updateEmployeeStatusRequestSchema = z.discriminatedUnion('status', [

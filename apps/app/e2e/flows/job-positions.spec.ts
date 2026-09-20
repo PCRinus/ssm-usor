@@ -147,5 +147,24 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await expect(page.getByTestId('job-position-dialog')).toHaveCount(0);
   await page.getByTestId('employee-job-position-save').click();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');
+
+  // What was entered about the person can be corrected, from their page or from the list's
+  // row menu; the post and the title stay.
+  await page.getByTestId('employee-back').click();
+  await page
+    .getByTestId('employees-row')
+    .filter({ hasText: 'Electricu' })
+    .getByTestId('employees-row-menu')
+    .click();
+  await page.getByTestId('employees-edit').click();
+  await expect(page.getByTestId('edit-employee-page')).toBeVisible();
+  await expect(page.getByTestId('employee-job-title')).toHaveValue('Electrician întreținere');
+  await page.getByTestId('employee-last-name').fill('Electricu-Pop');
+  await page.getByTestId('employee-phone').fill('0733 111 222');
+  await page.getByTestId('employee-submit').click();
+  await expect(page.getByText('Datele angajatului au fost salvate.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Electricu-Pop Dan');
+  await expect(page.getByText('0733 111 222')).toBeVisible();
+  await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');
   await expect(page.getByText('Electrician întreținere')).toBeVisible();
 });

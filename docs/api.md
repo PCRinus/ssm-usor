@@ -90,6 +90,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`         |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                        |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                        |
+| `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating               |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                    |
 | `GET /clients/{clientId}/job-positions`                                | Verified user with a membership       | `{ "items": [ … ] }`, by name, each with `employeeCount`                                           |
@@ -125,7 +126,10 @@ real total. `POST` validates the CNP checksum and calendar date, stores it as di
 lowercases the email, and rejects a birth date that contradicts the CNP. `PATCH …/status`
 takes `{ "status": "terminated", "terminatedAt": "YYYY-MM-DD" }` or `{ "status": "active" }`;
 a leave date before the hire date answers `400` with an issue on `terminatedAt`. Reactivating
-is for undoing a mistake; a rehire after a gap is a new employee.
+is for undoing a mistake; a rehire after a gap is a new employee. `PUT …/employees/{employeeId}`
+replaces what was entered about a person with the same body and rules as `POST`; a missing
+`jobPositionId` keeps their position, a hire date after the leave date answers `400` on
+`hiredAt`, and status, leave date and archive are not its to touch.
 
 Job positions ([ADR 006](architecture/adr-006-job-positions.md)) are the posts a client
 employs people in. The list is not paginated, since a client has a handful, leaves archived

@@ -9,7 +9,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { CreateEmployeeRequest } from '../api/generated/api';
+import type { CreateEmployeeRequest, EmployeeResponse } from '../api/generated/api';
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -111,6 +111,28 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   rhFactor: '',
   notes: '',
 };
+
+export type Employee = EmployeeResponse['employee'];
+
+export function toEmployeeForm(employee: Employee): EmployeeFormValues {
+  return {
+    lastName: employee.lastName,
+    firstName: employee.firstName,
+    cnp: employee.cnp ?? '',
+    employeeNumber: employee.employeeNumber ?? '',
+    email: employee.email ?? '',
+    phone: employee.phone ?? '',
+    jobPosition: employee.jobPosition.id,
+    jobTitle: employee.jobTitle,
+    hiredAt: employee.hiredAt,
+    birthDate: employee.birthDate ?? '',
+    birthPlace: employee.birthPlace ?? '',
+    homeAddress: employee.homeAddress ?? '',
+    bloodGroup: employee.bloodGroup ?? '',
+    rhFactor: employee.rhFactor ?? '',
+    notes: employee.notes ?? '',
+  };
+}
 
 // The birth date encoded in a valid CNP, or null when absent, invalid, or not encoded.
 export function birthDateFromCnp(input: string) {

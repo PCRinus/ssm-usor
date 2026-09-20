@@ -35,6 +35,7 @@ import { Route as AuthenticatedClientsClientIdDocumentsDocumentIdRouteImport } f
 import { Route as AuthenticatedClientsClientIdEmployeesIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/index';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId';
 import { Route as AuthenticatedClientsClientIdEmployeesNewRouteImport } from './routes/_authenticated/clients/$clientId/employees/new';
+import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId_.edit';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -178,6 +179,12 @@ const AuthenticatedClientsClientIdEmployeesNewRoute =
     path: '/new',
     getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
   } as any);
+const AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute =
+  AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport.update({
+    id: '/$employeeId_/edit',
+    path: '/$employeeId/edit',
+    getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
   '/clients/$clientId/documents/': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -228,6 +236,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
   '/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -257,6 +266,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
   '/_authenticated/clients/$clientId/documents/': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/_authenticated/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/_authenticated/clients/$clientId/employees/$employeeId_/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -285,7 +295,8 @@ export interface FileRouteTypes {
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/employees/new'
     | '/clients/$clientId/documents/'
-    | '/clients/$clientId/employees/';
+    | '/clients/$clientId/employees/'
+    | '/clients/$clientId/employees/$employeeId/edit';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
@@ -308,7 +319,8 @@ export interface FileRouteTypes {
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/employees/new'
     | '/clients/$clientId/documents'
-    | '/clients/$clientId/employees';
+    | '/clients/$clientId/employees'
+    | '/clients/$clientId/employees/$employeeId/edit';
   id:
     | '__root__'
     | '/'
@@ -336,7 +348,8 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/employees/$employeeId'
     | '/_authenticated/clients/$clientId/employees/new'
     | '/_authenticated/clients/$clientId/documents/'
-    | '/_authenticated/clients/$clientId/employees/';
+    | '/_authenticated/clients/$clientId/employees/'
+    | '/_authenticated/clients/$clientId/employees/$employeeId_/edit';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesNewRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
     };
+    '/_authenticated/clients/$clientId/employees/$employeeId_/edit': {
+      id: '/_authenticated/clients/$clientId/employees/$employeeId_/edit';
+      path: '/$employeeId/edit';
+      fullPath: '/clients/$clientId/employees/$employeeId/edit';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
+    };
   }
 }
 
@@ -560,6 +580,7 @@ interface AuthenticatedClientsClientIdEmployeesRouteChildren {
   AuthenticatedClientsClientIdEmployeesEmployeeIdRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   AuthenticatedClientsClientIdEmployeesNewRoute: typeof AuthenticatedClientsClientIdEmployeesNewRoute;
   AuthenticatedClientsClientIdEmployeesIndexRoute: typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
 }
 
 const AuthenticatedClientsClientIdEmployeesRouteChildren: AuthenticatedClientsClientIdEmployeesRouteChildren =
@@ -570,6 +591,8 @@ const AuthenticatedClientsClientIdEmployeesRouteChildren: AuthenticatedClientsCl
       AuthenticatedClientsClientIdEmployeesNewRoute,
     AuthenticatedClientsClientIdEmployeesIndexRoute:
       AuthenticatedClientsClientIdEmployeesIndexRoute,
+    AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute:
+      AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute,
   };
 
 const AuthenticatedClientsClientIdEmployeesRouteWithChildren =

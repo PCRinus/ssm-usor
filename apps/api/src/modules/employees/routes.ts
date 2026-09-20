@@ -5,6 +5,7 @@ import {
   employeeResponseSchema,
   listEmployeesQuerySchema,
   updateEmployeeJobPositionRequestSchema,
+  updateEmployeeRequestSchema,
   updateEmployeeStatusRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -172,6 +173,43 @@ export const updateEmployeeJobPositionRoute = createRoute({
       content: errorContent,
     },
     404: { description: 'The employee does not exist under this client', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const updateEmployeeRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/employees/{employeeId}',
+  operationId: 'updateEmployee',
+  summary: 'Replace what was entered about an employee',
+  description:
+    'The same fields and rules as adding one. Left out, `jobPositionId` keeps the position the person is in. Whether they still work there is a status change, not part of this.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: employeeParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateEmployeeRequestSchema.meta({ id: 'UpdateEmployeeRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The employee after the change',
+      content: {
+        'application/json': { schema: employeeResponseSchema.meta({ id: 'EmployeeResponse' }) },
+      },
+    },
+    400: { description: 'Invalid path or request body', content: errorContent },
+    404: { description: 'The employee does not exist under this client', content: errorContent },
+    409: {
+      description: 'Another employee of the client has this CNP or number',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

@@ -1,21 +1,26 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
+  getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
   useCreateEmployee,
+  useUpdateEmployee,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import {
   birthDateFromCnp,
+  type Employee,
   employeeFormSchema,
   type EmployeeFormValues,
   emptyEmployeeForm,
   toCreateEmployeeRequest,
+  toEmployeeForm,
 } from './employee-form-schema';
 
 const formFields = new Set<keyof EmployeeFormValues>(Object.keys(emptyEmployeeForm) as never[]);
@@ -24,14 +29,16 @@ function isFormField(path: string): path is keyof EmployeeFormValues {
   return formFields.has(path as keyof EmployeeFormValues);
 }
 
-export function useEmployeeForm(clientId: string) {
+// With an employee, the form corrects what was entered about them; without, it adds one.
+export function useEmployeeForm(clientId: string, employee?: Employee) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
-    defaultValues: emptyEmployeeForm,
+    defaultValues: employee ? toEmployeeForm(employee) : emptyEmployeeForm,
   });
   const create = useCreateEmployee({ request: apiRequest });
+  const update = useUpdateEmployee({ request: apiRequest });
 
   // The contract title follows the position until the person types one of their own: it is
   // filled while it is empty or still reads what the last choice put there.
@@ -56,12 +63,30 @@ export function useEmployeeForm(clientId: string) {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await create.mutateAsync({ clientId, data: toCreateEmployeeRequest(values) });
+      const data = toCreateEmployeeRequest(values);
+      if (employee) {
+        await update.mutateAsync({ clientId, employeeId: employee.id, data });
+        await queryClient.invalidateQueries({
+          queryKey: getGetEmployeeQueryKey(clientId, employee.id),
+        });
+      } else {
+        await create.mutateAsync({ clientId, data });
+      }
       // Every filtered variant of this client's list starts with the same key prefix.
       await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
-      await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+      if (employee) {
+        toast.success('Datele angajatului au fost salvate.');
+        await navigate({
+          to: '/clients/$clientId/employees/$employeeId',
+          params: { clientId, employeeId: employee.id },
+        });
+      } else {
+        // The list it returns to is sorted and paged, so the new row may not be in sight.
+        toast.success(`${values.lastName} ${values.firstName} a fost adăugat.`);
+        await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+      }
     } catch (cause) {
       if (cause instanceof ApiHttpError) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
@@ -75,7 +100,9 @@ export function useEmployeeForm(clientId: string) {
             });
           } else {
             form.setError('root.server', {
-              message: 'Clientul este arhivat; nu mai pot fi adăugați angajați.',
+              message: employee
+                ? 'Datele intră în conflict cu alt angajat al clientului.'
+                : 'Clientul este arhivat; nu mai pot fi adăugați angajați.',
             });
           }
           return;
@@ -92,7 +119,9 @@ export function useEmployeeForm(clientId: string) {
         }
         if (cause.status === 404) {
           form.setError('root.server', {
-            message: 'Clientul nu mai există în organizația ta.',
+            message: employee
+              ? 'Angajatul nu mai există la acest client.'
+              : 'Clientul nu mai există în organizația ta.',
           });
           return;
         }
@@ -120,6 +149,6 @@ export function useEmployeeForm(clientId: string) {
     onSubmit,
     prefillBirthDate,
     choosePosition,
-    isSaving: create.isPending,
+    isSaving: create.isPending || update.isPending,
   };
 }
