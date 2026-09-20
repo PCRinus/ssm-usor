@@ -453,7 +453,9 @@ share. The account menu shows the user's name and organization once it has loade
 back to "Contul meu" and the email.
 
 Actions that leave the user on the same page (invitation sent, resent, revoked, profile
-saved) are confirmed with a Sonner toast, mounted once in `App.tsx`. Errors and field
+saved, an employee marked as a leaver or reactivated) are confirmed with a Sonner toast,
+mounted once in `App.tsx`. So is a save that returns to a list, where the new row may be out
+of sight on another page or under another sort: a client or an employee added, by name. Errors and field
 validation stay inline with `role="alert"`, next to their cause, so they persist.
 
 Sign-out is available from the sidebar account menu on every authenticated route.

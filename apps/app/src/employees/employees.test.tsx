@@ -600,6 +600,7 @@ describe('employee status changes', () => {
     });
     await user.click(screen.getByTestId('employees-filter-terminated'));
     await screen.findByTestId('employees-row');
+    expect(await screen.findByText('Popescu Ion a fost trecut la foști angajați.')).toBeTruthy();
   });
 
   it('picks the leave date from the calendar', async () => {
@@ -693,6 +694,7 @@ describe('employee status changes', () => {
     expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
       status: 'active',
     });
+    expect(await screen.findByText('Popescu Ion este din nou angajat actual.')).toBeTruthy();
   });
 });
 

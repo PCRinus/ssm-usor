@@ -246,6 +246,7 @@ describe('client creation', () => {
       legalRepresentativeName: 'Ion Popescu',
       declaredEmployeeCount: 120,
     });
+    expect(await screen.findByText('OMV PETROM SA a fost adăugat.')).toBeTruthy();
   });
 
   it('keeps manual entry when ANAF has no record', async () => {
