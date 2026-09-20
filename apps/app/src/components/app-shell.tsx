@@ -55,8 +55,8 @@ function loaderCrumb(loaderData: unknown) {
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard, ownerOnly: false },
-  { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
+  { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
   { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
 ] as const;
 
