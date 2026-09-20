@@ -79,7 +79,7 @@ test("a specialist sets a client's representative role and training schedule", a
 
   await page.getByTestId('details-representative-name').fill('Maria-Ioana Popescu');
   await page.getByTestId('details-representative-role').fill('Administrator');
-  await page.getByTestId('details-training-hours').selectOption('2');
+  await page.getByTestId('details-training-duration').selectOption('90');
   await page.getByTestId('details-first-month').selectOption('2');
   await page.getByTestId('details-administrative-interval').selectOption('6');
   await page.getByTestId('details-worker-interval').selectOption('3');
@@ -92,6 +92,7 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.reload();
   await expect(page.getByTestId('details-representative-name')).toHaveValue('Maria-Ioana Popescu');
   await expect(page.getByTestId('details-representative-role')).toHaveValue('Administrator');
+  await expect(page.getByTestId('details-training-duration')).toHaveValue('90');
   await expect(page.getByTestId('details-worker-interval')).toHaveValue('3');
   await expect(page.getByText('Instruiri în: Februarie, August.')).toBeVisible();
   await expect(page.getByTestId('document-details-save')).toBeDisabled();

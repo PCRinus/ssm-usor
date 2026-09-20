@@ -1487,11 +1487,9 @@
                 "type": "string",
                 "nullable": true
               },
-              "periodicTrainingHours": {
+              "periodicTrainingMinutes": {
                 "type": "integer",
-                "nullable": true,
-                "minimum": 1,
-                "maximum": 8
+                "nullable": true
               },
               "administrativeTrainingIntervalMonths": {
                 "type": "integer",
@@ -1527,7 +1525,7 @@
             "required": [
               "legalRepresentativeName",
               "legalRepresentativeRole",
-              "periodicTrainingHours",
+              "periodicTrainingMinutes",
               "administrativeTrainingIntervalMonths",
               "workerTrainingIntervalMonths",
               "trainingFirstMonth",
@@ -1553,11 +1551,9 @@
             "minLength": 2,
             "maxLength": 80
           },
-          "periodicTrainingHours": {
+          "periodicTrainingMinutes": {
             "type": "integer",
-            "nullable": true,
-            "minimum": 1,
-            "maximum": 8
+            "nullable": true
           },
           "administrativeTrainingIntervalMonths": {
             "type": "integer",

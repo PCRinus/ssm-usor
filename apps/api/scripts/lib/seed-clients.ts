@@ -49,7 +49,7 @@ function documentDetails(cui: string, complete: boolean) {
   const firstDay = 1 + (n % 10);
   return {
     legal_representative_role: n % 5 === 0 ? 'Director general' : 'Administrator',
-    periodic_training_hours: 1 + (n % 2),
+    periodic_training_minutes: [30, 60, 90, 120][n % 4]!,
     administrative_training_interval_months: n % 3 === 0 ? 3 : 6,
     worker_training_interval_months: 3,
     training_first_month: 1 + (n % 3),

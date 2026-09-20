@@ -14,7 +14,7 @@ export const facts: DocumentFacts = {
     legalName: ' S.C. PIPETECH S.R.L. ',
     representativeName: 'Florin Cristian TALOȘ',
     representativeRole: 'Administrator',
-    periodicTrainingHours: 2,
+    periodicTrainingMinutes: 120,
     administrativeTrainingIntervalMonths: 6,
     workerTrainingIntervalMonths: 3,
     trainingFirstMonth: 2,

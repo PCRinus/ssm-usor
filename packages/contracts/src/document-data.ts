@@ -52,9 +52,25 @@ export type UpdateOrganizationLegalDetailsRequest = z.infer<
   typeof updateOrganizationLegalDetailsRequestSchema
 >;
 
+// The durations an SSM specialist confirmed providers use (issue #81).
+export const periodicTrainingMinutesOptions = [30, 60, 90, 120] as const;
+
+/** "30 de minute", "1 oră", "1 oră și 30 de minute", "2 ore": as the first decision prints it. */
+export function formatTrainingDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const hoursText = hours === 1 ? '1 oră' : `${hours} ore`;
+  const restText = rest >= 20 ? `${rest} de minute` : `${rest} minute`;
+  if (hours === 0) return restText;
+  return rest === 0 ? hoursText : `${hoursText} și ${restText}`;
+}
+
 /** Mirrors the intervals H.G. 1425/2006 art. 96 allows and the database checks. */
 const trainingScheduleFields = {
-  periodicTrainingHours: z.int().min(1).max(8),
+  // Not z.literal([...]): the OpenAPI generator keeps only the first value of the list.
+  periodicTrainingMinutes: z
+    .int()
+    .refine((minutes) => (periodicTrainingMinutesOptions as readonly number[]).includes(minutes)),
   administrativeTrainingIntervalMonths: z.int().min(1).max(12),
   workerTrainingIntervalMonths: z.int().min(1).max(6),
   trainingFirstMonth: z.int().min(1).max(12),
@@ -66,7 +82,7 @@ export const clientDocumentDetailsSchema = z.object({
   // Also asked when the client is created; this is where it is corrected or filled in later.
   legalRepresentativeName: z.string().nullable(),
   legalRepresentativeRole: z.string().nullable(),
-  periodicTrainingHours: trainingScheduleFields.periodicTrainingHours.nullable(),
+  periodicTrainingMinutes: trainingScheduleFields.periodicTrainingMinutes.nullable(),
   administrativeTrainingIntervalMonths:
     trainingScheduleFields.administrativeTrainingIntervalMonths.nullable(),
   workerTrainingIntervalMonths: trainingScheduleFields.workerTrainingIntervalMonths.nullable(),
@@ -88,7 +104,7 @@ export const updateClientDocumentDetailsRequestSchema = z
   .object({
     legalRepresentativeName: optionalText(2, 160),
     legalRepresentativeRole: optionalText(2, 80),
-    periodicTrainingHours: trainingScheduleFields.periodicTrainingHours.nullish(),
+    periodicTrainingMinutes: trainingScheduleFields.periodicTrainingMinutes.nullish(),
     administrativeTrainingIntervalMonths:
       trainingScheduleFields.administrativeTrainingIntervalMonths.nullish(),
     workerTrainingIntervalMonths: trainingScheduleFields.workerTrainingIntervalMonths.nullish(),

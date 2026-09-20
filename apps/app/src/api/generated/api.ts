@@ -1091,12 +1091,8 @@ export type ClientDocumentDetailsResponseDocumentDetails = {
   legalRepresentativeName: string | null;
   /** @nullable */
   legalRepresentativeRole: string | null;
-  /**
-   * @minimum 1
-   * @maximum 8
-   * @nullable
-   */
-  periodicTrainingHours: number | null;
+  /** @nullable */
+  periodicTrainingMinutes: number | null;
   /**
    * @minimum 1
    * @maximum 12
@@ -1146,12 +1142,8 @@ export interface UpdateClientDocumentDetailsRequest {
    * @nullable
    */
   legalRepresentativeRole?: string | null;
-  /**
-   * @minimum 1
-   * @maximum 8
-   * @nullable
-   */
-  periodicTrainingHours?: number | null;
+  /** @nullable */
+  periodicTrainingMinutes?: number | null;
   /**
    * @minimum 1
    * @maximum 12

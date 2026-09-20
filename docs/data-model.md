@@ -97,7 +97,7 @@ calendar will read the same columns:
 
 | Column                                    | Notes                                                                 |
 | ----------------------------------------- | --------------------------------------------------------------------- |
-| `periodic_training_hours`                 | Duration of a periodic training, 1 to 8.                              |
+| `periodic_training_minutes`               | Duration of a periodic training: 30, 60, 90 or 120.                   |
 | `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.   |
 | `worker_training_interval_months`         | Workers, 1 to 6.                                                      |
 | `training_first_month`                    | First month of the year with a training; the rest follow by interval. |

@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { trainingMonths } from '@ssm-usor/contracts';
+import {
+  formatTrainingDuration,
+  periodicTrainingMinutesOptions,
+  trainingMonths,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -192,22 +196,25 @@ function DocumentDetailsForm({
       </Field>
 
       <Field
-        id="details-training-hours"
+        id="details-training-duration"
         label="Durata instruirii periodice"
-        error={errors.periodicTrainingHours}
+        error={errors.periodicTrainingMinutes}
       >
         <NativeSelect
-          id="details-training-hours"
-          data-testid="details-training-hours"
+          id="details-training-duration"
+          data-testid="details-training-duration"
           disabled={locked}
-          aria-invalid={Boolean(errors.periodicTrainingHours)}
-          aria-describedby={describedBy('details-training-hours', errors.periodicTrainingHours)}
-          {...form.register('periodicTrainingHours')}
+          aria-invalid={Boolean(errors.periodicTrainingMinutes)}
+          aria-describedby={describedBy(
+            'details-training-duration',
+            errors.periodicTrainingMinutes
+          )}
+          {...form.register('periodicTrainingMinutes')}
         >
           <NativeSelectOption value="">Alege durata</NativeSelectOption>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((hours) => (
-            <NativeSelectOption key={hours} value={hours}>
-              {hours === 1 ? '1 oră' : `${hours} ore`}
+          {periodicTrainingMinutesOptions.map((minutes) => (
+            <NativeSelectOption key={minutes} value={minutes}>
+              {formatTrainingDuration(minutes)}
             </NativeSelectOption>
           ))}
         </NativeSelect>

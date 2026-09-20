@@ -213,7 +213,7 @@ export type Database = {
           legal_representative_role: string | null;
           locality: string | null;
           organization_id: string;
-          periodic_training_hours: number | null;
+          periodic_training_minutes: number | null;
           trade_register_number: string | null;
           training_day_from: number | null;
           training_day_to: number | null;
@@ -238,7 +238,7 @@ export type Database = {
           legal_representative_role?: string | null;
           locality?: string | null;
           organization_id: string;
-          periodic_training_hours?: number | null;
+          periodic_training_minutes?: number | null;
           trade_register_number?: string | null;
           training_day_from?: number | null;
           training_day_to?: number | null;
@@ -263,7 +263,7 @@ export type Database = {
           legal_representative_role?: string | null;
           locality?: string | null;
           organization_id?: string;
-          periodic_training_hours?: number | null;
+          periodic_training_minutes?: number | null;
           trade_register_number?: string | null;
           training_day_from?: number | null;
           training_day_to?: number | null;

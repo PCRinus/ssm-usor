@@ -1,3 +1,4 @@
+import { periodicTrainingMinutesOptions } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
@@ -19,6 +20,8 @@ const wholeNumber = (min: number, max: number, message: string) =>
       return /^[0-9]+$/.test(value) && number >= min && number <= max;
     }, message);
 
+const durations: readonly string[] = periodicTrainingMinutesOptions.map(String);
+
 export const documentDetailsFormSchema = z
   .object({
     legalRepresentativeName: z
@@ -37,7 +40,9 @@ export const documentDetailsFormSchema = z
         (value) => value.length === 0 || value.length >= 2,
         'Funcția are cel puțin 2 caractere.'
       ),
-    periodicTrainingHours: wholeNumber(1, 8, 'Alege o durată între 1 și 8 ore.'),
+    periodicTrainingMinutes: z
+      .string()
+      .refine((value) => value === '' || durations.includes(value), 'Alege o durată din listă.'),
     administrativeTrainingIntervalMonths: wholeNumber(1, 12, 'Alege un interval din listă.'),
     workerTrainingIntervalMonths: wholeNumber(1, 6, 'Alege un interval din listă.'),
     trainingFirstMonth: wholeNumber(1, 12, 'Alege o lună din listă.'),
@@ -60,7 +65,7 @@ export function toDocumentDetailsForm(details: DocumentDetails): DocumentDetails
   return {
     legalRepresentativeName: text(details.legalRepresentativeName),
     legalRepresentativeRole: text(details.legalRepresentativeRole),
-    periodicTrainingHours: text(details.periodicTrainingHours),
+    periodicTrainingMinutes: text(details.periodicTrainingMinutes),
     administrativeTrainingIntervalMonths: text(details.administrativeTrainingIntervalMonths),
     workerTrainingIntervalMonths: text(details.workerTrainingIntervalMonths),
     trainingFirstMonth: text(details.trainingFirstMonth),
@@ -78,7 +83,7 @@ export function toDocumentDetailsRequest(
   return {
     legalRepresentativeName: values.legalRepresentativeName || null,
     legalRepresentativeRole: values.legalRepresentativeRole || null,
-    periodicTrainingHours: numberOrNull(values.periodicTrainingHours),
+    periodicTrainingMinutes: numberOrNull(values.periodicTrainingMinutes),
     administrativeTrainingIntervalMonths: numberOrNull(values.administrativeTrainingIntervalMonths),
     workerTrainingIntervalMonths: numberOrNull(values.workerTrainingIntervalMonths),
     trainingFirstMonth: numberOrNull(values.trainingFirstMonth),
