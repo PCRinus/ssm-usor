@@ -57,7 +57,26 @@ const countyNames = new Map<string, string>(
   romanianCounties.map((county) => [county.code, county.name])
 );
 
-export function workplaceAddress(workplace: Workplace) {
+type Address = Pick<Workplace, 'countyCode' | 'locality' | 'addressLine'>;
+
+// The registered office as the client's own data has it, when the workplace reads differently.
+// Only what the client has filled in counts: an address line it lacks is not a disagreement,
+// and adopting must not blank the workplace's.
+export function differingClientAddress(workplace: Workplace, client: Address): Address | null {
+  if (!workplace.isRegisteredOffice) return null;
+  const parts = ['countyCode', 'locality', 'addressLine'] as const;
+  const differs = parts.some(
+    (part) => client[part] && client[part].trim() !== (workplace[part] ?? '').trim()
+  );
+  if (!differs) return null;
+  return {
+    countyCode: client.countyCode ?? workplace.countyCode,
+    locality: client.locality ?? workplace.locality,
+    addressLine: client.addressLine ?? workplace.addressLine,
+  };
+}
+
+export function workplaceAddress(workplace: Address) {
   const county = workplace.countyCode ? countyNames.get(workplace.countyCode) : null;
   return [workplace.addressLine, workplace.locality, county].filter(Boolean).join(', ');
 }

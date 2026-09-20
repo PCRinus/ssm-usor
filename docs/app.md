@@ -366,7 +366,10 @@ mobile navigation link closes the Sheet.
   `GET /clients/{clientId}/workplaces`, the registered office first with a badge. "Adaugă" and
   a row's "Modifică" open one dialog; the API's `409` for a second registered office is
   reported on the checkbox and keeps the dialog open. "Arhivează" asks first, and a `404`
-  refreshes the list. An archived client gets the list without add or row actions.
+  refreshes the list. An archived client gets the list without add or row actions. The
+  registered office keeps an address of its own: when the client's data (what the documents
+  print as its seat) has a county, locality or address line that reads differently, the row
+  says so and "Folosește această adresă" adopts it, leaving alone what the client lacks.
   The third card lists the people the client designates by decision, with their roles as
   badges, and names the roles nobody holds yet, which is what generating will ask for. Its
   dialog can pick one of the client's current employees, which fills the name (first names
