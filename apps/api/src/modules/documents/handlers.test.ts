@@ -101,6 +101,7 @@ const documentRow = {
   type_key: 'decision_first_aid',
   title: 'Decizia privind responsabilii cu primul ajutor',
   decision_number: 3,
+  document_group: 'documentation_set',
   document_revisions: [revisionRow],
 };
 const templateRows = [
@@ -288,6 +289,10 @@ describe('GET /clients/{clientId}/documents', () => {
     const body = clientDocumentListResponseSchema.parse(await response.json());
     expect(body.lastGeneration).toEqual({ issueDate: '2026-01-19', firstDecisionNumber: 3 });
     expect(body.items).toHaveLength(1);
+    // The documentation set only: the client's other documents have their own routes.
+    expect(
+      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
+    ).toBe('eq.documentation_set');
     expect(body.items[0]).toMatchObject({
       typeKey: 'decision_first_aid',
       decisionNumber: 3,
@@ -567,6 +572,15 @@ describe('POST /documents/{documentId}/regenerate', () => {
 
     mockUpstream({ documents: oneDocument([revisionRow]), templates: () => Response.json([]) });
     expect((await regenerate()).status).toBe(409);
+  });
+
+  it('leaves a document that is not of the documentation set to its own page', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({ ...documentRow, type_key: 'service_contract', document_group: 'other' }),
+    });
+    expect((await regenerate()).status).toBe(409);
+    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
   });
 
   it('answers 404 for a document of another organization', async () => {

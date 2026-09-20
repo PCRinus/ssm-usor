@@ -45,11 +45,11 @@ type RevisionRow = Pick<
 > & { document_generations: { issue_date: string } | null };
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
-  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number'
+  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'document_group'
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
 
 const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
 
@@ -59,8 +59,17 @@ export type Actor = { userId: string; organizationId: string; createdBy: string 
  * Whether the stored facts would print differently from what the draft was generated from.
  * Nothing to compare for an uploaded file, and nothing to say while data is missing.
  */
-function dataChanged(document: DocumentRow, revision: RevisionRow, facts: StoredDocumentFacts) {
-  if (revision.status !== 'draft' || !revision.data_snapshot || !revision.document_generations) {
+function dataChanged(
+  document: DocumentRow,
+  revision: RevisionRow,
+  facts: StoredDocumentFacts | null
+) {
+  if (
+    !facts ||
+    revision.status !== 'draft' ||
+    !revision.data_snapshot ||
+    !revision.document_generations
+  ) {
     return false;
   }
   const input = {
@@ -83,7 +92,7 @@ function dataChanged(document: DocumentRow, revision: RevisionRow, facts: Stored
 function toRevision(
   document: DocumentRow,
   revision: RevisionRow,
-  facts: StoredDocumentFacts
+  facts: StoredDocumentFacts | null
 ): DocumentRevision {
   return {
     id: revision.id,
@@ -98,7 +107,8 @@ function toRevision(
   };
 }
 
-function toDocument(document: DocumentRow, facts: StoredDocumentFacts): ClientDocument {
+// Without facts for a document that is not merged from them: the service contract.
+function toDocument(document: DocumentRow, facts: StoredDocumentFacts | null): ClientDocument {
   const current = (status: RevisionRow['status']) => {
     const revision = document.document_revisions.find((item) => item.status === status);
     return revision ? toRevision(document, revision, facts) : null;
@@ -119,14 +129,28 @@ const byPackOrder = (a: ClientDocument, b: ClientDocument) =>
   (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
   a.title.localeCompare(b.title, 'ro');
 
+// The documentation set. The client's other documents have routes of their own (ADR 007).
 async function readDocuments(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('client_documents')
     .select(documentColumns)
     .eq('client_id', clientId)
+    .eq('document_group', 'documentation_set')
     .returns<DocumentRow[]>();
   if (error) throw fromDatabaseError(error, 'list client documents');
   return data;
+}
+
+export async function readOtherDocument(db: DataClient, clientId: string, typeKey: string) {
+  const { data, error } = await db
+    .from('client_documents')
+    .select(documentColumns)
+    .eq('client_id', clientId)
+    .eq('type_key', typeKey)
+    .returns<DocumentRow[]>()
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find other client document');
+  return data ? toDocument(data, null) : null;
 }
 
 export async function listClientDocuments(db: DataClient, actor: Actor, clientId: string) {
@@ -387,6 +411,10 @@ export async function regenerateDocument(
   request: RegenerateDocumentRequest
 ) {
   const document = await readDocument(db, documentId);
+  if (document.document_group !== 'documentation_set') {
+    // It would be merged with the facts of the documentation set, which it does not print.
+    throw new ApiError('conflict', 'This document is generated from its own page.');
+  }
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');

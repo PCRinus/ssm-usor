@@ -9,8 +9,10 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           decision_number: number | null;
+          document_group: Database['public']['Enums']['document_group'];
           id: string;
           organization_id: string;
+          owners_only: boolean;
           title: string;
           type_key: string;
         };
@@ -19,8 +21,10 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           decision_number?: number | null;
+          document_group?: Database['public']['Enums']['document_group'];
           id?: string;
           organization_id: string;
+          owners_only?: boolean;
           title: string;
           type_key: string;
         };
@@ -29,8 +33,10 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           decision_number?: number | null;
+          document_group?: Database['public']['Enums']['document_group'];
           id?: string;
           organization_id?: string;
+          owners_only?: boolean;
           title?: string;
           type_key?: string;
         };
@@ -968,6 +974,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      service_contracts: {
+        Row: {
+          client_id: string;
+          contract_date: string;
+          contract_number: number;
+          covers_fire_safety: boolean;
+          covers_occupational_safety: boolean;
+          created_at: string;
+          created_by: string | null;
+          duration_months: number;
+          id: string;
+          organization_id: string;
+          renews_automatically: boolean;
+          start_date: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          client_id: string;
+          contract_date: string;
+          contract_number: number;
+          covers_fire_safety?: boolean;
+          covers_occupational_safety?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          duration_months: number;
+          id?: string;
+          organization_id: string;
+          renews_automatically?: boolean;
+          start_date: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          contract_date?: string;
+          contract_number?: number;
+          covers_fire_safety?: boolean;
+          covers_occupational_safety?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          duration_months?: number;
+          id?: string;
+          organization_id?: string;
+          renews_automatically?: boolean;
+          start_date?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_contracts_client_fkey';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contracts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       waitlist_subscribers: {
         Row: {
           confirmation_sent_at: string | null;
@@ -1023,6 +1095,7 @@ export type Database = {
         };
         Returns: string;
       };
+      can_access_document: { Args: { p_document_id: string }; Returns: boolean };
       change_organization_member_role: {
         Args: {
           member_user_id: string;
@@ -1065,6 +1138,7 @@ export type Database = {
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
+      is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
       issue_document_revision: {
         Args: {
           p_docx_sha256: string;
@@ -1135,6 +1209,7 @@ export type Database = {
     };
     Enums: {
       client_stage: 'lead' | 'client';
+      document_group: 'documentation_set' | 'other';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
@@ -1263,6 +1338,7 @@ export const Constants = {
   public: {
     Enums: {
       client_stage: ['lead', 'client'],
+      document_group: ['documentation_set', 'other'],
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       organization_role: ['owner', 'specialist'],

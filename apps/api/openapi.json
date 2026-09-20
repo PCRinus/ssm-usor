@@ -2923,6 +2923,290 @@
           }
         }
       },
+      "ServiceContractResponse": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "contractNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999999
+              },
+              "contractDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "durationMonths": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 120
+              },
+              "renewsAutomatically": {
+                "type": "boolean"
+              },
+              "coversOccupationalSafety": {
+                "type": "boolean"
+              },
+              "coversFireSafety": {
+                "type": "boolean"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "contractNumber",
+              "contractDate",
+              "startDate",
+              "durationMonths",
+              "renewsAutomatically",
+              "coversOccupationalSafety",
+              "coversFireSafety",
+              "endDate"
+            ]
+          },
+          "suggestedNumber": {
+            "type": "integer",
+            "nullable": true
+          },
+          "clientRepresentative": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "role": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name", "role"]
+          },
+          "readiness": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "provider.legalName",
+                    "provider.cui",
+                    "provider.tradeRegisterNumber",
+                    "provider.address",
+                    "provider.representativeName",
+                    "provider.representativeRole",
+                    "provider.phone",
+                    "provider.bankAccount",
+                    "provider.authorizationCertificate",
+                    "provider.fireSafetyTechnician",
+                    "client.tradeRegisterNumber",
+                    "client.address",
+                    "client.representativeName",
+                    "client.representativeRole",
+                    "contract.details"
+                  ]
+                }
+              }
+            },
+            "required": ["ready", "missing"]
+          },
+          "document": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "typeKey": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "decisionNumber": {
+                "type": "integer",
+                "nullable": true
+              },
+              "draft": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["draft", "issued", "superseded"]
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dataChanged": {
+                    "type": "boolean"
+                  },
+                  "editedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "issuedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "hasPdf": {
+                    "type": "boolean"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id",
+                  "revision",
+                  "status",
+                  "issueDate",
+                  "dataChanged",
+                  "editedAt",
+                  "issuedAt",
+                  "hasPdf",
+                  "createdAt"
+                ]
+              },
+              "issued": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["draft", "issued", "superseded"]
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dataChanged": {
+                    "type": "boolean"
+                  },
+                  "editedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "issuedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "hasPdf": {
+                    "type": "boolean"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id",
+                  "revision",
+                  "status",
+                  "issueDate",
+                  "dataChanged",
+                  "editedAt",
+                  "issuedAt",
+                  "hasPdf",
+                  "createdAt"
+                ]
+              }
+            },
+            "required": ["id", "clientId", "typeKey", "title", "decisionNumber", "draft", "issued"]
+          }
+        },
+        "required": ["contract", "suggestedNumber", "clientRepresentative", "readiness", "document"]
+      },
+      "SaveServiceContractRequest": {
+        "type": "object",
+        "properties": {
+          "contractNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999999
+          },
+          "contractDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "renewsAutomatically": {
+            "type": "boolean",
+            "default": true
+          },
+          "coversOccupationalSafety": {
+            "type": "boolean",
+            "default": true
+          },
+          "coversFireSafety": {
+            "type": "boolean",
+            "default": false
+          },
+          "clientRepresentativeName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "clientRepresentativeRole": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 80
+          }
+        },
+        "required": ["contractNumber", "contractDate", "startDate", "durationMonths"]
+      },
       "MembershipResponse": {
         "type": "object",
         "properties": {
@@ -8067,6 +8351,214 @@
           },
           "409": {
             "description": "The client is archived, or the document has to be generated first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/service-contract": {
+      "get": {
+        "operationId": "getServiceContract",
+        "summary": "Read the service contract of a client or a lead",
+        "description": "Owners only, before and after promotion (ADR 007). `contract` is null until its details are saved, and `suggestedNumber` then continues the organization's register. `readiness` lists what generating the contract is waiting for, by where it is filled in. `document` is the contract as a document, with its draft and issued revisions, once generated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveServiceContract",
+        "summary": "Save the details of the service contract of a client or a lead",
+        "description": "Owners only. The number, the dates, the renewal and the services covered; prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveServiceContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another contract of that year has the number (`contract_number_taken`), or the client is archived",
             "content": {
               "application/json": {
                 "schema": {

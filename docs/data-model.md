@@ -302,6 +302,32 @@ well as its row, and tenancy and impersonation apply to files exactly as they do
 because the policies use `current_organization_id()`. Supabase's database backups cover these
 rows but not the files (issue #77).
 
+### Other documents, and documents for owners only
+
+`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007):
+the documents about a client that are not part of its set, of which the service contract is
+the first. `owners_only` marks a document that only an owner reaches, and a check constraint
+keeps a `service_contract` from being anything else, whoever writes the row.
+
+`can_access_document(id)` is the one answer for every way to a document: the select and
+insert policies of `client_documents` carry the same condition, the four policies of
+`document_revisions` call it, `is_readable_document_path` makes the read policy of the
+`documents` bucket ask it (reading used to be by the organization's folder alone, which a
+specialist who learned the path of a contract would have passed), `is_draft_document_path`
+asks it before a file is written, and `issue_document_revision`, which runs past the
+policies, answers `DOC01` for a document the caller cannot reach. The lead trigger on
+`client_documents` refuses the documentation set only, so a lead has its contract.
+
+### Service contracts
+
+`service_contracts` holds what the app reads about a contract: `contract_number` and
+`contract_date` (the provider's own register, a number used once per organization and year),
+`start_date`, `duration_months`, `renews_automatically`, `covers_occupational_safety` and
+`covers_fire_safety`, at least one of them. Owners only, to read as well. It is its own table
+because a policy hides rows and not columns and the team reads a client's row, and its key is
+its own because an amendment later is a second row; for now a client has one. Prices are not
+stored: they live in the file, where they are binding. The archived-client trigger applies.
+
 ## Profiles
 
 `profiles` names a user: `full_name`, plus `terms_version` and `terms_accepted_at` for people

@@ -19,6 +19,7 @@ export * from './mail';
 export * from './organizations';
 export * from './pdf';
 export * from './profile';
+export * from './service-contracts';
 export * from './waitlist';
 
 export const leadApplicationSchema = z.object({

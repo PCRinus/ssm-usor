@@ -2037,6 +2037,174 @@ export interface IssueDocumentRequest {
   acceptUnfilled?: boolean;
 }
 
+/**
+ * @nullable
+ */
+export type ServiceContractResponseContract = {
+  /**
+   * @minimum 1
+   * @maximum 999999
+   */
+  contractNumber: number;
+  contractDate: string;
+  startDate: string;
+  /**
+   * @minimum 1
+   * @maximum 120
+   */
+  durationMonths: number;
+  renewsAutomatically: boolean;
+  coversOccupationalSafety: boolean;
+  coversFireSafety: boolean;
+  endDate: string;
+} | null;
+
+export type ServiceContractResponseClientRepresentative = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  role: string | null;
+};
+
+export type ServiceContractResponseReadinessMissingItem =
+  (typeof ServiceContractResponseReadinessMissingItem)[keyof typeof ServiceContractResponseReadinessMissingItem];
+
+export const ServiceContractResponseReadinessMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providercui: 'provider.cui',
+  providertradeRegisterNumber: 'provider.tradeRegisterNumber',
+  provideraddress: 'provider.address',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  providerphone: 'provider.phone',
+  providerbankAccount: 'provider.bankAccount',
+  providerauthorizationCertificate: 'provider.authorizationCertificate',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  clienttradeRegisterNumber: 'client.tradeRegisterNumber',
+  clientaddress: 'client.address',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  contractdetails: 'contract.details',
+} as const;
+
+export type ServiceContractResponseReadiness = {
+  ready: boolean;
+  missing: ServiceContractResponseReadinessMissingItem[];
+};
+
+export type ServiceContractResponseDocumentDraftStatus =
+  (typeof ServiceContractResponseDocumentDraftStatus)[keyof typeof ServiceContractResponseDocumentDraftStatus];
+
+export const ServiceContractResponseDocumentDraftStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentDraft = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ServiceContractResponseDocumentDraftStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  hasPdf: boolean;
+  createdAt: string;
+} | null;
+
+export type ServiceContractResponseDocumentIssuedStatus =
+  (typeof ServiceContractResponseDocumentIssuedStatus)[keyof typeof ServiceContractResponseDocumentIssuedStatus];
+
+export const ServiceContractResponseDocumentIssuedStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentIssued = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ServiceContractResponseDocumentIssuedStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  hasPdf: boolean;
+  createdAt: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocument = {
+  id: string;
+  clientId: string;
+  typeKey: string;
+  title: string;
+  /** @nullable */
+  decisionNumber: number | null;
+  /** @nullable */
+  draft: ServiceContractResponseDocumentDraft;
+  /** @nullable */
+  issued: ServiceContractResponseDocumentIssued;
+} | null;
+
+export interface ServiceContractResponse {
+  /** @nullable */
+  contract: ServiceContractResponseContract;
+  /** @nullable */
+  suggestedNumber: number | null;
+  clientRepresentative: ServiceContractResponseClientRepresentative;
+  readiness: ServiceContractResponseReadiness;
+  /** @nullable */
+  document: ServiceContractResponseDocument;
+}
+
+export interface SaveServiceContractRequest {
+  /**
+   * @minimum 1
+   * @maximum 999999
+   */
+  contractNumber: number;
+  contractDate: string;
+  startDate: string;
+  /**
+   * @minimum 1
+   * @maximum 120
+   */
+  durationMonths: number;
+  renewsAutomatically?: boolean;
+  coversOccupationalSafety?: boolean;
+  coversFireSafety?: boolean;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  clientRepresentativeName?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 80
+   * @nullable
+   */
+  clientRepresentativeRole?: string | null;
+}
+
 export type MembershipResponseOrganization = {
   id: string;
   name: string;
@@ -8007,6 +8175,246 @@ export const useUploadClientDocument = <TError = ErrorType<ApiErrorResponse>, TC
   TContext
 > => {
   return useMutation(getUploadClientDocumentMutationOptions(options), queryClient);
+};
+
+export const getGetServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract`;
+};
+
+/**
+ * Owners only, before and after promotion (ADR 007). `contract` is null until its details are saved, and `suggestedNumber` then continues the organization's register. `readiness` lists what generating the contract is waiting for, by where it is filled in. `document` is the contract as a document, with its draft and issued revisions, once generated.
+ * @summary Read the service contract of a client or a lead
+ */
+export const getServiceContract = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  return apiFetch<ServiceContractResponse>(getGetServiceContractUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetServiceContractQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/service-contract`] as const;
+};
+
+export const getGetServiceContractQueryOptions = <
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetServiceContractQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceContract>>> = ({ signal }) =>
+    getServiceContract(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetServiceContractQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getServiceContract>>
+>;
+export type GetServiceContractQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getServiceContract>>,
+          TError,
+          Awaited<ReturnType<typeof getServiceContract>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getServiceContract>>,
+          TError,
+          Awaited<ReturnType<typeof getServiceContract>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the service contract of a client or a lead
+ */
+
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetServiceContractQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getSaveServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract`;
+};
+
+/**
+ * Owners only. The number, the dates, the renewal and the services covered; prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.
+ * @summary Save the details of the service contract of a client or a lead
+ */
+export const saveServiceContract = async (
+  clientId: string,
+  saveServiceContractRequest: SaveServiceContractRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ServiceContractResponse>(getSaveServiceContractUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(saveServiceContractRequest),
+  });
+};
+
+export const getSaveServiceContractMutationKey = () => ['saveServiceContract'] as const;
+
+export const getSaveServiceContractMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveServiceContract>>,
+    TError,
+    SaveServiceContractMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveServiceContract>>,
+  TError,
+  SaveServiceContractMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveServiceContractMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveServiceContract>>,
+    SaveServiceContractMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return saveServiceContract(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveServiceContractMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveServiceContract>>
+>;
+export type SaveServiceContractMutationBody = SaveServiceContractRequest;
+export type SaveServiceContractMutationError = ErrorType<ApiErrorResponse>;
+export type SaveServiceContractMutationVariables = {
+  clientId: string;
+  data: SaveServiceContractRequest;
+};
+
+/**
+ * @summary Save the details of the service contract of a client or a lead
+ */
+export const useSaveServiceContract = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveServiceContract>>,
+      TError,
+      SaveServiceContractMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveServiceContract>>,
+  TError,
+  SaveServiceContractMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveServiceContractMutationOptions(options), queryClient);
 };
 
 export const getCreateOrganizationUrl = () => {

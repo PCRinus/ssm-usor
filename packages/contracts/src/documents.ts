@@ -144,6 +144,11 @@ export const documentRevisionSchema = z.object({
 
 export type DocumentRevision = z.infer<typeof documentRevisionSchema>;
 
+/** Mirrors the `document_group` enum in the database. */
+export const documentGroups = ['documentation_set', 'other'] as const;
+
+export type DocumentGroup = (typeof documentGroups)[number];
+
 export const clientDocumentSchema = z.object({
   id: z.uuid(),
   clientId: z.uuid(),

@@ -69,6 +69,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                         |
 | `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                       |
 | `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                     |
+| `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                      |
+| `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                             |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
@@ -150,6 +152,21 @@ reason `client_is_lead`. `POST /clients/{clientId}/promote` turns an active lead
 `promotedAt` and who did it. Promoting a client changes nothing, an archived lead answers
 `409` with `client_archived` and is restored first. The owners' notes, `…/owner-notes`, are one free text per client or
 lead, up to 5000 characters, never readable by a specialist, before or after promotion.
+
+The service contract of a client or a lead (ADR 007) is an owner's. `GET
+/clients/{clientId}/service-contract` returns what the app reads about it (`contract`: number,
+dates, duration, renewal, the services covered, and `endDate`, the last day of the first term;
+null until saved), `suggestedNumber` (the last number of this year plus one, 1 in a year
+without contracts, null when the organization has none at all and only the owner knows where
+its register stands), who signs for the client, `readiness` with what generating is waiting
+for (`missingServiceContractData`: the organization's legal and contract details, the client's
+registration, address and representative, the contract's own details; the fire-safety
+technician only when fire safety is covered), and `document`, the contract as a document once
+it is generated. `PUT` saves the details, and the client's representative when sent, which a
+lead has no other form for; a number used twice in a year answers `409` with
+`contract_number_taken`. Prices are not kept: they are written in the file. Generating arrives
+with the template. `GET /clients/{clientId}/documents` lists the documentation set only, and
+`POST /documents/{documentId}/regenerate` answers `409` for a document that is not part of it.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which
 `fromDatabaseError` turns into `409` with the reason `client_archived` for every route at
