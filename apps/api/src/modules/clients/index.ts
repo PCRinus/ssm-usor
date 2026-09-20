@@ -5,6 +5,7 @@ import {
   getClient,
   getClientOwnerNotes,
   listClients,
+  promoteLead,
   restoreClient,
   saveClientOwnerNotes,
   updateClient,
@@ -15,6 +16,7 @@ import {
   getClientOwnerNotesRoute,
   getClientRoute,
   listClientsRoute,
+  promoteLeadRoute,
   restoreClientRoute,
   saveClientOwnerNotesRoute,
   updateClientRoute,
@@ -27,5 +29,6 @@ export const clientsRouter = createRouter()
   .openapi(updateClientRoute, updateClient)
   .openapi(archiveClientRoute, archiveClient)
   .openapi(restoreClientRoute, restoreClient)
+  .openapi(promoteLeadRoute, promoteLead)
   .openapi(getClientOwnerNotesRoute, getClientOwnerNotes)
   .openapi(saveClientOwnerNotesRoute, saveClientOwnerNotes);

@@ -7,6 +7,7 @@ import {
   Link,
   notFound,
   Outlet,
+  redirect,
   useMatches,
   useRouter,
 } from '@tanstack/react-router';
@@ -16,6 +17,7 @@ import {
   BriefcaseBusiness,
   Building2,
   ClipboardList,
+  Contact,
   FileText,
   Pencil,
   UsersRound,
@@ -39,6 +41,7 @@ const sections = [
   { to: '/clients/$clientId/job-positions', label: 'Posturi de lucru', icon: BriefcaseBusiness },
   { to: '/clients/$clientId/document-data', label: 'Date pentru documente', icon: ClipboardList },
   { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText },
+  { to: '/clients/$clientId/contact', label: 'Contact', icon: Contact },
 ] as const;
 
 // Row-level security hides other organizations' clients, so a 404 from the API is the
@@ -47,19 +50,24 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   params: { parse: (params) => ({ clientId: z.uuid().parse(params.clientId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
+    let client;
     try {
-      const { client } = await queryClient.ensureQueryData(
+      ({ client } = await queryClient.ensureQueryData(
         getGetClientQueryOptions(params.clientId, {
           request: apiRequest,
           query: { queryKey: [...getGetClientQueryKey(params.clientId), userId] },
         })
-      );
-      // The shell shows the crumb in place of a static title.
-      return { client, crumb: client.legalName };
+      ));
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 404) throw notFound();
       throw cause;
     }
+    // A lead has its own page and none of these sections (ADR 007). Only an owner gets one.
+    if (client.stage === 'lead') {
+      throw redirect({ to: '/leads/$leadId', params: { leadId: client.id }, replace: true });
+    }
+    // The shell shows the crumb in place of a static title.
+    return { client, crumb: client.legalName };
   },
   component: ClientLayout,
   pendingComponent: ClientPending,

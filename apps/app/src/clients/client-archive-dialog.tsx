@@ -24,23 +24,29 @@ import { useAuth } from '../auth/auth-context';
 import { Notice } from '../components/notice';
 
 export interface ClientArchiveChange {
-  client: { id: string; legalName: string };
+  // The stage words the dialog; a lead has no documents to warn about.
+  client: { id: string; legalName: string; stage?: 'lead' | 'client' };
   action: 'archive' | 'restore';
 }
 
-function serverMessage(cause: unknown, action: ClientArchiveChange['action']) {
+function serverMessage(cause: unknown, action: ClientArchiveChange['action'], lead: boolean) {
+  const noun = lead ? 'clientul potențial' : 'clientul';
   if (cause instanceof ApiHttpError) {
-    if (cause.status === 404) return 'Clientul nu mai există în organizația ta.';
+    if (cause.status === 404) {
+      return lead
+        ? 'Clientul potențial nu mai există în organizația ta.'
+        : 'Clientul nu mai există în organizația ta.';
+    }
     if (cause.status === 403) {
-      return 'Doar un administrator al organizației poate arhiva sau restaura un client.';
+      return `Doar un administrator al organizației poate arhiva sau restaura ${noun}.`;
     }
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
   }
   return action === 'archive'
-    ? 'Nu am putut arhiva clientul. Verifică conexiunea și încearcă din nou.'
-    : 'Nu am putut restaura clientul. Verifică conexiunea și încearcă din nou.';
+    ? `Nu am putut arhiva ${noun}. Verifică conexiunea și încearcă din nou.`
+    : `Nu am putut restaura ${noun}. Verifică conexiunea și încearcă din nou.`;
 }
 
 const draftsNotice = (count: number) =>
@@ -62,7 +68,8 @@ export function ClientArchiveDialog({
   const restore = useRestoreClient({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
   const busy = archive.isPending || restore.isPending;
-  const archiving = change?.action === 'archive' ? change.client.id : null;
+  const lead = change?.client.stage === 'lead';
+  const archiving = change?.action === 'archive' && !lead ? change.client.id : null;
   const documents = useListClientDocuments(archiving ?? '', {
     request: apiRequest,
     query: {
@@ -96,7 +103,7 @@ export function ClientArchiveDialog({
       );
       close();
     } catch (cause) {
-      setError(serverMessage(cause, action));
+      setError(serverMessage(cause, action, client.stage === 'lead'));
     }
   }
 
@@ -106,13 +113,23 @@ export function ClientArchiveDialog({
         <DialogContent data-testid="client-archive-dialog" className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {change.action === 'archive' ? 'Arhivezi clientul?' : 'Restaurezi clientul?'}
+              {change.action === 'archive'
+                ? lead
+                  ? 'Arhivezi clientul potențial?'
+                  : 'Arhivezi clientul?'
+                : lead
+                  ? 'Restaurezi clientul potențial?'
+                  : 'Restaurezi clientul?'}
             </DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{change.client.legalName}</span>
-              {change.action === 'archive'
-                ? ' iese din lista clienților activi. Angajații, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi restaurat.'
-                : ' revine în lista clienților activi, cu angajații, posturile și documentele lui.'}
+              {lead
+                ? change.action === 'archive'
+                  ? ' iese din lista clienților potențiali activi. Datele, contactul și notele lui rămân neschimbate în lista „Arhivați”, de unde poate fi restaurat.'
+                  : ' revine în lista clienților potențiali activi.'
+                : change.action === 'archive'
+                  ? ' iese din lista clienților activi. Angajații, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi restaurat.'
+                  : ' revine în lista clienților activi, cu angajații, posturile și documentele lui.'}
             </DialogDescription>
           </DialogHeader>
           {drafts > 0 && (

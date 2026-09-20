@@ -8,7 +8,12 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type {
@@ -17,6 +22,7 @@ import type {
   getClientOwnerNotesRoute,
   getClientRoute,
   listClientsRoute,
+  promoteLeadRoute,
   restoreClientRoute,
   saveClientOwnerNotesRoute,
   updateClientRoute,
@@ -271,6 +277,28 @@ export const archiveClient: RouteHandler<typeof archiveClientRoute, ApiEnv> = as
 export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   return c.json({ client: await setArchived(createDataClient(c), clientId, false) }, 200);
+};
+
+export const promoteLead: RouteHandler<typeof promoteLeadRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  const promoted = await db
+    .from('clients')
+    .update({ stage: 'client' })
+    .eq('id', clientId)
+    .eq('stage', 'lead')
+    .is('archived_at', null)
+    .select(clientColumns)
+    .maybeSingle();
+  if (promoted.error) throw fromDatabaseError(promoted.error, 'promote lead');
+  if (promoted.data) return c.json({ client: toClient(promoted.data) }, 200);
+  const current = await db.from('clients').select(clientColumns).eq('id', clientId).maybeSingle();
+  if (current.error) throw fromDatabaseError(current.error, 'find client');
+  if (!current.data) {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  if (current.data.stage === 'lead') throw archivedClientError();
+  return c.json({ client: toClient(current.data) }, 200);
 };
 
 export const getClientOwnerNotes: RouteHandler<typeof getClientOwnerNotesRoute, ApiEnv> = async (

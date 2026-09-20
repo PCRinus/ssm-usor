@@ -68,6 +68,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}`                                              | Verified user with a membership       | `{ "client": { … } }` after replacing what was entered about it                                                           |
 | `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                         |
 | `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                       |
+| `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                     |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
@@ -134,7 +135,9 @@ id. The client carries `stage`, `contactName`, `contactEmail`, `contactPhone` an
 as it is, so that a form without the contact does not erase it; `null` clears one. Employees,
 job positions, workplaces, responsible persons and the documentation set do not start under a
 lead: the database refuses with `CLL01`, which `fromDatabaseError` turns into `409` with the
-reason `client_is_lead`. The owners' notes, `…/owner-notes`, are one free text per client or
+reason `client_is_lead`. `POST /clients/{clientId}/promote` turns an active lead into a client; the database stamps
+`promotedAt` and who did it. Promoting a client changes nothing, an archived lead answers
+`409` with `client_archived` and is restored first. The owners' notes, `…/owner-notes`, are one free text per client or
 lead, up to 5000 characters, never readable by a specialist, before or after promotion.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which

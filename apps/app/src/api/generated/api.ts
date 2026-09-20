@@ -3438,6 +3438,90 @@ export const useRestoreClient = <TError = ErrorType<ApiErrorResponse>, TContext 
   return useMutation(getRestoreClientMutationOptions(options), queryClient);
 };
 
+export const getPromoteLeadUrl = (clientId: string) => {
+  return `/clients/${clientId}/promote`;
+};
+
+/**
+ * Owners only, and one way: the whole team sees the company from then on, and its safety records can start. The database records who and when. Promoting a client changes nothing. An archived lead is restored first.
+ * @summary Turn a lead into a client
+ */
+export const promoteLead = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getPromoteLeadUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getPromoteLeadMutationKey = () => ['promoteLead'] as const;
+
+export const getPromoteLeadMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof promoteLead>>,
+    TError,
+    PromoteLeadMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof promoteLead>>,
+  TError,
+  PromoteLeadMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPromoteLeadMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof promoteLead>>,
+    PromoteLeadMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return promoteLead(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PromoteLeadMutationResult = NonNullable<Awaited<ReturnType<typeof promoteLead>>>;
+
+export type PromoteLeadMutationError = ErrorType<ApiErrorResponse>;
+export type PromoteLeadMutationVariables = { clientId: string };
+
+/**
+ * @summary Turn a lead into a client
+ */
+export const usePromoteLead = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof promoteLead>>,
+      TError,
+      PromoteLeadMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof promoteLead>>,
+  TError,
+  PromoteLeadMutationVariables,
+  TContext
+> => {
+  return useMutation(getPromoteLeadMutationOptions(options), queryClient);
+};
+
 export const getGetClientOwnerNotesUrl = (clientId: string) => {
   return `/clients/${clientId}/owner-notes`;
 };

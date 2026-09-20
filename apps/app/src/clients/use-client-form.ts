@@ -18,6 +18,7 @@ import {
   type Client,
   clientFormSchema,
   type ClientFormValues,
+  type ClientStage,
   emptyClientForm,
   toClientForm,
   toCreateClientRequest,
@@ -36,8 +37,30 @@ function isFormField(path: string): path is keyof ClientFormValues {
   return formFields.has(path as keyof ClientFormValues);
 }
 
-// With a client, the form corrects what was entered about it; without, it adds one.
-export function useClientForm(client?: Client) {
+const wording = {
+  client: {
+    saved: 'Datele clientului au fost salvate.',
+    added: (name: string) => `${name} a fost adăugat.`,
+    archived: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
+    gone: 'Clientul nu mai există în organizația ta.',
+    forbidden: 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.',
+    failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
+  },
+  lead: {
+    saved: 'Datele clientului potențial au fost salvate.',
+    added: (name: string) => `${name} a fost adăugat printre clienții potențiali.`,
+    archived: 'Clientul potențial este arhivat; datele lui nu mai pot fi modificate.',
+    gone: 'Clientul potențial nu mai există în organizația ta.',
+    forbidden: 'Doar un administrator al organizației lucrează cu clienții potențiali.',
+    failed: 'Nu am putut salva clientul potențial. Verifică conexiunea și încearcă din nou.',
+  },
+} as const;
+
+// With a client, the form corrects what was entered about it; without, it adds one, in the
+// stage it is given.
+export function useClientForm(client?: Client, newStage: ClientStage = 'client') {
+  const stage = client?.stage ?? newStage;
+  const words = wording[stage];
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const router = useRouter();
@@ -97,23 +120,26 @@ export function useClientForm(client?: Client) {
         queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
         await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
         await router.invalidate();
-        toast.success('Datele clientului au fost salvate.');
-        await navigate({ to: '/clients/$clientId/employees', params: { clientId: client.id } });
+        toast.success(words.saved);
+        await (stage === 'lead'
+          ? navigate({ to: '/leads/$leadId', params: { leadId: client.id } })
+          : navigate({ to: '/clients/$clientId/employees', params: { clientId: client.id } }));
         return;
       }
-      const created = await create.mutateAsync({ data: toCreateClientRequest(values) });
+      const created = await create.mutateAsync({ data: toCreateClientRequest(values, stage) });
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
-      // The list it returns to is sorted and paged, so the new row may not be in sight.
-      toast.success(`${created.client.legalName} a fost adăugat.`);
-      await navigate({ to: '/clients' });
+      toast.success(words.added(created.client.legalName));
+      // A lead opens, because its notes are on its page. The clients list is sorted and
+      // paged, so the new row may not be in sight: the toast says it is there.
+      await (stage === 'lead'
+        ? navigate({ to: '/leads/$leadId', params: { leadId: created.client.id } })
+        : navigate({ to: '/clients' }));
     } catch (cause) {
       if (cause instanceof ApiHttpError) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
         if (cause.status === 409) {
           if (body?.reason === clientConflictReasons.clientArchived) {
-            form.setError('root.server', {
-              message: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
-            });
+            form.setError('root.server', { message: words.archived });
           } else {
             form.setError('cui', {
               message:
@@ -127,7 +153,7 @@ export function useClientForm(client?: Client) {
           return;
         }
         if (cause.status === 404) {
-          form.setError('root.server', { message: 'Clientul nu mai există în organizația ta.' });
+          form.setError('root.server', { message: words.gone });
           return;
         }
         if (cause.status === 400 && body?.issues?.length) {
@@ -147,17 +173,20 @@ export function useClientForm(client?: Client) {
           return;
         }
         if (cause.status === 403) {
-          form.setError('root.server', {
-            message: 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.',
-          });
+          form.setError('root.server', { message: words.forbidden });
           return;
         }
       }
-      form.setError('root.server', {
-        message: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
-      });
+      form.setError('root.server', { message: words.failed });
     }
   });
 
-  return { form, onSubmit, lookup, lookupCui, isSaving: create.isPending || update.isPending };
+  return {
+    form,
+    onSubmit,
+    lookup,
+    lookupCui,
+    stage,
+    isSaving: create.isPending || update.isPending,
+  };
 }

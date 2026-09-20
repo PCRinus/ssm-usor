@@ -124,6 +124,7 @@ describe('client document data', () => {
       'Posturi de lucru',
       'Date pentru documente',
       'Documente',
+      'Contact',
     ]);
     expect(await screen.findByTestId('details-representative-name')).toBeTruthy();
   });

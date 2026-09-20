@@ -554,6 +554,45 @@ describe('archiving a client', () => {
   });
 });
 
+describe('POST /clients/{clientId}/promote', () => {
+  const promote = () => request(`/clients/${clientRow.id}/promote`, { method: 'POST' });
+  const leadRow = { ...clientRow, stage: 'lead' };
+
+  it('turns an active lead into a client, and only that', async () => {
+    mockUpstream({
+      clients: () => Response.json([{ ...clientRow, promoted_at: '2026-09-21T09:00:00+00:00' }]),
+    });
+    const response = await promote();
+    expect(response.status).toBe(200);
+    const { client } = clientResponseSchema.parse(await response.json());
+    expect(client.stage).toBe('client');
+    expect(client.promotedAt).toBe('2026-09-21T09:00:00+00:00');
+    const [input, init] = calls('/rest/v1/clients')[0]!;
+    expect(init?.method).toBe('PATCH');
+    expect(JSON.parse(String(init?.body))).toEqual({ stage: 'client' });
+    const query = new URL(String(input)).searchParams;
+    expect(query.get('stage')).toBe('eq.lead');
+    expect(query.get('archived_at')).toBe('is.null');
+  });
+
+  it.each([
+    [[clientRow], 200],
+    [[{ ...leadRow, archived_at: '2026-09-21T08:00:00+00:00' }], 409],
+    [[], 404],
+  ])('changes nothing for a client, an archived lead, or no one: %#', async (current, status) => {
+    mockUpstream({
+      clients: (init) => (init?.method === 'PATCH' ? Response.json([]) : Response.json(current)),
+    });
+    expect((await promote()).status).toBe(status);
+  });
+
+  it("is an owner's", async () => {
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await promote()).status).toBe(403);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+});
+
 describe("the owners' notes about a client", () => {
   const notesPath = `/clients/${clientRow.id}/owner-notes`;
   const putNotes = (body: unknown) =>

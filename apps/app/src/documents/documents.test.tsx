@@ -145,6 +145,7 @@ describe('client documents', () => {
       'Posturi de lucru',
       'Date pentru documente',
       'Documente',
+      'Contact',
     ]);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(

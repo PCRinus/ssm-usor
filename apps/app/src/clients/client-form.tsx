@@ -12,16 +12,23 @@ import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
 import { CaenCombobox } from './caen-combobox';
-import type { Client } from './client-form-schema';
+import type { Client, ClientStage } from './client-form-schema';
 import { CountyCombobox } from './county-combobox';
 import { useClientForm } from './use-client-form';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
   error ? `${id}-error` : hint ? `${id}-hint` : undefined;
 
-// With a client, the form corrects what was entered about it; without, it adds one.
-export function ClientForm({ client }: { client?: Client }) {
-  const { form, onSubmit, lookup, lookupCui, isSaving } = useClientForm(client);
+const wording = {
+  client: { new: 'Client nou', save: 'Salvează clientul', testId: 'client' },
+  lead: { new: 'Client potențial nou', save: 'Salvează clientul potențial', testId: 'lead' },
+} as const;
+
+// With a client, the form corrects what was entered about it; without, it adds one, as a
+// lead when asked to.
+export function ClientForm({ client, newStage }: { client?: Client; newStage?: ClientStage }) {
+  const { form, onSubmit, lookup, lookupCui, stage, isSaving } = useClientForm(client, newStage);
+  const words = wording[stage];
   const {
     register,
     control,
@@ -34,11 +41,65 @@ export function ClientForm({ client }: { client?: Client }) {
     'aria-describedby': describedBy(name, errors[name], hint),
   });
 
+  // For a lead the contact is what there is to know first; for a client it comes last.
+  const contactSection = (
+    <FormSection
+      title="Persoană de contact"
+      description={
+        stage === 'lead'
+          ? 'Cu cine ții legătura. Poate fi altcineva decât reprezentantul legal; la adresa de email vei putea trimite contractul.'
+          : 'Cu cine ții legătura la această companie. Poate fi altcineva decât reprezentantul legal.'
+      }
+    >
+      <Field
+        id="contactName"
+        label="Nume"
+        mark="optional"
+        error={errors.contactName}
+        className="sm:col-span-2"
+      >
+        <Input
+          id="contactName"
+          data-testid="client-contact-name"
+          className="h-11"
+          {...register('contactName')}
+          autoComplete="off"
+          {...input('contactName')}
+        />
+      </Field>
+      <Field id="contactEmail" label="Email" mark="optional" error={errors.contactEmail}>
+        <Input
+          id="contactEmail"
+          type="email"
+          data-testid="client-contact-email"
+          className="h-11"
+          {...register('contactEmail')}
+          autoComplete="off"
+          {...input('contactEmail')}
+        />
+      </Field>
+      <Field id="contactPhone" label="Telefon" mark="optional" error={errors.contactPhone}>
+        <Input
+          id="contactPhone"
+          type="tel"
+          data-testid="client-contact-phone"
+          className="h-11"
+          {...register('contactPhone')}
+          autoComplete="off"
+          {...input('contactPhone')}
+        />
+      </Field>
+    </FormSection>
+  );
+
   return (
-    <div data-testid={client ? 'edit-client-page' : 'new-client-page'} className="space-y-7">
+    <div
+      data-testid={client ? `edit-${words.testId}-page` : `new-${words.testId}-page`}
+      className="space-y-7"
+    >
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          {client ? `Modifică: ${client.legalName}` : 'Client nou'}
+          {client ? `Modifică: ${client.legalName}` : words.new}
         </h1>
       </div>
       <form
@@ -139,6 +200,8 @@ export function ClientForm({ client }: { client?: Client }) {
               <Label htmlFor="vatPayer">Plătitor de TVA</Label>
             </div>
           </FormSection>
+
+          {stage === 'lead' && contactSection}
 
           <FormSection
             title="Înregistrare"
@@ -272,6 +335,7 @@ export function ClientForm({ client }: { client?: Client }) {
               />
             </Field>
           </FormSection>
+          {stage === 'client' && contactSection}
         </Card>
 
         {errors.root?.server && (
@@ -281,10 +345,18 @@ export function ClientForm({ client }: { client?: Client }) {
         )}
         <div className="flex flex-wrap gap-3">
           <Button type="submit" className="h-11" data-testid="client-submit" disabled={busy}>
-            {isSaving ? 'Se salvează…' : client ? 'Salvează modificările' : 'Salvează clientul'}
+            {isSaving ? 'Se salvează…' : client ? 'Salvează modificările' : words.save}
           </Button>
           <Button asChild type="button" variant="ghost" className="h-11">
-            {client ? (
+            {stage === 'lead' ? (
+              client ? (
+                <Link to="/leads/$leadId" params={{ leadId: client.id }}>
+                  Renunță
+                </Link>
+              ) : (
+                <Link to="/leads">Renunță</Link>
+              )
+            ) : client ? (
               <Link to="/clients/$clientId/employees" params={{ clientId: client.id }}>
                 Renunță
               </Link>

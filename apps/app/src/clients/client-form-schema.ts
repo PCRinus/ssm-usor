@@ -8,6 +8,7 @@ import type {
 } from '../api/generated/api';
 
 export type Client = ClientResponse['client'];
+export type ClientStage = Client['stage'];
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -45,6 +46,22 @@ export const clientFormSchema = z.object({
     .string()
     .trim()
     .regex(/^[0-9]{0,7}$/, 'Introdu un număr întreg de angajați.'),
+  contactName: optionalText(160, 'Numele are cel mult 160 de caractere.').refine(
+    (value) => value.length === 0 || value.length >= 2,
+    'Numele persoanei de contact are cel puțin 2 caractere.'
+  ),
+  contactEmail: z
+    .string()
+    .trim()
+    .max(254, 'Adresa de email are cel mult 254 de caractere.')
+    .refine(
+      (value) => value === '' || z.email().safeParse(value).success,
+      'Introdu o adresă de email validă.'
+    ),
+  contactPhone: optionalText(20, 'Telefonul are cel mult 20 de caractere.').refine(
+    (value) => value.length === 0 || value.length >= 5,
+    'Telefonul are cel puțin 5 caractere.'
+  ),
 });
 
 export type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -60,11 +77,17 @@ export const emptyClientForm: ClientFormValues = {
   addressLine: '',
   legalRepresentativeName: '',
   declaredEmployeeCount: '',
+  contactName: '',
+  contactEmail: '',
+  contactPhone: '',
 };
 
 const textOrNull = (value: string) => (value ? value : null);
 
-export function toCreateClientRequest(values: ClientFormValues): CreateClientRequest {
+export function toCreateClientRequest(
+  values: ClientFormValues,
+  stage: ClientStage = 'client'
+): CreateClientRequest {
   // Validation guarantees a well-formed CUI; the RO prefix also means VAT registration.
   const { cui, vatPrefix } = normalizeCui(values.cui)!;
   return {
@@ -80,12 +103,17 @@ export function toCreateClientRequest(values: ClientFormValues): CreateClientReq
     declaredEmployeeCount: values.declaredEmployeeCount
       ? Number(values.declaredEmployeeCount)
       : null,
+    contactName: textOrNull(values.contactName),
+    contactEmail: textOrNull(values.contactEmail),
+    contactPhone: textOrNull(values.contactPhone),
+    stage,
   };
 }
 
 export function toUpdateClientRequest(values: ClientFormValues): UpdateClientRequest {
   const request: Partial<CreateClientRequest> = toCreateClientRequest(values);
   delete request.legalRepresentativeName;
+  delete request.stage;
   return request as UpdateClientRequest;
 }
 
@@ -101,5 +129,8 @@ export function toClientForm(client: Client): ClientFormValues {
     addressLine: client.addressLine ?? '',
     legalRepresentativeName: client.legalRepresentativeName ?? '',
     declaredEmployeeCount: client.declaredEmployeeCount?.toString() ?? '',
+    contactName: client.contactName ?? '',
+    contactEmail: client.contactEmail ?? '',
+    contactPhone: client.contactPhone ?? '',
   };
 }
