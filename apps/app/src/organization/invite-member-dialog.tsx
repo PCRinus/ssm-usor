@@ -96,7 +96,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
-          <Field id="invite-email" label="Adresa de email" error={errors.email}>
+          <Field id="invite-email" label="Adresa de email" mark="required" error={errors.email}>
             <Input
               id="invite-email"
               data-testid="invite-email"
@@ -112,6 +112,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
           <Field
             id="invite-role"
             label="Rol"
+            mark="required"
             hint="Specialiștii lucrează cu clienții și angajații. Administratorii pot, în plus, să invite alți membri."
             error={errors.role}
           >

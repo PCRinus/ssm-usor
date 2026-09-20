@@ -104,6 +104,16 @@ describe('clients list', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
+  it('opens a client from anywhere on its row', async () => {
+    mockApi({ list: () => Response.json(page([sampleClient])) });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const row = await screen.findByTestId('clients-row');
+    await userEvent.setup().click(within(row).getByText('RO1590082'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${sampleClient.id}/employees`)
+    );
+  });
+
   it('pages and sorts through the URL', async () => {
     mockApi({
       list: (_, url) =>

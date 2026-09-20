@@ -52,7 +52,8 @@ export function DocumentDetailsCard({ client, userId }: { client: ClientSummary;
         <p className="text-sm text-muted-foreground">
           Deciziile sunt emise de reprezentantul legal, cu numele și funcția de mai jos, iar decizia
           privind instruirea tipărește programul instruirilor periodice. Calendarul termenelor va
-          folosi același program.
+          folosi același program. Poți salva și pe rând, dar generarea documentelor le cere pe
+          toate.
         </p>
       </CardHeader>
       <CardContent>

@@ -60,7 +60,7 @@ export function MembersCard({ userId, canManage }: { userId: string; canManage: 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nume</TableHead>
+                <TableHead>Nume și prenume</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead className="text-right">Membru din</TableHead>

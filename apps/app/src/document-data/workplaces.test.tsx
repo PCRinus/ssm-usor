@@ -228,6 +228,22 @@ describe('client workplaces', () => {
     expect(await screen.findByText('Punctul de lucru a fost salvat.')).toBeTruthy();
   });
 
+  it('opens the edit dialog from anywhere on the row, but not from the row menu', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await openRowMenu(user, 'Magazin Timișoara');
+    await user.click(await screen.findByTestId('workplace-archive'));
+    await screen.findByTestId('workplace-archive-dialog');
+    expect(screen.queryByTestId('workplace-dialog')).toBeNull();
+    await user.keyboard('{Escape}');
+
+    await user.click(await screen.findByText('Str. Goethe 2', { exact: false }));
+    const name = await screen.findByTestId<HTMLInputElement>('workplace-name');
+    expect(name.value).toBe('Magazin Timișoara');
+  });
+
   it('archives only after confirmation', async () => {
     mockApi();
     mount();

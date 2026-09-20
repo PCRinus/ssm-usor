@@ -94,7 +94,12 @@ function ProfileForm({ me }: { me: MeResponse }) {
             noValidate
             className="grid gap-5"
           >
-            <Field id="profile-full-name" label="Nume și prenume" error={errors.fullName}>
+            <Field
+              id="profile-full-name"
+              label="Nume și prenume"
+              mark="required"
+              error={errors.fullName}
+            >
               <Input
                 id="profile-full-name"
                 data-testid="profile-full-name"
@@ -108,6 +113,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
             <Field
               id="profile-professional-title"
               label="Titlu profesional"
+              mark="optional"
               hint="Apare lângă numele tău în documentele generate, de exemplu „Evaluator autorizat”."
               error={errors.professionalTitle}
             >

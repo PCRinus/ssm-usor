@@ -81,6 +81,9 @@ export function ClientsPage() {
           columns={clientColumns}
           data={clients.data?.items}
           rowKey={rowKey}
+          onRowClick={(client) =>
+            void navigate({ to: '/clients/$clientId/employees', params: { clientId: client.id } })
+          }
           meta={meta}
           noun={['client', 'clienți']}
           status={!apiRequest.baseUrl ? 'error' : clients.status}

@@ -36,6 +36,7 @@ import {
   useListWorkplaces,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { rowClickProps } from '../components/data-table/row-click';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
 import { type Workplace, workplaceAddress } from './workplace-schema';
 
@@ -135,7 +136,11 @@ export function WorkplacesCard({
             </TableHeader>
             <TableBody>
               {workplaces.data.items.map((workplace) => (
-                <TableRow key={workplace.id} data-testid="workplace-row">
+                <TableRow
+                  key={workplace.id}
+                  data-testid="workplace-row"
+                  {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
+                >
                   <TableCell className="font-medium">
                     <span className="flex flex-wrap items-center gap-2">
                       {workplace.name}

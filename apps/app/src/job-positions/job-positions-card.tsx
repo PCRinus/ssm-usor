@@ -37,6 +37,7 @@ import {
   useRemoveJobPosition,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { rowClickProps } from '../components/data-table/row-click';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
 import {
   employeeCountLabel,
@@ -153,7 +154,11 @@ export function JobPositionsCard({
             </TableHeader>
             <TableBody>
               {positions.data.items.map((position) => (
-                <TableRow key={position.id} data-testid="job-position-row">
+                <TableRow
+                  key={position.id}
+                  data-testid="job-position-row"
+                  {...rowClickProps(readOnly ? undefined : () => setEditing(position))}
+                >
                   <TableCell>
                     <span className="font-medium">{position.name}</span>
                     {position.activities && (

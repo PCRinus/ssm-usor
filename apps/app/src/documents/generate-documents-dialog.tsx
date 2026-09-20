@@ -147,7 +147,7 @@ function GenerateDocumentsForm({
   });
 
   return (
-    <DialogContent data-testid="generate-documents-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="generate-documents-dialog" className="sm:max-w-xl">
       <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Generează documentația</DialogTitle>
@@ -201,6 +201,7 @@ function GenerateDocumentsForm({
             <Field
               id="generate-issue-date"
               label="Data documentelor"
+              mark="required"
               hint="De obicei data de început a contractului."
               error={errors.issueDate}
             >
@@ -227,6 +228,7 @@ function GenerateDocumentsForm({
             <Field
               id="generate-first-number"
               label="Numărul primei decizii"
+              mark="required"
               hint="Cele patru decizii primesc numere consecutive."
               error={errors.firstDecisionNumber}
             >
