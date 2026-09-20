@@ -1,15 +1,24 @@
 # CI and selective deployment
 
-One workflow, `.github/workflows/ci.yml`, validates pull requests and pushes to `main`.
-Only pushes to `main` deploy. The old standalone/manual deployment workflows are removed.
+Two workflows. `.github/workflows/pull-request.yml` is what a pull request has to pass, and
+deploys nothing. `.github/workflows/deploy.yml` is everything that reaches production: it
+runs on pushes to `main` and when started by hand. The checks both run live once, in the
+composite action `.github/actions/validate`, so they cannot drift apart.
+
+**Minutes decide the shape.** GitHub bills every job rounded up to a whole minute, against a
+monthly allowance, so a six-second job costs a minute and five one-minute builds cost up to
+ten. Hence: few jobs, the slow starts inside a job overlapped instead of queued, nothing run
+that has nothing to do, and no run that a newer run makes pointless. A composite action
+shares steps inside one job; a reusable workflow would have added jobs.
 A separate manual **Seed database** workflow seeds the hosted project on demand; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project).
 
 ## Change selection
 
 `dorny/paths-filter` reads `.github/filters.yml`. For PRs it uses GitHub's changed-file list;
-for pushes it compares the pre-push commit with the pushed revision, including every commit
-in that push. The workflow itself is not path-filtered, so **Validate repository** remains
+for pushes to `main` it compares the pushed revision with the commit of the last run on `main`
+that succeeded, so everything since the last complete deployment is in the comparison. A run
+started by hand skips the comparison and selects everything (see below). The workflow itself is not path-filtered, so **Validate repository** remains
 available as a required PR check, including on documentation-only changes.
 
 | Changed files                                                                                                                             | Build/deployment targets                             |
@@ -36,13 +45,20 @@ inputs when introducing them. Generated API files must still be committed and pa
 ## Validation, builds, and artifacts
 
 Generated-code checks, lint, type checks, and unit/integration tests run repository-wide once
-per revision. When the database or API is selected, validation also starts a local Supabase
-database in Docker, applies every migration from scratch, runs the pgTAP policy tests, and
-fails if `apps/api/src/database.types.ts` no longer matches the schema. On PRs, selected applications are also built and packaged with Wrangler's dry
-run, without production environment access or publishing.
+per revision, in one job. When the database or API is selected, validation also starts a local
+Supabase database in Docker, applies every migration from scratch, runs the pgTAP policy tests,
+and fails if `apps/api/src/database.types.ts` no longer matches the schema. The stack starts
+in the background at the top of the job and is collected before the database tests, so its
+minute and a half of pulling and booting overlaps with the other checks. On PRs, selected
+applications are also built and packaged with Wrangler's dry run, without production
+environment access or publishing.
 
-On `main`, a production build matrix runs alongside validation, with one job per selected
-application, which keeps the builds off the critical path. Every deployment job needs both,
+A pull request that touches no code (the `code` filter: applications, packages, Supabase,
+root configuration, workflow files) only has its formatting and lint checked. In practice
+that is documentation. On `main`, validation runs only when something is selected to deploy.
+
+On `main`, one production build job runs alongside validation and builds every selected
+application with a single Turbo invocation, which keeps the builds off the critical path. Every deployment job needs both,
 so nothing built is deployed unless validation also succeeds; a build for a commit that
 fails validation is wasted work, not a risk. It uses the existing `production` environment's public configuration. The SPA's
 three `VITE_*` variables and the commit SHA embedded in both frontend footers are part of their
@@ -69,14 +85,18 @@ does not ask for confirmation in CI, so the job prints `supabase config diff` fi
 refuses to run when the file has no `[remotes]` block for the project. It needs
 `SUPABASE_AUTH_HOOK_SECRET`, which the API deployment uploads too.
 
-Selection compares a push with the commit before it, so a deployment that failed is not
-retried by a later push that leaves its files alone. The database and configuration
+Selection compares a push with the last run on `main` that succeeded, so what a failed,
+cancelled or superseded run carried is selected again by the next push, whatever that push
+touches. The database and configuration
 deployments do nothing when there is nothing to apply, which is why workflow files select
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
 skipped means something before it failed.
-**Browser flow tests** run beside validation on pull requests and on `main`, when the SPA, the
-API, or the database is selected. They use a local Supabase stack, the API served by Node
+**Browser flow tests** run beside validation on pull requests only, when the SPA, the API, or
+the database is selected. They are not repeated after the merge: no deployment waits for them,
+and the pull request has just run them. Their three slow starts, the Supabase containers, the
+PDF converter's image and the browser, do not depend on one another, so the first two start in
+the background and are collected where they are needed. They use a local Supabase stack, the API served by Node
 with an in-memory mailer, and a preview build of the SPA, so they can create users and
 "send" email without touching production. No deployment waits for them.
 
@@ -102,14 +122,28 @@ with arbitrary cached files.
 
 ## Concurrency and recovery
 
-Main workflow runs share a concurrency group with `queue: max` and cancellation disabled.
-This queues the entire validation/build/deployment sequence, rather than allowing a newer
-run to cancel an outstanding application's release. GitHub permits up to 100 pending runs;
-overflow, manual cancellation, and workflow failures still require attention. PR validation
-jobs cancel superseded checks without canceling production work.
+Runs of the deployment workflow do not queue behind one another any more. Validation and the
+build each have a concurrency group that a newer run cancels: a run still validating has
+deployed nothing, and the newer run carries its changes. Every deployment job has a group of
+its own that is never cancelled, so nothing is interrupted halfway, the same thing is never
+deployed twice at once, and GitHub keeps at most one run waiting per job. Three merges in a
+row cost about one run instead of three. A pull request's newer push cancels its older run.
 
-There is no custom tracking of the last deployed commit. A failed API release is not
-implicitly retried by a later marketing-only push. Resolve deployment failures explicitly:
+The last deployed commit is taken to be the head of the last run on `main` that succeeded,
+read from the Actions API by the job "Select affected applications"; when there is none, or
+its commit is gone, the push before is used instead. Merging several pull requests in a row
+leaves one run alive, and that run now selects what the others would have deployed. A run
+that failed stays the concern of whoever merged: the next push retries what it carried, which
+is safe because every deployment here can be repeated, and may not be what is wanted when
+the failure was the change itself.
+
+**Deploying everything by hand.** Actions → Deploy → "Run workflow" on `main` runs the whole
+sequence with every application, the migrations, the configuration and the templates
+selected, whatever changed. It is for an environment that was wiped, a rotated secret, or a
+deployment that failed halfway and is easier to repeat whole. On any other branch it
+validates and deploys nothing.
+
+Otherwise, resolve deployment failures explicitly:
 
 1. Fix the underlying problem and rerun the failed deployment job while its artifact is
    available. Successful jobs need not be rerun.
@@ -121,5 +155,5 @@ implicitly retried by a later marketing-only push. Resolve deployment failures e
    in mind when rolling back either independently.
 
 GitHub processes queued runs by when they enter the queue, not by Git ancestry. Avoid
-replaying old runs after newer releases. Monitor failed or canceled main runs rather than
-assuming a later unrelated push has recovered them.
+replaying old runs after newer releases. A later push does pick up what a failed or cancelled
+run carried; check that it succeeded rather than assume it.

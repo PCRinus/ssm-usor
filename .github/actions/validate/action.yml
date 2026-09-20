@@ -1,0 +1,94 @@
+name: Validate the repository
+description: >-
+  The checks a change has to pass, shared by the pull request and the deployment workflows so
+  the two cannot drift apart. Run it after the setup action, in one job: GitHub bills every job
+  rounded up to a whole minute, so the checks run one after another in a single job and the
+  slow start of the local Supabase stack overlaps with them instead of following them.
+
+inputs:
+  mode:
+    description: >-
+      "full" runs everything. "light" only checks formatting and lint, for a change that
+      touches no code: documentation, workflow files.
+    default: full
+  database:
+    description: '"true" to also check migrations, policies and the generated database types.'
+    default: 'false'
+  projects:
+    description: >-
+      A JSON list of applications to package as a dry run, as a pull request does. Empty or
+      "[]" skips it; the deployment workflow builds them in its own job.
+    default: '[]'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Supabase CLI
+      if: inputs.mode == 'full' && inputs.database == 'true'
+      uses: supabase/setup-cli@v3
+      with:
+        version: 2.117.0
+
+    # Pulling and starting the containers takes about a minute and a half in which the runner
+    # would otherwise wait. It goes on beside the checks below and is collected before the
+    # database tests.
+    - name: Start the local Supabase stack in the background
+      if: inputs.mode == 'full' && inputs.database == 'true'
+      shell: bash
+      run: |
+        nohup bash -c '
+          supabase start -x studio,imgproxy,mailpit,postgres-meta,edge-runtime,logflare,vector,supavisor,realtime \
+            > "$RUNNER_TEMP/supabase-start.log" 2>&1
+          echo $? > "$RUNNER_TEMP/supabase-start.exit"
+        ' > /dev/null 2>&1 &
+
+    - name: Check generated API contract and client
+      if: inputs.mode == 'full'
+      shell: bash
+      run: pnpm check:generated
+
+    - name: Lint and check formatting
+      shell: bash
+      run: pnpm lint
+
+    - name: Type-check
+      if: inputs.mode == 'full'
+      shell: bash
+      run: pnpm typecheck
+
+    - name: Test
+      if: inputs.mode == 'full'
+      shell: bash
+      run: pnpm test
+
+    - name: Check migrations, policies, and generated database types
+      if: inputs.mode == 'full' && inputs.database == 'true'
+      shell: bash
+      run: |
+        timeout 600 bash -c 'until [[ -f "$RUNNER_TEMP/supabase-start.exit" ]]; do sleep 2; done' || true
+        if [[ "$(cat "$RUNNER_TEMP/supabase-start.exit" 2>/dev/null)" != 0 ]]; then
+          echo "The local Supabase stack did not start:"
+          cat "$RUNNER_TEMP/supabase-start.log" || true
+          exit 1
+        fi
+        supabase test db
+        pnpm generate:db
+        if ! git diff --exit-code -- apps/api/src/database.types.ts; then
+          echo "apps/api/src/database.types.ts is stale. Run pnpm generate:db and commit the result."
+          exit 1
+        fi
+
+    # Packaging without production environment access. The deployment workflow builds once,
+    # in its own job, with the real public settings.
+    - name: Build and validate affected applications
+      if: inputs.mode == 'full' && inputs.projects != '' && inputs.projects != '[]'
+      env:
+        PROJECTS: ${{ inputs.projects }}
+      shell: bash
+      run: |
+        mapfile -t projects < <(jq -r '.[]' <<< "$PROJECTS")
+        filters=()
+        for project in "${projects[@]}"; do
+          filters+=("--filter=@ssm-usor/$project")
+        done
+        pnpm exec turbo run deploy:dry-run "${filters[@]}"

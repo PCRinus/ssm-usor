@@ -48,3 +48,25 @@ database:
   - '.github/workflows/**'
   - 'supabase/config.toml'
   - 'supabase/migrations/**'
+# The built-in Word templates are uploaded to Storage and registered from main. The deployment
+# workflow compares with the last deployment, so a run that is superseded hands these on.
+templates:
+  - '.github/filters.yml'
+  - '.github/workflows/deploy.yml'
+  - 'packages/document-engine/templates/**'
+  - 'apps/api/scripts/register-templates.ts'
+  - 'apps/api/scripts/lib/register-templates.ts'
+  - 'supabase/migrations/**'
+# Anything the full validation has something to say about, workflow files included, since
+# running them is how they are tested. A pull request outside it, which in practice means
+# documentation, only gets its formatting and lint checked.
+code:
+  - *shared
+  - 'apps/**'
+  - 'packages/**'
+  - 'supabase/**'
+  - 'orval.config.ts'
+  - 'eslint.config.*'
+  - '.prettierrc*'
+  - '.prettierignore'
+  - 'lefthook.yml'

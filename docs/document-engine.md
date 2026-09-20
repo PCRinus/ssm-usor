@@ -247,10 +247,10 @@ registered stays the version it was. A changed file becomes the next version; re
 generated from the earlier one keep pointing at it. Entries marked `contentPending` are left
 out, so nothing offers them for generation yet.
 
-On `main`, the job "Register document templates" runs the same script after the migrations on
-every push. It does not wait for a template to change: CI compares a push with the one before
-it, so a run superseded while it waited would leave its templates unregistered. A wiped
-environment gets everything back from the migrations and this one command.
+On `main`, the job "Register document templates" runs the same script after the migrations
+when a template, the script or a migration changed since the last deployment. The deployment
+workflow compares with the last run that succeeded, so a run that is superseded hands its
+templates on to the next. A wiped environment gets everything back from the migrations and this one command.
 
 ## The merge context
 
