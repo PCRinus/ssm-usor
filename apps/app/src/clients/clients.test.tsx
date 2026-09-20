@@ -280,7 +280,9 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-county').textContent).toContain('Cluj');
     await user.click(screen.getByTestId('client-vat-payer'));
     await user.click(screen.getByTestId('client-caen'));
-    await user.type(screen.getByTestId('client-caen-search'), 'soft-ului la comanda');
+    // Pasted, not typed: each keystroke filters and renders the 600 classes again.
+    await user.click(screen.getByTestId('client-caen-search'));
+    await user.paste('soft-ului la comanda');
     const listbox = await screen.findByRole('listbox');
     await user.click(await within(listbox).findByRole('option', { name: /6210/ }));
     expect(screen.getByTestId('client-caen').textContent).toContain('6210');
@@ -314,11 +316,8 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-caen').textContent).toContain('9999');
     expect(screen.getByTestId('client-caen').textContent).toContain('nu apare');
     await user.click(screen.getByTestId('client-caen'));
-    await user.click(
-      await within(await screen.findByRole('listbox')).findByRole('option', {
-        name: /Șterge codul/,
-      })
-    );
+    // By test id: with the whole list open, a role query names each of the 600 options.
+    await user.click(await screen.findByTestId('client-caen-clear'));
     expect(screen.getByTestId('client-caen').textContent).toContain('Caută după cod');
   });
 

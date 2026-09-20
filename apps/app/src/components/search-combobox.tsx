@@ -138,6 +138,7 @@ export function SearchCombobox({
               {value && (
                 <CommandItem
                   value="   șterge"
+                  data-testid={`${testId}-clear`}
                   onSelect={() => choose('')}
                   className="text-muted-foreground"
                 >
