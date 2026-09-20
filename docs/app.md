@@ -111,6 +111,7 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients.tsx`                                       | pathless                                  | Clients section layout carrying the breadcrumb title.                                                                                                             |
 | `routes/_authenticated/clients/index.tsx`                                 | `/clients`                                | Protected, paginated and sortable list of the organization's active clients.                                                                                      |
 | `routes/_authenticated/clients/new.tsx`                                   | `/clients/new`                            | Protected form that creates a client, with ANAF prefill by CUI.                                                                                                   |
+| `routes/_authenticated/clients/$clientId/edit.tsx`                        | `/clients/$clientId/edit`                 | The same form, filled from the client, without the legal representative. Reached from "Modifică" in the client header and in the list's row menu.                 |
 | `routes/_authenticated/clients/$clientId.tsx`                             | `/clients/:id`                            | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.         |
 | `routes/_authenticated/clients/$clientId/index.tsx`                       | `/clients/:id`                            | Redirects to the employees section until a client overview exists.                                                                                                |
 | `routes/_authenticated/clients/$clientId/employees.tsx`                   | pathless                                  | Employees section layout carrying the breadcrumb title.                                                                                                           |
@@ -275,7 +276,10 @@ mobile navigation link closes the Sheet.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table:
   sortable by company, CUI, and declared headcount, paged through `?page=` with the sort in
   `?sort=&order=`, with loading, empty, and error states (a missing membership is explained;
-  other failures offer a retry).
+  other failures offer a retry). "Activi" and "Arhivați" switch the list through `?status=`.
+  A row's menu holds "Modifică" and, for an owner, "Arhivează…", or "Restaurează…" on an
+  archived row; one dialog confirms both and says how many documents are still drafts. An
+  archived client's page opens read-only under a banner, with "Restaurează…" for an owner.
 - `/clients/new`: the creation form, laid out as full-width sections with their purpose on
   the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
   name, VAT status, CAEN code, trade register number, and registered office; a missing record

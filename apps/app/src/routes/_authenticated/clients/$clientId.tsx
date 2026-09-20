@@ -10,12 +10,26 @@ import {
   useMatches,
   useRouter,
 } from '@tanstack/react-router';
-import { BriefcaseBusiness, Building2, ClipboardList, FileText, UsersRound } from 'lucide-react';
-import type { ReactNode } from 'react';
+import {
+  Archive,
+  ArchiveRestore,
+  BriefcaseBusiness,
+  Building2,
+  ClipboardList,
+  FileText,
+  Pencil,
+  UsersRound,
+} from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 import { z } from 'zod';
 
+import { useMe } from '../../../account/use-me';
 import { getGetClientQueryKey, getGetClientQueryOptions } from '../../../api/generated/api';
 import { ApiHttpError } from '../../../api/http';
+import {
+  type ClientArchiveChange,
+  ClientArchiveDialog,
+} from '../../../clients/client-archive-dialog';
 import { registeredOffice } from '../../../clients/client-columns';
 
 // The documents follow the data they print.
@@ -67,6 +81,8 @@ export function ClientLayout() {
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
   });
+  const isOwner = useMe().data?.membership?.role === 'owner';
+  const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const office = registeredOffice(client);
   const caen = client.caenCode ? caenClassName(client.caenCode) : null;
   if (fullPage) return <Outlet />;
@@ -79,7 +95,7 @@ export function ClientLayout() {
         >
           <Building2 className="size-4" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold tracking-tight">{client.legalName}</h1>
           <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
             <Fact label="CUI">
@@ -99,7 +115,52 @@ export function ClientLayout() {
             )}
           </dl>
         </div>
+        {!client.archivedAt && (
+          <div className="flex shrink-0 gap-2">
+            <Button asChild variant="outline" size="sm" data-testid="client-edit">
+              <Link to="/clients/$clientId/edit" params={{ clientId: client.id }}>
+                <Pencil aria-hidden="true" />
+                Modifică
+              </Link>
+            </Button>
+            {isOwner && (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="client-archive"
+                onClick={() => setArchiveChange({ client, action: 'archive' })}
+              >
+                <Archive aria-hidden="true" />
+                Arhivează…
+              </Button>
+            )}
+          </div>
+        )}
       </header>
+      {client.archivedAt && (
+        <div
+          data-testid="client-archived-banner"
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/50 px-4 py-3 text-sm"
+        >
+          <p>
+            <span className="font-medium">Client arhivat.</span> Datele și documentele lui pot fi
+            consultate și descărcate, dar nu modificate.
+            {!isOwner && ' Un administrator al organizației îl poate restaura.'}
+          </p>
+          {isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="client-restore"
+              onClick={() => setArchiveChange({ client, action: 'restore' })}
+            >
+              <ArchiveRestore aria-hidden="true" />
+              Restaurează…
+            </Button>
+          )}
+        </div>
+      )}
       <nav aria-label="Secțiunile clientului" className="sticky top-16 z-20 border-b bg-background">
         <ul className="-mb-px flex gap-1">
           {sections.map(({ to, label, icon: Icon }) => (
@@ -120,6 +181,7 @@ export function ClientLayout() {
         </ul>
       </nav>
       <Outlet />
+      <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
     </div>
   );
 }

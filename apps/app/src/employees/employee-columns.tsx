@@ -20,7 +20,8 @@ export type EmployeeRow = EmployeeListResponse['items'][number];
 const helper = createDataTableColumns<EmployeeRow>();
 
 // Sortable column ids are the API sort keys: name, jobPosition, hiredAt.
-export function employeeColumns(onStatusChange: (change: EmployeeStatusChange) => void) {
+// Without `onStatusChange` the client is archived and the rows have no actions.
+export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) => void) {
   return helper.columns([
     helper.accessor((row) => formatEmployeeName(row), {
       id: 'name',
@@ -97,6 +98,7 @@ export function employeeColumns(onStatusChange: (change: EmployeeStatusChange) =
       },
       cell: ({ row }) => {
         const employee = row.original;
+        if (!onStatusChange) return null;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -1,7 +1,13 @@
 import { type CountyCode, countyCodes, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { CreateClientRequest } from '../api/generated/api';
+import type {
+  ClientResponse,
+  CreateClientRequest,
+  UpdateClientRequest,
+} from '../api/generated/api';
+
+export type Client = ClientResponse['client'];
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -74,5 +80,26 @@ export function toCreateClientRequest(values: ClientFormValues): CreateClientReq
     declaredEmployeeCount: values.declaredEmployeeCount
       ? Number(values.declaredEmployeeCount)
       : null,
+  };
+}
+
+export function toUpdateClientRequest(values: ClientFormValues): UpdateClientRequest {
+  const request: Partial<CreateClientRequest> = toCreateClientRequest(values);
+  delete request.legalRepresentativeName;
+  return request as UpdateClientRequest;
+}
+
+export function toClientForm(client: Client): ClientFormValues {
+  return {
+    cui: client.cui,
+    vatPayer: client.vatPayer,
+    legalName: client.legalName,
+    caenCode: client.caenCode ?? '',
+    tradeRegisterNumber: client.tradeRegisterNumber ?? '',
+    countyCode: client.countyCode ?? '',
+    locality: client.locality ?? '',
+    addressLine: client.addressLine ?? '',
+    legalRepresentativeName: client.legalRepresentativeName ?? '',
+    declaredEmployeeCount: client.declaredEmployeeCount?.toString() ?? '',
   };
 }

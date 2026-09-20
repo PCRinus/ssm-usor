@@ -431,6 +431,102 @@ export interface CreateClientRequest {
 /**
  * @nullable
  */
+export type UpdateClientRequestCountyCode =
+  (typeof UpdateClientRequestCountyCode)[keyof typeof UpdateClientRequestCountyCode] | null;
+
+export const UpdateClientRequestCountyCode = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export interface UpdateClientRequest {
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  legalName: string;
+  /**
+   * @minLength 2
+   * @maxLength 16
+   */
+  cui: string;
+  vatPayer?: boolean;
+  /**
+   * @nullable
+   * @pattern ^[0-9]{4}$
+   */
+  caenCode?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 40
+   * @nullable
+   */
+  tradeRegisterNumber?: string | null;
+  /** @nullable */
+  countyCode?: UpdateClientRequestCountyCode;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  locality?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   * @nullable
+   */
+  addressLine?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   * @nullable
+   */
+  declaredEmployeeCount?: number | null;
+}
+
+/**
+ * @nullable
+ */
 export type CompanyLookupResponseCompanyCountyCode =
   | (typeof CompanyLookupResponseCompanyCountyCode)[keyof typeof CompanyLookupResponseCompanyCountyCode]
   | null;
@@ -2051,6 +2147,7 @@ export type ListClientsParams = {
   pageSize?: number;
   sort?: ListClientsSort;
   order?: ListClientsOrder;
+  status?: ListClientsStatus;
 };
 
 export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsSort];
@@ -2066,6 +2163,13 @@ export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClient
 export const ListClientsOrder = {
   asc: 'asc',
   desc: 'desc',
+} as const;
+
+export type ListClientsStatus = (typeof ListClientsStatus)[keyof typeof ListClientsStatus];
+
+export const ListClientsStatus = {
+  active: 'active',
+  archived: 'archived',
 } as const;
 
 export type LookupCompanyParams = {
@@ -2613,8 +2717,8 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. Archived clients are never listed. One sort key at a time; "legalName" is the default.
- * @summary List the organization's active clients
+ * Paginated. `status` chooses the active clients, the default, or the archived ones; never both. One sort key at a time; "legalName" is the default.
+ * @summary List the organization's clients, active or archived
  */
 export const listClients = async (
   params?: ListClientsParams,
@@ -2707,7 +2811,7 @@ export function useListClients<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the organization's active clients
+ * @summary List the organization's clients, active or archived
  */
 
 export function useListClients<
@@ -2957,6 +3061,280 @@ export function useGetClient<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getUpdateClientUrl = (clientId: string) => {
+  return `/clients/${clientId}`;
+};
+
+/**
+ * The same fields and rules as creating one, without the legal representative's name, which the document details own. An archived client is not edited.
+ * @summary Replace what was entered about a client
+ */
+export const updateClient = async (
+  clientId: string,
+  updateClientRequest: UpdateClientRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientResponse>(getUpdateClientUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateClientRequest),
+  });
+};
+
+export const getUpdateClientMutationKey = () => ['updateClient'] as const;
+
+export const getUpdateClientMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClient>>,
+    TError,
+    UpdateClientMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateClient>>,
+  TError,
+  UpdateClientMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateClientMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateClient>>,
+    UpdateClientMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return updateClient(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateClientMutationResult = NonNullable<Awaited<ReturnType<typeof updateClient>>>;
+export type UpdateClientMutationBody = UpdateClientRequest;
+export type UpdateClientMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateClientMutationVariables = { clientId: string; data: UpdateClientRequest };
+
+/**
+ * @summary Replace what was entered about a client
+ */
+export const useUpdateClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateClient>>,
+      TError,
+      UpdateClientMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateClient>>,
+  TError,
+  UpdateClientMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateClientMutationOptions(options), queryClient);
+};
+
+export const getArchiveClientUrl = (clientId: string) => {
+  return `/clients/${clientId}/archive`;
+};
+
+/**
+ * Owners only. The client leaves the list of active clients; its employees, job positions and documents stay as they are and stay readable. Archiving an archived client changes nothing.
+ * @summary Archive a client
+ */
+export const archiveClient = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getArchiveClientUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getArchiveClientMutationKey = () => ['archiveClient'] as const;
+
+export const getArchiveClientMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof archiveClient>>,
+    TError,
+    ArchiveClientMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof archiveClient>>,
+  TError,
+  ArchiveClientMutationVariables,
+  TContext
+> => {
+  const mutationKey = getArchiveClientMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof archiveClient>>,
+    ArchiveClientMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return archiveClient(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ArchiveClientMutationResult = NonNullable<Awaited<ReturnType<typeof archiveClient>>>;
+
+export type ArchiveClientMutationError = ErrorType<ApiErrorResponse>;
+export type ArchiveClientMutationVariables = { clientId: string };
+
+/**
+ * @summary Archive a client
+ */
+export const useArchiveClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof archiveClient>>,
+      TError,
+      ArchiveClientMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof archiveClient>>,
+  TError,
+  ArchiveClientMutationVariables,
+  TContext
+> => {
+  return useMutation(getArchiveClientMutationOptions(options), queryClient);
+};
+
+export const getRestoreClientUrl = (clientId: string) => {
+  return `/clients/${clientId}/restore`;
+};
+
+/**
+ * Owners only. Restoring an active client changes nothing.
+ * @summary Bring an archived client back
+ */
+export const restoreClient = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getRestoreClientUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getRestoreClientMutationKey = () => ['restoreClient'] as const;
+
+export const getRestoreClientMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreClient>>,
+    TError,
+    RestoreClientMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreClient>>,
+  TError,
+  RestoreClientMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRestoreClientMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreClient>>,
+    RestoreClientMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return restoreClient(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreClientMutationResult = NonNullable<Awaited<ReturnType<typeof restoreClient>>>;
+
+export type RestoreClientMutationError = ErrorType<ApiErrorResponse>;
+export type RestoreClientMutationVariables = { clientId: string };
+
+/**
+ * @summary Bring an archived client back
+ */
+export const useRestoreClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof restoreClient>>,
+      TError,
+      RestoreClientMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof restoreClient>>,
+  TError,
+  RestoreClientMutationVariables,
+  TContext
+> => {
+  return useMutation(getRestoreClientMutationOptions(options), queryClient);
+};
 
 export const getLookupCompanyUrl = (params: LookupCompanyParams) => {
   const normalizedParams = new URLSearchParams();

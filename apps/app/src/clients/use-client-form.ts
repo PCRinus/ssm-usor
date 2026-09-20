@@ -1,22 +1,27 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
+import { clientConflictReasons, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
+  getGetClientQueryKey,
   getListClientsQueryKey,
   lookupCompany,
   useCreateClient,
+  useUpdateClient,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import {
+  type Client,
   clientFormSchema,
   type ClientFormValues,
   emptyClientForm,
+  toClientForm,
   toCreateClientRequest,
+  toUpdateClientRequest,
 } from './client-form-schema';
 
 export type LookupState =
@@ -31,14 +36,17 @@ function isFormField(path: string): path is keyof ClientFormValues {
   return formFields.has(path as keyof ClientFormValues);
 }
 
-export function useClientForm() {
+// With a client, the form corrects what was entered about it; without, it adds one.
+export function useClientForm(client?: Client) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
+  const router = useRouter();
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
-    defaultValues: emptyClientForm,
+    defaultValues: client ? toClientForm(client) : emptyClientForm,
   });
   const create = useCreateClient({ request: apiRequest });
+  const update = useUpdateClient({ request: apiRequest });
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
 
   async function lookupCui() {
@@ -79,18 +87,44 @@ export function useClientForm() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const { client } = await create.mutateAsync({ data: toCreateClientRequest(values) });
+      if (client) {
+        const saved = await update.mutateAsync({
+          clientId: client.id,
+          data: toUpdateClientRequest(values),
+        });
+        // The client page reads the record through its loader, which keeps whatever is cached.
+        queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
+        await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+        await router.invalidate();
+        toast.success('Datele clientului au fost salvate.');
+        await navigate({ to: '/clients/$clientId/employees', params: { clientId: client.id } });
+        return;
+      }
+      const created = await create.mutateAsync({ data: toCreateClientRequest(values) });
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
       // The list it returns to is sorted and paged, so the new row may not be in sight.
-      toast.success(`${client.legalName} a fost adăugat.`);
+      toast.success(`${created.client.legalName} a fost adăugat.`);
       await navigate({ to: '/clients' });
     } catch (cause) {
       if (cause instanceof ApiHttpError) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
         if (cause.status === 409) {
-          form.setError('cui', {
-            message: 'Există deja un client cu acest CUI în organizația ta.',
-          });
+          if (body?.reason === clientConflictReasons.clientArchived) {
+            form.setError('root.server', {
+              message: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
+            });
+          } else {
+            form.setError('cui', {
+              message:
+                body?.reason === clientConflictReasons.cuiTakenByArchived
+                  ? 'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.'
+                  : 'Există deja un client cu acest CUI în organizația ta.',
+            });
+          }
+          return;
+        }
+        if (cause.status === 404) {
+          form.setError('root.server', { message: 'Clientul nu mai există în organizația ta.' });
           return;
         }
         if (cause.status === 400 && body?.issues?.length) {
@@ -122,5 +156,5 @@ export function useClientForm() {
     }
   });
 
-  return { form, onSubmit, lookup, lookupCui, isSaving: create.isPending };
+  return { form, onSubmit, lookup, lookupCui, isSaving: create.isPending || update.isPending };
 }

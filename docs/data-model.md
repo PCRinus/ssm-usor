@@ -70,6 +70,13 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 | `declared_employee_count`                 | Headcount declared at onboarding; a live count will come from employee records. |
 | `archived_at`                             | Soft delete. There is no delete policy.                                         |
 
+Every member corrects a client's data, and only an owner archives or restores one: the update
+policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change
+of `archived_at` (`42501` otherwise). A caller without a user, which is the secret key of seeds
+and maintenance, is let through. Archiving touches nothing under the client: employees, job
+positions and documents keep their own state, which is what makes restoring one column set
+back to null. An archived client keeps its CUI, so the same company cannot be added twice.
+
 Deferred on purpose: service status and contract period, financial data, contacts as their
 own table, and specialist assignment.
 

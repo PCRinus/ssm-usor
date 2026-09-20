@@ -5,6 +5,7 @@ import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   createFileRoute,
   type ErrorComponentProps,
+  getRouteApi,
   Link,
   notFound,
   useRouteContext,
@@ -101,8 +102,11 @@ function Cnp({ value }: { value: string }) {
   );
 }
 
+const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
 export function EmployeePage() {
   const { clientId, employeeId } = Route.useParams();
+  const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const query = useGetEmployee(clientId, employeeId, {
@@ -142,25 +146,27 @@ export function EmployeePage() {
               </Badge>
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" data-testid="employee-edit">
-              <Link
-                to="/clients/$clientId/employees/$employeeId/edit"
-                params={{ clientId, employeeId }}
+          {!readOnly && (
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" data-testid="employee-edit">
+                <Link
+                  to="/clients/$clientId/employees/$employeeId/edit"
+                  params={{ clientId, employeeId }}
+                >
+                  <Pencil aria-hidden="true" />
+                  Modifică
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                data-testid="employee-status-action"
+                onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
               >
-                <Pencil aria-hidden="true" />
-                Modifică
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              data-testid="employee-status-action"
-              onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
-            >
-              {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
-              {former ? 'Reactivează…' : 'Marchează plecarea…'}
-            </Button>
-          </div>
+                {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
+                {former ? 'Reactivează…' : 'Marchează plecarea…'}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

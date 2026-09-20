@@ -167,6 +167,14 @@ describe('GET /clients', () => {
     }
   );
 
+  it('lists the archived clients instead when asked', async () => {
+    mockUpstream({});
+    expect((await request('/clients?status=archived')).status).toBe(200);
+    const [url] = calls('/rest/v1/clients')[0]!;
+    expect(new URL(String(url)).searchParams.get('archived_at')).toBe('not.is.null');
+    expect((await request('/clients?status=all')).status).toBe(400);
+  });
+
   it('requires a bearer token', async () => {
     mockUpstream({});
     const response = await request('/clients', {}, '');
@@ -306,6 +314,24 @@ describe('POST /clients', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('conflict');
   });
 
+  it.each([
+    [null, 'cui_taken'],
+    ['2026-09-21T08:00:00+00:00', 'cui_taken_by_archived'],
+  ])('says whether the client holding the CUI is archived: %s', async (archivedAt, reason) => {
+    mockUpstream({
+      clients: (init) =>
+        init?.method === 'POST'
+          ? Response.json({ code: '23505', message: 'duplicate key' }, { status: 409 })
+          : Response.json([{ archived_at: archivedAt }]),
+    });
+    const response = await postClient(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(reason);
+    expect(new URL(String(calls('/rest/v1/clients')[1]![0])).searchParams.get('cui')).toBe(
+      'eq.1590082'
+    );
+  });
+
   it('maps a row-level security rejection to forbidden', async () => {
     mockUpstream({
       clients: () =>
@@ -324,6 +350,130 @@ describe('POST /clients', () => {
     const response = await postClient({ legalName: 'A' }, '');
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /clients/{clientId}', () => {
+  const validBody = {
+    legalName: 'OMV Petrom SA',
+    cui: 'RO 1590082',
+    caenCode: '0610',
+    countyCode: 'B',
+    locality: 'București',
+    addressLine: 'Str. Coralilor, nr. 22',
+    declaredEmployeeCount: 120,
+  };
+
+  const putClient = (body: unknown, id = clientRow.id) =>
+    request(`/clients/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('replaces the entered fields of an active client and leaves the representative alone', async () => {
+    mockUpstream({ clients: () => Response.json([clientRow]) });
+    const response = await putClient({ ...validBody, legalRepresentativeName: 'Ion Pop' });
+    expect(response.status).toBe(200);
+    expect(clientResponseSchema.parse(await response.json()).client.id).toBe(clientRow.id);
+    const [input, init] = calls('/rest/v1/clients')[0]!;
+    expect(init?.method).toBe('PATCH');
+    const query = new URL(String(input)).searchParams;
+    expect(query.get('id')).toBe(`eq.${clientRow.id}`);
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      legal_name: 'OMV Petrom SA',
+      cui: '1590082',
+      vat_payer: true,
+      caen_code: '0610',
+      trade_register_number: null,
+      county_code: 'B',
+      locality: 'București',
+      address_line: 'Str. Coralilor, nr. 22',
+      declared_employee_count: 120,
+    });
+  });
+
+  it('rejects an invalid body before touching the database', async () => {
+    mockUpstream({});
+    const response = await putClient({ ...validBody, cui: '1590083' });
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it('rejects a CUI another client of the organization has', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json(
+          { code: '23505', message: 'duplicate key value violates unique constraint' },
+          { status: 409 }
+        ),
+    });
+    const response = await putClient(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('conflict');
+  });
+
+  it('refuses an archived client', async () => {
+    mockUpstream({
+      clients: (init) => Response.json(init?.method === 'PATCH' ? [] : [{ id: clientRow.id }]),
+    });
+    const response = await putClient(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('conflict');
+  });
+
+  it('answers 404 when the client is not visible to the organization', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    expect((await putClient(validBody)).status).toBe(404);
+  });
+});
+
+describe('archiving a client', () => {
+  const post = (action: 'archive' | 'restore', id = clientRow.id) =>
+    request(`/clients/${id}/${action}`, { method: 'POST' });
+  const archivedRow = { ...clientRow, archived_at: '2026-09-21T08:00:00+00:00' };
+
+  it('archives an active client once', async () => {
+    mockUpstream({ clients: () => Response.json([archivedRow]) });
+    const response = await post('archive');
+    expect(response.status).toBe(200);
+    expect(clientResponseSchema.parse(await response.json()).client.archivedAt).not.toBeNull();
+    const [input, init] = calls('/rest/v1/clients')[0]!;
+    expect(init?.method).toBe('PATCH');
+    expect(new URL(String(input)).searchParams.get('archived_at')).toBe('is.null');
+    expect(JSON.parse(String(init?.body)).archived_at).toEqual(expect.any(String));
+  });
+
+  it('keeps the first date when the client is archived already', async () => {
+    mockUpstream({
+      clients: (init) => Response.json(init?.method === 'PATCH' ? [] : [archivedRow]),
+    });
+    const response = await post('archive');
+    expect(response.status).toBe(200);
+    expect(clientResponseSchema.parse(await response.json()).client.archivedAt).toBe(
+      archivedRow.archived_at
+    );
+  });
+
+  it('restores an archived client', async () => {
+    mockUpstream({ clients: () => Response.json([clientRow]) });
+    const response = await post('restore');
+    expect(response.status).toBe(200);
+    const [input, init] = calls('/rest/v1/clients')[0]!;
+    expect(new URL(String(input)).searchParams.get('archived_at')).toBe('not.is.null');
+    expect(JSON.parse(String(init?.body))).toEqual({ archived_at: null });
+  });
+
+  it('answers 404 when the client is not visible to the organization', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    expect((await post('archive')).status).toBe(404);
+  });
+
+  it.each(['archive', 'restore'] as const)('leaves %s to owners', async (action) => {
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await post(action)).status).toBe(403);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 });
 
