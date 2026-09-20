@@ -50,6 +50,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
+import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
 import type { ClientDocument } from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
@@ -281,27 +282,27 @@ export function DocumentsCard({
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (
-          <p
-            data-testid="documents-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="documents-error">
             {error}
-          </p>
+          </Notice>
         )}
         {documents.isPending ? (
           <Skeleton className="h-40 w-full" />
         ) : documents.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca documentele.</p>
-            <Button
-              variant="outline"
-              disabled={documents.isFetching}
-              onClick={() => void documents.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={documents.isFetching}
+                onClick={() => void documents.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca documentele.
+          </Notice>
         ) : items.length === 0 ? (
           <div data-testid="documents-empty" className="grid justify-items-center gap-2 py-10">
             <FileText className="size-8 text-muted-foreground" aria-hidden="true" />

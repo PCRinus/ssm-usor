@@ -13,6 +13,7 @@ import {
   useSaveDocumentDraftFile,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { Notice } from '../components/notice';
 import type { DocumentEditorHandle } from './document-editor';
 
 const DocumentEditor = lazy(() => import('./document-editor'));
@@ -209,13 +210,9 @@ export function DocumentEditorPage({
         )}
       </div>
       {saveError && (
-        <p
-          data-testid="editor-save-error"
-          role="alert"
-          className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-        >
+        <Notice variant="destructive" data-testid="editor-save-error">
           {saveError}
-        </p>
+        </Notice>
       )}
       {failed ? (
         <div

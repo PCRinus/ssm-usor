@@ -23,6 +23,7 @@ import {
   useRevokeInvitation,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { Notice } from '../components/notice';
 import { formatDay, roleLabels } from './labels';
 
 function actionMessage(cause: unknown, email: string) {
@@ -72,25 +73,25 @@ export function InvitationsCard({ userId }: { userId: string }) {
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (
-          <p
-            data-testid="invitations-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="invitations-error">
             {error}
-          </p>
+          </Notice>
         )}
         {invitations.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca invitațiile.</p>
-            <Button
-              variant="outline"
-              disabled={invitations.isFetching}
-              onClick={() => void invitations.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={invitations.isFetching}
+                onClick={() => void invitations.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca invitațiile.
+          </Notice>
         ) : invitations.isPending ? (
           <>
             <Skeleton className="h-5 w-full" />

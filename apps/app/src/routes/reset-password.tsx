@@ -14,6 +14,7 @@ import {
   type ResetPasswordValues,
 } from '../auth/password-schema';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
 import { PublicFrame } from '../components/public-frame';
 
@@ -103,9 +104,9 @@ export function ResetPasswordPage() {
           />
         </Field>
         {errors.root?.auth && (
-          <p data-testid="reset-error" role="alert" className="text-sm text-destructive">
+          <Notice variant="destructive" data-testid="reset-error">
             {errors.root.auth.message}
-          </p>
+          </Notice>
         )}
         <Button
           data-testid="reset-submit"

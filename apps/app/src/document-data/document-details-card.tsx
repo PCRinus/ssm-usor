@@ -7,6 +7,7 @@ import {
   getGetClientDocumentDetailsQueryKey,
   useGetClientDocumentDetails,
 } from '../api/generated/api';
+import { Notice } from '../components/notice';
 import { LegalRepresentativeCard } from './legal-representative-card';
 import { TrainingProgramCard } from './training-program-card';
 import type { ClientSummary } from './use-document-details-form';
@@ -37,18 +38,21 @@ export function DocumentDetailsCards({
   if (details.isError) {
     return (
       <Card data-testid="document-details-unavailable">
-        <CardContent
-          role="alert"
-          className="flex flex-wrap items-center gap-3 text-sm text-destructive"
-        >
-          <p>Nu am putut încărca programul de instruire și reprezentantul legal.</p>
-          <Button
-            variant="outline"
-            disabled={details.isFetching}
-            onClick={() => void details.refetch()}
+        <CardContent>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={details.isFetching}
+                onClick={() => void details.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
           >
-            Încearcă din nou
-          </Button>
+            Nu am putut încărca programul de instruire și reprezentantul legal.
+          </Notice>
         </CardContent>
       </Card>
     );

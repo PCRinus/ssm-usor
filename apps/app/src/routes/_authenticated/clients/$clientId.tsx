@@ -31,6 +31,7 @@ import {
   ClientArchiveDialog,
 } from '../../../clients/client-archive-dialog';
 import { registeredOffice } from '../../../clients/client-columns';
+import { Notice } from '../../../components/notice';
 
 // The documents follow the data they print.
 const sections = [
@@ -138,28 +139,28 @@ export function ClientLayout() {
         )}
       </header>
       {client.archivedAt && (
-        <div
+        <Notice
+          variant="warning"
           data-testid="client-archived-banner"
-          role="status"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/50 px-4 py-3 text-sm"
+          title="Client arhivat"
+          action={
+            isOwner && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-warning-border bg-card"
+                data-testid="client-restore"
+                onClick={() => setArchiveChange({ client, action: 'restore' })}
+              >
+                <ArchiveRestore aria-hidden="true" />
+                Restaurează…
+              </Button>
+            )
+          }
         >
-          <p>
-            <span className="font-medium">Client arhivat.</span> Datele și documentele lui pot fi
-            consultate și descărcate, dar nu modificate.
-            {!isOwner && ' Un administrator al organizației îl poate restaura.'}
-          </p>
-          {isOwner && (
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="client-restore"
-              onClick={() => setArchiveChange({ client, action: 'restore' })}
-            >
-              <ArchiveRestore aria-hidden="true" />
-              Restaurează…
-            </Button>
-          )}
-        </div>
+          Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
+          {!isOwner && ' Un administrator al organizației îl poate restaura.'}
+        </Notice>
       )}
       <nav aria-label="Secțiunile clientului" className="sticky top-16 z-20 border-b bg-background">
         <ul className="-mb-px flex gap-1">

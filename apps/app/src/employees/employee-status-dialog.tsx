@@ -24,6 +24,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { DatePicker } from '../components/date-picker';
 import { FieldMessage } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { formatDate, todayIso } from './employee-format';
 
 type Employee = EmployeeListResponse['items'][number];
@@ -174,13 +175,9 @@ function StatusForm({
           </div>
         )}
         {error && (
-          <p
-            data-testid="employee-status-error"
-            role="alert"
-            className="mt-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="employee-status-error" className="mt-4">
             {error}
-          </p>
+          </Notice>
         )}
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>

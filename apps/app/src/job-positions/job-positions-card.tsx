@@ -38,6 +38,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
+import { Notice } from '../components/notice';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
 import {
   employeeCountLabel,
@@ -107,27 +108,27 @@ export function JobPositionsCard({
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (
-          <p
-            data-testid="job-positions-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="job-positions-error">
             {error}
-          </p>
+          </Notice>
         )}
         {positions.isPending ? (
           <Skeleton className="h-32 w-full" />
         ) : positions.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca posturile de lucru.</p>
-            <Button
-              variant="outline"
-              disabled={positions.isFetching}
-              onClick={() => void positions.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={positions.isFetching}
+                onClick={() => void positions.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca posturile de lucru.
+          </Notice>
         ) : positions.data.items.length === 0 ? (
           <div data-testid="job-positions-empty" className="grid justify-items-center gap-2 py-10">
             <BriefcaseBusiness className="size-8 text-muted-foreground" aria-hidden="true" />

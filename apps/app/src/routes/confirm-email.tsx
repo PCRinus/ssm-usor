@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { useAuth } from '../auth/auth-context';
 import { isSpentRecoveryLink } from '../auth/auth-errors';
+import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
 
 // Public: the link in a signup confirmation email lands here. Opening it does nothing; the
@@ -54,9 +55,9 @@ export function ConfirmEmailPage() {
       description="Un clic și contul tău este gata. Urmează configurarea organizației."
     >
       {state === 'failed' && (
-        <p data-testid="confirm-error" role="alert" className="text-sm text-destructive">
+        <Notice variant="destructive" data-testid="confirm-error">
           Nu am putut confirma adresa. Verifică conexiunea și încearcă din nou.
-        </p>
+        </Notice>
       )}
       <Button
         data-testid="confirm-submit"

@@ -22,6 +22,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { Field, FieldMessage } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { EmployeeCombobox } from './employee-combobox';
 import {
   emptyResponsiblePersonForm,
@@ -262,13 +263,9 @@ function ResponsiblePersonForm({
           </fieldset>
         </div>
         {errors.root?.server && (
-          <p
-            data-testid="responsible-error"
-            role="alert"
-            className="mt-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="responsible-error" className="mt-4">
             {errors.root.server.message}
-          </p>
+          </Notice>
         )}
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>

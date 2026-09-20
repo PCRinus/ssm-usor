@@ -37,6 +37,7 @@ import { Fragment, useState } from 'react';
 import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
 import { CommitVersion } from './commit-version';
+import { Notice } from './notice';
 
 function loaderCrumb(loaderData: unknown) {
   const crumb = (loaderData as { crumb?: unknown } | undefined)?.crumb;
@@ -269,21 +270,23 @@ export function AppShell() {
               </BreadcrumbList>
             </Breadcrumb>
             {error && (
-              <div
+              <Notice
+                variant="destructive"
                 data-testid="sign-out-error"
-                role="alert"
-                className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-4 text-sm text-destructive"
+                className="mb-6"
+                action={
+                  <Button
+                    data-testid="sign-out-retry"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => void signOut()}
+                  >
+                    Reîncearcă deconectarea
+                  </Button>
+                }
               >
-                <p>{error}</p>
-                <Button
-                  data-testid="sign-out-retry"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => void signOut()}
-                >
-                  Reîncearcă deconectarea
-                </Button>
-              </div>
+                {error}
+              </Notice>
             )}
             <Outlet />
           </main>

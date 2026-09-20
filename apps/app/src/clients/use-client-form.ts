@@ -27,7 +27,7 @@ import {
 export type LookupState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'done'; message: string }
+  | { status: 'done'; message: string; inactive: boolean }
   | { status: 'error'; message: string };
 
 const formFields = new Set<keyof ClientFormValues>(Object.keys(emptyClientForm) as never[]);
@@ -70,6 +70,7 @@ export function useClientForm(client?: Client) {
       form.clearErrors();
       setLookup({
         status: 'done',
+        inactive: company.inactive,
         message: company.inactive
           ? `Date preluate de la ANAF pentru ${company.legalName}. Atenție: compania figurează ca inactivă.`
           : `Date preluate de la ANAF pentru ${company.legalName}. Verifică-le înainte de salvare.`,

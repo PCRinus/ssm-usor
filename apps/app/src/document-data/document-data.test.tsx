@@ -276,6 +276,6 @@ describe('client document data', () => {
     expect(screen.queryByTestId('legal-representative-save')).toBeNull();
     expect(await screen.findByTestId('training-program-execution')).toBeTruthy();
     expect(screen.queryByTestId('training-program-edit')).toBeNull();
-    expect(screen.getByText(/Clientul este arhivat/)).toBeTruthy();
+    expect(screen.getByTestId('client-archived-banner')).toBeTruthy();
   });
 });

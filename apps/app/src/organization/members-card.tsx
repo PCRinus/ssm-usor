@@ -17,6 +17,7 @@ import {
   getListOrganizationMembersQueryKey,
   useListOrganizationMembers,
 } from '../api/generated/api';
+import { Notice } from '../components/notice';
 import { formatDay, roleLabels } from './labels';
 import { MemberActions } from './member-actions';
 
@@ -37,25 +38,25 @@ export function MembersCard({ userId, canManage }: { userId: string; canManage: 
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (
-          <p
-            data-testid="members-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="members-error">
             {error}
-          </p>
+          </Notice>
         )}
         {members.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca membrii organizației.</p>
-            <Button
-              variant="outline"
-              disabled={members.isFetching}
-              onClick={() => void members.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={members.isFetching}
+                onClick={() => void members.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca membrii organizației.
+          </Notice>
         ) : (
           <Table>
             <TableHeader>

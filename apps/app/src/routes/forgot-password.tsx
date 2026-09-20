@@ -9,6 +9,7 @@ import { useAuth } from '../auth/auth-context';
 import { forgotPasswordErrorMessage } from '../auth/auth-errors';
 import { forgotPasswordSchema, type ForgotPasswordValues } from '../auth/password-schema';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
 
 export const Route = createFileRoute('/forgot-password')({
@@ -90,9 +91,9 @@ export function ForgotPasswordPage() {
           />
         </Field>
         {errors.root?.auth && (
-          <p data-testid="forgot-error" role="alert" className="text-sm text-destructive">
+          <Notice variant="destructive" data-testid="forgot-error">
             {errors.root.auth.message}
-          </p>
+          </Notice>
         )}
         <Button
           data-testid="forgot-submit"
