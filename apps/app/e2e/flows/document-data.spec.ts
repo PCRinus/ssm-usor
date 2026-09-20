@@ -74,11 +74,14 @@ test("a specialist sets a client's representative role and training schedule", a
 
   await page.getByTestId('details-day-from').fill('12');
   await page.getByTestId('details-day-to').fill('7');
-  await page.getByTestId('document-details-save').click();
+  await page.getByTestId('training-program-save').click();
   await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
 
   await page.getByTestId('details-representative-name').fill('Maria-Ioana Popescu');
   await page.getByTestId('details-representative-role').fill('Administrator');
+  await page.getByTestId('legal-representative-save').click();
+  await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
+
   await page.getByTestId('details-training-duration').selectOption('90');
   await page.getByTestId('details-first-month').selectOption('2');
   await page.getByTestId('details-administrative-interval').selectOption('6');
@@ -86,16 +89,21 @@ test("a specialist sets a client's representative role and training schedule", a
   // The preview follows the selects while typing, before anything is saved.
   await expect(page.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeVisible();
   await page.getByTestId('details-day-from').fill('2');
-  await page.getByTestId('document-details-save').click();
-  await expect(page.getByText('Datele pentru documente au fost salvate.')).toBeVisible();
+  await page.getByTestId('training-program-save').click();
+  await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();
 
   await page.reload();
   await expect(page.getByTestId('details-representative-name')).toHaveValue('Maria-Ioana Popescu');
   await expect(page.getByTestId('details-representative-role')).toHaveValue('Administrator');
-  await expect(page.getByTestId('details-training-duration')).toHaveValue('90');
+  await expect(page.getByTestId('legal-representative-save')).toBeDisabled();
+  // A complete program reads as a summary; the form is one click away.
+  await expect(page.getByTestId('training-program-execution')).toContainText('la 3 luni');
+  await expect(page.getByTestId('training-program-execution')).toContainText(
+    'Februarie, Mai, August, Noiembrie'
+  );
+  await expect(page.getByTestId('training-program-session')).toContainText('1 oră și 30 de minute');
+  await page.getByTestId('training-program-edit').click();
   await expect(page.getByTestId('details-worker-interval')).toHaveValue('3');
-  await expect(page.getByText('Instruiri în: Februarie, August.')).toBeVisible();
-  await expect(page.getByTestId('document-details-save')).toBeDisabled();
 });
 
 test('a client gets a registered office and a point of work, one of which is then archived', async ({
@@ -114,7 +122,12 @@ test('a client gets a registered office and a point of work, one of which is the
   await expect(page.getByTestId('workplace-name-error')).toContainText('Introdu denumirea');
   await page.getByTestId('workplace-name').fill('Sediu social');
   await page.getByTestId('workplace-registered-office').click();
-  await page.getByTestId('workplace-locality').fill('București');
+  await page.getByTestId('workplace-county').click();
+  await page.getByTestId('workplace-county-search').fill('bucu');
+  await page.getByRole('option', { name: /București/ }).click();
+  await page.getByTestId('workplace-locality').click();
+  await page.getByTestId('workplace-locality-search').fill('sector 3');
+  await page.getByRole('option', { name: /Sectorul 3/ }).click();
   await page.getByTestId('workplace-save').click();
   await expect(page.getByText('Punctul de lucru a fost adăugat.')).toBeVisible();
 

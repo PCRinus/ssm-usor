@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { StaffCategory } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -13,7 +14,8 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { useForm } from 'react-hook-form';
+import type { ChangeEvent } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
@@ -25,6 +27,7 @@ import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import {
   emptyJobPositionForm,
+  intervalOptionsFor,
   type JobPosition,
   jobPositionFormSchema,
   type JobPositionFormValues,
@@ -91,6 +94,7 @@ function JobPositionForm({
   });
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  const staffCategory = useWatch({ control: form.control, name: 'staffCategory' });
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toJobPositionRequest(values);
@@ -171,7 +175,7 @@ function JobPositionForm({
             id="job-position-category"
             label="Categorie de personal"
             mark="required"
-            hint="Hotărăște la ce interval se face instruirea periodică, după decizia de instruire."
+            hint="Hotărăște la ce interval se face instruirea periodică, dacă postul nu are unul al lui."
           >
             <NativeSelect
               id="job-position-category"
@@ -179,7 +183,16 @@ function JobPositionForm({
               disabled={busy}
               aria-describedby="job-position-category-hint"
               className="w-full"
-              {...form.register('staffCategory')}
+              {...form.register('staffCategory', {
+                // The select drops an option that is gone; the form state has to follow it.
+                onChange: (event: ChangeEvent<HTMLSelectElement>) => {
+                  const allowed = intervalOptionsFor(event.target.value as StaffCategory);
+                  const interval = form.getValues('trainingIntervalMonths');
+                  if (!allowed.some(({ months }) => String(months) === interval)) {
+                    form.setValue('trainingIntervalMonths', '', { shouldDirty: true });
+                  }
+                },
+              })}
             >
               <NativeSelectOption value="execution">
                 {staffCategoryLabels.execution}
@@ -187,6 +200,34 @@ function JobPositionForm({
               <NativeSelectOption value="technical_administrative">
                 {staffCategoryLabels.technical_administrative}
               </NativeSelectOption>
+            </NativeSelect>
+          </Field>
+          <Field
+            id="job-position-interval"
+            label="Interval de instruire"
+            mark="optional"
+            error={errors.trainingIntervalMonths}
+            hint="Doar când postul se instruiește altfel decât restul categoriei lui."
+          >
+            <NativeSelect
+              id="job-position-interval"
+              data-testid="job-position-interval"
+              disabled={busy}
+              aria-invalid={Boolean(errors.trainingIntervalMonths)}
+              aria-describedby={
+                errors.trainingIntervalMonths
+                  ? 'job-position-interval-error'
+                  : 'job-position-interval-hint'
+              }
+              className="w-full"
+              {...form.register('trainingIntervalMonths')}
+            >
+              <NativeSelectOption value="">Cel al categoriei</NativeSelectOption>
+              {intervalOptionsFor(staffCategory).map(({ months, label }) => (
+                <NativeSelectOption key={months} value={months}>
+                  {label}
+                </NativeSelectOption>
+              ))}
             </NativeSelect>
           </Field>
           <Field

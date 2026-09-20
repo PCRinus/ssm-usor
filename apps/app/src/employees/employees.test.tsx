@@ -943,6 +943,34 @@ describe('job positions on employees (ADR 006)', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ jobPositionId: newPositionId });
     expect(await screen.findByText('Postul de lucru a fost schimbat.')).toBeTruthy();
   });
+  it('moves a contract title that only repeats the post along with the post', async () => {
+    const helper = { ...welderPosition, id: newPositionId, name: 'Ajutor sudor', employeeCount: 0 };
+    mockApi({
+      detail: () => Response.json({ employee: sampleEmployee }),
+      positions: () => Response.json({ items: [helper, welderPosition] }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/${sampleEmployee.id}`);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('employee-job-position-change'));
+    const dialog = await screen.findByTestId('employee-job-position-dialog');
+    await pickPosition(user, 'ajut', /Ajutor sudor/, 'employee-position');
+    expect(within(dialog).getByTestId<HTMLInputElement>('employee-contract-title').value).toBe(
+      'Ajutor sudor'
+    );
+    await user.click(screen.getByTestId('employee-job-position-save'));
+
+    await waitFor(() =>
+      expect(requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')).toHaveLength(
+        1
+      )
+    );
+    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')[0]!;
+    expect(JSON.parse(String(init?.body))).toEqual({
+      jobPositionId: newPositionId,
+      jobTitle: 'Ajutor sudor',
+    });
+  });
 });
 
 describe('employee editing', () => {

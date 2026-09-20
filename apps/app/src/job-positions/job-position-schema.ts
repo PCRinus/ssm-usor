@@ -1,7 +1,12 @@
-import { staffCategories, type StaffCategory } from '@ssm-usor/contracts';
+import {
+  maxTrainingIntervalMonths,
+  staffCategories,
+  type StaffCategory,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { JobPositionListResponse, JobPositionRequest } from '../api/generated/api';
+import { intervalOptions } from '../document-data/document-details-schema';
 
 export type JobPosition = JobPositionListResponse['items'][number];
 
@@ -16,17 +21,39 @@ export const staffCategoryShortLabels: Record<StaffCategory, string> = {
   technical_administrative: 'Tehnic-administrativ',
 };
 
+export const intervalOptionsFor = (category: StaffCategory) =>
+  intervalOptions.filter(({ months }) => months <= maxTrainingIntervalMonths[category]);
+
+/** "la 2 luni", as it reads inside a sentence or a table cell. */
+export function intervalLabel(months: number) {
+  return months === 1 ? 'lunar' : `la ${months} luni`;
+}
+
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
-export const jobPositionFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, 'Introdu denumirea postului (cel puțin 2 caractere).')
-    .max(160, 'Denumirea are cel mult 160 de caractere.'),
-  staffCategory: z.enum(staffCategories),
-  workZone: z.string().trim().max(120, 'Zona de lucru are cel mult 120 de caractere.'),
-  activities: z.string().trim().max(2000, 'Descrierea are cel mult 2000 de caractere.'),
-});
+export const jobPositionFormSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, 'Introdu denumirea postului (cel puțin 2 caractere).')
+      .max(160, 'Denumirea are cel mult 160 de caractere.'),
+    staffCategory: z.enum(staffCategories),
+    workZone: z.string().trim().max(120, 'Zona de lucru are cel mult 120 de caractere.'),
+    activities: z.string().trim().max(2000, 'Descrierea are cel mult 2000 de caractere.'),
+    // Empty follows the interval the client sets for the category.
+    trainingIntervalMonths: z.string(),
+  })
+  .refine(
+    ({ staffCategory, trainingIntervalMonths }) =>
+      trainingIntervalMonths === '' ||
+      intervalOptionsFor(staffCategory).some(
+        ({ months }) => String(months) === trainingIntervalMonths
+      ),
+    {
+      path: ['trainingIntervalMonths'],
+      message: 'Personalul de execuție se instruiește cel mult la 6 luni. Alege alt interval.',
+    }
+  );
 
 export type JobPositionFormValues = z.infer<typeof jobPositionFormSchema>;
 
@@ -36,6 +63,7 @@ export const emptyJobPositionForm: JobPositionFormValues = {
   staffCategory: 'execution',
   workZone: '',
   activities: '',
+  trainingIntervalMonths: '',
 };
 
 export function toJobPositionForm(position: JobPosition): JobPositionFormValues {
@@ -44,6 +72,7 @@ export function toJobPositionForm(position: JobPosition): JobPositionFormValues 
     staffCategory: position.staffCategory,
     workZone: position.workZone ?? '',
     activities: position.activities ?? '',
+    trainingIntervalMonths: position.trainingIntervalMonths?.toString() ?? '',
   };
 }
 
@@ -53,6 +82,9 @@ export function toJobPositionRequest(values: JobPositionFormValues): JobPosition
     staffCategory: values.staffCategory,
     workZone: values.workZone || null,
     activities: values.activities || null,
+    trainingIntervalMonths: values.trainingIntervalMonths
+      ? Number(values.trainingIntervalMonths)
+      : null,
   };
 }
 

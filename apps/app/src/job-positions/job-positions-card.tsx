@@ -41,6 +41,7 @@ import { rowClickProps } from '../components/data-table/row-click';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
 import {
   employeeCountLabel,
+  intervalLabel,
   type JobPosition,
   staffCategoryLabels,
   staffCategoryShortLabels,
@@ -143,6 +144,7 @@ export function JobPositionsCard({
               <TableRow>
                 <TableHead>Post</TableHead>
                 <TableHead>Categorie de personal</TableHead>
+                <TableHead>Instruire</TableHead>
                 <TableHead>Zona de lucru</TableHead>
                 <TableHead>Angajați</TableHead>
                 {!readOnly && (
@@ -175,6 +177,13 @@ export function JobPositionsCard({
                     >
                       {staffCategoryShortLabels[position.staffCategory]}
                     </Badge>
+                  </TableCell>
+                  <TableCell data-testid="job-position-interval-cell">
+                    {position.trainingIntervalMonths ? (
+                      intervalLabel(position.trainingIntervalMonths)
+                    ) : (
+                      <span className="text-muted-foreground">ca restul categoriei</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {position.workZone ?? '—'}

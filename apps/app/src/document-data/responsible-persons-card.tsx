@@ -34,6 +34,7 @@ import {
   getListResponsiblePersonsQueryKey,
   useArchiveResponsiblePerson,
   useListResponsiblePersons,
+  useUpdateResponsiblePerson,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
@@ -63,6 +64,7 @@ export function ResponsiblePersonsCard({
     query: { queryKey: [...getListResponsiblePersonsQueryKey(clientId), userId] },
   });
   const archive = useArchiveResponsiblePerson({ request: apiRequest });
+  const update = useUpdateResponsiblePerson({ request: apiRequest });
   const [editing, setEditing] = useState<ResponsiblePersonEditing>(null);
   const [archiving, setArchiving] = useState<ResponsiblePerson | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,26 @@ export function ResponsiblePersonsCard({
   // Each decision names someone, so a role nobody holds is what generating will ask for.
   const held = new Set(persons.data?.items.flatMap((person) => person.roles));
   const missing = responsibleRoleOrder.filter((role) => !held.has(role));
+
+  async function adoptContractTitle(person: ResponsiblePerson, jobTitle: string) {
+    setError(null);
+    try {
+      await update.mutateAsync({
+        clientId,
+        responsiblePersonId: person.id,
+        data: {
+          employeeId: person.employeeId,
+          fullName: person.fullName,
+          jobTitle,
+          roles: person.roles,
+        },
+      });
+      toast.success(`Funcția lui ${person.fullName} a fost actualizată.`);
+    } catch {
+      setError('Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.');
+    }
+    await queryClient.invalidateQueries({ queryKey: getListResponsiblePersonsQueryKey(clientId) });
+  }
 
   async function archivePerson(person: ResponsiblePerson) {
     setError(null);
@@ -156,7 +178,31 @@ export function ResponsiblePersonsCard({
                       {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
                     >
                       <TableCell className="font-medium">{person.fullName}</TableCell>
-                      <TableCell className="text-muted-foreground">{person.jobTitle}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {person.jobTitle}
+                        {person.employeeJobTitle && person.employeeJobTitle !== person.jobTitle && (
+                          <span
+                            data-testid="responsible-title-drift"
+                            className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
+                          >
+                            În contractul angajatului: „{person.employeeJobTitle}”.
+                            {!readOnly && (
+                              <Button
+                                variant="link"
+                                size="sm"
+                                data-testid="responsible-title-adopt"
+                                className="h-auto p-0 text-xs"
+                                disabled={update.isPending}
+                                onClick={() =>
+                                  void adoptContractTitle(person, person.employeeJobTitle!)
+                                }
+                              >
+                                Folosește această funcție
+                              </Button>
+                            )}
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className="flex flex-wrap gap-1.5">
                           {responsibleRoleOrder

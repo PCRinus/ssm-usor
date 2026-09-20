@@ -174,13 +174,14 @@ check constraint mirrors it.
 a workplace, and exists whether or not anyone is in it. It carries the same `client_id`,
 `organization_id` and composite foreign key as `employees`.
 
-| Column           | Notes                                                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`           | Unique per client among positions that are not archived, compared in lower case without the spaces around it.                                                    |
-| `staff_category` | `technical_administrative` or `execution`: the two kinds of staff the training decision gives an interval each. Defaults to `execution`, the shorter interval.   |
-| `work_zone`      | Optional free text, "Birou", "Atelier, teren": the kind of place the work happens in. Not a workplace, which is an address.                                      |
-| `activities`     | Optional: what the person in it actually does. Tells apart two positions close in name.                                                                          |
-| `archived_at`    | Set instead of deleting once an employee points at the position. A trigger refuses it (`JOB01`) while current employees are in it; people who left do not count. |
+| Column                     | Notes                                                                                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | Unique per client among positions that are not archived, compared in lower case without the spaces around it.                                                    |
+| `staff_category`           | `technical_administrative` or `execution`: the two kinds of staff the training decision gives an interval each. Defaults to `execution`, the shorter interval.   |
+| `training_interval_months` | Optional: set only when the post is trained at another interval than its category's, which the client holds. At most 6 for `execution`, 12 otherwise.            |
+| `work_zone`                | Optional free text, "Birou", "Atelier, teren": the kind of place the work happens in. Not a workplace, which is an address.                                      |
+| `activities`               | Optional: what the person in it actually does. Tells apart two positions close in name.                                                                          |
+| `archived_at`              | Set instead of deleting once an employee points at the position. A trigger refuses it (`JOB01`) while current employees are in it; people who left do not count. |
 
 `employees.job_position_id` is required: one position per employee. ADR 006 spoke of a link
 table; a required column keeps the rule in the database and the insert in one statement, and

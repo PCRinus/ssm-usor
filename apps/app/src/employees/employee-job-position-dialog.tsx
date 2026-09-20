@@ -11,6 +11,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
+import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -39,9 +40,9 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>;
 
-// Moves an employee to another of the client's job positions (ADR 006). The contract title
-// is shown and stays as it is unless the person changes it: a post can change without a new
-// contract.
+// Moves an employee to another of the client's job positions (ADR 006). A post can change
+// without a new contract, so a contract title of its own stays. One that only repeats the
+// old post's name follows the new post, as it does in the employee form.
 export function EmployeeJobPositionDialog({
   clientId,
   userId,
@@ -88,6 +89,15 @@ function Form({
   const { errors } = form.formState;
   const busy = move.isPending;
 
+  const filledTitle = useRef(employee.jobPosition.name);
+  function choosePosition(value: string, name: string) {
+    form.setValue('jobPosition', value, { shouldDirty: true, shouldValidate: true });
+    if (name && form.getValues('jobTitle').trim() === filledTitle.current) {
+      filledTitle.current = name;
+      form.setValue('jobTitle', name, { shouldDirty: true, shouldValidate: true });
+    }
+  }
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await move.mutateAsync({
@@ -124,7 +134,8 @@ function Form({
           <DialogTitle>Schimbă postul de lucru</DialogTitle>
           <DialogDescription>
             Postul este munca pe care o face omul, cu riscurile și instruirea ei. Funcția din
-            contract rămâne cum este, dacă nu o schimbi și pe ea.
+            contract urmează postul doar când are aceeași denumire; altfel rămâne cum este, dacă nu
+            o schimbi și pe ea.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
@@ -144,7 +155,7 @@ function Form({
                   clientId={clientId}
                   userId={userId}
                   value={field.value}
-                  onChange={(value) => field.onChange(value)}
+                  onChange={choosePosition}
                   onBlur={field.onBlur}
                   disabled={busy}
                   invalid={Boolean(errors.jobPosition)}

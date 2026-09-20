@@ -42,6 +42,7 @@ const welder = {
   staff_category: 'execution',
   work_zone: 'Atelier, teren',
   activities: 'Sudură electrică',
+  training_interval_months: null as number | null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };
@@ -161,6 +162,7 @@ describe('POST /clients/{clientId}/job-positions', () => {
       staff_category: 'execution',
       work_zone: 'Atelier, teren',
       activities: null,
+      training_interval_months: null,
       organization_id: membership.organization_id,
       client_id: clientId,
       created_by: user.id,
@@ -183,6 +185,10 @@ describe('POST /clients/{clientId}/job-positions', () => {
     expect((await request(path, 'POST', { name: 'Sudor', staffCategory: 'office' })).status).toBe(
       400
     );
+    // Execution staff are trained at least every 6 months; the other category may go to 12.
+    expect(
+      (await request(path, 'POST', { name: 'Sudor', trainingIntervalMonths: 12 })).status
+    ).toBe(400);
     expect(calls('POST')).toHaveLength(0);
   });
 });
@@ -197,7 +203,11 @@ describe('PUT /clients/{clientId}/job-positions/{jobPositionId}', () => {
           ? Response.json({ ...welder, name: 'Sudor autorizat' })
           : undefined!,
     });
-    const response = await update({ name: 'Sudor autorizat', staffCategory: 'execution' });
+    const response = await update({
+      name: 'Sudor autorizat',
+      staffCategory: 'execution',
+      trainingIntervalMonths: 2,
+    });
     expect(response.status).toBe(200);
     const { jobPosition } = jobPositionResponseSchema.parse(await response.json());
     expect([jobPosition.name, jobPosition.employeeCount]).toEqual(['Sudor autorizat', 3]);
@@ -206,6 +216,7 @@ describe('PUT /clients/{clientId}/job-positions/{jobPositionId}', () => {
       staff_category: 'execution',
       work_zone: null,
       activities: null,
+      training_interval_months: 2,
     });
     const filter = new URL(String(calls('PATCH')[0]![0])).searchParams;
     expect([filter.get('id'), filter.get('client_id'), filter.get('archived_at')]).toEqual([

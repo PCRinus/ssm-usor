@@ -79,6 +79,7 @@ const responsiblePersonRow = {
   roles: ['workplace_manager', 'first_aid'],
   created_at: '2026-09-18T10:00:00+00:00',
   updated_at: '2026-09-18T10:00:00+00:00',
+  employees: { job_title: 'Director magazin' },
 };
 
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
@@ -353,8 +354,15 @@ describe('/clients/{clientId}/responsible-persons', () => {
     const response = await request(path);
     expect(response.status).toBe(200);
     const { items } = responsiblePersonListResponseSchema.parse(await response.json());
-    expect(items[0]).toMatchObject({ fullName: 'Ion Popescu', employeeId, roles: body.roles });
+    expect(items[0]).toMatchObject({
+      fullName: 'Ion Popescu',
+      employeeId,
+      roles: body.roles,
+      jobTitle: 'Manager magazin',
+      employeeJobTitle: 'Director magazin',
+    });
     const [url] = calls('/rest/v1/client_responsible_persons')[0]!;
+    expect(new URL(String(url)).searchParams.get('select')).toContain('employees(job_title)');
     expect(new URL(String(url)).searchParams.get('order')).toBe('full_name.asc,id.asc');
   });
 

@@ -150,7 +150,13 @@ describe('client workplaces', () => {
     const dialog = await screen.findByTestId('workplace-dialog');
     await user.type(within(dialog).getByTestId('workplace-name'), ' Sediu social ');
     await user.click(within(dialog).getByTestId('workplace-registered-office'));
-    await user.type(within(dialog).getByTestId('workplace-locality'), 'București');
+    expect(within(dialog).getByTestId<HTMLButtonElement>('workplace-locality').disabled).toBe(true);
+    await user.click(within(dialog).getByTestId('workplace-county'));
+    await user.type(screen.getByTestId('workplace-county-search'), 'alba');
+    await user.click(await screen.findByRole('option', { name: /Alba/ }));
+    await user.click(within(dialog).getByTestId('workplace-locality'));
+    await user.type(screen.getByTestId('workplace-locality-search'), 'barab');
+    await user.click(await screen.findByRole('option', { name: /Bărăbanț/ }));
     await user.click(within(dialog).getByTestId('workplace-save'));
 
     await waitFor(() =>
@@ -158,8 +164,8 @@ describe('client workplaces', () => {
         {
           name: 'Sediu social',
           isRegisteredOffice: true,
-          countyCode: null,
-          locality: 'București',
+          countyCode: 'AB',
+          locality: 'Bărăbanț',
           addressLine: null,
         },
       ])
@@ -167,6 +173,31 @@ describe('client workplaces', () => {
     expect(await screen.findByText('Punctul de lucru a fost adăugat.')).toBeTruthy();
     await waitFor(() => expect(screen.queryByTestId('workplace-dialog')).toBeNull());
     expect(requests(listPath, 'GET').length).toBeGreaterThan(1);
+  });
+
+  it('keeps a locality the register does not list, and drops it when the county changes', async () => {
+    mockApi({ items: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('workplace-add'));
+    const dialog = await screen.findByTestId('workplace-dialog');
+    await user.click(within(dialog).getByTestId('workplace-county'));
+    await user.type(screen.getByTestId('workplace-county-search'), 'bucu');
+    await user.click(await screen.findByRole('option', { name: /București/ }));
+    await user.click(within(dialog).getByTestId('workplace-locality'));
+    await user.type(screen.getByTestId('workplace-locality-search'), 'București');
+    await user.click(await screen.findByRole('option', { name: /Folosește „București”/ }));
+    expect(within(dialog).getByTestId('workplace-locality').textContent).toContain('București');
+
+    await user.click(within(dialog).getByTestId('workplace-county'));
+    await user.type(screen.getByTestId('workplace-county-search'), 'cluj');
+    await user.click(await screen.findByRole('option', { name: /Cluj/ }));
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('workplace-locality').textContent).toContain(
+        'Alege localitatea'
+      )
+    );
   });
 
   it('needs a name before calling the API', async () => {

@@ -305,7 +305,7 @@ export const archiveWorkplace: RouteHandler<typeof archiveWorkplaceRoute, ApiEnv
 };
 
 const responsiblePersonColumns =
-  'id, client_id, employee_id, full_name, job_title, roles, created_at, updated_at';
+  'id, client_id, employee_id, full_name, job_title, roles, created_at, updated_at, employees(job_title)';
 
 type ResponsiblePersonRow = Pick<
   Tables['client_responsible_persons']['Row'],
@@ -317,7 +317,7 @@ type ResponsiblePersonRow = Pick<
   | 'roles'
   | 'created_at'
   | 'updated_at'
->;
+> & { employees: { job_title: string } | null };
 
 function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
   return {
@@ -326,6 +326,7 @@ function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
     employeeId: row.employee_id,
     fullName: row.full_name,
     jobTitle: row.job_title,
+    employeeJobTitle: row.employees?.job_title ?? null,
     roles: row.roles,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),

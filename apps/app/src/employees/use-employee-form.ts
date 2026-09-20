@@ -41,8 +41,9 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
   const update = useUpdateEmployee({ request: apiRequest });
 
   // The contract title follows the position until the person types one of their own: it is
-  // filled while it is empty or still reads what the last choice put there.
-  const filledTitle = useRef('');
+  // filled while it is empty or still reads what the last choice put there. A saved title
+  // that reads the same as the employee's post counts as such a choice.
+  const filledTitle = useRef(employee?.jobPosition.name ?? '');
   function choosePosition(value: string, name: string) {
     form.setValue('jobPosition', value, { shouldDirty: true, shouldValidate: true });
     const current = form.getValues('jobTitle').trim();

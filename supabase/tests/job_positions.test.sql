@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(20);
 
 -- Fixtures: two organizations with one member and one client each.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -77,6 +77,26 @@ select lives_ok(
   $$ insert into public.job_positions (id, organization_id, client_id, name, staff_category, work_zone, created_by)
      values ('f1f1f1f1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Contabil', 'technical_administrative', 'Birou', 'aaaaaaaa-0000-4000-8000-000000000001') $$,
   'a member creates a position for their active client'
+);
+
+select lives_ok(
+  $$ update public.job_positions set training_interval_months = 12
+      where id = 'f1f1f1f1-0000-4000-8000-000000000009' $$,
+  'a technical-administrative position can be trained once a year'
+);
+
+select throws_ok(
+  $$ update public.job_positions set staff_category = 'execution'
+      where id = 'f1f1f1f1-0000-4000-8000-000000000009' $$,
+  '23514',
+  null,
+  'an execution position cannot keep an interval over 6 months'
+);
+
+select lives_ok(
+  $$ update public.job_positions set staff_category = 'execution', training_interval_months = 2
+      where id = 'f1f1f1f1-0000-4000-8000-000000000009' $$,
+  'an execution position can have an interval of its own'
 );
 
 select throws_ok(

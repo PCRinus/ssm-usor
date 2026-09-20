@@ -1165,6 +1165,12 @@
                   "type": "string",
                   "nullable": true
                 },
+                "trainingIntervalMonths": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 1,
+                  "maximum": 12
+                },
                 "employeeCount": {
                   "type": "integer",
                   "minimum": 0
@@ -1185,6 +1191,7 @@
                 "staffCategory",
                 "workZone",
                 "activities",
+                "trainingIntervalMonths",
                 "employeeCount",
                 "createdAt",
                 "updatedAt"
@@ -1223,6 +1230,12 @@
                 "type": "string",
                 "nullable": true
               },
+              "trainingIntervalMonths": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 12
+              },
               "employeeCount": {
                 "type": "integer",
                 "minimum": 0
@@ -1243,6 +1256,7 @@
               "staffCategory",
               "workZone",
               "activities",
+              "trainingIntervalMonths",
               "employeeCount",
               "createdAt",
               "updatedAt"
@@ -1275,6 +1289,12 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 2000
+          },
+          "trainingIntervalMonths": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 12
           }
         },
         "required": ["name"]
@@ -1895,6 +1915,10 @@
                 "jobTitle": {
                   "type": "string"
                 },
+                "employeeJobTitle": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "roles": {
                   "type": "array",
                   "items": {
@@ -1923,6 +1947,7 @@
                 "employeeId",
                 "fullName",
                 "jobTitle",
+                "employeeJobTitle",
                 "roles",
                 "createdAt",
                 "updatedAt"
@@ -1957,6 +1982,10 @@
               "jobTitle": {
                 "type": "string"
               },
+              "employeeJobTitle": {
+                "type": "string",
+                "nullable": true
+              },
               "roles": {
                 "type": "array",
                 "items": {
@@ -1985,6 +2014,7 @@
               "employeeId",
               "fullName",
               "jobTitle",
+              "employeeJobTitle",
               "roles",
               "createdAt",
               "updatedAt"

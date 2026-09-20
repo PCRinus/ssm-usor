@@ -12,7 +12,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
@@ -83,6 +83,12 @@ function ResponsiblePersonForm({
   });
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  const contractTitle = person?.employeeJobTitle;
+  const typedTitle = useWatch({ control: form.control, name: 'jobTitle' });
+  const contractTitleHint =
+    contractTitle && contractTitle !== typedTitle.trim()
+      ? `În contractul angajatului este acum „${contractTitle}”.`
+      : undefined;
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toResponsiblePersonRequest(values);
@@ -185,14 +191,24 @@ function ResponsiblePersonForm({
               {...form.register('fullName')}
             />
           </Field>
-          <Field id="responsible-job-title" label="Funcția" mark="required" error={errors.jobTitle}>
+          <Field
+            id="responsible-job-title"
+            label="Funcția"
+            mark="required"
+            hint={contractTitleHint}
+            error={errors.jobTitle}
+          >
             <Input
               id="responsible-job-title"
               data-testid="responsible-job-title"
               autoComplete="off"
               disabled={busy}
               aria-invalid={Boolean(errors.jobTitle)}
-              aria-describedby={errors.jobTitle ? 'responsible-job-title-error' : undefined}
+              aria-describedby={
+                errors.jobTitle
+                  ? 'responsible-job-title-error'
+                  : contractTitleHint && 'responsible-job-title-hint'
+              }
               {...form.register('jobTitle')}
             />
           </Field>

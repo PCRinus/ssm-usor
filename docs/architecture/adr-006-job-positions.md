@@ -25,7 +25,7 @@ An employee holds one position. A person who does mixed work fills one position 
 
 The title in the employment contract (_funcția din contract_) and the position are different facts that usually coincide. Two people with the contract title "inginer" can fill an office position and a site position; "vânzător" and "lucrător comercial" can fill the same one.
 
-The employee keeps the contract title as a field of its own, which is what the existing `job_title` column becomes. Choosing a position fills it with the position's name until the person types something else; renaming a position never rewrites it, because the contract has not changed. Documents about a person print the contract title. Documents about the work print the position.
+The employee keeps the contract title as a field of its own, which is what the existing `job_title` column becomes. Choosing a position fills it with the position's name until the person types something else, and a saved title that only repeats the old position's name counts as not typed, so it moves with the person to a new position; renaming a position never rewrites it, because the contract has not changed. Documents about a person print the contract title. Documents about the work print the position.
 
 Two lists with a mapping between them were rejected: most small firms would fill it in one-to-one, and the user would meet a distinction on every form that they need once in twenty.
 
@@ -33,6 +33,7 @@ Two lists with a mapping between them were rejected: most small firms would fill
 
 - A **name**, unique within the client ignoring case and surrounding spaces. Two positions that share a title are named apart ("Manager magazin – birou", "Manager magazin – bar"), as the risk sheets already do.
 - A **staff category**, required: _tehnic-administrativ și conducători de locuri de muncă_, or _personal de execuție_. These are the two categories the training decision gives an interval each; the category is what lets the app say when a person's periodic training is due. It defaults to _personal de execuție_, the shorter interval, so a mistake errs towards training too often.
+- An optional **training interval** of its own, in months. The first testing round with a provider showed that two posts of one category can differ: a welder trained every 2 months and a sales agent every 3, both execution staff. The client's two intervals stay the defaults and a post only records the exception; empty means "as the rest of its category". The ceilings of H.G. 1425/2006 art. 96 apply to it as they do to the client's intervals: 6 months for execution staff, 12 for the rest. An interval per employee was rejected: training belongs to the work, not to the person. The training decision keeps printing the two category intervals until the provider gives the wording for exceptions, so the interval of a post is, for now, read only inside the app.
 - An optional **work zone** (_zona de lucru_): the short free text the instructions, the risk sheets and the equipment list print beside the post. It is not one of the client's workplaces, which are addresses.
 - An optional description of the **activities carried out** (_activități desfășurate_), which the risk assessment and the equipment list print and which tells apart two positions close in name.
 
@@ -52,7 +53,7 @@ The migration creates one position per distinct title per client, merging titles
 
 "Posturi de lucru" is a section of the client page beside "Angajați". Owners and specialists both edit it, as they do employees. The employee list shows the position; the employee's page also shows the contract title.
 
-A responsible person who is an employee keeps being entered with the contract title, copied when they are chosen and editable, because a decision is a legal act that names a person. People who are not employees stay free text.
+A responsible person who is an employee keeps being entered with the contract title, copied when they are chosen and editable, because a decision is a legal act that names a person. The copy never follows the employee by itself: when the contract title later differs, the list says so and offers to adopt it. People who are not employees stay free text.
 
 ### Generated documents do not change
 

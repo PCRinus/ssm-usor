@@ -846,6 +846,12 @@ export type JobPositionListResponseItemsItem = {
   workZone: string | null;
   /** @nullable */
   activities: string | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  trainingIntervalMonths: number | null;
   /** @minimum 0 */
   employeeCount: number;
   createdAt: string;
@@ -873,6 +879,12 @@ export type JobPositionResponseJobPosition = {
   workZone: string | null;
   /** @nullable */
   activities: string | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  trainingIntervalMonths: number | null;
   /** @minimum 0 */
   employeeCount: number;
   createdAt: string;
@@ -910,6 +922,12 @@ export interface JobPositionRequest {
    * @nullable
    */
   activities?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 12
+   * @nullable
+   */
+  trainingIntervalMonths?: number | null;
 }
 
 /**
@@ -1409,6 +1427,8 @@ export type ResponsiblePersonListResponseItemsItem = {
   employeeId: string | null;
   fullName: string;
   jobTitle: string;
+  /** @nullable */
+  employeeJobTitle: string | null;
   /** @minItems 1 */
   roles: ResponsiblePersonListResponseItemsItemRolesItem[];
   createdAt: string;
@@ -1436,6 +1456,8 @@ export type ResponsiblePersonResponseResponsiblePerson = {
   employeeId: string | null;
   fullName: string;
   jobTitle: string;
+  /** @nullable */
+  employeeJobTitle: string | null;
   /** @minItems 1 */
   roles: ResponsiblePersonResponseResponsiblePersonRolesItem[];
   createdAt: string;
