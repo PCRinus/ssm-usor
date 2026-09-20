@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Label } from '@ssm-usor/ui/components/label';
+import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
@@ -111,6 +112,11 @@ function StatusForm({
         // A leaver no longer counts in their job position; someone reactivated does again.
         queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
       ]);
+      toast.success(
+        action === 'terminate'
+          ? `${name} a fost trecut la foști angajați.`
+          : `${name} este din nou angajat actual.`
+      );
       onClose();
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;

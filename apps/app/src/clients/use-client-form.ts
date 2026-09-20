@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
+import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -78,8 +79,10 @@ export function useClientForm() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await create.mutateAsync({ data: toCreateClientRequest(values) });
+      const { client } = await create.mutateAsync({ data: toCreateClientRequest(values) });
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      // The list it returns to is sorted and paged, so the new row may not be in sight.
+      toast.success(`${client.legalName} a fost adăugat.`);
       await navigate({ to: '/clients' });
     } catch (cause) {
       if (cause instanceof ApiHttpError) {
