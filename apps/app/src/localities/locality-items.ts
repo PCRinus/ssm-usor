@@ -10,7 +10,10 @@ export function localityItems(localities: readonly Locality[]): ComboboxItem[] {
   return localities.map(([name, parent]) => ({
     value: count.get(name)! > 1 ? `${name} (${parent})` : name,
     label: name,
-    description: parent,
+    // "Satchinez, com. Satchinez" says nothing; "Bărăteaz, com. Satchinez" is why a search for
+    // the commune finds the village.
+    // A name the county has twice keeps it either way, to tell the two apart.
+    description: count.get(name) === 1 && parent.replace(/^\S+ /, '') === name ? undefined : parent,
     search: `${name}|${parent}`,
   }));
 }

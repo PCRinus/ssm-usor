@@ -33,7 +33,6 @@ export function JobPositionCombobox({
   disabled,
   invalid,
   describedBy,
-  modal,
 }: {
   id: string;
   testId: string;
@@ -47,7 +46,6 @@ export function JobPositionCombobox({
   invalid?: boolean;
   describedBy?: string;
   /** Inside a dialog, so the list takes the focus the dialog would otherwise trap. */
-  modal?: boolean;
 }) {
   const positions = useJobPositionOptions(clientId, userId);
   // `null` is closed; a string is what the new position's name starts as.
@@ -84,7 +82,6 @@ export function JobPositionCombobox({
         disabled={disabled || positions.isPending}
         invalid={invalid}
         describedBy={describedBy}
-        modal={modal}
       />
       <JobPositionDialog
         clientId={clientId}

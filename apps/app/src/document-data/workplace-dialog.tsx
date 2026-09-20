@@ -169,7 +169,13 @@ function WorkplaceForm({
               </p>
             )}
           </div>
-          <Field id="workplace-county" label="Județ" mark="optional" error={errors.countyCode}>
+          <Field
+            id="workplace-county"
+            label="Județ"
+            mark="optional"
+            error={errors.countyCode}
+            className="sm:col-span-2"
+          >
             <Controller
               control={form.control}
               name="countyCode"
@@ -190,7 +196,13 @@ function WorkplaceForm({
               )}
             />
           </Field>
-          <Field id="workplace-locality" label="Localitate" mark="optional" error={errors.locality}>
+          <Field
+            id="workplace-locality"
+            label="Localitate"
+            mark="optional"
+            error={errors.locality}
+            className="sm:col-span-2"
+          >
             <Controller
               control={form.control}
               name="locality"

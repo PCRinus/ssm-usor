@@ -239,3 +239,39 @@ test('employee choices scroll with the wheel inside the responsible-person dialo
   await page.mouse.wheel(0, 300);
   await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 });
+
+test('the county and locality lists scroll with the wheel inside the workplace dialog', async ({
+  page,
+}) => {
+  const owner = await createAccount('workplace-scroll-owner');
+  const organizationId = await createOrganization('Liste punct de lucru E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT LISTE E2E SRL');
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/document-data`);
+  await page.getByTestId('workplace-add').click();
+
+  const list = page.locator('[data-slot="command-list"]');
+  const scrollsWithTheWheel = async () => {
+    await expect(list).toBeVisible();
+    await list.hover();
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  };
+
+  await page.getByTestId('workplace-county').click();
+  await scrollsWithTheWheel();
+  await page.getByTestId('workplace-county-search').fill('timi');
+  await page.getByRole('option', { name: /Timiș/ }).click();
+
+  await page.getByTestId('workplace-locality').click();
+  await scrollsWithTheWheel();
+  // What the register lacks is one fixed row under the list, not a row among the matches.
+  await page.getByTestId('workplace-locality-search').fill('sat');
+  await expect(page.getByRole('option').last()).toHaveText('Folosește „sat”');
+
+  // A label names its field but does not open it.
+  await page.keyboard.press('Escape');
+  await page.locator('label[for="workplace-locality"]').click();
+  await expect(list).toBeHidden();
+});

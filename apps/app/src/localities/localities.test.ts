@@ -17,6 +17,21 @@ describe('locality items', () => {
     ]);
     expect(items[0]).toMatchObject({ label: 'Valea Mare', description: 'com. Priboieni' });
   });
+
+  it('leaves out a commune that only repeats the name, unless the name needs telling apart', () => {
+    const items = localityItems([
+      ['Satchinez', 'com. Satchinez'],
+      ['Bărăteaz', 'com. Satchinez'],
+      ['Albești', 'com. Albești'],
+      ['Albești', 'com. Albeștii de Muscel'],
+    ]);
+    expect(items.map((item) => item.description)).toEqual([
+      undefined,
+      'com. Satchinez',
+      'com. Albești',
+      'com. Albeștii de Muscel',
+    ]);
+  });
 });
 
 describe('locality filter', () => {
