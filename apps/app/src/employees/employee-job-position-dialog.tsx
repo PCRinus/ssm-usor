@@ -118,7 +118,7 @@ function Form({
   });
 
   return (
-    <DialogContent data-testid="employee-job-position-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="employee-job-position-dialog" className="sm:max-w-xl">
       <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>
@@ -128,7 +128,12 @@ function Form({
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
-          <Field id="employee-position" label="Post de lucru" error={errors.jobPosition}>
+          <Field
+            id="employee-position"
+            label="Post de lucru"
+            mark="required"
+            error={errors.jobPosition}
+          >
             <Controller
               control={form.control}
               name="jobPosition"
@@ -149,7 +154,12 @@ function Form({
               )}
             />
           </Field>
-          <Field id="employee-contract-title" label="Funcția din contract" error={errors.jobTitle}>
+          <Field
+            id="employee-contract-title"
+            label="Funcția din contract"
+            mark="required"
+            error={errors.jobTitle}
+          >
             <Input
               id="employee-contract-title"
               data-testid="employee-contract-title"

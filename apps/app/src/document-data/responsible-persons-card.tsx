@@ -36,6 +36,7 @@ import {
   useListResponsiblePersons,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { rowClickProps } from '../components/data-table/row-click';
 import {
   ResponsiblePersonDialog,
   type ResponsiblePersonEditing,
@@ -137,7 +138,7 @@ export function ResponsiblePersonsCard({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nume</TableHead>
+                    <TableHead>Nume și prenume</TableHead>
                     <TableHead>Funcția</TableHead>
                     <TableHead>Responsabilități</TableHead>
                     {!readOnly && (
@@ -149,7 +150,11 @@ export function ResponsiblePersonsCard({
                 </TableHeader>
                 <TableBody>
                   {persons.data.items.map((person) => (
-                    <TableRow key={person.id} data-testid="responsible-row">
+                    <TableRow
+                      key={person.id}
+                      data-testid="responsible-row"
+                      {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
+                    >
                       <TableCell className="font-medium">{person.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{person.jobTitle}</TableCell>
                       <TableCell>

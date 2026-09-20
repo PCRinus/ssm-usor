@@ -95,7 +95,7 @@ export function EmployeeForm({
             title="Identificare"
             description="Așa cum apar în actul de identitate. CNP-ul este opțional și rămâne vizibil doar pe fișa angajatului."
           >
-            <Field id="lastName" label="Nume" error={errors.lastName}>
+            <Field id="lastName" label="Nume" mark="required" error={errors.lastName}>
               <Input
                 id="lastName"
                 data-testid="employee-last-name"
@@ -106,7 +106,7 @@ export function EmployeeForm({
                 {...control('lastName')}
               />
             </Field>
-            <Field id="firstName" label="Prenume" error={errors.firstName}>
+            <Field id="firstName" label="Prenume" mark="required" error={errors.firstName}>
               <Input
                 id="firstName"
                 data-testid="employee-first-name"
@@ -120,6 +120,7 @@ export function EmployeeForm({
             <Field
               id="cnp"
               label="CNP"
+              mark="optional"
               hint="13 cifre. Completează automat data nașterii."
               error={errors.cnp}
             >
@@ -136,6 +137,7 @@ export function EmployeeForm({
             <Field
               id="employeeNumber"
               label="Marca"
+              mark="optional"
               hint="Numărul intern al angajatului la client, dacă există."
               error={errors.employeeNumber}
             >
@@ -157,6 +159,7 @@ export function EmployeeForm({
             <Field
               id="jobPosition"
               label="Post de lucru"
+              mark="required"
               hint="Munca pe care o face, cu riscurile și instruirea ei. Dacă postul lipsește din listă, adaugă-l de acolo."
               error={errors.jobPosition}
             >
@@ -182,6 +185,7 @@ export function EmployeeForm({
             <Field
               id="jobTitle"
               label="Funcția din contract"
+              mark="required"
               hint="Se completează după post. Schimb-o dacă în contract scrie altfel."
               error={errors.jobTitle}
             >
@@ -198,6 +202,7 @@ export function EmployeeForm({
             <Field
               id="hiredAt"
               label="Data angajării"
+              mark="required"
               hint="Ziua din contract, în formatul zz.ll.aaaa."
               error={errors.hiredAt}
             >
@@ -223,7 +228,7 @@ export function EmployeeForm({
             title="Contact"
             description="Pentru invitații la instruiri și semnarea documentelor de la distanță."
           >
-            <Field id="email" label="Email" error={errors.email}>
+            <Field id="email" label="Email" mark="optional" error={errors.email}>
               <Input
                 id="email"
                 data-testid="employee-email"
@@ -234,7 +239,7 @@ export function EmployeeForm({
                 {...control('email')}
               />
             </Field>
-            <Field id="phone" label="Telefon" error={errors.phone}>
+            <Field id="phone" label="Telefon" mark="optional" error={errors.phone}>
               <Input
                 id="phone"
                 data-testid="employee-phone"
@@ -251,7 +256,7 @@ export function EmployeeForm({
             title="Fișa de instruire"
             description="Date tipărite pe fișa individuală de instruire. Toate sunt opționale."
           >
-            <Field id="birthDate" label="Data nașterii" error={errors.birthDate}>
+            <Field id="birthDate" label="Data nașterii" mark="optional" error={errors.birthDate}>
               <Controller
                 control={formControl}
                 name="birthDate"
@@ -268,7 +273,7 @@ export function EmployeeForm({
                 )}
               />
             </Field>
-            <Field id="birthPlace" label="Locul nașterii" error={errors.birthPlace}>
+            <Field id="birthPlace" label="Locul nașterii" mark="optional" error={errors.birthPlace}>
               <Input
                 id="birthPlace"
                 data-testid="employee-birth-place"
@@ -281,6 +286,7 @@ export function EmployeeForm({
             <Field
               id="homeAddress"
               label="Domiciliu"
+              mark="optional"
               error={errors.homeAddress}
               className="sm:col-span-2"
             >
@@ -296,6 +302,7 @@ export function EmployeeForm({
             <Field
               id="bloodGroup"
               label="Grupa sanguină"
+              mark="optional"
               error={errors.bloodGroup}
               className="*:data-[slot=native-select-wrapper]:w-full"
             >
@@ -317,6 +324,7 @@ export function EmployeeForm({
             <Field
               id="rhFactor"
               label="Rh"
+              mark="optional"
               error={errors.rhFactor}
               className="*:data-[slot=native-select-wrapper]:w-full"
             >
@@ -335,7 +343,13 @@ export function EmployeeForm({
                 ))}
               </NativeSelect>
             </Field>
-            <Field id="notes" label="Observații" error={errors.notes} className="sm:col-span-2">
+            <Field
+              id="notes"
+              label="Observații"
+              mark="optional"
+              error={errors.notes}
+              className="sm:col-span-2"
+            >
               <Textarea
                 id="notes"
                 data-testid="employee-notes"

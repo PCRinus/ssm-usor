@@ -99,6 +99,13 @@ function JobPositionForm({
         ? await update.mutateAsync({ clientId, jobPositionId: position.id, data })
         : await create.mutateAsync({ clientId, data });
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
+      if (position) {
+        // Employees carry the name of their post, in the list and on their own page.
+        await queryClient.invalidateQueries({
+          predicate: ({ queryKey }) =>
+            String(queryKey[0]).startsWith(`/clients/${clientId}/employees`),
+        });
+      }
       toast.success(
         position ? 'Postul de lucru a fost salvat.' : 'Postul de lucru a fost adăugat.'
       );
@@ -125,7 +132,7 @@ function JobPositionForm({
   });
 
   return (
-    <DialogContent data-testid="job-position-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="job-position-dialog" className="sm:max-w-2xl">
       <form
         onSubmit={(event) => {
           // The dialog also opens from inside other forms (the employee's position picker). It is
@@ -148,7 +155,7 @@ function JobPositionForm({
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
-          <Field id="job-position-name" label="Denumire" error={errors.name}>
+          <Field id="job-position-name" label="Denumire" mark="required" error={errors.name}>
             <Input
               id="job-position-name"
               data-testid="job-position-name"
@@ -163,6 +170,7 @@ function JobPositionForm({
           <Field
             id="job-position-category"
             label="Categorie de personal"
+            mark="required"
             hint="Hotărăște la ce interval se face instruirea periodică, după decizia de instruire."
           >
             <NativeSelect
@@ -183,7 +191,8 @@ function JobPositionForm({
           </Field>
           <Field
             id="job-position-zone"
-            label="Zona de lucru (opțional)"
+            label="Zona de lucru"
+            mark="optional"
             error={errors.workZone}
             hint="Felul locului, nu o adresă: „Birou”, „Atelier, teren”, „Gelaterie”."
           >
@@ -201,7 +210,8 @@ function JobPositionForm({
           </Field>
           <Field
             id="job-position-activities"
-            label="Activități desfășurate (opțional)"
+            label="Activități desfășurate"
+            mark="optional"
             error={errors.activities}
             hint="Ce face efectiv omul de pe acest post. Deosebește două posturi cu nume apropiate."
           >

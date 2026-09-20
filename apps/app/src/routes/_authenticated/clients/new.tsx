@@ -56,6 +56,7 @@ export function NewClientPage() {
             <Field
               id="cui"
               label="CUI"
+              mark="required"
               hint="Cu sau fără prefixul RO, de exemplu RO1590082."
               error={errors.cui}
               className="sm:col-span-2"
@@ -105,6 +106,7 @@ export function NewClientPage() {
             <Field
               id="legalName"
               label="Denumire"
+              mark="required"
               error={errors.legalName}
               className="sm:col-span-2"
             >
@@ -144,6 +146,7 @@ export function NewClientPage() {
             <Field
               id="caenCode"
               label="Cod CAEN"
+              mark="optional"
               hint="Caută după cod sau după cuvinte din denumirea activității."
               error={errors.caenCode}
             >
@@ -166,6 +169,7 @@ export function NewClientPage() {
             <Field
               id="tradeRegisterNumber"
               label="Nr. Registrul Comerțului"
+              mark="optional"
               hint="De exemplu J40/1234/2020."
               error={errors.tradeRegisterNumber}
             >
@@ -183,7 +187,7 @@ export function NewClientPage() {
             title="Sediu social"
             description="Adresa înregistrată a companiei. Punctele de lucru se adaugă separat."
           >
-            <Field id="countyCode" label="Județ" error={errors.countyCode}>
+            <Field id="countyCode" label="Județ" mark="optional" error={errors.countyCode}>
               <Controller
                 control={control}
                 name="countyCode"
@@ -200,7 +204,7 @@ export function NewClientPage() {
                 )}
               />
             </Field>
-            <Field id="locality" label="Localitate" error={errors.locality}>
+            <Field id="locality" label="Localitate" mark="optional" error={errors.locality}>
               <Input
                 id="locality"
                 data-testid="client-locality"
@@ -213,6 +217,7 @@ export function NewClientPage() {
             <Field
               id="addressLine"
               label="Adresă"
+              mark="optional"
               error={errors.addressLine}
               className="sm:col-span-2"
             >
@@ -234,7 +239,8 @@ export function NewClientPage() {
             <Field
               id="legalRepresentativeName"
               label="Reprezentant legal"
-              hint="Numele administratorului, așa cum apare pe documente."
+              mark="optional"
+              hint="Numele și prenumele, așa cum apar în decizii."
               error={errors.legalRepresentativeName}
             >
               <Input
@@ -249,6 +255,7 @@ export function NewClientPage() {
             <Field
               id="declaredEmployeeCount"
               label="Număr de angajați"
+              mark="optional"
               hint="Numărul declarat la preluare; îl vei putea actualiza."
               error={errors.declaredEmployeeCount}
             >

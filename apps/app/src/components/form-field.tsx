@@ -16,6 +16,7 @@ export function FieldMessage({ id, error }: { id: string; error?: FieldError }) 
 export function Field({
   id,
   label,
+  mark,
   hint,
   error,
   className,
@@ -23,6 +24,8 @@ export function Field({
 }: {
   id: string;
   label: string;
+  // Left out where the distinction says nothing: a read-only value, a sign-in form.
+  mark?: 'required' | 'optional';
   hint?: string;
   error?: FieldError;
   className?: string;
@@ -30,7 +33,20 @@ export function Field({
 }) {
   return (
     <div className={cn('grid min-w-0 content-start gap-2', className)}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="gap-1">
+        {label}
+        {mark === 'required' && (
+          <>
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+            <span className="sr-only">(obligatoriu)</span>
+          </>
+        )}
+        {mark === 'optional' && (
+          <span className="font-normal text-muted-foreground">(opțional)</span>
+        )}
+      </Label>
       {children}
       {hint && !error && (
         <p id={`${id}-hint`} className="text-xs text-muted-foreground">

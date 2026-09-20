@@ -107,7 +107,7 @@ function WorkplaceForm({
   });
 
   return (
-    <DialogContent data-testid="workplace-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="workplace-dialog" className="sm:max-w-2xl">
       <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
@@ -118,7 +118,13 @@ function WorkplaceForm({
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <Field id="workplace-name" label="Denumire" error={errors.name} className="sm:col-span-2">
+          <Field
+            id="workplace-name"
+            label="Denumire"
+            mark="required"
+            error={errors.name}
+            className="sm:col-span-2"
+          >
             <Input
               id="workplace-name"
               data-testid="workplace-name"
@@ -161,7 +167,7 @@ function WorkplaceForm({
               </p>
             )}
           </div>
-          <Field id="workplace-county" label="Județ" error={errors.countyCode}>
+          <Field id="workplace-county" label="Județ" mark="optional" error={errors.countyCode}>
             <Controller
               control={form.control}
               name="countyCode"
@@ -179,7 +185,7 @@ function WorkplaceForm({
               )}
             />
           </Field>
-          <Field id="workplace-locality" label="Localitate" error={errors.locality}>
+          <Field id="workplace-locality" label="Localitate" mark="optional" error={errors.locality}>
             <Input
               id="workplace-locality"
               data-testid="workplace-locality"
@@ -193,6 +199,7 @@ function WorkplaceForm({
           <Field
             id="workplace-address"
             label="Adresă"
+            mark="optional"
             error={errors.addressLine}
             className="sm:col-span-2"
           >

@@ -16,6 +16,7 @@ import type { ReactNode } from 'react';
 
 import { Pager } from '../pager';
 import { type DataTableColumn, dataTableFeatures, type DataTableSort } from './columns';
+import { rowClickProps } from './row-click';
 
 export interface DataTableProps<TData extends RowData> {
   columns: DataTableColumn<TData>[];
@@ -35,6 +36,7 @@ export interface DataTableProps<TData extends RowData> {
   empty: ReactNode;
   testId?: string;
   rowTestId?: string;
+  onRowClick?: (row: TData) => void;
 }
 
 const EMPTY: never[] = [];
@@ -56,6 +58,7 @@ export function DataTable<TData extends RowData>({
   empty,
   testId,
   rowTestId,
+  onRowClick,
 }: DataTableProps<TData>) {
   const sorting: SortingState = [{ id: sort.sort, desc: sort.order === 'desc' }];
   const table = useTable({
@@ -155,7 +158,11 @@ export function DataTable<TData extends RowData>({
             </TableRow>
           ) : (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} data-testid={rowTestId}>
+              <TableRow
+                key={row.id}
+                data-testid={rowTestId}
+                {...rowClickProps(onRowClick && (() => onRowClick(row.original)))}
+              >
                 {row.getAllCells().map((cell) => (
                   <TableCell key={cell.id} className={cell.column.columnDef.meta?.cellClassName}>
                     <table.FlexRender cell={cell} />

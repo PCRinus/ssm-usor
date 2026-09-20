@@ -122,7 +122,7 @@ function ResponsiblePersonForm({
   });
 
   return (
-    <DialogContent data-testid="responsible-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="responsible-dialog" className="sm:max-w-2xl">
       <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
@@ -136,7 +136,8 @@ function ResponsiblePersonForm({
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
             id="responsible-employee"
-            label="Angajat (opțional)"
+            label="Angajat"
+            mark="optional"
             hint="Completează numele și funcția. Administratorul poate fi adăugat fără a fi angajat."
             error={errors.employeeId}
             className="sm:col-span-2"
@@ -168,7 +169,12 @@ function ResponsiblePersonForm({
               )}
             />
           </Field>
-          <Field id="responsible-name" label="Nume și prenume" error={errors.fullName}>
+          <Field
+            id="responsible-name"
+            label="Nume și prenume"
+            mark="required"
+            error={errors.fullName}
+          >
             <Input
               id="responsible-name"
               data-testid="responsible-name"
@@ -179,7 +185,7 @@ function ResponsiblePersonForm({
               {...form.register('fullName')}
             />
           </Field>
-          <Field id="responsible-job-title" label="Funcția" error={errors.jobTitle}>
+          <Field id="responsible-job-title" label="Funcția" mark="required" error={errors.jobTitle}>
             <Input
               id="responsible-job-title"
               data-testid="responsible-job-title"

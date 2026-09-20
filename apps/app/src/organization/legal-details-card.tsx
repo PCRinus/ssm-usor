@@ -43,7 +43,8 @@ export function LegalDetailsCard({ userId, canEdit }: { userId: string; canEdit:
         <h2 className="text-lg font-semibold">Date juridice</h2>
         <p className="text-sm text-muted-foreground">
           Apar în documentele generate pentru clienți: denumirea, datele de înregistrare și
-          reprezentantul serviciului extern.
+          reprezentantul serviciului extern. Poți salva și pe rând, dar generarea documentelor le
+          cere pe toate.
           {!canEdit && ' Doar administratorii le pot modifica.'}
         </p>
       </CardHeader>
@@ -243,7 +244,10 @@ function LegalDetailsForm({
       </Field>
       {text('locality', 'Localitate')}
       {text('addressLine', 'Adresă')}
-      {text('legalRepresentativeName', 'Reprezentant legal', { autoComplete: 'name' })}
+      {text('legalRepresentativeName', 'Reprezentant legal', {
+        autoComplete: 'name',
+        hint: 'Numele și prenumele, așa cum apar în documente.',
+      })}
       {text('legalRepresentativeRole', 'Funcția reprezentantului', {
         hint: 'De exemplu „Administrator”.',
       })}

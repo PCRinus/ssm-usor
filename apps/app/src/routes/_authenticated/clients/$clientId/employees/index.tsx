@@ -135,6 +135,12 @@ export function EmployeesPage() {
           columns={columns}
           data={employees.data?.items}
           rowKey={rowKey}
+          onRowClick={(employee) =>
+            void navigate({
+              to: '/clients/$clientId/employees/$employeeId',
+              params: { clientId, employeeId: employee.id },
+            })
+          }
           meta={meta}
           noun={['angajat', 'angajați']}
           status={!apiRequest.baseUrl ? 'error' : employees.status}

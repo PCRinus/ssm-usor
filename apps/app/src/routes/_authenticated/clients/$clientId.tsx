@@ -117,6 +117,7 @@ export function ClientLayout() {
               <Link
                 to={to}
                 params={{ clientId: client.id }}
+                resetScroll={false}
                 data-testid="client-section"
                 className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
                 activeProps={{ 'aria-current': 'page' }}

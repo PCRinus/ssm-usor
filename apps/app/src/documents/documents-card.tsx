@@ -34,7 +34,7 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { FileText, MoreHorizontal, Sparkles, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -49,6 +49,7 @@ import {
   useUploadClientDocument,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { rowClickProps } from '../components/data-table/row-click';
 import { formatRoDate } from '../lib/dates';
 import type { ClientDocument } from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
@@ -131,6 +132,7 @@ export function DocumentsCard({
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const navigate = useNavigate();
   const documents = useListClientDocuments(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
@@ -357,7 +359,17 @@ export function DocumentsCard({
                 const current = document.draft ?? document.issued;
                 const uploaded = isUploadedDocumentType(document.typeKey);
                 return (
-                  <TableRow key={document.id} data-testid="document-row">
+                  <TableRow
+                    key={document.id}
+                    data-testid="document-row"
+                    {...rowClickProps(
+                      () =>
+                        void navigate({
+                          to: '/clients/$clientId/documents/$documentId',
+                          params: { clientId, documentId: document.id },
+                        })
+                    )}
+                  >
                     <TableCell>
                       <Link
                         to="/clients/$clientId/documents/$documentId"

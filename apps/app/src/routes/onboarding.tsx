@@ -153,7 +153,12 @@ function OnboardingForm({ me }: { me: MeResponse }) {
         noValidate
         onSubmit={(event) => void onSubmit(event)}
       >
-        <Field id="onboarding-full-name" label="Numele tău" error={errors.fullName}>
+        <Field
+          id="onboarding-full-name"
+          label="Nume și prenume"
+          mark="required"
+          error={errors.fullName}
+        >
           <Input
             id="onboarding-full-name"
             data-testid="onboarding-full-name"
@@ -168,6 +173,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
         <Field
           id="onboarding-organization"
           label="Numele organizației"
+          mark="required"
           hint="Așa cum vrei să apară pentru echipa ta, de exemplu denumirea firmei."
           error={errors.organizationName}
         >
