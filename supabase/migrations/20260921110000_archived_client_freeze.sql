@@ -6,6 +6,9 @@
 -- Triggers, not update policies: a policy that fails its `using` matches no row, and the API
 -- would answer "not found" for a row the caller can plainly read. A trigger names the reason.
 -- Without a user the caller holds the secret key: seeds and maintenance pass.
+--
+-- The trigger functions run as their owner so that the check below needs no grant: callable
+-- by members, it would tell anyone whether a client id of another organization is archived.
 
 create function public.refuse_archived_client(p_client_id uuid)
 returns void
@@ -26,6 +29,7 @@ $$;
 create function public.protect_rows_of_archived_client()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 begin
@@ -59,6 +63,7 @@ create trigger client_documents_protect_archived_client
 create function public.protect_revisions_of_archived_client()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 begin
@@ -114,7 +119,6 @@ as $$
   );
 $$;
 
-revoke all on function public.refuse_archived_client(uuid) from public, anon;
+revoke all on function public.refuse_archived_client(uuid) from public, anon, authenticated;
 revoke all on function public.protect_rows_of_archived_client() from public, anon;
 revoke all on function public.protect_revisions_of_archived_client() from public, anon;
-grant execute on function public.refuse_archived_client(uuid) to authenticated, service_role;
