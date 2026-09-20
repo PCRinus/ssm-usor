@@ -68,6 +68,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}`                                              | Verified user with a membership       | `{ "client": { … } }` after replacing what was entered about it                                                           |
 | `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                         |
 | `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                       |
+| `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
+| `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
 | `PUT /organization/legal-details`                                      | Owner                                 | The legal details after replacing them                                                                                    |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule                             |
@@ -117,9 +119,23 @@ request per second) and maps the record onto the client form fields; the form mu
 it. `PUT /clients/{clientId}` takes the same body without `legalRepresentativeName`, which the
 document details own, and answers `409` for a CUI another client has and for an archived client.
 A `409` of these routes carries a `reason`: `cui_taken`, `cui_taken_by_archived` (the holder is
-archived, so the caller cannot see it in the list they came from) or `client_archived`.
+archived, so the caller cannot see it in the list they came from), `cui_taken_by_lead` (the
+holder is a lead, which is also the answer when the caller cannot see the holder at all, as a
+specialist cannot) or `client_archived`.
 Archiving and restoring are an owner's, checked by `requireOwner` and again by a trigger;
 repeating either changes nothing and keeps the first date.
+
+A lead (ADR 007) is a client in an earlier stage and uses the same routes. `GET /clients` lists
+one stage at a time, `?stage=client` by default, and `POST /clients` takes `stage`; asking for
+leads or creating one is an owner's, `403` otherwise, said by the handler because the policies
+would only show a specialist an empty list. For a specialist a lead does not exist: `404` by
+id. The client carries `stage`, `contactName`, `contactEmail`, `contactPhone` and `promotedAt`.
+`PUT /clients/{clientId}` never changes the stage, and leaves a contact field that is not sent
+as it is, so that a form without the contact does not erase it; `null` clears one. Employees,
+job positions, workplaces, responsible persons and the documentation set do not start under a
+lead: the database refuses with `CLL01`, which `fromDatabaseError` turns into `409` with the
+reason `client_is_lead`. The owners' notes, `…/owner-notes`, are one free text per client or
+lead, up to 5000 characters, never readable by a specialist, before or after promotion.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which
 `fromDatabaseError` turns into `409` with the reason `client_archived` for every route at

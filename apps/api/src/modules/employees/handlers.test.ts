@@ -302,6 +302,16 @@ describe('POST /clients/{clientId}/employees', () => {
     rhFactor: '+',
   };
 
+  it('passes on the refusal of the database for a company that is still a lead', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json({ code: 'CLL01', message: 'A lead has no safety records.' }, { status: 400 }),
+    });
+    const response = await postEmployee(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_is_lead');
+  });
+
   it('stores the digits-only CNP, lowercases the email, and scopes to the membership', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow, { status: 201 }) });
     const response = await postEmployee(validBody);

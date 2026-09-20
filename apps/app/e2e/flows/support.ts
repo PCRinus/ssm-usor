@@ -43,6 +43,23 @@ export async function createOrganization(name: string, ownerId: string) {
   return organization.data.id;
 }
 
+export async function addSpecialist(organizationId: string, userId: string) {
+  const membership = await admin
+    .from('organization_members')
+    .insert({ user_id: userId, organization_id: organizationId, role: 'specialist' });
+  if (membership.error) throw membership.error;
+}
+
+export async function createLead(organizationId: string, legalName: string, cui: string) {
+  const lead = await admin
+    .from('clients')
+    .insert({ organization_id: organizationId, legal_name: legalName, cui, stage: 'lead' })
+    .select('id')
+    .single();
+  if (lead.error) throw lead.error;
+  return lead.data.id as string;
+}
+
 // A client company of the organization. Removed with it by `cleanUp`.
 export async function createClientCompany(organizationId: string, legalName: string) {
   const client = await admin
@@ -158,6 +175,7 @@ export async function cleanUp() {
     await admin.from('employees').delete().eq('organization_id', id);
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
+    await admin.from('client_owner_notes').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }

@@ -297,6 +297,27 @@
                   "type": "integer",
                   "nullable": true
                 },
+                "stage": {
+                  "type": "string",
+                  "enum": ["lead", "client"]
+                },
+                "contactName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "contactEmail": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "contactPhone": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "promotedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -323,6 +344,11 @@
                 "addressLine",
                 "legalRepresentativeName",
                 "declaredEmployeeCount",
+                "stage",
+                "contactName",
+                "contactEmail",
+                "contactPhone",
+                "promotedAt",
                 "createdAt",
                 "updatedAt",
                 "archivedAt"
@@ -437,6 +463,27 @@
                 "type": "integer",
                 "nullable": true
               },
+              "stage": {
+                "type": "string",
+                "enum": ["lead", "client"]
+              },
+              "contactName": {
+                "type": "string",
+                "nullable": true
+              },
+              "contactEmail": {
+                "type": "string",
+                "nullable": true
+              },
+              "contactPhone": {
+                "type": "string",
+                "nullable": true
+              },
+              "promotedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -463,6 +510,11 @@
               "addressLine",
               "legalRepresentativeName",
               "declaredEmployeeCount",
+              "stage",
+              "contactName",
+              "contactEmail",
+              "contactPhone",
+              "promotedAt",
               "createdAt",
               "updatedAt",
               "archivedAt"
@@ -571,6 +623,29 @@
             "nullable": true,
             "minimum": 0,
             "maximum": 1000000
+          },
+          "contactName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "contactEmail": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 254,
+            "format": "email"
+          },
+          "contactPhone": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 5,
+            "maxLength": 20
+          },
+          "stage": {
+            "type": "string",
+            "enum": ["lead", "client"],
+            "default": "client"
           }
         },
         "required": ["legalName", "cui"]
@@ -669,9 +744,57 @@
             "nullable": true,
             "minimum": 0,
             "maximum": 1000000
+          },
+          "contactName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "contactEmail": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 254,
+            "format": "email"
+          },
+          "contactPhone": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 5,
+            "maxLength": 20
           }
         },
         "required": ["legalName", "cui"]
+      },
+      "ClientOwnerNotesResponse": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "object",
+            "properties": {
+              "body": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              }
+            },
+            "required": ["body", "updatedAt"]
+          }
+        },
+        "required": ["notes"]
+      },
+      "SaveClientOwnerNotesRequest": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        },
+        "required": ["body"]
       },
       "CompanyLookupResponse": {
         "type": "object",
@@ -3230,8 +3353,8 @@
     "/clients": {
       "get": {
         "operationId": "listClients",
-        "summary": "List the organization's clients, active or archived",
-        "description": "Paginated. `status` chooses the active clients, the default, or the archived ones; never both. One sort key at a time; \"legalName\" is the default.",
+        "summary": "List the organization's clients or its leads, active or archived",
+        "description": "Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; \"legalName\" is the default.",
         "security": [
           {
             "bearerAuth": []
@@ -3287,6 +3410,16 @@
             },
             "required": false,
             "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["lead", "client"],
+              "default": "client"
+            },
+            "required": false,
+            "name": "stage",
             "in": "query"
           }
         ],
@@ -3355,7 +3488,8 @@
       },
       "post": {
         "operationId": "createClient",
-        "summary": "Create a client in the organization",
+        "summary": "Create a client or a lead in the organization",
+        "description": "`stage` is `client` unless given. Only an owner creates a lead; anyone else gets `403`. A lead has no employees, job positions, workplaces or documentation set until it is promoted: those routes answer `409` with the reason `client_is_lead`.",
         "security": [
           {
             "bearerAuth": []
@@ -3413,7 +3547,7 @@
             }
           },
           "409": {
-            "description": "A client with this CUI already exists",
+            "description": "The CUI is taken: `cui_taken`, `cui_taken_by_archived`, or `cui_taken_by_lead`, which is also the answer when the holder is a lead the caller cannot see",
             "content": {
               "application/json": {
                 "schema": {
@@ -3448,7 +3582,8 @@
     "/clients/{clientId}": {
       "get": {
         "operationId": "getClient",
-        "summary": "Read one client, archived or not",
+        "summary": "Read one client or lead, archived or not",
+        "description": "A lead does not exist for a member who is not an owner.",
         "security": [
           {
             "bearerAuth": []
@@ -3541,7 +3676,7 @@
       "put": {
         "operationId": "updateClient",
         "summary": "Replace what was entered about a client",
-        "description": "The same fields and rules as creating one, without the legal representative's name, which the document details own. An archived client is not edited.",
+        "description": "The same fields and rules as creating one, without the legal representative's name, which the document details own, and without the stage, which only promotion changes. A contact field that is left out stays as it is; `null` clears it. An archived client is not edited.",
         "security": [
           {
             "bearerAuth": []
@@ -3811,6 +3946,214 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/owner-notes": {
+      "get": {
+        "operationId": "getClientOwnerNotes",
+        "summary": "Read the owners' notes about a client or a lead",
+        "description": "Owners only, before and after promotion: the notes may hold prices and a negotiation.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes; an empty body when none were written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientOwnerNotesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveClientOwnerNotes",
+        "summary": "Replace the owners' notes about a client or a lead",
+        "description": "Owners only. Free text, up to 5000 characters. Nothing is written for an archived client.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveClientOwnerNotesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The notes; an empty body when none were written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientOwnerNotesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived",
             "content": {
               "application/json": {
                 "schema": {

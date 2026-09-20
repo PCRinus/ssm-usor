@@ -51,6 +51,9 @@ export const archivedClientError = () =>
     clientConflictReasons.clientArchived
   );
 
+// Raised by the triggers that keep employees, positions, workplaces and documents off a lead.
+const leadCode = 'CLL01';
+
 // Translate PostgREST/Postgres failures into API errors without leaking details.
 export function fromDatabaseError(error: PostgrestError, context: string): ApiError {
   switch (error.code) {
@@ -65,6 +68,13 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
       return new ApiError('unauthorized');
     case archivedClientCode:
       return archivedClientError();
+    case leadCode:
+      return new ApiError(
+        'conflict',
+        'The company is still a lead; it has no safety records until it is promoted.',
+        undefined,
+        clientConflictReasons.clientIsLead
+      );
   }
   console.error(`Database request failed (${context}): ${error.code ?? 'no code'}`);
   // No code means the request never reached PostgREST (network, timeout, gateway).
