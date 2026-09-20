@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { useLoginForm } from '../auth/use-login-form';
 import { CommitVersion } from '../components/commit-version';
+import { Notice } from '../components/notice';
 
 export const Route = createFileRoute('/login')({
   // Set by the accept page for someone who must sign in first; login returns them to it.
@@ -133,14 +134,9 @@ export function LoginPage() {
                 )}
               </div>
               {errors.root?.auth && (
-                <p
-                  id="login-error"
-                  data-testid="login-auth-error"
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
+                <Notice variant="destructive" id="login-error" data-testid="login-auth-error">
                   {errors.root.auth.message}
-                </p>
+                </Notice>
               )}
               <Button
                 data-testid="login-submit"

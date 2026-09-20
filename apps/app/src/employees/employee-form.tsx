@@ -11,6 +11,7 @@ import { useAuth } from '../auth/auth-context';
 import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
+import { Notice } from '../components/notice';
 import { JobPositionCombobox } from '../job-positions/job-position-combobox';
 import type { Employee, EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
@@ -364,14 +365,9 @@ export function EmployeeForm({
         </Card>
 
         {errors.root?.server && (
-          <p
-            id="employee-form-error"
-            data-testid="employee-form-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" id="employee-form-error" data-testid="employee-form-error">
             {errors.root.server.message}
-          </p>
+          </Notice>
         )}
         <div className="flex flex-wrap gap-3">
           <Button type="submit" className="h-11" data-testid="employee-submit" disabled={isSaving}>

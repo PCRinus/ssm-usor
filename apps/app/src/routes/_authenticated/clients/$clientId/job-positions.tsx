@@ -19,11 +19,6 @@ export function JobPositionsPage() {
 
   return (
     <div data-testid="job-positions-page" className="grid gap-6">
-      {client.archivedAt && (
-        <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">
-          Clientul este arhivat. Posturile rămân vizibile, dar nu mai pot fi modificate.
-        </p>
-      )}
       <JobPositionsCard
         clientId={client.id}
         userId={session.user.id}

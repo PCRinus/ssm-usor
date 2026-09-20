@@ -21,11 +21,6 @@ export function DocumentDataPage() {
 
   return (
     <div data-testid="document-data-page" className="grid gap-6">
-      {client.archivedAt && (
-        <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">
-          Clientul este arhivat. Datele rămân vizibile, dar nu mai pot fi modificate.
-        </p>
-      )}
       <DocumentDetailsCards client={client} userId={session.user.id} />
       <WorkplacesCard
         client={client}

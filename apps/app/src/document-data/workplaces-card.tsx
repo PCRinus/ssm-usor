@@ -39,6 +39,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
+import { Notice } from '../components/notice';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
 import { differingClientAddress, type Workplace, workplaceAddress } from './workplace-schema';
 
@@ -118,27 +119,27 @@ export function WorkplacesCard({
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (
-          <p
-            data-testid="workplaces-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="workplaces-error">
             {error}
-          </p>
+          </Notice>
         )}
         {workplaces.isPending ? (
           <Skeleton className="h-24 w-full" />
         ) : workplaces.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca punctele de lucru.</p>
-            <Button
-              variant="outline"
-              disabled={workplaces.isFetching}
-              onClick={() => void workplaces.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={workplaces.isFetching}
+                onClick={() => void workplaces.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca punctele de lucru.
+          </Notice>
         ) : workplaces.data.items.length === 0 ? (
           <p data-testid="workplaces-empty" className="text-sm text-muted-foreground">
             Niciun punct de lucru încă. Începe cu sediul social.

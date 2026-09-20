@@ -24,6 +24,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { useAuth } from '../auth/auth-context';
 import { Field, FieldMessage } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
 import { onboardingSchema, type OnboardingValues } from '../onboarding/onboarding-schema';
 import { roleLabels } from '../organization/labels';
@@ -125,13 +126,12 @@ function OnboardingForm({ me }: { me: MeResponse }) {
       description="Organizația este serviciul tău extern de prevenire și protecție. Aici vei gestiona clienții, angajații lor și echipa ta."
     >
       {pending.length > 0 && (
-        <div
+        <Notice
+          variant="info"
           data-testid="onboarding-invitations"
-          role="status"
-          className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed"
+          title="Ai o invitație în așteptare"
         >
-          <p className="font-medium">Ai o invitație în așteptare</p>
-          <ul className="mt-2 grid gap-1">
+          <ul className="grid gap-1">
             {pending.map((invitation) => (
               <li key={`${invitation.organizationName}-${invitation.expiresAt}`}>
                 <strong>{invitation.organizationName}</strong>
@@ -140,12 +140,12 @@ function OnboardingForm({ me }: { me: MeResponse }) {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2">
             Ca să intri în acea organizație, folosește linkul din emailul de invitație sau cere să
             îți fie retrimis. Un cont poate aparține unei singure organizații, deci nu crea una nouă
             dacă vrei să o accepți.
           </p>
-        </div>
+        </Notice>
       )}
       <form
         className="grid gap-5"

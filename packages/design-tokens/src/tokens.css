@@ -21,6 +21,18 @@
     --accent: var(--brand-lime);
     --accent-foreground: var(--brand-forest);
     --destructive: #b42318;
+    --info: #e8f0ec;
+    --info-border: #b5cbc1;
+    --info-foreground: var(--brand-forest);
+    --warning: #fdf2d3;
+    --warning-border: #e9c46a;
+    --warning-foreground: #66470a;
+    --success: #eff6dc;
+    --success-border: #bfd98a;
+    --success-foreground: #2e4712;
+    --destructive-soft: #fdecea;
+    --destructive-border: #efb3ad;
+    --destructive-foreground: #8c1c13;
     --border: #d4ddd5;
     --input: #ccd6ce;
     --ring: #547067;

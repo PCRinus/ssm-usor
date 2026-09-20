@@ -23,6 +23,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { CountyCombobox } from '../clients/county-combobox';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { LocalityCombobox } from '../localities/locality-combobox';
 import {
   emptyWorkplaceForm,
@@ -240,13 +241,9 @@ function WorkplaceForm({
           </Field>
         </div>
         {errors.root?.server && (
-          <p
-            data-testid="workplace-error"
-            role="alert"
-            className="mt-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="workplace-error" className="mt-4">
             {errors.root.server.message}
-          </p>
+          </Notice>
         )}
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>

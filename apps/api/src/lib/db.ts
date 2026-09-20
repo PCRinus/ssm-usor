@@ -1,3 +1,4 @@
+import { clientConflictReasons } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from 'hono';
 
@@ -39,6 +40,17 @@ interface PostgrestError {
   message?: string;
 }
 
+// Raised by the triggers that keep everything under an archived client as it is.
+const archivedClientCode = 'CLA01';
+
+export const archivedClientError = () =>
+  new ApiError(
+    'conflict',
+    'The client is archived; nothing under it changes until it is restored.',
+    undefined,
+    clientConflictReasons.clientArchived
+  );
+
 // Translate PostgREST/Postgres failures into API errors without leaking details.
 export function fromDatabaseError(error: PostgrestError, context: string): ApiError {
   switch (error.code) {
@@ -51,6 +63,8 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
       return new ApiError('forbidden');
     case 'PGRST301':
       return new ApiError('unauthorized');
+    case archivedClientCode:
+      return archivedClientError();
   }
   console.error(`Database request failed (${context}): ${error.code ?? 'no code'}`);
   // No code means the request never reached PostgREST (network, timeout, gateway).

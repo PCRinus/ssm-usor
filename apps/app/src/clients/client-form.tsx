@@ -10,6 +10,7 @@ import { Controller } from 'react-hook-form';
 
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
+import { Notice } from '../components/notice';
 import { CaenCombobox } from './caen-combobox';
 import type { Client } from './client-form-schema';
 import { CountyCombobox } from './county-combobox';
@@ -85,22 +86,23 @@ export function ClientForm({ client }: { client?: Client }) {
               </div>
             </Field>
             {lookup.status === 'done' && (
-              <p
+              <Notice
+                variant={lookup.inactive ? 'warning' : 'info'}
                 data-testid="client-lookup-status"
-                role="status"
-                className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2"
+                className="sm:col-span-2"
               >
                 {lookup.message}
-              </p>
+              </Notice>
             )}
             {lookup.status === 'error' && (
-              <p
-                data-testid="client-lookup-status"
+              <Notice
+                variant="warning"
                 role="alert"
-                className="rounded-md border border-destructive/30 p-3 text-sm text-destructive sm:col-span-2"
+                data-testid="client-lookup-status"
+                className="sm:col-span-2"
               >
                 {lookup.message}
-              </p>
+              </Notice>
             )}
             <Field
               id="legalName"
@@ -273,14 +275,9 @@ export function ClientForm({ client }: { client?: Client }) {
         </Card>
 
         {errors.root?.server && (
-          <p
-            id="client-form-error"
-            data-testid="client-form-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" id="client-form-error" data-testid="client-form-error">
             {errors.root.server.message}
-          </p>
+          </Notice>
         )}
         <div className="flex flex-wrap gap-3">
           <Button type="submit" className="h-11" data-testid="client-submit" disabled={busy}>

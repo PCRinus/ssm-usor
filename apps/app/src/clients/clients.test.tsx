@@ -560,7 +560,7 @@ describe('client archiving', () => {
     mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
     const user = userEvent.setup();
     const banner = await screen.findByTestId('client-archived-banner');
-    expect(banner.textContent).toContain('Client arhivat.');
+    expect(banner.textContent).toContain('Client arhivat');
     expect(screen.queryByTestId('client-edit')).toBeNull();
     expect(screen.queryByTestId('employees-add')).toBeNull();
     await user.click(await screen.findByTestId('client-restore'));

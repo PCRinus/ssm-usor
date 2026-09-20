@@ -83,3 +83,27 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+`alert.tsx` also differs: besides the registry's `default` and `destructive` it has `info`,
+`warning` and `success`, and all four are tinted from tokens (`--info`, `--warning`,
+`--success`, `--destructive-soft`, each with `-border` and `-foreground`) rather than from
+Tailwind's amber or red, so they sit on the cream background with the rest of the palette. A
+tinted alert colours its own description; the registry's muted grey washes out on a tint.
+
+## Messages inside a page
+
+The dashboard shows every in-page message through `apps/app/src/components/notice.tsx`, not
+through `Alert` directly and not through a bordered paragraph:
+
+```tsx
+<Notice variant="warning" title="Client arhivat" action={<Button …>Restaurează…</Button>}>
+  Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
+</Notice>
+```
+
+The variant picks the icon and the role: `destructive` is `role="alert"` and interrupts a
+screen reader, the others are `role="status"`; pass `role` to override, as the ANAF lookup
+does for a missing record, which is a warning that still has to be heard. `action` sits beside
+the text on wide screens and under it on narrow ones. A field's own error stays a
+`FieldMessage` under the field, a whole page that failed to load keeps its full-page screen,
+and what happened after an action is a toast.

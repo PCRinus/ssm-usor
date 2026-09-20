@@ -21,6 +21,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { useAuth } from '../auth/auth-context';
+import { Notice } from '../components/notice';
 
 export interface ClientArchiveChange {
   client: { id: string; legalName: string };
@@ -115,21 +116,14 @@ export function ClientArchiveDialog({
             </DialogDescription>
           </DialogHeader>
           {drafts > 0 && (
-            <p
-              data-testid="client-archive-drafts"
-              className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"
-            >
+            <Notice variant="warning" data-testid="client-archive-drafts">
               {draftsNotice(drafts)}
-            </p>
+            </Notice>
           )}
           {error && (
-            <p
-              data-testid="client-archive-error"
-              role="alert"
-              className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-            >
+            <Notice variant="destructive" data-testid="client-archive-error">
               {error}
-            </p>
+            </Notice>
           )}
           <DialogFooter className="mt-2">
             <Button variant="ghost" disabled={busy} onClick={close}>

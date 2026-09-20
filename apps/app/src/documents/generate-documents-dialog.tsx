@@ -26,6 +26,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { dateToIso } from '../lib/dates';
 import { groupMissing, type MissingPlace, missingPlaces } from './document-labels';
 import {
@@ -159,20 +160,22 @@ function GenerateDocumentsForm({
         {readiness.isPending ? (
           <Skeleton className="mt-5 h-28 w-full" />
         ) : readiness.isError ? (
-          <div
-            role="alert"
-            className="mt-5 flex flex-wrap items-center gap-3 text-sm text-destructive"
+          <Notice
+            variant="destructive"
+            className="mt-5"
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                disabled={readiness.isFetching}
+                onClick={() => void readiness.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
           >
-            <p>Nu am putut verifica datele clientului.</p>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={readiness.isFetching}
-              onClick={() => void readiness.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+            Nu am putut verifica datele clientului.
+          </Notice>
         ) : !ready ? (
           <div data-testid="generate-missing" className="mt-5 grid gap-3 text-sm">
             <p>
@@ -250,13 +253,9 @@ function GenerateDocumentsForm({
           </div>
         )}
         {errors.root?.server && (
-          <p
-            data-testid="generate-error"
-            role="alert"
-            className="mt-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="generate-error" className="mt-4">
             {errors.root.server.message}
-          </p>
+          </Notice>
         )}
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>

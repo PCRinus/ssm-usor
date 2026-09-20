@@ -38,6 +38,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
+import { Notice } from '../components/notice';
 import {
   ResponsiblePersonDialog,
   type ResponsiblePersonEditing,
@@ -129,27 +130,27 @@ export function ResponsiblePersonsCard({
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (
-          <p
-            data-testid="responsible-persons-error"
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="responsible-persons-error">
             {error}
-          </p>
+          </Notice>
         )}
         {persons.isPending ? (
           <Skeleton className="h-24 w-full" />
         ) : persons.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca persoanele responsabile.</p>
-            <Button
-              variant="outline"
-              disabled={persons.isFetching}
-              onClick={() => void persons.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={persons.isFetching}
+                onClick={() => void persons.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca persoanele responsabile.
+          </Notice>
         ) : (
           <>
             {persons.data.items.length === 0 ? (

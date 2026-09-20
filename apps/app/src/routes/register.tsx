@@ -9,6 +9,7 @@ import { useAuth } from '../auth/auth-context';
 import { registerErrorMessage } from '../auth/auth-errors';
 import { newPasswordHint, registerSchema, type RegisterValues } from '../auth/password-schema';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
 import { PasswordStrengthIndicator } from '../components/password-strength-indicator';
 import { PublicFrame } from '../components/public-frame';
@@ -115,9 +116,9 @@ export function RegisterPage() {
           />
         </Field>
         {errors.root?.auth && (
-          <p data-testid="register-error" role="alert" className="text-sm text-destructive">
+          <Notice variant="destructive" data-testid="register-error">
             {errors.root.auth.message}
-          </p>
+          </Notice>
         )}
         <Button
           data-testid="register-submit"

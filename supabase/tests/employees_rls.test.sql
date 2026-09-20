@@ -80,7 +80,7 @@ select throws_ok(
 select throws_ok(
   $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Late', 'Joiner', 'Operator', '2026-09-01') $$,
-  '42501',
+  'CLA01',
   null,
   'a member cannot add an employee to an archived client'
 );

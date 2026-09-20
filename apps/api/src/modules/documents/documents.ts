@@ -15,7 +15,7 @@ import {
 import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
 import type { Database, Json } from '../../database.types';
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
 import type { PdfConverter } from '../../lib/pdf';
@@ -357,6 +357,18 @@ async function readDocument(db: DataClient, documentId: string) {
   return data;
 }
 
+// Asked before any file is touched: the database refuses the row too, but only after the
+// file has been written or the PDF made.
+async function requireActiveClient(db: DataClient, clientId: string) {
+  const { data, error } = await db
+    .from('clients')
+    .select('archived_at')
+    .eq('id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find client of document');
+  if (data?.archived_at) throw archivedClientError();
+}
+
 const newest = (document: DocumentRow) =>
   document.document_revisions.reduce<RevisionRow | null>(
     (best, revision) => (!best || revision.revision > best.revision ? revision : best),
@@ -515,6 +527,7 @@ export async function issueDocument(
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
   if (!draft) throw new ApiError('conflict', 'This document has no draft to issue.');
+  await requireActiveClient(db, document.client_id);
   const bytes = await files.readDocument(draft.docx_path);
   if (!input.acceptUnfilled && hasUnfilledText(bytes)) {
     throw new ApiError(
@@ -593,6 +606,7 @@ export async function saveDraftFile(
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
   if (!draft) throw new ApiError('conflict', 'This document has no draft to save to.');
+  await requireActiveClient(db, document.client_id);
   await files.writeDocument(draft.docx_path, bytes, { replace: true });
   const updated = await db
     .from('document_revisions')
@@ -692,6 +706,7 @@ export async function deleteDraft(db: DataClient, files: FileStore, documentId: 
   const document = await readDocument(db, documentId);
   const draft = document.document_revisions.find((revision) => revision.status === 'draft');
   if (!draft) throw new ApiError('conflict', 'This document has no draft to delete.');
+  await requireActiveClient(db, document.client_id);
   // The file while the policies still allow it: they follow the draft row.
   await files.removeDocument(draft.docx_path);
   // Left behind by an issuing that made the PDF and then failed. Removing nothing is fine.

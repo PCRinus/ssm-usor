@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import {
   type ClientSummary,
   describedBy,
@@ -110,13 +111,13 @@ function LegalRepresentativeForm({
         />
       </Field>
       {errors.root?.server && (
-        <p
+        <Notice
+          variant="destructive"
           data-testid="legal-representative-error"
-          role="alert"
-          className="rounded-md border border-destructive/30 p-3 text-sm text-destructive sm:col-span-2"
+          className="sm:col-span-2"
         >
           {errors.root.server.message}
-        </p>
+        </Notice>
       )}
       {client.archivedAt === null && (
         <div className="sm:col-span-2">

@@ -24,6 +24,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { JobPositionCombobox } from '../job-positions/job-position-combobox';
 
 type Employee = EmployeeResponse['employee'];
@@ -182,13 +183,9 @@ function Form({
           </Field>
         </div>
         {errors.root?.server && (
-          <p
-            data-testid="employee-job-position-error"
-            role="alert"
-            className="mt-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
+          <Notice variant="destructive" data-testid="employee-job-position-error" className="mt-4">
             {errors.root.server.message}
-          </p>
+          </Notice>
         )}
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>

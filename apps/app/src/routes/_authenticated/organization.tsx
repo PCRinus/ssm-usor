@@ -4,6 +4,7 @@ import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useMe } from '../../account/use-me';
+import { Notice } from '../../components/notice';
 import { InvitationsCard } from '../../organization/invitations-card';
 import { InviteMemberDialog } from '../../organization/invite-member-dialog';
 import { roleLabels } from '../../organization/labels';
@@ -28,12 +29,16 @@ export function OrganizationPage() {
   }
   if (me.isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-        <p>Nu am putut încărca organizația.</p>
-        <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
-          Încearcă din nou
-        </Button>
-      </div>
+      <Notice
+        variant="destructive"
+        action={
+          <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
+            Încearcă din nou
+          </Button>
+        }
+      >
+        Nu am putut încărca organizația.
+      </Notice>
     );
   }
 

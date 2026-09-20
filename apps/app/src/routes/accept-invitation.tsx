@@ -21,6 +21,7 @@ import { ApiHttpError } from '../api/http';
 import { useAuth } from '../auth/auth-context';
 import { newPasswordHint } from '../auth/password-schema';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
 import { PublicFrame } from '../components/public-frame';
 import {
@@ -82,9 +83,9 @@ const Frame = (props: { title: string; description?: ReactNode; children?: React
 function FormError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p data-testid="accept-error" role="alert" className="text-sm text-destructive">
+    <Notice variant="destructive" data-testid="accept-error">
       {message}
-    </p>
+    </Notice>
   );
 }
 

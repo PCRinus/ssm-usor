@@ -19,6 +19,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { CountyCombobox } from '../clients/county-combobox';
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import {
   legalDetailsFormSchema,
   type LegalDetailsFormValues,
@@ -52,16 +53,20 @@ export function LegalDetailsCard({ userId, canEdit }: { userId: string; canEdit:
         {details.isPending ? (
           <Skeleton className="h-64 w-full" />
         ) : details.isError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-            <p>Nu am putut încărca datele juridice.</p>
-            <Button
-              variant="outline"
-              disabled={details.isFetching}
-              onClick={() => void details.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          </div>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={details.isFetching}
+                onClick={() => void details.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca datele juridice.
+          </Notice>
         ) : (
           // Keyed by what is saved, so the form starts again from what the server holds.
           <LegalDetailsForm
@@ -252,13 +257,9 @@ function LegalDetailsForm({
         hint: 'De exemplu „Administrator”.',
       })}
       {errors.root?.server && (
-        <p
-          data-testid="legal-details-error"
-          role="alert"
-          className="rounded-md border border-destructive/30 p-3 text-sm text-destructive sm:col-span-2"
-        >
+        <Notice variant="destructive" data-testid="legal-details-error" className="sm:col-span-2">
           {errors.root.server.message}
-        </p>
+        </Notice>
       )}
       {canEdit && (
         <div className="sm:col-span-2">

@@ -118,7 +118,11 @@ document details own, and answers `409` for a CUI another client has and for an 
 A `409` of these routes carries a `reason`: `cui_taken`, `cui_taken_by_archived` (the holder is
 archived, so the caller cannot see it in the list they came from) or `client_archived`.
 Archiving and restoring are an owner's, checked by `requireOwner` and again by a trigger;
-repeating either changes nothing and keeps the first date. See the [data model](data-model.md) for the schema and policies.
+repeating either changes nothing and keeps the first date.
+
+Nothing under an archived client changes. The database refuses the write with `CLA01`, which
+`fromDatabaseError` turns into `409` with the reason `client_archived` for every route at
+once. Issuing, saving and deleting a draft ask first, because they touch files before rows. See the [data model](data-model.md) for the schema and policies.
 
 Employee routes are nested under the client. The handler first looks the client up as the
 caller, so a client of another organization is indistinguishable from a missing one and both

@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useWatch } from 'react-hook-form';
 
 import { Field } from '../components/form-field';
+import { Notice } from '../components/notice';
 import { intervalLabel, staffCategoryLabels } from '../job-positions/job-position-schema';
 import { useJobPositionOptions } from '../job-positions/use-job-position-options';
 import { intervalOptions, monthNames } from './document-details-schema';
@@ -414,13 +415,13 @@ function TrainingProgramForm({
         />
       </Field>
       {errors.root?.server && (
-        <p
+        <Notice
+          variant="destructive"
           data-testid="training-program-error"
-          role="alert"
-          className="rounded-md border border-destructive/30 p-3 text-sm text-destructive sm:col-span-2"
+          className="sm:col-span-2"
         >
           {errors.root.server.message}
-        </p>
+        </Notice>
       )}
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" data-testid="training-program-save" disabled={busy || !isDirty}>

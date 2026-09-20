@@ -12,6 +12,7 @@ import { useMe } from '../../account/use-me';
 import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '../../api/generated/api';
 import { ApiHttpError } from '../../api/http';
 import { Field } from '../../components/form-field';
+import { Notice } from '../../components/notice';
 import { roleLabels } from '../../organization/labels';
 
 export const Route = createFileRoute('/_authenticated/profile')({
@@ -31,12 +32,16 @@ export function ProfilePage() {
   }
   if (me.isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-        <p>Nu am putut încărca profilul.</p>
-        <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
-          Încearcă din nou
-        </Button>
-      </div>
+      <Notice
+        variant="destructive"
+        action={
+          <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
+            Încearcă din nou
+          </Button>
+        }
+      >
+        Nu am putut încărca profilul.
+      </Notice>
     );
   }
 
@@ -146,13 +151,9 @@ function ProfileForm({ me }: { me: MeResponse }) {
               />
             </Field>
             {errors.root?.server && (
-              <p
-                data-testid="profile-error"
-                role="alert"
-                className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-              >
+              <Notice variant="destructive" data-testid="profile-error">
                 {errors.root.server.message}
-              </p>
+              </Notice>
             )}
             <div>
               <Button type="submit" data-testid="profile-save" disabled={busy || !isDirty}>

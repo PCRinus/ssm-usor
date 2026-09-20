@@ -17,12 +17,6 @@ export function DocumentsPage() {
 
   return (
     <div data-testid="documents-page" className="grid gap-6">
-      {client.archivedAt && (
-        <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">
-          Clientul este arhivat. Documentele rămân descărcabile, dar nu mai pot fi generate sau
-          emise.
-        </p>
-      )}
       <DocumentsCard
         clientId={client.id}
         userId={session.user.id}

@@ -102,7 +102,7 @@ select lives_ok(
 select throws_ok(
   $$ insert into public.job_positions (organization_id, client_id, name)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Sudor') $$,
-  '42501',
+  'CLA01',
   null,
   'a member cannot create a position for an archived client'
 );
