@@ -122,6 +122,32 @@ afterEach(() => {
 });
 
 describe('client workplaces', () => {
+  it('says when the client moved its registered office, and adopts the address in one click', async () => {
+    mockApi({
+      client: { ...sampleClient, countyCode: 'CJ', locality: 'Cluj-Napoca', addressLine: null },
+    });
+    mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('workplace-row');
+    expect(within(rows[0]!).getByTestId('workplace-address-drift').textContent).toContain(
+      '„Calea Victoriei 122A, Cluj-Napoca, Cluj”'
+    );
+    expect(within(rows[1]!).queryByTestId('workplace-address-drift')).toBeNull();
+    await user.click(within(rows[0]!).getByTestId('workplace-address-adopt'));
+    await waitFor(() =>
+      expect(requests(`${listPath}/${office.id}`, 'PUT')).toEqual([
+        {
+          name: 'Sediu social',
+          isRegisteredOffice: true,
+          countyCode: 'CJ',
+          locality: 'Cluj-Napoca',
+          addressLine: 'Calea Victoriei 122A',
+        },
+      ])
+    );
+    expect(screen.queryByTestId('workplace-dialog')).toBeNull();
+  });
+
   it('lists the workplaces with their address and marks the registered office', async () => {
     mockApi();
     mount();
