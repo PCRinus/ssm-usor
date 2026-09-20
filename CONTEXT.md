@@ -12,6 +12,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Lead** (_client potențial_): a company the organization hopes to serve and does not serve yet. An owner promotes it to a client, normally once its service contract is signed, and that cannot be undone; a lead that goes nowhere is archived. Only owners work with leads. ADR 007. Avoid: prospect, opportunity, offer.
 
+**Stage**: how far a company has come with the organization: **lead**, then **client**. One record moves from the first to the second by promotion and never back. The interface never shows the word, only _clienți potențiali_ and _clienți_. Separate from whether the company is active or **archived**, which applies to both stages: an archived lead is restored as a lead. Avoid: status, which is kept for where a record stands in its own life (an employee's, a revision's, a client's being active or archived), and type or kind, which hide that one becomes the other.
+
 **Service contract** (_contract de prestări servicii_): the agreement between the organization and a client for occupational safety services, and for fire safety where that is sold too. One of the client's other documents, which only owners see, drafted for a lead or for a client and signed outside the app. Not the employment contract behind a contract title.
 
 **Employee** (_angajat_): a person employed by a client. Avoid: worker, staff, user.
