@@ -97,6 +97,7 @@ function mockApi({
   items = [firstAid] as unknown[],
   file = (() => new Response(new Uint8Array([80, 75, 3, 4]))) as () => Response,
   save = (() => Response.json({ document: firstAid })) as () => Response,
+  start = (() => Response.json({ document: firstAid })) as () => Response,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -117,6 +118,7 @@ function mockApi({
     }
     if (pathname === '/signed') return file();
     if (pathname === `/documents/${documentId}/draft/file` && method === 'PUT') return save();
+    if (pathname === `/documents/${documentId}/draft` && method === 'POST') return start();
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
@@ -217,7 +219,50 @@ describe('the document editor page', () => {
     expect(editor.dataset.editable).toBe('false');
     expect(screen.getByTestId('editor-state').textContent).toBe('Emis · rev. 1');
     expect(screen.queryByTestId('editor-save')).toBeNull();
-    expect(screen.getByRole('status').textContent).toContain('Un document emis nu se mai modifică');
+    expect(screen.getByRole('status').textContent).toContain('Un document emis nu se mai schimbă');
+  });
+
+  it('starts a draft from the issued document and opens it for editing', async () => {
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    const items: (typeof firstAid)[] = [{ ...firstAid, draft: null, issued }];
+    mockApi({
+      items,
+      start: () => {
+        items[0] = { ...items[0]!, draft: revision({ id: 'draft-two', revision: 2 }) };
+        return Response.json({ document: items[0] });
+      },
+    });
+    mount();
+
+    await userEvent.click(await screen.findByTestId('editor-start-draft'));
+    await waitFor(() =>
+      expect(screen.getByTestId('editor-state').textContent).toBe('Ciornă · rev. 2')
+    );
+    await waitFor(() => expect(screen.getByTestId('fake-editor').dataset.editable).toBe('true'));
+    expect(screen.queryByTestId('editor-start-draft')).toBeNull();
+    expect(screen.getByTestId('editor-save')).toBeTruthy();
+  });
+
+  it('says so when a draft cannot be started', async () => {
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    mockApi({
+      items: [{ ...firstAid, draft: null, issued }],
+      start: () => Response.json({ code: 'service_unavailable', message: 'down' }, { status: 503 }),
+    });
+    mount();
+    await userEvent.click(await screen.findByTestId('editor-start-draft'));
+    expect(await screen.findByTestId('editor-start-draft-error')).toBeTruthy();
+  });
+
+  it('offers no new draft for an archived client', async () => {
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    mockApi({
+      client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' },
+      items: [{ ...firstAid, draft: null, issued }],
+    });
+    mount();
+    await screen.findByTestId('fake-editor');
+    expect(screen.queryByTestId('editor-start-draft')).toBeNull();
   });
 
   it('opens the draft of an archived client for reading only', async () => {

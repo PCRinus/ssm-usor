@@ -221,6 +221,29 @@ export const issueDocumentRoute = createRoute({
   },
 });
 
+export const startDocumentDraftRoute = createRoute({
+  method: 'post',
+  path: '/documents/{documentId}/draft',
+  operationId: 'startDocumentDraft',
+  summary: 'Start a draft from the issued revision of a document',
+  description:
+    'The new draft is a copy of the issued file, hand edits included, and the issued revision stays in force until the draft is issued. Regenerating is the way to a draft from the template and the facts of today.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: documentParams },
+  responses: {
+    200: { description: 'The document with its new draft', content: documentContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchDocument,
+    409: {
+      description:
+        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
 export const deleteDocumentDraftRoute = createRoute({
   method: 'delete',
   path: '/documents/{documentId}/draft',

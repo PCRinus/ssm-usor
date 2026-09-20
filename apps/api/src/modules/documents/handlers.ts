@@ -15,6 +15,7 @@ import {
   listClientDocuments as list,
   regenerateDocument as regenerate,
   saveDraftFile,
+  startDraftFromIssued,
   uploadDocumentFile as upload,
 } from './documents';
 import { loadDocumentFacts } from './facts';
@@ -27,6 +28,7 @@ import type {
   listClientDocumentsRoute,
   regenerateDocumentRoute,
   saveDocumentDraftFileRoute,
+  startDocumentDraftRoute,
   uploadClientDocumentRoute,
 } from './routes';
 
@@ -112,6 +114,19 @@ export const issueDocument: RouteHandler<typeof issueDocumentRoute, ApiEnv> = as
     // No body at all is an empty one.
     c.req.valid('json') ?? {},
     createPdfConverter(c)
+  );
+  return c.json({ document }, 200);
+};
+
+export const startDocumentDraft: RouteHandler<typeof startDocumentDraftRoute, ApiEnv> = async (
+  c
+) => {
+  const { documentId } = c.req.valid('param');
+  const document = await startDraftFromIssued(
+    createDataClient(c),
+    createFileStore(c),
+    actorOf(c),
+    documentId
   );
   return c.json({ document }, 200);
 };

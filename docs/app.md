@@ -393,7 +393,11 @@ mobile navigation link closes the Sheet.
   fills in the organization's details). When ready it asks for the date and the first
   decision number, filled in from the last generation. A row's menu downloads the draft or
   the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
-  confirmation that says what is lost or locked. When issuing is refused with the reason
+  confirmation that says what is lost or locked. An issued document without a draft also has
+  "Modifică documentul emis", which asks nothing: it starts a draft from the issued file
+  (`POST /documents/{documentId}/draft`) and opens it in the editor. Regenerating such a
+  document says that the hand edits of the issued file are not carried over, and names that
+  action as the way to keep them. When issuing is refused with the reason
   `unfilled_text`, the same dialog asks a second question, "Documentul mai are text de
   completat", and "Emite oricum" sends `acceptUnfilled`. The five documents the app cannot
   write yet (`uploadedDocumentTypes`) show in their place in the pack as "Neîncărcat" rows
@@ -436,7 +440,9 @@ mobile navigation link closes the Sheet.
   document the editor cannot lay out throws outside React and never reports ready: an error
   on the page before that, or 30 seconds of silence, shows a message with the download
   instead. The list links every title to this page and marks a draft saved from here as
-  "Modificat", which "Generează din nou" then names as what would be lost.
+  "Modificat", which "Generează din nou" then names as what would be lost. An issued document
+  opens for reading with "Modifică" in the title bar, which starts the same draft in place:
+  the page loads the new revision and becomes editable.
 
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and

@@ -46,6 +46,7 @@ import {
   useIssueDocument,
   useListClientDocuments,
   useRegenerateDocument,
+  useStartDocumentDraft,
   useUploadClientDocument,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
@@ -119,7 +120,7 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
   }
   return document.draft
     ? 'Ciorna este completată din nou cu datele de acum ale clientului. Modificările făcute de mână în fișier se pierd.'
-    : 'Se creează o ciornă nouă, completată cu datele de acum ale clientului. Revizia emisă rămâne în vigoare până când emiți ciorna.';
+    : 'Se creează o ciornă nouă din șablon, completată cu datele de acum ale clientului, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”. Revizia emisă rămâne în vigoare până când emiți ciorna.';
 }
 
 // `readOnly` is an archived client: what exists can still be downloaded.
@@ -142,13 +143,19 @@ export function DocumentsCard({
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
   const upload = useUploadClientDocument({ request: apiRequest });
+  const startDraft = useStartDocumentDraft({ request: apiRequest });
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadTarget = useRef<{ typeKey: PackDocumentTypeKey; title: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | null>(null);
-  const busy = regenerate.isPending || issue.isPending || remove.isPending || upload.isPending;
+  const busy =
+    regenerate.isPending ||
+    issue.isPending ||
+    remove.isPending ||
+    upload.isPending ||
+    startDraft.isPending;
 
   const items = documents.data?.items ?? [];
   const existing = new Set(items.map((item) => item.typeKey));
@@ -217,6 +224,26 @@ export function DocumentsCard({
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
       );
     }
+  }
+
+  async function startDraftFromIssued(document: ClientDocument) {
+    setError(null);
+    try {
+      await startDraft.mutateAsync({ documentId: document.id });
+    } catch (cause) {
+      // A 409 is a draft someone else has just started, and it opens all the same.
+      if (!(cause instanceof ApiHttpError && cause.status === 409)) {
+        setError(
+          `Nu am putut porni o ciornă nouă pentru „${document.title}”. Verifică conexiunea și încearcă din nou.`
+        );
+        return;
+      }
+    }
+    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
+    await navigate({
+      to: '/clients/$clientId/documents/$documentId',
+      params: { clientId, documentId: document.id },
+    });
   }
 
   async function run({ action, document }: NonNullable<Confirming>) {
@@ -474,6 +501,15 @@ export function DocumentsCard({
                           {!readOnly && (
                             <>
                               <DropdownMenuSeparator />
+                              {document.issued && !document.draft && (
+                                <DropdownMenuItem
+                                  data-testid="document-start-draft"
+                                  disabled={busy}
+                                  onSelect={() => void startDraftFromIssued(document)}
+                                >
+                                  Modifică documentul emis
+                                </DropdownMenuItem>
+                              )}
                               {!uploaded && (
                                 <DropdownMenuItem
                                   data-testid="document-regenerate"

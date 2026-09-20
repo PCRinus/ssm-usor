@@ -6793,6 +6793,92 @@ export const useIssueDocument = <TError = ErrorType<ApiErrorResponse>, TContext 
   return useMutation(getIssueDocumentMutationOptions(options), queryClient);
 };
 
+export const getStartDocumentDraftUrl = (documentId: string) => {
+  return `/documents/${documentId}/draft`;
+};
+
+/**
+ * The new draft is a copy of the issued file, hand edits included, and the issued revision stays in force until the draft is issued. Regenerating is the way to a draft from the template and the facts of today.
+ * @summary Start a draft from the issued revision of a document
+ */
+export const startDocumentDraft = async (
+  documentId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  return apiFetch<ClientDocumentResponse>(getStartDocumentDraftUrl(documentId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getStartDocumentDraftMutationKey = () => ['startDocumentDraft'] as const;
+
+export const getStartDocumentDraftMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startDocumentDraft>>,
+    TError,
+    StartDocumentDraftMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startDocumentDraft>>,
+  TError,
+  StartDocumentDraftMutationVariables,
+  TContext
+> => {
+  const mutationKey = getStartDocumentDraftMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startDocumentDraft>>,
+    StartDocumentDraftMutationVariables
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return startDocumentDraft(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartDocumentDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startDocumentDraft>>
+>;
+
+export type StartDocumentDraftMutationError = ErrorType<ApiErrorResponse>;
+export type StartDocumentDraftMutationVariables = { documentId: string };
+
+/**
+ * @summary Start a draft from the issued revision of a document
+ */
+export const useStartDocumentDraft = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof startDocumentDraft>>,
+      TError,
+      StartDocumentDraftMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof startDocumentDraft>>,
+  TError,
+  StartDocumentDraftMutationVariables,
+  TContext
+> => {
+  return useMutation(getStartDocumentDraftMutationOptions(options), queryClient);
+};
+
 export const getDeleteDocumentDraftUrl = (documentId: string) => {
   return `/documents/${documentId}/draft`;
 };

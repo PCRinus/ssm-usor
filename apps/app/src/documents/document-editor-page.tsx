@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useBlocker, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, Download, Save } from 'lucide-react';
+import { ArrowLeft, Download, Pencil, Save } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -11,6 +11,7 @@ import {
   getListClientDocumentsQueryKey,
   useListClientDocuments,
   useSaveDocumentDraftFile,
+  useStartDocumentDraft,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
@@ -48,6 +49,7 @@ export function DocumentEditorPage({
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
   });
   const saveDraft = useSaveDocumentDraftFile({ request: apiRequest });
+  const startDraft = useStartDocumentDraft({ request: apiRequest });
   const editor = useRef<DocumentEditorHandle>(null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   // The revision whose file could not be fetched, so that another revision starts clean.
@@ -56,10 +58,12 @@ export function DocumentEditorPage({
   const [failed, setFailed] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [startError, setStartError] = useState(false);
 
   const document = documents.data?.items.find((item) => item.id === documentId);
   const revision = document?.draft ?? document?.issued ?? null;
   const editable = !readOnly && document?.draft != null;
+  const canStartDraft = !readOnly && document != null && !document.draft && document.issued != null;
   const revisionId = revision?.id;
   const loadError = revisionId !== undefined && failedRevisionId === revisionId;
 
@@ -112,6 +116,18 @@ export function DocumentEditorPage({
       );
     }
   }, [clientId, dirty, documentId, editable, queryClient, saveDraft]);
+
+  async function startDraftFromIssued() {
+    setStartError(false);
+    try {
+      await startDraft.mutateAsync({ documentId });
+      toast.success('Ai o ciornă nouă, pornită din documentul emis.');
+    } catch (cause) {
+      // A 409 is a draft someone else has just started: the list brings it.
+      if (!(cause instanceof ApiHttpError && cause.status === 409)) setStartError(true);
+    }
+    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
+  }
 
   // What is on screen, edits included, so that a failed save never costs the work.
   async function download() {
@@ -183,6 +199,17 @@ export function DocumentEditorPage({
         <Download aria-hidden="true" />
         Descarcă
       </Button>
+      {canStartDraft && (
+        <Button
+          size="sm"
+          data-testid="editor-start-draft"
+          disabled={startDraft.isPending}
+          onClick={() => void startDraftFromIssued()}
+        >
+          <Pencil aria-hidden="true" />
+          {startDraft.isPending ? 'Se pregătește ciorna…' : 'Modifică'}
+        </Button>
+      )}
       {editable && (
         <Button
           size="sm"
@@ -205,10 +232,15 @@ export function DocumentEditorPage({
           <p role="status" className="text-sm text-muted-foreground">
             {readOnly
               ? 'Clientul este arhivat: documentul poate fi doar citit.'
-              : 'Un document emis nu se mai modifică. Pentru o corectură, generează-l din nou din listă.'}
+              : 'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă, iar el rămâne în vigoare până o emiți.'}
           </p>
         )}
       </div>
+      {startError && (
+        <Notice variant="destructive" data-testid="editor-start-draft-error">
+          Nu am putut porni o ciornă nouă. Verifică conexiunea și încearcă din nou.
+        </Notice>
+      )}
       {saveError && (
         <Notice variant="destructive" data-testid="editor-save-error">
           {saveError}

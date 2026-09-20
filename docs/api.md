@@ -86,6 +86,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                    |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                |
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                                          |
+| `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                      |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
@@ -328,6 +329,13 @@ is refused with `409` and the reason `unfilled_text`, until the optional body ca
 into, so a draft corrected in the editor or elsewhere is judged as it stands. `DELETE …/draft` removes the file, then the
 row, and is `409` when there is no draft, so an issued revision is never touched. Both roles
 can do all three, as the ADR decided.
+
+`POST /documents/{documentId}/draft` is the correction that keeps what was written by hand:
+the next revision starts as a draft whose file is a copy of the issued one, with the same
+template version, generation, data snapshot and `edited_at`, so the draft says about itself
+what the issued revision did, "Date modificate" included. Regenerating is the other way to a
+new draft, from the template and the facts of today. `409` with the reason `draft_exists`
+when the document has a draft, and `409` when nothing was issued or the client is archived.
 
 `PUT /documents/{documentId}/draft/file` takes the bytes of a `.docx` as the request body, as
 the in-app editor saves them or as edited elsewhere, up to 15 MB. It checks that the bytes
