@@ -34,6 +34,8 @@ test('a recovery link sets a new password, which then replaces the old one', asy
   await page.getByTestId('reset-submit').click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText('Parola a fost schimbată.')).toBeVisible();
+  // Changed from the profile page, the notice goes out as well.
+  expect(await emailedLink(account.email, 'password-changed')).toMatch(/\/forgot-password$/);
   await signOut(page);
 
   await page.goto(link);
@@ -45,6 +47,9 @@ test('a recovery link sets a new password, which then replaces the old one', asy
   await expect(page.getByTestId('login-auth-error')).toBeVisible();
   await signIn(page, account.email, newPassword);
   await expect(page).toHaveURL(/\/dashboard$/);
+
+  // The owner of the account is told, in case it was not them, with the way to a reset.
+  expect(await emailedLink(account.email, 'password-changed')).toMatch(/\/forgot-password$/);
 });
 
 test('the profile page changes the password after checking the current one', async ({ page }) => {

@@ -3,6 +3,8 @@ import {
   type MailService,
   type OrganizationInvitationEmail,
   organizationInvitationEmailSchema,
+  type PasswordChangedEmail,
+  passwordChangedEmailSchema,
   type PasswordResetEmail,
   passwordResetEmailSchema,
   type SignupConfirmationEmail,
@@ -15,6 +17,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import OrganizationInvitation, {
   subject as invitationSubject,
 } from './emails/organization-invitation';
+import PasswordChanged, { subject as passwordChangedSubject } from './emails/password-changed';
 import PasswordReset, { subject as passwordResetSubject } from './emails/password-reset';
 import SignupConfirmation, {
   subject as signupConfirmationSubject,
@@ -51,6 +54,16 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: passwordResetSubject,
       body: <PasswordReset {...reset} />,
+    });
+  }
+
+  async sendPasswordChanged(input: PasswordChangedEmail): Promise<MailReceipt> {
+    const { to, ...notice } = passwordChangedEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: passwordChangedSubject,
+      body: <PasswordChanged {...notice} />,
     });
   }
 

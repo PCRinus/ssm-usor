@@ -32,6 +32,15 @@ export const passwordResetEmailSchema = z.object({
 
 export type PasswordResetEmail = z.infer<typeof passwordResetEmailSchema>;
 
+/** Tells the owner of an account that its password changed, in case it was not them. */
+export const passwordChangedEmailSchema = z.object({
+  to: z.email(),
+  /** Where to ask for a reset link in the SPA, for someone who did not make the change. */
+  forgotPasswordUrl: z.url(),
+});
+
+export type PasswordChangedEmail = z.infer<typeof passwordChangedEmailSchema>;
+
 export const signupConfirmationEmailSchema = z.object({
   to: z.email(),
   /** The confirmation page in the SPA, carrying Supabase's signup token hash. */
@@ -57,5 +66,6 @@ export interface MailService {
   sendWaitlistConfirmation(input: WaitlistConfirmationEmail): Promise<MailReceipt>;
   sendOrganizationInvitation(input: OrganizationInvitationEmail): Promise<MailReceipt>;
   sendPasswordReset(input: PasswordResetEmail): Promise<MailReceipt>;
+  sendPasswordChanged(input: PasswordChangedEmail): Promise<MailReceipt>;
   sendSignupConfirmation(input: SignupConfirmationEmail): Promise<MailReceipt>;
 }

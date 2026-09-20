@@ -7,12 +7,13 @@ It has no route and no public hostname. Other Workers call it through a service 
 methods are described by the `MailService` interface in `packages/contracts`, which the mail
 Worker implements and callers use to type their binding.
 
-| Method                       | Email                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------ |
-| `sendWaitlistConfirmation`   | Asks a waitlist subscriber to confirm their address by link.                         |
-| `sendOrganizationInvitation` | Invites a person into an organization; the link opens the SPA's accept page.         |
-| `sendPasswordReset`          | Sent for Supabase Auth's recovery email; the link opens the SPA's reset page.        |
-| `sendSignupConfirmation`     | Sent for Supabase Auth's signup confirmation; the link opens the SPA's confirm page. |
+| Method                       | Email                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sendWaitlistConfirmation`   | Asks a waitlist subscriber to confirm their address by link.                                                                                      |
+| `sendOrganizationInvitation` | Invites a person into an organization; the link opens the SPA's accept page.                                                                      |
+| `sendPasswordReset`          | Sent for Supabase Auth's recovery email; the link opens the SPA's reset page.                                                                     |
+| `sendSignupConfirmation`     | Sent for Supabase Auth's signup confirmation; the link opens the SPA's confirm page.                                                              |
+| `sendPasswordChanged`        | Tells the owner of an account that its password changed, after a reset or from the profile page, with the way to a reset in case it was not them. |
 
 Every method validates its input, renders the template, hands the result to the provider, and
 resolves with `{ id }`, the provider's message id. It rejects when the provider refuses the
