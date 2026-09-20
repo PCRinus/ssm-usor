@@ -23,7 +23,8 @@ Single-context: the apps and packages serve one product and share one vocabulary
 │   ├── adr-003-organization-invitations.md
 │   ├── adr-004-registration-and-onboarding.md
 │   ├── adr-005-document-generation.md
-│   └── adr-006-job-positions.md
+│   ├── adr-006-job-positions.md
+│   └── adr-007-leads-and-service-contracts.md
 └── apps/, packages/
 ```
 

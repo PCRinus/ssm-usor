@@ -10,6 +10,10 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Client** (_client_): a company the organization serves. Avoid: customer, which is the organization.
 
+**Lead** (_client potențial_): a company the organization hopes to serve and does not serve yet. An owner promotes it to a client, normally once its service contract is signed, and that cannot be undone; a lead that goes nowhere is archived. Only owners work with leads. ADR 007. Avoid: prospect, opportunity, offer.
+
+**Service contract** (_contract de prestări servicii_): the agreement between the organization and a client for occupational safety services, and for fire safety where that is sold too. One of the client's other documents, which only owners see, drafted for a lead or for a client and signed outside the app. Not the employment contract behind a contract title.
+
 **Employee** (_angajat_): a person employed by a client. Avoid: worker, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.
@@ -28,9 +32,13 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 ## Documents
 
-**Document**: one document type, once, in a client's documentation set, with its revisions. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+**Document**: one document type, once, for a client, with its revisions. Part of the client's **documentation set**, or one of its other documents. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+
+**Other documents** (_alte documente_): the documents about a client that are not part of its documentation set. The service contract is the first. Avoid: annex, which the contracts use for an annex to a contract.
 
 **Revision** (_revizie_): a version of a document, with its Word file. A **draft** (_ciornă_) can be edited, regenerated, replaced by an upload, or deleted. An **issued** (_emis_) revision is locked with the hash of its file and of its PDF. The one issued before it is **superseded**.
+
+**Signed copy** (_exemplar semnat_): the PDF that comes back signed, on paper and scanned or with the signer's own certificate, attached to the issued revision it is a copy of. The app records that one was attached, not that it is signed.
 
 **Template**: the Word file a document is merged from. Built-in templates live in the repository and are registered in versions.
 
