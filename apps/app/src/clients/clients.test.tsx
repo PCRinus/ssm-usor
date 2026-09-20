@@ -22,6 +22,15 @@ const sampleClient = {
   archivedAt: null,
 };
 
+const archivedClient = { ...sampleClient, archivedAt: '2026-09-21T08:00:00+00:00' };
+
+const meAs = (role: 'owner' | 'specialist') => () =>
+  Response.json({
+    user: { id: 'user-one', email: 'review@example.test' },
+    profile: { fullName: 'Ana Ionescu', professionalTitle: null },
+    membership: { organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'S' }, role },
+  });
+
 const sampleCompany = {
   cui: '1590082',
   legalName: 'OMV PETROM SA',
@@ -47,7 +56,9 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
-  routes: Partial<Record<'me' | 'list' | 'create' | 'lookup' | 'get' | 'update', Route>> = {}
+  routes: Partial<
+    Record<'me' | 'list' | 'create' | 'lookup' | 'get' | 'update' | 'archive' | 'restore', Route>
+  > = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -69,6 +80,18 @@ function mockApi(
     }
     if (url.pathname === `/clients/${sampleClient.id}` && method === 'PUT') {
       return routes.update?.(init, url) ?? Response.json({ client: sampleClient });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}/archive` && method === 'POST') {
+      return routes.archive?.(init, url) ?? Response.json({ client: archivedClient });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}/restore` && method === 'POST') {
+      return routes.restore?.(init, url) ?? Response.json({ client: sampleClient });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}/documents` && method === 'GET') {
+      return Response.json({
+        items: [{ draft: { id: 'r1' } }, { draft: null }, { draft: { id: 'r2' } }],
+        lastGeneration: null,
+      });
     }
     if (url.pathname === `/clients/${sampleClient.id}/employees` && method === 'GET') {
       return Response.json(page([]));
@@ -445,13 +468,17 @@ describe('client editing', () => {
 
   it('puts a taken CUI on its field and an archived client above the buttons', async () => {
     let message = 'A client with this CUI already exists in your organization.';
-    mockApi({ update: () => Response.json({ error: 'conflict', message }, { status: 409 }) });
+    let reason = 'cui_taken';
+    mockApi({
+      update: () => Response.json({ error: 'conflict', message, reason }, { status: 409 }),
+    });
     mountApp(authFixture(makeSession()).client, editPath);
     const user = userEvent.setup();
     await screen.findByTestId('edit-client-page');
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('cui-error')).textContent).toContain('Există deja');
     message = 'An archived client is not edited.';
+    reason = 'client_archived';
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('client-form-error')).textContent).toContain('arhivat');
   });
@@ -462,5 +489,110 @@ describe('client editing', () => {
     await userEvent.setup().click(await screen.findByTestId('client-edit'));
     await screen.findByTestId('edit-client-page');
     expect(runtime.router.state.location.pathname).toBe(editPath);
+  });
+});
+
+describe('client archiving', () => {
+  const clientPath = `/clients/${sampleClient.id}`;
+
+  it('lets an owner archive from the list, after saying what happens to the drafts', async () => {
+    let archived = false;
+    mockApi({
+      me: meAs('owner'),
+      list: () => Response.json(page(archived ? [] : [sampleClient])),
+      archive: () => {
+        archived = true;
+        return Response.json({ client: archivedClient });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('clients-row-menu'));
+    await user.click(await screen.findByTestId('clients-archive'));
+    const dialog = await screen.findByTestId('client-archive-dialog');
+    expect(dialog.textContent).toContain('OMV PETROM SA');
+    expect((await screen.findByTestId('client-archive-drafts')).textContent).toContain(
+      '2 documente sunt încă ciorne'
+    );
+    await user.click(screen.getByTestId('client-archive-confirm'));
+    expect(await screen.findByText('OMV PETROM SA a fost arhivat.')).toBeTruthy();
+    await screen.findByTestId('clients-empty');
+    expect(requests(`${clientPath}/archive`, 'POST')).toHaveLength(1);
+  });
+
+  it('keeps archiving away from a specialist', async () => {
+    mockApi({ me: meAs('specialist'), list: () => Response.json(page([sampleClient])) });
+    mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('clients-row-menu'));
+    await screen.findByTestId('clients-edit');
+    expect(screen.queryByTestId('clients-archive')).toBeNull();
+  });
+
+  it('lists the archived clients apart, where an owner restores one', async () => {
+    mockApi({
+      me: meAs('owner'),
+      list: (_init, url) =>
+        Response.json(page(url.searchParams.get('status') === 'archived' ? [archivedClient] : [])),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('clients-filter-archived'));
+    await user.click(await screen.findByTestId('clients-row-menu'));
+    expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
+    expect(screen.queryByTestId('clients-edit')).toBeNull();
+    await user.click(await screen.findByTestId('clients-restore'));
+    await user.click(await screen.findByTestId('client-archive-confirm'));
+    expect(await screen.findByText('OMV PETROM SA a fost restaurat.')).toBeTruthy();
+    expect(requests(`${clientPath}/restore`, 'POST')).toHaveLength(1);
+  });
+
+  it('shows an archived client read-only, with the way back for an owner', async () => {
+    let client: typeof sampleClient | typeof archivedClient = archivedClient;
+    mockApi({
+      me: meAs('owner'),
+      get: () => Response.json({ client }),
+      restore: () => {
+        client = sampleClient;
+        return Response.json({ client });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+    const user = userEvent.setup();
+    const banner = await screen.findByTestId('client-archived-banner');
+    expect(banner.textContent).toContain('Client arhivat.');
+    expect(screen.queryByTestId('client-edit')).toBeNull();
+    expect(screen.queryByTestId('employees-add')).toBeNull();
+    await user.click(await screen.findByTestId('client-restore'));
+    await user.click(await screen.findByTestId('client-archive-confirm'));
+    await screen.findByTestId('client-edit');
+    expect(screen.queryByTestId('client-archived-banner')).toBeNull();
+    expect(screen.getByTestId('employees-add')).toBeTruthy();
+  });
+
+  it('tells a specialist who can restore, and keeps the edit page closed', async () => {
+    mockApi({ me: meAs('specialist'), get: () => Response.json({ client: archivedClient }) });
+    const runtime = mountApp(authFixture(makeSession()).client, `${clientPath}/edit`);
+    const banner = await screen.findByTestId('client-archived-banner');
+    expect(banner.textContent).toContain('Un administrator al organizației îl poate restaura.');
+    expect(screen.queryByTestId('client-restore')).toBeNull();
+    expect(runtime.router.state.location.pathname).toBe(`${clientPath}/employees`);
+  });
+
+  it('points to the archive when an archived client holds the CUI', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { error: 'conflict', message: 'taken', reason: 'cui_taken_by_archived' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, '/clients/new');
+    const user = userEvent.setup();
+    await screen.findByTestId('new-client-page');
+    await user.type(screen.getByTestId('client-cui'), '1590082');
+    await user.type(screen.getByTestId('client-legal-name'), 'Firma Mea SRL');
+    await user.click(screen.getByTestId('client-submit'));
+    expect((await screen.findByTestId('cui-error')).textContent).toContain('Un client arhivat');
   });
 });

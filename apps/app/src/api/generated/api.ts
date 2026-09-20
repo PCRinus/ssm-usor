@@ -2147,6 +2147,7 @@ export type ListClientsParams = {
   pageSize?: number;
   sort?: ListClientsSort;
   order?: ListClientsOrder;
+  status?: ListClientsStatus;
 };
 
 export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsSort];
@@ -2162,6 +2163,13 @@ export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClient
 export const ListClientsOrder = {
   asc: 'asc',
   desc: 'desc',
+} as const;
+
+export type ListClientsStatus = (typeof ListClientsStatus)[keyof typeof ListClientsStatus];
+
+export const ListClientsStatus = {
+  active: 'active',
+  archived: 'archived',
 } as const;
 
 export type LookupCompanyParams = {
@@ -2709,8 +2717,8 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. Archived clients are never listed. One sort key at a time; "legalName" is the default.
- * @summary List the organization's active clients
+ * Paginated. `status` chooses the active clients, the default, or the archived ones; never both. One sort key at a time; "legalName" is the default.
+ * @summary List the organization's clients, active or archived
  */
 export const listClients = async (
   params?: ListClientsParams,
@@ -2803,7 +2811,7 @@ export function useListClients<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the organization's active clients
+ * @summary List the organization's clients, active or archived
  */
 
 export function useListClients<
@@ -3158,6 +3166,174 @@ export const useUpdateClient = <TError = ErrorType<ApiErrorResponse>, TContext =
   TContext
 > => {
   return useMutation(getUpdateClientMutationOptions(options), queryClient);
+};
+
+export const getArchiveClientUrl = (clientId: string) => {
+  return `/clients/${clientId}/archive`;
+};
+
+/**
+ * Owners only. The client leaves the list of active clients; its employees, job positions and documents stay as they are and stay readable. Archiving an archived client changes nothing.
+ * @summary Archive a client
+ */
+export const archiveClient = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getArchiveClientUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getArchiveClientMutationKey = () => ['archiveClient'] as const;
+
+export const getArchiveClientMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof archiveClient>>,
+    TError,
+    ArchiveClientMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof archiveClient>>,
+  TError,
+  ArchiveClientMutationVariables,
+  TContext
+> => {
+  const mutationKey = getArchiveClientMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof archiveClient>>,
+    ArchiveClientMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return archiveClient(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ArchiveClientMutationResult = NonNullable<Awaited<ReturnType<typeof archiveClient>>>;
+
+export type ArchiveClientMutationError = ErrorType<ApiErrorResponse>;
+export type ArchiveClientMutationVariables = { clientId: string };
+
+/**
+ * @summary Archive a client
+ */
+export const useArchiveClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof archiveClient>>,
+      TError,
+      ArchiveClientMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof archiveClient>>,
+  TError,
+  ArchiveClientMutationVariables,
+  TContext
+> => {
+  return useMutation(getArchiveClientMutationOptions(options), queryClient);
+};
+
+export const getRestoreClientUrl = (clientId: string) => {
+  return `/clients/${clientId}/restore`;
+};
+
+/**
+ * Owners only. Restoring an active client changes nothing.
+ * @summary Bring an archived client back
+ */
+export const restoreClient = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getRestoreClientUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getRestoreClientMutationKey = () => ['restoreClient'] as const;
+
+export const getRestoreClientMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreClient>>,
+    TError,
+    RestoreClientMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreClient>>,
+  TError,
+  RestoreClientMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRestoreClientMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreClient>>,
+    RestoreClientMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return restoreClient(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreClientMutationResult = NonNullable<Awaited<ReturnType<typeof restoreClient>>>;
+
+export type RestoreClientMutationError = ErrorType<ApiErrorResponse>;
+export type RestoreClientMutationVariables = { clientId: string };
+
+/**
+ * @summary Bring an archived client back
+ */
+export const useRestoreClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof restoreClient>>,
+      TError,
+      RestoreClientMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof restoreClient>>,
+  TError,
+  RestoreClientMutationVariables,
+  TContext
+> => {
+  return useMutation(getRestoreClientMutationOptions(options), queryClient);
 };
 
 export const getLookupCompanyUrl = (params: LookupCompanyParams) => {

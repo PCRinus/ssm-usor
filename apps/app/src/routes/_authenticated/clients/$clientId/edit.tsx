@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi, Navigate } from '@tanstack/react-router';
 
 import { ClientForm } from '../../../../clients/client-form';
 
@@ -11,6 +11,9 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 export function EditClientPage() {
   const { client } = clientRoute.useLoaderData();
+  if (client.archivedAt) {
+    return <Navigate to="/clients/$clientId/employees" params={{ clientId: client.id }} replace />;
+  }
   // Keyed, so that the form starts again from the record if another one is opened.
   return <ClientForm key={client.id} client={client} />;
 }

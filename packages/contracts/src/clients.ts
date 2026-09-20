@@ -66,7 +66,19 @@ export type ClientResponse = z.infer<typeof clientResponseSchema>;
 export const clientSortKeys = ['legalName', 'cui', 'declaredEmployeeCount'] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
 
-export const listClientsQuerySchema = listQuerySchema(clientSortKeys, 'legalName');
+export const clientListStatuses = ['active', 'archived'] as const;
+export type ClientListStatus = (typeof clientListStatuses)[number];
+
+export const listClientsQuerySchema = listQuerySchema(clientSortKeys, 'legalName').extend({
+  status: z.enum(clientListStatuses).default('active'),
+});
+
+// Reasons of a 409 that the app words itself.
+export const clientConflictReasons = {
+  cuiTaken: 'cui_taken',
+  cuiTakenByArchived: 'cui_taken_by_archived',
+  clientArchived: 'client_archived',
+} as const;
 
 export type ListClientsQuery = z.infer<typeof listClientsQuerySchema>;
 

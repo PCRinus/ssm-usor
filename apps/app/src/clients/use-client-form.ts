@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
+import { clientConflictReasons, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -109,13 +109,16 @@ export function useClientForm(client?: Client) {
       if (cause instanceof ApiHttpError) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
         if (cause.status === 409) {
-          if (body?.message?.includes('archived')) {
+          if (body?.reason === clientConflictReasons.clientArchived) {
             form.setError('root.server', {
               message: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
             });
           } else {
             form.setError('cui', {
-              message: 'Există deja un client cu acest CUI în organizația ta.',
+              message:
+                body?.reason === clientConflictReasons.cuiTakenByArchived
+                  ? 'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.'
+                  : 'Există deja un client cu acest CUI în organizația ta.',
             });
           }
           return;

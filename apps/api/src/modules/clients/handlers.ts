@@ -1,14 +1,22 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import { type Client, type ClientSortKey, normalizeCui, pageRange } from '@ssm-usor/contracts';
+import {
+  type Client,
+  clientConflictReasons,
+  type ClientSortKey,
+  normalizeCui,
+  pageRange,
+} from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type {
+  archiveClientRoute,
   createClientRoute,
   getClientRoute,
   listClientsRoute,
+  restoreClientRoute,
   updateClientRoute,
 } from './routes';
 
@@ -64,18 +72,22 @@ const sortColumns: Record<ClientSortKey, string[]> = {
 };
 
 export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async (c) => {
-  const { page, pageSize, sort, order } = c.req.valid('query');
+  const { page, pageSize, sort, order, status } = c.req.valid('query');
   const db = createDataClient(c);
-  const active = () =>
-    db.from('clients').select(clientColumns, { count: 'exact' }).is('archived_at', null);
-  let query = active();
+  const listed = () => {
+    const clients = db.from('clients').select(clientColumns, { count: 'exact' });
+    return status === 'archived'
+      ? clients.not('archived_at', 'is', null)
+      : clients.is('archived_at', null);
+  };
+  let query = listed();
   for (const column of sortColumns[sort])
     query = query.order(column, { ascending: order === 'asc' });
   const { from, to } = pageRange(page, pageSize);
   const { data, error, count } = await query.order('id').range(from, to);
   if (error?.code === 'PGRST103') {
     // The page lies past the end: empty, with the real total.
-    const recount = await active().range(0, 0);
+    const recount = await listed().range(0, 0);
     if (recount.error) throw fromDatabaseError(recount.error, 'count clients');
     return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
   }
@@ -97,6 +109,25 @@ export const getClient: RouteHandler<typeof getClientRoute, ApiEnv> = async (c) 
   if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
   return c.json({ client: toClient(data) }, 200);
 };
+
+// An archived client keeps its CUI, and the caller cannot see it in the list they came from.
+async function cuiConflict(db: DataClient, cui: string) {
+  const holder = await db.from('clients').select('archived_at').eq('cui', cui).maybeSingle();
+  if (holder.error) return fromDatabaseError(holder.error, 'find client by cui');
+  return holder.data?.archived_at
+    ? new ApiError(
+        'conflict',
+        'An archived client of your organization has this CUI.',
+        undefined,
+        clientConflictReasons.cuiTakenByArchived
+      )
+    : new ApiError(
+        'conflict',
+        'A client with this CUI already exists in your organization.',
+        undefined,
+        clientConflictReasons.cuiTaken
+      );
+}
 
 export const createClient: RouteHandler<typeof createClientRoute, ApiEnv> = async (c) => {
   const body = c.req.valid('json');
@@ -124,7 +155,7 @@ export const createClient: RouteHandler<typeof createClientRoute, ApiEnv> = asyn
     .single();
   if (error) {
     throw error.code === '23505'
-      ? new ApiError('conflict', 'A client with this CUI already exists in your organization.')
+      ? await cuiConflict(db, cui)
       : fromDatabaseError(error, 'create client');
   }
   return c.json({ client: toClient(data) }, 201);
@@ -155,7 +186,7 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
     .maybeSingle();
   if (error) {
     throw error.code === '23505'
-      ? new ApiError('conflict', 'A client with this CUI already exists in your organization.')
+      ? await cuiConflict(db, cui)
       : fromDatabaseError(error, 'update client');
   }
   if (data) return c.json({ client: toClient(data) }, 200);
@@ -164,5 +195,42 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
   if (!existing.data) {
     throw new ApiError('not_found', 'This client does not exist in your organization.');
   }
-  throw new ApiError('conflict', 'An archived client is not edited.');
+  throw new ApiError(
+    'conflict',
+    'An archived client is not edited.',
+    undefined,
+    clientConflictReasons.clientArchived
+  );
+};
+
+async function setArchived(db: DataClient, clientId: string, archived: boolean) {
+  // Filtered on the state it leaves, so that a repeated call keeps the first date.
+  const changing = db
+    .from('clients')
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id', clientId);
+  const changed = await (
+    archived ? changing.is('archived_at', null) : changing.not('archived_at', 'is', null)
+  )
+    .select(clientColumns)
+    .maybeSingle();
+  if (changed.error)
+    throw fromDatabaseError(changed.error, archived ? 'archive client' : 'restore client');
+  if (changed.data) return toClient(changed.data);
+  const current = await db.from('clients').select(clientColumns).eq('id', clientId).maybeSingle();
+  if (current.error) throw fromDatabaseError(current.error, 'find client');
+  if (!current.data) {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  return toClient(current.data);
+}
+
+export const archiveClient: RouteHandler<typeof archiveClientRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  return c.json({ client: await setArchived(createDataClient(c), clientId, true) }, 200);
+};
+
+export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  return c.json({ client: await setArchived(createDataClient(c), clientId, false) }, 200);
 };

@@ -276,7 +276,10 @@ mobile navigation link closes the Sheet.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table:
   sortable by company, CUI, and declared headcount, paged through `?page=` with the sort in
   `?sort=&order=`, with loading, empty, and error states (a missing membership is explained;
-  other failures offer a retry).
+  other failures offer a retry). "Activi" and "Arhivați" switch the list through `?status=`.
+  A row's menu holds "Modifică" and, for an owner, "Arhivează…", or "Restaurează…" on an
+  archived row; one dialog confirms both and says how many documents are still drafts. An
+  archived client's page opens read-only under a banner, with "Restaurează…" for an owner.
 - `/clients/new`: the creation form, laid out as full-width sections with their purpose on
   the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
   name, VAT status, CAEN code, trade register number, and registered office; a missing record

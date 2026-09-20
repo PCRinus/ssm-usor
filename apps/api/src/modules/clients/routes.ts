@@ -8,22 +8,22 @@ import {
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
-import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import { requireMembership, requireOwner } from '../../lib/membership';
+import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
 
 export const listClientsRoute = createRoute({
   method: 'get',
   path: '/clients',
   operationId: 'listClients',
-  summary: "List the organization's active clients",
+  summary: "List the organization's clients, active or archived",
   description:
-    'Paginated. Archived clients are never listed. One sort key at a time; "legalName" is the default.',
+    'Paginated. `status` chooses the active clients, the default, or the archived ones; never both. One sort key at a time; "legalName" is the default.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listClientsQuerySchema },
   responses: {
     200: {
-      description: 'One page of active clients with the total count',
+      description: 'One page of clients with the total count',
       content: {
         'application/json': {
           schema: clientListResponseSchema.meta({ id: 'ClientListResponse' }),
@@ -121,4 +121,41 @@ export const updateClientRoute = createRoute({
     },
     ...membershipErrors,
   },
+});
+
+const archivingResponses = {
+  200: {
+    description: 'The client after the change',
+    content: {
+      'application/json': { schema: clientResponseSchema.meta({ id: 'ClientResponse' }) },
+    },
+  },
+  400: { description: 'Invalid path', content: errorContent },
+  404: { description: 'The client does not exist in the organization', content: errorContent },
+  ...ownerErrors,
+};
+
+export const archiveClientRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/archive',
+  operationId: 'archiveClient',
+  summary: 'Archive a client',
+  description:
+    'Owners only. The client leaves the list of active clients; its employees, job positions and documents stay as they are and stay readable. Archiving an archived client changes nothing.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: { params: z.object({ clientId: z.uuid() }) },
+  responses: archivingResponses,
+});
+
+export const restoreClientRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/restore',
+  operationId: 'restoreClient',
+  summary: 'Bring an archived client back',
+  description: 'Owners only. Restoring an active client changes nothing.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: { params: z.object({ clientId: z.uuid() }) },
+  responses: archivingResponses,
 });

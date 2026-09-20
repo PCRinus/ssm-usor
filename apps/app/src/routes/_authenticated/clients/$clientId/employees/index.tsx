@@ -8,7 +8,13 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
-import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import {
+  createFileRoute,
+  getRouteApi,
+  Link,
+  useNavigate,
+  useRouteContext,
+} from '@tanstack/react-router';
 import { Plus, UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
@@ -52,8 +58,11 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/employee
 
 const rowKey = (row: EmployeeRow) => row.id;
 
+const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
 export function EmployeesPage() {
   const { clientId } = Route.useParams();
+  const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const {
     status,
     page = 1,
@@ -74,7 +83,7 @@ export function EmployeesPage() {
   });
   const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
-  const columns = useMemo(() => employeeColumns(setChange), []);
+  const columns = useMemo(() => employeeColumns(readOnly ? undefined : setChange), [readOnly]);
 
   return (
     <div data-testid="employees-page" className="space-y-5">
@@ -85,16 +94,18 @@ export function EmployeesPage() {
             Persoanele angajate la acest client, pentru instruiri, fișe și documente.
           </p>
         </div>
-        <Button asChild>
-          <Link
-            to="/clients/$clientId/employees/new"
-            params={{ clientId }}
-            data-testid="employees-add"
-          >
-            <Plus aria-hidden="true" />
-            Adaugă angajat
-          </Link>
-        </Button>
+        {!readOnly && (
+          <Button asChild>
+            <Link
+              to="/clients/$clientId/employees/new"
+              params={{ clientId }}
+              data-testid="employees-add"
+            >
+              <Plus aria-hidden="true" />
+              Adaugă angajat
+            </Link>
+          </Button>
+        )}
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
@@ -199,7 +210,7 @@ export function EmployeesPage() {
                   ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
                   : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
               </p>
-              {!status && (
+              {!status && !readOnly && (
                 <Button asChild variant="outline" className="mt-5">
                   <Link to="/clients/$clientId/employees/new" params={{ clientId }}>
                     <Plus aria-hidden="true" />
