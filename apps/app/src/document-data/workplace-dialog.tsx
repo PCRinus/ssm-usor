@@ -13,7 +13,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
   getListWorkplacesQueryKey,
@@ -23,6 +23,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { CountyCombobox } from '../clients/county-combobox';
 import { Field } from '../components/form-field';
+import { LocalityCombobox } from '../localities/locality-combobox';
 import {
   emptyWorkplaceForm,
   toWorkplaceForm,
@@ -76,6 +77,7 @@ function WorkplaceForm({
   });
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  const countyCode = useWatch({ control: form.control, name: 'countyCode' });
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toWorkplaceRequest(values);
@@ -176,7 +178,10 @@ function WorkplaceForm({
                   id="workplace-county"
                   testId="workplace-county"
                   value={field.value}
-                  onChange={field.onChange}
+                  onChange={(code) => {
+                    field.onChange(code);
+                    form.setValue('locality', '', { shouldDirty: true });
+                  }}
                   onBlur={field.onBlur}
                   disabled={busy}
                   invalid={Boolean(errors.countyCode)}
@@ -186,14 +191,22 @@ function WorkplaceForm({
             />
           </Field>
           <Field id="workplace-locality" label="Localitate" mark="optional" error={errors.locality}>
-            <Input
-              id="workplace-locality"
-              data-testid="workplace-locality"
-              autoComplete="off"
-              disabled={busy}
-              aria-invalid={Boolean(errors.locality)}
-              aria-describedby={errors.locality ? 'workplace-locality-error' : undefined}
-              {...form.register('locality')}
+            <Controller
+              control={form.control}
+              name="locality"
+              render={({ field }) => (
+                <LocalityCombobox
+                  id="workplace-locality"
+                  testId="workplace-locality"
+                  countyCode={countyCode}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  disabled={busy}
+                  invalid={Boolean(errors.locality)}
+                  describedBy={errors.locality ? 'workplace-locality-error' : undefined}
+                />
+              )}
             />
           </Field>
           <Field

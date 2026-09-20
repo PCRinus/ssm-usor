@@ -122,7 +122,12 @@ test('a client gets a registered office and a point of work, one of which is the
   await expect(page.getByTestId('workplace-name-error')).toContainText('Introdu denumirea');
   await page.getByTestId('workplace-name').fill('Sediu social');
   await page.getByTestId('workplace-registered-office').click();
-  await page.getByTestId('workplace-locality').fill('București');
+  await page.getByTestId('workplace-county').click();
+  await page.getByTestId('workplace-county-search').fill('bucu');
+  await page.getByRole('option', { name: /București/ }).click();
+  await page.getByTestId('workplace-locality').click();
+  await page.getByTestId('workplace-locality-search').fill('sector 3');
+  await page.getByRole('option', { name: /Sectorul 3/ }).click();
   await page.getByTestId('workplace-save').click();
   await expect(page.getByText('Punctul de lucru a fost adăugat.')).toBeVisible();
 
