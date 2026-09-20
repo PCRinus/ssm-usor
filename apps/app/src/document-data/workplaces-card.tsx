@@ -31,35 +31,57 @@ import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+  type ClientResponse,
   getListWorkplacesQueryKey,
   useArchiveWorkplace,
   useListWorkplaces,
+  useUpdateWorkplace,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
-import { type Workplace, workplaceAddress } from './workplace-schema';
+import { differingClientAddress, type Workplace, workplaceAddress } from './workplace-schema';
 
 // `readOnly` is an archived client.
 export function WorkplacesCard({
-  clientId,
+  client,
   userId,
   readOnly,
 }: {
-  clientId: string;
+  client: ClientResponse['client'];
   userId: string;
   readOnly: boolean;
 }) {
+  const clientId = client.id;
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const workplaces = useListWorkplaces(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
   });
   const archive = useArchiveWorkplace({ request: apiRequest });
+  const update = useUpdateWorkplace({ request: apiRequest });
   const [editing, setEditing] = useState<WorkplaceEditing>(null);
   const [archiving, setArchiving] = useState<Workplace | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  async function adoptClientAddress(
+    workplace: Workplace,
+    address: NonNullable<ReturnType<typeof differingClientAddress>>
+  ) {
+    setError(null);
+    try {
+      await update.mutateAsync({
+        clientId,
+        workplaceId: workplace.id,
+        data: { name: workplace.name, isRegisteredOffice: true, ...address },
+      });
+      toast.success(`Adresa pentru ${workplace.name} a fost actualizată.`);
+    } catch {
+      setError('Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.');
+    }
+    await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
+  }
 
   async function archiveWorkplace(workplace: Workplace) {
     setError(null);
@@ -136,57 +158,80 @@ export function WorkplacesCard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {workplaces.data.items.map((workplace) => (
-                <TableRow
-                  key={workplace.id}
-                  data-testid="workplace-row"
-                  {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
-                >
-                  <TableCell className="font-medium">
-                    <span className="flex flex-wrap items-center gap-2">
-                      {workplace.name}
-                      {workplace.isRegisteredOffice && (
-                        <Badge variant="secondary">Sediu social</Badge>
-                      )}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {workplaceAddress(workplace) || '—'}
-                  </TableCell>
-                  {!readOnly && (
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid="workplace-actions"
-                            aria-label={`Acțiuni pentru ${workplace.name}`}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            data-testid="workplace-edit"
-                            onSelect={() => setEditing(workplace)}
-                          >
-                            Modifică
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            data-testid="workplace-archive"
-                            variant="destructive"
-                            onSelect={() => setArchiving(workplace)}
-                          >
-                            Arhivează
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              {workplaces.data.items.map((workplace) => {
+                const clientAddress = differingClientAddress(workplace, client);
+                return (
+                  <TableRow
+                    key={workplace.id}
+                    data-testid="workplace-row"
+                    {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
+                  >
+                    <TableCell className="font-medium">
+                      <span className="flex flex-wrap items-center gap-2">
+                        {workplace.name}
+                        {workplace.isRegisteredOffice && (
+                          <Badge variant="secondary">Sediu social</Badge>
+                        )}
+                      </span>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
+                    <TableCell className="text-muted-foreground">
+                      {workplaceAddress(workplace) || '—'}
+                      {clientAddress && (
+                        <span
+                          data-testid="workplace-address-drift"
+                          className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
+                        >
+                          În datele clientului, sediul este: „{workplaceAddress(clientAddress)}”.
+                          {!readOnly && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              data-testid="workplace-address-adopt"
+                              className="h-auto p-0 text-xs"
+                              disabled={update.isPending}
+                              onClick={() => void adoptClientAddress(workplace, clientAddress)}
+                            >
+                              Folosește această adresă
+                            </Button>
+                          )}
+                        </span>
+                      )}
+                    </TableCell>
+                    {!readOnly && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              data-testid="workplace-actions"
+                              aria-label={`Acțiuni pentru ${workplace.name}`}
+                            >
+                              <MoreHorizontal aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              data-testid="workplace-edit"
+                              onSelect={() => setEditing(workplace)}
+                            >
+                              Modifică
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              data-testid="workplace-archive"
+                              variant="destructive"
+                              onSelect={() => setArchiving(workplace)}
+                            >
+                              Arhivează
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}

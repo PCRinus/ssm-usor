@@ -23,7 +23,7 @@ export function DocumentDataPage() {
     <div data-testid="document-data-page" className="grid gap-6">
       <DocumentDetailsCards client={client} userId={session.user.id} />
       <WorkplacesCard
-        clientId={client.id}
+        client={client}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
       />
