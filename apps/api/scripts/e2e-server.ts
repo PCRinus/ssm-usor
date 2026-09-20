@@ -34,6 +34,8 @@ const mail: MailService = {
   sendOrganizationInvitation: ({ to, acceptUrl }) => record('invitation', to, acceptUrl),
   sendPasswordReset: ({ to, resetUrl }) => record('password-reset', to, resetUrl),
   sendSignupConfirmation: ({ to, confirmUrl }) => record('signup-confirmation', to, confirmUrl),
+  sendPasswordChanged: ({ to, forgotPasswordUrl }) =>
+    record('password-changed', to, forgotPasswordUrl),
 };
 
 const env: ApiEnv['Bindings'] = {

@@ -55,6 +55,12 @@ enable_confirmations = true
 # same to the person reading the email.
 otp_expiry = 3600
 
+# Tells the owner of an account that its password changed, whoever changed it: from the reset
+# link, or from "Profilul meu". It goes through the hook below as
+# `password_changed_notification`; the subject and template here are never used.
+[auth.email.notification.password_changed]
+enabled = true
+
 # Supabase Auth hands every email it would send to the API, which forwards it to the mail
 # Worker (ADR 002). Locally the hook points at the API the browser flow tests start
 # (apps/api/scripts/e2e-server.ts, port 8797), which keeps emails in memory, so those tests

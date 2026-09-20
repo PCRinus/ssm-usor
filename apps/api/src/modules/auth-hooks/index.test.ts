@@ -6,6 +6,7 @@ import type { ApiEnv } from '../../lib/env';
 
 const sendPasswordReset = vi.fn<MailService['sendPasswordReset']>();
 const sendSignupConfirmation = vi.fn<MailService['sendSignupConfirmation']>();
+const sendPasswordChanged = vi.fn<MailService['sendPasswordChanged']>();
 
 const base64 = (text: string) => btoa(text);
 const key = base64('a-hook-signing-key-of-32-bytes!!');
@@ -17,6 +18,7 @@ const env: ApiEnv['Bindings'] = {
     sendOrganizationInvitation: vi.fn(),
     sendPasswordReset,
     sendSignupConfirmation,
+    sendPasswordChanged,
   },
 };
 
@@ -64,6 +66,7 @@ const post = (body: string, headers: Record<string, string>, targetEnv = env) =>
 beforeEach(() => {
   sendPasswordReset.mockReset().mockResolvedValue({ id: 'msg_1' });
   sendSignupConfirmation.mockReset().mockResolvedValue({ id: 'msg_2' });
+  sendPasswordChanged.mockReset().mockResolvedValue({ id: 'msg_3' });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -97,6 +100,34 @@ describe('POST /hooks/supabase/send-email', () => {
       confirmUrl: 'https://app.example.ro/confirm-email?token_hash=hash-abc',
       expiresInMinutes: 60,
     });
+    expect(sendPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it('sends the password changed notice, which carries no token, with the way to a reset', async () => {
+    const notice = payload('password_changed_notification');
+    // What Supabase sends for a notification: nothing to verify, so no token.
+    const body = JSON.stringify({
+      ...notice,
+      email_data: { ...notice.email_data, token: '', token_hash: '' },
+    });
+
+    const response = await post(body, await sign(body));
+
+    expect(response.status).toBe(200);
+    expect(sendPasswordChanged).toHaveBeenCalledWith({
+      to: 'ion@example.ro',
+      forgotPasswordUrl: 'https://app.example.ro/forgot-password',
+    });
+    expect(sendPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it('refuses an email that needs a token and has none', async () => {
+    const recovery = payload();
+    const body = JSON.stringify({
+      ...recovery,
+      email_data: { ...recovery.email_data, token_hash: '' },
+    });
+    expect((await post(body, await sign(body))).status).toBe(400);
     expect(sendPasswordReset).not.toHaveBeenCalled();
   });
 

@@ -14,12 +14,14 @@ const OTP_EXPIRY_MINUTES = 60;
 const sendEmailPayloadSchema = z.object({
   user: z.object({ email: z.email() }),
   email_data: z.object({
-    token_hash: z.string().min(1),
+    // Empty for a notification, which asks nothing of the person and carries no link of
+    // Supabase's.
+    token_hash: z.string().optional(),
     email_action_type: z.string().min(1),
   }),
 });
 
-// The emails in use, by Supabase's `email_action_type`.
+// The emails in use that carry a link, by Supabase's `email_action_type`.
 const emails: Record<
   string,
   { path: string; send: (mail: MailService, to: string, url: string) => Promise<unknown> }
@@ -33,6 +35,18 @@ const emails: Record<
     path: '/confirm-email',
     send: (mail, to, confirmUrl) =>
       mail.sendSignupConfirmation({ to, confirmUrl, expiresInMinutes: OTP_EXPIRY_MINUTES }),
+  },
+};
+
+// Notices that something happened, enabled in supabase/config.toml under
+// [auth.email.notification]. They carry no token: the only link is to a public page of the SPA.
+const notifications: Record<
+  string,
+  { path: string; send: (mail: MailService, to: string, url: string) => Promise<unknown> }
+> = {
+  password_changed_notification: {
+    path: '/forgot-password',
+    send: (mail, to, forgotPasswordUrl) => mail.sendPasswordChanged({ to, forgotPasswordUrl }),
   },
 };
 
@@ -67,7 +81,8 @@ export const authHooksRouter = createRouter().post('/hooks/supabase/send-email',
 
   // Once enabled, the hook receives every email Supabase Auth would send. The types not in
   // use fail loudly here instead of silently never arriving.
-  const email = emails[emailData.email_action_type];
+  const notification = notifications[emailData.email_action_type];
+  const email = notification ?? emails[emailData.email_action_type];
   if (!email) {
     console.error(`Unsupported auth email type: ${emailData.email_action_type}`);
     return hookError(422, `Unsupported email type: ${emailData.email_action_type}.`);
@@ -77,7 +92,10 @@ export const authHooksRouter = createRouter().post('/hooks/supabase/send-email',
   // is submitted, so a mail scanner following the link cannot use it up. The redirect
   // Supabase was asked for is ignored, so the link cannot leave the SPA.
   const url = new URL(email.path, appOrigin(c.env));
-  url.searchParams.set('token_hash', emailData.token_hash);
+  if (!notification) {
+    if (!emailData.token_hash) return hookError(400, 'The payload has no token hash.');
+    url.searchParams.set('token_hash', emailData.token_hash);
+  }
 
   try {
     await email.send(mail, user.email, url.href);
