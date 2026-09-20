@@ -10,7 +10,14 @@ import {
   useMatches,
   useRouter,
 } from '@tanstack/react-router';
-import { BriefcaseBusiness, Building2, ClipboardList, FileText, UsersRound } from 'lucide-react';
+import {
+  BriefcaseBusiness,
+  Building2,
+  ClipboardList,
+  FileText,
+  Pencil,
+  UsersRound,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -79,7 +86,7 @@ export function ClientLayout() {
         >
           <Building2 className="size-4" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold tracking-tight">{client.legalName}</h1>
           <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
             <Fact label="CUI">
@@ -99,6 +106,20 @@ export function ClientLayout() {
             )}
           </dl>
         </div>
+        {!client.archivedAt && (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            data-testid="client-edit"
+          >
+            <Link to="/clients/$clientId/edit" params={{ clientId: client.id }}>
+              <Pencil aria-hidden="true" />
+              Modifică
+            </Link>
+          </Button>
+        )}
       </header>
       <nav aria-label="Secțiunile clientului" className="sticky top-16 z-20 border-b bg-background">
         <ul className="-mb-px flex gap-1">

@@ -65,6 +65,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients`                                                         | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients; `?page=&pageSize=&sort=&order=` |
 | `POST /clients`                                                        | Verified user with a membership       | `201 { "client": { … } }`                                                                          |
 | `GET /clients/{clientId}`                                              | Verified user with a membership       | `{ \"client\": { … } }`, archived or not                                                           |
+| `PUT /clients/{clientId}`                                              | Verified user with a membership       | `{ "client": { … } }` after replacing what was entered about it                                    |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                               |
 | `PUT /organization/legal-details`                                      | Owner                                 | The legal details after replacing them                                                             |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule      |
@@ -110,7 +111,8 @@ helper `current_membership()` and answers `403 forbidden` when the user has no m
 county list, CAEN format), stores the CUI as digits, and treats an `RO` prefix as VAT
 registration. `GET /companies/lookup` proxies ANAF's public VAT registry (no CORS, roughly one
 request per second) and maps the record onto the client form fields; the form must work without
-it. See the [data model](data-model.md) for the schema and policies.
+it. `PUT /clients/{clientId}` takes the same body without `legalRepresentativeName`, which the
+document details own, and answers `409` for a CUI another client has and for an archived client. See the [data model](data-model.md) for the schema and policies.
 
 Employee routes are nested under the client. The handler first looks the client up as the
 caller, so a client of another organization is indistinguishable from a missing one and both

@@ -4,6 +4,7 @@ import {
   clientResponseSchema,
   createClientRequestSchema,
   listClientsQuerySchema,
+  updateClientRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -81,6 +82,43 @@ export const createClientRoute = createRoute({
     },
     400: { description: 'Invalid request body', content: errorContent },
     409: { description: 'A client with this CUI already exists', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const updateClientRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}',
+  operationId: 'updateClient',
+  summary: 'Replace what was entered about a client',
+  description:
+    "The same fields and rules as creating one, without the legal representative's name, which the document details own. An archived client is not edited.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: z.object({ clientId: z.uuid() }),
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateClientRequestSchema.meta({ id: 'UpdateClientRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The client after the change',
+      content: {
+        'application/json': { schema: clientResponseSchema.meta({ id: 'ClientResponse' }) },
+      },
+    },
+    400: { description: 'Invalid path or request body', content: errorContent },
+    404: { description: 'The client does not exist in the organization', content: errorContent },
+    409: {
+      description: 'Another client has this CUI, or the client is archived',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

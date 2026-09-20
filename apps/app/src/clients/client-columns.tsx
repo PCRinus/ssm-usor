@@ -1,5 +1,13 @@
 import { type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
+import { Button } from '@ssm-usor/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ssm-usor/ui/components/dropdown-menu';
 import { Link } from '@tanstack/react-router';
+import { MoreHorizontal, Pencil } from 'lucide-react';
 
 import type { ClientListResponse } from '../api/generated/api';
 import { createDataTableColumns } from '../components/data-table/columns';
@@ -53,10 +61,41 @@ export const clientColumns = helper.columns([
     id: 'declaredEmployeeCount',
     header: 'Angajați',
     meta: {
-      headerClassName: 'pr-5 text-right',
-      cellClassName: 'pr-5 text-right tabular-nums',
+      headerClassName: 'text-right',
+      cellClassName: 'text-right tabular-nums',
       skeletonClassName: 'ml-auto w-10',
     },
     cell: ({ getValue }) => getValue() ?? '—',
+  }),
+  helper.display({
+    id: 'actions',
+    header: () => <span className="sr-only">Acțiuni</span>,
+    meta: {
+      headerClassName: 'w-12 pr-3',
+      cellClassName: 'pr-3 text-right',
+      skeletonClassName: 'hidden',
+    },
+    cell: ({ row }) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            data-testid="clients-row-menu"
+            aria-label={`Acțiuni pentru ${row.original.legalName}`}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild data-testid="clients-edit">
+            <Link to="/clients/$clientId/edit" params={{ clientId: row.original.id }}>
+              <Pencil aria-hidden="true" />
+              Modifică
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
   }),
 ]);

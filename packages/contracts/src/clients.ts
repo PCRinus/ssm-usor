@@ -32,6 +32,14 @@ export const createClientRequestSchema = z.object({
 
 export type CreateClientRequest = z.infer<typeof createClientRequestSchema>;
 
+// Without the representative's name: the document details edit it with the role, and a
+// second route writing the same column would overwrite it from a form that never showed it.
+export const updateClientRequestSchema = createClientRequestSchema.omit({
+  legalRepresentativeName: true,
+});
+
+export type UpdateClientRequest = z.infer<typeof updateClientRequestSchema>;
+
 export const clientSchema = z.object({
   id: z.uuid(),
   legalName: z.string(),

@@ -46,7 +46,9 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockApi(routes: Partial<Record<'me' | 'list' | 'create' | 'lookup', Route>> = {}) {
+function mockApi(
+  routes: Partial<Record<'me' | 'list' | 'create' | 'lookup' | 'get' | 'update', Route>> = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
     const method = init?.method ?? 'GET';
@@ -61,6 +63,15 @@ function mockApi(routes: Partial<Record<'me' | 'list' | 'create' | 'lookup', Rou
     }
     if (url.pathname === '/clients' && method === 'POST') {
       return routes.create?.(init, url) ?? Response.json({ client: sampleClient }, { status: 201 });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}` && method === 'GET') {
+      return routes.get?.(init, url) ?? Response.json({ client: sampleClient });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}` && method === 'PUT') {
+      return routes.update?.(init, url) ?? Response.json({ client: sampleClient });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}/employees` && method === 'GET') {
+      return Response.json(page([]));
     }
     if (url.pathname === '/companies/lookup') {
       return routes.lookup?.(init, url) ?? Response.json({ company: sampleCompany });
@@ -377,5 +388,79 @@ describe('client creation', () => {
     await user.click(screen.getByTestId('client-submit'));
     await waitFor(() => expect(screen.getByTestId('client-form-error')).toBeTruthy());
     expect(screen.getByTestId('client-form-error').textContent).toContain('Nu am putut salva');
+  });
+});
+
+describe('client editing', () => {
+  const editPath = `/clients/${sampleClient.id}/edit`;
+  const clientPath = `/clients/${sampleClient.id}`;
+
+  it('opens from the list menu with the saved data and without the representative', async () => {
+    mockApi({ list: () => Response.json(page([sampleClient])) });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('clients-row-menu'));
+    await user.click(await screen.findByTestId('clients-edit'));
+    await screen.findByTestId('edit-client-page');
+    expect(runtime.router.state.location.pathname).toBe(editPath);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Modifică: OMV PETROM SA');
+    expect((screen.getByTestId('client-cui') as HTMLInputElement).value).toBe('1590082');
+    expect((screen.getByTestId('client-employees') as HTMLInputElement).value).toBe('120');
+    expect(screen.getByTestId('client-vat-payer').getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByTestId('client-representative')).toBeNull();
+  });
+
+  it('saves the correction and shows it on the client page', async () => {
+    let saved = { ...sampleClient, legalRepresentativeName: 'Ion Popescu' };
+    mockApi({
+      get: () => Response.json({ client: saved }),
+      update: (init) => {
+        saved = { ...saved, legalName: 'Petrom Nou SA' };
+        expect(JSON.parse(String(init?.body))).toEqual({
+          legalName: 'Petrom Nou SA',
+          cui: '1590082',
+          vatPayer: true,
+          caenCode: '0610',
+          tradeRegisterNumber: 'J1997008302407',
+          countyCode: 'B',
+          locality: 'Sector 1 Mun. București',
+          addressLine: 'Str. Coralilor, nr. 22',
+          declaredEmployeeCount: 120,
+        });
+        return Response.json({ client: saved });
+      },
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-client-page');
+    await user.clear(screen.getByTestId('client-legal-name'));
+    await user.type(screen.getByTestId('client-legal-name'), 'Petrom Nou SA');
+    await user.click(screen.getByTestId('client-submit'));
+    const header = await screen.findByTestId('client-page');
+    expect(runtime.router.state.location.pathname).toBe(`${clientPath}/employees`);
+    expect(within(header).getByRole('heading', { level: 1 }).textContent).toBe('Petrom Nou SA');
+    expect(requests(clientPath, 'PUT')).toHaveLength(1);
+    expect(await screen.findByText('Datele clientului au fost salvate.')).toBeTruthy();
+  });
+
+  it('puts a taken CUI on its field and an archived client above the buttons', async () => {
+    let message = 'A client with this CUI already exists in your organization.';
+    mockApi({ update: () => Response.json({ error: 'conflict', message }, { status: 409 }) });
+    mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-client-page');
+    await user.click(screen.getByTestId('client-submit'));
+    expect((await screen.findByTestId('cui-error')).textContent).toContain('Există deja');
+    message = 'An archived client is not edited.';
+    await user.click(screen.getByTestId('client-submit'));
+    expect((await screen.findByTestId('client-form-error')).textContent).toContain('arhivat');
+  });
+
+  it('leads to the form from the client page', async () => {
+    mockApi();
+    const runtime = mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+    await userEvent.setup().click(await screen.findByTestId('client-edit'));
+    await screen.findByTestId('edit-client-page');
+    expect(runtime.router.state.location.pathname).toBe(editPath);
   });
 });

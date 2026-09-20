@@ -575,6 +575,104 @@
         },
         "required": ["legalName", "cui"]
       },
+      "UpdateClientRequest": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "cui": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 16
+          },
+          "vatPayer": {
+            "type": "boolean",
+            "default": false
+          },
+          "caenCode": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9]{4}$"
+          },
+          "tradeRegisterNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "countyCode": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "AB",
+              "AR",
+              "AG",
+              "BC",
+              "BH",
+              "BN",
+              "BT",
+              "BV",
+              "BR",
+              "B",
+              "BZ",
+              "CS",
+              "CL",
+              "CJ",
+              "CT",
+              "CV",
+              "DB",
+              "DJ",
+              "GL",
+              "GR",
+              "GJ",
+              "HR",
+              "HD",
+              "IL",
+              "IS",
+              "IF",
+              "MM",
+              "MH",
+              "MS",
+              "NT",
+              "OT",
+              "PH",
+              "SM",
+              "SJ",
+              "SB",
+              "SV",
+              "TR",
+              "TM",
+              "TL",
+              "VS",
+              "VL",
+              "VN",
+              null
+            ]
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "addressLine": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "declaredEmployeeCount": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 1000000
+          }
+        },
+        "required": ["legalName", "cui"]
+      },
       "CompanyLookupResponse": {
         "type": "object",
         "properties": {
@@ -3400,6 +3498,119 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateClient",
+        "summary": "Replace what was entered about a client",
+        "description": "The same fields and rules as creating one, without the legal representative's name, which the document details own. An archived client is not edited.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The client after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another client has this CUI, or the client is archived",
             "content": {
               "application/json": {
                 "schema": {

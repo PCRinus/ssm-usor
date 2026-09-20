@@ -28,6 +28,7 @@ import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authentic
 import { Route as AuthenticatedClientsClientIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/index';
 import { Route as AuthenticatedClientsClientIdDocumentDataRouteImport } from './routes/_authenticated/clients/$clientId/document-data';
 import { Route as AuthenticatedClientsClientIdDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/documents';
+import { Route as AuthenticatedClientsClientIdEditRouteImport } from './routes/_authenticated/clients/$clientId/edit';
 import { Route as AuthenticatedClientsClientIdEmployeesRouteImport } from './routes/_authenticated/clients/$clientId/employees';
 import { Route as AuthenticatedClientsClientIdJobPositionsRouteImport } from './routes/_authenticated/clients/$clientId/job-positions';
 import { Route as AuthenticatedClientsClientIdDocumentsIndexRouteImport } from './routes/_authenticated/clients/$clientId/documents/index';
@@ -137,6 +138,12 @@ const AuthenticatedClientsClientIdDocumentsRoute =
     path: '/documents',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
+const AuthenticatedClientsClientIdEditRoute =
+  AuthenticatedClientsClientIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
 const AuthenticatedClientsClientIdEmployeesRoute =
   AuthenticatedClientsClientIdEmployeesRouteImport.update({
     id: '/employees',
@@ -204,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AuthenticatedClientsIndexRoute;
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
+  '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRoute;
   '/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
@@ -229,6 +237,7 @@ export interface FileRoutesByTo {
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/clients': typeof AuthenticatedClientsIndexRoute;
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
+  '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
@@ -258,6 +267,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
   '/_authenticated/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/_authenticated/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
+  '/_authenticated/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/_authenticated/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/_authenticated/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRoute;
   '/_authenticated/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/clients/$clientId/document-data'
     | '/clients/$clientId/documents'
+    | '/clients/$clientId/edit'
     | '/clients/$clientId/employees'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId/'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/clients'
     | '/clients/$clientId/document-data'
+    | '/clients/$clientId/edit'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId'
     | '/clients/$clientId/documents/$documentId'
@@ -341,6 +353,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/'
     | '/_authenticated/clients/$clientId/document-data'
     | '/_authenticated/clients/$clientId/documents'
+    | '/_authenticated/clients/$clientId/edit'
     | '/_authenticated/clients/$clientId/employees'
     | '/_authenticated/clients/$clientId/job-positions'
     | '/_authenticated/clients/$clientId/'
@@ -499,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdDocumentsRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
+    '/_authenticated/clients/$clientId/edit': {
+      id: '/_authenticated/clients/$clientId/edit';
+      path: '/edit';
+      fullPath: '/clients/$clientId/edit';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEditRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
     '/_authenticated/clients/$clientId/employees': {
       id: '/_authenticated/clients/$clientId/employees';
       path: '/employees';
@@ -603,6 +623,7 @@ const AuthenticatedClientsClientIdEmployeesRouteWithChildren =
 interface AuthenticatedClientsClientIdRouteChildren {
   AuthenticatedClientsClientIdDocumentDataRoute: typeof AuthenticatedClientsClientIdDocumentDataRoute;
   AuthenticatedClientsClientIdDocumentsRoute: typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
+  AuthenticatedClientsClientIdEditRoute: typeof AuthenticatedClientsClientIdEditRoute;
   AuthenticatedClientsClientIdEmployeesRoute: typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   AuthenticatedClientsClientIdJobPositionsRoute: typeof AuthenticatedClientsClientIdJobPositionsRoute;
   AuthenticatedClientsClientIdIndexRoute: typeof AuthenticatedClientsClientIdIndexRoute;
@@ -614,6 +635,8 @@ const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRou
       AuthenticatedClientsClientIdDocumentDataRoute,
     AuthenticatedClientsClientIdDocumentsRoute:
       AuthenticatedClientsClientIdDocumentsRouteWithChildren,
+    AuthenticatedClientsClientIdEditRoute:
+      AuthenticatedClientsClientIdEditRoute,
     AuthenticatedClientsClientIdEmployeesRoute:
       AuthenticatedClientsClientIdEmployeesRouteWithChildren,
     AuthenticatedClientsClientIdJobPositionsRoute:

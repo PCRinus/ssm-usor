@@ -327,6 +327,82 @@ describe('POST /clients', () => {
   });
 });
 
+describe('PUT /clients/{clientId}', () => {
+  const validBody = {
+    legalName: 'OMV Petrom SA',
+    cui: 'RO 1590082',
+    caenCode: '0610',
+    countyCode: 'B',
+    locality: 'București',
+    addressLine: 'Str. Coralilor, nr. 22',
+    declaredEmployeeCount: 120,
+  };
+
+  const putClient = (body: unknown, id = clientRow.id) =>
+    request(`/clients/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('replaces the entered fields of an active client and leaves the representative alone', async () => {
+    mockUpstream({ clients: () => Response.json([clientRow]) });
+    const response = await putClient({ ...validBody, legalRepresentativeName: 'Ion Pop' });
+    expect(response.status).toBe(200);
+    expect(clientResponseSchema.parse(await response.json()).client.id).toBe(clientRow.id);
+    const [input, init] = calls('/rest/v1/clients')[0]!;
+    expect(init?.method).toBe('PATCH');
+    const query = new URL(String(input)).searchParams;
+    expect(query.get('id')).toBe(`eq.${clientRow.id}`);
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      legal_name: 'OMV Petrom SA',
+      cui: '1590082',
+      vat_payer: true,
+      caen_code: '0610',
+      trade_register_number: null,
+      county_code: 'B',
+      locality: 'București',
+      address_line: 'Str. Coralilor, nr. 22',
+      declared_employee_count: 120,
+    });
+  });
+
+  it('rejects an invalid body before touching the database', async () => {
+    mockUpstream({});
+    const response = await putClient({ ...validBody, cui: '1590083' });
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it('rejects a CUI another client of the organization has', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json(
+          { code: '23505', message: 'duplicate key value violates unique constraint' },
+          { status: 409 }
+        ),
+    });
+    const response = await putClient(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('conflict');
+  });
+
+  it('refuses an archived client', async () => {
+    mockUpstream({
+      clients: (init) => Response.json(init?.method === 'PATCH' ? [] : [{ id: clientRow.id }]),
+    });
+    const response = await putClient(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('conflict');
+  });
+
+  it('answers 404 when the client is not visible to the organization', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    expect((await putClient(validBody)).status).toBe(404);
+  });
+});
+
 describe('CORS', () => {
   it('allows POST preflight from the app origin', async () => {
     const response = await createApp().request(

@@ -5,7 +5,12 @@ import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import type { createClientRoute, getClientRoute, listClientsRoute } from './routes';
+import type {
+  createClientRoute,
+  getClientRoute,
+  listClientsRoute,
+  updateClientRoute,
+} from './routes';
 
 type ClientRow = Database['public']['Tables']['clients']['Row'];
 
@@ -123,4 +128,41 @@ export const createClient: RouteHandler<typeof createClientRoute, ApiEnv> = asyn
       : fromDatabaseError(error, 'create client');
   }
   return c.json({ client: toClient(data) }, 201);
+};
+
+export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  // Validation guarantees a well-formed CUI; the prefix marks VAT registration.
+  const { cui, vatPrefix } = normalizeCui(body.cui)!;
+  const db = createDataClient(c);
+  const { data, error } = await db
+    .from('clients')
+    .update({
+      legal_name: body.legalName,
+      cui,
+      vat_payer: body.vatPayer || vatPrefix,
+      caen_code: body.caenCode ?? null,
+      trade_register_number: body.tradeRegisterNumber ?? null,
+      county_code: body.countyCode ?? null,
+      locality: body.locality ?? null,
+      address_line: body.addressLine ?? null,
+      declared_employee_count: body.declaredEmployeeCount ?? null,
+    })
+    .eq('id', clientId)
+    .is('archived_at', null)
+    .select(clientColumns)
+    .maybeSingle();
+  if (error) {
+    throw error.code === '23505'
+      ? new ApiError('conflict', 'A client with this CUI already exists in your organization.')
+      : fromDatabaseError(error, 'update client');
+  }
+  if (data) return c.json({ client: toClient(data) }, 200);
+  const existing = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
+  if (existing.error) throw fromDatabaseError(existing.error, 'find client');
+  if (!existing.data) {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  throw new ApiError('conflict', 'An archived client is not edited.');
 };
