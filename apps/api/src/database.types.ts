@@ -58,6 +58,48 @@ export type Database = {
           },
         ];
       };
+      client_owner_notes: {
+        Row: {
+          body: string;
+          client_id: string;
+          created_at: string;
+          organization_id: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          body: string;
+          client_id: string;
+          created_at?: string;
+          organization_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          body?: string;
+          client_id?: string;
+          created_at?: string;
+          organization_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_owner_notes_client_fkey';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_owner_notes_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       client_responsible_persons: {
         Row: {
           archived_at: string | null;
@@ -202,6 +244,9 @@ export type Database = {
           administrative_training_interval_months: number | null;
           archived_at: string | null;
           caen_code: string | null;
+          contact_email: string | null;
+          contact_name: string | null;
+          contact_phone: string | null;
           county_code: string | null;
           created_at: string;
           created_by: string | null;
@@ -214,6 +259,9 @@ export type Database = {
           locality: string | null;
           organization_id: string;
           periodic_training_minutes: number | null;
+          promoted_at: string | null;
+          promoted_by: string | null;
+          stage: Database['public']['Enums']['client_stage'];
           trade_register_number: string | null;
           training_day_from: number | null;
           training_day_to: number | null;
@@ -227,6 +275,9 @@ export type Database = {
           administrative_training_interval_months?: number | null;
           archived_at?: string | null;
           caen_code?: string | null;
+          contact_email?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
           county_code?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -239,6 +290,9 @@ export type Database = {
           locality?: string | null;
           organization_id: string;
           periodic_training_minutes?: number | null;
+          promoted_at?: string | null;
+          promoted_by?: string | null;
+          stage?: Database['public']['Enums']['client_stage'];
           trade_register_number?: string | null;
           training_day_from?: number | null;
           training_day_to?: number | null;
@@ -252,6 +306,9 @@ export type Database = {
           administrative_training_interval_months?: number | null;
           archived_at?: string | null;
           caen_code?: string | null;
+          contact_email?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
           county_code?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -264,6 +321,9 @@ export type Database = {
           locality?: string | null;
           organization_id?: string;
           periodic_training_minutes?: number | null;
+          promoted_at?: string | null;
+          promoted_by?: string | null;
+          stage?: Database['public']['Enums']['client_stage'];
           trade_register_number?: string | null;
           training_day_from?: number | null;
           training_day_to?: number | null;
@@ -1047,6 +1107,7 @@ export type Database = {
       };
     };
     Enums: {
+      client_stage: 'lead' | 'client';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
@@ -1174,6 +1235,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      client_stage: ['lead', 'client'],
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       organization_role: ['owner', 'specialist'],

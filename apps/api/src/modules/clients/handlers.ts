@@ -14,16 +14,18 @@ import { ApiError } from '../../lib/errors';
 import type {
   archiveClientRoute,
   createClientRoute,
+  getClientOwnerNotesRoute,
   getClientRoute,
   listClientsRoute,
   restoreClientRoute,
+  saveClientOwnerNotesRoute,
   updateClientRoute,
 } from './routes';
 
 type ClientRow = Database['public']['Tables']['clients']['Row'];
 
 export const clientColumns =
-  'id, legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, declared_employee_count, created_at, updated_at, archived_at';
+  'id, legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, declared_employee_count, stage, contact_name, contact_email, contact_phone, promoted_at, created_at, updated_at, archived_at';
 
 // The documentation fields of ADR 005 get their own routes.
 type SelectedClientRow = Pick<
@@ -39,6 +41,11 @@ type SelectedClientRow = Pick<
   | 'address_line'
   | 'legal_representative_name'
   | 'declared_employee_count'
+  | 'stage'
+  | 'contact_name'
+  | 'contact_email'
+  | 'contact_phone'
+  | 'promoted_at'
   | 'created_at'
   | 'updated_at'
   | 'archived_at'
@@ -58,10 +65,23 @@ export function toClient(row: SelectedClientRow): Client {
     addressLine: row.address_line,
     legalRepresentativeName: row.legal_representative_name,
     declaredEmployeeCount: row.declared_employee_count,
+    stage: row.stage,
+    contactName: row.contact_name,
+    contactEmail: row.contact_email,
+    contactPhone: row.contact_phone,
+    promotedAt: row.promoted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
   };
+}
+
+// The policies hide leads from a specialist, which would read as an empty list or a missing
+// row; this says why instead.
+function requireOwnerForLeads(role: string) {
+  if (role !== 'owner') {
+    throw new ApiError('forbidden', 'Only an owner of the organization works with leads.');
+  }
 }
 
 // The id keeps every order stable across pages.
@@ -72,10 +92,11 @@ const sortColumns: Record<ClientSortKey, string[]> = {
 };
 
 export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async (c) => {
-  const { page, pageSize, sort, order, status } = c.req.valid('query');
+  const { page, pageSize, sort, order, status, stage } = c.req.valid('query');
+  if (stage === 'lead') requireOwnerForLeads(c.get('membership').role);
   const db = createDataClient(c);
   const listed = () => {
-    const clients = db.from('clients').select(clientColumns, { count: 'exact' });
+    const clients = db.from('clients').select(clientColumns, { count: 'exact' }).eq('stage', stage);
     return status === 'archived'
       ? clients.not('archived_at', 'is', null)
       : clients.is('archived_at', null);
@@ -111,10 +132,19 @@ export const getClient: RouteHandler<typeof getClientRoute, ApiEnv> = async (c) 
 };
 
 // An archived client keeps its CUI, and the caller cannot see it in the list they came from.
+// Neither can a specialist see the lead that holds one: for them the holder is not there.
 async function cuiConflict(db: DataClient, cui: string) {
-  const holder = await db.from('clients').select('archived_at').eq('cui', cui).maybeSingle();
+  const holder = await db.from('clients').select('archived_at, stage').eq('cui', cui).maybeSingle();
   if (holder.error) return fromDatabaseError(holder.error, 'find client by cui');
-  return holder.data?.archived_at
+  if (!holder.data || (holder.data.stage === 'lead' && !holder.data.archived_at)) {
+    return new ApiError(
+      'conflict',
+      'A lead of your organization has this CUI.',
+      undefined,
+      clientConflictReasons.cuiTakenByLead
+    );
+  }
+  return holder.data.archived_at
     ? new ApiError(
         'conflict',
         'An archived client of your organization has this CUI.',
@@ -132,6 +162,7 @@ async function cuiConflict(db: DataClient, cui: string) {
 export const createClient: RouteHandler<typeof createClientRoute, ApiEnv> = async (c) => {
   const body = c.req.valid('json');
   const membership = c.get('membership');
+  if (body.stage === 'lead') requireOwnerForLeads(membership.role);
   // Validation guarantees a well-formed CUI; the prefix marks VAT registration.
   const { cui, vatPrefix } = normalizeCui(body.cui)!;
   const db = createDataClient(c);
@@ -149,6 +180,10 @@ export const createClient: RouteHandler<typeof createClientRoute, ApiEnv> = asyn
       address_line: body.addressLine ?? null,
       legal_representative_name: body.legalRepresentativeName ?? null,
       declared_employee_count: body.declaredEmployeeCount ?? null,
+      contact_name: body.contactName ?? null,
+      contact_email: body.contactEmail ?? null,
+      contact_phone: body.contactPhone ?? null,
+      stage: body.stage,
       created_by: c.get('user').id,
     })
     .select(clientColumns)
@@ -179,6 +214,9 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
       locality: body.locality ?? null,
       address_line: body.addressLine ?? null,
       declared_employee_count: body.declaredEmployeeCount ?? null,
+      ...(body.contactName !== undefined && { contact_name: body.contactName }),
+      ...(body.contactEmail !== undefined && { contact_email: body.contactEmail }),
+      ...(body.contactPhone !== undefined && { contact_phone: body.contactPhone }),
     })
     .eq('id', clientId)
     .is('archived_at', null)
@@ -233,4 +271,55 @@ export const archiveClient: RouteHandler<typeof archiveClientRoute, ApiEnv> = as
 export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   return c.json({ client: await setArchived(createDataClient(c), clientId, false) }, 200);
+};
+
+export const getClientOwnerNotes: RouteHandler<typeof getClientOwnerNotesRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  const [client, notes] = await Promise.all([
+    db.from('clients').select('id').eq('id', clientId).maybeSingle(),
+    db
+      .from('client_owner_notes')
+      .select('body, updated_at')
+      .eq('client_id', clientId)
+      .maybeSingle(),
+  ]);
+  if (client.error) throw fromDatabaseError(client.error, 'find client');
+  if (notes.error) throw fromDatabaseError(notes.error, 'get client owner notes');
+  if (!client.data) {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  return c.json(
+    { notes: { body: notes.data?.body ?? '', updatedAt: notes.data?.updated_at ?? null } },
+    200
+  );
+};
+
+export const saveClientOwnerNotes: RouteHandler<typeof saveClientOwnerNotesRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const { body } = c.req.valid('json');
+  const db = createDataClient(c);
+  const { data, error } = await db
+    .from('client_owner_notes')
+    .upsert(
+      {
+        client_id: clientId,
+        organization_id: c.get('membership').organizationId,
+        body,
+        updated_by: c.get('user').id,
+      },
+      { onConflict: 'client_id' }
+    )
+    .select('body, updated_at')
+    .single();
+  // The pair of client and organization is a foreign key: a client of someone else fails it.
+  if (error?.code === '23503') {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  if (error) throw fromDatabaseError(error, 'save client owner notes');
+  return c.json({ notes: { body: data.body, updatedAt: data.updated_at } }, 200);
 };

@@ -208,6 +208,14 @@ export const ClientListResponseItemsItemCountyCode = {
   VN: 'VN',
 } as const;
 
+export type ClientListResponseItemsItemStage =
+  (typeof ClientListResponseItemsItemStage)[keyof typeof ClientListResponseItemsItemStage];
+
+export const ClientListResponseItemsItemStage = {
+  lead: 'lead',
+  client: 'client',
+} as const;
+
 export type ClientListResponseItemsItem = {
   id: string;
   legalName: string;
@@ -227,6 +235,15 @@ export type ClientListResponseItemsItem = {
   legalRepresentativeName: string | null;
   /** @nullable */
   declaredEmployeeCount: number | null;
+  stage: ClientListResponseItemsItemStage;
+  /** @nullable */
+  contactName: string | null;
+  /** @nullable */
+  contactEmail: string | null;
+  /** @nullable */
+  contactPhone: string | null;
+  /** @nullable */
+  promotedAt: string | null;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -297,6 +314,14 @@ export const ClientResponseClientCountyCode = {
   VN: 'VN',
 } as const;
 
+export type ClientResponseClientStage =
+  (typeof ClientResponseClientStage)[keyof typeof ClientResponseClientStage];
+
+export const ClientResponseClientStage = {
+  lead: 'lead',
+  client: 'client',
+} as const;
+
 export type ClientResponseClient = {
   id: string;
   legalName: string;
@@ -316,6 +341,15 @@ export type ClientResponseClient = {
   legalRepresentativeName: string | null;
   /** @nullable */
   declaredEmployeeCount: number | null;
+  stage: ClientResponseClientStage;
+  /** @nullable */
+  contactName: string | null;
+  /** @nullable */
+  contactEmail: string | null;
+  /** @nullable */
+  contactPhone: string | null;
+  /** @nullable */
+  promotedAt: string | null;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -377,6 +411,14 @@ export const CreateClientRequestCountyCode = {
   VN: 'VN',
 } as const;
 
+export type CreateClientRequestStage =
+  (typeof CreateClientRequestStage)[keyof typeof CreateClientRequestStage];
+
+export const CreateClientRequestStage = {
+  lead: 'lead',
+  client: 'client',
+} as const;
+
 export interface CreateClientRequest {
   /**
    * @minLength 2
@@ -426,6 +468,24 @@ export interface CreateClientRequest {
    * @nullable
    */
   declaredEmployeeCount?: number | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  contactName?: string | null;
+  /**
+   * @maxLength 254
+   * @nullable
+   */
+  contactEmail?: string | null;
+  /**
+   * @minLength 5
+   * @maxLength 20
+   * @nullable
+   */
+  contactPhone?: string | null;
+  stage?: CreateClientRequestStage;
 }
 
 /**
@@ -522,6 +582,38 @@ export interface UpdateClientRequest {
    * @nullable
    */
   declaredEmployeeCount?: number | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  contactName?: string | null;
+  /**
+   * @maxLength 254
+   * @nullable
+   */
+  contactEmail?: string | null;
+  /**
+   * @minLength 5
+   * @maxLength 20
+   * @nullable
+   */
+  contactPhone?: string | null;
+}
+
+export type ClientOwnerNotesResponseNotes = {
+  body: string;
+  /** @nullable */
+  updatedAt: string | null;
+};
+
+export interface ClientOwnerNotesResponse {
+  notes: ClientOwnerNotesResponseNotes;
+}
+
+export interface SaveClientOwnerNotesRequest {
+  /** @maxLength 5000 */
+  body: string;
 }
 
 /**
@@ -2148,6 +2240,7 @@ export type ListClientsParams = {
   sort?: ListClientsSort;
   order?: ListClientsOrder;
   status?: ListClientsStatus;
+  stage?: ListClientsStage;
 };
 
 export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsSort];
@@ -2170,6 +2263,13 @@ export type ListClientsStatus = (typeof ListClientsStatus)[keyof typeof ListClie
 export const ListClientsStatus = {
   active: 'active',
   archived: 'archived',
+} as const;
+
+export type ListClientsStage = (typeof ListClientsStage)[keyof typeof ListClientsStage];
+
+export const ListClientsStage = {
+  lead: 'lead',
+  client: 'client',
 } as const;
 
 export type LookupCompanyParams = {
@@ -2717,8 +2817,8 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. `status` chooses the active clients, the default, or the archived ones; never both. One sort key at a time; "legalName" is the default.
- * @summary List the organization's clients, active or archived
+ * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default.
+ * @summary List the organization's clients or its leads, active or archived
  */
 export const listClients = async (
   params?: ListClientsParams,
@@ -2811,7 +2911,7 @@ export function useListClients<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the organization's clients, active or archived
+ * @summary List the organization's clients or its leads, active or archived
  */
 
 export function useListClients<
@@ -2839,7 +2939,8 @@ export const getCreateClientUrl = () => {
 };
 
 /**
- * @summary Create a client in the organization
+ * `stage` is `client` unless given. Only an owner creates a lead; anyone else gets `403`. A lead has no employees, job positions, workplaces or documentation set until it is promoted: those routes answer `409` with the reason `client_is_lead`.
+ * @summary Create a client or a lead in the organization
  */
 export const createClient = async (
   createClientRequest: CreateClientRequest,
@@ -2916,7 +3017,7 @@ export type CreateClientMutationError = ErrorType<ApiErrorResponse>;
 export type CreateClientMutationVariables = { data: CreateClientRequest };
 
 /**
- * @summary Create a client in the organization
+ * @summary Create a client or a lead in the organization
  */
 export const useCreateClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
   options?: {
@@ -2943,7 +3044,8 @@ export const getGetClientUrl = (clientId: string) => {
 };
 
 /**
- * @summary Read one client, archived or not
+ * A lead does not exist for a member who is not an owner.
+ * @summary Read one client or lead, archived or not
  */
 export const getClient = async (
   clientId: string,
@@ -3039,7 +3141,7 @@ export function useGetClient<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Read one client, archived or not
+ * @summary Read one client or lead, archived or not
  */
 
 export function useGetClient<
@@ -3067,7 +3169,7 @@ export const getUpdateClientUrl = (clientId: string) => {
 };
 
 /**
- * The same fields and rules as creating one, without the legal representative's name, which the document details own. An archived client is not edited.
+ * The same fields and rules as creating one, without the legal representative's name, which the document details own, and without the stage, which only promotion changes. A contact field that is left out stays as it is; `null` clears it. An archived client is not edited.
  * @summary Replace what was entered about a client
  */
 export const updateClient = async (
@@ -3334,6 +3436,254 @@ export const useRestoreClient = <TError = ErrorType<ApiErrorResponse>, TContext 
   TContext
 > => {
   return useMutation(getRestoreClientMutationOptions(options), queryClient);
+};
+
+export const getGetClientOwnerNotesUrl = (clientId: string) => {
+  return `/clients/${clientId}/owner-notes`;
+};
+
+/**
+ * Owners only, before and after promotion: the notes may hold prices and a negotiation.
+ * @summary Read the owners' notes about a client or a lead
+ */
+export const getClientOwnerNotes = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientOwnerNotesResponse> => {
+  return apiFetch<ClientOwnerNotesResponse>(getGetClientOwnerNotesUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetClientOwnerNotesQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/owner-notes`] as const;
+};
+
+export const getGetClientOwnerNotesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClientOwnerNotes>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientOwnerNotes>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetClientOwnerNotesQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClientOwnerNotes>>> = ({ signal }) =>
+    getClientOwnerNotes(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getClientOwnerNotes>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetClientOwnerNotesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClientOwnerNotes>>
+>;
+export type GetClientOwnerNotesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetClientOwnerNotes<
+  TData = Awaited<ReturnType<typeof getClientOwnerNotes>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientOwnerNotes>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientOwnerNotes>>,
+          TError,
+          Awaited<ReturnType<typeof getClientOwnerNotes>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClientOwnerNotes<
+  TData = Awaited<ReturnType<typeof getClientOwnerNotes>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientOwnerNotes>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientOwnerNotes>>,
+          TError,
+          Awaited<ReturnType<typeof getClientOwnerNotes>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClientOwnerNotes<
+  TData = Awaited<ReturnType<typeof getClientOwnerNotes>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientOwnerNotes>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the owners' notes about a client or a lead
+ */
+
+export function useGetClientOwnerNotes<
+  TData = Awaited<ReturnType<typeof getClientOwnerNotes>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientOwnerNotes>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetClientOwnerNotesQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getSaveClientOwnerNotesUrl = (clientId: string) => {
+  return `/clients/${clientId}/owner-notes`;
+};
+
+/**
+ * Owners only. Free text, up to 5000 characters. Nothing is written for an archived client.
+ * @summary Replace the owners' notes about a client or a lead
+ */
+export const saveClientOwnerNotes = async (
+  clientId: string,
+  saveClientOwnerNotesRequest: SaveClientOwnerNotesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientOwnerNotesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientOwnerNotesResponse>(getSaveClientOwnerNotesUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(saveClientOwnerNotesRequest),
+  });
+};
+
+export const getSaveClientOwnerNotesMutationKey = () => ['saveClientOwnerNotes'] as const;
+
+export const getSaveClientOwnerNotesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveClientOwnerNotes>>,
+    TError,
+    SaveClientOwnerNotesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveClientOwnerNotes>>,
+  TError,
+  SaveClientOwnerNotesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveClientOwnerNotesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveClientOwnerNotes>>,
+    SaveClientOwnerNotesMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return saveClientOwnerNotes(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveClientOwnerNotesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveClientOwnerNotes>>
+>;
+export type SaveClientOwnerNotesMutationBody = SaveClientOwnerNotesRequest;
+export type SaveClientOwnerNotesMutationError = ErrorType<ApiErrorResponse>;
+export type SaveClientOwnerNotesMutationVariables = {
+  clientId: string;
+  data: SaveClientOwnerNotesRequest;
+};
+
+/**
+ * @summary Replace the owners' notes about a client or a lead
+ */
+export const useSaveClientOwnerNotes = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveClientOwnerNotes>>,
+      TError,
+      SaveClientOwnerNotesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveClientOwnerNotes>>,
+  TError,
+  SaveClientOwnerNotesMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveClientOwnerNotesMutationOptions(options), queryClient);
 };
 
 export const getLookupCompanyUrl = (params: LookupCompanyParams) => {

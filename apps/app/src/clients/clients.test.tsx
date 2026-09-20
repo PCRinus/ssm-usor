@@ -579,13 +579,12 @@ describe('client archiving', () => {
     expect(runtime.router.state.location.pathname).toBe(`${clientPath}/employees`);
   });
 
-  it('points to the archive when an archived client holds the CUI', async () => {
+  it.each([
+    ['cui_taken_by_archived', 'Un client arhivat'],
+    ['cui_taken_by_lead', 'printre clienții potențiali'],
+  ])('says where the company holding the CUI is: %s', async (reason, wording) => {
     mockApi({
-      create: () =>
-        Response.json(
-          { error: 'conflict', message: 'taken', reason: 'cui_taken_by_archived' },
-          { status: 409 }
-        ),
+      create: () => Response.json({ error: 'conflict', message: 'taken', reason }, { status: 409 }),
     });
     mountApp(authFixture(makeSession()).client, '/clients/new');
     const user = userEvent.setup();
@@ -593,6 +592,6 @@ describe('client archiving', () => {
     await user.type(screen.getByTestId('client-cui'), '1590082');
     await user.type(screen.getByTestId('client-legal-name'), 'Firma Mea SRL');
     await user.click(screen.getByTestId('client-submit'));
-    expect((await screen.findByTestId('cui-error')).textContent).toContain('Un client arhivat');
+    expect((await screen.findByTestId('cui-error')).textContent).toContain(wording);
   });
 });

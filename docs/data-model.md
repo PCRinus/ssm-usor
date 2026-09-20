@@ -56,19 +56,22 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 
 ## Clients
 
-`clients` stores the client companies of an organization:
+`clients` stores the client companies of an organization, and its leads (ADR 007):
 
-| Column                                    | Notes                                                                           |
-| ----------------------------------------- | ------------------------------------------------------------------------------- |
-| `legal_name`                              | Required.                                                                       |
-| `cui`                                     | Required, digits only, unique per organization; checksum validated by the API.  |
-| `vat_payer`                               | The `RO` prefix is not stored; it is represented by this flag.                  |
-| `caen_code`                               | Four digits, leading zeros preserved (CAEN Rev. 3).                             |
-| `trade_register_number`                   | As issued (`J40/1234/2020` or the newer `J2024…` format).                       |
-| `county_code`, `locality`, `address_line` | Registered office; the county uses the vehicle registration code.               |
-| `legal_representative_name`               | Name only for now.                                                              |
-| `declared_employee_count`                 | Headcount declared at onboarding; a live count will come from employee records. |
-| `archived_at`                             | Soft delete. There is no delete policy.                                         |
+| Column                                           | Notes                                                                           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `legal_name`                                     | Required.                                                                       |
+| `cui`                                            | Required, digits only, unique per organization; checksum validated by the API.  |
+| `vat_payer`                                      | The `RO` prefix is not stored; it is represented by this flag.                  |
+| `caen_code`                                      | Four digits, leading zeros preserved (CAEN Rev. 3).                             |
+| `trade_register_number`                          | As issued (`J40/1234/2020` or the newer `J2024…` format).                       |
+| `county_code`, `locality`, `address_line`        | Registered office; the county uses the vehicle registration code.               |
+| `legal_representative_name`                      | Name only for now.                                                              |
+| `declared_employee_count`                        | Headcount declared at onboarding; a live count will come from employee records. |
+| `stage`                                          | `lead` or `client`, the default. Only promotion changes it, and only one way.   |
+| `contact_name`, `contact_email`, `contact_phone` | The person the organization talks to, often not the legal representative.       |
+| `promoted_at`, `promoted_by`                     | Written by the trigger at promotion, never by hand; null for a lead.            |
+| `archived_at`                                    | Soft delete. There is no delete policy.                                         |
 
 Every member corrects a client's data, and only an owner archives or restores one: the update
 policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change
@@ -86,8 +89,34 @@ a revision runs as its function's owner, past the policies. `is_draft_document_p
 an active client too, so the files follow. The secret key passes. Recording a leaver of an
 archived client used to be allowed; with restoring one click away it no longer is.
 
-Deferred on purpose: service status and contract period, financial data, contacts as their
-own table, and specialist assignment.
+### Leads
+
+A lead is a row of `clients` with `stage = 'lead'`: a company the organization hopes to serve.
+It shares the table so that the service contract drafted for it is already the client's
+document on the day of promotion. Only owners see one. The select, insert and update policies
+of `clients` ask for `stage = 'client'` or `is_organization_owner()`, so a filter forgotten in
+the API shows an owner too much and never shows a specialist a lead. The CUI stays unique
+across both stages: a specialist who enters a lead's CUI is refused by the index, and cannot
+see the holder.
+
+`clients_protect_stage` lets an owner change `lead` to `client` (`42501` for anyone else),
+stamps `promoted_at` and `promoted_by`, keeps both as they were on every other update, and
+refuses the way back with `CLL02`. An archived lead is restored before it is promoted, since
+an archived row takes only the restore.
+
+Nothing of the safety work starts under a lead, which the team could not see: insert triggers
+on `employees`, `job_positions`, `client_workplaces`, `client_responsible_persons` and
+`client_documents` refuse with `CLL01`. They do not let the secret key through. The documents
+trigger is where the service contract will be let in.
+
+`client_owner_notes` holds one free text per client, up to 5000 characters, with who last
+wrote it. It is its own table because a policy hides rows and not columns, and the whole team
+reads a client's row once it is promoted: the notes may hold prices and a negotiation, so
+they stay the owners' afterwards too. Owners read, insert and update; nobody deletes; the
+archived-client trigger applies.
+
+Deferred on purpose: service status and contract period, financial data, several contacts as
+their own table, and specialist assignment.
 
 ## What the documents print
 

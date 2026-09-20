@@ -119,7 +119,9 @@ export function useClientForm(client?: Client) {
               message:
                 body?.reason === clientConflictReasons.cuiTakenByArchived
                   ? 'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.'
-                  : 'Există deja un client cu acest CUI în organizația ta.',
+                  : body?.reason === clientConflictReasons.cuiTakenByLead
+                    ? 'Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un administrator o poate transforma în client.'
+                    : 'Există deja un client cu acest CUI în organizația ta.',
             });
           }
           return;

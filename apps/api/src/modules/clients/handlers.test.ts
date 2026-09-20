@@ -1,6 +1,7 @@
 import {
   apiErrorResponseSchema,
   clientListResponseSchema,
+  clientOwnerNotesResponseSchema,
   clientResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -44,6 +45,11 @@ const clientRow = {
   address_line: 'Str. Coralilor, nr. 22',
   legal_representative_name: null,
   declared_employee_count: 120,
+  stage: 'client',
+  contact_name: null,
+  contact_email: null,
+  contact_phone: null,
+  promoted_at: null,
   created_at: '2026-09-17T10:00:00+00:00',
   updated_at: '2026-09-17T10:00:00+00:00',
   archived_at: null,
@@ -53,7 +59,9 @@ type Handler = (init?: RequestInit) => Response | Promise<Response>;
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockUpstream(handlers: Partial<Record<'auth' | 'membership' | 'clients', Handler>>) {
+function mockUpstream(
+  handlers: Partial<Record<'auth' | 'membership' | 'clients' | 'notes', Handler>>
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return handlers.auth?.(init) ?? Response.json(user);
@@ -65,6 +73,9 @@ function mockUpstream(handlers: Partial<Record<'auth' | 'membership' | 'clients'
         handlers.clients?.(init) ??
         Response.json([clientRow], { headers: { 'Content-Range': '0-0/1' } })
       );
+    }
+    if (url.pathname === '/rest/v1/client_owner_notes') {
+      return handlers.notes?.(init) ?? Response.json([]);
     }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
@@ -123,6 +134,11 @@ describe('GET /clients', () => {
           addressLine: 'Str. Coralilor, nr. 22',
           legalRepresentativeName: null,
           declaredEmployeeCount: 120,
+          stage: 'client',
+          contactName: null,
+          contactEmail: null,
+          contactPhone: null,
+          promotedAt: null,
           createdAt: clientRow.created_at,
           updatedAt: clientRow.updated_at,
           archivedAt: null,
@@ -136,6 +152,7 @@ describe('GET /clients', () => {
     const [listUrl, listInit] = calls('/rest/v1/clients')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('stage')).toBe('eq.client');
     expect(query.get('order')).toBe('legal_name.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
@@ -173,6 +190,20 @@ describe('GET /clients', () => {
     const [url] = calls('/rest/v1/clients')[0]!;
     expect(new URL(String(url)).searchParams.get('archived_at')).toBe('not.is.null');
     expect((await request('/clients?status=all')).status).toBe(400);
+  });
+
+  it('lists the leads instead for an owner, and tells anyone else why not', async () => {
+    mockUpstream({});
+    expect((await request('/clients?stage=lead')).status).toBe(200);
+    expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('stage')).toBe(
+      'eq.lead'
+    );
+
+    fetchMock.mockClear();
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    const refused = await request('/clients?stage=lead');
+    expect(refused.status).toBe(403);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('requires a bearer token', async () => {
@@ -271,9 +302,43 @@ describe('POST /clients', () => {
       address_line: 'Str. Coralilor, nr. 22',
       legal_representative_name: null,
       declared_employee_count: 120,
+      contact_name: null,
+      contact_email: null,
+      contact_phone: null,
+      stage: 'client',
       created_by: user.id,
     });
     expect(new Headers(init?.headers).get('Prefer')).toContain('return=representation');
+  });
+
+  const lead = {
+    ...validBody,
+    stage: 'lead',
+    contactName: 'Andrei Pop',
+    contactEmail: 'andrei@velocita.example',
+    contactPhone: '0720 533 637',
+  };
+
+  it('creates a lead with its contact for an owner', async () => {
+    mockUpstream({
+      clients: () => Response.json({ ...clientRow, stage: 'lead' }, { status: 201 }),
+    });
+    const response = await postClient(lead);
+    expect(response.status).toBe(201);
+    expect(clientResponseSchema.parse(await response.json()).client.stage).toBe('lead');
+    expect(JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body))).toMatchObject({
+      stage: 'lead',
+      contact_name: 'Andrei Pop',
+      contact_email: 'andrei@velocita.example',
+      contact_phone: '0720 533 637',
+    });
+  });
+
+  it('creates no lead for a specialist, and rejects a contact email that is not one', async () => {
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await postClient(lead)).status).toBe(403);
+    expect((await postClient({ ...validBody, contactEmail: 'andrei' })).status).toBe(400);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('keeps an explicit VAT flag when the CUI has no prefix', async () => {
@@ -315,14 +380,17 @@ describe('POST /clients', () => {
   });
 
   it.each([
-    [null, 'cui_taken'],
-    ['2026-09-21T08:00:00+00:00', 'cui_taken_by_archived'],
-  ])('says whether the client holding the CUI is archived: %s', async (archivedAt, reason) => {
+    [[{ archived_at: null, stage: 'client' }], 'cui_taken'],
+    [[{ archived_at: '2026-09-21T08:00:00+00:00', stage: 'client' }], 'cui_taken_by_archived'],
+    [[{ archived_at: null, stage: 'lead' }], 'cui_taken_by_lead'],
+    // A specialist cannot see the lead that holds the CUI.
+    [[], 'cui_taken_by_lead'],
+  ])('says who holds the CUI: %j', async (holder, reason) => {
     mockUpstream({
       clients: (init) =>
         init?.method === 'POST'
           ? Response.json({ code: '23505', message: 'duplicate key' }, { status: 409 })
-          : Response.json([{ archived_at: archivedAt }]),
+          : Response.json(holder),
     });
     const response = await postClient(validBody);
     expect(response.status).toBe(409);
@@ -392,6 +460,15 @@ describe('PUT /clients/{clientId}', () => {
       address_line: 'Str. Coralilor, nr. 22',
       declared_employee_count: 120,
     });
+  });
+
+  it('writes the contact fields that were sent, a cleared one included, and no others', async () => {
+    mockUpstream({ clients: () => Response.json([clientRow]) });
+    await putClient({ ...validBody, contactName: 'Andrei Pop', contactPhone: null, stage: 'lead' });
+    const sent = JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body));
+    expect(sent).toMatchObject({ contact_name: 'Andrei Pop', contact_phone: null });
+    expect(sent).not.toHaveProperty('contact_email');
+    expect(sent).not.toHaveProperty('stage');
   });
 
   it('rejects an invalid body before touching the database', async () => {
@@ -474,6 +551,76 @@ describe('archiving a client', () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await post(action)).status).toBe(403);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+});
+
+describe("the owners' notes about a client", () => {
+  const notesPath = `/clients/${clientRow.id}/owner-notes`;
+  const putNotes = (body: unknown) =>
+    request(notesPath, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  const noteRow = { body: 'Sunat 12.09, revine.', updated_at: '2026-09-21T09:00:00+00:00' };
+
+  it('reads an empty body where none were written, and what was written', async () => {
+    mockUpstream({ clients: () => Response.json([{ id: clientRow.id }]) });
+    const empty = await request(notesPath);
+    expect(empty.status).toBe(200);
+    expect(clientOwnerNotesResponseSchema.parse(await empty.json()).notes).toEqual({
+      body: '',
+      updatedAt: null,
+    });
+
+    mockUpstream({
+      clients: () => Response.json([{ id: clientRow.id }]),
+      notes: () => Response.json([noteRow]),
+    });
+    const written = clientOwnerNotesResponseSchema.parse(await (await request(notesPath)).json());
+    expect(written.notes).toEqual({ body: noteRow.body, updatedAt: noteRow.updated_at });
+  });
+
+  it('answers 404 for a client that is not there', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    expect((await request(notesPath)).status).toBe(404);
+
+    mockUpstream({
+      notes: () => Response.json({ code: '23503', message: 'foreign key' }, { status: 409 }),
+    });
+    expect((await putNotes({ body: 'x' })).status).toBe(404);
+  });
+
+  it('writes one row per client, in the organization and the name of the caller', async () => {
+    mockUpstream({ notes: () => Response.json(noteRow) });
+    const response = await putNotes({ body: noteRow.body });
+    expect(response.status).toBe(200);
+    const [input, init] = calls('/rest/v1/client_owner_notes')[0]!;
+    expect(new URL(String(input)).searchParams.get('on_conflict')).toBe('client_id');
+    expect(new Headers(init?.headers).get('Prefer')).toContain('resolution=merge-duplicates');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      client_id: clientRow.id,
+      organization_id: membership.organization_id,
+      body: noteRow.body,
+      updated_by: user.id,
+    });
+  });
+
+  it('passes on the refusal for an archived client, and refuses what is too long', async () => {
+    mockUpstream({
+      notes: () => Response.json({ code: 'CLA01', message: 'archived' }, { status: 400 }),
+    });
+    const archived = await putNotes({ body: 'x' });
+    expect(archived.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
+    expect((await putNotes({ body: 'x'.repeat(5001) })).status).toBe(400);
+  });
+
+  it('is not for specialists, to read or to write', async () => {
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await request(notesPath)).status).toBe(403);
+    expect((await putNotes({ body: 'x' })).status).toBe(403);
+    expect(calls('/rest/v1/client_owner_notes')).toHaveLength(0);
   });
 });
 
