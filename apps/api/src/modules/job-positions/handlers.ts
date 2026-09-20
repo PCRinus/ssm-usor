@@ -24,12 +24,13 @@ type JobPositionRow = Pick<
   | 'staff_category'
   | 'work_zone'
   | 'activities'
+  | 'training_interval_months'
   | 'created_at'
   | 'updated_at'
 >;
 
 const jobPositionColumns =
-  'id, client_id, name, staff_category, work_zone, activities, created_at, updated_at';
+  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, created_at, updated_at';
 
 const toJobPosition = (row: JobPositionRow, employeeCount: number): JobPosition => ({
   id: row.id,
@@ -38,6 +39,7 @@ const toJobPosition = (row: JobPositionRow, employeeCount: number): JobPosition 
   staffCategory: row.staff_category,
   workZone: row.work_zone,
   activities: row.activities,
+  trainingIntervalMonths: row.training_interval_months,
   employeeCount,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -48,6 +50,7 @@ const toRow = (body: JobPositionRequest) => ({
   staff_category: body.staffCategory,
   work_zone: body.workZone ?? null,
   activities: body.activities ?? null,
+  training_interval_months: body.trainingIntervalMonths ?? null,
 });
 
 const noSuchJobPosition = () =>

@@ -1,7 +1,7 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
 import { useAuth } from '../../../../auth/auth-context';
-import { DocumentDetailsCard } from '../../../../document-data/document-details-card';
+import { DocumentDetailsCards } from '../../../../document-data/document-details-card';
 import { ResponsiblePersonsCard } from '../../../../document-data/responsible-persons-card';
 import { WorkplacesCard } from '../../../../document-data/workplaces-card';
 
@@ -26,7 +26,7 @@ export function DocumentDataPage() {
           Clientul este arhivat. Datele rămân vizibile, dar nu mai pot fi modificate.
         </p>
       )}
-      <DocumentDetailsCard client={client} userId={session.user.id} />
+      <DocumentDetailsCards client={client} userId={session.user.id} />
       <WorkplacesCard
         clientId={client.id}
         userId={session.user.id}

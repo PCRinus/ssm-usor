@@ -51,11 +51,26 @@ type Route = (init: RequestInit | undefined) => Response;
 
 const fetchMock = vi.fn<typeof fetch>();
 
+const welder = {
+  id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+  clientId,
+  name: 'Sudor',
+  staffCategory: 'execution',
+  workZone: null,
+  activities: null,
+  trainingIntervalMonths: 2 as number | null,
+  employeeCount: 1,
+  createdAt: '2026-09-20T10:00:00+00:00',
+  updatedAt: '2026-09-20T10:00:00+00:00',
+};
+
 function mockApi({
   client = sampleClient,
   details = emptyDetails as typeof emptyDetails | typeof savedDetails,
-  save = ((init) => Response.json({ documentDetails: JSON.parse(String(init?.body)) })) as Route,
+  positions = [] as (typeof welder)[],
+  save = undefined as Route | undefined,
 } = {}) {
+  let current: unknown = details;
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     const method = init?.method ?? 'GET';
@@ -66,8 +81,14 @@ function mockApi({
     if (pathname === `/clients/${clientId}/responsible-persons`)
       return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+    if (pathname === `/clients/${clientId}/job-positions`) {
+      return Response.json({ items: positions });
+    }
     if (pathname === detailsPath) {
-      return method === 'PUT' ? save(init) : Response.json({ documentDetails: details });
+      if (method !== 'PUT') return Response.json({ documentDetails: current });
+      if (save) return save(init);
+      current = JSON.parse(String(init?.body));
+      return Response.json({ documentDetails: current });
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
@@ -129,7 +150,7 @@ describe('client document data', () => {
     expect(values).toEqual(['', '1', '2', '3', '4', '6']);
   });
 
-  it('saves numbers, not text, and confirms with a toast', async () => {
+  it('saves the representative and the program apart, each over what the other saved', async () => {
     mockApi();
     mount();
     const user = userEvent.setup();
@@ -139,36 +160,72 @@ describe('client document data', () => {
     expect(name.value).toBe('');
     await user.type(name, ' Maria Popescu ');
     await user.type(screen.getByTestId('details-representative-role'), ' Administrator ');
+    await user.click(screen.getByTestId('legal-representative-save'));
+    await waitFor(() =>
+      expect(saves()).toEqual([
+        {
+          ...emptyDetails,
+          legalRepresentativeName: 'Maria Popescu',
+          legalRepresentativeRole: 'Administrator',
+        },
+      ])
+    );
+    expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
+
     await user.selectOptions(screen.getByTestId('details-training-duration'), '120');
     await user.selectOptions(screen.getByTestId('details-first-month'), '2');
     await user.selectOptions(screen.getByTestId('details-administrative-interval'), '6');
     await user.selectOptions(screen.getByTestId('details-worker-interval'), '3');
     await user.type(screen.getByTestId('details-day-from'), '2');
     await user.type(screen.getByTestId('details-day-to'), '7');
-    await user.click(screen.getByTestId('document-details-save'));
+    await user.click(screen.getByTestId('training-program-save'));
 
-    await waitFor(() => expect(saves()).toEqual([savedDetails]));
-    expect(await screen.findByText('Datele pentru documente au fost salvate.')).toBeTruthy();
+    // Numbers, not text, and the representative saved a moment ago is sent back unchanged.
+    await waitFor(() => expect(saves()[1]).toEqual(savedDetails));
+    expect(await screen.findByText('Programul de instruire a fost salvat.')).toBeTruthy();
   });
 
-  it('shows what is saved, and clears a field that is emptied', async () => {
+  it('shows a complete program as a summary, with the posts that differ from their category', async () => {
+    mockApi({
+      details: savedDetails,
+      positions: [welder, { ...welder, id: 'x', name: 'Contabil', trainingIntervalMonths: null }],
+    });
+    mount();
+
+    const execution = await screen.findByTestId('training-program-execution');
+    expect(execution.textContent).toContain('la 3 luni');
+    expect(execution.textContent).toContain('Februarie, Mai, August, Noiembrie');
+    expect(screen.getByTestId('training-program-administrative').textContent).toContain(
+      'la 6 luni'
+    );
+    expect(screen.getByTestId('training-program-session').textContent).toContain(
+      'durează 2 ore și are loc între zilele 2 și 7 ale lunii'
+    );
+    const exceptions = await screen.findByTestId('training-program-exceptions');
+    expect(exceptions.textContent).toContain('Sudor');
+    expect(exceptions.textContent).toContain('la 2 luni');
+    expect(exceptions.textContent).not.toContain('Contabil');
+    expect(screen.queryByTestId('training-program-form')).toBeNull();
+  });
+
+  it('edits a saved program from the summary, and clears a field that is emptied', async () => {
     mockApi({ details: savedDetails });
     mount();
     const user = userEvent.setup();
 
     const role = await screen.findByTestId<HTMLInputElement>('details-representative-role');
     expect(role.value).toBe('Administrator');
-    expect(screen.getByTestId<HTMLButtonElement>('document-details-save').disabled).toBe(true);
+    expect(screen.getByTestId<HTMLButtonElement>('legal-representative-save').disabled).toBe(true);
 
-    await user.clear(role);
+    await user.click(await screen.findByTestId('training-program-edit'));
     await user.selectOptions(screen.getByTestId('details-training-duration'), '');
-    await user.click(screen.getByTestId('document-details-save'));
+    await user.click(screen.getByTestId('training-program-save'));
 
     await waitFor(() =>
-      expect(saves()).toEqual([
-        { ...savedDetails, legalRepresentativeRole: null, periodicTrainingMinutes: null },
-      ])
+      expect(saves()).toEqual([{ ...savedDetails, periodicTrainingMinutes: null }])
     );
+    // An incomplete program has no summary to show, so the form stays.
+    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
   });
 
   it('refuses days out of order and a day that is not a number, without calling the API', async () => {
@@ -178,14 +235,14 @@ describe('client document data', () => {
 
     await user.type(await screen.findByTestId('details-day-from'), '12');
     await user.type(screen.getByTestId('details-day-to'), '7');
-    await user.click(screen.getByTestId('document-details-save'));
+    await user.click(screen.getByTestId('training-program-save'));
     expect((await screen.findByTestId('details-day-to-error')).textContent).toContain(
       'Ultima zi nu poate fi înaintea primei zile.'
     );
 
     await user.clear(screen.getByTestId('details-day-from'));
     await user.type(screen.getByTestId('details-day-from'), '40');
-    await user.click(screen.getByTestId('document-details-save'));
+    await user.click(screen.getByTestId('training-program-save'));
     expect((await screen.findByTestId('details-day-from-error')).textContent).toContain(
       'între 1 și 31'
     );
@@ -199,9 +256,9 @@ describe('client document data', () => {
 
     const role = await screen.findByTestId<HTMLInputElement>('details-representative-role');
     await user.type(role, 'Administrator');
-    await user.click(screen.getByTestId('document-details-save'));
+    await user.click(screen.getByTestId('legal-representative-save'));
 
-    expect((await screen.findByTestId('document-details-error')).textContent).toContain(
+    expect((await screen.findByTestId('legal-representative-error')).textContent).toContain(
       'Nu am putut salva'
     );
     expect(role.value).toBe('Administrator');
@@ -216,7 +273,9 @@ describe('client document data', () => {
 
     const role = await screen.findByTestId<HTMLInputElement>('details-representative-role');
     expect(role.disabled).toBe(true);
-    expect(screen.queryByTestId('document-details-save')).toBeNull();
+    expect(screen.queryByTestId('legal-representative-save')).toBeNull();
+    expect(await screen.findByTestId('training-program-execution')).toBeTruthy();
+    expect(screen.queryByTestId('training-program-edit')).toBeNull();
     expect(screen.getByText(/Clientul este arhivat/)).toBeTruthy();
   });
 });

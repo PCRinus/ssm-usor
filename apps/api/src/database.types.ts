@@ -653,6 +653,7 @@ export type Database = {
           name: string;
           organization_id: string;
           staff_category: Database['public']['Enums']['staff_category'];
+          training_interval_months: number | null;
           updated_at: string;
           work_zone: string | null;
         };
@@ -666,6 +667,7 @@ export type Database = {
           name: string;
           organization_id: string;
           staff_category?: Database['public']['Enums']['staff_category'];
+          training_interval_months?: number | null;
           updated_at?: string;
           work_zone?: string | null;
         };
@@ -679,6 +681,7 @@ export type Database = {
           name?: string;
           organization_id?: string;
           staff_category?: Database['public']['Enums']['staff_category'];
+          training_interval_months?: number | null;
           updated_at?: string;
           work_zone?: string | null;
         };

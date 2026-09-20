@@ -31,6 +31,7 @@ const barista = {
   staffCategory: 'execution',
   workZone: 'Gelaterie',
   activities: 'Prepară și servește înghețată și cafea.',
+  trainingIntervalMonths: null as number | null,
   employeeCount: 3,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
@@ -157,6 +158,7 @@ describe("a client's job positions", () => {
       staffCategory: 'execution',
       workZone: 'Gelaterie',
       activities: null,
+      trainingIntervalMonths: null,
     });
     expect(await screen.findByText('Postul de lucru a fost adăugat.')).toBeTruthy();
     await waitFor(() => expect(screen.queryByTestId('job-position-dialog')).toBeNull());
@@ -206,7 +208,40 @@ describe("a client's job positions", () => {
       staffCategory: 'technical_administrative',
       workZone: 'Birou',
       activities: 'Conduce magazinul.',
+      trainingIntervalMonths: null,
     });
+  });
+
+  it('gives a post an interval of its own, within what its category allows', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('job-position-add'));
+    await user.type(screen.getByTestId('job-position-name'), 'Sudor');
+    const interval = screen.getByTestId<HTMLSelectElement>('job-position-interval');
+    expect([...interval.options].map((option) => option.value)).toEqual([
+      '',
+      '1',
+      '2',
+      '3',
+      '4',
+      '6',
+    ]);
+    await user.selectOptions(
+      screen.getByTestId('job-position-category'),
+      'technical_administrative'
+    );
+    expect([...interval.options].map((option) => option.value)).toContain('12');
+    await user.selectOptions(interval, '12');
+    // A year is not an interval for execution staff: going back drops it with its option.
+    await user.selectOptions(screen.getByTestId('job-position-category'), 'execution');
+    expect(interval.value).toBe('');
+
+    await user.selectOptions(interval, '2');
+    await user.click(screen.getByTestId('job-position-save'));
+    await waitFor(() => expect(requests(listPath, 'POST')).toHaveLength(1));
+    expect(requests(listPath, 'POST')[0]).toMatchObject({ trainingIntervalMonths: 2 });
   });
 
   it('removes an empty position, and will not offer it for one people are in', async () => {
