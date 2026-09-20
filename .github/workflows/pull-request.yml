@@ -1,0 +1,174 @@
+name: Pull request
+
+# What a pull request has to pass. Nothing here deploys, and nothing here has access to
+# production: the deployment workflow runs on main. GitHub bills every job rounded up to a whole
+# minute, so the checks live in few jobs, and the slow starts inside them overlap.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the pull request replaces the run of the older one.
+concurrency:
+  group: pull-request-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Select affected applications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      api: ${{ steps.filter.outputs.api }}
+      database: ${{ steps.filter.outputs.database }}
+      code: ${{ steps.filter.outputs.code }}
+      projects: ${{ steps.projects.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # GitHub's list of the files the pull request changes.
+      - name: Detect changes across the pull request
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: .github/filters.yml
+
+      # Only the deployable workspaces; the other filters select checks, not applications.
+      - name: Select deployable applications
+        id: projects
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+        shell: bash
+        run: |
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "mail", "pdf", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+
+  validate:
+    name: Validate repository
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'true'
+
+      # A change that touches no code, which in practice means documentation, is only checked
+      # for formatting and lint.
+      - uses: ./.github/actions/validate
+        with:
+          mode: ${{ needs.changes.outputs.code == 'true' && 'full' || 'light' }}
+          database: ${{ needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true' }}
+          projects: ${{ needs.changes.outputs.projects }}
+
+  # Browser flows that create users: invitations, member management, passwords, documents.
+  # They run against a throwaway local stack (local Supabase, the API served by Node with an
+  # in-memory mailer, a preview build of the SPA), never against production. They run here
+  # and not again after the merge: the deployment does not wait for them, and repeating them
+  # there cost six billed minutes a merge for what this run has already shown.
+  flows:
+    name: Browser flow tests
+    needs: changes
+    if: >-
+      needs.changes.outputs.app == 'true' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.database == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.117.0
+
+      # The three slow starts do not depend on one another: the Supabase containers, the PDF
+      # converter's image (the one apps/pdf deploys, so issuing makes real PDFs), and further
+      # down the browser. The first two go on in the background from here and are collected
+      # where they are needed.
+      - name: Start the local Supabase stack and the PDF converter in the background
+        shell: bash
+        run: |
+          nohup bash -c '
+            supabase start -x studio,imgproxy,mailpit,postgres-meta,edge-runtime,logflare,vector,supavisor,realtime \
+              > "$RUNNER_TEMP/supabase-start.log" 2>&1
+            echo $? > "$RUNNER_TEMP/supabase-start.exit"
+          ' > /dev/null 2>&1 &
+          image=$(grep -m1 '^FROM ' apps/pdf/Dockerfile | cut -d' ' -f2)
+          nohup docker run -d --name gotenberg -p 3300:3000 "$image" \
+            > "$RUNNER_TEMP/gotenberg-start.log" 2>&1 &
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'true'
+          cache-scope: flows
+
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @ssm-usor/app exec playwright --version | tr -cd '0-9.')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Chromium download
+        id: chromium-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
+
+      - name: Install Chromium's system packages
+        if: steps.chromium-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
+
+      # The API's e2e server imports both packages from their build output.
+      - name: Build the contracts and the document engine
+        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
+
+      - name: Wait for the local Supabase stack
+        shell: bash
+        run: |
+          timeout 600 bash -c 'until [[ -f "$RUNNER_TEMP/supabase-start.exit" ]]; do sleep 2; done' || true
+          if [[ "$(cat "$RUNNER_TEMP/supabase-start.exit" 2>/dev/null)" != 0 ]]; then
+            echo "The local Supabase stack did not start:"
+            cat "$RUNNER_TEMP/supabase-start.log" || true
+            exit 1
+          fi
+
+      # Generating documents reads the templates from Storage.
+      - name: Register the document templates in the local stack
+        run: pnpm templates:register:local
+
+      - name: Wait for the PDF converter
+        shell: bash
+        run: |
+          if ! timeout 180 bash -c 'until curl -sf localhost:3300/health >/dev/null; do sleep 1; done'; then
+            echo "The PDF converter did not start:"
+            cat "$RUNNER_TEMP/gotenberg-start.log" || true
+            docker logs gotenberg || true
+            exit 1
+          fi
+
+      - name: Run the browser flows
+        env:
+          GOTENBERG_URL: http://localhost:3300
+        run: pnpm --filter @ssm-usor/app test:e2e:flows
+
+      - name: Upload the flow test report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-flows
+          path: |
+            apps/app/playwright-report-flows/
+            apps/app/test-results-flows/
+          retention-days: 7
+          overwrite: true

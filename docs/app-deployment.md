@@ -1,6 +1,6 @@
 # Deploy the application and API
 
-The **CI** workflow (`.github/workflows/ci.yml`) automatically deploys the affected API
+The **Deploy** workflow (`.github/workflows/deploy.yml`) automatically deploys the affected API
 and SPA applications after validation succeeds on a push to `main`. Each application
 has its own deployment job and can be released independently:
 

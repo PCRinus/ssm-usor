@@ -1,23 +1,25 @@
-name: CI
+name: Deploy
 
+# Everything that reaches production, and only that: a push to main, or a run started by hand.
+# Pull requests have their own workflow. GitHub bills every job rounded up to a whole minute,
+# which is why the production builds share one job and why nothing runs that has nothing to do.
 on:
-  pull_request:
   push:
     branches:
       - main
-  # Run by hand from the Actions tab, on main: deploys everything whatever changed. For an
+  # Actions → Deploy → "Run workflow", on main: deploys everything whatever changed. For an
   # environment that was wiped, a rotated secret, or a deployment that failed halfway.
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Serialize entire main runs, including validation, builds, and deployment.
-# PR runs use separate groups; their validation jobs cancel superseded checks below.
-concurrency:
-  group: ci-${{ github.event_name != 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: false
-  queue: max
+# No queue across the workflow. Runs used to wait for one another from start to finish, so
+# three merges in a row meant three full runs. Now a newer run cancels an older one that is
+# still validating or building, which has deployed nothing yet; each deployment job has a group
+# of its own that is never cancelled, so nothing is interrupted halfway and the same thing is
+# never deployed twice at once. What a cancelled run carried is selected again by the next one,
+# because the comparison below is with the last run that succeeded.
 
 jobs:
   changes:
@@ -26,7 +28,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: read
       # To find the last run that deployed.
       actions: read
     outputs:
@@ -36,16 +37,18 @@ jobs:
       pdf: ${{ steps.select.outputs.pdf }}
       marketing: ${{ steps.select.outputs.marketing }}
       database: ${{ steps.select.outputs.database }}
+      templates: ${{ steps.select.outputs.templates }}
       projects: ${{ steps.select.outputs.projects }}
-      # Whether this run deploys: a push to main, or a run started by hand on main.
-      deploy: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+      # A run started by hand on another branch validates and deploys nothing.
+      deploy: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v7
 
-      # A push is compared with the commit of the last run on main that succeeded, not with
-      # the push before it: a run that was cancelled, superseded or failed deployed nothing, so
-      # what it carried has to be selected again by the next one. Without such a run (or when
-      # its commit is gone) the comparison falls back to the push before.
+      # A push is compared with the commit of the last run of this workflow on main that
+      # succeeded, not with the push before it: a run that was cancelled, superseded or failed
+      # deployed nothing as far as this is concerned, so what it carried is selected again by
+      # the next one. Without such a run (or when its commit is gone) the comparison falls back
+      # to the push before.
       - name: Find the last commit that was deployed
         id: baseline
         if: github.event_name == 'push'
@@ -53,7 +56,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=1" \
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=1" \
             --jq '.workflow_runs[0].head_sha // empty' || true)
           if [[ -n "$sha" ]] && git fetch --no-tags --depth=1 origin "$sha" 2>/dev/null; then
             echo "Comparing with $sha, the last commit a run on main succeeded for."
@@ -63,106 +66,45 @@ jobs:
             echo "base=$GITHUB_REF" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Detect changes across the PR or since the last deployment
+      - name: Detect changes since the last deployment
         id: filter
-        if: github.event_name != 'workflow_dispatch'
+        if: github.event_name == 'push'
         uses: dorny/paths-filter@v4
         with:
-          # PRs use GitHub's changed-file list instead, whatever the base.
           base: ${{ steps.baseline.outputs.base || github.ref }}
           filters: .github/filters.yml
 
-      # The database filter selects its own job, not a deployable workspace. A run started by
-      # hand selects everything.
-      - name: Select deployable applications
+      # One step builds every output, so a push and a run by hand cannot drift apart. The
+      # database and templates filters select their own jobs, not a deployable workspace.
+      - name: Select what to deploy
         id: select
         env:
           EVERYTHING: ${{ github.event_name == 'workflow_dispatch' }}
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
         run: |
-          all='["api","app","mail","pdf","marketing","database"]'
+          all='["api","app","mail","pdf","marketing","database","templates"]'
           if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
           for name in $(jq -r '.[]' <<< "$all"); do
             echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
           done
-          echo "projects=$(jq -c 'map(select(. != "database" and . != "templates"))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "mail", "pdf", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
     needs: changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    concurrency:
-      group: ci-validate-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-      cancel-in-progress: true
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: ./.github/actions/setup
-        with:
-          turbo-cache: 'true'
-
-      - name: Check generated API contract and client
-        run: pnpm check:generated
-
-      - name: Lint and check formatting
-        run: pnpm lint
-
-      - name: Type-check
-        run: pnpm typecheck
-
-      - name: Test
-        run: pnpm test
-
-      - name: Set up Supabase CLI
-        if: needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true'
-        uses: supabase/setup-cli@v3
-        with:
-          version: 2.117.0
-
-      - name: Check migrations, policies, and generated database types
-        if: needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true'
-        shell: bash
-        run: |
-          supabase start -x studio,imgproxy,mailpit,postgres-meta,edge-runtime,logflare,vector,supavisor,realtime
-          supabase test db
-          pnpm generate:db
-          if ! git diff --exit-code -- apps/api/src/database.types.ts; then
-            echo "apps/api/src/database.types.ts is stale. Run pnpm generate:db and commit the result."
-            exit 1
-          fi
-
-      # PRs check packaging without production environment access. Main builds
-      # happen once in the production build job, with the real public settings.
-      - name: Build and validate affected PR applications
-        if: github.event_name == 'pull_request' && needs.changes.outputs.projects != '[]'
-        env:
-          PROJECTS: ${{ needs.changes.outputs.projects }}
-        shell: bash
-        run: |
-          mapfile -t projects < <(jq -r '.[]' <<< "$PROJECTS")
-          filters=()
-          for project in "${projects[@]}"; do
-            filters+=("--filter=@ssm-usor/$project")
-          done
-          pnpm exec turbo run deploy:dry-run "${filters[@]}"
-
-  # Browser flows that create users: invitations, member management, passwords. They run
-  # against a throwaway local stack (local Supabase, the API served by Node with an in-memory
-  # mailer, a preview build of the SPA), never against production, and sit beside validation
-  # rather than in front of any deployment.
-  flows:
-    name: Browser flow tests
-    needs: changes
+    # Only when there is something to deploy: a push of documentation alone was validated by
+    # its pull request and would pay six minutes here to deploy nothing.
     if: >-
-      needs.changes.outputs.app == 'true' ||
-      needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.database == 'true'
+      needs.changes.outputs.deploy == 'true' &&
+      (needs.changes.outputs.projects != '[]' ||
+        needs.changes.outputs.database == 'true' ||
+        needs.changes.outputs.templates == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # A newer run replaces this one while it has deployed nothing.
     concurrency:
-      group: ci-flows-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+      group: deploy-validate
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
@@ -170,80 +112,28 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-cache: 'true'
-          cache-scope: flows
 
-      - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v3
+      # The pull request validated its own merge result; this validates main as it is after
+      # everything else that was merged since. The browser flows are not repeated here.
+      - uses: ./.github/actions/validate
         with:
-          version: 2.117.0
-
-      - name: Start the local Supabase stack
-        run: supabase start -x studio,imgproxy,mailpit,postgres-meta,edge-runtime,logflare,vector,supavisor,realtime
-
-      - name: Read the Playwright version
-        id: playwright
-        run: echo "version=$(pnpm --filter @ssm-usor/app exec playwright --version | tr -cd '0-9.')" >> "$GITHUB_OUTPUT"
-
-      - name: Restore the Chromium download
-        id: chromium-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      - name: Install Chromium
-        if: steps.chromium-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @ssm-usor/app exec playwright install --with-deps chromium
-
-      - name: Install Chromium's system packages
-        if: steps.chromium-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
-
-      # The API's e2e server imports both packages from their build output.
-      - name: Build the contracts and the document engine
-        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
-
-      # Generating documents reads the templates from Storage.
-      - name: Register the document templates in the local stack
-        run: pnpm templates:register:local
-
-      # The image apps/pdf deploys, so issuing makes real PDFs in the flows.
-      - name: Start the PDF converter
-        run: |
-          image=$(grep -m1 '^FROM ' apps/pdf/Dockerfile | cut -d' ' -f2)
-          docker run -d --name gotenberg -p 3300:3000 "$image"
-          timeout 120 bash -c 'until curl -sf localhost:3300/health >/dev/null; do sleep 1; done'
-
-      - name: Run the browser flows
-        env:
-          GOTENBERG_URL: http://localhost:3300
-        run: pnpm --filter @ssm-usor/app test:e2e:flows
-
-      - name: Upload the flow test report
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-flows
-          path: |
-            apps/app/playwright-report-flows/
-            apps/app/test-results-flows/
-          retention-days: 7
-          overwrite: true
+          database: ${{ needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true' }}
 
   build:
-    name: Build production ${{ matrix.project }}
+    name: Build production applications
     # Alongside validation, to keep it off the critical path. Nothing built here is deployed
-    # unless validation succeeds too: every deployment job needs both.
+    # unless validation succeeds too: every deployment job needs both. One job for all of them:
+    # a job per application billed a minute or two each for a build of under a minute.
     needs: changes
     if: needs.changes.outputs.deploy == 'true' && needs.changes.outputs.projects != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment: production
-    strategy:
-      fail-fast: false
-      matrix:
-        project: ${{ fromJSON(needs.changes.outputs.projects) }}
+    concurrency:
+      group: deploy-build
+      cancel-in-progress: true
     env:
+      PROJECTS: ${{ needs.changes.outputs.projects }}
       GIT_COMMIT_SHA: ${{ github.sha }}
       VITE_API_URL: https://api.ssmusor.ro
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
@@ -254,7 +144,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Check public application configuration
-        if: matrix.project == 'app' || matrix.project == 'api'
+        if: needs.changes.outputs.app == 'true' || needs.changes.outputs.api == 'true'
         shell: bash
         run: |
           : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
@@ -267,29 +157,80 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-cache: 'true'
-          cache-scope: build-${{ matrix.project }}
+          cache-scope: build
 
-      - name: Build and validate Cloudflare package
-        env:
-          PROJECT: ${{ matrix.project }}
-        run: pnpm exec turbo run deploy:dry-run --filter="@ssm-usor/$PROJECT"
-
-      - name: Collect release files
-        env:
-          PROJECT: ${{ matrix.project }}
+      - name: Build and validate the Cloudflare packages
         shell: bash
         run: |
-          mkdir -p "$RUNNER_TEMP/release"
-          cp -R "apps/$PROJECT/.wrangler/deploy" "$RUNNER_TEMP/release/worker"
-          if [[ "$PROJECT" != api && "$PROJECT" != mail && "$PROJECT" != pdf ]]; then
-            cp -R "apps/$PROJECT/dist" "$RUNNER_TEMP/release/dist"
-          fi
+          mapfile -t projects < <(jq -r '.[]' <<< "$PROJECTS")
+          filters=()
+          for project in "${projects[@]}"; do
+            filters+=("--filter=@ssm-usor/$project")
+          done
+          pnpm exec turbo run deploy:dry-run "${filters[@]}"
 
-      - name: Upload validated release
+      # One folder per application, in the shape its deployment job downloads.
+      - name: Collect release files
+        shell: bash
+        run: |
+          for project in $(jq -r '.[]' <<< "$PROJECTS"); do
+            mkdir -p "$RUNNER_TEMP/release-$project"
+            cp -R "apps/$project/.wrangler/deploy" "$RUNNER_TEMP/release-$project/worker"
+            if [[ "$project" != api && "$project" != mail && "$project" != pdf ]]; then
+              cp -R "apps/$project/dist" "$RUNNER_TEMP/release-$project/dist"
+            fi
+          done
+
+      - name: Upload validated api release
+        if: needs.changes.outputs.api == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: release-${{ matrix.project }}-${{ github.sha }}
-          path: ${{ runner.temp }}/release/
+          name: release-api-${{ github.sha }}
+          path: ${{ runner.temp }}/release-api/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated app release
+        if: needs.changes.outputs.app == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-app-${{ github.sha }}
+          path: ${{ runner.temp }}/release-app/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated mail release
+        if: needs.changes.outputs.mail == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-mail-${{ github.sha }}
+          path: ${{ runner.temp }}/release-mail/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated pdf release
+        if: needs.changes.outputs.pdf == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-pdf-${{ github.sha }}
+          path: ${{ runner.temp }}/release-pdf/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated marketing release
+        if: needs.changes.outputs.marketing == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-marketing-${{ github.sha }}
+          path: ${{ runner.temp }}/release-marketing/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -300,6 +241,11 @@ jobs:
     needs: [changes, validate]
     if: needs.changes.outputs.deploy == 'true' && needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-database
+      cancel-in-progress: false
     timeout-minutes: 15
     environment:
       name: production
@@ -333,14 +279,15 @@ jobs:
   deploy-templates:
     name: Register document templates
     needs: [changes, validate, deploy-database]
-    # On every push to main, not on a path filter: the filter compares with the push before,
-    # so a run that is superseded while it waits would leave its templates unregistered.
-    # Registering is cheap when nothing changed.
+    # When a template, the script or a migration changed since the last deployment. It used to
+    # run on every push, as a way around a comparison that lost what superseded runs carried;
+    # the comparison no longer does, and a job that does nothing still bills a minute.
     # After the migrations: the registry and the bucket come from one. A skipped migration job
     # is fine only when the database was not selected.
     if: >-
       !cancelled() &&
       needs.changes.outputs.deploy == 'true' &&
+      needs.changes.outputs.templates == 'true' &&
       needs.validate.result == 'success' &&
       (needs.deploy-database.result == 'success' ||
         (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
@@ -374,6 +321,11 @@ jobs:
     needs: [changes, validate, build]
     if: needs.changes.outputs.pdf == 'true'
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-pdf
+      cancel-in-progress: false
     timeout-minutes: 20
     environment:
       name: production
@@ -410,6 +362,11 @@ jobs:
     needs: [changes, validate, build]
     if: needs.changes.outputs.mail == 'true'
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-mail
+      cancel-in-progress: false
     timeout-minutes: 15
     environment:
       name: production
@@ -460,6 +417,11 @@ jobs:
       (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped') &&
       (needs.deploy-pdf.result == 'success' || needs.deploy-pdf.result == 'skipped')
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-api
+      cancel-in-progress: false
     timeout-minutes: 15
     environment:
       name: production
@@ -556,6 +518,11 @@ jobs:
       (needs.deploy-api.result == 'success' ||
         (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-auth-config
+      cancel-in-progress: false
     timeout-minutes: 10
     environment:
       name: production
@@ -602,6 +569,11 @@ jobs:
       (needs.deploy-api.result == 'success' ||
         (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-app
+      cancel-in-progress: false
     timeout-minutes: 15
     environment:
       name: production
@@ -639,6 +611,11 @@ jobs:
     needs: [changes, deploy-app]
     if: ${{ !cancelled() && needs.deploy-app.result == 'success' }}
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: verify-app
+      cancel-in-progress: false
     timeout-minutes: 15
     environment:
       name: production
@@ -707,6 +684,11 @@ jobs:
     needs: [changes, validate, build]
     if: needs.changes.outputs.marketing == 'true'
     runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-marketing
+      cancel-in-progress: false
     timeout-minutes: 15
     environment:
       name: production
