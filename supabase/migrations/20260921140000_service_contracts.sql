@@ -91,7 +91,9 @@ create policy "members delete their draft revisions"
   );
 
 -- Files. Reading was by the organization's folder alone, which a specialist who learned the
--- path of a contract would pass.
+-- path of a contract would pass. The PDF is matched by where it lives, beside the Word file,
+-- and not by `pdf_path`: it is written just before issuing, while that column is still null,
+-- and Storage reads the object it has just written.
 create function public.is_readable_document_path(p_path text)
 returns boolean
 language sql
@@ -101,7 +103,7 @@ set search_path = ''
 as $$
   select exists (
     select 1 from public.document_revisions r
-    where (r.docx_path = p_path or r.pdf_path = p_path)
+    where (r.docx_path = p_path or regexp_replace(r.docx_path, '\.docx$', '.pdf') = p_path)
       and public.can_access_document(r.document_id)
   );
 $$;
