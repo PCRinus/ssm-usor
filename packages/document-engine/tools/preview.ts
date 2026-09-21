@@ -59,6 +59,9 @@ function sample(
       imminentDangerText: described(people),
       training: {
         periodicDuration: '2 ore',
+        intervalPhrase: 'următoarele intervale de timp',
+        administrative: [{}],
+        worker: [{}],
         administrativeFrequency: 'SEMESTRIAL',
         administrativeMonths: 'februarie, august',
         workerFrequency: 'TRIMESTRIAL',
