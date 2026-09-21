@@ -459,7 +459,11 @@ mobile navigation link closes the Sheet.
   Romanian terms, passed as `i18n`; a key it leaves out shows in English, which is what to
   look for after upgrading the editor. Our own controls sit in its
   title bar: the revision badge, "Modificări nesalvate" or "Salvat", "Descarcă", and
-  "Salvează", which is also Ctrl+S. Unsaved means the document's revision differs from the one
+  "Salvează", which is also Ctrl+S. While a draft still reads `DE COMPLETAT`, the bar also has
+  "N locuri de completat" (`UnfilledNavigator`, over the editor's `useDocumentSearch`): each
+  press selects the next one and brings it into view, so what is typed takes its place, and
+  the count follows the text. The mark is not coloured in the file on purpose: what is typed
+  over coloured text inherits the colour, here and in Word, and would be issued with it. Unsaved means the document's revision differs from the one
   at load or at the last save, because opening a file reports layout changes of its own.
   Saving sends the bytes to `PUT /documents/{documentId}/draft/file`; a `409` says the draft
   is gone and to download the file, and "Descarcă" always gives what is on screen, edits
@@ -492,13 +496,18 @@ mobile navigation link closes the Sheet.
   `/clients/:id/employees`, so a link kept from before the promotion still works.
 - The service contract (`src/service-contracts`): `ServiceContractCard` is on the lead's page
   and, for a client, in "Alte documente", a section only an owner gets (a specialist who types
-  the address is told what is there and whose it is, and nothing is asked of the API). The
-  form keeps what the app reads about the contract: the number, which starts from the API's
-  suggestion and says so, the two dates, the duration, the renewal, the two services, and who
-  signs for the client, which is saved on the client because a lead has no other form for it.
-  Under it, while something is missing, a warning groups it by where it is filled in, with a
-  link to each place: the organization, the company's own form, this form. "Generează
-  contractul" waits for saved details and for nothing missing, and says which in its title;
+  the address is told what is there and whose it is, and nothing is asked of the API). It is
+  two cards. "Detaliile contractului" keeps what the app reads about the contract: the number,
+  which starts from the API's suggestion and says so, the two dates, the duration, the
+  renewal, the two services, and who signs for the client, which is saved on the client
+  because a lead has no other form for it. Once saved it shows as a summary with "Modifică",
+  so that the form does not stand between the owner and the contract on every visit.
+  "Contractul" is the document: a sentence on where it stands, its badges, and its actions.
+  Until it is issued, a notice says that prices are written by hand over `DE COMPLETAT` and
+  how the editor finds them. While something is missing, a warning groups it by where it is
+  filled in, with a link to each place: the organization's two sections, the company's own
+  form, the details form. "Generează contractul" waits for saved details and for nothing
+  missing, and says which in its title;
   over a draft it asks first, because prices written by hand are lost. The contract then
   shows as a document: "Ciornă · rev. N", "Emis · rev. N", "Modificat", and "Date modificate"
   when `draftOutdated`. It opens in the editor, downloads as Word or PDF, is issued behind a

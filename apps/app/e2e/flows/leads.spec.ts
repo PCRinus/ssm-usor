@@ -170,9 +170,14 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   // Fire safety is not sold, so its chapters are not there.
   await expect(frame.getByText('Legii nr. 307/2006')).toHaveCount(0);
 
-  await frame.getByText('lei pe lună, pentru serviciile curente').click();
-  await page.keyboard.press('End');
-  await page.keyboard.type(' PREȚ SCRIS DE MÂNĂ');
+  // The button selects the next mark, so what is typed takes its place.
+  const unfilled = page.getByTestId('editor-unfilled');
+  await expect(unfilled).toContainText('3 locuri de completat');
+  await unfilled.click();
+  await expect(unfilled).toContainText('1 din 3');
+  await page.keyboard.type('1.500');
+  await expect(unfilled).toContainText('2 locuri de completat');
+  await expect(frame.getByText('1.500 lei, la semnarea contractului')).toBeVisible();
   await page.getByTestId('editor-save').click();
   await expect(page.getByText('Documentul a fost salvat.')).toBeVisible();
   await page.getByTestId('editor-back').click();
