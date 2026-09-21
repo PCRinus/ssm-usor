@@ -4,8 +4,10 @@ import * as React from 'react';
 
 // The tinted variants set their own foreground, so the description inherits it instead of
 // the muted grey, which washes out on a coloured background.
+// When an action shares the description row, center the icon with that row on wide screens.
+// On narrow screens the action stacks below the copy, so keep the icon with the first line.
 const alertVariants = cva(
-  'relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current',
+  'relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current sm:[&>svg]:self-center sm:[&>svg]:translate-y-0',
   {
     variants: {
       variant: {
