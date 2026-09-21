@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -62,6 +62,11 @@ select ok(
 select ok(
   public.is_readable_document_path('11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/1.docx'),
   'and read'
+);
+
+select ok(
+  public.is_readable_document_path('11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/1.pdf'),
+  'and whose PDF can be stored before issuing records it'
 );
 
 select lives_ok(
