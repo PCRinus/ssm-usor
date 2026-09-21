@@ -172,12 +172,14 @@ describe('leads', () => {
     expect(within(contact).getByTestId('contact-phone').textContent).toBe('—');
 
     const notes = await screen.findByTestId('owner-notes-body');
+    expect(screen.getByRole('heading', { name: 'Notițe' })).toBeTruthy();
+    expect(notes.getAttribute('aria-label')).toBe('Notițe');
     await waitFor(() => expect((notes as HTMLTextAreaElement).value).toBe('Sunat 12.09.'));
     expect(screen.getByTestId('owner-notes-save')).toHaveProperty('disabled', true);
     await user.type(notes, ' Revine luni.');
     expect(screen.getByTestId('owner-notes-state').textContent).toBe('Modificări nesalvate');
     await user.click(screen.getByTestId('owner-notes-save'));
-    expect(await screen.findByText('Notele au fost salvate.')).toBeTruthy();
+    expect(await screen.findByText('Notițele au fost salvate.')).toBeTruthy();
     expect(
       JSON.parse(String(requests(`/clients/${leadId}/owner-notes`, 'PUT')[0]![1]?.body))
     ).toEqual({ body: 'Sunat 12.09. Revine luni.' });

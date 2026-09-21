@@ -125,7 +125,7 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByTestId('details-worker-interval').click();
   await page.getByRole('option', { name: 'Trimestrial (la 3 luni)' }).click();
   // The preview follows the selects while typing, before anything is saved.
-  await expect(page.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeVisible();
+  await expect(page.getByText('Lunile: Februarie, Mai, August, Noiembrie')).toBeVisible();
   await page.getByTestId('details-day-from').fill('2');
   await page.getByTestId('training-program-save').click();
   await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();

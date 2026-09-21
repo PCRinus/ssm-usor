@@ -155,8 +155,8 @@ describe('client document data', () => {
     await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
     await chooseOption(user, 'details-worker-interval', 'Trimestrial (la 3 luni)');
 
-    expect(screen.getByText('Instruiri în: Februarie, August.')).toBeTruthy();
-    expect(screen.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeTruthy();
+    expect(screen.getByText('Lunile: Februarie, August')).toBeTruthy();
+    expect(screen.getByText('Lunile: Februarie, Mai, August, Noiembrie')).toBeTruthy();
   });
 
   it('offers workers no interval above six months', async () => {
@@ -164,9 +164,16 @@ describe('client document data', () => {
     mount();
 
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId('details-worker-interval'));
+    const trigger = await screen.findByTestId('details-worker-interval');
+    expect(trigger.textContent).toContain('Alege intervalul');
+    await user.click(trigger);
+    expect(screen.queryByRole('option', { name: 'Alege intervalul' })).toBeNull();
     expect(screen.getByRole('option', { name: 'Nu se aplică' })).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Anual (la 12 luni)' })).toBeNull();
+    await user.click(screen.getByRole('option', { name: 'Trimestrial (la 3 luni)' }));
+    await user.click(trigger);
+    await user.click(screen.getByRole('option', { name: 'Șterge alegerea' }));
+    expect(trigger.textContent).toContain('Alege intervalul');
   });
 
   it('saves the representative and the program apart, each over what the other saved', async () => {
@@ -278,7 +285,7 @@ describe('client document data', () => {
     expect(screen.getByTestId<HTMLButtonElement>('legal-representative-save').disabled).toBe(true);
 
     await user.click(await screen.findByTestId('training-program-edit'));
-    await chooseOption(user, 'details-training-duration', 'Alege durata');
+    await chooseOption(user, 'details-training-duration', 'Șterge alegerea');
     await user.click(screen.getByTestId('training-program-save'));
 
     await waitFor(() =>

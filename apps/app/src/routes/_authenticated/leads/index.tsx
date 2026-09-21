@@ -200,7 +200,7 @@ export function LeadsPage() {
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
                   Adaugă o companie cu care discuți. Când semnați contractul, o poți transforma în
-                  client împreună cu notele și datele salvate.
+                  client împreună cu notițele și datele salvate.
                 </p>
                 <Button asChild variant="outline" className="mt-5">
                   <Link to="/leads/new">

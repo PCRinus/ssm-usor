@@ -125,7 +125,7 @@ export function ClientArchiveDialog({
               <span className="font-medium text-foreground">{change.client.legalName}</span>
               {lead
                 ? change.action === 'archive'
-                  ? ' iese din lista clienților potențiali activi. Datele, contactul și notele lui rămân neschimbate în lista „Arhivați”, de unde poate fi restaurat.'
+                  ? ' iese din lista clienților potențiali activi. Datele, contactul și notițele lui rămân neschimbate în lista „Arhivați”, de unde poate fi restaurat.'
                   : ' revine în lista clienților potențiali activi.'
                 : change.action === 'archive'
                   ? ' iese din lista clienților activi. Angajații, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi restaurat.'
