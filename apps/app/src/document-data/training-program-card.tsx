@@ -322,7 +322,7 @@ function ProgramSelect({
 }) {
   return (
     <Select
-      value={value || 'undecided'}
+      value={value}
       onValueChange={(next) => onChange(next === 'undecided' ? '' : next)}
       disabled={disabled}
     >
@@ -333,11 +333,15 @@ function ProgramSelect({
         aria-describedby={describedBy}
         className="w-full"
       >
-        <SelectValue />
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="undecided">{placeholder}</SelectItem>
-        <SelectSeparator />
+        {value && (
+          <>
+            <SelectItem value="undecided">Șterge alegerea</SelectItem>
+            <SelectSeparator />
+          </>
+        )}
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
