@@ -218,6 +218,10 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   await expect(page.getByTestId('editor-frame').getByText('CORECTAT ÎN APLICAȚIE')).toBeVisible({
     timeout: 30_000,
   });
+  await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('editor-loading')).toHaveCount(0);
   await expect(page.getByTestId('editor-save')).toBeDisabled();
   await page.getByTestId('editor-back').click();
   await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');

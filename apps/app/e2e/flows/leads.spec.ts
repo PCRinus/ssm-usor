@@ -165,7 +165,9 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   const frame = page.getByTestId('editor-frame');
   await expect(frame).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
   await expect(frame.getByText('Nr. 51 din')).toBeVisible();
-  await expect(frame.getByText('S.C. VIITOR CONTRACT E2E S.R.L.').first()).toBeVisible();
+  await expect(
+    frame.getByText('S.C. VIITOR CONTRACT E2E S.R.L.').filter({ visible: true }).last()
+  ).toBeVisible();
   await expect(frame.getByText('Art. 1.')).toBeVisible();
   // Fire safety is not sold, so its chapters are not there.
   await expect(frame.getByText('Legii nr. 307/2006')).toHaveCount(0);
