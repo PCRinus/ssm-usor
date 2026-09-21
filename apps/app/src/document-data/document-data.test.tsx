@@ -155,8 +155,8 @@ describe('client document data', () => {
     await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
     await chooseOption(user, 'details-worker-interval', 'Trimestrial (la 3 luni)');
 
-    expect(screen.getByText('Instruiri în: Februarie, August.')).toBeTruthy();
-    expect(screen.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeTruthy();
+    expect(screen.getByText('Lunile: Februarie, August')).toBeTruthy();
+    expect(screen.getByText('Lunile: Februarie, Mai, August, Noiembrie')).toBeTruthy();
   });
 
   it('offers workers no interval above six months', async () => {

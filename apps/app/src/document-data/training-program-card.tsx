@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@ssm-usor/ui/components/select';
 import { Link } from '@tanstack/react-router';
-import { Pencil } from 'lucide-react';
+import { FileText, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
@@ -88,13 +88,9 @@ export function TrainingProgramCard({
   userId: string;
 }) {
   return (
-    <Card data-testid="training-program-card">
+    <Card data-testid="training-program-card" className="gap-3">
       <CardHeader>
-        <h2 className="text-lg font-semibold">Instruire periodică</h2>
-        <p className="text-sm text-muted-foreground">
-          Alege categoriile instruite, frecvența și zilele. Programul apare în decizia de instruire
-          și va sta la baza calendarului termenelor.
-        </p>
+        <h2 className="text-lg font-semibold">Programul de instruire periodică</h2>
       </CardHeader>
       <CardContent>
         {/* Keyed by what is saved, so the card goes back to the summary after a save. */}
@@ -210,7 +206,7 @@ function TrainingProgramSummary({
   );
 
   return (
-    <div className="grid max-w-3xl gap-4">
+    <div className="grid gap-4">
       {hasExcludedEmployees && (
         <Notice variant="warning" data-testid="training-program-category-warning">
           Există angajați într-o categorie marcată „Nu se aplică”. Modifică programul înainte de a
@@ -222,7 +218,7 @@ function TrainingProgramSummary({
           program.workerTrainingIntervalMonths !== null &&
           program.administrativeTrainingIntervalMonths !== null
             ? 'sm:grid-cols-2'
-            : 'max-w-md'
+            : 'lg:grid-cols-2'
         }`}
       >
         {program.workerTrainingIntervalMonths !== null && (
@@ -335,7 +331,7 @@ function ProgramSelect({
         data-testid={id}
         aria-invalid={invalid}
         aria-describedby={describedBy}
-        className="h-11 w-full"
+        className="w-full"
       >
         <SelectValue />
       </SelectTrigger>
@@ -419,6 +415,10 @@ function TrainingProgramForm({
       : null;
   const administrativeMonths = preview(administrativeInterval);
   const workerMonths = preview(workerInterval);
+  const hasAdministrativeInterval = Boolean(
+    administrativeInterval && administrativeInterval !== notApplicable
+  );
+  const hasWorkerInterval = Boolean(workerInterval && workerInterval !== notApplicable);
 
   return (
     <form
@@ -426,127 +426,153 @@ function TrainingProgramForm({
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}
       noValidate
-      className="grid max-w-3xl gap-7"
+      className="grid gap-6"
     >
-      <section className="grid gap-4" aria-labelledby="training-categories-title">
-        <div className="grid gap-1">
-          <h3 id="training-categories-title" className="font-semibold">
-            Categoriile de personal
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Alege cât de des se instruiește fiecare categorie prezentă la client. Pentru o categorie
-            fără angajați, alege „Nu se aplică”.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            id="details-administrative-interval"
-            label={staffCategoryLabels.technical_administrative}
-            hint={
-              administrativeMonths
-                ? `Instruiri în: ${administrativeMonths}.`
-                : administrativeInterval === notApplicable
-                  ? 'Această categorie nu va apărea în decizie.'
-                  : 'Cel mult la 12 luni.'
-            }
-            error={errors.administrativeTrainingIntervalMonths}
-          >
-            <Controller
-              name="administrativeTrainingIntervalMonths"
-              control={form.control}
-              render={({ field }) => (
-                <ProgramSelect
-                  id="details-administrative-interval"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={locked}
-                  invalid={Boolean(errors.administrativeTrainingIntervalMonths)}
-                  describedBy={describedBy(
-                    'details-administrative-interval',
-                    errors.administrativeTrainingIntervalMonths,
-                    true
-                  )}
-                  placeholder="Alege intervalul"
-                  options={intervalChoices}
-                  allowNotApplicable
-                />
-              )}
-            />
-          </Field>
-          <Field
-            id="details-worker-interval"
-            label={staffCategoryLabels.execution}
-            hint={
-              workerMonths
-                ? `Instruiri în: ${workerMonths}.`
-                : workerInterval === notApplicable
-                  ? 'Această categorie nu va apărea în decizie.'
-                  : 'Cel mult la 6 luni.'
-            }
-            error={errors.workerTrainingIntervalMonths}
-          >
-            <Controller
-              name="workerTrainingIntervalMonths"
-              control={form.control}
-              render={({ field }) => (
-                <ProgramSelect
-                  id="details-worker-interval"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={locked}
-                  invalid={Boolean(errors.workerTrainingIntervalMonths)}
-                  describedBy={describedBy(
-                    'details-worker-interval',
-                    errors.workerTrainingIntervalMonths,
-                    true
-                  )}
-                  placeholder="Alege intervalul"
-                  options={intervalChoices.filter(({ value }) => Number(value) <= 6)}
-                  allowNotApplicable
-                />
-              )}
-            />
-          </Field>
-        </div>
-        {conflictingCategories.size > 0 && (
-          <Notice variant="warning" data-testid="training-program-category-warning">
-            Există angajați în categoria marcată „Nu se aplică”. Alege un interval pentru acea
-            categorie înainte de a genera documentele.
-          </Notice>
-        )}
-      </section>
+      <Notice variant="info" title="Pentru generarea documentelor">
+        Poți salva programul incomplet. Alege un interval sau „Nu se aplică” pentru fiecare
+        categorie; cel puțin una trebuie să aibă interval.
+      </Notice>
 
-      <section className="grid gap-4 border-t pt-6" aria-labelledby="training-dates-title">
-        <div className="grid gap-1">
-          <h3 id="training-dates-title" className="font-semibold">
-            Când are loc instruirea
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Prima lună și intervalele alese stabilesc lunile următoare. Zilele sunt comune tuturor
-            categoriilor.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <Field id="details-first-month" label="Prima lună" error={errors.trainingFirstMonth}>
-            <Controller
-              name="trainingFirstMonth"
-              control={form.control}
-              render={({ field }) => (
-                <ProgramSelect
-                  id="details-first-month"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={locked}
-                  invalid={Boolean(errors.trainingFirstMonth)}
-                  describedBy={describedBy('details-first-month', errors.trainingFirstMonth)}
-                  placeholder="Alege luna"
-                  options={monthChoices}
-                />
-              )}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field id="details-day-from" label="Din ziua" error={errors.trainingDayFrom}>
+      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <section className="grid content-start gap-4" aria-labelledby="training-categories-title">
+          <div>
+            <h3 id="training-categories-title" className="font-semibold">
+              Categoriile de personal
+            </h3>
+          </div>
+          <div className="grid gap-4">
+            <Field
+              id="details-administrative-interval"
+              label={staffCategoryLabels.technical_administrative}
+              mark="required"
+              hint="Cel mult la 12 luni."
+              error={errors.administrativeTrainingIntervalMonths}
+            >
+              <Controller
+                name="administrativeTrainingIntervalMonths"
+                control={form.control}
+                render={({ field }) => (
+                  <ProgramSelect
+                    id="details-administrative-interval"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={locked}
+                    invalid={Boolean(errors.administrativeTrainingIntervalMonths)}
+                    describedBy={describedBy(
+                      'details-administrative-interval',
+                      errors.administrativeTrainingIntervalMonths,
+                      true
+                    )}
+                    placeholder="Alege intervalul"
+                    options={intervalChoices}
+                    allowNotApplicable
+                  />
+                )}
+              />
+            </Field>
+            <Field
+              id="details-worker-interval"
+              label={staffCategoryLabels.execution}
+              mark="required"
+              hint="Cel mult la 6 luni."
+              error={errors.workerTrainingIntervalMonths}
+            >
+              <Controller
+                name="workerTrainingIntervalMonths"
+                control={form.control}
+                render={({ field }) => (
+                  <ProgramSelect
+                    id="details-worker-interval"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={locked}
+                    invalid={Boolean(errors.workerTrainingIntervalMonths)}
+                    describedBy={describedBy(
+                      'details-worker-interval',
+                      errors.workerTrainingIntervalMonths,
+                      true
+                    )}
+                    placeholder="Alege intervalul"
+                    options={intervalChoices.filter(({ value }) => Number(value) <= 6)}
+                    allowNotApplicable
+                  />
+                )}
+              />
+            </Field>
+          </div>
+          {conflictingCategories.size > 0 && (
+            <Notice variant="warning" data-testid="training-program-category-warning">
+              Există angajați în categoria marcată „Nu se aplică”. Alege un interval pentru acea
+              categorie înainte de a genera documentele.
+            </Notice>
+          )}
+        </section>
+
+        <section
+          className="grid content-start gap-4 border-t pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0"
+          aria-labelledby="training-dates-title"
+        >
+          <div>
+            <h3 id="training-dates-title" className="font-semibold">
+              Programarea instruirii
+            </h3>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              id="details-first-month"
+              label="Prima lună"
+              mark="required"
+              error={errors.trainingFirstMonth}
+            >
+              <Controller
+                name="trainingFirstMonth"
+                control={form.control}
+                render={({ field }) => (
+                  <ProgramSelect
+                    id="details-first-month"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={locked}
+                    invalid={Boolean(errors.trainingFirstMonth)}
+                    describedBy={describedBy('details-first-month', errors.trainingFirstMonth)}
+                    placeholder="Alege luna"
+                    options={monthChoices}
+                  />
+                )}
+              />
+            </Field>
+            <Field
+              id="details-training-duration"
+              label="Durata"
+              mark="required"
+              error={errors.periodicTrainingMinutes}
+            >
+              <Controller
+                name="periodicTrainingMinutes"
+                control={form.control}
+                render={({ field }) => (
+                  <ProgramSelect
+                    id="details-training-duration"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={locked}
+                    invalid={Boolean(errors.periodicTrainingMinutes)}
+                    describedBy={describedBy(
+                      'details-training-duration',
+                      errors.periodicTrainingMinutes
+                    )}
+                    placeholder="Alege durata"
+                    options={durationChoices}
+                  />
+                )}
+              />
+            </Field>
+            <Field
+              id="details-day-from"
+              label="Din ziua"
+              mark="required"
+              error={errors.trainingDayFrom}
+            >
               <Input
                 id="details-day-from"
                 data-testid="details-day-from"
@@ -559,7 +585,12 @@ function TrainingProgramForm({
                 {...form.register('trainingDayFrom')}
               />
             </Field>
-            <Field id="details-day-to" label="Până în ziua" error={errors.trainingDayTo}>
+            <Field
+              id="details-day-to"
+              label="Până în ziua"
+              mark="required"
+              error={errors.trainingDayTo}
+            >
               <Input
                 id="details-day-to"
                 data-testid="details-day-to"
@@ -573,78 +604,73 @@ function TrainingProgramForm({
               />
             </Field>
           </div>
-        </div>
-        <p className="text-xs text-muted-foreground">De exemplu, între zilele 2 și 7 ale lunii.</p>
-      </section>
-
-      <section className="grid gap-4 border-t pt-6" aria-labelledby="training-duration-title">
-        <div className="grid gap-1">
-          <h3 id="training-duration-title" className="font-semibold">
-            Cât durează o instruire
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Aceeași durată se aplică tuturor categoriilor.
-          </p>
-        </div>
-        <Field
-          id="details-training-duration"
-          label="Durata"
-          error={errors.periodicTrainingMinutes}
-          className="max-w-56"
-        >
-          <Controller
-            name="periodicTrainingMinutes"
-            control={form.control}
-            render={({ field }) => (
-              <ProgramSelect
-                id="details-training-duration"
-                value={field.value}
-                onChange={field.onChange}
-                disabled={locked}
-                invalid={Boolean(errors.periodicTrainingMinutes)}
-                describedBy={describedBy(
-                  'details-training-duration',
-                  errors.periodicTrainingMinutes
-                )}
-                placeholder="Alege durata"
-                options={durationChoices}
-              />
-            )}
-          />
-        </Field>
-      </section>
-
-      <div
-        className="grid gap-2 rounded-lg border border-info-border bg-info p-4 text-sm"
-        aria-live="polite"
-      >
-        <h3 className="font-semibold">În decizia de instruire</h3>
-        {administrativeInterval !== notApplicable && administrativeInterval && (
-          <p>
-            {staffCategoryLabels.technical_administrative}:{' '}
-            {intervalLabel(Number(administrativeInterval))}
-            {administrativeMonths ? `, în lunile ${administrativeMonths}` : ''}.
-          </p>
-        )}
-        {workerInterval !== notApplicable && workerInterval && (
-          <p>
-            {staffCategoryLabels.execution}: {intervalLabel(Number(workerInterval))}
-            {workerMonths ? `, în lunile ${workerMonths}` : ''}.
-          </p>
-        )}
-        {(!administrativeInterval || administrativeInterval === notApplicable) &&
-          (!workerInterval || workerInterval === notApplicable) && (
-            <p className="text-muted-foreground">Alege intervalul pentru cel puțin o categorie.</p>
-          )}
-        {(duration || (dayFrom && dayTo)) && (
-          <p>
-            {duration
-              ? `Durata: ${formatTrainingDuration(Number(duration))}`
-              : 'Durata nu este aleasă'}
-            {dayFrom && dayTo ? ` · Între zilele ${dayFrom} și ${dayTo} ale lunii` : ''}.
-          </p>
-        )}
+        </section>
       </div>
+
+      {hasAdministrativeInterval || hasWorkerInterval ? (
+        <section
+          className="rounded-xl border border-info-border bg-info p-5"
+          aria-labelledby="training-preview-title"
+          aria-live="polite"
+        >
+          <div className="mb-5 flex items-center gap-2.5">
+            <FileText aria-hidden="true" className="size-5 text-primary" />
+            <h3 id="training-preview-title" className="font-semibold">
+              În decizia de instruire
+            </h3>
+          </div>
+          <div
+            className={`grid gap-5 ${hasAdministrativeInterval && hasWorkerInterval ? 'sm:grid-cols-2' : ''}`}
+          >
+            {hasAdministrativeInterval && (
+              <div className="border-l-2 border-primary pl-4">
+                <p className="text-sm text-muted-foreground">
+                  {staffCategoryLabels.technical_administrative}
+                </p>
+                <p className="mt-1 text-xl font-semibold tracking-tight">
+                  {intervalLabel(Number(administrativeInterval))}
+                </p>
+                {administrativeMonths && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Lunile: {administrativeMonths}
+                  </p>
+                )}
+              </div>
+            )}
+            {hasWorkerInterval && (
+              <div className="border-l-2 border-primary pl-4">
+                <p className="text-sm text-muted-foreground">{staffCategoryLabels.execution}</p>
+                <p className="mt-1 text-xl font-semibold tracking-tight">
+                  {intervalLabel(Number(workerInterval))}
+                </p>
+                {workerMonths && (
+                  <p className="mt-1 text-sm text-muted-foreground">Lunile: {workerMonths}</p>
+                )}
+              </div>
+            )}
+          </div>
+          {(duration || (dayFrom && dayTo)) && (
+            <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 border-t border-info-border pt-4 text-sm">
+              {duration && (
+                <p>
+                  <span className="text-muted-foreground">Durata</span>{' '}
+                  <strong className="font-semibold">
+                    {formatTrainingDuration(Number(duration))}
+                  </strong>
+                </p>
+              )}
+              {dayFrom && dayTo && (
+                <p>
+                  <span className="text-muted-foreground">Zilele lunii</span>{' '}
+                  <strong className="font-semibold">
+                    {dayFrom === dayTo ? dayFrom : `${dayFrom}–${dayTo}`}
+                  </strong>
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {errors.root?.server && (
         <Notice variant="destructive" data-testid="training-program-error">
