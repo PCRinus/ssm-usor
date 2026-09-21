@@ -2,6 +2,8 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type ClientDocumentDetails,
   normalizeCui,
+  normalizeIban,
+  type OrganizationContractDetails,
   type OrganizationLegalDetails,
   type ResponsiblePerson,
   type Workplace,
@@ -17,10 +19,12 @@ import type {
   createResponsiblePersonRoute,
   createWorkplaceRoute,
   getClientDocumentDetailsRoute,
+  getOrganizationContractDetailsRoute,
   getOrganizationLegalDetailsRoute,
   listResponsiblePersonsRoute,
   listWorkplacesRoute,
   updateClientDocumentDetailsRoute,
+  updateOrganizationContractDetailsRoute,
   updateOrganizationLegalDetailsRoute,
   updateResponsiblePersonRoute,
   updateWorkplaceRoute,
@@ -93,6 +97,74 @@ export const updateOrganizationLegalDetails: RouteHandler<
     .single();
   if (error) throw fromDatabaseError(error, 'update organization legal details');
   return c.json({ legalDetails: toLegalDetails(data) }, 200);
+};
+
+const contractDetailsColumns =
+  'phone, iban, bank_name, authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, vat_payer, fire_safety_technician_name, fire_safety_technician_certificate';
+
+type ContractDetailsRow = Pick<
+  Tables['organizations']['Row'],
+  | 'phone'
+  | 'iban'
+  | 'bank_name'
+  | 'authorization_certificate_number'
+  | 'authorization_certificate_date'
+  | 'authorization_certificate_issuer'
+  | 'vat_payer'
+  | 'fire_safety_technician_name'
+  | 'fire_safety_technician_certificate'
+>;
+
+function toContractDetails(row: ContractDetailsRow): OrganizationContractDetails {
+  return {
+    phone: row.phone,
+    iban: row.iban,
+    bankName: row.bank_name,
+    authorizationCertificateNumber: row.authorization_certificate_number,
+    authorizationCertificateDate: row.authorization_certificate_date,
+    authorizationCertificateIssuer: row.authorization_certificate_issuer,
+    vatPayer: row.vat_payer,
+    fireSafetyTechnicianName: row.fire_safety_technician_name,
+    fireSafetyTechnicianCertificate: row.fire_safety_technician_certificate,
+  };
+}
+
+export const getOrganizationContractDetails: RouteHandler<
+  typeof getOrganizationContractDetailsRoute,
+  ApiEnv
+> = async (c) => {
+  // Row-level security shows a member exactly one organization: their own.
+  const { data, error } = await createDataClient(c)
+    .from('organizations')
+    .select(contractDetailsColumns)
+    .single();
+  if (error) throw fromDatabaseError(error, 'organization contract details');
+  return c.json({ contractDetails: toContractDetails(data) }, 200);
+};
+
+export const updateOrganizationContractDetails: RouteHandler<
+  typeof updateOrganizationContractDetailsRoute,
+  ApiEnv
+> = async (c) => {
+  const body = c.req.valid('json');
+  const { data, error } = await createDataClient(c)
+    .from('organizations')
+    .update({
+      phone: body.phone ?? null,
+      iban: body.iban ? normalizeIban(body.iban) : null,
+      bank_name: body.bankName ?? null,
+      authorization_certificate_number: body.authorizationCertificateNumber ?? null,
+      authorization_certificate_date: body.authorizationCertificateDate ?? null,
+      authorization_certificate_issuer: body.authorizationCertificateIssuer ?? null,
+      vat_payer: body.vatPayer,
+      fire_safety_technician_name: body.fireSafetyTechnicianName ?? null,
+      fire_safety_technician_certificate: body.fireSafetyTechnicianCertificate ?? null,
+    })
+    .eq('id', c.get('membership').organizationId)
+    .select(contractDetailsColumns)
+    .single();
+  if (error) throw fromDatabaseError(error, 'update organization contract details');
+  return c.json({ contractDetails: toContractDetails(data) }, 200);
 };
 
 const noSuchClient = () =>

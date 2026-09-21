@@ -290,6 +290,59 @@ export const saveDocumentDraftFileRoute = createRoute({
   },
 });
 
+export const attachDocumentSignedCopyRoute = createRoute({
+  method: 'put',
+  path: '/documents/{documentId}/signed-copy',
+  operationId: 'attachDocumentSignedCopy',
+  summary: 'Attach the signed copy of the issued revision, or replace it',
+  description:
+    "Takes the bytes of a PDF, up to 15 MB: a scan of the signed paper, or the file signed with the signer's own certificate. It is kept beside the issued revision with its hash. The app records that a file was attached, not that it is signed. A revision that is later superseded keeps its copy.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: documentParams,
+    body: {
+      required: true,
+      content: {
+        'application/pdf': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The document, whose issued revision has a signed copy',
+      content: documentContent,
+    },
+    400: { description: 'Invalid path, or not a PDF', content: errorContent },
+    404: noSuchDocument,
+    409: {
+      description: 'Nothing is issued (`not_issued`), or the client is archived',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const removeDocumentSignedCopyRoute = createRoute({
+  method: 'delete',
+  path: '/documents/{documentId}/signed-copy',
+  operationId: 'removeDocumentSignedCopy',
+  summary: 'Remove the signed copy of the issued revision, with its file',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: documentParams },
+  responses: {
+    204: { description: 'The signed copy is gone; the revision is untouched' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchDocument,
+    409: {
+      description: 'There is no signed copy, or the client is archived',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
 export const uploadClientDocumentRoute = createRoute({
   method: 'post',
   path: '/clients/{clientId}/documents/{typeKey}/upload',

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Database } from '../../src/database.types';
-import { fakeClients, seedClients } from './seed-clients';
+import { fakeClients, fakeLeads, seedClients } from './seed-clients';
 import { seedOrganization, seedOrganizationId } from './seed-organization';
 
 const organizationId = '11111111-2222-4333-8444-555555555555';
@@ -24,6 +24,23 @@ describe('fake clients', () => {
       if (row.caen_code) expect(caenClassName(row.caen_code)).not.toBeNull();
       expect(row.declared_employee_count).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('fake leads', () => {
+  it('is deterministic, leaves the clients of the same seed as they were, and fits the database', () => {
+    const clients = fakeClients(5, 7, organizationId, userId);
+    const leads = fakeLeads(4, 7, organizationId, userId);
+    expect(fakeLeads(4, 7, organizationId, userId)).toEqual(leads);
+    expect(fakeClients(5, 7, organizationId, userId)).toEqual(clients);
+    for (const row of leads) {
+      expect(row.stage).toBe('lead');
+      expect(isValidCui(row.cui)).toBe(true);
+      expect(row.contact_name!.length).toBeGreaterThanOrEqual(2);
+      expect(row.contact_phone).toMatch(/^07[0-9]{8}$/);
+      if (row.contact_email) expect(row.contact_email).toMatch(/^[^@\s]+@[^@\s]+\.[^@\s]+$/);
+    }
+    expect(leads[0]!.contact_email).toBeNull();
   });
 });
 

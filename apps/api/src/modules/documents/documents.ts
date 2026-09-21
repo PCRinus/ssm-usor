@@ -42,14 +42,18 @@ type RevisionRow = Pick<
   | 'edited_at'
   | 'issued_at'
   | 'created_at'
-> & { document_generations: { issue_date: string } | null };
+> & {
+  document_generations: { issue_date: string } | null;
+  // One to one, so PostgREST embeds an object, or null where nothing was attached.
+  document_signed_copies?: { revision_id: string } | null;
+};
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
-  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number'
+  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'document_group'
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id))';
 
 const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
 
@@ -59,8 +63,17 @@ export type Actor = { userId: string; organizationId: string; createdBy: string 
  * Whether the stored facts would print differently from what the draft was generated from.
  * Nothing to compare for an uploaded file, and nothing to say while data is missing.
  */
-function dataChanged(document: DocumentRow, revision: RevisionRow, facts: StoredDocumentFacts) {
-  if (revision.status !== 'draft' || !revision.data_snapshot || !revision.document_generations) {
+function dataChanged(
+  document: DocumentRow,
+  revision: RevisionRow,
+  facts: StoredDocumentFacts | null
+) {
+  if (
+    !facts ||
+    revision.status !== 'draft' ||
+    !revision.data_snapshot ||
+    !revision.document_generations
+  ) {
     return false;
   }
   const input = {
@@ -83,7 +96,7 @@ function dataChanged(document: DocumentRow, revision: RevisionRow, facts: Stored
 function toRevision(
   document: DocumentRow,
   revision: RevisionRow,
-  facts: StoredDocumentFacts
+  facts: StoredDocumentFacts | null
 ): DocumentRevision {
   return {
     id: revision.id,
@@ -94,11 +107,13 @@ function toRevision(
     editedAt: revision.edited_at,
     issuedAt: revision.issued_at,
     hasPdf: revision.pdf_path !== null,
+    hasSignedCopy: Boolean(revision.document_signed_copies),
     createdAt: revision.created_at,
   };
 }
 
-function toDocument(document: DocumentRow, facts: StoredDocumentFacts): ClientDocument {
+// Without facts for a document that is not merged from them: the service contract.
+function toDocument(document: DocumentRow, facts: StoredDocumentFacts | null): ClientDocument {
   const current = (status: RevisionRow['status']) => {
     const revision = document.document_revisions.find((item) => item.status === status);
     return revision ? toRevision(document, revision, facts) : null;
@@ -119,14 +134,36 @@ const byPackOrder = (a: ClientDocument, b: ClientDocument) =>
   (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
   a.title.localeCompare(b.title, 'ro');
 
+// The documentation set. The client's other documents have routes of their own (ADR 007).
 async function readDocuments(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('client_documents')
     .select(documentColumns)
     .eq('client_id', clientId)
+    .eq('document_group', 'documentation_set')
     .returns<DocumentRow[]>();
   if (error) throw fromDatabaseError(error, 'list client documents');
   return data;
+}
+
+async function readOtherDocumentRow(db: DataClient, clientId: string, typeKey: string) {
+  const { data, error } = await db
+    .from('client_documents')
+    .select(documentColumns)
+    .eq('client_id', clientId)
+    .eq('type_key', typeKey)
+    .returns<DocumentRow[]>()
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find other client document');
+  return data;
+}
+
+/** With what its draft was merged from, for a caller that knows how to compare it. */
+export async function readOtherDocument(db: DataClient, clientId: string, typeKey: string) {
+  const row = await readOtherDocumentRow(db, clientId, typeKey);
+  if (!row) return { document: null, draftSnapshot: null };
+  const draft = row.document_revisions.find((revision) => revision.status === 'draft');
+  return { document: toDocument(row, null), draftSnapshot: draft?.data_snapshot ?? null };
 }
 
 export async function listClientDocuments(db: DataClient, actor: Actor, clientId: string) {
@@ -376,6 +413,119 @@ const newest = (document: DocumentRow) =>
   );
 
 /**
+ * What generating again does to a document: a draft is overwritten in place, hand edits
+ * included; beside an issued revision the next one starts as a draft.
+ */
+async function writeGeneratedDraft(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  document: DocumentRow,
+  generated: {
+    templateVersionId: string;
+    generationId: string | null;
+    bytes: Uint8Array;
+    snapshot: Record<string, unknown>;
+  }
+) {
+  const { bytes, snapshot, templateVersionId, generationId } = generated;
+  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  if (draft) {
+    await files.writeDocument(draft.docx_path, bytes, { replace: true });
+    const updated = await db
+      .from('document_revisions')
+      .update({
+        template_version_id: templateVersionId,
+        generation_id: generationId,
+        data_snapshot: snapshot as Json,
+        // As generated again: nothing of the edit is left.
+        edited_at: null,
+        edited_by: null,
+      })
+      .eq('id', draft.id);
+    if (updated.error) throw fromDatabaseError(updated.error, 'update document revision');
+  } else {
+    const revisionNumber = (newest(document)?.revision ?? 0) + 1;
+    const path = `${actor.organizationId}/${document.client_id}/${document.id}/${revisionNumber}.docx`;
+    const revision = await db
+      .from('document_revisions')
+      .insert({
+        organization_id: actor.organizationId,
+        document_id: document.id,
+        revision: revisionNumber,
+        template_version_id: templateVersionId,
+        generation_id: generationId,
+        docx_path: path,
+        data_snapshot: snapshot as Json,
+        created_by: actor.createdBy,
+      })
+      .select('id')
+      .single();
+    if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
+    try {
+      await files.writeDocument(path, bytes, { replace: true });
+    } catch (error) {
+      await db.from('document_revisions').delete().eq('id', revision.data.id);
+      throw error;
+    }
+  }
+}
+
+/**
+ * Generates one of a client's other documents (ADR 007) from its built-in template and the
+ * data its own module builds, or generates it again. No generation record: what such a
+ * document was asked with lives with its module.
+ */
+export async function generateOtherDocument(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  clientId: string,
+  type: { typeKey: string; title: string; ownersOnly: boolean },
+  data: Record<string, unknown>
+) {
+  const [template] = await builtInTemplates(db, [type.typeKey]);
+  if (!template) {
+    throw new ApiError(
+      'conflict',
+      'This document has no template to be generated from.',
+      undefined,
+      'template_missing'
+    );
+  }
+  const { bytes, snapshot } = merge(
+    await files.readTemplate(template.storagePath),
+    data,
+    type.typeKey
+  );
+  let document = await readOtherDocumentRow(db, clientId, type.typeKey);
+  if (!document) {
+    const created = await db
+      .from('client_documents')
+      .insert({
+        organization_id: actor.organizationId,
+        client_id: clientId,
+        type_key: type.typeKey,
+        title: type.title,
+        document_group: 'other',
+        owners_only: type.ownersOnly,
+        created_by: actor.createdBy,
+      })
+      .select('id')
+      .single();
+    if (created.error) throw fromDatabaseError(created.error, 'create other client document');
+    document = await readDocument(db, created.data.id);
+  }
+  await writeGeneratedDraft(db, files, actor, document, {
+    templateVersionId: template.versionId,
+    generationId: null,
+    bytes,
+    snapshot,
+  });
+  return toDocument(await readDocument(db, document.id), null);
+}
+
+/**
  * A draft is overwritten, hand edits included, which is what the person asked for; an issued
  * document gets a new draft revision and stays as it is until that one is issued.
  */
@@ -387,6 +537,10 @@ export async function regenerateDocument(
   request: RegenerateDocumentRequest
 ) {
   const document = await readDocument(db, documentId);
+  if (document.document_group !== 'documentation_set') {
+    // It would be merged with the facts of the documentation set, which it does not print.
+    throw new ApiError('conflict', 'This document is generated from its own page.');
+  }
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
@@ -446,46 +600,12 @@ export async function regenerateDocument(
     .single();
   if (generation.error) throw fromDatabaseError(generation.error, 'create document generation');
 
-  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
-  if (draft) {
-    await files.writeDocument(draft.docx_path, bytes, { replace: true });
-    const updated = await db
-      .from('document_revisions')
-      .update({
-        template_version_id: template.versionId,
-        generation_id: generation.data.id,
-        data_snapshot: snapshot as Json,
-        // As generated again: nothing of the edit is left.
-        edited_at: null,
-        edited_by: null,
-      })
-      .eq('id', draft.id);
-    if (updated.error) throw fromDatabaseError(updated.error, 'update document revision');
-  } else {
-    const revisionNumber = (latest?.revision ?? 0) + 1;
-    const path = `${actor.organizationId}/${document.client_id}/${document.id}/${revisionNumber}.docx`;
-    const revision = await db
-      .from('document_revisions')
-      .insert({
-        organization_id: actor.organizationId,
-        document_id: document.id,
-        revision: revisionNumber,
-        template_version_id: template.versionId,
-        generation_id: generation.data.id,
-        docx_path: path,
-        data_snapshot: snapshot as Json,
-        created_by: actor.createdBy,
-      })
-      .select('id')
-      .single();
-    if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
-    try {
-      await files.writeDocument(path, bytes, { replace: true });
-    } catch (error) {
-      await db.from('document_revisions').delete().eq('id', revision.data.id);
-      throw error;
-    }
-  }
+  await writeGeneratedDraft(db, files, actor, document, {
+    templateVersionId: template.versionId,
+    generationId: generation.data.id,
+    bytes,
+    snapshot,
+  });
   return toDocument(await readDocument(db, documentId), facts);
 }
 
@@ -773,6 +893,79 @@ export async function deleteDraft(db: DataClient, files: FileStore, documentId: 
   if (error) throw fromDatabaseError(error, 'delete document revision');
 }
 
+const pdfSignature = new TextEncoder().encode('%PDF-');
+const signedCopyPathOf = (docxPath: string) => docxPath.replace(/\.docx$/, '.signed.pdf');
+
+/**
+ * Attaches what came back signed to the issued revision, or replaces what was attached. The
+ * row first, with the hash of the file, because the policies let a file be written only
+ * where a row says it lives.
+ */
+export async function attachSignedCopy(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string,
+  bytes: Uint8Array
+) {
+  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
+    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
+  }
+  if (!pdfSignature.every((byte, index) => bytes[index] === byte)) {
+    throw new ApiError('validation_error', 'The signed copy is a PDF.');
+  }
+  const document = await readDocument(db, documentId);
+  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  if (!issued) {
+    throw new ApiError(
+      'conflict',
+      'Only an issued document has a signed copy.',
+      undefined,
+      'not_issued'
+    );
+  }
+  await requireActiveClient(db, document.client_id);
+  const path = signedCopyPathOf(issued.docx_path);
+  const recorded = await db.from('document_signed_copies').upsert(
+    {
+      revision_id: issued.id,
+      organization_id: actor.organizationId,
+      document_id: document.id,
+      storage_path: path,
+      sha256: await sha256(bytes),
+      uploaded_by: actor.createdBy,
+      uploaded_at: new Date().toISOString(),
+    },
+    { onConflict: 'revision_id' }
+  );
+  if (recorded.error) throw fromDatabaseError(recorded.error, 'record signed copy');
+  try {
+    await files.writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    // Only a first copy: after a failed replacement the row still describes a file, the
+    // earlier one, under a hash that is no longer its own, which the next attempt corrects.
+    if (!issued.document_signed_copies) {
+      await db.from('document_signed_copies').delete().eq('revision_id', issued.id);
+    }
+    throw error;
+  }
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
+export async function removeSignedCopy(db: DataClient, files: FileStore, documentId: string) {
+  const document = await readDocument(db, documentId);
+  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  if (!issued?.document_signed_copies) {
+    throw new ApiError('conflict', 'This document has no signed copy to remove.');
+  }
+  await requireActiveClient(db, document.client_id);
+  // The file while the policies still allow it: they follow the row.
+  await files.removeDocument(signedCopyPathOf(issued.docx_path));
+  const { error } = await db.from('document_signed_copies').delete().eq('revision_id', issued.id);
+  if (error) throw fromDatabaseError(error, 'remove signed copy');
+}
+
 export async function documentDownloadLink(
   db: DataClient,
   files: FileStore,
@@ -782,17 +975,32 @@ export async function documentDownloadLink(
 ) {
   const { data, error } = await db
     .from('document_revisions')
-    .select('docx_path, pdf_path, revision, client_documents(title)')
+    .select(
+      'docx_path, pdf_path, revision, client_documents(title), document_signed_copies(storage_path)'
+    )
     .eq('id', revisionId)
     .eq('document_id', documentId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find document revision');
   if (!data) throw new ApiError('not_found', 'This document revision does not exist.');
-  const path = format === 'pdf' ? data.pdf_path : data.docx_path;
-  if (!path) throw new ApiError('not_found', 'This revision has no PDF.');
+  const path =
+    format === 'signed'
+      ? data.document_signed_copies?.storage_path
+      : format === 'pdf'
+        ? data.pdf_path
+        : data.docx_path;
+  if (!path) {
+    throw new ApiError(
+      'not_found',
+      format === 'signed' ? 'This revision has no signed copy.' : 'This revision has no PDF.'
+    );
+  }
   const expiresInSeconds = 60;
   // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
-  const fileName = `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
+  const fileName =
+    format === 'signed'
+      ? `${fileNameOf(data.client_documents.title)} - rev. ${data.revision} - semnat.pdf`
+      : `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
   return {
     url: await files.documentLink(path, fileName, expiresInSeconds),
     fileName,

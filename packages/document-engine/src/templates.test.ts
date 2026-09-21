@@ -31,6 +31,44 @@ describe('built-in templates', () => {
   });
 });
 
+// Written by us and not imported (ADR 007), so they are kept apart from the provider's pack.
+describe('templates outside the pack', () => {
+  const otherUrl = new URL('other/', templatesUrl);
+  const manifest = JSON.parse(readFileSync(new URL('manifest.json', otherUrl), 'utf8')) as {
+    templates: { typeKey: string; title: string; file: string }[];
+  };
+  const files = readdirSync(fileURLToPath(otherUrl)).filter((name) => name.endsWith('.docx'));
+
+  it('are the files of their manifest, named after their types', () => {
+    expect(manifest.templates.map((entry) => entry.file).sort()).toEqual([...files].sort());
+    for (const entry of manifest.templates) expect(entry.file).toBe(`${entry.typeKey}.docx`);
+  });
+
+  it.each(files)('%s carries nothing of the contract it was modelled on', (name) => {
+    const text = documentText(new Uint8Array(readFileSync(new URL(name, otherUrl))));
+    expect(text).not.toMatch(originals);
+    expect(text).not.toMatch(/\b\d+([.,]\d+)? ?(RON|lei)\b/i);
+  });
+
+  it('numbers the articles of the contract with a list, and nothing else', () => {
+    const zip = new PizZip(readFileSync(new URL('service_contract.docx', otherUrl)));
+    expect(zip.file('word/numbering.xml')!.asText()).toContain('w:lvlText w:val="Art. %1."');
+    const numbered = (
+      zip
+        .file('word/document.xml')!
+        .asText()
+        .match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []
+    )
+      .filter((paragraph) => /<w:numId w:val="[1-9]/.test(paragraph))
+      .map(documentTextOf);
+    expect(numbered.length).toBeGreaterThan(25);
+    for (const text of numbered) {
+      expect(text).not.toMatch(/^\{\{[#/]/);
+      expect(text).not.toMatch(/^[a-z]\) /);
+    }
+  });
+});
+
 // Every original of the provider's pack is listed, ported or not, under its own number, so
 // the folder shows at a glance what is still to do.
 describe('manifest', () => {

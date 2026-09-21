@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput } from './cui';
+import { isValidIban } from './iban';
 
 // Every field is optional while it is being filled in; generating a document is what
 // requires them.
@@ -50,6 +51,52 @@ export const updateOrganizationLegalDetailsRequestSchema = z.object({
 
 export type UpdateOrganizationLegalDetailsRequest = z.infer<
   typeof updateOrganizationLegalDetailsRequestSchema
+>;
+
+/** Owners only: what a service contract prints about the provider (ADR 007). */
+export const organizationContractDetailsSchema = z.object({
+  phone: z.string().nullable(),
+  // Without spaces; `formatIban` prints it.
+  iban: z.string().nullable(),
+  bankName: z.string().nullable(),
+  authorizationCertificateNumber: z.string().nullable(),
+  authorizationCertificateDate: z.iso.date().nullable(),
+  authorizationCertificateIssuer: z.string().nullable(),
+  vatPayer: z.boolean(),
+  fireSafetyTechnicianName: z.string().nullable(),
+  fireSafetyTechnicianCertificate: z.string().nullable(),
+});
+
+export type OrganizationContractDetails = z.infer<typeof organizationContractDetailsSchema>;
+
+export const organizationContractDetailsResponseSchema = z.object({
+  contractDetails: organizationContractDetailsSchema,
+});
+
+export type OrganizationContractDetailsResponse = z.infer<
+  typeof organizationContractDetailsResponseSchema
+>;
+
+// Replaces all of them: a field left out or null is cleared, and `vatPayer` left out is false.
+export const updateOrganizationContractDetailsRequestSchema = z.object({
+  phone: optionalText(5, 20),
+  iban: z
+    .string()
+    .trim()
+    .max(42)
+    .refine(isValidIban, { message: 'Invalid IBAN (format or check digits).' })
+    .nullish(),
+  bankName: optionalText(2, 120),
+  authorizationCertificateNumber: optionalText(1, 40),
+  authorizationCertificateDate: z.iso.date().nullish(),
+  authorizationCertificateIssuer: optionalText(2, 200),
+  vatPayer: z.boolean().default(false),
+  fireSafetyTechnicianName: optionalText(2, 160),
+  fireSafetyTechnicianCertificate: optionalText(1, 80),
+});
+
+export type UpdateOrganizationContractDetailsRequest = z.infer<
+  typeof updateOrganizationContractDetailsRequestSchema
 >;
 
 // The durations an SSM specialist confirmed providers use (issue #81).

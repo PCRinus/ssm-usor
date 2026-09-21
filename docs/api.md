@@ -68,10 +68,17 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}`                                              | Verified user with a membership       | `{ "client": { … } }` after replacing what was entered about it                                                           |
 | `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                         |
 | `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                       |
+| `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                     |
+| `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                      |
+| `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                             |
+| `POST /clients/{clientId}/service-contract/generate`                   | Owner                                 | The same, with the contract generated or generated again                                                                  |
+| `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                           |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
 | `PUT /organization/legal-details`                                      | Owner                                 | The legal details after replacing them                                                                                    |
+| `GET /organization/contract-details`                                   | Owner                                 | `{ "contractDetails": { … } }`: what a service contract prints about the provider                                         |
+| `PUT /organization/contract-details`                                   | Owner                                 | The contract details after replacing them                                                                                 |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule                             |
 | `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                 |
 | `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                                              |
@@ -90,6 +97,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                                          |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                      |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
+| `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                               |
+| `DELETE /documents/{documentId}/signed-copy`                           | Verified user with a membership       | `204` after removing the signed copy and its file                                                                         |
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
@@ -125,6 +134,15 @@ specialist cannot) or `client_archived`.
 Archiving and restoring are an owner's, checked by `requireOwner` and again by a trigger;
 repeating either changes nothing and keeps the first date.
 
+`/organization/contract-details` holds what a service contract prints about the provider and
+the documentation set does not (ADR 007): `phone`, `iban` with `bankName`, the certificate of
+authorization (`authorizationCertificateNumber`, `…Date`, `…Issuer`), `vatPayer`, which decides
+the sentence about VAT beside the prices, and the fire-safety technician with their
+certificate, as text. Owners only, to read as well, because contracts are theirs. Everything is
+optional and `PUT` replaces all of it; generating a contract is what will ask for them. The
+IBAN is taken with or without spaces, checked by `isValidIban` (ISO 13616, mod 97) and stored
+bare in upper case; `formatIban` prints it in groups of four.
+
 A lead (ADR 007) is a client in an earlier stage and uses the same routes. `GET /clients` lists
 one stage at a time, `?stage=client` by default, and `POST /clients` takes `stage`; asking for
 leads or creating one is an owner's, `403` otherwise, said by the handler because the policies
@@ -134,8 +152,62 @@ id. The client carries `stage`, `contactName`, `contactEmail`, `contactPhone` an
 as it is, so that a form without the contact does not erase it; `null` clears one. Employees,
 job positions, workplaces, responsible persons and the documentation set do not start under a
 lead: the database refuses with `CLL01`, which `fromDatabaseError` turns into `409` with the
-reason `client_is_lead`. The owners' notes, `…/owner-notes`, are one free text per client or
+reason `client_is_lead`. `POST /clients/{clientId}/promote` turns an active lead into a client; the database stamps
+`promotedAt` and who did it. Promoting a client changes nothing, an archived lead answers
+`409` with `client_archived` and is restored first. The owners' notes, `…/owner-notes`, are one free text per client or
 lead, up to 5000 characters, never readable by a specialist, before or after promotion.
+
+The service contract of a client or a lead (ADR 007) is an owner's. `GET
+/clients/{clientId}/service-contract` returns what the app reads about it (`contract`: number,
+dates, duration, renewal, the services covered, and `endDate`, the last day of the first term;
+null until saved), `suggestedNumber` (the last number of this year plus one, 1 in a year
+without contracts, null when the organization has none at all and only the owner knows where
+its register stands), who signs for the client, `readiness` with what generating is waiting
+for (`missingServiceContractData`: the organization's legal and contract details, the client's
+registration, address and representative, the contract's own details; the fire-safety
+technician only when fire safety is covered), and `document`, the contract as a document once
+it is generated. `PUT` saves the details, and the client's representative when sent, which a
+lead has no other form for; a number used twice in a year answers `409` with
+`contract_number_taken`. Prices are not kept: they are written in the file.
+
+`POST …/service-contract/generate` merges the starter template
+([document engine](document-engine.md)) with the context of
+`modules/service-contracts/context.ts` and writes the result as the contract's draft, through
+the same code that regenerates a document of the set: a draft is overwritten, hand edits
+included, and beside an issued contract the next revision starts. The document is created as
+`other` and `owners_only` the first time. `409` with `missing_contract_data` names what is
+missing, `template_missing` says that no template is registered, and an archived client is
+refused before anything is read. The response's `draftOutdated` says that the draft would now
+print something else: its snapshot is compared, name by name, with the context of today. From
+then on the contract goes through `/documents/{documentId}` like any document: saving from the
+editor, issuing (which warns about `DE COMPLETAT`, where the prices go), a draft from the
+issued file, deleting a draft, downloading. `GET /clients?stage=lead` adds
+`serviceContractState` (`none`, `draft`, `issued`) to each lead, from an embedded read that
+names its relationships, because `clients`, `client_documents` and `document_revisions` are
+each linked twice, by id and by id with organization; it is null in every other response.
+
+`POST …/service-contract/send` takes `to` and an optional `note`. Issuing sends nothing: an
+owner sends, knowingly. The PDF of the issued revision is read from Storage and handed to the
+mail Worker as Base64 (`sendServiceContract`), in the owner's name, with replies and a copy
+going to the owner's own address; then the send is recorded. A failed hand-over answers `503`
+and records nothing. `409` with `contract_not_issued` when nothing is issued, and with
+`contract_pdf_missing` for a revision issued where no converter was configured: the Word file
+is not sent in its place, because it invites the recipient to change clauses. The response's
+`lastSend` is the last send of the revision in force, so issuing a new revision clears it, and
+`serviceContractState` of a lead gains `sent` on the same rule.
+
+`PUT /documents/{documentId}/signed-copy` takes the bytes of a PDF, up to 15 MB, that starts
+with `%PDF-`: a scan of the signed paper, or the file signed with the signer's own
+certificate. The row is written first, with the file's SHA-256, because the policies let a
+file in only where a row says it lives; a first copy whose file cannot be stored is taken
+back, and a failed replacement keeps the earlier row. `409` with `not_issued` for a document
+with nothing issued. The app records that a file was attached, not that it is signed.
+Revisions carry `hasSignedCopy`, `GET …/download?format=signed` links to it under a name
+that ends in "- semnat.pdf", and `DELETE` removes the file and then the row. These are
+routes of any document, reachable by whoever reaches it; the contract's is its owners'. A
+lead's `serviceContractState` becomes `signed` when the revision in force has a copy, ahead
+of `sent`. `GET /clients/{clientId}/documents` lists the documentation set only, and
+`POST /documents/{documentId}/regenerate` answers `409` for a document that is not part of it.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which
 `fromDatabaseError` turns into `409` with the reason `client_archived` for every route at

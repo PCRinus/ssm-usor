@@ -318,6 +318,11 @@
                   "nullable": true,
                   "format": "date-time"
                 },
+                "serviceContractState": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["none", "draft", "issued", "sent", "signed", null]
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -349,6 +354,7 @@
                 "contactEmail",
                 "contactPhone",
                 "promotedAt",
+                "serviceContractState",
                 "createdAt",
                 "updatedAt",
                 "archivedAt"
@@ -484,6 +490,11 @@
                 "nullable": true,
                 "format": "date-time"
               },
+              "serviceContractState": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["none", "draft", "issued", "sent", "signed", null]
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -515,6 +526,7 @@
               "contactEmail",
               "contactPhone",
               "promotedAt",
+              "serviceContractState",
               "createdAt",
               "updatedAt",
               "archivedAt"
@@ -1714,6 +1726,119 @@
           }
         }
       },
+      "OrganizationContractDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "contractDetails": {
+            "type": "object",
+            "properties": {
+              "phone": {
+                "type": "string",
+                "nullable": true
+              },
+              "iban": {
+                "type": "string",
+                "nullable": true
+              },
+              "bankName": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizationCertificateNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizationCertificateDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "authorizationCertificateIssuer": {
+                "type": "string",
+                "nullable": true
+              },
+              "vatPayer": {
+                "type": "boolean"
+              },
+              "fireSafetyTechnicianName": {
+                "type": "string",
+                "nullable": true
+              },
+              "fireSafetyTechnicianCertificate": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "phone",
+              "iban",
+              "bankName",
+              "authorizationCertificateNumber",
+              "authorizationCertificateDate",
+              "authorizationCertificateIssuer",
+              "vatPayer",
+              "fireSafetyTechnicianName",
+              "fireSafetyTechnicianCertificate"
+            ]
+          }
+        },
+        "required": ["contractDetails"]
+      },
+      "UpdateOrganizationContractDetailsRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 5,
+            "maxLength": 20
+          },
+          "iban": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 42
+          },
+          "bankName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "authorizationCertificateNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "authorizationCertificateDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "authorizationCertificateIssuer": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "vatPayer": {
+            "type": "boolean",
+            "default": false
+          },
+          "fireSafetyTechnicianName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "fireSafetyTechnicianCertificate": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 80
+          }
+        }
+      },
       "ClientDocumentDetailsResponse": {
         "type": "object",
         "properties": {
@@ -2366,6 +2491,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2380,6 +2508,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 },
@@ -2420,6 +2549,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2434,6 +2566,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 }
@@ -2531,6 +2664,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2545,6 +2681,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 },
@@ -2585,6 +2722,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2599,6 +2739,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 }
@@ -2716,6 +2857,9 @@
                   "hasPdf": {
                     "type": "boolean"
                   },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2730,6 +2874,7 @@
                   "editedAt",
                   "issuedAt",
                   "hasPdf",
+                  "hasSignedCopy",
                   "createdAt"
                 ]
               },
@@ -2770,6 +2915,9 @@
                   "hasPdf": {
                     "type": "boolean"
                   },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2784,6 +2932,7 @@
                   "editedAt",
                   "issuedAt",
                   "hasPdf",
+                  "hasSignedCopy",
                   "createdAt"
                 ]
               }
@@ -2809,6 +2958,343 @@
             "type": "boolean"
           }
         }
+      },
+      "ServiceContractResponse": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "contractNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999999
+              },
+              "contractDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "durationMonths": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 120
+              },
+              "renewsAutomatically": {
+                "type": "boolean"
+              },
+              "coversOccupationalSafety": {
+                "type": "boolean"
+              },
+              "coversFireSafety": {
+                "type": "boolean"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "contractNumber",
+              "contractDate",
+              "startDate",
+              "durationMonths",
+              "renewsAutomatically",
+              "coversOccupationalSafety",
+              "coversFireSafety",
+              "endDate"
+            ]
+          },
+          "suggestedNumber": {
+            "type": "integer",
+            "nullable": true
+          },
+          "clientRepresentative": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "role": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name", "role"]
+          },
+          "readiness": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "provider.legalName",
+                    "provider.cui",
+                    "provider.tradeRegisterNumber",
+                    "provider.address",
+                    "provider.representativeName",
+                    "provider.representativeRole",
+                    "provider.phone",
+                    "provider.bankAccount",
+                    "provider.authorizationCertificate",
+                    "provider.fireSafetyTechnician",
+                    "client.tradeRegisterNumber",
+                    "client.address",
+                    "client.representativeName",
+                    "client.representativeRole",
+                    "contract.details"
+                  ]
+                }
+              }
+            },
+            "required": ["ready", "missing"]
+          },
+          "document": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "typeKey": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "decisionNumber": {
+                "type": "integer",
+                "nullable": true
+              },
+              "draft": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["draft", "issued", "superseded"]
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dataChanged": {
+                    "type": "boolean"
+                  },
+                  "editedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "issuedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "hasPdf": {
+                    "type": "boolean"
+                  },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id",
+                  "revision",
+                  "status",
+                  "issueDate",
+                  "dataChanged",
+                  "editedAt",
+                  "issuedAt",
+                  "hasPdf",
+                  "hasSignedCopy",
+                  "createdAt"
+                ]
+              },
+              "issued": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["draft", "issued", "superseded"]
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dataChanged": {
+                    "type": "boolean"
+                  },
+                  "editedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "issuedAt": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "hasPdf": {
+                    "type": "boolean"
+                  },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id",
+                  "revision",
+                  "status",
+                  "issueDate",
+                  "dataChanged",
+                  "editedAt",
+                  "issuedAt",
+                  "hasPdf",
+                  "hasSignedCopy",
+                  "createdAt"
+                ]
+              }
+            },
+            "required": ["id", "clientId", "typeKey", "title", "decisionNumber", "draft", "issued"]
+          },
+          "lastSend": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "sentTo": {
+                "type": "string"
+              },
+              "sentAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["sentTo", "sentAt", "revision"]
+          },
+          "draftOutdated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contract",
+          "suggestedNumber",
+          "clientRepresentative",
+          "readiness",
+          "document",
+          "lastSend",
+          "draftOutdated"
+        ]
+      },
+      "SaveServiceContractRequest": {
+        "type": "object",
+        "properties": {
+          "contractNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999999
+          },
+          "contractDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "renewsAutomatically": {
+            "type": "boolean",
+            "default": true
+          },
+          "coversOccupationalSafety": {
+            "type": "boolean",
+            "default": true
+          },
+          "coversFireSafety": {
+            "type": "boolean",
+            "default": false
+          },
+          "clientRepresentativeName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "clientRepresentativeRole": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 80
+          }
+        },
+        "required": ["contractNumber", "contractDate", "startDate", "durationMonths"]
+      },
+      "SendServiceContractRequest": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000
+          }
+        },
+        "required": ["to"]
       },
       "MembershipResponse": {
         "type": "object",
@@ -3946,6 +4432,111 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/promote": {
+      "post": {
+        "operationId": "promoteLead",
+        "summary": "Turn a lead into a client",
+        "description": "Owners only, and one way: the whole team sees the company from then on, and its safety records can start. The database records who and when. Promoting a client changes nothing. An archived lead is restored first.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The client after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The lead is archived",
             "content": {
               "application/json": {
                 "schema": {
@@ -5572,6 +6163,152 @@
         }
       }
     },
+    "/organization/contract-details": {
+      "get": {
+        "operationId": "getOrganizationContractDetails",
+        "summary": "Read what a service contract prints about the organization",
+        "description": "Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationContractDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateOrganizationContractDetails",
+        "summary": "Replace what a service contract prints about the organization",
+        "description": "Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationContractDetailsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract details after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationContractDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/document-details": {
       "get": {
         "operationId": "getClientDocumentDetails",
@@ -6957,7 +7694,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["docx", "pdf"],
+              "enum": ["docx", "pdf", "signed"],
               "default": "docx"
             },
             "required": false,
@@ -7585,6 +8322,217 @@
         }
       }
     },
+    "/documents/{documentId}/signed-copy": {
+      "put": {
+        "operationId": "attachDocumentSignedCopy",
+        "summary": "Attach the signed copy of the issued revision, or replace it",
+        "description": "Takes the bytes of a PDF, up to 15 MB: a scan of the signed paper, or the file signed with the signer's own certificate. It is kept beside the issued revision with its hash. The app records that a file was attached, not that it is signed. A revision that is later superseded keeps its copy.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/pdf": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document, whose issued revision has a signed copy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, or not a PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The document does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing is issued (`not_issued`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeDocumentSignedCopy",
+        "summary": "Remove the signed copy of the issued revision, with its file",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The signed copy is gone; the revision is untouched"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The document does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "There is no signed copy, or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/documents/{typeKey}/upload": {
       "post": {
         "operationId": "uploadClientDocument",
@@ -7723,6 +8671,434 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/service-contract": {
+      "get": {
+        "operationId": "getServiceContract",
+        "summary": "Read the service contract of a client or a lead",
+        "description": "Owners only, before and after promotion (ADR 007). `contract` is null until its details are saved, and `suggestedNumber` then continues the organization's register. `readiness` lists what generating the contract is waiting for, by where it is filled in. `document` is the contract as a document, with its draft and issued revisions, once generated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveServiceContract",
+        "summary": "Save the details of the service contract of a client or a lead",
+        "description": "Owners only. The number, the dates, the renewal and the services covered; prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveServiceContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another contract of that year has the number (`contract_number_taken`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/service-contract/generate": {
+      "post": {
+        "operationId": "generateServiceContract",
+        "summary": "Generate the service contract from its template, or generate it again",
+        "description": "Owners only. Merges the starter template with the organization, the client and the saved details. A draft is overwritten, hand edits included; beside an issued contract the next revision starts as a draft and the issued one stays in force. Prices are printed as \"DE COMPLETAT\" for the owner to write in the editor, and issuing warns while one is left. From then on the contract is a document like the others: saving, issuing, starting a draft from the issued file, deleting a draft and downloading go through `/documents/{documentId}`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Something the contract prints is missing (`missing_contract_data`), no template is registered (`template_missing`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/service-contract/send": {
+      "post": {
+        "operationId": "sendServiceContract",
+        "summary": "Email the issued contract to the company's contact",
+        "description": "Owners only, and never by itself: issuing sends nothing. The PDF of the issued revision is attached; the email goes out in the owner's name, replies go to the owner, who is copied. Each send is recorded with its address and revision, and `lastSend` is about the revision in force. A contract can be sent again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendServiceContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing is issued (`contract_not_issued`), the issued revision has no PDF (`contract_pdf_missing`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The email could not be handed to the mail service",
             "content": {
               "application/json": {
                 "schema": {

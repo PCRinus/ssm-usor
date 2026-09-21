@@ -139,6 +139,7 @@ describe('GET /clients', () => {
           contactEmail: null,
           contactPhone: null,
           promotedAt: null,
+          serviceContractState: null,
           createdAt: clientRow.created_at,
           updatedAt: clientRow.updated_at,
           archivedAt: null,
@@ -198,12 +199,77 @@ describe('GET /clients', () => {
     expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('stage')).toBe(
       'eq.lead'
     );
+    expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')).toContain(
+      'client_documents!client_documents_client_in_organization(type_key'
+    );
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     const refused = await request('/clients?stage=lead');
     expect(refused.status).toBe(403);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it.each([
+    [[], 'none'],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [{ status: 'draft', service_contract_sends: [] }],
+        },
+      ],
+      'draft',
+    ],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [
+            // Sent, and then replaced: the contract in force was not sent yet.
+            { status: 'superseded', service_contract_sends: [{ id: 's1' }] },
+            { status: 'issued', service_contract_sends: [] },
+            { status: 'draft', service_contract_sends: [] },
+          ],
+        },
+      ],
+      'issued',
+    ],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [{ status: 'issued', service_contract_sends: [{ id: 's1' }] }],
+        },
+      ],
+      'sent',
+    ],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [
+            {
+              status: 'issued',
+              service_contract_sends: [],
+              document_signed_copies: { revision_id: 'r1' },
+            },
+          ],
+        },
+      ],
+      'signed',
+    ],
+  ])('says where the contract of a lead stands: %#', async (documents, state) => {
+    mockUpstream({
+      clients: () =>
+        Response.json([{ ...clientRow, stage: 'lead', client_documents: documents }], {
+          headers: { 'Content-Range': '0-0/1' },
+        }),
+    });
+    const body = clientListResponseSchema.parse(
+      await (await request('/clients?stage=lead')).json()
+    );
+    expect(body.items[0]!.serviceContractState).toBe(state);
   });
 
   it('requires a bearer token', async () => {
@@ -550,6 +616,45 @@ describe('archiving a client', () => {
   it.each(['archive', 'restore'] as const)('leaves %s to owners', async (action) => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await post(action)).status).toBe(403);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+});
+
+describe('POST /clients/{clientId}/promote', () => {
+  const promote = () => request(`/clients/${clientRow.id}/promote`, { method: 'POST' });
+  const leadRow = { ...clientRow, stage: 'lead' };
+
+  it('turns an active lead into a client, and only that', async () => {
+    mockUpstream({
+      clients: () => Response.json([{ ...clientRow, promoted_at: '2026-09-21T09:00:00+00:00' }]),
+    });
+    const response = await promote();
+    expect(response.status).toBe(200);
+    const { client } = clientResponseSchema.parse(await response.json());
+    expect(client.stage).toBe('client');
+    expect(client.promotedAt).toBe('2026-09-21T09:00:00+00:00');
+    const [input, init] = calls('/rest/v1/clients')[0]!;
+    expect(init?.method).toBe('PATCH');
+    expect(JSON.parse(String(init?.body))).toEqual({ stage: 'client' });
+    const query = new URL(String(input)).searchParams;
+    expect(query.get('stage')).toBe('eq.lead');
+    expect(query.get('archived_at')).toBe('is.null');
+  });
+
+  it.each([
+    [[clientRow], 200],
+    [[{ ...leadRow, archived_at: '2026-09-21T08:00:00+00:00' }], 409],
+    [[], 404],
+  ])('changes nothing for a client, an archived lead, or no one: %#', async (current, status) => {
+    mockUpstream({
+      clients: (init) => (init?.method === 'PATCH' ? Response.json([]) : Response.json(current)),
+    });
+    expect((await promote()).status).toBe(status);
+  });
+
+  it("is an owner's", async () => {
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await promote()).status).toBe(403);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 });

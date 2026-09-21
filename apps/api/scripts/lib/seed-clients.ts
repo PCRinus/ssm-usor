@@ -99,6 +99,48 @@ export function fakeClients(
   return rows;
 }
 
+// Its own faker sequence, so that the clients above stay the ones a rerun updates.
+export function fakeLeads(
+  count: number,
+  seedValue: number,
+  organizationId: string,
+  createdBy: string
+): ClientInsert[] {
+  fakerRO.seed(seedValue + 1);
+  return Array.from({ length: count }, (_, index) => {
+    const first = fakerRO.person.firstName();
+    const last = fakerRO.person.lastName();
+    return {
+      organization_id: organizationId,
+      stage: 'lead',
+      legal_name: `${fakerRO.company.name()} SRL`,
+      cui: fakeCui(),
+      vat_payer: fakerRO.datatype.boolean({ probability: 0.7 }),
+      caen_code: fakerRO.helpers.arrayElement(caenCodes),
+      county_code: fakerRO.helpers.arrayElement(countyCodes),
+      locality: fakerRO.location.city(),
+      declared_employee_count: fakerRO.number.int({ min: 2, max: 40 }),
+      contact_name: `${first} ${last}`,
+      // One without an address, as the first phone call leaves it.
+      contact_email:
+        index === 0
+          ? null
+          : fakerRO.internet.email({ firstName: first, lastName: last }).toLowerCase(),
+      contact_phone: `07${fakerRO.string.numeric(8)}`,
+      created_by: createdBy,
+    };
+  });
+}
+
+// Inserted once and then left alone: a seeded lead that was promoted by hand is a client,
+// and the database refuses the way back.
+export async function seedLeads(db: SeedClient, rows: ClientInsert[]) {
+  const { error } = await db
+    .from('clients')
+    .upsert(rows, { onConflict: 'organization_id,cui', ignoreDuplicates: true });
+  if (error) throw new Error(`Could not seed leads: ${error.message}`);
+}
+
 export async function seedClients(db: SeedClient, rows: ClientInsert[]) {
   const { data, error } = await db
     .from('clients')

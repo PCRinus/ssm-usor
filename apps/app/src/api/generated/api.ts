@@ -216,6 +216,21 @@ export const ClientListResponseItemsItemStage = {
   client: 'client',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ClientListResponseItemsItemServiceContractState =
+  | (typeof ClientListResponseItemsItemServiceContractState)[keyof typeof ClientListResponseItemsItemServiceContractState]
+  | null;
+
+export const ClientListResponseItemsItemServiceContractState = {
+  none: 'none',
+  draft: 'draft',
+  issued: 'issued',
+  sent: 'sent',
+  signed: 'signed',
+} as const;
+
 export type ClientListResponseItemsItem = {
   id: string;
   legalName: string;
@@ -244,6 +259,8 @@ export type ClientListResponseItemsItem = {
   contactPhone: string | null;
   /** @nullable */
   promotedAt: string | null;
+  /** @nullable */
+  serviceContractState: ClientListResponseItemsItemServiceContractState;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -322,6 +339,21 @@ export const ClientResponseClientStage = {
   client: 'client',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ClientResponseClientServiceContractState =
+  | (typeof ClientResponseClientServiceContractState)[keyof typeof ClientResponseClientServiceContractState]
+  | null;
+
+export const ClientResponseClientServiceContractState = {
+  none: 'none',
+  draft: 'draft',
+  issued: 'issued',
+  sent: 'sent',
+  signed: 'signed',
+} as const;
+
 export type ClientResponseClient = {
   id: string;
   legalName: string;
@@ -350,6 +382,8 @@ export type ClientResponseClient = {
   contactPhone: string | null;
   /** @nullable */
   promotedAt: string | null;
+  /** @nullable */
+  serviceContractState: ClientResponseClientServiceContractState;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -1292,6 +1326,77 @@ export interface UpdateOrganizationLegalDetailsRequest {
   legalRepresentativeRole?: string | null;
 }
 
+export type OrganizationContractDetailsResponseContractDetails = {
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  iban: string | null;
+  /** @nullable */
+  bankName: string | null;
+  /** @nullable */
+  authorizationCertificateNumber: string | null;
+  /** @nullable */
+  authorizationCertificateDate: string | null;
+  /** @nullable */
+  authorizationCertificateIssuer: string | null;
+  vatPayer: boolean;
+  /** @nullable */
+  fireSafetyTechnicianName: string | null;
+  /** @nullable */
+  fireSafetyTechnicianCertificate: string | null;
+};
+
+export interface OrganizationContractDetailsResponse {
+  contractDetails: OrganizationContractDetailsResponseContractDetails;
+}
+
+export interface UpdateOrganizationContractDetailsRequest {
+  /**
+   * @minLength 5
+   * @maxLength 20
+   * @nullable
+   */
+  phone?: string | null;
+  /**
+   * @maxLength 42
+   * @nullable
+   */
+  iban?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   * @nullable
+   */
+  bankName?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 40
+   * @nullable
+   */
+  authorizationCertificateNumber?: string | null;
+  /** @nullable */
+  authorizationCertificateDate?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   * @nullable
+   */
+  authorizationCertificateIssuer?: string | null;
+  vatPayer?: boolean;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  fireSafetyTechnicianName?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   * @nullable
+   */
+  fireSafetyTechnicianCertificate?: string | null;
+}
+
 export type ClientDocumentDetailsResponseDocumentDetails = {
   /** @nullable */
   legalRepresentativeName: string | null;
@@ -1734,6 +1839,7 @@ export type ClientDocumentListResponseItemsItemDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1762,6 +1868,7 @@ export type ClientDocumentListResponseItemsItemIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1821,6 +1928,7 @@ export type GenerateDocumentsResponseCreatedItemDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1849,6 +1957,7 @@ export type GenerateDocumentsResponseCreatedItemIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1910,6 +2019,7 @@ export type ClientDocumentResponseDocumentDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1938,6 +2048,7 @@ export type ClientDocumentResponseDocumentIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1964,6 +2075,199 @@ export interface RegenerateDocumentRequest {
 
 export interface IssueDocumentRequest {
   acceptUnfilled?: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseContract = {
+  /**
+   * @minimum 1
+   * @maximum 999999
+   */
+  contractNumber: number;
+  contractDate: string;
+  startDate: string;
+  /**
+   * @minimum 1
+   * @maximum 120
+   */
+  durationMonths: number;
+  renewsAutomatically: boolean;
+  coversOccupationalSafety: boolean;
+  coversFireSafety: boolean;
+  endDate: string;
+} | null;
+
+export type ServiceContractResponseClientRepresentative = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  role: string | null;
+};
+
+export type ServiceContractResponseReadinessMissingItem =
+  (typeof ServiceContractResponseReadinessMissingItem)[keyof typeof ServiceContractResponseReadinessMissingItem];
+
+export const ServiceContractResponseReadinessMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providercui: 'provider.cui',
+  providertradeRegisterNumber: 'provider.tradeRegisterNumber',
+  provideraddress: 'provider.address',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  providerphone: 'provider.phone',
+  providerbankAccount: 'provider.bankAccount',
+  providerauthorizationCertificate: 'provider.authorizationCertificate',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  clienttradeRegisterNumber: 'client.tradeRegisterNumber',
+  clientaddress: 'client.address',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  contractdetails: 'contract.details',
+} as const;
+
+export type ServiceContractResponseReadiness = {
+  ready: boolean;
+  missing: ServiceContractResponseReadinessMissingItem[];
+};
+
+export type ServiceContractResponseDocumentDraftStatus =
+  (typeof ServiceContractResponseDocumentDraftStatus)[keyof typeof ServiceContractResponseDocumentDraftStatus];
+
+export const ServiceContractResponseDocumentDraftStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentDraft = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ServiceContractResponseDocumentDraftStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  hasPdf: boolean;
+  hasSignedCopy: boolean;
+  createdAt: string;
+} | null;
+
+export type ServiceContractResponseDocumentIssuedStatus =
+  (typeof ServiceContractResponseDocumentIssuedStatus)[keyof typeof ServiceContractResponseDocumentIssuedStatus];
+
+export const ServiceContractResponseDocumentIssuedStatus = {
+  draft: 'draft',
+  issued: 'issued',
+  superseded: 'superseded',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentIssued = {
+  id: string;
+  /** @minimum 1 */
+  revision: number;
+  status: ServiceContractResponseDocumentIssuedStatus;
+  /** @nullable */
+  issueDate: string | null;
+  dataChanged: boolean;
+  /** @nullable */
+  editedAt: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  hasPdf: boolean;
+  hasSignedCopy: boolean;
+  createdAt: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocument = {
+  id: string;
+  clientId: string;
+  typeKey: string;
+  title: string;
+  /** @nullable */
+  decisionNumber: number | null;
+  /** @nullable */
+  draft: ServiceContractResponseDocumentDraft;
+  /** @nullable */
+  issued: ServiceContractResponseDocumentIssued;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseLastSend = {
+  sentTo: string;
+  sentAt: string;
+  /** @minimum 1 */
+  revision: number;
+} | null;
+
+export interface ServiceContractResponse {
+  /** @nullable */
+  contract: ServiceContractResponseContract;
+  /** @nullable */
+  suggestedNumber: number | null;
+  clientRepresentative: ServiceContractResponseClientRepresentative;
+  readiness: ServiceContractResponseReadiness;
+  /** @nullable */
+  document: ServiceContractResponseDocument;
+  /** @nullable */
+  lastSend: ServiceContractResponseLastSend;
+  draftOutdated: boolean;
+}
+
+export interface SaveServiceContractRequest {
+  /**
+   * @minimum 1
+   * @maximum 999999
+   */
+  contractNumber: number;
+  contractDate: string;
+  startDate: string;
+  /**
+   * @minimum 1
+   * @maximum 120
+   */
+  durationMonths: number;
+  renewsAutomatically?: boolean;
+  coversOccupationalSafety?: boolean;
+  coversFireSafety?: boolean;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  clientRepresentativeName?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 80
+   * @nullable
+   */
+  clientRepresentativeRole?: string | null;
+}
+
+export interface SendServiceContractRequest {
+  /** @maxLength 254 */
+  to: string;
+  /**
+   * @maxLength 1000
+   * @nullable
+   */
+  note?: string | null;
 }
 
 export type MembershipResponseOrganization = {
@@ -2328,6 +2632,7 @@ export type GetDocumentDownloadFormat =
 export const GetDocumentDownloadFormat = {
   docx: 'docx',
   pdf: 'pdf',
+  signed: 'signed',
 } as const;
 
 export type ConfirmWaitlistSubscriptionParams = {
@@ -3436,6 +3741,90 @@ export const useRestoreClient = <TError = ErrorType<ApiErrorResponse>, TContext 
   TContext
 > => {
   return useMutation(getRestoreClientMutationOptions(options), queryClient);
+};
+
+export const getPromoteLeadUrl = (clientId: string) => {
+  return `/clients/${clientId}/promote`;
+};
+
+/**
+ * Owners only, and one way: the whole team sees the company from then on, and its safety records can start. The database records who and when. Promoting a client changes nothing. An archived lead is restored first.
+ * @summary Turn a lead into a client
+ */
+export const promoteLead = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientResponse> => {
+  return apiFetch<ClientResponse>(getPromoteLeadUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getPromoteLeadMutationKey = () => ['promoteLead'] as const;
+
+export const getPromoteLeadMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof promoteLead>>,
+    TError,
+    PromoteLeadMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof promoteLead>>,
+  TError,
+  PromoteLeadMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPromoteLeadMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof promoteLead>>,
+    PromoteLeadMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return promoteLead(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PromoteLeadMutationResult = NonNullable<Awaited<ReturnType<typeof promoteLead>>>;
+
+export type PromoteLeadMutationError = ErrorType<ApiErrorResponse>;
+export type PromoteLeadMutationVariables = { clientId: string };
+
+/**
+ * @summary Turn a lead into a client
+ */
+export const usePromoteLead = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof promoteLead>>,
+      TError,
+      PromoteLeadMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof promoteLead>>,
+  TError,
+  PromoteLeadMutationVariables,
+  TContext
+> => {
+  return useMutation(getPromoteLeadMutationOptions(options), queryClient);
 };
 
 export const getGetClientOwnerNotesUrl = (clientId: string) => {
@@ -5211,6 +5600,247 @@ export const useUpdateOrganizationLegalDetails = <
   TContext
 > => {
   return useMutation(getUpdateOrganizationLegalDetailsMutationOptions(options), queryClient);
+};
+
+export const getGetOrganizationContractDetailsUrl = () => {
+  return `/organization/contract-details`;
+};
+
+/**
+ * Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.
+ * @summary Read what a service contract prints about the organization
+ */
+export const getOrganizationContractDetails = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationContractDetailsResponse> => {
+  return apiFetch<OrganizationContractDetailsResponse>(getGetOrganizationContractDetailsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetOrganizationContractDetailsQueryKey = () => {
+  return [`/organization/contract-details`] as const;
+};
+
+export const getGetOrganizationContractDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrganizationContractDetailsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationContractDetails>>> = ({
+    signal,
+  }) => getOrganizationContractDetails({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetOrganizationContractDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrganizationContractDetails>>
+>;
+export type GetOrganizationContractDetailsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationContractDetails>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read what a service contract prints about the organization
+ */
+
+export function useGetOrganizationContractDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetOrganizationContractDetailsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateOrganizationContractDetailsUrl = () => {
+  return `/organization/contract-details`;
+};
+
+/**
+ * Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.
+ * @summary Replace what a service contract prints about the organization
+ */
+export const updateOrganizationContractDetails = async (
+  updateOrganizationContractDetailsRequest: UpdateOrganizationContractDetailsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationContractDetailsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<OrganizationContractDetailsResponse>(getUpdateOrganizationContractDetailsUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationContractDetailsRequest),
+  });
+};
+
+export const getUpdateOrganizationContractDetailsMutationKey = () =>
+  ['updateOrganizationContractDetails'] as const;
+
+export const getUpdateOrganizationContractDetailsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+    TError,
+    UpdateOrganizationContractDetailsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+  TError,
+  UpdateOrganizationContractDetailsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateOrganizationContractDetailsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+    UpdateOrganizationContractDetailsMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateOrganizationContractDetails(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOrganizationContractDetailsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrganizationContractDetails>>
+>;
+export type UpdateOrganizationContractDetailsMutationBody =
+  UpdateOrganizationContractDetailsRequest;
+export type UpdateOrganizationContractDetailsMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateOrganizationContractDetailsMutationVariables = {
+  data: UpdateOrganizationContractDetailsRequest;
+};
+
+/**
+ * @summary Replace what a service contract prints about the organization
+ */
+export const useUpdateOrganizationContractDetails = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+      TError,
+      UpdateOrganizationContractDetailsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+  TError,
+  UpdateOrganizationContractDetailsMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateOrganizationContractDetailsMutationOptions(options), queryClient);
 };
 
 export const getGetClientDocumentDetailsUrl = (clientId: string) => {
@@ -7425,6 +8055,205 @@ export const useSaveDocumentDraftFile = <TError = ErrorType<ApiErrorResponse>, T
   return useMutation(getSaveDocumentDraftFileMutationOptions(options), queryClient);
 };
 
+export const getAttachDocumentSignedCopyUrl = (documentId: string) => {
+  return `/documents/${documentId}/signed-copy`;
+};
+
+/**
+ * Takes the bytes of a PDF, up to 15 MB: a scan of the signed paper, or the file signed with the signer's own certificate. It is kept beside the issued revision with its hash. The app records that a file was attached, not that it is signed. A revision that is later superseded keeps its copy.
+ * @summary Attach the signed copy of the issued revision, or replace it
+ */
+export const attachDocumentSignedCopy = async (
+  documentId: string,
+  attachDocumentSignedCopyBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientDocumentResponse>(getAttachDocumentSignedCopyUrl(documentId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/pdf', ...getHeaders(options?.headers) },
+    body: attachDocumentSignedCopyBody,
+  });
+};
+
+export const getAttachDocumentSignedCopyMutationKey = () => ['attachDocumentSignedCopy'] as const;
+
+export const getAttachDocumentSignedCopyMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+    TError,
+    AttachDocumentSignedCopyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+  TError,
+  AttachDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAttachDocumentSignedCopyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+    AttachDocumentSignedCopyMutationVariables
+  > = (props) => {
+    const { documentId, data } = props ?? {};
+
+    return attachDocumentSignedCopy(documentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AttachDocumentSignedCopyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof attachDocumentSignedCopy>>
+>;
+export type AttachDocumentSignedCopyMutationBody = Blob;
+export type AttachDocumentSignedCopyMutationError = ErrorType<ApiErrorResponse>;
+export type AttachDocumentSignedCopyMutationVariables = { documentId: string; data: Blob };
+
+/**
+ * @summary Attach the signed copy of the issued revision, or replace it
+ */
+export const useAttachDocumentSignedCopy = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+      TError,
+      AttachDocumentSignedCopyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+  TError,
+  AttachDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  return useMutation(getAttachDocumentSignedCopyMutationOptions(options), queryClient);
+};
+
+export const getRemoveDocumentSignedCopyUrl = (documentId: string) => {
+  return `/documents/${documentId}/signed-copy`;
+};
+
+/**
+ * @summary Remove the signed copy of the issued revision, with its file
+ */
+export const removeDocumentSignedCopy = async (
+  documentId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRemoveDocumentSignedCopyUrl(documentId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveDocumentSignedCopyMutationKey = () => ['removeDocumentSignedCopy'] as const;
+
+export const getRemoveDocumentSignedCopyMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+    TError,
+    RemoveDocumentSignedCopyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+  TError,
+  RemoveDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveDocumentSignedCopyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+    RemoveDocumentSignedCopyMutationVariables
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return removeDocumentSignedCopy(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveDocumentSignedCopyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeDocumentSignedCopy>>
+>;
+
+export type RemoveDocumentSignedCopyMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveDocumentSignedCopyMutationVariables = { documentId: string };
+
+/**
+ * @summary Remove the signed copy of the issued revision, with its file
+ */
+export const useRemoveDocumentSignedCopy = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+      TError,
+      RemoveDocumentSignedCopyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+  TError,
+  RemoveDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveDocumentSignedCopyMutationOptions(options), queryClient);
+};
+
 export const getUploadClientDocumentUrl = (
   clientId: string,
   typeKey:
@@ -7611,6 +8440,446 @@ export const useUploadClientDocument = <TError = ErrorType<ApiErrorResponse>, TC
   TContext
 > => {
   return useMutation(getUploadClientDocumentMutationOptions(options), queryClient);
+};
+
+export const getGetServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract`;
+};
+
+/**
+ * Owners only, before and after promotion (ADR 007). `contract` is null until its details are saved, and `suggestedNumber` then continues the organization's register. `readiness` lists what generating the contract is waiting for, by where it is filled in. `document` is the contract as a document, with its draft and issued revisions, once generated.
+ * @summary Read the service contract of a client or a lead
+ */
+export const getServiceContract = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  return apiFetch<ServiceContractResponse>(getGetServiceContractUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetServiceContractQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/service-contract`] as const;
+};
+
+export const getGetServiceContractQueryOptions = <
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetServiceContractQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceContract>>> = ({ signal }) =>
+    getServiceContract(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetServiceContractQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getServiceContract>>
+>;
+export type GetServiceContractQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getServiceContract>>,
+          TError,
+          Awaited<ReturnType<typeof getServiceContract>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getServiceContract>>,
+          TError,
+          Awaited<ReturnType<typeof getServiceContract>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the service contract of a client or a lead
+ */
+
+export function useGetServiceContract<
+  TData = Awaited<ReturnType<typeof getServiceContract>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceContract>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetServiceContractQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getSaveServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract`;
+};
+
+/**
+ * Owners only. The number, the dates, the renewal and the services covered; prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.
+ * @summary Save the details of the service contract of a client or a lead
+ */
+export const saveServiceContract = async (
+  clientId: string,
+  saveServiceContractRequest: SaveServiceContractRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ServiceContractResponse>(getSaveServiceContractUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(saveServiceContractRequest),
+  });
+};
+
+export const getSaveServiceContractMutationKey = () => ['saveServiceContract'] as const;
+
+export const getSaveServiceContractMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveServiceContract>>,
+    TError,
+    SaveServiceContractMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveServiceContract>>,
+  TError,
+  SaveServiceContractMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveServiceContractMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveServiceContract>>,
+    SaveServiceContractMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return saveServiceContract(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveServiceContractMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveServiceContract>>
+>;
+export type SaveServiceContractMutationBody = SaveServiceContractRequest;
+export type SaveServiceContractMutationError = ErrorType<ApiErrorResponse>;
+export type SaveServiceContractMutationVariables = {
+  clientId: string;
+  data: SaveServiceContractRequest;
+};
+
+/**
+ * @summary Save the details of the service contract of a client or a lead
+ */
+export const useSaveServiceContract = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveServiceContract>>,
+      TError,
+      SaveServiceContractMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveServiceContract>>,
+  TError,
+  SaveServiceContractMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveServiceContractMutationOptions(options), queryClient);
+};
+
+export const getGenerateServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract/generate`;
+};
+
+/**
+ * Owners only. Merges the starter template with the organization, the client and the saved details. A draft is overwritten, hand edits included; beside an issued contract the next revision starts as a draft and the issued one stays in force. Prices are printed as "DE COMPLETAT" for the owner to write in the editor, and issuing warns while one is left. From then on the contract is a document like the others: saving, issuing, starting a draft from the issued file, deleting a draft and downloading go through `/documents/{documentId}`.
+ * @summary Generate the service contract from its template, or generate it again
+ */
+export const generateServiceContract = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  return apiFetch<ServiceContractResponse>(getGenerateServiceContractUrl(clientId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getGenerateServiceContractMutationKey = () => ['generateServiceContract'] as const;
+
+export const getGenerateServiceContractMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateServiceContract>>,
+    TError,
+    GenerateServiceContractMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateServiceContract>>,
+  TError,
+  GenerateServiceContractMutationVariables,
+  TContext
+> => {
+  const mutationKey = getGenerateServiceContractMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateServiceContract>>,
+    GenerateServiceContractMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return generateServiceContract(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateServiceContractMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateServiceContract>>
+>;
+
+export type GenerateServiceContractMutationError = ErrorType<ApiErrorResponse>;
+export type GenerateServiceContractMutationVariables = { clientId: string };
+
+/**
+ * @summary Generate the service contract from its template, or generate it again
+ */
+export const useGenerateServiceContract = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof generateServiceContract>>,
+      TError,
+      GenerateServiceContractMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof generateServiceContract>>,
+  TError,
+  GenerateServiceContractMutationVariables,
+  TContext
+> => {
+  return useMutation(getGenerateServiceContractMutationOptions(options), queryClient);
+};
+
+export const getSendServiceContractUrl = (clientId: string) => {
+  return `/clients/${clientId}/service-contract/send`;
+};
+
+/**
+ * Owners only, and never by itself: issuing sends nothing. The PDF of the issued revision is attached; the email goes out in the owner's name, replies go to the owner, who is copied. Each send is recorded with its address and revision, and `lastSend` is about the revision in force. A contract can be sent again.
+ * @summary Email the issued contract to the company's contact
+ */
+export const sendServiceContract = async (
+  clientId: string,
+  sendServiceContractRequest: SendServiceContractRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ServiceContractResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ServiceContractResponse>(getSendServiceContractUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sendServiceContractRequest),
+  });
+};
+
+export const getSendServiceContractMutationKey = () => ['sendServiceContract'] as const;
+
+export const getSendServiceContractMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendServiceContract>>,
+    TError,
+    SendServiceContractMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendServiceContract>>,
+  TError,
+  SendServiceContractMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSendServiceContractMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendServiceContract>>,
+    SendServiceContractMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return sendServiceContract(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendServiceContractMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendServiceContract>>
+>;
+export type SendServiceContractMutationBody = SendServiceContractRequest;
+export type SendServiceContractMutationError = ErrorType<ApiErrorResponse>;
+export type SendServiceContractMutationVariables = {
+  clientId: string;
+  data: SendServiceContractRequest;
+};
+
+/**
+ * @summary Email the issued contract to the company's contact
+ */
+export const useSendServiceContract = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof sendServiceContract>>,
+      TError,
+      SendServiceContractMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof sendServiceContract>>,
+  TError,
+  SendServiceContractMutationVariables,
+  TContext
+> => {
+  return useMutation(getSendServiceContractMutationOptions(options), queryClient);
 };
 
 export const getCreateOrganizationUrl = () => {

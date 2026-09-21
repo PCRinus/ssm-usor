@@ -32,6 +32,7 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   editedAt: null,
   issuedAt: null,
   hasPdf: false,
+  hasSignedCopy: false,
   createdAt: '2026-09-19T10:00:00+00:00',
   ...overrides,
 });
@@ -145,6 +146,7 @@ describe('client documents', () => {
       'Posturi de lucru',
       'Date pentru documente',
       'Documente',
+      'Contact',
     ]);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(

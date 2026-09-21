@@ -24,6 +24,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(supabaseUrl)) {
   throw new Error('The e2e server only runs against a local Supabase stack.');
 }
 
+// `url` is what the person would click; an email without a link says what it carried instead.
 const sent: { to: string; kind: string; url: string }[] = [];
 const record = (kind: string, to: string, url: string) => {
   sent.push({ to, kind, url });
@@ -36,6 +37,12 @@ const mail: MailService = {
   sendSignupConfirmation: ({ to, confirmUrl }) => record('signup-confirmation', to, confirmUrl),
   sendPasswordChanged: ({ to, forgotPasswordUrl }) =>
     record('password-changed', to, forgotPasswordUrl),
+  sendServiceContract: ({ to, senderEmail, attachment }) =>
+    record(
+      'service-contract',
+      to,
+      `cc=${senderEmail}; ${attachment.fileName}; ${attachment.contentBase64.slice(0, 8)}`
+    ),
 };
 
 const env: ApiEnv['Bindings'] = {

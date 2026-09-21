@@ -5,10 +5,12 @@ import {
   createResponsiblePerson,
   createWorkplace,
   getClientDocumentDetails,
+  getOrganizationContractDetails,
   getOrganizationLegalDetails,
   listResponsiblePersons,
   listWorkplaces,
   updateClientDocumentDetails,
+  updateOrganizationContractDetails,
   updateOrganizationLegalDetails,
   updateResponsiblePerson,
   updateWorkplace,
@@ -19,10 +21,12 @@ import {
   createResponsiblePersonRoute,
   createWorkplaceRoute,
   getClientDocumentDetailsRoute,
+  getOrganizationContractDetailsRoute,
   getOrganizationLegalDetailsRoute,
   listResponsiblePersonsRoute,
   listWorkplacesRoute,
   updateClientDocumentDetailsRoute,
+  updateOrganizationContractDetailsRoute,
   updateOrganizationLegalDetailsRoute,
   updateResponsiblePersonRoute,
   updateWorkplaceRoute,
@@ -31,6 +35,8 @@ import {
 export const documentDataRouter = createRouter()
   .openapi(getOrganizationLegalDetailsRoute, getOrganizationLegalDetails)
   .openapi(updateOrganizationLegalDetailsRoute, updateOrganizationLegalDetails)
+  .openapi(getOrganizationContractDetailsRoute, getOrganizationContractDetails)
+  .openapi(updateOrganizationContractDetailsRoute, updateOrganizationContractDetails)
   .openapi(getClientDocumentDetailsRoute, getClientDocumentDetails)
   .openapi(updateClientDocumentDetailsRoute, updateClientDocumentDetails)
   .openapi(listWorkplacesRoute, listWorkplaces)

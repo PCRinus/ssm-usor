@@ -8,9 +8,11 @@ export type OutgoingEmail = {
   from: string;
   replyTo?: string;
   to: string;
+  cc?: string;
   subject: string;
   html: string;
   text: string;
+  attachments?: { fileName: string; contentBase64: string }[];
 };
 
 export type MailProvider = { send(email: OutgoingEmail): Promise<MailReceipt> };

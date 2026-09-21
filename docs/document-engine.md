@@ -230,7 +230,50 @@ the four decisions that exist.
 
 Covers need `provider.representativeRole` besides what the decisions use.
 
+## The service contract
+
+The starter template of the service contract (ADR 007) is not one of the provider's originals,
+so it is not imported and it is not in the pack's manifest, which lists the 23 originals and
+nothing else. It lives in `templates/other/`, with a manifest of its own, and is built like
+the covers:
+
+```sh
+pnpm --filter @ssm-usor/document-engine build-contract
+```
+
+`tools/import/build_contract.py` typesets `tools/import/contract.ro.json` to the house style.
+The wording is ours, written after the structure of one provider's contract, with diacritics
+and with the legal references of that contract kept. What it decides differently from its
+model is listed in the pull request that added it and belongs to the legal review (#61): a
+data protection clause (GDPR art. 28), damages for proven loss in place of a penalty of one
+year of the contract's value, a late-payment penalty of 0.1% a day capped at the debt, a
+30-day notice for either party, and exclusivity stated as a way to avoid overlapping
+responsibility.
+
+- **Articles are a list.** "Art. N." comes from a numbering style (`ListFormat`, because this
+  version of the office reads `Prefix` and `Suffix` and drops them on export), so an article a
+  provider deletes in the editor, or a chapter left out by a condition, leaves no gap. A new
+  paragraph inherits the numbering of the one before it, so every paragraph that is not an
+  article clears it. For the same reason chapters carry no number and no article refers to
+  another by number. Lettered items are typed.
+- **Conditions.** `{{#contract.coversFireSafety}}` and its closing tag stand alone in their
+  paragraphs around the fire-safety chapters and articles, and
+  `{{#contract.coversOccupationalSafety}}` around the others, so a contract prints one
+  service, the other, or both. `provider.vatPayer` and `provider.notVatPayer`, and
+  `contract.renewsAutomatically` and `contract.endsWithoutRenewal`, choose between two
+  sentences: the engine has no "else", so the context carries both sides.
+- **Prices** are printed as `DE COMPLETAT`, the contracts' `unfilledMark`, which is what
+  issuing already warns about. The app keeps no prices (ADR 007).
+- `{{#client.phone}}…{{/client.phone}}` and `{{#client.activity}}…` are inline conditions: the
+  client's phone and CAEN activity are the only optional values.
+
+The context is built by `apps/api/src/modules/service-contracts/context.ts`, and
+`apps/api/scripts/lib/contract-template.test.ts` merges the real file with it, in every
+combination above.
+
 ## Registering the templates
+
+Both manifests are registered: the pack's, and `templates/other/manifest.json`.
 
 The API does not read the repository: it takes a template from Storage, by the version the
 registry gives it. One script brings the two in line with `templates/`:

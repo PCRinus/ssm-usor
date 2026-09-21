@@ -82,6 +82,8 @@ What comes back, a scan or a file signed with the company's own certificate, is 
 
 Steps 2 and 3 already give an owner a list of leads that become clients.
 
+(Amended while building. The contract's details also keep who signs for the client, saved on the client, because a lead has no other form for it. Sends are kept one by one, with their revision: "sent" and "signed" are about the revision in force, so a revision issued later starts again from "issued". The owner is copied on the email. The signed copy is a table beside the revisions, not a column, because an issued revision never changes. The starter template departs from the contract that was read where that one was harsher or silent; the pull request that added it lists where, for the legal review.)
+
 ## Consequences
 
 - ADR 005 is amended: a new draft can start from the issued revision's file. Without it a price change in a contract, or any correction to an edited document, meant redoing every edit.

@@ -9,8 +9,10 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           decision_number: number | null;
+          document_group: Database['public']['Enums']['document_group'];
           id: string;
           organization_id: string;
+          owners_only: boolean;
           title: string;
           type_key: string;
         };
@@ -19,8 +21,10 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           decision_number?: number | null;
+          document_group?: Database['public']['Enums']['document_group'];
           id?: string;
           organization_id: string;
+          owners_only?: boolean;
           title: string;
           type_key: string;
         };
@@ -29,8 +33,10 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           decision_number?: number | null;
+          document_group?: Database['public']['Enums']['document_group'];
           id?: string;
           organization_id?: string;
+          owners_only?: boolean;
           title?: string;
           type_key?: string;
         };
@@ -492,6 +498,58 @@ export type Database = {
           },
         ];
       };
+      document_signed_copies: {
+        Row: {
+          document_id: string;
+          organization_id: string;
+          revision_id: string;
+          sha256: string;
+          storage_path: string;
+          uploaded_at: string;
+          uploaded_by: string | null;
+        };
+        Insert: {
+          document_id: string;
+          organization_id: string;
+          revision_id: string;
+          sha256: string;
+          storage_path: string;
+          uploaded_at?: string;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          document_id?: string;
+          organization_id?: string;
+          revision_id?: string;
+          sha256?: string;
+          storage_path?: string;
+          uploaded_at?: string;
+          uploaded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'document_signed_copies_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_documents';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_signed_copies_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'document_signed_copies_revision_id_fkey';
+            columns: ['revision_id'];
+            isOneToOne: true;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       document_template_versions: {
         Row: {
           created_at: string;
@@ -860,54 +918,81 @@ export type Database = {
       organizations: {
         Row: {
           address_line: string | null;
+          authorization_certificate_date: string | null;
+          authorization_certificate_issuer: string | null;
+          authorization_certificate_number: string | null;
+          bank_name: string | null;
           county_code: string | null;
           created_at: string;
           cui: string | null;
+          fire_safety_technician_certificate: string | null;
+          fire_safety_technician_name: string | null;
+          iban: string | null;
           id: string;
           legal_name: string | null;
           legal_representative_name: string | null;
           legal_representative_role: string | null;
           locality: string | null;
           name: string;
+          phone: string | null;
           terms_accepted_at: string | null;
           terms_accepted_by: string | null;
           terms_version: string | null;
           trade_register_number: string | null;
           updated_at: string;
+          vat_payer: boolean;
         };
         Insert: {
           address_line?: string | null;
+          authorization_certificate_date?: string | null;
+          authorization_certificate_issuer?: string | null;
+          authorization_certificate_number?: string | null;
+          bank_name?: string | null;
           county_code?: string | null;
           created_at?: string;
           cui?: string | null;
+          fire_safety_technician_certificate?: string | null;
+          fire_safety_technician_name?: string | null;
+          iban?: string | null;
           id?: string;
           legal_name?: string | null;
           legal_representative_name?: string | null;
           legal_representative_role?: string | null;
           locality?: string | null;
           name: string;
+          phone?: string | null;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
           trade_register_number?: string | null;
           updated_at?: string;
+          vat_payer?: boolean;
         };
         Update: {
           address_line?: string | null;
+          authorization_certificate_date?: string | null;
+          authorization_certificate_issuer?: string | null;
+          authorization_certificate_number?: string | null;
+          bank_name?: string | null;
           county_code?: string | null;
           created_at?: string;
           cui?: string | null;
+          fire_safety_technician_certificate?: string | null;
+          fire_safety_technician_name?: string | null;
+          iban?: string | null;
           id?: string;
           legal_name?: string | null;
           legal_representative_name?: string | null;
           legal_representative_role?: string | null;
           locality?: string | null;
           name?: string;
+          phone?: string | null;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
           trade_register_number?: string | null;
           updated_at?: string;
+          vat_payer?: boolean;
         };
         Relationships: [];
       };
@@ -940,6 +1025,130 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      service_contract_sends: {
+        Row: {
+          document_id: string;
+          id: string;
+          note: string | null;
+          organization_id: string;
+          provider_message_id: string | null;
+          revision_id: string;
+          sent_at: string;
+          sent_by: string | null;
+          sent_to: string;
+        };
+        Insert: {
+          document_id: string;
+          id?: string;
+          note?: string | null;
+          organization_id: string;
+          provider_message_id?: string | null;
+          revision_id: string;
+          sent_at?: string;
+          sent_by?: string | null;
+          sent_to: string;
+        };
+        Update: {
+          document_id?: string;
+          id?: string;
+          note?: string | null;
+          organization_id?: string;
+          provider_message_id?: string | null;
+          revision_id?: string;
+          sent_at?: string;
+          sent_by?: string | null;
+          sent_to?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_contract_sends_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_documents';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contract_sends_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_contract_sends_revision_id_fkey';
+            columns: ['revision_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      service_contracts: {
+        Row: {
+          client_id: string;
+          contract_date: string;
+          contract_number: number;
+          covers_fire_safety: boolean;
+          covers_occupational_safety: boolean;
+          created_at: string;
+          created_by: string | null;
+          duration_months: number;
+          id: string;
+          organization_id: string;
+          renews_automatically: boolean;
+          start_date: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          client_id: string;
+          contract_date: string;
+          contract_number: number;
+          covers_fire_safety?: boolean;
+          covers_occupational_safety?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          duration_months: number;
+          id?: string;
+          organization_id: string;
+          renews_automatically?: boolean;
+          start_date: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          contract_date?: string;
+          contract_number?: number;
+          covers_fire_safety?: boolean;
+          covers_occupational_safety?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          duration_months?: number;
+          id?: string;
+          organization_id?: string;
+          renews_automatically?: boolean;
+          start_date?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_contracts_client_fkey';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contracts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       waitlist_subscribers: {
         Row: {
@@ -996,6 +1205,7 @@ export type Database = {
         };
         Returns: string;
       };
+      can_access_document: { Args: { p_document_id: string }; Returns: boolean };
       change_organization_member_role: {
         Args: {
           member_user_id: string;
@@ -1038,6 +1248,8 @@ export type Database = {
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
+      is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
+      is_signed_copy_path: { Args: { p_path: string }; Returns: boolean };
       issue_document_revision: {
         Args: {
           p_docx_sha256: string;
@@ -1108,6 +1320,7 @@ export type Database = {
     };
     Enums: {
       client_stage: 'lead' | 'client';
+      document_group: 'documentation_set' | 'other';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
@@ -1236,6 +1449,7 @@ export const Constants = {
   public: {
     Enums: {
       client_stage: ['lead', 'client'],
+      document_group: ['documentation_set', 'other'],
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       organization_role: ['owner', 'specialist'],

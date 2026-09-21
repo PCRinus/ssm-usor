@@ -18,6 +18,7 @@ const env: ApiEnv['Bindings'] = {
     sendPasswordReset: vi.fn(),
     sendPasswordChanged: vi.fn(),
     sendSignupConfirmation: vi.fn(),
+    sendServiceContract: vi.fn(),
   },
 };
 

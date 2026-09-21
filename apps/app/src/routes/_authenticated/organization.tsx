@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { useMe } from '../../account/use-me';
 import { Notice } from '../../components/notice';
+import { ContractDetailsCard } from '../../organization/contract-details-card';
 import { InvitationsCard } from '../../organization/invitations-card';
 import { InviteMemberDialog } from '../../organization/invite-member-dialog';
 import { roleLabels } from '../../organization/labels';
@@ -71,6 +72,7 @@ export function OrganizationPage() {
       <MembersCard userId={user.id} canManage={isOwner} />
       {isOwner && <InvitationsCard userId={user.id} />}
       <LegalDetailsCard userId={user.id} canEdit={isOwner} />
+      {isOwner && <ContractDetailsCard userId={user.id} />}
       <InviteMemberDialog open={inviting} onClose={() => setInviting(false)} />
     </div>
   );

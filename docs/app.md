@@ -123,6 +123,16 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`             | `/clients/:id/documents`                  | The client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                         |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`       | `/clients/:id/documents/:documentId`      | One document in the in-app Word editor; a full page.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`       | `/clients/:id/employees/:employeeId`      | Employee record, the only page that can reveal the CNP.                                                                                                           |
+| `routes/_authenticated/clients/$clientId/contact.tsx`                     | `/clients/:id/contact`                    | The client's contact person for the team, and the owners' notes for an owner.                                                                                     |
+| `routes/_authenticated/clients/$clientId/other-documents/index.tsx`       | `/clients/:id/other-documents`            | "Alte documente", for owners: the client's service contract (ADR 007).                                                                                            |
+| `routes/_authenticated/clients/$clientId/other-documents/contract.tsx`    | `/clients/:id/other-documents/contract`   | The client's contract in the editor; a full page.                                                                                                                 |
+| `routes/_authenticated/leads/$leadId/contract.tsx`                        | `/leads/:id/contract`                     | A lead's contract in the editor.                                                                                                                                  |
+| `routes/_authenticated/leads.tsx`                                         | pathless                                  | Leads section layout carrying the breadcrumb title.                                                                                                               |
+| `routes/_authenticated/leads/index.tsx`                                   | `/leads`                                  | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                           |
+| `routes/_authenticated/leads/new.tsx`                                     | `/leads/new`                              | The client form, adding a lead.                                                                                                                                   |
+| `routes/_authenticated/leads/$leadId.tsx`                                 | pathless                                  | Loads the lead through `GET /clients/{clientId}`; a promoted one redirects to its client page.                                                                    |
+| `routes/_authenticated/leads/$leadId/index.tsx`                           | `/leads/:id`                              | The lead: contact, the owners' notes, archive, and "Transformă în client".                                                                                        |
+| `routes/_authenticated/leads/$leadId/edit.tsx`                            | `/leads/:id/edit`                         | The client form, filled from the lead.                                                                                                                            |
 | `routes/__root.tsx`                                                       | other paths                               | Not-found screen with a link back to the start; route error screen.                                                                                               |
 
 A route whose breadcrumb label depends on data (the client name) returns `crumb` from its
@@ -242,7 +252,20 @@ after `pnpm supabase:start`. They cover what creates users: inviting, accepting 
 and with an existing account, changing a role, removing a member, resetting and changing a
 password, registering through to a new organization, and generating a client's documentation
 from the real templates (`pnpm templates:register:local` first), down to the downloaded file's
-name, and correcting a draft in the real editor: type, save, reload, and find the text again. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
+name, and correcting a draft in the real editor: type, save, reload, and find the text again.
+They also cover a lead from the form to a client, with its contract generated, priced in the
+editor, issued and emailed. **Run them with a converter before changing anything that touches
+documents, Storage or their policies**: without `GOTENBERG_URL` issuing makes no PDF, so the
+path that writes one, and everything after it (the PDF download, sending a contract), is
+skipped, and CI, which has a converter, is the first to find out.
+
+```sh
+docker run -d --rm --name gotenberg-flows -p 3300:3000 gotenberg/gotenberg:8
+GOTENBERG_URL=http://localhost:3300 pnpm --filter @ssm-usor/app test:e2e:flows
+docker stop gotenberg-flows
+```
+
+`playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
 pointed at the local Supabase stack, and a preview of a production build of the SPA. That API
 refuses any Supabase URL that is not local and keeps emails in memory instead of calling the
@@ -443,6 +466,63 @@ mobile navigation link closes the Sheet.
   "Modificat", which "Generează din nou" then names as what would be lost. An issued document
   opens for reading with "Modifică" in the title bar, which starts the same draft in place:
   the page loads the new revision and becomes editable.
+
+- `/organization`, for an owner, ends with "Date pentru contracte" (`ContractDetailsCard`):
+  the phone, the VAT flag, the IBAN with its bank, the certificate of authorization (number,
+  date, issuer) and the fire-safety technician. Nothing is required; the IBAN is checked as
+  typed, with or without spaces, and shown in groups of four once saved. A specialist does
+  not get the card, and the app asks the API for nothing on their behalf.
+- `/leads`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
+  client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
+  routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the
+  contact and the day it was added, "Activi" and "Arhivați" in the URL, and a row menu with
+  "Modifică", "Transformă în client…" and "Arhivează…". A specialist who types the address is
+  told that leads are the owners'; for them `/leads/:id` is the not-found screen, because the
+  API answers `404`. `/leads/new` and `/leads/:id/edit` are `ClientForm` with the lead's
+  wording, the contact section right after the identification, and the lead's page as where
+  they return. The contact section is also on the client form, last.
+- `/leads/:id`: the company's summary, the contact (`ContactCard`), and the owners' notes
+  (`OwnerNotesCard`: a text area saved with `PUT …/owner-notes`, "Modificări nesalvate" until
+  then, read-only for an archived company). "Arhivează…" opens the clients' archive dialog,
+  which for a lead speaks of leads and does not look for draft documents. "Transformă în
+  client…" opens `PromoteLeadDialog`, which says that the whole team will see the company,
+  that the notes stay the owners', and that it cannot be undone; then `POST …/promote`, a
+  toast, and the client's page. An archived lead shows a banner with "Restaurează…" and
+  neither of the other two. The two addresses of one record lead to each other: the client
+  layout redirects a lead to `/leads/:id`, and the lead loader redirects a client to
+  `/clients/:id/employees`, so a link kept from before the promotion still works.
+- The service contract (`src/service-contracts`): `ServiceContractCard` is on the lead's page
+  and, for a client, in "Alte documente", a section only an owner gets (a specialist who types
+  the address is told what is there and whose it is, and nothing is asked of the API). The
+  form keeps what the app reads about the contract: the number, which starts from the API's
+  suggestion and says so, the two dates, the duration, the renewal, the two services, and who
+  signs for the client, which is saved on the client because a lead has no other form for it.
+  Under it, while something is missing, a warning groups it by where it is filled in, with a
+  link to each place: the organization, the company's own form, this form. "Generează
+  contractul" waits for saved details and for nothing missing, and says which in its title;
+  over a draft it asks first, because prices written by hand are lost. The contract then
+  shows as a document: "Ciornă · rev. N", "Emis · rev. N", "Modificat", and "Date modificate"
+  when `draftOutdated`. It opens in the editor, downloads as Word or PDF, is issued behind a
+  confirmation that asks a second time while `DE COMPLETAT` is left (where the prices go),
+  and its draft can be deleted. An issued contract has "Trimite prin email…"
+  (`SendContractDialog`): the address starts as the contact's, a note is optional, and the
+  dialog says that the PDF goes out in the owner's name, with replies and a copy to them. The
+  card then shows "Trimis" and "Revizia N a fost trimisă la … pe …", and the button reads
+  "Trimite din nou…". Without a PDF the button is disabled and says to send the download
+  instead. The leads list has a "Contract" column from `serviceContractState`: Fără contract,
+  Ciornă, Emis, Trimis, Semnat. Under an issued contract a line offers "Atașează exemplarul
+  semnat" (a PDF, from a hidden file input), and once attached says which revision has it,
+  with "Descarcă", "Înlocuiește" and "Elimină" behind a confirmation. `PromoteLeadDialog`
+  warns, without stopping, when the contract in force has no signed copy; it is told through
+  `signed`, left out while the contract is still loading so the warning never flashes for a
+  signed one.
+- The editor is one view for both kinds of document. `DocumentEditorView` takes a
+  `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
+  the way back); `DocumentEditorPage` builds one from the client's list of documents, and
+  `ServiceContractEditor` from `GET …/service-contract`, because that list is the
+  documentation set only. "Modifică" on an issued contract works as for any document.
+- `/clients/:id/contact`: the "Contact" section of a client, with the same two cards. The
+  notes card is rendered for an owner only, and the API refuses anyone else.
 
 - `/organization`: the organization's name, the caller's role, and the members from
   `GET /organization/members`. An owner also gets the pending invitations with resend and

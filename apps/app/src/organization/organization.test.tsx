@@ -58,6 +58,18 @@ type Route = (init: RequestInit | undefined) => Response;
 
 const fetchMock = vi.fn<typeof fetch>();
 
+const contractDetails = {
+  phone: null,
+  iban: 'RO49AAAA1B31007593840000',
+  bankName: null,
+  authorizationCertificateNumber: null,
+  authorizationCertificateDate: null,
+  authorizationCertificateIssuer: null,
+  vatPayer: false,
+  fireSafetyTechnicianName: null,
+  fireSafetyTechnicianCertificate: null,
+};
+
 function mockApi({
   role = 'owner' as 'owner' | 'specialist' | null,
   invitations = [invitation] as unknown[],
@@ -67,6 +79,7 @@ function mockApi({
   changeRole = (() => new Response(null, { status: 204 })) as Route,
   removeMember = (() => new Response(null, { status: 204 })) as Route,
   saveLegalDetails = (() => Response.json({ legalDetails })) as Route,
+  saveContractDetails = (() => Response.json({ contractDetails })) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -76,6 +89,9 @@ function mockApi({
     if (pathname === '/organization/members') return Response.json({ items: members });
     if (pathname === '/organization/legal-details') {
       return method === 'PUT' ? saveLegalDetails(init) : Response.json({ legalDetails });
+    }
+    if (pathname === '/organization/contract-details') {
+      return method === 'PUT' ? saveContractDetails(init) : Response.json({ contractDetails });
     }
     if (pathname === '/organization/members/user-two') {
       return method === 'DELETE' ? removeMember(init) : changeRole(init);
@@ -418,5 +434,51 @@ describe('legal details', () => {
       'Nu am putut salva'
     );
     expect(locality.value).toBe('Lugoj');
+  });
+
+  it('keeps what contracts print about the provider, for owners only', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+    const form = await screen.findByTestId('contract-details-form');
+    const iban = within(form).getByTestId('contract-iban') as HTMLInputElement;
+    expect(iban.value).toBe('RO49 AAAA 1B31 0075 9384 0000');
+    expect(within(form).getByTestId('contract-details-save')).toHaveProperty('disabled', true);
+
+    await user.clear(iban);
+    await user.type(iban, 'RO48 AAAA 1B31 0075 9384 0000');
+    await user.click(within(form).getByTestId('contract-details-save'));
+    expect((await screen.findByTestId('contract-iban-error')).textContent).toContain(
+      'IBAN invalid'
+    );
+    expect(requests('/organization/contract-details', 'PUT')).toHaveLength(0);
+
+    await user.clear(iban);
+    await user.type(iban, 'ro49aaaa1b31007593840000');
+    await user.type(within(form).getByTestId('contract-bankName'), 'Banca Transilvania');
+    await user.type(
+      within(form).getByTestId('contract-authorizationCertificateDate'),
+      '30.09.2022'
+    );
+    await user.click(within(form).getByTestId('contract-vatPayer'));
+    await user.click(within(form).getByTestId('contract-details-save'));
+    expect(await screen.findByText('Datele pentru contracte au fost salvate.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests('/organization/contract-details', 'PUT')[0]![1]?.body))
+    ).toEqual({
+      ...contractDetails,
+      iban: 'ro49aaaa1b31007593840000',
+      bankName: 'Banca Transilvania',
+      authorizationCertificateDate: '2022-09-30',
+      vatPayer: true,
+    });
+  });
+
+  it('shows a specialist no contract details, and asks the API for none', async () => {
+    mockApi({ role: 'specialist' });
+    mount();
+    await screen.findByTestId('legal-details-form');
+    expect(screen.queryByTestId('contract-details-card')).toBeNull();
+    expect(requests('/organization/contract-details')).toHaveLength(0);
   });
 });

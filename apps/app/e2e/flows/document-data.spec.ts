@@ -42,6 +42,35 @@ test('an owner fills in the legal details, and they are still there after a relo
   await expect(page.getByTestId('legal-details-save')).toBeDisabled();
 });
 
+test('an owner fills in what contracts print, and it is still there after a reload', async ({
+  page,
+}) => {
+  const owner = await createAccount('contract-details-owner', 'Olga Contract');
+  await createOrganization('Date contracte E2E', owner.id);
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto('/organization');
+
+  await page.getByTestId('contract-iban').fill('RO48 AAAA 1B31 0075 9384 0000');
+  await page.getByTestId('contract-details-save').click();
+  await expect(page.getByTestId('contract-iban-error')).toContainText('IBAN invalid');
+
+  await page.getByTestId('contract-iban').fill('ro49aaaa1b31007593840000');
+  await page.getByTestId('contract-bankName').fill('Banca Transilvania');
+  await page.getByTestId('contract-authorizationCertificateNumber').fill('17664');
+  await page.getByTestId('contract-authorizationCertificateDate').fill('30.09.2022');
+  await page.getByTestId('contract-vatPayer').click();
+  await page.getByTestId('contract-details-save').click();
+  await expect(page.getByText('Datele pentru contracte au fost salvate.')).toBeVisible();
+
+  await page.reload();
+  // Stored bare and in upper case, shown in groups of four.
+  await expect(page.getByTestId('contract-iban')).toHaveValue('RO49 AAAA 1B31 0075 9384 0000');
+  await expect(page.getByTestId('contract-authorizationCertificateDate')).toHaveValue('30.09.2022');
+  await expect(page.getByTestId('contract-vatPayer')).toBeChecked();
+  await expect(page.getByTestId('contract-details-save')).toBeDisabled();
+});
+
 test('a person sets their professional title on the profile page', async ({ page }) => {
   const specialist = await createAccount('titled', 'Tudor Titlu');
   await createOrganization('Titluri E2E', specialist.id);

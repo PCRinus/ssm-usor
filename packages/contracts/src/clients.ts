@@ -50,6 +50,12 @@ export const updateClientRequestSchema = createClientRequestSchema.omit({
 
 export type UpdateClientRequest = z.infer<typeof updateClientRequestSchema>;
 
+// Where a lead stands is where its contract stands (ADR 007). An issued contract has been
+// handed over or is ready to be, and "sent" is about that one: a revision issued after the
+// last send is not sent yet, and likewise "signed": the signed copy of the revision in force.
+export const serviceContractStates = ['none', 'draft', 'issued', 'sent', 'signed'] as const;
+export type ServiceContractState = (typeof serviceContractStates)[number];
+
 export const clientSchema = z.object({
   id: z.uuid(),
   legalName: z.string(),
@@ -67,6 +73,8 @@ export const clientSchema = z.object({
   contactEmail: z.string().nullable(),
   contactPhone: z.string().nullable(),
   promotedAt: z.iso.datetime({ offset: true }).nullable(),
+  // Only in the list of leads, which is an owner's; null everywhere else.
+  serviceContractState: z.enum(serviceContractStates).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   archivedAt: z.iso.datetime({ offset: true }).nullable(),

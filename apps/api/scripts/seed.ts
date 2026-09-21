@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import type { Database } from '../src/database.types';
 import { seedAdmin, seedConfigSchema } from './lib/seed-admin';
-import { fakeClients, seedClients } from './lib/seed-clients';
+import { fakeClients, fakeLeads, seedClients, seedLeads } from './lib/seed-clients';
 import {
   seedDocumentData,
   seedOrganizationLegalDetails,
@@ -99,6 +99,8 @@ try {
     const rows = fakeClients(options.clients, options.seed, organization.id, user.id);
     const clients = await seedClients(client, rows);
     console.log(`Upserted ${clients.length} fake clients (seed ${options.seed}).`);
+    await seedLeads(client, fakeLeads(4, options.seed, organization.id, user.id));
+    console.log('Added 4 fake leads, where they were not there already.');
     const employees = fakeEmployees(clients, options.seed, organization.id, user.id);
     const employeeCount = await seedEmployees(client, employees);
     console.log(`Upserted ${employeeCount} fake employees across those clients.`);

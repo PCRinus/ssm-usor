@@ -5,10 +5,16 @@ import {
   type ClientSortKey,
   normalizeCui,
   pageRange,
+  serviceContractTypeKey,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type {
@@ -17,6 +23,7 @@ import type {
   getClientOwnerNotesRoute,
   getClientRoute,
   listClientsRoute,
+  promoteLeadRoute,
   restoreClientRoute,
   saveClientOwnerNotesRoute,
   updateClientRoute,
@@ -51,7 +58,32 @@ type SelectedClientRow = Pick<
   | 'archived_at'
 >;
 
-export function toClient(row: SelectedClientRow): Client {
+type ContractDocuments = {
+  client_documents?: {
+    type_key: string;
+    document_revisions: {
+      status: string;
+      service_contract_sends: { id: string }[];
+      // One to one: an object, or null.
+      document_signed_copies: { revision_id: string } | null;
+    }[];
+  }[];
+};
+
+function serviceContractState({ client_documents: documents }: ContractDocuments) {
+  if (!documents) return null;
+  const revisions =
+    documents.find((document) => document.type_key === serviceContractTypeKey)
+      ?.document_revisions ?? [];
+  // A draft beside an issued contract is a correction in progress: the contract is issued.
+  // Sent is about the revision in force, so one issued after the last send is not sent yet.
+  const issued = revisions.find((revision) => revision.status === 'issued');
+  if (issued?.document_signed_copies) return 'signed';
+  if (issued) return issued.service_contract_sends.length > 0 ? 'sent' : 'issued';
+  return revisions.some((revision) => revision.status === 'draft') ? 'draft' : 'none';
+}
+
+export function toClient(row: SelectedClientRow & ContractDocuments): Client {
   return {
     id: row.id,
     legalName: row.legal_name,
@@ -70,6 +102,7 @@ export function toClient(row: SelectedClientRow): Client {
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
     promotedAt: row.promoted_at,
+    serviceContractState: serviceContractState(row),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -96,10 +129,23 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
   if (stage === 'lead') requireOwnerForLeads(c.get('membership').role);
   const db = createDataClient(c);
   const listed = () => {
-    const clients = db.from('clients').select(clientColumns, { count: 'exact' }).eq('stage', stage);
-    return status === 'archived'
-      ? clients.not('archived_at', 'is', null)
-      : clients.is('archived_at', null);
+    const clients = db
+      .from('clients')
+      // The contract of a lead is what says where the lead stands. Owners only, as leads are.
+      // Each pair of tables is linked twice, by id and by id with organization, so the
+      // relationship is named.
+      .select(
+        stage === 'lead'
+          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id)))`
+          : clientColumns,
+        { count: 'exact' }
+      )
+      .eq('stage', stage);
+    return (
+      status === 'archived'
+        ? clients.not('archived_at', 'is', null)
+        : clients.is('archived_at', null)
+    ).returns<(SelectedClientRow & ContractDocuments)[]>();
   };
   let query = listed();
   for (const column of sortColumns[sort])
@@ -271,6 +317,28 @@ export const archiveClient: RouteHandler<typeof archiveClientRoute, ApiEnv> = as
 export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   return c.json({ client: await setArchived(createDataClient(c), clientId, false) }, 200);
+};
+
+export const promoteLead: RouteHandler<typeof promoteLeadRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  const promoted = await db
+    .from('clients')
+    .update({ stage: 'client' })
+    .eq('id', clientId)
+    .eq('stage', 'lead')
+    .is('archived_at', null)
+    .select(clientColumns)
+    .maybeSingle();
+  if (promoted.error) throw fromDatabaseError(promoted.error, 'promote lead');
+  if (promoted.data) return c.json({ client: toClient(promoted.data) }, 200);
+  const current = await db.from('clients').select(clientColumns).eq('id', clientId).maybeSingle();
+  if (current.error) throw fromDatabaseError(current.error, 'find client');
+  if (!current.data) {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  if (current.data.stage === 'lead') throw archivedClientError();
+  return c.json({ client: toClient(current.data) }, 200);
 };
 
 export const getClientOwnerNotes: RouteHandler<typeof getClientOwnerNotesRoute, ApiEnv> = async (

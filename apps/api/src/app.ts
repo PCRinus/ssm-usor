@@ -16,6 +16,7 @@ import { invitationsRouter } from './modules/invitations';
 import { jobPositionsRouter } from './modules/job-positions';
 import { meRouter } from './modules/me';
 import { organizationRouter } from './modules/organization';
+import { serviceContractsRouter } from './modules/service-contracts';
 import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
 
@@ -44,6 +45,7 @@ export function createApp() {
   app.route('/', jobPositionsRouter);
   app.route('/', documentDataRouter);
   app.route('/', documentsRouter);
+  app.route('/', serviceContractsRouter);
   app.route('/', organizationRouter);
   app.route('/', invitationsRouter);
   app.route('/', waitlistRouter);

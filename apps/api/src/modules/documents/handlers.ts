@@ -8,18 +8,21 @@ import { createPdfConverter } from '../../lib/pdf';
 import { missingDocumentData } from './context';
 import {
   type Actor,
+  attachSignedCopy,
   deleteDraft,
   documentDownloadLink,
   generateClientDocuments as generate,
   issueDocument as issue,
   listClientDocuments as list,
   regenerateDocument as regenerate,
+  removeSignedCopy,
   saveDraftFile,
   startDraftFromIssued,
   uploadDocumentFile as upload,
 } from './documents';
 import { loadDocumentFacts } from './facts';
 import type {
+  attachDocumentSignedCopyRoute,
   deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
   getDocumentDownloadRoute,
@@ -27,6 +30,7 @@ import type {
   issueDocumentRoute,
   listClientDocumentsRoute,
   regenerateDocumentRoute,
+  removeDocumentSignedCopyRoute,
   saveDocumentDraftFileRoute,
   startDocumentDraftRoute,
   uploadClientDocumentRoute,
@@ -170,4 +174,30 @@ export const uploadClientDocument: RouteHandler<typeof uploadClientDocumentRoute
     bytes
   );
   return c.json({ document }, 200);
+};
+
+export const attachDocumentSignedCopy: RouteHandler<
+  typeof attachDocumentSignedCopyRoute,
+  ApiEnv
+> = async (c) => {
+  const { documentId } = c.req.valid('param');
+  // The body is the file itself, not JSON, so it is read here rather than validated above.
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const document = await attachSignedCopy(
+    createDataClient(c),
+    createFileStore(c),
+    actorOf(c),
+    documentId,
+    bytes
+  );
+  return c.json({ document }, 200);
+};
+
+export const removeDocumentSignedCopy: RouteHandler<
+  typeof removeDocumentSignedCopyRoute,
+  ApiEnv
+> = async (c) => {
+  const { documentId } = c.req.valid('param');
+  await removeSignedCopy(createDataClient(c), createFileStore(c), documentId);
+  return c.body(null, 204);
 };

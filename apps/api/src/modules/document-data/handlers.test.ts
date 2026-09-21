@@ -1,6 +1,7 @@
 import {
   apiErrorResponseSchema,
   clientDocumentDetailsResponseSchema,
+  organizationContractDetailsResponseSchema,
   organizationLegalDetailsResponseSchema,
   responsiblePersonListResponseSchema,
   responsiblePersonResponseSchema,
@@ -194,6 +195,80 @@ describe('/organization/legal-details', () => {
     const response = await request('/organization/legal-details', 'PUT', { cui: '1590083' });
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('cui');
+  });
+});
+
+describe('/organization/contract-details', () => {
+  const contractDetailsRow = {
+    phone: '0722 776 011',
+    iban: 'RO49AAAA1B31007593840000',
+    bank_name: 'Banca Transilvania',
+    authorization_certificate_number: '17664',
+    authorization_certificate_date: '2022-09-30',
+    authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
+    vat_payer: true,
+    fire_safety_technician_name: null,
+    fire_safety_technician_certificate: null,
+  };
+
+  it('reads them for an owner', async () => {
+    mockUpstream({ organizations: () => Response.json(contractDetailsRow) });
+    const response = await request('/organization/contract-details');
+    expect(response.status).toBe(200);
+    expect(organizationContractDetailsResponseSchema.parse(await response.json())).toEqual({
+      contractDetails: {
+        phone: '0722 776 011',
+        iban: 'RO49AAAA1B31007593840000',
+        bankName: 'Banca Transilvania',
+        authorizationCertificateNumber: '17664',
+        authorizationCertificateDate: '2022-09-30',
+        authorizationCertificateIssuer: 'Direcția de muncă și protecție socială Timiș',
+        vatPayer: true,
+        fireSafetyTechnicianName: null,
+        fireSafetyTechnicianCertificate: null,
+      },
+    });
+  });
+
+  it('replaces them, storing the IBAN bare and clearing what is left out', async () => {
+    mockUpstream({ organizations: () => Response.json(contractDetailsRow) });
+    const response = await request('/organization/contract-details', 'PUT', {
+      iban: 'ro49 aaaa 1b31 0075 9384 0000',
+      authorizationCertificateDate: '2022-09-30',
+    });
+    expect(response.status).toBe(200);
+    const [url] = calls('/rest/v1/organizations')[0]!;
+    expect(new URL(String(url)).searchParams.get('id')).toBe(`eq.${organizationId}`);
+    expect(sentBody('/rest/v1/organizations')).toEqual({
+      phone: null,
+      iban: 'RO49AAAA1B31007593840000',
+      bank_name: null,
+      authorization_certificate_number: null,
+      authorization_certificate_date: '2022-09-30',
+      authorization_certificate_issuer: null,
+      vat_payer: false,
+      fire_safety_technician_name: null,
+      fire_safety_technician_certificate: null,
+    });
+  });
+
+  it.each([
+    [{ iban: 'RO48AAAA1B31007593840000' }, 'iban'],
+    [{ authorizationCertificateDate: '30.09.2022' }, 'authorizationCertificateDate'],
+    [{ phone: '07' }, 'phone'],
+  ])('refuses %j', async (body, path) => {
+    mockUpstream({});
+    const response = await request('/organization/contract-details', 'PUT', body);
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
+    expect(calls('/rest/v1/organizations')).toHaveLength(0);
+  });
+
+  it('is not for specialists, to read or to write', async () => {
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await request('/organization/contract-details')).status).toBe(403);
+    expect((await request('/organization/contract-details', 'PUT', {})).status).toBe(403);
+    expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });
 });
 

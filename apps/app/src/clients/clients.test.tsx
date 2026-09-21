@@ -17,6 +17,11 @@ const sampleClient = {
   addressLine: 'Str. Coralilor, nr. 22',
   legalRepresentativeName: null,
   declaredEmployeeCount: 120,
+  stage: 'client',
+  contactName: null,
+  contactEmail: null,
+  contactPhone: null,
+  promotedAt: null,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   archivedAt: null,
@@ -272,6 +277,7 @@ describe('client creation', () => {
     );
     await user.type(screen.getByTestId('client-representative'), 'Ion Popescu');
     await user.type(screen.getByTestId('client-employees'), '120');
+    await user.type(screen.getByTestId('client-contact-name'), 'Ana Contact');
     await user.click(screen.getByTestId('client-submit'));
     await screen.findByTestId('clients-page');
     expect(runtime.router.state.location.pathname).toBe('/clients');
@@ -289,6 +295,10 @@ describe('client creation', () => {
       addressLine: 'Str. Coralilor, nr. 22',
       legalRepresentativeName: 'Ion Popescu',
       declaredEmployeeCount: 120,
+      contactName: 'Ana Contact',
+      contactEmail: null,
+      contactPhone: null,
+      stage: 'client',
     });
     expect(await screen.findByText('OMV PETROM SA a fost adăugat.')).toBeTruthy();
   });
@@ -449,6 +459,9 @@ describe('client editing', () => {
           locality: 'Sector 1 Mun. București',
           addressLine: 'Str. Coralilor, nr. 22',
           declaredEmployeeCount: 120,
+          contactName: null,
+          contactEmail: null,
+          contactPhone: null,
         });
         return Response.json({ client: saved });
       },

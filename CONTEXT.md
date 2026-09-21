@@ -16,6 +16,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Service contract** (_contract de prestări servicii_): the agreement between the organization and a client for occupational safety services, and for fire safety where that is sold too. One of the client's other documents, which only owners see, drafted for a lead or for a client and signed outside the app. Not the employment contract behind a contract title.
 
+**Certificate of authorization** (_certificat de abilitare_): what entitles an organization to act as an external prevention and protection service: a number, a date and the directorate that issued it. A service contract cites it and annexes a copy.
+
 **Employee** (_angajat_): a person employed by a client. Avoid: worker, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.

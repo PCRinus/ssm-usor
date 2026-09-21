@@ -169,6 +169,22 @@ export const restoreClientRoute = createRoute({
   responses: archivingResponses,
 });
 
+export const promoteLeadRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/promote',
+  operationId: 'promoteLead',
+  summary: 'Turn a lead into a client',
+  description:
+    'Owners only, and one way: the whole team sees the company from then on, and its safety records can start. The database records who and when. Promoting a client changes nothing. An archived lead is restored first.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: { params: z.object({ clientId: z.uuid() }) },
+  responses: {
+    ...archivingResponses,
+    409: { description: 'The lead is archived', content: errorContent },
+  },
+});
+
 const ownerNotesResponses = {
   200: {
     description: 'The notes; an empty body when none were written',

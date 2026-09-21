@@ -32,16 +32,22 @@ try {
     },
   });
 
-  const manifest = manifestSchema.parse(
-    JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8'))
-  );
+  // The provider's pack, then the templates that are not part of it (ADR 007), in `other/`.
+  const folders = [templatesUrl, new URL('other/', templatesUrl)];
+  const manifest = {
+    templates: folders.flatMap((folder) =>
+      manifestSchema
+        .parse(JSON.parse(readFileSync(new URL('manifest.json', folder), 'utf8')))
+        .templates.map((entry) => ({ ...entry, folder }))
+    ),
+  };
   const ready = manifest.templates.filter((entry) => !entry.contentPending);
   const results = await registerTemplates(
     client,
     ready.map((entry) => ({
       typeKey: entry.typeKey,
       title: entry.title,
-      bytes: readFileSync(new URL(entry.file, templatesUrl)),
+      bytes: readFileSync(new URL(entry.file, entry.folder)),
     }))
   );
   for (const result of results) {

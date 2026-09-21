@@ -76,6 +76,29 @@ export async function createClientCompany(organizationId: string, legalName: str
   return client.data.id as string;
 }
 
+// What a service contract prints about the provider, save for the bank account, which the
+// flow fills in through the app (ADR 007).
+export async function completeContractDetails(organizationId: string) {
+  const organization = await admin
+    .from('organizations')
+    .update({
+      legal_name: 'S.C. SERVICIU EXTERN E2E S.R.L.',
+      cui: '1590082',
+      trade_register_number: 'J35/535/2022',
+      county_code: 'TM',
+      locality: 'Timișoara',
+      address_line: 'Str. Lungă 5',
+      legal_representative_name: 'Ana IONESCU',
+      legal_representative_role: 'Administrator',
+      phone: '0722 000 111',
+      authorization_certificate_number: '17664',
+      authorization_certificate_date: '2022-09-30',
+      authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
+    })
+    .eq('id', organizationId);
+  if (organization.error) throw organization.error;
+}
+
 // Everything the documents print, so that generating is not held back (ADR 005).
 export async function completeDocumentData(
   organizationId: string,
@@ -142,6 +165,15 @@ export async function recoveryTokenHash(email: string) {
   return data.properties.hashed_token;
 }
 
+// What the in-memory mailbox of the e2e API kept for an address: `url` is the link of an
+// email that has one, and a description of what it carried for one that does not.
+export async function emailsTo(to: string, kind: string) {
+  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
+  url.searchParams.set('to', to);
+  const emails = (await (await fetch(url)).json()) as { kind: string; url: string }[];
+  return emails.filter((item) => item.kind === kind);
+}
+
 export async function emailedLink(to: string, kind: string) {
   const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
   url.searchParams.set('to', to);
@@ -166,6 +198,14 @@ export async function cleanUp() {
       .eq('organization_id', id);
     const paths = (revisions.data ?? []).map((revision) => revision.docx_path as string);
     if (paths.length > 0) await admin.storage.from('documents').remove(paths);
+    const signed = await admin
+      .from('document_signed_copies')
+      .select('storage_path')
+      .eq('organization_id', id);
+    const signedPaths = (signed.data ?? []).map((copy) => copy.storage_path as string);
+    if (signedPaths.length > 0) await admin.storage.from('documents').remove(signedPaths);
+    await admin.from('document_signed_copies').delete().eq('organization_id', id);
+    await admin.from('service_contract_sends').delete().eq('organization_id', id);
     await admin.from('document_revisions').delete().eq('organization_id', id);
     await admin.from('client_documents').delete().eq('organization_id', id);
     await admin.from('document_generations').delete().eq('organization_id', id);
@@ -176,6 +216,7 @@ export async function cleanUp() {
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);
+    await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }

@@ -16,7 +16,8 @@
     "test": "vitest run",
     "import-templates": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/import_templates.py",
     "preview": "tsx tools/preview.ts",
-    "build-covers": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_covers.py"
+    "build-covers": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_covers.py",
+    "build-contract": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_contract.py"
   },
   "dependencies": {
     "docxtemplater": "3.69.3",

@@ -7,13 +7,14 @@ It has no route and no public hostname. Other Workers call it through a service 
 methods are described by the `MailService` interface in `packages/contracts`, which the mail
 Worker implements and callers use to type their binding.
 
-| Method                       | Email                                                                                                                                             |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sendWaitlistConfirmation`   | Asks a waitlist subscriber to confirm their address by link.                                                                                      |
-| `sendOrganizationInvitation` | Invites a person into an organization; the link opens the SPA's accept page.                                                                      |
-| `sendPasswordReset`          | Sent for Supabase Auth's recovery email; the link opens the SPA's reset page.                                                                     |
-| `sendSignupConfirmation`     | Sent for Supabase Auth's signup confirmation; the link opens the SPA's confirm page.                                                              |
-| `sendPasswordChanged`        | Tells the owner of an account that its password changed, after a reset or from the profile page, with the way to a reset in case it was not them. |
+| Method                       | Email                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sendWaitlistConfirmation`   | Asks a waitlist subscriber to confirm their address by link.                                                                                                                                                                                                                                                                                                      |
+| `sendOrganizationInvitation` | Invites a person into an organization; the link opens the SPA's accept page.                                                                                                                                                                                                                                                                                      |
+| `sendPasswordReset`          | Sent for Supabase Auth's recovery email; the link opens the SPA's reset page.                                                                                                                                                                                                                                                                                     |
+| `sendSignupConfirmation`     | Sent for Supabase Auth's signup confirmation; the link opens the SPA's confirm page.                                                                                                                                                                                                                                                                              |
+| `sendPasswordChanged`        | Tells the owner of an account that its password changed, after a reset or from the profile page, with the way to a reset in case it was not them.                                                                                                                                                                                                                 |
+| `sendServiceContract`        | An owner's service contract to the company's contact (ADR 007), with the issued PDF attached. The only email to someone without an account, and the only one in a member's name: it reads as "Olga Owner prin SSM Ușor" from our own address, which is the one the domain vouches for, replies go to the owner, and the owner is copied. Nothing in it is a link. |
 
 Every method validates its input, renders the template, hands the result to the provider, and
 resolves with `{ id }`, the provider's message id. It rejects when the provider refuses the
@@ -92,3 +93,12 @@ Both vars live in `apps/mail/wrangler.jsonc`.
 
 The mail Worker deploys from `main` like the other applications; see the [CI/CD guide](ci-cd.md).
 `pnpm deploy:mail` publishes it from a machine that is logged in to Wrangler.
+
+## Attachments and senders
+
+`sendEmail` takes an optional `sender` (a member's name and address) and `attachments`. With a
+sender, `From` keeps our address and gains the name, `Reply-To` and `Cc` are the member's. An
+attachment travels as Base64 through the RPC and to Resend (`attachments: [{ filename,
+content }]`), which takes 40 MB an email after encoding; a contract is well under one. Resend's
+batch endpoint refuses attachments, and nothing here uses it. Without an API key the log
+provider prints the copy, the reply address and the attachment's name with the text.

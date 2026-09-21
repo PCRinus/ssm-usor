@@ -1,0 +1,10 @@
+{
+  "templates": [
+    {
+      "number": "contract",
+      "typeKey": "service_contract",
+      "title": "Contract de prestări servicii",
+      "file": "service_contract.docx"
+    }
+  ]
+}

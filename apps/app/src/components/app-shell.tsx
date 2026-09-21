@@ -31,7 +31,15 @@ import {
 } from '@ssm-usor/ui/components/sidebar';
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
 import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
-import { Building2, ChevronsUpDown, LayoutDashboard, LogOut, UserRound, Users } from 'lucide-react';
+import {
+  Building2,
+  ChevronsUpDown,
+  Handshake,
+  LayoutDashboard,
+  LogOut,
+  UserRound,
+  Users,
+} from 'lucide-react';
 import { Fragment, useState } from 'react';
 
 import { useMe } from '../account/use-me';
@@ -44,10 +52,12 @@ function loaderCrumb(loaderData: unknown) {
   return typeof crumb === 'string' ? crumb : undefined;
 }
 
+// `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
-  { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard },
-  { to: '/clients', label: 'Clienți', icon: Users },
-  { to: '/organization', label: 'Organizație', icon: Building2 },
+  { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard, ownerOnly: false },
+  { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
+  { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
+  { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
 ] as const;
 
 function initials(name: string | undefined, email: string) {
@@ -60,6 +70,7 @@ function AppNavigation({
   email,
   name,
   organizationName,
+  isOwner,
   pending,
   onSignOut,
 }: {
@@ -67,6 +78,7 @@ function AppNavigation({
   // Both are missing while the account loads, and for an account that has neither.
   name?: string;
   organizationName?: string;
+  isOwner: boolean;
   pending: boolean;
   onSignOut: () => Promise<void>;
 }) {
@@ -79,23 +91,25 @@ function AppNavigation({
           <SidebarGroupContent>
             <nav aria-label="Navigare principală">
               <SidebarMenu>
-                {navigation.map(({ to, label, icon: Icon }) => (
-                  <SidebarMenuItem key={to}>
-                    <SidebarMenuButton asChild isActive={pathname === to} tooltip={label}>
-                      <Link
-                        to={to}
-                        data-testid={`nav-${to.slice(1)}`}
-                        aria-current={pathname === to ? 'page' : undefined}
-                        onClick={() => {
-                          if (isMobile) setOpenMobile(false);
-                        }}
-                      >
-                        <Icon aria-hidden="true" />
-                        <span>{label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {navigation
+                  .filter((item) => isOwner || !item.ownerOnly)
+                  .map(({ to, label, icon: Icon }) => (
+                    <SidebarMenuItem key={to}>
+                      <SidebarMenuButton asChild isActive={pathname === to} tooltip={label}>
+                        <Link
+                          to={to}
+                          data-testid={`nav-${to.slice(1)}`}
+                          aria-current={pathname === to ? 'page' : undefined}
+                          onClick={() => {
+                            if (isMobile) setOpenMobile(false);
+                          }}
+                        >
+                          <Icon aria-hidden="true" />
+                          <span>{label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
               </SidebarMenu>
             </nav>
           </SidebarGroupContent>
@@ -242,6 +256,7 @@ export function AppShell() {
           email={email}
           name={me.data?.profile?.fullName}
           organizationName={me.data?.membership?.organization.name}
+          isOwner={me.data?.membership?.role === 'owner'}
           pending={pending}
           onSignOut={signOut}
         />

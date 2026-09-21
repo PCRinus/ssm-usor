@@ -164,6 +164,15 @@ key to the client, the same three policies, new rows only for an active client, 
 `archived_at` as the soft delete. The new address columns use the `county_code` domain;
 `clients.county_code` keeps its own check with the same values.
 
+### What a service contract prints about the provider
+
+`organizations` also holds, all optional (ADR 007): `phone`; `iban`, without spaces and in
+upper case, with a check of its shape (the API validates the check digits) and `bank_name`;
+`authorization_certificate_number`, `_date` and `_issuer`, the _certificat de abilitare_;
+`vat_payer`; `fire_safety_technician_name` and `_certificate`, as text, because that person
+may not be a member. The owners' update policy covers them, and they are added to the list of
+columns a member may write, which still leaves out `name` and the accepted terms.
+
 ## Employees
 
 `employees` stores the people employed by a client, one row per employment. A person working
@@ -292,6 +301,56 @@ says it lives (`is_draft_document_path`). Issuing a revision therefore locks its
 well as its row, and tenancy and impersonation apply to files exactly as they do to rows,
 because the policies use `current_organization_id()`. Supabase's database backups cover these
 rows but not the files (issue #77).
+
+### Other documents, and documents for owners only
+
+`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007):
+the documents about a client that are not part of its set, of which the service contract is
+the first. `owners_only` marks a document that only an owner reaches, and a check constraint
+keeps a `service_contract` from being anything else, whoever writes the row.
+
+`can_access_document(id)` is the one answer for every way to a document: the select and
+insert policies of `client_documents` carry the same condition, the four policies of
+`document_revisions` call it, `is_readable_document_path` makes the read policy of the
+`documents` bucket ask it (reading used to be by the organization's folder alone, which a
+specialist who learned the path of a contract would have passed), `is_draft_document_path`
+asks it before a file is written, and `issue_document_revision`, which runs past the
+policies, answers `DOC01` for a document the caller cannot reach. The lead trigger on
+`client_documents` refuses the documentation set only, so a lead has its contract.
+
+### Service contracts
+
+`service_contracts` holds what the app reads about a contract: `contract_number` and
+`contract_date` (the provider's own register, a number used once per organization and year),
+`start_date`, `duration_months`, `renews_automatically`, `covers_occupational_safety` and
+`covers_fire_safety`, at least one of them. Owners only, to read as well. It is its own table
+because a policy hides rows and not columns and the team reads a client's row, and its key is
+its own because an amendment later is a second row; for now a client has one. Prices are not
+stored: they live in the file, where they are binding. The archived-client trigger applies.
+
+### Sends of a service contract
+
+`service_contract_sends` keeps each time an owner emailed an issued contract: `revision_id`,
+`sent_to`, the owner's `note`, the provider's message id, `sent_by`, `sent_at`. Rows are
+written once and never changed (no update or delete grant). Owners insert, and only for an
+issued revision of a document they can reach; they read through `can_access_document`. "Sent"
+is about the revision in force: a revision issued after the last send has none. The table
+has one foreign key to `document_revisions`, not also a composite one, because PostgREST
+embeds through it and two would make the relationship ambiguous.
+
+### Signed copies
+
+`document_signed_copies` keeps what came back signed for an issued revision (ADR 007): one
+row per revision (`revision_id` is the key), with `storage_path` and `sha256`. It is a table
+and not columns of `document_revisions` because an issued revision never changes, which a
+trigger and the column grants both hold, and a signed copy arrives after issuing and can be
+replaced. `check_signed_copy` refuses a draft (`DOC04`), a revision of another document, and
+any path but the revision's own, `<organization>/<client>/<document>/<revision>.signed.pdf`,
+beside the Word file and the PDF. Whoever reaches the document reads, attaches, replaces and
+removes, through `can_access_document`, so a contract's copy is its owners'. The
+archived-client trigger applies. Files follow the row as a draft's files do: the row first,
+then `is_signed_copy_path` lets the object in; `is_readable_document_path` reads the third
+file beside a revision. A superseded revision keeps the copy it had.
 
 ## Profiles
 
