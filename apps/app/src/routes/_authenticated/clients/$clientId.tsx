@@ -35,6 +35,7 @@ import {
 } from '../../../clients/client-archive-dialog';
 import { registeredOffice } from '../../../clients/client-columns';
 import { Notice } from '../../../components/notice';
+import { SectionNav } from '../../../components/section-nav';
 
 // The documents follow the data they print.
 // `ownerOnly`: the other documents are, so far, the service contract, which is an owner's.
@@ -115,7 +116,7 @@ export function ClientLayout() {
   if (fullPage) return <Outlet />;
   return (
     <div data-testid="client-page" className="space-y-5">
-      <header className="flex items-center gap-3">
+      <header className="flex min-w-0 flex-wrap items-center gap-3">
         <div
           className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
           aria-hidden="true"
@@ -143,7 +144,7 @@ export function ClientLayout() {
           </dl>
         </div>
         {!client.archivedAt && (
-          <div className="flex shrink-0 gap-2">
+          <div className="flex min-w-0 shrink-0 flex-wrap gap-2 max-sm:w-full max-sm:pl-12">
             <Button asChild variant="outline" size="sm" data-testid="client-edit">
               <Link to="/clients/$clientId/edit" params={{ clientId: client.id }}>
                 <Pencil aria-hidden="true" />
@@ -188,27 +189,25 @@ export function ClientLayout() {
           {!isOwner && ' Un administrator al organizației îl poate restaura.'}
         </Notice>
       )}
-      <nav aria-label="Secțiunile clientului" className="sticky top-16 z-20 border-b bg-background">
-        <ul className="-mb-px flex gap-1">
-          {sections
-            .filter((section) => isOwner || !section.ownerOnly)
-            .map(({ to, label, icon: Icon }) => (
-              <li key={to}>
-                <Link
-                  to={to}
-                  params={{ clientId: client.id }}
-                  resetScroll={false}
-                  data-testid="client-section"
-                  className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-                  activeProps={{ 'aria-current': 'page' }}
-                >
-                  <Icon className="size-4" aria-hidden="true" />
-                  {label}
-                </Link>
-              </li>
-            ))}
-        </ul>
-      </nav>
+      <SectionNav label="Secțiunile clientului">
+        {sections
+          .filter((section) => isOwner || !section.ownerOnly)
+          .map(({ to, label, icon: Icon }) => (
+            <li key={to} className="shrink-0">
+              <Link
+                to={to}
+                params={{ clientId: client.id }}
+                resetScroll={false}
+                data-testid="client-section"
+                className="inline-flex h-10 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
+                activeProps={{ 'aria-current': 'page' }}
+              >
+                <Icon className="size-4 shrink-0" aria-hidden="true" />
+                {label}
+              </Link>
+            </li>
+          ))}
+      </SectionNav>
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
     </div>

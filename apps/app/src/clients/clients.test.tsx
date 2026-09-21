@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -229,6 +229,34 @@ describe('clients list', () => {
     const runtime = mountApp(authFixture().client, '/clients/new');
     await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/login');
+  });
+});
+
+describe('client section navigation', () => {
+  it('shows directional controls only when more sections are offscreen', async () => {
+    mockApi({ me: meAs('owner') });
+    mountApp(authFixture(makeSession()).client, `/clients/${sampleClient.id}/employees`);
+    const nav = await screen.findByRole('navigation', { name: 'Secțiunile clientului' });
+    const viewport = nav.querySelector<HTMLDivElement>('[data-slot="section-nav-viewport"]')!;
+    Object.defineProperties(viewport, {
+      clientWidth: { configurable: true, value: 320 },
+      scrollWidth: { configurable: true, value: 900 },
+    });
+    viewport.scrollBy = vi.fn();
+
+    fireEvent.scroll(viewport);
+    expect(within(nav).queryByRole('button', { name: /spre stânga/ })).toBeNull();
+    await userEvent.setup().click(within(nav).getByRole('button', { name: /spre dreapta/ }));
+    expect(viewport.scrollBy).toHaveBeenCalledWith({ left: 240, behavior: 'smooth' });
+
+    viewport.scrollLeft = 300;
+    fireEvent.scroll(viewport);
+    expect(within(nav).getByRole('button', { name: /spre stânga/ })).toBeTruthy();
+    expect(within(nav).getByRole('button', { name: /spre dreapta/ })).toBeTruthy();
+
+    viewport.scrollLeft = 580;
+    fireEvent.scroll(viewport);
+    expect(within(nav).queryByRole('button', { name: /spre dreapta/ })).toBeNull();
   });
 });
 

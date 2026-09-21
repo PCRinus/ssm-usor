@@ -4,6 +4,7 @@ import { Award, Building2, UsersRound } from 'lucide-react';
 
 import { useMe } from '../../account/use-me';
 import { Notice } from '../../components/notice';
+import { SectionNav } from '../../components/section-nav';
 import { roleLabels } from '../../organization/labels';
 
 export const Route = createFileRoute('/_authenticated/organization')({
@@ -52,27 +53,22 @@ export function OrganizationLayout() {
         <h1 className="text-xl font-semibold tracking-tight">{membership.organization.name}</h1>
         <span className="text-sm text-muted-foreground">{roleLabels[membership.role]}</span>
       </div>
-      <nav
-        aria-label="Secțiunile organizației"
-        className="sticky top-16 z-20 border-b bg-background"
-      >
-        <ul className="-mb-px flex gap-1">
-          {sections.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
-              <Link
-                to={to}
-                resetScroll={false}
-                data-testid="organization-section"
-                className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-                activeProps={{ 'aria-current': 'page' }}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <SectionNav label="Secțiunile organizației">
+        {sections.map(({ to, label, icon: Icon }) => (
+          <li key={to} className="shrink-0">
+            <Link
+              to={to}
+              resetScroll={false}
+              data-testid="organization-section"
+              className="inline-flex h-10 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
+              activeProps={{ 'aria-current': 'page' }}
+            >
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
+              {label}
+            </Link>
+          </li>
+        ))}
+      </SectionNav>
       <Outlet />
     </div>
   );
