@@ -6,7 +6,7 @@ import { useAuth } from '../../../../auth/auth-context';
 import { ServiceContractEditor } from '../../../../service-contracts/service-contract-editor';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/contract')({
-  staticData: { title: 'Contract' },
+  staticData: { title: 'Contract', editorPage: true },
   component: LeadContractPage,
 });
 
@@ -24,9 +24,14 @@ export function LeadContractPage() {
       readOnly={lead.archivedAt !== null}
       back={
         <Button asChild variant="ghost" size="sm">
-          <Link to="/leads/$leadId" params={{ leadId: lead.id }} data-testid="editor-back">
+          <Link
+            to="/leads/$leadId"
+            params={{ leadId: lead.id }}
+            data-testid="editor-back"
+            aria-label={`Înapoi la ${lead.legalName}`}
+          >
             <ArrowLeft aria-hidden="true" />
-            {lead.legalName}
+            <span className="hidden sm:inline">{lead.legalName}</span>
           </Link>
         </Button>
       }

@@ -30,6 +30,7 @@ import {
   SidebarTrigger,
 } from '@ssm-usor/ui/components/sidebar';
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
 import {
   Building2,
@@ -211,6 +212,9 @@ export function AppShell() {
         return label ? [{ to: match.pathname, label }] : [];
       }),
   });
+  const editorPage = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.editorPage),
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const email = session?.user.email ?? 'Contul meu';
@@ -231,7 +235,9 @@ export function AppShell() {
   }
 
   return (
-    <SidebarProvider className="flex-col">
+    <SidebarProvider
+      className={cn('flex-col', editorPage && 'fixed inset-0 h-dvh min-h-0 overflow-hidden')}
+    >
       <a
         href="#main-content"
         className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -254,7 +260,12 @@ export function AppShell() {
           </Link>
         </div>
       </header>
-      <div className="flex min-h-[calc(100svh-4rem)] flex-1">
+      <div
+        className={cn(
+          'flex flex-1',
+          editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
+        )}
+      >
         <AppNavigation
           email={email}
           name={me.data?.profile?.fullName}
@@ -263,30 +274,37 @@ export function AppShell() {
           pending={pending}
           onSignOut={signOut}
         />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
           <main
             id="main-content"
             tabIndex={-1}
-            className="mx-auto w-full max-w-7xl flex-1 px-5 py-6 outline-none sm:px-8 lg:px-10"
+            className={cn(
+              'mx-auto w-full flex-1 outline-none',
+              editorPage
+                ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
+                : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
+            )}
           >
-            <Breadcrumb className="mb-7">
-              <BreadcrumbList>
-                {trail.map((crumb, index) => (
-                  <Fragment key={crumb.to}>
-                    {index > 0 && <BreadcrumbSeparator />}
-                    <BreadcrumbItem>
-                      {index === trail.length - 1 ? (
-                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink asChild>
-                          <Link to={crumb.to}>{crumb.label}</Link>
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                  </Fragment>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb>
+            {!editorPage && (
+              <Breadcrumb className="mb-7">
+                <BreadcrumbList>
+                  {trail.map((crumb, index) => (
+                    <Fragment key={crumb.to}>
+                      {index > 0 && <BreadcrumbSeparator />}
+                      <BreadcrumbItem>
+                        {index === trail.length - 1 ? (
+                          <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink asChild>
+                            <Link to={crumb.to}>{crumb.label}</Link>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </Fragment>
+                  ))}
+                </BreadcrumbList>
+              </Breadcrumb>
+            )}
             {error && (
               <Notice
                 variant="destructive"
@@ -308,10 +326,12 @@ export function AppShell() {
             )}
             <Outlet />
           </main>
-          <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
-            <span>© {new Date().getFullYear()} SSM Ușor</span>
-            <CommitVersion />
-          </footer>
+          {!editorPage && (
+            <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
+              <span>© {new Date().getFullYear()} SSM Ușor</span>
+              <CommitVersion />
+            </footer>
+          )}
         </div>
       </div>
     </SidebarProvider>

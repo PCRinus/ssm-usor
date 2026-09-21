@@ -15,6 +15,7 @@ vi.mock('./document-editor', async () => {
       bytes: Uint8Array;
       title: string;
       editable: boolean;
+      back: React.ReactNode;
       handle: React.Ref<{ save: () => Promise<Uint8Array | null> }>;
       actions: React.ReactNode;
       onReady: () => void;
@@ -35,6 +36,7 @@ vi.mock('./document-editor', async () => {
           data-bytes={props.bytes.length}
         >
           <header>
+            {props.back}
             {props.title}
             {props.actions}
           </header>
@@ -96,7 +98,7 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockApi({
   client = sampleClient,
   items = [firstAid] as unknown[],
-  file = (() => new Response(new Uint8Array([80, 75, 3, 4]))) as () => Response,
+  file = (() => new Response(new Uint8Array([80, 75, 3, 4]))) as () => Response | Promise<Response>,
   save = (() => Response.json({ document: firstAid })) as () => Response,
   start = (() => Response.json({ document: firstAid })) as () => Response,
 } = {}) {
@@ -157,9 +159,21 @@ describe('the document editor page', () => {
     expect(screen.getByTestId<HTMLButtonElement>('editor-save').disabled).toBe(true);
     // A full page: the client's header and sections make room for the document.
     expect(screen.queryByTestId('client-section')).toBeNull();
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText(/primul ajutor/)).toBeTruthy();
-    expect(within(breadcrumb).queryByText('Document')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
+    expect(screen.queryByText(/© \d{4} SSM Ușor/)).toBeNull();
+    expect(within(editor).getByTestId('editor-back')).toBeTruthy();
+    expect(screen.getByRole('main').className).toContain('overflow-hidden');
+  });
+
+  it('keeps the back button at the left edge while the file loads', async () => {
+    mockApi({ file: () => new Promise<Response>(() => {}) });
+    mount();
+
+    const loading = await screen.findByTestId('editor-loading');
+    expect(loading.getAttribute('aria-busy')).toBe('true');
+    expect(within(loading).getByTestId('editor-back')).toBeTruthy();
+    expect(screen.getByTestId('editor-frame').contains(loading)).toBe(true);
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
   });
 
   it("saves what the editor holds as the draft's file, from the button and from Ctrl+S", async () => {

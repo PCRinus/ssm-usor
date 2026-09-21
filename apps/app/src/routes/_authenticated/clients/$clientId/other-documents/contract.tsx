@@ -6,7 +6,7 @@ import { useAuth } from '../../../../../auth/auth-context';
 import { ServiceContractEditor } from '../../../../../service-contracts/service-contract-editor';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/other-documents/contract')({
-  staticData: { title: 'Contract', fullPage: true },
+  staticData: { title: 'Contract', fullPage: true, editorPage: true },
   component: ClientContractPage,
 });
 
@@ -28,9 +28,10 @@ export function ClientContractPage() {
             to="/clients/$clientId/other-documents"
             params={{ clientId: client.id }}
             data-testid="editor-back"
+            aria-label="Înapoi la alte documente"
           >
             <ArrowLeft aria-hidden="true" />
-            Alte documente
+            <span className="hidden sm:inline">Alte documente</span>
           </Link>
         </Button>
       }

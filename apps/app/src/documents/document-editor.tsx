@@ -60,6 +60,7 @@ export default function DocumentEditor({
   bytes,
   title,
   editable,
+  back,
   handle,
   actions,
   onReady,
@@ -70,6 +71,7 @@ export default function DocumentEditor({
   bytes: Uint8Array;
   title: string;
   editable: boolean;
+  back: ReactNode;
   handle: Ref<DocumentEditorHandle>;
   actions: ReactNode;
   onReady: () => void;
@@ -123,6 +125,7 @@ export default function DocumentEditor({
       // A module constant: a catalogue with a new identity rebuilds the whole interface.
       i18n={editorStrings}
       fonts={fonts}
+      renderTitleBarLeft={() => back}
       renderTitleBarRight={() => (
         <div className="flex items-center gap-2">
           {editable && <UnfilledNavigator />}

@@ -20,6 +20,7 @@ import type { ClientDocument } from './document-labels';
 
 const DocumentEditor = lazy(() => import('./document-editor'));
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const editorFrameClassName = 'min-h-0 flex-1 overflow-hidden rounded-lg border bg-background';
 
 type Loaded = { revisionId: string; bytes: Uint8Array; fileName: string };
 
@@ -30,6 +31,15 @@ function saveAs(bytes: Uint8Array, fileName: string) {
   anchor.download = fileName;
   anchor.click();
   URL.revokeObjectURL(objectUrl);
+}
+
+function EditorPlaceholder({ back }: { back: ReactNode }) {
+  return (
+    <div data-testid="editor-loading" className="flex h-full min-h-0 flex-col" aria-busy="true">
+      <div className="flex h-12 shrink-0 items-center border-b px-3">{back}</div>
+      <Skeleton className="min-h-0 flex-1 rounded-none" />
+    </div>
+  );
 }
 
 // Where the page gets its document from, and goes back to. A document of the documentation
@@ -75,9 +85,14 @@ export function DocumentEditorPage({
           queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) }),
         back: (
           <Button asChild variant="ghost" size="sm">
-            <Link to="/clients/$clientId/documents" params={{ clientId }} data-testid="editor-back">
+            <Link
+              to="/clients/$clientId/documents"
+              params={{ clientId }}
+              data-testid="editor-back"
+              aria-label="Înapoi la documente"
+            >
               <ArrowLeft aria-hidden="true" />
-              Documente
+              <span className="hidden sm:inline">Documente</span>
             </Link>
           </Button>
         ),
@@ -186,9 +201,8 @@ export function DocumentEditorView({
 
   if (documents.isPending || (revision && !loaded && !loadError)) {
     return (
-      <div data-testid="editor-loading" className="grid gap-4" aria-busy="true">
-        {back}
-        <Skeleton className="h-[70vh] w-full" />
+      <div data-testid="editor-frame" className={editorFrameClassName}>
+        <EditorPlaceholder back={back} />
       </div>
     );
   }
@@ -264,17 +278,14 @@ export function DocumentEditorView({
   );
 
   return (
-    <div data-testid="document-editor-page" className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {back}
-        {!editable && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {readOnly
-              ? 'Clientul este arhivat: documentul poate fi doar citit.'
-              : 'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă, iar el rămâne în vigoare până o emiți.'}
-          </p>
-        )}
-      </div>
+    <div data-testid="document-editor-page" className="flex min-h-0 flex-1 flex-col gap-3">
+      {!editable && (
+        <p role="status" className="shrink-0 text-sm text-muted-foreground">
+          {readOnly
+            ? 'Clientul este arhivat: documentul poate fi doar citit.'
+            : 'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă, iar el rămâne în vigoare până o emiți.'}
+        </p>
+      )}
       {startError && (
         <Notice variant="destructive" data-testid="editor-start-draft-error">
           Nu am putut porni o ciornă nouă. Verifică conexiunea și încearcă din nou.
@@ -291,6 +302,7 @@ export function DocumentEditorView({
           role="alert"
           className="grid max-w-xl gap-4 rounded-lg border p-6"
         >
+          <div className="flex justify-start">{back}</div>
           <h1 className="text-lg font-semibold">{document.title}</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Acest document are o așezare în pagină pe care editorul din aplicație nu o poate afișa.
@@ -302,18 +314,14 @@ export function DocumentEditorView({
           </Button>
         </div>
       ) : (
-        // The editor fills its parent, which therefore needs a height of its own.
-        <div
-          data-testid="editor-frame"
-          data-ready={ready}
-          className="h-[calc(100vh-11rem)] min-h-[32rem] overflow-hidden rounded-lg border bg-background"
-        >
-          <Suspense fallback={<Skeleton className="h-full w-full" />}>
+        <div data-testid="editor-frame" data-ready={ready} className={editorFrameClassName}>
+          <Suspense fallback={<EditorPlaceholder back={back} />}>
             <DocumentEditor
               key={loaded.revisionId}
               bytes={loaded.bytes}
               title={document.title}
               editable={editable}
+              back={back}
               handle={editor}
               actions={actions}
               onReady={() => setReady(true)}
