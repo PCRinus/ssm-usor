@@ -52,8 +52,8 @@ export type UpdateClientRequest = z.infer<typeof updateClientRequestSchema>;
 
 // Where a lead stands is where its contract stands (ADR 007). An issued contract has been
 // handed over or is ready to be, and "sent" is about that one: a revision issued after the
-// last send is not sent yet. "Signed" arrives with the signed copy.
-export const serviceContractStates = ['none', 'draft', 'issued', 'sent'] as const;
+// last send is not sent yet, and likewise "signed": the signed copy of the revision in force.
+export const serviceContractStates = ['none', 'draft', 'issued', 'sent', 'signed'] as const;
 export type ServiceContractState = (typeof serviceContractStates)[number];
 
 export const clientSchema = z.object({

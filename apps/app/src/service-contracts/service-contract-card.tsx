@@ -17,8 +17,8 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { Download, FileText, Send, Sparkles } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { Download, FileSignature, FileText, Send, Sparkles } from 'lucide-react';
+import { type ReactNode, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
@@ -27,10 +27,12 @@ import {
   getGetServiceContractQueryKey,
   getListClientsQueryKey,
   type ServiceContractResponse,
+  useAttachDocumentSignedCopy,
   useDeleteDocumentDraft,
   useGenerateServiceContract,
   useGetServiceContract,
   useIssueDocument,
+  useRemoveDocumentSignedCopy,
   useSaveServiceContract,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
@@ -50,7 +52,7 @@ import {
   toServiceContractRequest,
 } from './service-contract-schema';
 
-type Confirming = 'regenerate' | 'issue' | 'issueUnfilled' | 'delete' | null;
+type Confirming = 'regenerate' | 'issue' | 'issueUnfilled' | 'delete' | 'removeSigned' | null;
 
 const confirmations = {
   regenerate: {
@@ -70,6 +72,12 @@ const confirmations = {
     text: `În fișier scrie încă „${unfilledMark}”, de obicei acolo unde vin prețurile. Deschide contractul și înlocuiește textul, apoi emite-l. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`,
     confirm: 'Emite oricum',
     destructive: false,
+  },
+  removeSigned: {
+    title: 'Elimini exemplarul semnat?',
+    text: 'Fișierul atașat se șterge definitiv. Contractul emis rămâne neschimbat și poți atașa alt exemplar oricând.',
+    confirm: 'Elimină exemplarul',
+    destructive: true,
   },
   delete: {
     title: 'Ștergi ciorna?',
@@ -158,6 +166,9 @@ function ServiceContractBody({
   const generate = useGenerateServiceContract({ request: apiRequest });
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
+  const attachSigned = useAttachDocumentSignedCopy({ request: apiRequest });
+  const removeSigned = useRemoveDocumentSignedCopy({ request: apiRequest });
+  const signedInput = useRef<HTMLInputElement>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,7 +177,13 @@ function ServiceContractBody({
     defaultValues: toServiceContractForm(saved, todayIso()),
   });
   const { errors, isDirty } = form.formState;
-  const busy = save.isPending || generate.isPending || issue.isPending || remove.isPending;
+  const busy =
+    save.isPending ||
+    generate.isPending ||
+    issue.isPending ||
+    remove.isPending ||
+    attachSigned.isPending ||
+    removeSigned.isPending;
   const locked = busy || readOnly;
   const { document, readiness } = saved;
   const missing = groupMissing(readiness.missing);
@@ -217,6 +234,10 @@ function ServiceContractBody({
         await remove.mutateAsync({ documentId: document!.id });
         await refresh();
         toast.success('Ciorna contractului a fost ștearsă.');
+      } else if (action === 'removeSigned') {
+        await removeSigned.mutateAsync({ documentId: document!.id });
+        await refresh();
+        toast.success('Exemplarul semnat a fost eliminat.');
       } else {
         await issue.mutateAsync({
           documentId: document!.id,
@@ -246,7 +267,24 @@ function ServiceContractBody({
     setConfirming(null);
   }
 
-  async function download(revisionId: string, format: 'docx' | 'pdf') {
+  async function attachSignedCopy(file: File | undefined) {
+    if (!file) return;
+    setError(null);
+    try {
+      await attachSigned.mutateAsync({ documentId: document!.id, data: file });
+      await refresh();
+      toast.success('Exemplarul semnat a fost atașat.');
+    } catch (cause) {
+      setError(
+        cause instanceof ApiHttpError && cause.status === 400
+          ? 'Exemplarul semnat trebuie să fie un PDF de cel mult 15 MB. Dacă ai o fotografie a contractului, salveaz-o ca PDF.'
+          : 'Nu am putut atașa exemplarul semnat. Verifică conexiunea și încearcă din nou.'
+      );
+      await refresh();
+    }
+  }
+
+  async function download(revisionId: string, format: 'docx' | 'pdf' | 'signed') {
     setError(null);
     try {
       const link = await getDocumentDownload(document!.id, revisionId, { format }, apiRequest);
@@ -455,6 +493,11 @@ function ServiceContractBody({
                   Trimis
                 </Badge>
               )}
+              {document.issued?.hasSignedCopy && (
+                <Badge variant="outline" data-testid="contract-signed">
+                  Semnat
+                </Badge>
+              )}
               {document.draft && (
                 <Badge variant="secondary" data-testid="contract-draft">
                   Ciornă · rev. {document.draft.revision}
@@ -571,6 +614,81 @@ function ServiceContractBody({
         )}
       </div>
 
+      {document?.issued && (
+        <div
+          data-testid="contract-signed-copy"
+          className="-mt-2 flex flex-wrap items-center gap-2 text-sm"
+        >
+          <FileSignature className="size-4 text-muted-foreground" aria-hidden="true" />
+          {document.issued.hasSignedCopy ? (
+            <>
+              <span>Exemplarul semnat este atașat reviziei {document.issued.revision}.</span>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="contract-signed-download"
+                onClick={() => void download(document.issued!.id, 'signed')}
+              >
+                <Download aria-hidden="true" />
+                Descarcă
+              </Button>
+              {!readOnly && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    data-testid="contract-signed-replace"
+                    disabled={busy}
+                    onClick={() => signedInput.current?.click()}
+                  >
+                    Înlocuiește
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    data-testid="contract-signed-remove"
+                    disabled={busy}
+                    onClick={() => setConfirming('removeSigned')}
+                  >
+                    Elimină
+                  </Button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="text-muted-foreground">
+                Când contractul se întoarce semnat, atașează aici exemplarul, scanat sau semnat
+                electronic.
+              </span>
+              {!readOnly && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="contract-signed-attach"
+                  disabled={busy}
+                  onClick={() => signedInput.current?.click()}
+                >
+                  {attachSigned.isPending ? 'Se atașează…' : 'Atașează exemplarul semnat'}
+                </Button>
+              )}
+            </>
+          )}
+          <input
+            ref={signedInput}
+            type="file"
+            data-testid="contract-signed-input"
+            className="hidden"
+            accept=".pdf,application/pdf"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              // Emptied, so that choosing the same file again is still a change.
+              event.target.value = '';
+              void attachSignedCopy(file);
+            }}
+          />
+        </div>
+      )}
       {saved.lastSend && (
         <p data-testid="contract-last-send" className="-mt-2 text-sm text-muted-foreground">
           Revizia {saved.lastSend.revision} a fost trimisă la {saved.lastSend.sentTo} pe{' '}

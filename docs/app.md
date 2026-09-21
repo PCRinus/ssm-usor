@@ -510,7 +510,12 @@ mobile navigation link closes the Sheet.
   card then shows "Trimis" and "Revizia N a fost trimisă la … pe …", and the button reads
   "Trimite din nou…". Without a PDF the button is disabled and says to send the download
   instead. The leads list has a "Contract" column from `serviceContractState`: Fără contract,
-  Ciornă, Emis, Trimis.
+  Ciornă, Emis, Trimis, Semnat. Under an issued contract a line offers "Atașează exemplarul
+  semnat" (a PDF, from a hidden file input), and once attached says which revision has it,
+  with "Descarcă", "Înlocuiește" and "Elimină" behind a confirmation. `PromoteLeadDialog`
+  warns, without stopping, when the contract in force has no signed copy; it is told through
+  `signed`, left out while the contract is still loading so the warning never flashes for a
+  signed one.
 - The editor is one view for both kinds of document. `DocumentEditorView` takes a
   `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and

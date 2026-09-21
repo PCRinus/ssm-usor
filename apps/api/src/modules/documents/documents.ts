@@ -42,14 +42,18 @@ type RevisionRow = Pick<
   | 'edited_at'
   | 'issued_at'
   | 'created_at'
-> & { document_generations: { issue_date: string } | null };
+> & {
+  document_generations: { issue_date: string } | null;
+  // One to one, so PostgREST embeds an object, or null where nothing was attached.
+  document_signed_copies?: { revision_id: string } | null;
+};
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
   'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'document_group'
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id))';
 
 const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
 
@@ -103,6 +107,7 @@ function toRevision(
     editedAt: revision.edited_at,
     issuedAt: revision.issued_at,
     hasPdf: revision.pdf_path !== null,
+    hasSignedCopy: Boolean(revision.document_signed_copies),
     createdAt: revision.created_at,
   };
 }
@@ -888,6 +893,79 @@ export async function deleteDraft(db: DataClient, files: FileStore, documentId: 
   if (error) throw fromDatabaseError(error, 'delete document revision');
 }
 
+const pdfSignature = new TextEncoder().encode('%PDF-');
+const signedCopyPathOf = (docxPath: string) => docxPath.replace(/\.docx$/, '.signed.pdf');
+
+/**
+ * Attaches what came back signed to the issued revision, or replaces what was attached. The
+ * row first, with the hash of the file, because the policies let a file be written only
+ * where a row says it lives.
+ */
+export async function attachSignedCopy(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string,
+  bytes: Uint8Array
+) {
+  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
+    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
+  }
+  if (!pdfSignature.every((byte, index) => bytes[index] === byte)) {
+    throw new ApiError('validation_error', 'The signed copy is a PDF.');
+  }
+  const document = await readDocument(db, documentId);
+  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  if (!issued) {
+    throw new ApiError(
+      'conflict',
+      'Only an issued document has a signed copy.',
+      undefined,
+      'not_issued'
+    );
+  }
+  await requireActiveClient(db, document.client_id);
+  const path = signedCopyPathOf(issued.docx_path);
+  const recorded = await db.from('document_signed_copies').upsert(
+    {
+      revision_id: issued.id,
+      organization_id: actor.organizationId,
+      document_id: document.id,
+      storage_path: path,
+      sha256: await sha256(bytes),
+      uploaded_by: actor.createdBy,
+      uploaded_at: new Date().toISOString(),
+    },
+    { onConflict: 'revision_id' }
+  );
+  if (recorded.error) throw fromDatabaseError(recorded.error, 'record signed copy');
+  try {
+    await files.writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    // Only a first copy: after a failed replacement the row still describes a file, the
+    // earlier one, under a hash that is no longer its own, which the next attempt corrects.
+    if (!issued.document_signed_copies) {
+      await db.from('document_signed_copies').delete().eq('revision_id', issued.id);
+    }
+    throw error;
+  }
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
+export async function removeSignedCopy(db: DataClient, files: FileStore, documentId: string) {
+  const document = await readDocument(db, documentId);
+  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  if (!issued?.document_signed_copies) {
+    throw new ApiError('conflict', 'This document has no signed copy to remove.');
+  }
+  await requireActiveClient(db, document.client_id);
+  // The file while the policies still allow it: they follow the row.
+  await files.removeDocument(signedCopyPathOf(issued.docx_path));
+  const { error } = await db.from('document_signed_copies').delete().eq('revision_id', issued.id);
+  if (error) throw fromDatabaseError(error, 'remove signed copy');
+}
+
 export async function documentDownloadLink(
   db: DataClient,
   files: FileStore,
@@ -897,17 +975,32 @@ export async function documentDownloadLink(
 ) {
   const { data, error } = await db
     .from('document_revisions')
-    .select('docx_path, pdf_path, revision, client_documents(title)')
+    .select(
+      'docx_path, pdf_path, revision, client_documents(title), document_signed_copies(storage_path)'
+    )
     .eq('id', revisionId)
     .eq('document_id', documentId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find document revision');
   if (!data) throw new ApiError('not_found', 'This document revision does not exist.');
-  const path = format === 'pdf' ? data.pdf_path : data.docx_path;
-  if (!path) throw new ApiError('not_found', 'This revision has no PDF.');
+  const path =
+    format === 'signed'
+      ? data.document_signed_copies?.storage_path
+      : format === 'pdf'
+        ? data.pdf_path
+        : data.docx_path;
+  if (!path) {
+    throw new ApiError(
+      'not_found',
+      format === 'signed' ? 'This revision has no signed copy.' : 'This revision has no PDF.'
+    );
+  }
   const expiresInSeconds = 60;
   // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
-  const fileName = `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
+  const fileName =
+    format === 'signed'
+      ? `${fileNameOf(data.client_documents.title)} - rev. ${data.revision} - semnat.pdf`
+      : `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
   return {
     url: await files.documentLink(path, fileName, expiresInSeconds),
     fileName,

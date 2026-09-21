@@ -97,6 +97,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                                          |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                      |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
+| `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                               |
+| `DELETE /documents/{documentId}/signed-copy`                           | Verified user with a membership       | `204` after removing the signed copy and its file                                                                         |
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
@@ -192,7 +194,19 @@ and records nothing. `409` with `contract_not_issued` when nothing is issued, an
 `contract_pdf_missing` for a revision issued where no converter was configured: the Word file
 is not sent in its place, because it invites the recipient to change clauses. The response's
 `lastSend` is the last send of the revision in force, so issuing a new revision clears it, and
-`serviceContractState` of a lead gains `sent` on the same rule. `GET /clients/{clientId}/documents` lists the documentation set only, and
+`serviceContractState` of a lead gains `sent` on the same rule.
+
+`PUT /documents/{documentId}/signed-copy` takes the bytes of a PDF, up to 15 MB, that starts
+with `%PDF-`: a scan of the signed paper, or the file signed with the signer's own
+certificate. The row is written first, with the file's SHA-256, because the policies let a
+file in only where a row says it lives; a first copy whose file cannot be stored is taken
+back, and a failed replacement keeps the earlier row. `409` with `not_issued` for a document
+with nothing issued. The app records that a file was attached, not that it is signed.
+Revisions carry `hasSignedCopy`, `GET …/download?format=signed` links to it under a name
+that ends in "- semnat.pdf", and `DELETE` removes the file and then the row. These are
+routes of any document, reachable by whoever reaches it; the contract's is its owners'. A
+lead's `serviceContractState` becomes `signed` when the revision in force has a copy, ahead
+of `sent`. `GET /clients/{clientId}/documents` lists the documentation set only, and
 `POST /documents/{documentId}/regenerate` answers `409` for a document that is not part of it.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which

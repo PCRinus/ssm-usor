@@ -139,6 +139,9 @@ export const documentRevisionSchema = z.object({
   issuedAt: z.iso.datetime({ offset: true }).nullable(),
   // Whether a PDF was made when the revision was issued. Never for a draft.
   hasPdf: z.boolean(),
+  // Whether the copy that came back signed was attached (ADR 007). The app knows that a file
+  // was attached, not that it is signed. Never for a draft.
+  hasSignedCopy: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
@@ -191,7 +194,8 @@ export const generateDocumentsResponseSchema = z.object({
 
 export type GenerateDocumentsResponse = z.infer<typeof generateDocumentsResponseSchema>;
 
-export const documentFileFormats = ['docx', 'pdf'] as const;
+// `signed` is the signed copy, a PDF that was attached, not made.
+export const documentFileFormats = ['docx', 'pdf', 'signed'] as const;
 
 export type DocumentFileFormat = (typeof documentFileFormats)[number];
 
@@ -230,6 +234,7 @@ export const documentErrorReasons = [
   'unfilled_text',
   'not_generated_yet',
   'pdf_unavailable',
+  'not_issued',
 ] as const;
 
 export const issueDocumentRequestSchema = z.object({

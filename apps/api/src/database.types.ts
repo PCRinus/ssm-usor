@@ -498,6 +498,58 @@ export type Database = {
           },
         ];
       };
+      document_signed_copies: {
+        Row: {
+          document_id: string;
+          organization_id: string;
+          revision_id: string;
+          sha256: string;
+          storage_path: string;
+          uploaded_at: string;
+          uploaded_by: string | null;
+        };
+        Insert: {
+          document_id: string;
+          organization_id: string;
+          revision_id: string;
+          sha256: string;
+          storage_path: string;
+          uploaded_at?: string;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          document_id?: string;
+          organization_id?: string;
+          revision_id?: string;
+          sha256?: string;
+          storage_path?: string;
+          uploaded_at?: string;
+          uploaded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'document_signed_copies_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_documents';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_signed_copies_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'document_signed_copies_revision_id_fkey';
+            columns: ['revision_id'];
+            isOneToOne: true;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       document_template_versions: {
         Row: {
           created_at: string;
@@ -1197,6 +1249,7 @@ export type Database = {
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
       is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
+      is_signed_copy_path: { Args: { p_path: string }; Returns: boolean };
       issue_document_revision: {
         Args: {
           p_docx_sha256: string;

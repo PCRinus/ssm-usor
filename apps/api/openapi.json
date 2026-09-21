@@ -321,7 +321,7 @@
                 "serviceContractState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["none", "draft", "issued", "sent", null]
+                  "enum": ["none", "draft", "issued", "sent", "signed", null]
                 },
                 "createdAt": {
                   "type": "string",
@@ -493,7 +493,7 @@
               "serviceContractState": {
                 "type": "string",
                 "nullable": true,
-                "enum": ["none", "draft", "issued", "sent", null]
+                "enum": ["none", "draft", "issued", "sent", "signed", null]
               },
               "createdAt": {
                 "type": "string",
@@ -2491,6 +2491,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2505,6 +2508,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 },
@@ -2545,6 +2549,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2559,6 +2566,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 }
@@ -2656,6 +2664,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2670,6 +2681,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 },
@@ -2710,6 +2722,9 @@
                     "hasPdf": {
                       "type": "boolean"
                     },
+                    "hasSignedCopy": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2724,6 +2739,7 @@
                     "editedAt",
                     "issuedAt",
                     "hasPdf",
+                    "hasSignedCopy",
                     "createdAt"
                   ]
                 }
@@ -2841,6 +2857,9 @@
                   "hasPdf": {
                     "type": "boolean"
                   },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2855,6 +2874,7 @@
                   "editedAt",
                   "issuedAt",
                   "hasPdf",
+                  "hasSignedCopy",
                   "createdAt"
                 ]
               },
@@ -2895,6 +2915,9 @@
                   "hasPdf": {
                     "type": "boolean"
                   },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2909,6 +2932,7 @@
                   "editedAt",
                   "issuedAt",
                   "hasPdf",
+                  "hasSignedCopy",
                   "createdAt"
                 ]
               }
@@ -3094,6 +3118,9 @@
                   "hasPdf": {
                     "type": "boolean"
                   },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -3108,6 +3135,7 @@
                   "editedAt",
                   "issuedAt",
                   "hasPdf",
+                  "hasSignedCopy",
                   "createdAt"
                 ]
               },
@@ -3148,6 +3176,9 @@
                   "hasPdf": {
                     "type": "boolean"
                   },
+                  "hasSignedCopy": {
+                    "type": "boolean"
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -3162,6 +3193,7 @@
                   "editedAt",
                   "issuedAt",
                   "hasPdf",
+                  "hasSignedCopy",
                   "createdAt"
                 ]
               }
@@ -7662,7 +7694,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["docx", "pdf"],
+              "enum": ["docx", "pdf", "signed"],
               "default": "docx"
             },
             "required": false,
@@ -8259,6 +8291,217 @@
           },
           "409": {
             "description": "The document has no draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{documentId}/signed-copy": {
+      "put": {
+        "operationId": "attachDocumentSignedCopy",
+        "summary": "Attach the signed copy of the issued revision, or replace it",
+        "description": "Takes the bytes of a PDF, up to 15 MB: a scan of the signed paper, or the file signed with the signer's own certificate. It is kept beside the issued revision with its hash. The app records that a file was attached, not that it is signed. A revision that is later superseded keeps its copy.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/pdf": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document, whose issued revision has a signed copy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, or not a PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The document does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing is issued (`not_issued`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeDocumentSignedCopy",
+        "summary": "Remove the signed copy of the issued revision, with its file",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The signed copy is gone; the revision is untouched"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The document does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "There is no signed copy, or the client is archived",
             "content": {
               "application/json": {
                 "schema": {

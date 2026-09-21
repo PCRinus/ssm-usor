@@ -221,7 +221,11 @@ export function LeadsPage() {
         />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
-      <PromoteLeadDialog lead={promoting} onClose={() => setPromoting(null)} />
+      <PromoteLeadDialog
+        lead={promoting}
+        signed={promoting ? promoting.serviceContractState === 'signed' : undefined}
+        onClose={() => setPromoting(null)}
+      />
     </div>
   );
 }

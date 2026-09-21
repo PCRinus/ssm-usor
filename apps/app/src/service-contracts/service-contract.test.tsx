@@ -48,6 +48,7 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   editedAt: null,
   issuedAt: null,
   hasPdf: false,
+  hasSignedCopy: false,
   createdAt: '2026-09-21T10:00:00+00:00',
   ...overrides,
 });
@@ -77,7 +78,9 @@ type Route = (init: RequestInit | undefined) => Response;
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
-  routes: Partial<Record<'get' | 'save' | 'generate' | 'issue' | 'send', Route>> & {
+  routes: Partial<
+    Record<'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'promote', Route>
+  > & {
     role?: 'owner' | 'specialist';
     client?: Record<string, unknown>;
   } = {}
@@ -109,6 +112,14 @@ function mockApi(
       return method === 'PUT'
         ? (routes.save?.(init) ?? Response.json(state()))
         : (routes.get?.(init) ?? Response.json(state()));
+    }
+    if (pathname === `/documents/${documentId}/signed-copy`) {
+      return method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : (routes.attach?.(init) ?? Response.json({ document: contractDocument() }));
+    }
+    if (pathname === `/clients/${leadId}/promote`) {
+      return routes.promote?.(init) ?? Response.json({ client: lead });
     }
     if (pathname === `/documents/${documentId}/issue`) {
       return routes.issue?.(init) ?? Response.json({ document: contractDocument() });
@@ -374,6 +385,95 @@ describe('sending the contract', () => {
     expect(button).toHaveProperty('disabled', true);
     expect(button.getAttribute('title')).toContain('nu are PDF');
   });
+});
+
+describe('the signed copy', () => {
+  const issued = (hasSignedCopy: boolean) =>
+    contractDocument({
+      draft: null,
+      issued: revision({
+        status: 'issued',
+        issuedAt: '2026-09-21T11:00:00+00:00',
+        hasPdf: true,
+        hasSignedCopy,
+      }),
+    });
+
+  it('is attached as a PDF to the issued contract, and then offered back', async () => {
+    let signed = false;
+    mockApi({
+      get: () => Response.json(state({ document: issued(signed) })),
+      attach: (init) => {
+        expect(init?.body).toBeInstanceOf(File);
+        signed = true;
+        return Response.json({ document: issued(true) });
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+    const row = await screen.findByTestId('contract-signed-copy');
+    expect(row.textContent).toContain('Când contractul se întoarce semnat');
+    await user.upload(
+      screen.getByTestId('contract-signed-input'),
+      new File(['%PDF-1.7'], 'contract semnat.pdf', { type: 'application/pdf' })
+    );
+    expect(await screen.findByText('Exemplarul semnat a fost atașat.')).toBeTruthy();
+    expect(await screen.findByTestId('contract-signed')).toBeTruthy();
+    expect(screen.getByTestId('contract-signed-copy').textContent).toContain(
+      'Exemplarul semnat este atașat reviziei 1.'
+    );
+    expect(screen.getByTestId('contract-signed-download')).toBeTruthy();
+    expect(screen.getByTestId('contract-signed-replace')).toBeTruthy();
+  });
+
+  it('says what a refused file is, and asks before removing a copy', async () => {
+    mockApi({
+      get: () => Response.json(state({ document: issued(true) })),
+      attach: () =>
+        Response.json({ error: 'validation_error', message: 'not a pdf' }, { status: 400 }),
+    });
+    mount();
+    const user = userEvent.setup();
+    await screen.findByTestId('contract-signed');
+    await user.upload(
+      screen.getByTestId('contract-signed-input'),
+      new File(['x'], 'poza.pdf', { type: 'application/pdf' })
+    );
+    expect((await screen.findByTestId('contract-error')).textContent).toContain(
+      'trebuie să fie un PDF'
+    );
+    await user.click(screen.getByTestId('contract-signed-remove'));
+    expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
+      'Contractul emis rămâne neschimbat'
+    );
+    await user.click(screen.getByTestId('contract-confirm'));
+    expect(await screen.findByText('Exemplarul semnat a fost eliminat.')).toBeTruthy();
+    expect(requests(`/documents/${documentId}/signed-copy`, 'DELETE')).toHaveLength(1);
+  });
+
+  it('is not offered before the contract is issued', async () => {
+    mockApi({ get: () => Response.json(state({ document: contractDocument() })) });
+    mount();
+    await screen.findByTestId('contract-draft');
+    expect(screen.queryByTestId('contract-signed-copy')).toBeNull();
+  });
+
+  it.each([
+    [false, true],
+    [true, false],
+  ])(
+    'warns when promoting without one, and lets the owner go on: signed %s',
+    async (signed, warns) => {
+      mockApi({ get: () => Response.json(state({ document: issued(signed) })) });
+      mount();
+      const user = userEvent.setup();
+      await screen.findByTestId('contract-signed-copy');
+      await user.click(screen.getByTestId('lead-promote'));
+      const dialog = await screen.findByTestId('promote-lead-dialog');
+      expect(within(dialog).queryByTestId('promote-lead-unsigned') !== null).toBe(warns);
+      expect(within(dialog).getByTestId('promote-lead-confirm')).toHaveProperty('disabled', false);
+    }
+  );
 });
 
 describe('the other documents of a client', () => {

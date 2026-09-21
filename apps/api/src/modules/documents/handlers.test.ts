@@ -134,7 +134,8 @@ type Upstream =
   | 'revisions'
   | 'issue'
   | 'file'
-  | 'upload';
+  | 'upload'
+  | 'signedCopies';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -180,6 +181,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
             ? Response.json({ id: generationId })
             : Response.json({ issue_date: '2026-01-19', first_decision_number: 3 }))
         );
+      case '/rest/v1/document_signed_copies':
+        return handlers.signedCopies?.(init, url) ?? new Response(null, { status: 201 });
       case '/rest/v1/rpc/issue_document_revision':
         return handlers.issue?.(init, url) ?? new Response(null, { status: 204 });
       case '/rest/v1/document_templates':
@@ -776,6 +779,149 @@ describe('POST /documents/{documentId}/draft', () => {
     });
     expect((await start()).status).toBeGreaterThanOrEqual(500);
     expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
+  });
+});
+
+describe('the signed copy of an issued revision', () => {
+  const pdf = new Uint8Array([...new TextEncoder().encode('%PDF-1.7 signed'), 1, 2, 3]);
+  const attach = (body: Uint8Array = pdf) =>
+    createApp().request(
+      `/documents/${documentId}/signed-copy`,
+      {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/pdf' },
+        body: new Uint8Array(body),
+      },
+      env
+    );
+  const issuedDocument = () =>
+    Response.json({ ...documentRow, document_revisions: [issuedRevision] });
+  const signedPath = `${organizationId}/${clientId}/${documentId}/1.signed.pdf`;
+
+  it('records the copy with its hash beside the issued revision, then stores the file', async () => {
+    mockUpstream({ documents: issuedDocument });
+    const response = await attach();
+    expect(response.status).toBe(200);
+    clientDocumentResponseSchema.parse(await response.json());
+
+    const [input, init] = calls('/rest/v1/document_signed_copies', 'POST')[0]!;
+    expect(new URL(String(input)).searchParams.get('on_conflict')).toBe('revision_id');
+    const row = JSON.parse(String(init?.body));
+    expect(row).toMatchObject({
+      revision_id: revisionId,
+      organization_id: organizationId,
+      document_id: documentId,
+      storage_path: signedPath,
+      uploaded_by: user.id,
+    });
+    expect(row.sha256).toMatch(/^[0-9a-f]{64}$/);
+    const [written] = calls('/storage/v1/object/documents/', 'POST');
+    expect(String(written![0])).toContain('/1.signed.pdf');
+    // The row is written before the file: the policies let a file in only where a row says.
+    const order = fetchMock.mock.calls.map(([call]) => new URL(String(call)).pathname);
+    expect(order.indexOf('/rest/v1/document_signed_copies')).toBeLessThan(
+      order.findIndex((path) => path.endsWith('/1.signed.pdf'))
+    );
+  });
+
+  it('says that a revision has one, and links to it under a name that says what it is', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json([
+          {
+            ...documentRow,
+            document_revisions: [
+              { ...issuedRevision, document_signed_copies: { revision_id: revisionId } },
+            ],
+          },
+        ]),
+      revisions: () =>
+        Response.json({
+          docx_path: issuedRevision.docx_path,
+          pdf_path: null,
+          revision: 1,
+          client_documents: { title: 'Contract de prestări servicii' },
+          document_signed_copies: { storage_path: signedPath },
+        }),
+    });
+    const list = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(list.items[0]!.issued?.hasSignedCopy).toBe(true);
+
+    const link = documentDownloadResponseSchema.parse(
+      await (
+        await request(`/documents/${documentId}/revisions/${revisionId}/download?format=signed`)
+      ).json()
+    );
+    expect(link.fileName).toBe('Contract de prestări servicii - rev. 1 - semnat.pdf');
+  });
+
+  it('answers 404 for the signed copy of a revision that has none', async () => {
+    mockUpstream({});
+    const response = await request(
+      `/documents/${documentId}/revisions/${revisionId}/download?format=signed`
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it('takes the first copy back when its file cannot be stored, and keeps an earlier one', async () => {
+    mockUpstream({
+      documents: issuedDocument,
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await attach()).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(1);
+
+    fetchMock.mockClear();
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          document_revisions: [
+            { ...issuedRevision, document_signed_copies: { revision_id: revisionId } },
+          ],
+        }),
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await attach()).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(0);
+  });
+
+  it('refuses what is not a PDF, a document with nothing issued, and an archived client', async () => {
+    mockUpstream({ documents: issuedDocument });
+    expect((await attach(new Uint8Array([80, 75, 3, 4]))).status).toBe(400);
+
+    mockUpstream({});
+    const draftOnly = await attach();
+    expect(draftOnly.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await draftOnly.json()).reason).toBe('not_issued');
+
+    mockUpstream({
+      documents: issuedDocument,
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    expect((await attach()).status).toBe(409);
+    expect(calls('/rest/v1/document_signed_copies', 'POST')).toHaveLength(0);
+  });
+
+  it('removes the file, then the row, and refuses when there is none', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          document_revisions: [
+            { ...issuedRevision, document_signed_copies: { revision_id: revisionId } },
+          ],
+        }),
+    });
+    expect((await request(`/documents/${documentId}/signed-copy`, 'DELETE')).status).toBe(204);
+    const [file] = calls('/storage/v1/object/documents', 'DELETE');
+    expect(JSON.parse(String(file![1]?.body))).toEqual({ prefixes: [signedPath] });
+    expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(1);
+
+    mockUpstream({ documents: issuedDocument });
+    expect((await request(`/documents/${documentId}/signed-copy`, 'DELETE')).status).toBe(409);
   });
 });
 

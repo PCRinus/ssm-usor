@@ -228,6 +228,7 @@ export const ClientListResponseItemsItemServiceContractState = {
   draft: 'draft',
   issued: 'issued',
   sent: 'sent',
+  signed: 'signed',
 } as const;
 
 export type ClientListResponseItemsItem = {
@@ -350,6 +351,7 @@ export const ClientResponseClientServiceContractState = {
   draft: 'draft',
   issued: 'issued',
   sent: 'sent',
+  signed: 'signed',
 } as const;
 
 export type ClientResponseClient = {
@@ -1837,6 +1839,7 @@ export type ClientDocumentListResponseItemsItemDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1865,6 +1868,7 @@ export type ClientDocumentListResponseItemsItemIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1924,6 +1928,7 @@ export type GenerateDocumentsResponseCreatedItemDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -1952,6 +1957,7 @@ export type GenerateDocumentsResponseCreatedItemIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -2013,6 +2019,7 @@ export type ClientDocumentResponseDocumentDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -2041,6 +2048,7 @@ export type ClientDocumentResponseDocumentIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -2149,6 +2157,7 @@ export type ServiceContractResponseDocumentDraft = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -2177,6 +2186,7 @@ export type ServiceContractResponseDocumentIssued = {
   /** @nullable */
   issuedAt: string | null;
   hasPdf: boolean;
+  hasSignedCopy: boolean;
   createdAt: string;
 } | null;
 
@@ -2622,6 +2632,7 @@ export type GetDocumentDownloadFormat =
 export const GetDocumentDownloadFormat = {
   docx: 'docx',
   pdf: 'pdf',
+  signed: 'signed',
 } as const;
 
 export type ConfirmWaitlistSubscriptionParams = {
@@ -8042,6 +8053,205 @@ export const useSaveDocumentDraftFile = <TError = ErrorType<ApiErrorResponse>, T
   TContext
 > => {
   return useMutation(getSaveDocumentDraftFileMutationOptions(options), queryClient);
+};
+
+export const getAttachDocumentSignedCopyUrl = (documentId: string) => {
+  return `/documents/${documentId}/signed-copy`;
+};
+
+/**
+ * Takes the bytes of a PDF, up to 15 MB: a scan of the signed paper, or the file signed with the signer's own certificate. It is kept beside the issued revision with its hash. The app records that a file was attached, not that it is signed. A revision that is later superseded keeps its copy.
+ * @summary Attach the signed copy of the issued revision, or replace it
+ */
+export const attachDocumentSignedCopy = async (
+  documentId: string,
+  attachDocumentSignedCopyBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientDocumentResponse>(getAttachDocumentSignedCopyUrl(documentId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/pdf', ...getHeaders(options?.headers) },
+    body: attachDocumentSignedCopyBody,
+  });
+};
+
+export const getAttachDocumentSignedCopyMutationKey = () => ['attachDocumentSignedCopy'] as const;
+
+export const getAttachDocumentSignedCopyMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+    TError,
+    AttachDocumentSignedCopyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+  TError,
+  AttachDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAttachDocumentSignedCopyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+    AttachDocumentSignedCopyMutationVariables
+  > = (props) => {
+    const { documentId, data } = props ?? {};
+
+    return attachDocumentSignedCopy(documentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AttachDocumentSignedCopyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof attachDocumentSignedCopy>>
+>;
+export type AttachDocumentSignedCopyMutationBody = Blob;
+export type AttachDocumentSignedCopyMutationError = ErrorType<ApiErrorResponse>;
+export type AttachDocumentSignedCopyMutationVariables = { documentId: string; data: Blob };
+
+/**
+ * @summary Attach the signed copy of the issued revision, or replace it
+ */
+export const useAttachDocumentSignedCopy = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+      TError,
+      AttachDocumentSignedCopyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof attachDocumentSignedCopy>>,
+  TError,
+  AttachDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  return useMutation(getAttachDocumentSignedCopyMutationOptions(options), queryClient);
+};
+
+export const getRemoveDocumentSignedCopyUrl = (documentId: string) => {
+  return `/documents/${documentId}/signed-copy`;
+};
+
+/**
+ * @summary Remove the signed copy of the issued revision, with its file
+ */
+export const removeDocumentSignedCopy = async (
+  documentId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRemoveDocumentSignedCopyUrl(documentId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveDocumentSignedCopyMutationKey = () => ['removeDocumentSignedCopy'] as const;
+
+export const getRemoveDocumentSignedCopyMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+    TError,
+    RemoveDocumentSignedCopyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+  TError,
+  RemoveDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveDocumentSignedCopyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+    RemoveDocumentSignedCopyMutationVariables
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return removeDocumentSignedCopy(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveDocumentSignedCopyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeDocumentSignedCopy>>
+>;
+
+export type RemoveDocumentSignedCopyMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveDocumentSignedCopyMutationVariables = { documentId: string };
+
+/**
+ * @summary Remove the signed copy of the issued revision, with its file
+ */
+export const useRemoveDocumentSignedCopy = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+      TError,
+      RemoveDocumentSignedCopyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeDocumentSignedCopy>>,
+  TError,
+  RemoveDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveDocumentSignedCopyMutationOptions(options), queryClient);
 };
 
 export const getUploadClientDocumentUrl = (

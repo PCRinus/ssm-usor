@@ -244,6 +244,21 @@ describe('GET /clients', () => {
       ],
       'sent',
     ],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [
+            {
+              status: 'issued',
+              service_contract_sends: [],
+              document_signed_copies: { revision_id: 'r1' },
+            },
+          ],
+        },
+      ],
+      'signed',
+    ],
   ])('says where the contract of a lead stands: %#', async (documents, state) => {
     mockUpstream({
       clients: () =>

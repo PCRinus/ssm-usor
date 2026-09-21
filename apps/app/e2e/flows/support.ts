@@ -198,6 +198,13 @@ export async function cleanUp() {
       .eq('organization_id', id);
     const paths = (revisions.data ?? []).map((revision) => revision.docx_path as string);
     if (paths.length > 0) await admin.storage.from('documents').remove(paths);
+    const signed = await admin
+      .from('document_signed_copies')
+      .select('storage_path')
+      .eq('organization_id', id);
+    const signedPaths = (signed.data ?? []).map((copy) => copy.storage_path as string);
+    if (signedPaths.length > 0) await admin.storage.from('documents').remove(signedPaths);
+    await admin.from('document_signed_copies').delete().eq('organization_id', id);
     await admin.from('service_contract_sends').delete().eq('organization_id', id);
     await admin.from('document_revisions').delete().eq('organization_id', id);
     await admin.from('client_documents').delete().eq('organization_id', id);

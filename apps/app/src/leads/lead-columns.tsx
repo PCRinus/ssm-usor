@@ -67,12 +67,16 @@ export function leadColumns(
       meta: { skeletonClassName: 'w-20' },
       cell: ({ row }) => {
         const state = row.original.serviceContractState;
-        return state === 'sent' ? (
+        return state === 'signed' ? (
+          <Badge data-testid="leads-contract">Semnat</Badge>
+        ) : state === 'sent' ? (
           <Badge variant="outline" data-testid="leads-contract">
             Trimis
           </Badge>
         ) : state === 'issued' ? (
-          <Badge data-testid="leads-contract">Emis</Badge>
+          <Badge variant="outline" data-testid="leads-contract">
+            Emis
+          </Badge>
         ) : state === 'draft' ? (
           <Badge variant="secondary" data-testid="leads-contract">
             Ciornă

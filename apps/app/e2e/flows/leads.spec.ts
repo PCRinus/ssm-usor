@@ -209,11 +209,35 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   }
 
   await page.getByTestId('leads-open').click();
+  // Promoting without the signed copy is allowed, and says so.
   await page.getByTestId('lead-promote').click();
+  await expect(page.getByTestId('promote-lead-unsigned')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // Any PDF will do for what comes back signed: the app cannot tell a signature.
+  await page.getByTestId('contract-signed-input').setInputFiles({
+    name: 'contract semnat.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n% exemplar semnat, scanat\n'),
+  });
+  await expect(page.getByTestId('contract-signed')).toHaveText('Semnat');
+  const signedCopy = page.waitForEvent('download');
+  await page.getByTestId('contract-signed-download').click();
+  expect((await signedCopy).suggestedFilename()).toBe(
+    'Contract de prestări servicii - rev. 1 - semnat.pdf'
+  );
+  await page.goto('/leads');
+  await expect(page.getByTestId('leads-contract')).toHaveText('Semnat');
+
+  await page.getByTestId('leads-open').click();
+  await page.getByTestId('lead-promote').click();
+  await expect(page.getByTestId('promote-lead-dialog')).toBeVisible();
+  await expect(page.getByTestId('promote-lead-unsigned')).toHaveCount(0);
   await page.getByTestId('promote-lead-confirm').click();
   await expect(page.getByTestId('client-page')).toBeVisible();
   await page.getByRole('link', { name: 'Alte documente' }).click();
   await expect(page.getByTestId('contract-issued')).toHaveText('Emis · rev. 1');
+  await expect(page.getByTestId('contract-signed')).toBeVisible();
   // The documentation set does not list it.
   await page.getByRole('link', { name: 'Documente', exact: true }).click();
   await expect(page.getByTestId('documents-empty')).toBeVisible();

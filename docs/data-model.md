@@ -338,6 +338,20 @@ is about the revision in force: a revision issued after the last send has none. 
 has one foreign key to `document_revisions`, not also a composite one, because PostgREST
 embeds through it and two would make the relationship ambiguous.
 
+### Signed copies
+
+`document_signed_copies` keeps what came back signed for an issued revision (ADR 007): one
+row per revision (`revision_id` is the key), with `storage_path` and `sha256`. It is a table
+and not columns of `document_revisions` because an issued revision never changes, which a
+trigger and the column grants both hold, and a signed copy arrives after issuing and can be
+replaced. `check_signed_copy` refuses a draft (`DOC04`), a revision of another document, and
+any path but the revision's own, `<organization>/<client>/<document>/<revision>.signed.pdf`,
+beside the Word file and the PDF. Whoever reaches the document reads, attaches, replaces and
+removes, through `can_access_document`, so a contract's copy is its owners'. The
+archived-client trigger applies. Files follow the row as a draft's files do: the row first,
+then `is_signed_copy_path` lets the object in; `is_readable_document_path` reads the third
+file beside a revision. A superseded revision keeps the copy it had.
+
 ## Profiles
 
 `profiles` names a user: `full_name`, plus `terms_version` and `terms_accepted_at` for people

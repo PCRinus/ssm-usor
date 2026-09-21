@@ -1,9 +1,13 @@
 import { caenClassName, formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, Handshake, Pencil, UserCheck } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
+import {
+  getGetServiceContractQueryKey,
+  useGetServiceContract,
+} from '../../../../api/generated/api';
 import { useAuth } from '../../../../auth/auth-context';
 import {
   type ClientArchiveChange,
@@ -37,6 +41,15 @@ export function LeadPage() {
   const { session } = useAuth();
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState(false);
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  // The same query the contract card reads, so this costs no request of its own.
+  const contract = useGetServiceContract(lead.id, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getGetServiceContractQueryKey(lead.id), session?.user.id],
+      enabled: Boolean(session),
+    },
+  });
   const archived = lead.archivedAt !== null;
   const office = registeredOffice(lead);
   const caen = lead.caenCode ? caenClassName(lead.caenCode) : null;
@@ -135,7 +148,11 @@ export function LeadPage() {
         <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={archived} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
-      <PromoteLeadDialog lead={promoting ? lead : null} onClose={() => setPromoting(false)} />
+      <PromoteLeadDialog
+        lead={promoting ? lead : null}
+        signed={contract.data ? Boolean(contract.data.document?.issued?.hasSignedCopy) : undefined}
+        onClose={() => setPromoting(false)}
+      />
     </div>
   );
 }
