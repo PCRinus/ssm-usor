@@ -100,7 +100,7 @@ const confirmations = {
 
 function confirmationText({ action, document }: NonNullable<Confirming>) {
   if (action === 'issueUnfilled') {
-    return `În fișier scrie încă „${unfilledMark}”, acolo unde aplicația nu a avut ce completa. Deschide documentul și înlocuiește textul, apoi emite-l. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`;
+    return `În fișier scrie încă „${unfilledMark}”, acolo unde aplicația nu a avut ce completa. Deschide documentul: butonul „locuri de completat” din bara editorului te duce la fiecare. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`;
   }
   if (action === 'upload') {
     return 'Fișierul Word pe care îl alegi ia locul ciornei. Ce conține ciorna acum se pierde; dacă vrei să o păstrezi, descarc-o înainte.';

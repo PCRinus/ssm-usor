@@ -14,61 +14,66 @@ test.afterAll(cleanUp);
 // These run the production build, where the React Compiler is on, so a validation message
 // that never appears is caught here.
 
-test('an owner fills in the legal details, and they are still there after a reload', async ({
+test('an owner fills in the company details, and they are still there after a reload', async ({
   page,
 }) => {
-  const owner = await createAccount('legal-owner', 'Olga Juridic');
-  await createOrganization('Date juridice E2E', owner.id);
+  const owner = await createAccount('company-owner', 'Olga Firma');
+  await createOrganization('Date firma E2E', owner.id);
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto('/organization');
+  await expect(page).toHaveURL(/\/organization\/team$/);
+  await page.getByRole('link', { name: 'Date firmă' }).click();
 
-  await page.getByTestId('legal-cui').fill('1590083');
-  await page.getByTestId('legal-legalName').fill('S.C. DATE JURIDICE E2E S.R.L.');
-  await page.getByTestId('legal-details-save').click();
-  await expect(page.getByTestId('legal-cui-error')).toContainText('CUI invalid');
+  await page.getByTestId('company-cui').fill('1590083');
+  await page.getByTestId('company-legalName').fill('S.C. DATE FIRMA E2E S.R.L.');
+  await page.getByTestId('company-iban').fill('RO48 AAAA 1B31 0075 9384 0000');
+  await page.getByTestId('company-details-save').click();
+  await expect(page.getByTestId('company-cui-error')).toContainText('CUI invalid');
+  await expect(page.getByTestId('company-iban-error')).toContainText('IBAN invalid');
 
-  await page.getByTestId('legal-cui').fill('RO 1590082');
-  await page.getByTestId('legal-legalRepresentativeName').fill('Olga Juridic');
-  await page.getByTestId('legal-legalRepresentativeRole').fill('Administrator');
-  await page.getByTestId('legal-details-save').click();
-  await expect(page.getByText('Datele juridice au fost salvate.')).toBeVisible();
+  await page.getByTestId('company-cui').fill('RO 1590082');
+  await page.getByTestId('company-legalRepresentativeName').fill('Olga Firma');
+  await page.getByTestId('company-legalRepresentativeRole').fill('Administrator');
+  await page.getByTestId('company-iban').fill('ro49aaaa1b31007593840000');
+  await page.getByTestId('company-bankName').fill('Banca Transilvania');
+  await page.getByTestId('company-vatPayer').click();
+  await page.getByTestId('company-details-save').click();
+  await expect(page.getByText('Datele firmei au fost salvate.')).toBeVisible();
 
   await page.reload();
   // Stored as digits; the RO prefix is not part of the code.
-  await expect(page.getByTestId('legal-cui')).toHaveValue('1590082');
-  await expect(page.getByTestId('legal-legalName')).toHaveValue('S.C. DATE JURIDICE E2E S.R.L.');
-  await expect(page.getByTestId('legal-legalRepresentativeRole')).toHaveValue('Administrator');
-  await expect(page.getByTestId('legal-details-save')).toBeDisabled();
+  await expect(page.getByTestId('company-cui')).toHaveValue('1590082');
+  await expect(page.getByTestId('company-legalName')).toHaveValue('S.C. DATE FIRMA E2E S.R.L.');
+  await expect(page.getByTestId('company-legalRepresentativeRole')).toHaveValue('Administrator');
+  // Stored bare and in upper case, shown in groups of four.
+  await expect(page.getByTestId('company-iban')).toHaveValue('RO49 AAAA 1B31 0075 9384 0000');
+  await expect(page.getByTestId('company-vatPayer')).toBeChecked();
+  await expect(page.getByTestId('company-details-save')).toBeDisabled();
 });
 
-test('an owner fills in what contracts print, and it is still there after a reload', async ({
+test('an owner fills in the authorizations, and they are still there after a reload', async ({
   page,
 }) => {
-  const owner = await createAccount('contract-details-owner', 'Olga Contract');
-  await createOrganization('Date contracte E2E', owner.id);
+  const owner = await createAccount('authorizations-owner', 'Olga Abilitare');
+  await createOrganization('Abilitari E2E', owner.id);
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/organization');
+  await page.goto('/organization/authorizations');
 
-  await page.getByTestId('contract-iban').fill('RO48 AAAA 1B31 0075 9384 0000');
-  await page.getByTestId('contract-details-save').click();
-  await expect(page.getByTestId('contract-iban-error')).toContainText('IBAN invalid');
-
-  await page.getByTestId('contract-iban').fill('ro49aaaa1b31007593840000');
-  await page.getByTestId('contract-bankName').fill('Banca Transilvania');
-  await page.getByTestId('contract-authorizationCertificateNumber').fill('17664');
-  await page.getByTestId('contract-authorizationCertificateDate').fill('30.09.2022');
-  await page.getByTestId('contract-vatPayer').click();
-  await page.getByTestId('contract-details-save').click();
-  await expect(page.getByText('Datele pentru contracte au fost salvate.')).toBeVisible();
+  await page.getByTestId('authorizations-authorizationCertificateNumber').fill('17664');
+  await page.getByTestId('authorizations-authorizationCertificateDate').fill('30.09.2022');
+  await page.getByTestId('authorizations-save').click();
+  await expect(page.getByText('Abilitările au fost salvate.')).toBeVisible();
 
   await page.reload();
-  // Stored bare and in upper case, shown in groups of four.
-  await expect(page.getByTestId('contract-iban')).toHaveValue('RO49 AAAA 1B31 0075 9384 0000');
-  await expect(page.getByTestId('contract-authorizationCertificateDate')).toHaveValue('30.09.2022');
-  await expect(page.getByTestId('contract-vatPayer')).toBeChecked();
-  await expect(page.getByTestId('contract-details-save')).toBeDisabled();
+  await expect(page.getByTestId('authorizations-authorizationCertificateNumber')).toHaveValue(
+    '17664'
+  );
+  await expect(page.getByTestId('authorizations-authorizationCertificateDate')).toHaveValue(
+    '30.09.2022'
+  );
+  await expect(page.getByTestId('authorizations-save')).toBeDisabled();
 });
 
 test('a person sets their professional title on the profile page', async ({ page }) => {

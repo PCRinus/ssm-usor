@@ -81,8 +81,8 @@ The script uses Supabase's Auth Admin API and, with the same secret key, PostgRE
   complete: they get a representative with a role and a training schedule, a registered office
   from their address, an employee as workplace manager and first aider, and the representative
   on the evaluation team and for imminent danger. The rest stay incomplete on purpose, to try
-  the "missing data" list of the generation form. The organization gets fake legal details
-  and the owner a professional title. Everything here keeps what was entered by hand: legal
+  the "missing data" list of the generation form. The organization gets fake company details
+  and the owner a professional title. Everything here keeps what was entered by hand: company
   details and the title are filled only while empty, and a client gets workplaces or
   responsible persons only while it has none. The schedule is derived from the CUI rather
   than drawn from faker, because another draw would shift every later client of the sequence

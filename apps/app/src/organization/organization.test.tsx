@@ -40,15 +40,38 @@ const invitation = {
   createdAt: '2026-09-18T10:00:00.000Z',
 };
 
-const legalDetails = {
+const companyDetails = {
   legalName: 'S.C. PROTECT SSM S.R.L.',
   cui: '1590082',
+  vatPayer: false,
   tradeRegisterNumber: 'J35/1234/2015',
   countyCode: 'TM',
   locality: 'Timișoara',
   addressLine: 'Str. Lungă 5',
+  phone: null,
   legalRepresentativeName: 'Ana Popescu',
   legalRepresentativeRole: null,
+  iban: 'RO49AAAA1B31007593840000',
+  bankName: null,
+};
+
+const authorizations = {
+  authorizationCertificateNumber: null,
+  authorizationCertificateDate: null,
+  authorizationCertificateIssuer: null,
+  fireSafetyTechnicianName: null,
+  fireSafetyTechnicianCertificate: null,
+};
+
+const anafCompany = {
+  cui: '1590082',
+  legalName: 'PROTECT SSM SRL',
+  tradeRegisterNumber: 'J35/1234/2015',
+  vatPayer: true,
+  caenCode: '7490',
+  countyCode: 'TM',
+  locality: 'Timișoara',
+  addressLine: 'Str. Lungă 5',
 };
 
 const conflict = (reason: string) =>
@@ -58,18 +81,6 @@ type Route = (init: RequestInit | undefined) => Response;
 
 const fetchMock = vi.fn<typeof fetch>();
 
-const contractDetails = {
-  phone: null,
-  iban: 'RO49AAAA1B31007593840000',
-  bankName: null,
-  authorizationCertificateNumber: null,
-  authorizationCertificateDate: null,
-  authorizationCertificateIssuer: null,
-  vatPayer: false,
-  fireSafetyTechnicianName: null,
-  fireSafetyTechnicianCertificate: null,
-};
-
 function mockApi({
   role = 'owner' as 'owner' | 'specialist' | null,
   invitations = [invitation] as unknown[],
@@ -78,8 +89,8 @@ function mockApi({
   revoke = (() => new Response(null, { status: 204 })) as Route,
   changeRole = (() => new Response(null, { status: 204 })) as Route,
   removeMember = (() => new Response(null, { status: 204 })) as Route,
-  saveLegalDetails = (() => Response.json({ legalDetails })) as Route,
-  saveContractDetails = (() => Response.json({ contractDetails })) as Route,
+  saveCompanyDetails = (() => Response.json({ companyDetails })) as Route,
+  saveAuthorizations = (() => Response.json({ authorizations })) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -87,12 +98,13 @@ function mockApi({
     if (pathname === '/me') return Response.json(meAs(role));
     if (pathname === '/me/invitations') return Response.json({ items: [] });
     if (pathname === '/organization/members') return Response.json({ items: members });
-    if (pathname === '/organization/legal-details') {
-      return method === 'PUT' ? saveLegalDetails(init) : Response.json({ legalDetails });
+    if (pathname === '/organization/company-details') {
+      return method === 'PUT' ? saveCompanyDetails(init) : Response.json({ companyDetails });
     }
-    if (pathname === '/organization/contract-details') {
-      return method === 'PUT' ? saveContractDetails(init) : Response.json({ contractDetails });
+    if (pathname === '/organization/authorizations') {
+      return method === 'PUT' ? saveAuthorizations(init) : Response.json({ authorizations });
     }
+    if (pathname === '/companies/lookup') return Response.json({ company: anafCompany });
     if (pathname === '/organization/members/user-two') {
       return method === 'DELETE' ? removeMember(init) : changeRole(init);
     }
@@ -111,7 +123,7 @@ const requests = (pathname: string, method = 'GET') =>
       new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
   );
 
-const mount = () => mountApp(authFixture(makeSession()).client, '/organization');
+const mount = (path = '/organization') => mountApp(authFixture(makeSession()).client, path);
 
 async function openInviteDialog() {
   const user = userEvent.setup();
@@ -372,113 +384,177 @@ describe('managing members', () => {
   });
 });
 
-describe('legal details', () => {
-  it('shows an owner the saved details and replaces them on save, clearing emptied fields', async () => {
+describe('organization sections', () => {
+  it('lands on the team and asks for nothing of the other sections', async () => {
     mockApi();
-    mount();
-    const user = userEvent.setup();
+    const runtime = mount();
 
-    const name = await screen.findByTestId<HTMLInputElement>('legal-legalName');
-    expect(name.value).toBe('S.C. PROTECT SSM S.R.L.');
-    expect(screen.getByTestId<HTMLButtonElement>('legal-details-save').disabled).toBe(true);
-
-    await user.type(screen.getByTestId('legal-legalRepresentativeRole'), 'Administrator');
-    await user.clear(screen.getByTestId('legal-addressLine'));
-    await user.click(screen.getByTestId('legal-details-save'));
-
-    await waitFor(() => expect(requests('/organization/legal-details', 'PUT')).toHaveLength(1));
-    const [, init] = requests('/organization/legal-details', 'PUT')[0]!;
-    expect(JSON.parse(String(init?.body))).toEqual({
-      ...legalDetails,
-      addressLine: null,
-      legalRepresentativeRole: 'Administrator',
-    });
-    expect(await screen.findByText('Datele juridice au fost salvate.')).toBeTruthy();
+    await screen.findAllByTestId('member-row');
+    expect(runtime.router.state.location.pathname).toBe('/organization/team');
+    expect(screen.getAllByTestId('organization-section').map((link) => link.textContent)).toEqual([
+      'Echipă',
+      'Date firmă',
+      'Abilitări',
+    ]);
+    expect(requests('/organization/company-details')).toHaveLength(0);
+    expect(requests('/organization/authorizations')).toHaveLength(0);
   });
 
-  it('refuses a CUI with a wrong control digit without calling the API', async () => {
+  it('moves between sections', async () => {
     mockApi();
-    mount();
+    const runtime = mount();
     const user = userEvent.setup();
 
-    const cui = await screen.findByTestId('legal-cui');
-    await user.clear(cui);
-    await user.type(cui, '1590083');
-    await user.click(screen.getByTestId('legal-details-save'));
+    await screen.findAllByTestId('member-row');
+    await user.click(screen.getByRole('link', { name: 'Abilitări' }));
+    await screen.findByTestId('authorizations-form');
+    expect(runtime.router.state.location.pathname).toBe('/organization/authorizations');
+    expect(screen.queryByTestId('member-row')).toBeNull();
+  });
+});
 
-    expect((await screen.findByTestId('legal-cui-error')).textContent).toContain('CUI invalid');
-    expect(requests('/organization/legal-details', 'PUT')).toHaveLength(0);
+describe('company details', () => {
+  const mountCompany = () => mount('/organization/company');
+
+  it('shows an owner the saved details and replaces them on save, clearing emptied fields', async () => {
+    mockApi();
+    mountCompany();
+    const user = userEvent.setup();
+
+    const name = await screen.findByTestId<HTMLInputElement>('company-legalName');
+    expect(name.value).toBe('S.C. PROTECT SSM S.R.L.');
+    expect(screen.getByTestId<HTMLInputElement>('company-iban').value).toBe(
+      'RO49 AAAA 1B31 0075 9384 0000'
+    );
+    expect(screen.getByTestId<HTMLButtonElement>('company-details-save').disabled).toBe(true);
+
+    await user.type(screen.getByTestId('company-legalRepresentativeRole'), 'Administrator');
+    await user.clear(screen.getByTestId('company-addressLine'));
+    await user.type(screen.getByTestId('company-bankName'), 'Banca Transilvania');
+    await user.click(screen.getByTestId('company-details-save'));
+
+    await waitFor(() => expect(requests('/organization/company-details', 'PUT')).toHaveLength(1));
+    const [, init] = requests('/organization/company-details', 'PUT')[0]!;
+    expect(JSON.parse(String(init?.body))).toEqual({
+      ...companyDetails,
+      addressLine: null,
+      legalRepresentativeRole: 'Administrator',
+      iban: 'RO49 AAAA 1B31 0075 9384 0000',
+      bankName: 'Banca Transilvania',
+    });
+    expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
+  });
+
+  it('takes the VAT status from ANAF with the rest, and leaves it editable', async () => {
+    mockApi();
+    mountCompany();
+    const user = userEvent.setup();
+
+    const vat = await screen.findByTestId('company-vatPayer');
+    expect(vat.getAttribute('aria-checked')).toBe('false');
+
+    await user.click(screen.getByTestId('company-lookup'));
+    await screen.findByTestId('company-lookup-status');
+    expect(vat.getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByTestId<HTMLInputElement>('company-legalName').value).toBe('PROTECT SSM SRL');
+
+    await user.click(vat);
+    expect(vat.getAttribute('aria-checked')).toBe('false');
+    await user.click(vat);
+    await user.click(screen.getByTestId('company-details-save'));
+
+    await waitFor(() => expect(requests('/organization/company-details', 'PUT')).toHaveLength(1));
+    const [, init] = requests('/organization/company-details', 'PUT')[0]!;
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      vatPayer: true,
+      legalName: 'PROTECT SSM SRL',
+    });
+  });
+
+  it.each([
+    ['company-cui', '1590083', 'CUI invalid'],
+    ['company-iban', 'RO48 AAAA 1B31 0075 9384 0000', 'IBAN invalid'],
+  ])('refuses a wrong %s without calling the API', async (testId, value, message) => {
+    mockApi();
+    mountCompany();
+    const user = userEvent.setup();
+
+    const input = await screen.findByTestId(testId);
+    await user.clear(input);
+    await user.type(input, value);
+    await user.click(screen.getByTestId('company-details-save'));
+
+    expect((await screen.findByTestId(`${testId}-error`)).textContent).toContain(message);
+    expect(requests('/organization/company-details', 'PUT')).toHaveLength(0);
   });
 
   it('shows a specialist the details read-only, without save or lookup', async () => {
     mockApi({ role: 'specialist' });
-    mount();
+    mountCompany();
 
-    const name = await screen.findByTestId<HTMLInputElement>('legal-legalName');
+    const name = await screen.findByTestId<HTMLInputElement>('company-legalName');
     expect(name.disabled).toBe(true);
-    expect(screen.queryByTestId('legal-details-save')).toBeNull();
-    expect(screen.queryByTestId('legal-lookup')).toBeNull();
+    expect(screen.getByTestId<HTMLInputElement>('company-iban').disabled).toBe(true);
+    expect(screen.queryByTestId('company-details-save')).toBeNull();
+    expect(screen.queryByTestId('company-lookup')).toBeNull();
   });
 
   it('reports a failed save inline and keeps what was typed', async () => {
-    mockApi({ saveLegalDetails: () => new Response(null, { status: 500 }) });
-    mount();
+    mockApi({ saveCompanyDetails: () => new Response(null, { status: 500 }) });
+    mountCompany();
     const user = userEvent.setup();
 
-    const locality = await screen.findByTestId<HTMLInputElement>('legal-locality');
+    const locality = await screen.findByTestId<HTMLInputElement>('company-locality');
     await user.clear(locality);
     await user.type(locality, 'Lugoj');
-    await user.click(screen.getByTestId('legal-details-save'));
+    await user.click(screen.getByTestId('company-details-save'));
 
-    expect((await screen.findByTestId('legal-details-error')).textContent).toContain(
+    expect((await screen.findByTestId('company-details-error')).textContent).toContain(
       'Nu am putut salva'
     );
     expect(locality.value).toBe('Lugoj');
   });
+});
 
-  it('keeps what contracts print about the provider, for owners only', async () => {
+describe('authorizations', () => {
+  const mountAuthorizations = () => mount('/organization/authorizations');
+
+  it('saves the certificate and the technician for an owner', async () => {
     mockApi();
-    mount();
+    mountAuthorizations();
     const user = userEvent.setup();
-    const form = await screen.findByTestId('contract-details-form');
-    const iban = within(form).getByTestId('contract-iban') as HTMLInputElement;
-    expect(iban.value).toBe('RO49 AAAA 1B31 0075 9384 0000');
-    expect(within(form).getByTestId('contract-details-save')).toHaveProperty('disabled', true);
 
-    await user.clear(iban);
-    await user.type(iban, 'RO48 AAAA 1B31 0075 9384 0000');
-    await user.click(within(form).getByTestId('contract-details-save'));
-    expect((await screen.findByTestId('contract-iban-error')).textContent).toContain(
-      'IBAN invalid'
-    );
-    expect(requests('/organization/contract-details', 'PUT')).toHaveLength(0);
+    const form = await screen.findByTestId('authorizations-form');
+    expect(within(form).getByTestId('authorizations-save')).toHaveProperty('disabled', true);
 
-    await user.clear(iban);
-    await user.type(iban, 'ro49aaaa1b31007593840000');
-    await user.type(within(form).getByTestId('contract-bankName'), 'Banca Transilvania');
     await user.type(
-      within(form).getByTestId('contract-authorizationCertificateDate'),
+      within(form).getByTestId('authorizations-authorizationCertificateNumber'),
+      '17664'
+    );
+    await user.type(
+      within(form).getByTestId('authorizations-authorizationCertificateDate'),
       '30.09.2022'
     );
-    await user.click(within(form).getByTestId('contract-vatPayer'));
-    await user.click(within(form).getByTestId('contract-details-save'));
-    expect(await screen.findByText('Datele pentru contracte au fost salvate.')).toBeTruthy();
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests('/organization/contract-details', 'PUT')[0]![1]?.body))
+      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
     ).toEqual({
-      ...contractDetails,
-      iban: 'ro49aaaa1b31007593840000',
-      bankName: 'Banca Transilvania',
+      ...authorizations,
+      authorizationCertificateNumber: '17664',
       authorizationCertificateDate: '2022-09-30',
-      vatPayer: true,
     });
   });
 
-  it('shows a specialist no contract details, and asks the API for none', async () => {
+  it('shows a specialist the authorizations read-only', async () => {
     mockApi({ role: 'specialist' });
-    mount();
-    await screen.findByTestId('legal-details-form');
-    expect(screen.queryByTestId('contract-details-card')).toBeNull();
-    expect(requests('/organization/contract-details')).toHaveLength(0);
+    mountAuthorizations();
+
+    const number = await screen.findByTestId<HTMLInputElement>(
+      'authorizations-authorizationCertificateNumber'
+    );
+    expect(number.disabled).toBe(true);
+    expect(screen.queryByTestId('authorizations-save')).toBeNull();
   });
 });

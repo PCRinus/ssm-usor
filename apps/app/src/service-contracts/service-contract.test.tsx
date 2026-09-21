@@ -203,7 +203,12 @@ describe('the service contract of a lead', () => {
           state({
             readiness: {
               ready: false,
-              missing: ['provider.bankAccount', 'client.address', 'client.representativeRole'],
+              missing: [
+                'provider.bankAccount',
+                'provider.authorizationCertificate',
+                'client.address',
+                'client.representativeRole',
+              ],
             },
           })
         ),
@@ -213,7 +218,15 @@ describe('the service contract of a lead', () => {
     expect(missing.textContent).toContain('Despre organizația ta: contul bancar și banca');
     expect(missing.textContent).toContain('Despre VELOCITA URBANA SRL: adresa sediului');
     expect(missing.textContent).toContain('În formularul de mai sus: funcția reprezentantului');
-    expect(within(missing).getByRole('link', { name: 'Organizație' })).toBeTruthy();
+    expect(missing.textContent).toContain(
+      'Despre abilitările organizației: certificatul de abilitare'
+    );
+    expect(
+      within(missing).getByRole('link', { name: 'Organizație, Date firmă' }).getAttribute('href')
+    ).toBe('/organization/company');
+    expect(
+      within(missing).getByRole('link', { name: 'Organizație, Abilitări' }).getAttribute('href')
+    ).toBe('/organization/authorizations');
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
   });
 
@@ -295,13 +308,39 @@ describe('the service contract of a lead', () => {
     });
     mount();
     const user = userEvent.setup();
-    const number = await screen.findByTestId('contract-contractNumber');
+    await user.click(await screen.findByTestId('contract-details-edit'));
+    const number = screen.getByTestId('contract-contractNumber');
     await user.clear(number);
     await user.type(number, '51');
     await user.click(screen.getByTestId('contract-save'));
     expect((await screen.findByTestId('contract-contractNumber-error')).textContent).toContain(
       'același an'
     );
+  });
+
+  it('shows saved details as a summary, and the form again on "Modifică"', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    const summary = await screen.findByTestId('contract-details-summary');
+    expect(summary.textContent).toContain('Nr. 52 din 21.09.2026');
+    expect(screen.queryByTestId('service-contract-form')).toBeNull();
+
+    await user.click(screen.getByTestId('contract-details-edit'));
+    expect(screen.getByTestId('service-contract-form')).toBeTruthy();
+    expect(screen.queryByTestId('contract-details-summary')).toBeNull();
+
+    await user.click(screen.getByTestId('contract-details-cancel'));
+    expect(screen.getByTestId('contract-details-summary')).toBeTruthy();
+  });
+
+  it('says where the prices go before the contract is generated and while it is a draft', async () => {
+    mockApi();
+    mount();
+    const notice = await screen.findByTestId('contract-prices-notice');
+    expect(notice.textContent).toContain('DE COMPLETAT');
+    expect(notice.textContent).toContain('locuri de completat');
   });
 });
 

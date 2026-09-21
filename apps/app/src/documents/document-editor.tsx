@@ -1,7 +1,10 @@
 import '@docx-editor.dev/core/styles/editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
+import { DocxEditor, type DocxEditorRef, useDocumentSearch } from '@docx-editor.dev/react';
+import { unfilledMark } from '@ssm-usor/contracts';
+import { Button } from '@ssm-usor/ui/components/button';
+import { TriangleAlert } from 'lucide-react';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 
 import { editorStrings } from './editor-strings.ro';
@@ -23,6 +26,34 @@ const fonts = packagedFonts({ allow: ['Arial'] });
 export interface DocumentEditorHandle {
   /** The document as a `.docx`, or null when the editor has nothing loaded. */
   save: () => Promise<Uint8Array | null>;
+}
+
+// Formatting the mark in the file itself, red or highlighted, was the other way: what is typed
+// over it inherits the formatting, here and in Word, and the price is issued in red.
+function UnfilledNavigator() {
+  const { matches, activeIndex, next, setQuery, setMatchCase } = useDocumentSearch();
+  useEffect(() => {
+    setMatchCase(true);
+    setQuery(unfilledMark);
+  }, [setMatchCase, setQuery]);
+  if (matches.length === 0) return null;
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      data-testid="editor-unfilled"
+      title={`Selectează următorul „${unfilledMark}”; ce scrii îl înlocuiește.`}
+      className="border-warning-border bg-warning text-warning-foreground hover:bg-warning/70 hover:text-warning-foreground"
+      onClick={next}
+    >
+      <TriangleAlert aria-hidden="true" />
+      {matches.length === 1 ? '1 loc de completat' : `${matches.length} locuri de completat`}
+      <span className="font-normal">
+        {activeIndex < 0 ? '· arată' : `· ${activeIndex + 1} din ${matches.length}`}
+      </span>
+    </Button>
+  );
 }
 
 export default function DocumentEditor({
@@ -92,7 +123,12 @@ export default function DocumentEditor({
       // A module constant: a catalogue with a new identity rebuilds the whole interface.
       i18n={editorStrings}
       fonts={fonts}
-      renderTitleBarRight={() => actions}
+      renderTitleBarRight={() => (
+        <div className="flex items-center gap-2">
+          {editable && <UnfilledNavigator />}
+          {actions}
+        </div>
+      )}
       onReady={() => {
         ready.current = true;
         cleanRevision.current = editor.current?.getDocumentHandle()?.revision ?? null;

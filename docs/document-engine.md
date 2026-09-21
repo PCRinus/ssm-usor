@@ -301,7 +301,7 @@ The API builds the data once per generation and merges every template with it
 (`apps/api/src/modules/documents/context.ts`, pure and tested without a database):
 
 - `missingDocumentData(facts)` lists what is in the way, as codes grouped by where the user
-  fills it in: `provider.*` (the organization's legal details), `specialist.*` (the profile of
+  fills it in: `provider.*` (the organization's company details), `specialist.*` (the profile of
   the member who generates), `client.representativeName`, `client.representativeRole`,
   `client.trainingSchedule`, and `responsible.<role>` for every role nobody holds.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until

@@ -361,7 +361,7 @@ function JoinForm({ token, invitation, description }: AcceptFormProps) {
         },
       });
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      await navigate({ to: '/organization', replace: true });
+      await navigate({ to: '/organization/team', replace: true });
     } catch (cause) {
       form.setError('root.server', { message: acceptMessage(cause) });
     }

@@ -106,7 +106,11 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/onboarding.tsx`                                                   | `/onboarding`                             | Signed in, outside the shell. An account without an organization creates one.                                                                                     |
 | `routes/_authenticated.tsx`                                               | pathless                                  | Session guard and the app shell for every protected page.                                                                                                         |
 | `routes/_authenticated/dashboard.tsx`                                     | `/dashboard`                              | Protected landing page with the account email and logout.                                                                                                         |
-| `routes/_authenticated/organization.tsx`                                  | `/organization`                           | The organization's members and legal details for everyone; invitations, the invite dialog, and editing for owners.                                                |
+| `routes/_authenticated/organization.tsx`                                  | `/organization`                           | The organization's name, the caller's role, and the row of sections.                                                                                              |
+| `routes/_authenticated/organization/index.tsx`                            | `/organization`                           | Redirects to the team.                                                                                                                                            |
+| `routes/_authenticated/organization/team.tsx`                             | `/organization/team`                      | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                            |
+| `routes/_authenticated/organization/company.tsx`                          | `/organization/company`                   | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                  |
+| `routes/_authenticated/organization/authorizations.tsx`                   | `/organization/authorizations`            | "Abilitări": the certificate of authorization and the fire-safety technician. Owners edit.                                                                        |
 | `routes/_authenticated/profile.tsx`                                       | `/profile`                                | The user's name and professional title (editable), email, and organization.                                                                                       |
 | `routes/_authenticated/clients.tsx`                                       | pathless                                  | Clients section layout carrying the breadcrumb title.                                                                                                             |
 | `routes/_authenticated/clients/index.tsx`                                 | `/clients`                                | Protected, paginated and sortable list of the organization's active clients.                                                                                      |
@@ -455,7 +459,11 @@ mobile navigation link closes the Sheet.
   Romanian terms, passed as `i18n`; a key it leaves out shows in English, which is what to
   look for after upgrading the editor. Our own controls sit in its
   title bar: the revision badge, "Modificări nesalvate" or "Salvat", "Descarcă", and
-  "Salvează", which is also Ctrl+S. Unsaved means the document's revision differs from the one
+  "Salvează", which is also Ctrl+S. While a draft still reads `DE COMPLETAT`, the bar also has
+  "N locuri de completat" (`UnfilledNavigator`, over the editor's `useDocumentSearch`): each
+  press selects the next one and brings it into view, so what is typed takes its place, and
+  the count follows the text. The mark is not coloured in the file on purpose: what is typed
+  over coloured text inherits the colour, here and in Word, and would be issued with it. Unsaved means the document's revision differs from the one
   at load or at the last save, because opening a file reports layout changes of its own.
   Saving sends the bytes to `PUT /documents/{documentId}/draft/file`; a `409` says the draft
   is gone and to download the file, and "Descarcă" always gives what is on screen, edits
@@ -467,11 +475,6 @@ mobile navigation link closes the Sheet.
   opens for reading with "Modifică" in the title bar, which starts the same draft in place:
   the page loads the new revision and becomes editable.
 
-- `/organization`, for an owner, ends with "Date pentru contracte" (`ContractDetailsCard`):
-  the phone, the VAT flag, the IBAN with its bank, the certificate of authorization (number,
-  date, issuer) and the fire-safety technician. Nothing is required; the IBAN is checked as
-  typed, with or without spaces, and shown in groups of four once saved. A specialist does
-  not get the card, and the app asks the API for nothing on their behalf.
 - `/leads`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
   routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the
@@ -493,13 +496,18 @@ mobile navigation link closes the Sheet.
   `/clients/:id/employees`, so a link kept from before the promotion still works.
 - The service contract (`src/service-contracts`): `ServiceContractCard` is on the lead's page
   and, for a client, in "Alte documente", a section only an owner gets (a specialist who types
-  the address is told what is there and whose it is, and nothing is asked of the API). The
-  form keeps what the app reads about the contract: the number, which starts from the API's
-  suggestion and says so, the two dates, the duration, the renewal, the two services, and who
-  signs for the client, which is saved on the client because a lead has no other form for it.
-  Under it, while something is missing, a warning groups it by where it is filled in, with a
-  link to each place: the organization, the company's own form, this form. "Generează
-  contractul" waits for saved details and for nothing missing, and says which in its title;
+  the address is told what is there and whose it is, and nothing is asked of the API). It is
+  two cards. "Detaliile contractului" keeps what the app reads about the contract: the number,
+  which starts from the API's suggestion and says so, the two dates, the duration, the
+  renewal, the two services, and who signs for the client, which is saved on the client
+  because a lead has no other form for it. Once saved it shows as a summary with "Modifică",
+  so that the form does not stand between the owner and the contract on every visit.
+  "Contractul" is the document: a sentence on where it stands, its badges, and its actions.
+  Until it is issued, a notice says that prices are written by hand over `DE COMPLETAT` and
+  how the editor finds them. While something is missing, a warning groups it by where it is
+  filled in, with a link to each place: the organization's two sections, the company's own
+  form, the details form. "Generează contractul" waits for saved details and for nothing
+  missing, and says which in its title;
   over a draft it asks first, because prices written by hand are lost. The contract then
   shows as a document: "Ciornă · rev. N", "Emis · rev. N", "Modificat", and "Date modificate"
   when `draftOutdated`. It opens in the editor, downloads as Word or PDF, is issued behind a
@@ -524,18 +532,28 @@ mobile navigation link closes the Sheet.
 - `/clients/:id/contact`: the "Contact" section of a client, with the same two cards. The
   notes card is rendered for an owner only, and the API refuses anyone else.
 
-- `/organization`: the organization's name, the caller's role, and the members from
-  `GET /organization/members`. An owner also gets the pending invitations with resend and
-  revoke, and the "Invită un membru" dialog with a role picker. The API's `reason` on a
-  conflict decides the wording: an address that is already a member or was emailed in the
-  last 10 minutes is reported on the email field, the 20-invitation limit on the form.
-  An owner's members table has a row menu for everyone but themselves: switch the role, or
-  remove the member after a confirmation that says what stays. Hiding the owner's tools is a
-  courtesy; the API and the database enforce the rule. An account without an organization is
-  told to ask for an invitation. The "Date juridice" card holds what generated documents print
-  about the provider (ADR 005), from `GET /organization/legal-details`: every member sees it,
-  an owner edits it, can prefill it from ANAF by CUI like the new client form, and saves with
-  `PUT`, which replaces every field, so an emptied input clears what was saved.
+- `/organization`: the organization's name, the caller's role, and a row of sections as on a
+  client's page, each its own route; `/organization` itself redirects to the team, which is
+  what the page is opened for day to day.
+- `/organization/team` ("Echipă"): the members from `GET /organization/members`. An owner also
+  gets the pending invitations with resend and revoke, and the "Invită un membru" dialog with
+  a role picker. The API's `reason` on a conflict decides the wording: an address that is
+  already a member or was emailed in the last 10 minutes is reported on the email field, the
+  20-invitation limit on the form. An owner's members table has a row menu for everyone but
+  themselves: switch the role, or remove the member after a confirmation that says what
+  stays. Hiding the owner's tools is a courtesy; the API and the database enforce the rule.
+- `/organization/company` ("Date firmă"): what generated documents and contracts print about
+  the provider as a company (ADR 005, ADR 007), from `GET /organization/company-details`, in
+  the sections of the client form: identification, registered office and phone, legal
+  representative, bank account. Every member sees it and an owner edits it. "Caută la ANAF"
+  prefills it by CUI like the new client form, the VAT checkbox included, which stays
+  editable because ANAF's registry lags a fresh registration. `PUT` replaces every field, so
+  an emptied input clears what was saved. The IBAN is checked as typed, with or without
+  spaces, and shown in groups of four once saved.
+- `/organization/authorizations` ("Abilitări"): the certificate of authorization and, in a
+  section of its own, the one fire-safety technician (issue #170), from
+  `GET /organization/authorizations`, with the same rules. The contract card's notice of
+  missing data links to whichever of the two sections holds what is missing.
 - `/profile`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the

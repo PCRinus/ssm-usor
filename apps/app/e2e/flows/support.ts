@@ -78,7 +78,7 @@ export async function createClientCompany(organizationId: string, legalName: str
 
 // What a service contract prints about the provider, save for the bank account, which the
 // flow fills in through the app (ADR 007).
-export async function completeContractDetails(organizationId: string) {
+export async function completeProviderDetails(organizationId: string) {
   const organization = await admin
     .from('organizations')
     .update({

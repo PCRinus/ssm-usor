@@ -1532,10 +1532,10 @@
         },
         "required": ["name"]
       },
-      "OrganizationLegalDetailsResponse": {
+      "OrganizationCompanyDetailsResponse": {
         "type": "object",
         "properties": {
-          "legalDetails": {
+          "companyDetails": {
             "type": "object",
             "properties": {
               "legalName": {
@@ -1545,6 +1545,9 @@
               "cui": {
                 "type": "string",
                 "nullable": true
+              },
+              "vatPayer": {
+                "type": "boolean"
               },
               "tradeRegisterNumber": {
                 "type": "string",
@@ -1607,6 +1610,10 @@
                 "type": "string",
                 "nullable": true
               },
+              "phone": {
+                "type": "string",
+                "nullable": true
+              },
               "legalRepresentativeName": {
                 "type": "string",
                 "nullable": true
@@ -1614,23 +1621,35 @@
               "legalRepresentativeRole": {
                 "type": "string",
                 "nullable": true
+              },
+              "iban": {
+                "type": "string",
+                "nullable": true
+              },
+              "bankName": {
+                "type": "string",
+                "nullable": true
               }
             },
             "required": [
               "legalName",
               "cui",
+              "vatPayer",
               "tradeRegisterNumber",
               "countyCode",
               "locality",
               "addressLine",
+              "phone",
               "legalRepresentativeName",
-              "legalRepresentativeRole"
+              "legalRepresentativeRole",
+              "iban",
+              "bankName"
             ]
           }
         },
-        "required": ["legalDetails"]
+        "required": ["companyDetails"]
       },
-      "UpdateOrganizationLegalDetailsRequest": {
+      "UpdateOrganizationCompanyDetailsRequest": {
         "type": "object",
         "properties": {
           "legalName": {
@@ -1644,6 +1663,10 @@
             "nullable": true,
             "minLength": 2,
             "maxLength": 16
+          },
+          "vatPayer": {
+            "type": "boolean",
+            "default": false
           },
           "tradeRegisterNumber": {
             "type": "string",
@@ -1712,6 +1735,12 @@
             "minLength": 1,
             "maxLength": 240
           },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 5,
+            "maxLength": 20
+          },
           "legalRepresentativeName": {
             "type": "string",
             "nullable": true,
@@ -1723,27 +1752,26 @@
             "nullable": true,
             "minLength": 2,
             "maxLength": 80
+          },
+          "iban": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 42
+          },
+          "bankName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 120
           }
         }
       },
-      "OrganizationContractDetailsResponse": {
+      "OrganizationAuthorizationsResponse": {
         "type": "object",
         "properties": {
-          "contractDetails": {
+          "authorizations": {
             "type": "object",
             "properties": {
-              "phone": {
-                "type": "string",
-                "nullable": true
-              },
-              "iban": {
-                "type": "string",
-                "nullable": true
-              },
-              "bankName": {
-                "type": "string",
-                "nullable": true
-              },
               "authorizationCertificateNumber": {
                 "type": "string",
                 "nullable": true
@@ -1757,9 +1785,6 @@
                 "type": "string",
                 "nullable": true
               },
-              "vatPayer": {
-                "type": "boolean"
-              },
               "fireSafetyTechnicianName": {
                 "type": "string",
                 "nullable": true
@@ -1770,40 +1795,19 @@
               }
             },
             "required": [
-              "phone",
-              "iban",
-              "bankName",
               "authorizationCertificateNumber",
               "authorizationCertificateDate",
               "authorizationCertificateIssuer",
-              "vatPayer",
               "fireSafetyTechnicianName",
               "fireSafetyTechnicianCertificate"
             ]
           }
         },
-        "required": ["contractDetails"]
+        "required": ["authorizations"]
       },
-      "UpdateOrganizationContractDetailsRequest": {
+      "UpdateOrganizationAuthorizationsRequest": {
         "type": "object",
         "properties": {
-          "phone": {
-            "type": "string",
-            "nullable": true,
-            "minLength": 5,
-            "maxLength": 20
-          },
-          "iban": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 42
-          },
-          "bankName": {
-            "type": "string",
-            "nullable": true,
-            "minLength": 2,
-            "maxLength": 120
-          },
           "authorizationCertificateNumber": {
             "type": "string",
             "nullable": true,
@@ -1820,10 +1824,6 @@
             "nullable": true,
             "minLength": 2,
             "maxLength": 200
-          },
-          "vatPayer": {
-            "type": "boolean",
-            "default": false
           },
           "fireSafetyTechnicianName": {
             "type": "string",
@@ -6017,11 +6017,11 @@
         }
       }
     },
-    "/organization/legal-details": {
+    "/organization/company-details": {
       "get": {
-        "operationId": "getOrganizationLegalDetails",
-        "summary": "Read the organization's legal details",
-        "description": "What documents print about the provider. Any member reads them.",
+        "operationId": "getOrganizationCompanyDetails",
+        "summary": "Read what documents print about the organization as a company",
+        "description": "Its name, registration, VAT status, registered office, phone, legal representative and bank account. Any member reads them. All optional; generating a document or a contract is what asks for them.",
         "security": [
           {
             "bearerAuth": []
@@ -6029,11 +6029,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The legal details",
+            "description": "The company details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationLegalDetailsResponse"
+                  "$ref": "#/components/schemas/OrganizationCompanyDetailsResponse"
                 }
               }
             }
@@ -6081,9 +6081,9 @@
         }
       },
       "put": {
-        "operationId": "updateOrganizationLegalDetails",
-        "summary": "Replace the organization's legal details",
-        "description": "Owners only. A field left out or null is cleared.",
+        "operationId": "updateOrganizationCompanyDetails",
+        "summary": "Replace what documents print about the organization as a company",
+        "description": "Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.",
         "security": [
           {
             "bearerAuth": []
@@ -6094,18 +6094,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateOrganizationLegalDetailsRequest"
+                "$ref": "#/components/schemas/UpdateOrganizationCompanyDetailsRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The legal details after the change",
+            "description": "The company details after the change",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationLegalDetailsResponse"
+                  "$ref": "#/components/schemas/OrganizationCompanyDetailsResponse"
                 }
               }
             }
@@ -6163,11 +6163,11 @@
         }
       }
     },
-    "/organization/contract-details": {
+    "/organization/authorizations": {
       "get": {
-        "operationId": "getOrganizationContractDetails",
-        "summary": "Read what a service contract prints about the organization",
-        "description": "Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.",
+        "operationId": "getOrganizationAuthorizations",
+        "summary": "Read the organization's authorizations",
+        "description": "The certificate of authorization and the fire-safety technician. Any member reads them. All optional; generating a contract is what asks for them.",
         "security": [
           {
             "bearerAuth": []
@@ -6175,11 +6175,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The contract details",
+            "description": "The authorizations",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationContractDetailsResponse"
+                  "$ref": "#/components/schemas/OrganizationAuthorizationsResponse"
                 }
               }
             }
@@ -6195,7 +6195,7 @@
             }
           },
           "403": {
-            "description": "The account is not an owner of an organization",
+            "description": "The account is not a member of an organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -6227,9 +6227,9 @@
         }
       },
       "put": {
-        "operationId": "updateOrganizationContractDetails",
-        "summary": "Replace what a service contract prints about the organization",
-        "description": "Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.",
+        "operationId": "updateOrganizationAuthorizations",
+        "summary": "Replace the organization's authorizations",
+        "description": "Owners only. A field left out or null is cleared.",
         "security": [
           {
             "bearerAuth": []
@@ -6240,18 +6240,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateOrganizationContractDetailsRequest"
+                "$ref": "#/components/schemas/UpdateOrganizationAuthorizationsRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The contract details after the change",
+            "description": "The authorizations after the change",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationContractDetailsResponse"
+                  "$ref": "#/components/schemas/OrganizationAuthorizationsResponse"
                 }
               }
             }

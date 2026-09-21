@@ -67,7 +67,7 @@ function PlaceLink({ place, clientId }: { place: MissingPlace; clientId: string 
   const className = 'font-medium text-foreground underline underline-offset-4';
   if (place === 'organization')
     return (
-      <Link to="/organization" className={className}>
+      <Link to="/organization/company" className={className}>
         {label}
       </Link>
     );

@@ -23,7 +23,7 @@ interface SeededEmployee {
 
 // Filled in only while the legal name is empty, so what an owner has typed on the organization
 // page is kept.
-export async function seedOrganizationLegalDetails(db: SeedClient, ownerName: string) {
+export async function seedOrganizationCompanyDetails(db: SeedClient, ownerName: string) {
   const { data, error } = await db
     .from('organizations')
     .update({
@@ -39,7 +39,7 @@ export async function seedOrganizationLegalDetails(db: SeedClient, ownerName: st
     .eq('id', seedOrganizationId)
     .is('legal_name', null)
     .select('id');
-  if (error) throw new Error(`Could not seed the legal details: ${error.message}`);
+  if (error) throw new Error(`Could not seed the company details: ${error.message}`);
   return data.length > 0;
 }
 

@@ -3,8 +3,8 @@ import {
   type ClientDocumentDetails,
   normalizeCui,
   normalizeIban,
-  type OrganizationContractDetails,
-  type OrganizationLegalDetails,
+  type OrganizationAuthorizations,
+  type OrganizationCompanyDetails,
   type ResponsiblePerson,
   type Workplace,
 } from '@ssm-usor/contracts';
@@ -19,63 +19,71 @@ import type {
   createResponsiblePersonRoute,
   createWorkplaceRoute,
   getClientDocumentDetailsRoute,
-  getOrganizationContractDetailsRoute,
-  getOrganizationLegalDetailsRoute,
+  getOrganizationAuthorizationsRoute,
+  getOrganizationCompanyDetailsRoute,
   listResponsiblePersonsRoute,
   listWorkplacesRoute,
   updateClientDocumentDetailsRoute,
-  updateOrganizationContractDetailsRoute,
-  updateOrganizationLegalDetailsRoute,
+  updateOrganizationAuthorizationsRoute,
+  updateOrganizationCompanyDetailsRoute,
   updateResponsiblePersonRoute,
   updateWorkplaceRoute,
 } from './routes';
 
 type Tables = Database['public']['Tables'];
 
-const legalDetailsColumns =
-  'legal_name, cui, trade_register_number, county_code, locality, address_line, legal_representative_name, legal_representative_role';
+const companyDetailsColumns =
+  'legal_name, cui, vat_payer, trade_register_number, county_code, locality, address_line, phone, legal_representative_name, legal_representative_role, iban, bank_name';
 
-type LegalDetailsRow = Pick<
+type CompanyDetailsRow = Pick<
   Tables['organizations']['Row'],
   | 'legal_name'
   | 'cui'
+  | 'vat_payer'
   | 'trade_register_number'
   | 'county_code'
   | 'locality'
   | 'address_line'
+  | 'phone'
   | 'legal_representative_name'
   | 'legal_representative_role'
+  | 'iban'
+  | 'bank_name'
 >;
 
-function toLegalDetails(row: LegalDetailsRow): OrganizationLegalDetails {
+function toCompanyDetails(row: CompanyDetailsRow): OrganizationCompanyDetails {
   return {
     legalName: row.legal_name,
     cui: row.cui,
+    vatPayer: row.vat_payer,
     tradeRegisterNumber: row.trade_register_number,
     // The database constrains county codes to the shared list.
-    countyCode: row.county_code as OrganizationLegalDetails['countyCode'],
+    countyCode: row.county_code as OrganizationCompanyDetails['countyCode'],
     locality: row.locality,
     addressLine: row.address_line,
+    phone: row.phone,
     legalRepresentativeName: row.legal_representative_name,
     legalRepresentativeRole: row.legal_representative_role,
+    iban: row.iban,
+    bankName: row.bank_name,
   };
 }
 
-export const getOrganizationLegalDetails: RouteHandler<
-  typeof getOrganizationLegalDetailsRoute,
+export const getOrganizationCompanyDetails: RouteHandler<
+  typeof getOrganizationCompanyDetailsRoute,
   ApiEnv
 > = async (c) => {
   // Row-level security shows a member exactly one organization: their own.
   const { data, error } = await createDataClient(c)
     .from('organizations')
-    .select(legalDetailsColumns)
+    .select(companyDetailsColumns)
     .single();
-  if (error) throw fromDatabaseError(error, 'organization legal details');
-  return c.json({ legalDetails: toLegalDetails(data) }, 200);
+  if (error) throw fromDatabaseError(error, 'organization company details');
+  return c.json({ companyDetails: toCompanyDetails(data) }, 200);
 };
 
-export const updateOrganizationLegalDetails: RouteHandler<
-  typeof updateOrganizationLegalDetailsRoute,
+export const updateOrganizationCompanyDetails: RouteHandler<
+  typeof updateOrganizationCompanyDetailsRoute,
   ApiEnv
 > = async (c) => {
   const body = c.req.valid('json');
@@ -85,86 +93,77 @@ export const updateOrganizationLegalDetails: RouteHandler<
       legal_name: body.legalName ?? null,
       // Validation guarantees a well-formed CUI.
       cui: body.cui ? (normalizeCui(body.cui)?.cui ?? null) : null,
+      vat_payer: body.vatPayer,
       trade_register_number: body.tradeRegisterNumber ?? null,
       county_code: body.countyCode ?? null,
       locality: body.locality ?? null,
       address_line: body.addressLine ?? null,
+      phone: body.phone ?? null,
       legal_representative_name: body.legalRepresentativeName ?? null,
       legal_representative_role: body.legalRepresentativeRole ?? null,
+      iban: body.iban ? normalizeIban(body.iban) : null,
+      bank_name: body.bankName ?? null,
     })
     .eq('id', c.get('membership').organizationId)
-    .select(legalDetailsColumns)
+    .select(companyDetailsColumns)
     .single();
-  if (error) throw fromDatabaseError(error, 'update organization legal details');
-  return c.json({ legalDetails: toLegalDetails(data) }, 200);
+  if (error) throw fromDatabaseError(error, 'update organization company details');
+  return c.json({ companyDetails: toCompanyDetails(data) }, 200);
 };
 
-const contractDetailsColumns =
-  'phone, iban, bank_name, authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, vat_payer, fire_safety_technician_name, fire_safety_technician_certificate';
+const authorizationsColumns =
+  'authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, fire_safety_technician_name, fire_safety_technician_certificate';
 
-type ContractDetailsRow = Pick<
+type AuthorizationsRow = Pick<
   Tables['organizations']['Row'],
-  | 'phone'
-  | 'iban'
-  | 'bank_name'
   | 'authorization_certificate_number'
   | 'authorization_certificate_date'
   | 'authorization_certificate_issuer'
-  | 'vat_payer'
   | 'fire_safety_technician_name'
   | 'fire_safety_technician_certificate'
 >;
 
-function toContractDetails(row: ContractDetailsRow): OrganizationContractDetails {
+function toAuthorizations(row: AuthorizationsRow): OrganizationAuthorizations {
   return {
-    phone: row.phone,
-    iban: row.iban,
-    bankName: row.bank_name,
     authorizationCertificateNumber: row.authorization_certificate_number,
     authorizationCertificateDate: row.authorization_certificate_date,
     authorizationCertificateIssuer: row.authorization_certificate_issuer,
-    vatPayer: row.vat_payer,
     fireSafetyTechnicianName: row.fire_safety_technician_name,
     fireSafetyTechnicianCertificate: row.fire_safety_technician_certificate,
   };
 }
 
-export const getOrganizationContractDetails: RouteHandler<
-  typeof getOrganizationContractDetailsRoute,
+export const getOrganizationAuthorizations: RouteHandler<
+  typeof getOrganizationAuthorizationsRoute,
   ApiEnv
 > = async (c) => {
-  // Row-level security shows a member exactly one organization: their own.
   const { data, error } = await createDataClient(c)
     .from('organizations')
-    .select(contractDetailsColumns)
+    .select(authorizationsColumns)
     .single();
-  if (error) throw fromDatabaseError(error, 'organization contract details');
-  return c.json({ contractDetails: toContractDetails(data) }, 200);
+  if (error) throw fromDatabaseError(error, 'organization authorizations');
+  return c.json({ authorizations: toAuthorizations(data) }, 200);
 };
 
-export const updateOrganizationContractDetails: RouteHandler<
-  typeof updateOrganizationContractDetailsRoute,
+export const updateOrganizationAuthorizations: RouteHandler<
+  typeof updateOrganizationAuthorizationsRoute,
   ApiEnv
 > = async (c) => {
   const body = c.req.valid('json');
   const { data, error } = await createDataClient(c)
     .from('organizations')
     .update({
-      phone: body.phone ?? null,
-      iban: body.iban ? normalizeIban(body.iban) : null,
-      bank_name: body.bankName ?? null,
       authorization_certificate_number: body.authorizationCertificateNumber ?? null,
       authorization_certificate_date: body.authorizationCertificateDate ?? null,
       authorization_certificate_issuer: body.authorizationCertificateIssuer ?? null,
-      vat_payer: body.vatPayer,
       fire_safety_technician_name: body.fireSafetyTechnicianName ?? null,
       fire_safety_technician_certificate: body.fireSafetyTechnicianCertificate ?? null,
     })
     .eq('id', c.get('membership').organizationId)
-    .select(contractDetailsColumns)
+    .select(authorizationsColumns)
     .single();
-  if (error) throw fromDatabaseError(error, 'update organization contract details');
-  return c.json({ contractDetails: toContractDetails(data) }, 200);
+  if (error) throw fromDatabaseError(error, 'update organization authorizations');
+  return c.json({ authorizations: toAuthorizations(data) }, 200);
 };
 
 const noSuchClient = () =>

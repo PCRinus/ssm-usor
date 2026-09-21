@@ -18,7 +18,7 @@ from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
 sys.path.insert(0, '/work/tools/import')
 from import_templates import (  # noqa: E402
     BODY_SIZE, FONT, LIST_HANG, LIST_TIERS, MARGINS, TITLE_SIZE, add_branding, insert_handover,
-    prop, start_office, write_paragraph)
+    prop, start_office, sweep, write_paragraph)
 
 ARTICLES = 'ContractArticles'
 ARTICLE_LABEL = 'ContractArticleLabel'
@@ -140,6 +140,7 @@ def build(desktop, definition):
     target = f'/work/templates/other/{definition["typeKey"]}.docx'
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
+    sweep(target)
     print(definition['typeKey'])
 
 

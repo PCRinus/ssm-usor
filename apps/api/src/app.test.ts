@@ -234,7 +234,7 @@ describe('CORS', () => {
       )
     );
     const response = await app.request(
-      '/organization/legal-details',
+      '/organization/company-details',
       {
         method: 'OPTIONS',
         headers: { Origin: 'https://app.ssmusor.ro', 'Access-Control-Request-Method': 'PUT' },

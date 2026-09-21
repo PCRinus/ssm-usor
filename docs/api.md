@@ -75,10 +75,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                           |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
-| `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
-| `PUT /organization/legal-details`                                      | Owner                                 | The legal details after replacing them                                                                                    |
-| `GET /organization/contract-details`                                   | Owner                                 | `{ "contractDetails": { … } }`: what a service contract prints about the provider                                         |
-| `PUT /organization/contract-details`                                   | Owner                                 | The contract details after replacing them                                                                                 |
+| `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                       |
+| `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                  |
+| `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization and the fire-safety technician                            |
+| `PUT /organization/authorizations`                                     | Owner                                 | The authorizations after replacing them                                                                                   |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule                             |
 | `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                 |
 | `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                                              |
@@ -134,12 +134,16 @@ specialist cannot) or `client_archived`.
 Archiving and restoring are an owner's, checked by `requireOwner` and again by a trigger;
 repeating either changes nothing and keeps the first date.
 
-`/organization/contract-details` holds what a service contract prints about the provider and
-the documentation set does not (ADR 007): `phone`, `iban` with `bankName`, the certificate of
-authorization (`authorizationCertificateNumber`, `…Date`, `…Issuer`), `vatPayer`, which decides
-the sentence about VAT beside the prices, and the fire-safety technician with their
-certificate, as text. Owners only, to read as well, because contracts are theirs. Everything is
-optional and `PUT` replaces all of it; generating a contract is what will ask for them. The
+What is known about the provider is two resources, as the organization page shows it.
+`/organization/company-details` is the company: its name and registration, `vatPayer`, which
+the ANAF lookup fills and which decides the sentence about VAT beside the prices of a
+contract, the registered office, `phone`, the legal representative, and `iban` with
+`bankName`. `/organization/authorizations` is the certificate of authorization
+(`authorizationCertificateNumber`, `…Date`, `…Issuer`) and the fire-safety technician with
+their certificate, as text (issue #170). Every member reads both and an owner writes them:
+none of it is secret, and what is owners-only about a contract is the contract. Everything is
+optional and `PUT` replaces all of a resource; generating a document or a contract is what
+asks for them. The
 IBAN is taken with or without spaces, checked by `isValidIban` (ISO 13616, mod 97) and stored
 bare in upper case; `formatIban` prints it in groups of four.
 
@@ -163,7 +167,7 @@ dates, duration, renewal, the services covered, and `endDate`, the last day of t
 null until saved), `suggestedNumber` (the last number of this year plus one, 1 in a year
 without contracts, null when the organization has none at all and only the owner knows where
 its register stands), who signs for the client, `readiness` with what generating is waiting
-for (`missingServiceContractData`: the organization's legal and contract details, the client's
+for (`missingServiceContractData`: the organization's company details and authorizations, the client's
 registration, address and representative, the contract's own details; the fire-safety
 technician only when fire safety is covered), and `document`, the contract as a document once
 it is generated. `PUT` saves the details, and the client's representative when sent, which a
