@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,7 +7,12 @@ import { disposeRuntimes, mountApp } from '../test/mount';
 
 // The real editor is three megabytes of layout engine and needs a browser; the flow tests
 // drive it. Here a stand-in reports ready, changes, and failures on demand.
-const editorMock = vi.hoisted(() => ({ fail: false, saved: new Uint8Array([80, 75, 3, 4, 9]) }));
+const editorMock = vi.hoisted(() => ({
+  fail: false,
+  holdReady: false,
+  releaseReady: null as (() => void) | null,
+  saved: new Uint8Array([80, 75, 3, 4, 9]),
+}));
 vi.mock('./document-editor', async () => {
   const { useEffect, useImperativeHandle } = await import('react');
   return {
@@ -25,8 +30,9 @@ vi.mock('./document-editor', async () => {
     }) {
       useImperativeHandle(props.handle, () => ({ save: async () => editorMock.saved }));
       useEffect(() => {
+        editorMock.releaseReady = props.onReady;
         if (editorMock.fail) props.onFailed();
-        else props.onReady();
+        else if (!editorMock.holdReady) props.onReady();
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once, like the real editor
       }, []);
       return (
@@ -136,6 +142,8 @@ const mount = () =>
 
 beforeEach(() => {
   editorMock.fail = false;
+  editorMock.holdReady = false;
+  editorMock.releaseReady = null;
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -172,8 +180,26 @@ describe('the document editor page', () => {
     const loading = await screen.findByTestId('editor-loading');
     expect(loading.getAttribute('aria-busy')).toBe('true');
     expect(within(loading).getByTestId('editor-back')).toBeTruthy();
+    expect(within(loading).getByRole('status').textContent).toContain('Se deschide documentul');
+    expect(within(loading).getByTestId('editor-loading-spinner').getAttribute('class')).toContain(
+      'animate-spin'
+    );
     expect(screen.getByTestId('editor-frame').contains(loading)).toBe(true);
     expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
+  });
+
+  it('keeps the loading state visible until the editor finishes preparing its pages', async () => {
+    editorMock.holdReady = true;
+    mockApi();
+    mount();
+
+    await screen.findByTestId('fake-editor');
+    expect(screen.getByTestId('editor-loading')).toBeTruthy();
+    expect(screen.getByTestId('editor-frame').dataset.ready).toBe('false');
+
+    await act(async () => editorMock.releaseReady?.());
+    expect(screen.queryByTestId('editor-loading')).toBeNull();
+    expect(screen.getByTestId('editor-frame').dataset.ready).toBe('true');
   });
 
   it("saves what the editor holds as the draft's file, from the button and from Ctrl+S", async () => {
