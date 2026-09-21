@@ -1410,12 +1410,14 @@ export type ClientDocumentDetailsResponseDocumentDetails = {
    * @nullable
    */
   administrativeTrainingIntervalMonths: number | null;
+  administrativeTrainingNotApplicable: boolean;
   /**
    * @minimum 1
    * @maximum 6
    * @nullable
    */
   workerTrainingIntervalMonths: number | null;
+  workerTrainingNotApplicable: boolean;
   /**
    * @minimum 1
    * @maximum 12
@@ -1461,12 +1463,14 @@ export interface UpdateClientDocumentDetailsRequest {
    * @nullable
    */
   administrativeTrainingIntervalMonths?: number | null;
+  administrativeTrainingNotApplicable?: boolean;
   /**
    * @minimum 1
    * @maximum 6
    * @nullable
    */
   workerTrainingIntervalMonths?: number | null;
+  workerTrainingNotApplicable?: boolean;
   /**
    * @minimum 1
    * @maximum 12
@@ -5984,7 +5988,7 @@ export const getUpdateClientDocumentDetailsUrl = (clientId: string) => {
 };
 
 /**
- * A field left out or null is cleared. The intervals are months between two periodic trainings; the first month and the days say when in the year they fall.
+ * A field left out or null is cleared. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. The first month and the days say when in the year trainings fall.
  * @summary Replace the representative's role and the training schedule of a client
  */
 export const updateClientDocumentDetails = async (

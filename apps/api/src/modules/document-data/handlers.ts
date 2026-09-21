@@ -187,7 +187,7 @@ async function findActiveClient(db: DataClient, clientId: string, refusal: strin
 }
 
 const documentDetailsColumns =
-  'legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to';
+  'legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to';
 
 type DocumentDetailsRow = Pick<
   Tables['clients']['Row'],
@@ -195,7 +195,9 @@ type DocumentDetailsRow = Pick<
   | 'legal_representative_role'
   | 'periodic_training_minutes'
   | 'administrative_training_interval_months'
+  | 'administrative_training_not_applicable'
   | 'worker_training_interval_months'
+  | 'worker_training_not_applicable'
   | 'training_first_month'
   | 'training_day_from'
   | 'training_day_to'
@@ -207,7 +209,9 @@ function toDocumentDetails(row: DocumentDetailsRow): ClientDocumentDetails {
     legalRepresentativeRole: row.legal_representative_role,
     periodicTrainingMinutes: row.periodic_training_minutes,
     administrativeTrainingIntervalMonths: row.administrative_training_interval_months,
+    administrativeTrainingNotApplicable: row.administrative_training_not_applicable,
     workerTrainingIntervalMonths: row.worker_training_interval_months,
+    workerTrainingNotApplicable: row.worker_training_not_applicable,
     trainingFirstMonth: row.training_first_month,
     trainingDayFrom: row.training_day_from,
     trainingDayTo: row.training_day_to,
@@ -242,7 +246,9 @@ export const updateClientDocumentDetails: RouteHandler<
       legal_representative_role: body.legalRepresentativeRole ?? null,
       periodic_training_minutes: body.periodicTrainingMinutes ?? null,
       administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,
+      administrative_training_not_applicable: body.administrativeTrainingNotApplicable ?? false,
       worker_training_interval_months: body.workerTrainingIntervalMonths ?? null,
+      worker_training_not_applicable: body.workerTrainingNotApplicable ?? false,
       training_first_month: body.trainingFirstMonth ?? null,
       training_day_from: body.trainingDayFrom ?? null,
       training_day_to: body.trainingDayTo ?? null,

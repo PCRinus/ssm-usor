@@ -2,8 +2,11 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ClientDocumentDetailsResponse } from '../api/generated/api';
 import { authFixture, makeSession } from '../test/auth-fixture';
 import { disposeRuntimes, mountApp } from '../test/mount';
+
+type Details = ClientDocumentDetailsResponse['documentDetails'];
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -28,7 +31,9 @@ const emptyDetails = {
   legalRepresentativeRole: null,
   periodicTrainingMinutes: null,
   administrativeTrainingIntervalMonths: null,
+  administrativeTrainingNotApplicable: false,
   workerTrainingIntervalMonths: null,
+  workerTrainingNotApplicable: false,
   trainingFirstMonth: null,
   trainingDayFrom: null,
   trainingDayTo: null,
@@ -39,7 +44,9 @@ const savedDetails = {
   legalRepresentativeRole: 'Administrator',
   periodicTrainingMinutes: 120,
   administrativeTrainingIntervalMonths: 6,
+  administrativeTrainingNotApplicable: false,
   workerTrainingIntervalMonths: 3,
+  workerTrainingNotApplicable: false,
   trainingFirstMonth: 2,
   trainingDayFrom: 2,
   trainingDayTo: 7,
@@ -66,7 +73,7 @@ const welder = {
 
 function mockApi({
   client = sampleClient,
-  details = emptyDetails as typeof emptyDetails | typeof savedDetails,
+  details = emptyDetails as Details,
   positions = [] as (typeof welder)[],
   save = undefined as Route | undefined,
 } = {}) {
@@ -102,6 +109,15 @@ const saves = () =>
 const mount = () =>
   mountApp(authFixture(makeSession()).client, `/clients/${clientId}/document-data`);
 
+async function chooseOption(
+  user: ReturnType<typeof userEvent.setup>,
+  testId: string,
+  option: string
+) {
+  await user.click(screen.getByTestId(testId));
+  await user.click(await screen.findByRole('option', { name: option }));
+}
+
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -134,9 +150,10 @@ describe('client document data', () => {
     mount();
     const user = userEvent.setup();
 
-    await user.selectOptions(await screen.findByTestId('details-first-month'), '2');
-    await user.selectOptions(screen.getByTestId('details-administrative-interval'), '6');
-    await user.selectOptions(screen.getByTestId('details-worker-interval'), '3');
+    await screen.findByTestId('details-first-month');
+    await chooseOption(user, 'details-first-month', 'Februarie');
+    await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
+    await chooseOption(user, 'details-worker-interval', 'Trimestrial (la 3 luni)');
 
     expect(screen.getByText('Instruiri în: Februarie, August.')).toBeTruthy();
     expect(screen.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeTruthy();
@@ -146,9 +163,10 @@ describe('client document data', () => {
     mockApi();
     mount();
 
-    const workers = await screen.findByTestId<HTMLSelectElement>('details-worker-interval');
-    const values = [...workers.options].map((option) => option.value);
-    expect(values).toEqual(['', '1', '2', '3', '4', '6']);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('details-worker-interval'));
+    expect(screen.getByRole('option', { name: 'Nu se aplică' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Anual (la 12 luni)' })).toBeNull();
   });
 
   it('saves the representative and the program apart, each over what the other saved', async () => {
@@ -173,10 +191,10 @@ describe('client document data', () => {
     );
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
 
-    await user.selectOptions(screen.getByTestId('details-training-duration'), '120');
-    await user.selectOptions(screen.getByTestId('details-first-month'), '2');
-    await user.selectOptions(screen.getByTestId('details-administrative-interval'), '6');
-    await user.selectOptions(screen.getByTestId('details-worker-interval'), '3');
+    await chooseOption(user, 'details-training-duration', '2 ore');
+    await chooseOption(user, 'details-first-month', 'Februarie');
+    await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
+    await chooseOption(user, 'details-worker-interval', 'Trimestrial (la 3 luni)');
     await user.type(screen.getByTestId('details-day-from'), '2');
     await user.type(screen.getByTestId('details-day-to'), '7');
     await user.click(screen.getByTestId('training-program-save'));
@@ -209,6 +227,47 @@ describe('client document data', () => {
     expect(screen.queryByTestId('training-program-form')).toBeNull();
   });
 
+  it('keeps a blank category undecided until the specialist excludes it', async () => {
+    mockApi({
+      details: {
+        ...savedDetails,
+        workerTrainingIntervalMonths: null,
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
+    await chooseOption(user, 'details-worker-interval', 'Nu se aplică');
+    await user.click(screen.getByTestId('training-program-save'));
+
+    await waitFor(() =>
+      expect(saves()[0]).toMatchObject({
+        administrativeTrainingIntervalMonths: 6,
+        administrativeTrainingNotApplicable: false,
+        workerTrainingIntervalMonths: null,
+        workerTrainingNotApplicable: true,
+      })
+    );
+    expect(await screen.findByTestId('training-program-administrative')).toBeTruthy();
+    expect(screen.queryByTestId('training-program-execution')).toBeNull();
+  });
+
+  it('warns when an employee holds an excluded category', async () => {
+    mockApi({
+      details: {
+        ...savedDetails,
+        workerTrainingIntervalMonths: null,
+        workerTrainingNotApplicable: true,
+      },
+      positions: [welder],
+    });
+    mount();
+
+    expect(await screen.findByTestId('training-program-category-warning')).toBeTruthy();
+    expect(screen.getByTestId('training-program-administrative')).toBeTruthy();
+  });
+
   it('edits a saved program from the summary, and clears a field that is emptied', async () => {
     mockApi({ details: savedDetails });
     mount();
@@ -219,7 +278,7 @@ describe('client document data', () => {
     expect(screen.getByTestId<HTMLButtonElement>('legal-representative-save').disabled).toBe(true);
 
     await user.click(await screen.findByTestId('training-program-edit'));
-    await user.selectOptions(screen.getByTestId('details-training-duration'), '');
+    await chooseOption(user, 'details-training-duration', 'Alege durata');
     await user.click(screen.getByTestId('training-program-save'));
 
     await waitFor(() =>

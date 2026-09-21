@@ -64,6 +64,18 @@ describe('updateClientDocumentDetailsRequestSchema', () => {
     expect(parse({ administrativeTrainingIntervalMonths: 12 }).success).toBe(true);
     expect(parse({ administrativeTrainingIntervalMonths: 13 }).success).toBe(false);
   });
+
+  it('keeps an excluded category separate from an interval', () => {
+    const parse = (body: object) => updateClientDocumentDetailsRequestSchema.safeParse(body);
+    expect(parse({ workerTrainingNotApplicable: true }).success).toBe(true);
+    expect(
+      parse({ workerTrainingNotApplicable: true, workerTrainingIntervalMonths: 3 }).success
+    ).toBe(false);
+    expect(
+      parse({ administrativeTrainingNotApplicable: true, administrativeTrainingIntervalMonths: 6 })
+        .success
+    ).toBe(false);
+  });
 });
 
 describe('responsiblePersonRequestSchema', () => {

@@ -123,7 +123,7 @@ their own table, and specialist assignment.
 A client's SSM documentation ([ADR 005](architecture/adr-005-document-generation.md)) names
 the provider, the client's representative, its workplaces, the people it designates by
 decision, and its training schedule. These facts outlast one generation, so they are stored
-once. All of them are optional in the database: the generation form reports what is missing
+once. Descriptive fields are optional in the database: the generation form reports what is missing
 and refuses to generate until it is filled in. Honorifics are not stored; documents print
 the name and the role.
 
@@ -144,7 +144,9 @@ calendar will read the same columns:
 | ----------------------------------------- | --------------------------------------------------------------------- |
 | `periodic_training_minutes`               | Duration of a periodic training: 30, 60, 90 or 120.                   |
 | `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.   |
-| `worker_training_interval_months`         | Workers, 1 to 6.                                                      |
+| `administrative_training_not_applicable`  | Explicit exclusion; false with a null interval means undecided.       |
+| `worker_training_interval_months`         | Execution personnel, 1 to 6.                                          |
+| `worker_training_not_applicable`          | Explicit exclusion; false with a null interval means undecided.       |
 | `training_first_month`                    | First month of the year with a training; the rest follow by interval. |
 | `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.       |
 
