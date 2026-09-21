@@ -161,7 +161,9 @@ async function readOtherDocumentRow(db: DataClient, clientId: string, typeKey: s
 /** With what its draft was merged from, for a caller that knows how to compare it. */
 export async function readOtherDocument(db: DataClient, clientId: string, typeKey: string) {
   const row = await readOtherDocumentRow(db, clientId, typeKey);
-  if (!row) return { document: null, draftSnapshot: null };
+  // Deleting its only draft leaves the row, for the next generation to write under. Without a
+  // revision there is nothing to open, download or issue: the document is not generated.
+  if (!row || row.document_revisions.length === 0) return { document: null, draftSnapshot: null };
   const draft = row.document_revisions.find((revision) => revision.status === 'draft');
   return { document: toDocument(row, null), draftSnapshot: draft?.data_snapshot ?? null };
 }

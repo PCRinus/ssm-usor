@@ -297,6 +297,15 @@ describe('GET /clients/{clientId}/service-contract', () => {
     expect(new URL(String(documents)).searchParams.get('type_key')).toBe('eq.service_contract');
   });
 
+  it('takes a contract whose only draft was deleted for one that was never generated', async () => {
+    mockUpstream({
+      documents: () => Response.json([{ ...documentRow, document_revisions: [] }]),
+    });
+    const response = await request();
+    expect(response.status).toBe(200);
+    expect(serviceContractResponseSchema.parse(await response.json()).document).toBeNull();
+  });
+
   it.each([
     [[{ contract_number: 51 }], 52],
     [[], 1],

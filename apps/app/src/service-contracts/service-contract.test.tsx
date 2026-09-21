@@ -335,6 +335,17 @@ describe('the service contract of a lead', () => {
     expect(screen.getByTestId('contract-details-summary')).toBeTruthy();
   });
 
+  it('shows a contract left without any revision as not generated, and does not break', async () => {
+    mockApi({
+      get: () =>
+        Response.json(state({ document: contractDocument({ draft: null, issued: null }) })),
+    });
+    mount();
+    expect(await screen.findByTestId('contract-none')).toBeTruthy();
+    expect(screen.queryByTestId('contract-open')).toBeNull();
+    expect(screen.getByTestId('contract-generate').textContent).toContain('Generează contractul');
+  });
+
   it('says where the prices go before the contract is generated and while it is a draft', async () => {
     mockApi();
     mount();
