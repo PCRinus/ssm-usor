@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react';
 
 import type { ApiRequestOptions } from '../api/http';
 import type { AuthStore } from '../auth/auth-store';
+import { PageTitle } from '../components/page-title';
 import { NotFoundPage, RouteErrorPage } from '../components/route-states';
 
 export interface RouterContext {
@@ -25,6 +26,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 export function RootLayout() {
   return (
     <>
+      <PageTitle />
       <Outlet />
       {Devtools && (
         <Suspense fallback={null}>

@@ -13,6 +13,7 @@ import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
 
 export const Route = createFileRoute('/forgot-password')({
+  staticData: { title: 'Recuperare parolă' },
   // Someone signed in changes their password from their profile.
   beforeLoad: async ({ context: { auth } }) => {
     await auth.ready;

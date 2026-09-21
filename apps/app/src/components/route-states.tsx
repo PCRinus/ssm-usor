@@ -1,7 +1,12 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
+import { useEffect } from 'react';
 
 export function NotFoundPage() {
+  useEffect(() => {
+    document.title = 'Pagina nu a fost găsită — SSM Ușor';
+  }, []);
+
   return (
     <main data-testid="not-found-page" className="mx-auto grid max-w-lg gap-5 px-5 py-20">
       <h1 className="text-2xl font-semibold">Pagina nu a fost găsită</h1>

@@ -17,6 +17,7 @@ import { PublicFrame } from '../components/public-frame';
 // Registration is Supabase's own signup (ADR 004). The page creates an identity only; the
 // organization comes with onboarding, after the email is confirmed.
 export const Route = createFileRoute('/register')({
+  staticData: { title: 'Creează cont' },
   beforeLoad: async ({ context: { auth } }) => {
     await auth.ready;
     if (auth.getSnapshot().session) throw redirect({ to: '/dashboard', replace: true });

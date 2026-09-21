@@ -33,6 +33,7 @@ import { roleLabels } from '../organization/labels';
 // after being removed from one, or before accepting an invitation. It sits outside the app
 // shell, whose pages all need an organization.
 export const Route = createFileRoute('/onboarding')({
+  staticData: { title: 'Configurează organizația' },
   beforeLoad: async ({ context: { auth } }) => {
     await auth.ready;
     if (!auth.getSnapshot().session) throw redirect({ to: '/login', replace: true });

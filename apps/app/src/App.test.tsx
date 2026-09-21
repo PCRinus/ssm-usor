@@ -79,6 +79,7 @@ describe('dashboard authentication and routing', () => {
     const runtime = mount(client);
     await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/login');
+    await waitFor(() => expect(document.title).toBe('Autentificare — SSM Ușor'));
     expect(screen.getByTestId('commit-version').textContent).toMatch(/^Versiune \S+$/);
     expect(screen.queryByTestId('dashboard-page')).toBeNull();
   });
@@ -142,8 +143,10 @@ describe('dashboard authentication and routing', () => {
     const runtime = mount(authFixture(makeSession()).client);
     const user = userEvent.setup();
     await screen.findByTestId('dashboard-page');
+    await waitFor(() => expect(document.title).toBe('Prezentare generală — SSM Ușor'));
     await user.click(screen.getByTestId('nav-clients'));
     await screen.findByTestId('clients-page');
+    await waitFor(() => expect(document.title).toBe('Clienți — SSM Ușor'));
     expect(runtime.router.state.location.pathname).toBe('/clients');
     expect(screen.getByTestId('nav-clients').getAttribute('aria-current')).toBe('page');
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -228,6 +231,7 @@ describe('dashboard authentication and routing', () => {
   it('renders an unknown route without exposing internal errors', async () => {
     mount(authFixture().client, '/missing-page');
     await screen.findByTestId('not-found-page');
+    await waitFor(() => expect(document.title).toBe('Pagina nu a fost găsită — SSM Ușor'));
   });
 });
 

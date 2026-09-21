@@ -193,10 +193,18 @@ describe('clients list', () => {
     expect(screen.getByTestId('clients-count').textContent).toBe('0 clienți');
     await userEvent.setup().click(screen.getByRole('link', { name: 'Adaugă primul client' }));
     await screen.findByTestId('new-client-page');
+    await waitFor(() => expect(document.title).toBe('Client nou — Clienți — SSM Ușor'));
     expect(runtime.router.state.location.pathname).toBe('/clients/new');
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();
     expect(within(breadcrumb).getByText('Client nou')).toBeTruthy();
+  });
+
+  it('uses the loaded client name and active section in the browser title', async () => {
+    mockApi({ me: meAs('owner') });
+    mountApp(authFixture(makeSession()).client, `/clients/${sampleClient.id}/employees`);
+    await screen.findByTestId('client-page');
+    await waitFor(() => expect(document.title).toBe('Angajați — OMV PETROM SA — SSM Ușor'));
   });
 
   it('explains a missing membership and can retry', async () => {

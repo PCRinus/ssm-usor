@@ -12,6 +12,7 @@ import { CommitVersion } from '../components/commit-version';
 import { Notice } from '../components/notice';
 
 export const Route = createFileRoute('/login')({
+  staticData: { title: 'Autentificare' },
   // Set by the accept page for someone who must sign in first; login returns them to it.
   // Only that token travels here, never a URL, so this cannot redirect anywhere else.
   validateSearch: z.object({ invitation: z.string().optional() }),

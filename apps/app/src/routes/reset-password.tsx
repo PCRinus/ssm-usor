@@ -21,6 +21,7 @@ import { PublicFrame } from '../components/public-frame';
 // Public: the link in a password reset email lands here. Opening it does nothing; the
 // token is used only when a new password is submitted, because mail scanners open links.
 export const Route = createFileRoute('/reset-password')({
+  staticData: { title: 'Resetare parolă' },
   validateSearch: z.object({ token_hash: z.string().optional() }),
   component: ResetPasswordPage,
 });

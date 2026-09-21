@@ -47,11 +47,7 @@ import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
 import { CommitVersion } from './commit-version';
 import { Notice } from './notice';
-
-function loaderCrumb(loaderData: unknown) {
-  const crumb = (loaderData as { crumb?: unknown } | undefined)?.crumb;
-  return typeof crumb === 'string' ? crumb : undefined;
-}
+import { loaderCrumb } from './route-title';
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [

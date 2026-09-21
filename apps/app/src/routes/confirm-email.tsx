@@ -11,6 +11,7 @@ import { PublicFrame } from '../components/public-frame';
 // Public: the link in a signup confirmation email lands here. Opening it does nothing; the
 // token is used when the button is pressed, because mail scanners open links.
 export const Route = createFileRoute('/confirm-email')({
+  staticData: { title: 'Confirmă adresa de email' },
   validateSearch: z.object({ token_hash: z.string().optional() }),
   component: ConfirmEmailPage,
 });
