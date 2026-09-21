@@ -42,7 +42,7 @@ export function OwnerNotesCard({
       const response = await save.mutateAsync({ clientId, data: { body } });
       queryClient.setQueryData(queryKey, response);
       setTyped(null);
-      toast.success('Notele au fost salvate.');
+      toast.success('Notițele au fost salvate.');
     } catch {
       setFailed(true);
     }
@@ -51,10 +51,10 @@ export function OwnerNotesCard({
   return (
     <Card data-testid="owner-notes-card">
       <CardHeader>
-        <h2 className="text-lg font-semibold">Note</h2>
+        <h2 className="text-lg font-semibold">Notițe</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Doar administratorii pot vedea aceste note. Păstrează aici discuțiile, prețurile și pașii
-          următori.
+          Doar administratorii pot vedea aceste notițe. Păstrează aici discuțiile, prețurile și
+          pașii următori.
         </p>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -73,13 +73,13 @@ export function OwnerNotesCard({
               </Button>
             }
           >
-            Nu am putut încărca notele.
+            Nu am putut încărca notițele.
           </Notice>
         ) : (
           <>
             <Textarea
               data-testid="owner-notes-body"
-              aria-label="Note"
+              aria-label="Notițe"
               className="min-h-32"
               maxLength={maxLength}
               value={body}
@@ -87,14 +87,14 @@ export function OwnerNotesCard({
               disabled={save.isPending}
               placeholder={
                 readOnly
-                  ? 'Nicio notă.'
+                  ? 'Nicio notiță.'
                   : 'De exemplu: sunat pe 12.09, vrea ofertă pentru 15 angajați.'
               }
               onChange={(event) => setTyped(event.target.value)}
             />
             {failed && (
               <Notice variant="destructive" data-testid="owner-notes-error">
-                Nu am putut salva notele. Verifică conexiunea și încearcă din nou.
+                Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.
               </Notice>
             )}
             {!readOnly && (
@@ -104,7 +104,7 @@ export function OwnerNotesCard({
                   disabled={!dirty || save.isPending}
                   onClick={() => void submit()}
                 >
-                  {save.isPending ? 'Se salvează…' : 'Salvează notele'}
+                  {save.isPending ? 'Se salvează…' : 'Salvează notițele'}
                 </Button>
                 <span data-testid="owner-notes-state" className="text-xs text-muted-foreground">
                   {dirty ? 'Modificări nesalvate' : notes.data.notes.updatedAt ? 'Salvat' : ''}

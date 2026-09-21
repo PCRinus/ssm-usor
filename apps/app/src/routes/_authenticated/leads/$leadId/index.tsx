@@ -127,7 +127,7 @@ export function LeadPage() {
             </Button>
           }
         >
-          Datele și notele lui pot fi citite, dar nu modificate, și nu poate fi transformat în
+          Datele și notițele lui pot fi citite, dar nu modificate, și nu poate fi transformat în
           client până nu este restaurat.
         </Notice>
       )}

@@ -71,7 +71,7 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await expect(page.getByTestId('contact-email')).toHaveText('andrei@viitor.example');
   await page.getByTestId('owner-notes-body').fill('A cerut ofertă pentru 12 angajați.');
   await page.getByTestId('owner-notes-save').click();
-  await expect(page.getByText('Notele au fost salvate.')).toBeVisible();
+  await expect(page.getByText('Notițele au fost salvate.')).toBeVisible();
 
   // From the database again, not from the cache.
   await page.reload();

@@ -74,8 +74,8 @@ export function PromoteLeadDialog({
             <DialogDescription>
               <span className="font-medium text-foreground">{lead.legalName}</span> trece în lista
               clienților, unde îl vede toată echipa, și i se pot adăuga angajați, posturi de lucru
-              și documente. Notele rămân vizibile doar administratorilor. Transformarea nu poate fi
-              anulată.
+              și documente. Notițele rămân vizibile doar administratorilor. Transformarea nu poate
+              fi anulată.
             </DialogDescription>
           </DialogHeader>
           {signed === false && (
