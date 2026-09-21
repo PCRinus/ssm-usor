@@ -3,6 +3,7 @@ import {
   formatTrainingDuration,
   type MissingDocumentData,
   type ResponsiblePersonRole,
+  type StaffCategory,
   trainingMonths,
   unfilledMark,
 } from '@ssm-usor/contracts';
@@ -29,13 +30,17 @@ export type DocumentFacts = {
     representativeRole: string | null;
     periodicTrainingMinutes: number | null;
     administrativeTrainingIntervalMonths: number | null;
+    administrativeTrainingNotApplicable: boolean;
     workerTrainingIntervalMonths: number | null;
+    workerTrainingNotApplicable: boolean;
     trainingFirstMonth: number | null;
     trainingDayFrom: number | null;
     trainingDayTo: number | null;
   };
   /** In the order they should be printed. */
   responsiblePersons: { fullName: string; jobTitle: string; roles: ResponsiblePersonRole[] }[];
+  /** Categories held by at least one current employee, based on their job position. */
+  staffCategoriesInUse: StaffCategory[];
 };
 
 type Person = { name: string; jobTitle: string };
@@ -58,10 +63,13 @@ export type DocumentContext = {
   imminentDangerText: string;
   training: {
     periodicDuration: string;
-    administrativeFrequency: string;
-    administrativeMonths: string;
-    workerFrequency: string;
-    workerMonths: string;
+    intervalPhrase: string;
+    administrative: Record<string, never>[];
+    worker: Record<string, never>[];
+    administrativeFrequency?: string;
+    administrativeMonths?: string;
+    workerFrequency?: string;
+    workerMonths?: string;
     dayFrom: number;
     dayTo: number;
   };
@@ -74,14 +82,23 @@ const filled = (value: string | null | undefined): value is string =>
 /** What is in the way of generating, in the order the form lists it. Empty when ready. */
 export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[] {
   const { organization, specialist, client } = facts;
-  const schedule = [
+  const sharedSchedule = [
     client.periodicTrainingMinutes,
-    client.administrativeTrainingIntervalMonths,
-    client.workerTrainingIntervalMonths,
     client.trainingFirstMonth,
     client.trainingDayFrom,
     client.trainingDayTo,
   ];
+  const administrative = client.administrativeTrainingIntervalMonths;
+  const worker = client.workerTrainingIntervalMonths;
+  const scheduleReady =
+    sharedSchedule.every((value) => value !== null) &&
+    (administrative !== null || client.administrativeTrainingNotApplicable) &&
+    (worker !== null || client.workerTrainingNotApplicable) &&
+    (administrative !== null || worker !== null) &&
+    !(client.administrativeTrainingNotApplicable && administrative !== null) &&
+    !(client.workerTrainingNotApplicable && worker !== null) &&
+    (!facts.staffCategoriesInUse.includes('technical_administrative') || administrative !== null) &&
+    (!facts.staffCategoriesInUse.includes('execution') || worker !== null);
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
   const checks: [MissingDocumentData, boolean][] = [
     ['provider.legalName', filled(organization.legalName)],
@@ -91,7 +108,7 @@ export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[]
     ['specialist.professionalTitle', filled(specialist?.professionalTitle)],
     ['client.representativeName', filled(client.representativeName)],
     ['client.representativeRole', filled(client.representativeRole)],
-    ['client.trainingSchedule', schedule.every((value) => value !== null)],
+    ['client.trainingSchedule', scheduleReady],
     ['responsible.workplace_manager', held.has('workplace_manager')],
     ['responsible.first_aid', held.has('first_aid')],
     ['responsible.risk_evaluation_team', held.has('risk_evaluation_team')],
@@ -186,13 +203,28 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       .join(', '),
     training: {
       periodicDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
-      administrativeFrequency: frequency(client.administrativeTrainingIntervalMonths!),
-      administrativeMonths: months(
-        client.trainingFirstMonth!,
-        client.administrativeTrainingIntervalMonths!
-      ),
-      workerFrequency: frequency(client.workerTrainingIntervalMonths!),
-      workerMonths: months(client.trainingFirstMonth!, client.workerTrainingIntervalMonths!),
+      intervalPhrase:
+        client.administrativeTrainingIntervalMonths !== null &&
+        client.workerTrainingIntervalMonths !== null
+          ? 'următoarele intervale de timp'
+          : 'următorul interval de timp',
+      administrative: client.administrativeTrainingIntervalMonths === null ? [] : [{}],
+      worker: client.workerTrainingIntervalMonths === null ? [] : [{}],
+      ...(client.administrativeTrainingIntervalMonths === null
+        ? {}
+        : {
+            administrativeFrequency: frequency(client.administrativeTrainingIntervalMonths),
+            administrativeMonths: months(
+              client.trainingFirstMonth!,
+              client.administrativeTrainingIntervalMonths
+            ),
+          }),
+      ...(client.workerTrainingIntervalMonths === null
+        ? {}
+        : {
+            workerFrequency: frequency(client.workerTrainingIntervalMonths),
+            workerMonths: months(client.trainingFirstMonth!, client.workerTrainingIntervalMonths),
+          }),
       dayFrom: client.trainingDayFrom!,
       dayTo: client.trainingDayTo!,
     },

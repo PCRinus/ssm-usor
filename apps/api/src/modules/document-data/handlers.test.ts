@@ -56,7 +56,9 @@ const documentDetailsRow = {
   legal_representative_role: 'Administrator',
   periodic_training_minutes: 120,
   administrative_training_interval_months: 6,
+  administrative_training_not_applicable: false,
   worker_training_interval_months: 3,
+  worker_training_not_applicable: false,
   training_first_month: 2,
   training_day_from: 2,
   training_day_to: 7,
@@ -292,7 +294,9 @@ describe('/clients/{clientId}/document-details', () => {
         legalRepresentativeRole: 'Administrator',
         periodicTrainingMinutes: 120,
         administrativeTrainingIntervalMonths: 6,
+        administrativeTrainingNotApplicable: false,
         workerTrainingIntervalMonths: 3,
+        workerTrainingNotApplicable: false,
         trainingFirstMonth: 2,
         trainingDayFrom: 2,
         trainingDayTo: 7,
@@ -313,7 +317,9 @@ describe('/clients/{clientId}/document-details', () => {
       legal_representative_role: 'Administrator',
       periodic_training_minutes: 120,
       administrative_training_interval_months: null,
+      administrative_training_not_applicable: false,
       worker_training_interval_months: null,
+      worker_training_not_applicable: false,
       training_first_month: null,
       training_day_from: null,
       training_day_to: null,
@@ -328,6 +334,21 @@ describe('/clients/{clientId}/document-details', () => {
     const interval = await request(path, 'PUT', { workerTrainingIntervalMonths: 12 });
     expect(interval.status).toBe(400);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it('saves an explicit category exclusion without inventing an interval', async () => {
+    mockUpstream({ clients: () => Response.json(documentDetailsRow) });
+    const response = await request(path, 'PUT', {
+      administrativeTrainingIntervalMonths: 6,
+      workerTrainingNotApplicable: true,
+    });
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/clients')).toMatchObject({
+      administrative_training_interval_months: 6,
+      administrative_training_not_applicable: false,
+      worker_training_interval_months: null,
+      worker_training_not_applicable: true,
+    });
   });
 
   it('answers 404 for a client of another organization', async () => {

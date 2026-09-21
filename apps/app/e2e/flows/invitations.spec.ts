@@ -77,7 +77,7 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await page.reload();
   const row = page.getByTestId('member-row').filter({ hasText: 'Ion Invitat' });
   await expect(row).toContainText('Specialist');
-  await expect(page.getByTestId('invitations-empty')).toBeVisible();
+  await expect(page.getByTestId('invitations-card')).toHaveCount(0);
   await openMemberMenu(page, row);
   await page.getByTestId('member-switch-role').click();
   await expect(row).toContainText('Administrator');

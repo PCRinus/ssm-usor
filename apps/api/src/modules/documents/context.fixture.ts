@@ -16,7 +16,9 @@ export const facts: DocumentFacts = {
     representativeRole: 'Administrator',
     periodicTrainingMinutes: 120,
     administrativeTrainingIntervalMonths: 6,
+    administrativeTrainingNotApplicable: false,
     workerTrainingIntervalMonths: 3,
+    workerTrainingNotApplicable: false,
     trainingFirstMonth: 2,
     trainingDayFrom: 2,
     trainingDayTo: 7,
@@ -29,4 +31,5 @@ export const facts: DocumentFacts = {
     },
     { fullName: 'Ioana PETRE', jobTitle: 'Șef de echipă', roles: ['first_aid', 'imminent_danger'] },
   ],
+  staffCategoriesInUse: ['technical_administrative', 'execution'],
 };

@@ -55,7 +55,9 @@ const clientRow = {
   legal_representative_role: 'Administrator',
   periodic_training_minutes: 120,
   administrative_training_interval_months: 6,
+  administrative_training_not_applicable: false,
   worker_training_interval_months: 3,
+  worker_training_not_applicable: false,
   training_first_month: 2,
   training_day_from: 2,
   training_day_to: 7,
@@ -128,6 +130,7 @@ type Upstream =
   | 'clients'
   | 'members'
   | 'persons'
+  | 'employees'
   | 'documents'
   | 'generations'
   | 'templates'
@@ -169,6 +172,11 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.members?.() ?? Response.json([memberRow]);
       case '/rest/v1/client_responsible_persons':
         return handlers.persons?.() ?? Response.json([personRow]);
+      case '/rest/v1/employees':
+        return (
+          handlers.employees?.(init, url) ??
+          new Response(null, { headers: { 'content-range': '0-0/1' } })
+        );
       case '/rest/v1/client_documents':
         return (
           handlers.documents?.(init, url) ??
@@ -273,6 +281,47 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
         'responsible.risk_evaluation_team',
         'responsible.imminent_danger',
       ],
+    });
+  });
+
+  it('allows a confirmed single category with no employees in the excluded category', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json({
+          ...clientRow,
+          worker_training_interval_months: null,
+          worker_training_not_applicable: true,
+        }),
+      employees: (_init, url) =>
+        new Response(null, {
+          headers: {
+            'content-range':
+              url?.searchParams.get('job_positions.staff_category') === 'eq.execution'
+                ? '*/0'
+                : '0-0/1',
+          },
+        }),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
+      ready: true,
+      missing: [],
+    });
+  });
+
+  it('blocks an excluded category when an active employee holds it', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json({
+          ...clientRow,
+          worker_training_interval_months: null,
+          worker_training_not_applicable: true,
+        }),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
+      ready: false,
+      missing: ['client.trainingSchedule'],
     });
   });
 
@@ -427,6 +476,53 @@ describe('POST /clients/{clientId}/documents/generate', () => {
 
   it('refuses while data is missing, with a reason the app can act on', async () => {
     mockUpstream({ persons: () => Response.json([]) });
+    const response = await generate();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'missing_document_data'
+    );
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+  });
+
+  it('generates for a client with only administrative personnel', async () => {
+    let listed = 0;
+    mockUpstream({
+      clients: () =>
+        Response.json({
+          ...clientRow,
+          worker_training_interval_months: null,
+          worker_training_not_applicable: true,
+        }),
+      employees: (_init, url) =>
+        new Response(null, {
+          headers: {
+            'content-range':
+              url?.searchParams.get('job_positions.staff_category') === 'eq.execution'
+                ? '*/0'
+                : '0-0/1',
+          },
+        }),
+      documents: (init) => {
+        if (init?.method === 'POST') return Response.json({ id: documentId });
+        listed += 1;
+        return Response.json(listed === 1 ? [] : [documentRow]);
+      },
+      templates: () => Response.json([templateRows[0]]),
+    });
+    const response = await generate();
+    expect(response.status).toBe(201);
+    expect(generateDocumentsResponseSchema.parse(await response.json()).created).toHaveLength(1);
+  });
+
+  it('refuses generation after an employee moves into an excluded category', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json({
+          ...clientRow,
+          worker_training_interval_months: null,
+          worker_training_not_applicable: true,
+        }),
+    });
     const response = await generate();
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(

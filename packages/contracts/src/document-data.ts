@@ -133,7 +133,9 @@ export const clientDocumentDetailsSchema = z.object({
   periodicTrainingMinutes: trainingScheduleFields.periodicTrainingMinutes.nullable(),
   administrativeTrainingIntervalMonths:
     trainingScheduleFields.administrativeTrainingIntervalMonths.nullable(),
+  administrativeTrainingNotApplicable: z.boolean(),
   workerTrainingIntervalMonths: trainingScheduleFields.workerTrainingIntervalMonths.nullable(),
+  workerTrainingNotApplicable: z.boolean(),
   trainingFirstMonth: trainingScheduleFields.trainingFirstMonth.nullable(),
   trainingDayFrom: trainingScheduleFields.trainingDayFrom.nullable(),
   trainingDayTo: trainingScheduleFields.trainingDayTo.nullable(),
@@ -155,7 +157,9 @@ export const updateClientDocumentDetailsRequestSchema = z
     periodicTrainingMinutes: trainingScheduleFields.periodicTrainingMinutes.nullish(),
     administrativeTrainingIntervalMonths:
       trainingScheduleFields.administrativeTrainingIntervalMonths.nullish(),
+    administrativeTrainingNotApplicable: z.boolean().optional(),
     workerTrainingIntervalMonths: trainingScheduleFields.workerTrainingIntervalMonths.nullish(),
+    workerTrainingNotApplicable: z.boolean().optional(),
     trainingFirstMonth: trainingScheduleFields.trainingFirstMonth.nullish(),
     trainingDayFrom: trainingScheduleFields.trainingDayFrom.nullish(),
     trainingDayTo: trainingScheduleFields.trainingDayTo.nullish(),
@@ -166,6 +170,22 @@ export const updateClientDocumentDetailsRequestSchema = z
       value.trainingDayTo == null ||
       value.trainingDayFrom <= value.trainingDayTo,
     { path: ['trainingDayTo'], message: 'The last day cannot precede the first.' }
+  )
+  .refine(
+    (value) =>
+      !value.administrativeTrainingNotApplicable ||
+      value.administrativeTrainingIntervalMonths == null,
+    {
+      path: ['administrativeTrainingIntervalMonths'],
+      message: 'An excluded category cannot have a training interval.',
+    }
+  )
+  .refine(
+    (value) => !value.workerTrainingNotApplicable || value.workerTrainingIntervalMonths == null,
+    {
+      path: ['workerTrainingIntervalMonths'],
+      message: 'An excluded category cannot have a training interval.',
+    }
   );
 
 export type UpdateClientDocumentDetailsRequest = z.infer<

@@ -305,7 +305,10 @@ The API builds the data once per generation and merges every template with it
   the member who generates), `client.representativeName`, `client.representativeRole`,
   `client.trainingSchedule`, and `responsible.<role>` for every role nobody holds.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
-  it is empty, because a data field is never left blank.
+  it is empty, because a data field is never left blank. The training schedule requires a
+  decision for both staff categories, at least one interval, and an interval for every category
+  held by a current employee. An explicit “Nu se aplică” excludes a category with no current
+  employees; an undecided blank does not count as an exclusion.
 - `buildDocumentContext(facts)` turns the stored facts into the names of the table below:
   dates as `19.01.2026`, people under the roles they hold in the order they were designated,
   the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`),
@@ -339,6 +342,11 @@ same test.
 | `risk_assessment`               | The risk assessment, about 75 pages, portrait and landscape. Content pending | `specialist`                                                                                                                                                     |
 | `prevention_plan`               | The prevention and protection plan, A4 landscape. Content pending            | None yet                                                                                                                                                         |
 | `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                      | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
+
+For `decision_training`, `training` has `periodicDuration`, `intervalPhrase`, `dayFrom`, and
+`dayTo`. The `administrative[]` and `worker[]` arrays contain one item when applicable and are
+empty otherwise, controlling which interval paragraphs print. Their matching frequency and
+months values exist only for applicable categories.
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
 and `representativeName`. A person in a list is `name` and `jobTitle`. Every decision ends with

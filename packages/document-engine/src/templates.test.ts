@@ -382,6 +382,9 @@ describe('decision_training', () => {
     workplaceManagers: people,
     training: {
       periodicDuration: '2 ore',
+      intervalPhrase: 'următoarele intervale de timp',
+      administrative: [{}],
+      worker: [{}],
       administrativeFrequency: 'SEMESTRIAL',
       administrativeMonths: 'Februarie, August',
       workerFrequency: 'TRIMESTRIAL',
@@ -419,6 +422,41 @@ describe('decision_training', () => {
   it('carries none of the colours the provider marked text with', () => {
     const xml = new PizZip(template).file('word/document.xml')!.asText();
     expect(xml).not.toMatch(/w:color w:val="(FF0000|92D050)"/);
+  });
+
+  it('prints only the confirmed category paragraphs', () => {
+    const administrativeOnly = documentText(
+      renderDocument(template, {
+        ...data,
+        training: {
+          ...data.training,
+          intervalPhrase: 'următorul interval de timp',
+          worker: [],
+          workerFrequency: undefined,
+          workerMonths: undefined,
+        },
+      })
+    );
+    expect(administrativeOnly).toContain('va fi instruit SEMESTRIAL');
+    expect(administrativeOnly).toContain('următorul interval de timp');
+    expect(administrativeOnly).not.toContain('personalul de execuție, va fi instruit');
+
+    const workerOnly = documentText(
+      renderDocument(template, {
+        ...data,
+        training: {
+          ...data.training,
+          intervalPhrase: 'următorul interval de timp',
+          administrative: [],
+          administrativeFrequency: undefined,
+          administrativeMonths: undefined,
+        },
+      })
+    );
+    expect(workerOnly).toContain('va fi instruit TRIMESTRIAL');
+    expect(workerOnly).not.toContain(
+      'personalul tehnic-administrativ și șefii de locuri de muncă, va fi instruit'
+    );
   });
 
   it('refuses to render without the training schedule', () => {

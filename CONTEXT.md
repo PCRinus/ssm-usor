@@ -30,6 +30,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Staff category** (_categorie de personal_): one of two kinds of job position, each with its own interval of periodic training: _tehnic-administrativ și conducători de locuri de muncă_, or _personal de execuție_.
 
+**Training schedule** (_program de instruire_): the client's periodic training plan. For each staff category, it records an interval or the specialist's explicit decision that the category does not apply; a blank choice remains undecided.
+
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 
 **Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Avoid: location, site, and "loc de muncă".

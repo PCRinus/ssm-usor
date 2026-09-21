@@ -248,6 +248,7 @@ export type Database = {
         Row: {
           address_line: string | null;
           administrative_training_interval_months: number | null;
+          administrative_training_not_applicable: boolean;
           archived_at: string | null;
           caen_code: string | null;
           contact_email: string | null;
@@ -275,10 +276,12 @@ export type Database = {
           updated_at: string;
           vat_payer: boolean;
           worker_training_interval_months: number | null;
+          worker_training_not_applicable: boolean;
         };
         Insert: {
           address_line?: string | null;
           administrative_training_interval_months?: number | null;
+          administrative_training_not_applicable?: boolean;
           archived_at?: string | null;
           caen_code?: string | null;
           contact_email?: string | null;
@@ -306,10 +309,12 @@ export type Database = {
           updated_at?: string;
           vat_payer?: boolean;
           worker_training_interval_months?: number | null;
+          worker_training_not_applicable?: boolean;
         };
         Update: {
           address_line?: string | null;
           administrative_training_interval_months?: number | null;
+          administrative_training_not_applicable?: boolean;
           archived_at?: string | null;
           caen_code?: string | null;
           contact_email?: string | null;
@@ -337,6 +342,7 @@ export type Database = {
           updated_at?: string;
           vat_payer?: boolean;
           worker_training_interval_months?: number | null;
+          worker_training_not_applicable?: boolean;
         };
         Relationships: [
           {

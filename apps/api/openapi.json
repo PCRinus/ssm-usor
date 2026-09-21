@@ -1863,11 +1863,17 @@
                 "minimum": 1,
                 "maximum": 12
               },
+              "administrativeTrainingNotApplicable": {
+                "type": "boolean"
+              },
               "workerTrainingIntervalMonths": {
                 "type": "integer",
                 "nullable": true,
                 "minimum": 1,
                 "maximum": 6
+              },
+              "workerTrainingNotApplicable": {
+                "type": "boolean"
               },
               "trainingFirstMonth": {
                 "type": "integer",
@@ -1893,7 +1899,9 @@
               "legalRepresentativeRole",
               "periodicTrainingMinutes",
               "administrativeTrainingIntervalMonths",
+              "administrativeTrainingNotApplicable",
               "workerTrainingIntervalMonths",
+              "workerTrainingNotApplicable",
               "trainingFirstMonth",
               "trainingDayFrom",
               "trainingDayTo"
@@ -1927,11 +1935,17 @@
             "minimum": 1,
             "maximum": 12
           },
+          "administrativeTrainingNotApplicable": {
+            "type": "boolean"
+          },
           "workerTrainingIntervalMonths": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
             "maximum": 6
+          },
+          "workerTrainingNotApplicable": {
+            "type": "boolean"
           },
           "trainingFirstMonth": {
             "type": "integer",
@@ -6405,7 +6419,7 @@
       "put": {
         "operationId": "updateClientDocumentDetails",
         "summary": "Replace the representative's role and the training schedule of a client",
-        "description": "A field left out or null is cleared. The intervals are months between two periodic trainings; the first month and the days say when in the year they fall.",
+        "description": "A field left out or null is cleared. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. The first month and the days say when in the year trainings fall.",
         "security": [
           {
             "bearerAuth": []

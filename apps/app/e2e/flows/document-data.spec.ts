@@ -116,10 +116,14 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByTestId('legal-representative-save').click();
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
 
-  await page.getByTestId('details-training-duration').selectOption('90');
-  await page.getByTestId('details-first-month').selectOption('2');
-  await page.getByTestId('details-administrative-interval').selectOption('6');
-  await page.getByTestId('details-worker-interval').selectOption('3');
+  await page.getByTestId('details-training-duration').click();
+  await page.getByRole('option', { name: '1 oră și 30 de minute' }).click();
+  await page.getByTestId('details-first-month').click();
+  await page.getByRole('option', { name: 'Februarie' }).click();
+  await page.getByTestId('details-administrative-interval').click();
+  await page.getByRole('option', { name: 'Semestrial (la 6 luni)' }).click();
+  await page.getByTestId('details-worker-interval').click();
+  await page.getByRole('option', { name: 'Trimestrial (la 3 luni)' }).click();
   // The preview follows the selects while typing, before anything is saved.
   await expect(page.getByText('Instruiri în: Februarie, Mai, August, Noiembrie.')).toBeVisible();
   await page.getByTestId('details-day-from').fill('2');
@@ -137,7 +141,7 @@ test("a specialist sets a client's representative role and training schedule", a
   );
   await expect(page.getByTestId('training-program-session')).toContainText('1 oră și 30 de minute');
   await page.getByTestId('training-program-edit').click();
-  await expect(page.getByTestId('details-worker-interval')).toHaveValue('3');
+  await expect(page.getByTestId('details-worker-interval')).toHaveText('Trimestrial (la 3 luni)');
 });
 
 test('a client gets a registered office and a point of work, one of which is then archived', async ({

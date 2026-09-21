@@ -39,6 +39,43 @@ describe('what is missing', () => {
       'Missing document data: specialist.name, specialist.professionalTitle'
     );
   });
+
+  it('requires an explicit decision for both categories and at least one interval', () => {
+    const withChoices = (
+      administrative: number | null,
+      worker: number | null,
+      administrativeExcluded: boolean,
+      workerExcluded: boolean
+    ) =>
+      missingDocumentData({
+        ...facts,
+        staffCategoriesInUse: [],
+        client: {
+          ...facts.client,
+          administrativeTrainingIntervalMonths: administrative,
+          workerTrainingIntervalMonths: worker,
+          administrativeTrainingNotApplicable: administrativeExcluded,
+          workerTrainingNotApplicable: workerExcluded,
+        },
+      });
+    expect(withChoices(6, null, false, true)).toEqual([]);
+    expect(withChoices(null, 3, true, false)).toEqual([]);
+    expect(withChoices(6, null, false, false)).toContain('client.trainingSchedule');
+    expect(withChoices(null, null, true, true)).toContain('client.trainingSchedule');
+  });
+
+  it('blocks a category with active employees from being excluded', () => {
+    expect(
+      missingDocumentData({
+        ...facts,
+        client: {
+          ...facts.client,
+          workerTrainingIntervalMonths: null,
+          workerTrainingNotApplicable: true,
+        },
+      })
+    ).toContain('client.trainingSchedule');
+  });
 });
 
 describe('the merge context', () => {
@@ -70,6 +107,9 @@ describe('the merge context', () => {
   it('words the training schedule', () => {
     expect(context.training).toEqual({
       periodicDuration: '2 ore',
+      intervalPhrase: 'următoarele intervale de timp',
+      administrative: [{}],
+      worker: [{}],
       administrativeFrequency: 'SEMESTRIAL',
       administrativeMonths: 'februarie, august',
       workerFrequency: 'TRIMESTRIAL',
@@ -96,6 +136,33 @@ describe('the merge context', () => {
     expect(other.training.administrativeMonths).toBe('septembrie');
     expect(other.training.workerFrequency).toBe('LA 2 LUNI');
     expect(other.training.workerMonths).toBe('septembrie, noiembrie');
+  });
+
+  it('builds only the applicable category context', () => {
+    const administrativeOnly = buildDocumentContext({
+      ...facts,
+      staffCategoriesInUse: ['technical_administrative'],
+      client: {
+        ...facts.client,
+        workerTrainingIntervalMonths: null,
+        workerTrainingNotApplicable: true,
+      },
+    });
+    expect(administrativeOnly.training.worker).toEqual([]);
+    expect(administrativeOnly.training.intervalPhrase).toBe('următorul interval de timp');
+    expect(administrativeOnly.training).not.toHaveProperty('workerFrequency');
+
+    const workerOnly = buildDocumentContext({
+      ...facts,
+      staffCategoriesInUse: ['execution'],
+      client: {
+        ...facts.client,
+        administrativeTrainingIntervalMonths: null,
+        administrativeTrainingNotApplicable: true,
+      },
+    });
+    expect(workerOnly.training.administrative).toEqual([]);
+    expect(workerOnly.training).not.toHaveProperty('administrativeFrequency');
   });
 
   it('numbers the decisions from the first number, and only the decisions', () => {
