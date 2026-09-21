@@ -72,6 +72,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                      |
 | `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                             |
 | `POST /clients/{clientId}/service-contract/generate`                   | Owner                                 | The same, with the contract generated or generated again                                                                  |
+| `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                           |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
 | `GET /organization/legal-details`                                      | Verified user with a membership       | `{ "legalDetails": { … } }`, what documents print about the provider                                                      |
@@ -181,7 +182,17 @@ editor, issuing (which warns about `DE COMPLETAT`, where the prices go), a draft
 issued file, deleting a draft, downloading. `GET /clients?stage=lead` adds
 `serviceContractState` (`none`, `draft`, `issued`) to each lead, from an embedded read that
 names its relationships, because `clients`, `client_documents` and `document_revisions` are
-each linked twice, by id and by id with organization; it is null in every other response. `GET /clients/{clientId}/documents` lists the documentation set only, and
+each linked twice, by id and by id with organization; it is null in every other response.
+
+`POST …/service-contract/send` takes `to` and an optional `note`. Issuing sends nothing: an
+owner sends, knowingly. The PDF of the issued revision is read from Storage and handed to the
+mail Worker as Base64 (`sendServiceContract`), in the owner's name, with replies and a copy
+going to the owner's own address; then the send is recorded. A failed hand-over answers `503`
+and records nothing. `409` with `contract_not_issued` when nothing is issued, and with
+`contract_pdf_missing` for a revision issued where no converter was configured: the Word file
+is not sent in its place, because it invites the recipient to change clauses. The response's
+`lastSend` is the last send of the revision in force, so issuing a new revision clears it, and
+`serviceContractState` of a lead gains `sent` on the same rule. `GET /clients/{clientId}/documents` lists the documentation set only, and
 `POST /documents/{documentId}/regenerate` answers `409` for a document that is not part of it.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which

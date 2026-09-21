@@ -974,6 +974,64 @@ export type Database = {
         };
         Relationships: [];
       };
+      service_contract_sends: {
+        Row: {
+          document_id: string;
+          id: string;
+          note: string | null;
+          organization_id: string;
+          provider_message_id: string | null;
+          revision_id: string;
+          sent_at: string;
+          sent_by: string | null;
+          sent_to: string;
+        };
+        Insert: {
+          document_id: string;
+          id?: string;
+          note?: string | null;
+          organization_id: string;
+          provider_message_id?: string | null;
+          revision_id: string;
+          sent_at?: string;
+          sent_by?: string | null;
+          sent_to: string;
+        };
+        Update: {
+          document_id?: string;
+          id?: string;
+          note?: string | null;
+          organization_id?: string;
+          provider_message_id?: string | null;
+          revision_id?: string;
+          sent_at?: string;
+          sent_by?: string | null;
+          sent_to?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_contract_sends_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_documents';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contract_sends_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_contract_sends_revision_id_fkey';
+            columns: ['revision_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       service_contracts: {
         Row: {
           client_id: string;

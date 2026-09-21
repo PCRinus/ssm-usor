@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  addressOf,
   addSpecialist,
   cleanUp,
   completeContractDetails,
@@ -8,6 +9,7 @@ import {
   createClientCompany,
   createLead,
   createOrganization,
+  emailsTo,
   signIn,
   signOut,
 } from './support';
@@ -120,6 +122,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await addSpecialist(organizationId, specialist.id);
   await completeContractDetails(organizationId);
   const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
+  const contact = addressOf('contract-contact');
 
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -183,6 +186,27 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
 
   await page.goto('/leads');
   await expect(page.getByTestId('leads-contract')).toHaveText('Emis');
+
+  // Sending needs the PDF, which is made where a converter is configured (CI, or a local
+  // Gotenberg with GOTENBERG_URL set).
+  if (process.env.GOTENBERG_URL) {
+    await page.getByTestId('leads-open').click();
+    await page.getByTestId('contract-send').click();
+    await expect(page.getByTestId('send-contract-to')).toHaveValue('');
+    await page.getByTestId('send-contract-to').fill(contact);
+    await page.getByTestId('send-contract-note').fill('Așa cum am discutat.');
+    await page.getByTestId('send-contract-confirm').click();
+    await expect(page.getByTestId('contract-last-send')).toContainText(
+      `Revizia 1 a fost trimisă la ${contact}`
+    );
+    const [email] = await emailsTo(contact, 'service-contract');
+    // The owner is copied, and what is attached is a PDF: "%PDF" in Base64.
+    expect(email!.url).toContain(`cc=${owner.email}`);
+    expect(email!.url).toContain('Contract nr. 51 din');
+    expect(email!.url).toContain('JVBERi0');
+    await page.goto('/leads');
+    await expect(page.getByTestId('leads-contract')).toHaveText('Trimis');
+  }
 
   await page.getByTestId('leads-open').click();
   await page.getByTestId('lead-promote').click();

@@ -7,6 +7,8 @@ import {
   passwordChangedEmailSchema,
   type PasswordResetEmail,
   passwordResetEmailSchema,
+  type ServiceContractEmail,
+  serviceContractEmailSchema,
   type SignupConfirmationEmail,
   signupConfirmationEmailSchema,
   type WaitlistConfirmationEmail,
@@ -19,6 +21,7 @@ import OrganizationInvitation, {
 } from './emails/organization-invitation';
 import PasswordChanged, { subject as passwordChangedSubject } from './emails/password-changed';
 import PasswordReset, { subject as passwordResetSubject } from './emails/password-reset';
+import ServiceContract, { subject as serviceContractSubject } from './emails/service-contract';
 import SignupConfirmation, {
   subject as signupConfirmationSubject,
 } from './emails/signup-confirmation';
@@ -74,6 +77,18 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: signupConfirmationSubject,
       body: <SignupConfirmation {...confirmation} />,
+    });
+  }
+
+  async sendServiceContract(input: ServiceContractEmail): Promise<MailReceipt> {
+    const { to, senderEmail, attachment, ...contract } = serviceContractEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: serviceContractSubject(contract.organizationName),
+      body: <ServiceContract {...contract} />,
+      sender: { name: contract.senderName, email: senderEmail },
+      attachments: [attachment],
     });
   }
 }

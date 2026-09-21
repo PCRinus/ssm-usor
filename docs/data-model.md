@@ -328,6 +328,16 @@ because a policy hides rows and not columns and the team reads a client's row, a
 its own because an amendment later is a second row; for now a client has one. Prices are not
 stored: they live in the file, where they are binding. The archived-client trigger applies.
 
+### Sends of a service contract
+
+`service_contract_sends` keeps each time an owner emailed an issued contract: `revision_id`,
+`sent_to`, the owner's `note`, the provider's message id, `sent_by`, `sent_at`. Rows are
+written once and never changed (no update or delete grant). Owners insert, and only for an
+issued revision of a document they can reach; they read through `can_access_document`. "Sent"
+is about the revision in force: a revision issued after the last send has none. The table
+has one foreign key to `document_revisions`, not also a composite one, because PostgREST
+embeds through it and two would make the relationship ambiguous.
+
 ## Profiles
 
 `profiles` names a user: `full_name`, plus `terms_version` and `terms_accepted_at` for people

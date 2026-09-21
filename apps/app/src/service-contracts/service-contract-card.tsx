@@ -17,7 +17,7 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { Download, FileText, Sparkles } from 'lucide-react';
+import { Download, FileText, Send, Sparkles } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -40,6 +40,7 @@ import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { todayIso } from '../employees/employee-format';
 import { formatRoDate } from '../lib/dates';
+import { SendContractDialog } from './send-contract-dialog';
 import {
   groupMissing,
   missingLabels,
@@ -158,6 +159,7 @@ function ServiceContractBody({
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
   const [confirming, setConfirming] = useState<Confirming>(null);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const form = useForm<ServiceContractFormValues>({
     resolver: zodResolver(serviceContractFormSchema),
@@ -448,6 +450,11 @@ function ServiceContractBody({
               {document.issued && (
                 <Badge data-testid="contract-issued">Emis · rev. {document.issued.revision}</Badge>
               )}
+              {saved.lastSend && (
+                <Badge variant="outline" data-testid="contract-sent">
+                  Trimis
+                </Badge>
+              )}
               {document.draft && (
                 <Badge variant="secondary" data-testid="contract-draft">
                   Ciornă · rev. {document.draft.revision}
@@ -493,6 +500,23 @@ function ServiceContractBody({
                 <Download aria-hidden="true" />
                 Word
               </Button>
+              {!readOnly && document.issued && (
+                <Button
+                  variant={document.draft ? 'outline' : 'default'}
+                  size="sm"
+                  data-testid="contract-send"
+                  disabled={busy || !document.issued.hasPdf}
+                  title={
+                    document.issued.hasPdf
+                      ? undefined
+                      : 'Contractul emis nu are PDF. Descarcă-l și trimite-l din emailul tău.'
+                  }
+                  onClick={() => setSending(true)}
+                >
+                  <Send aria-hidden="true" />
+                  {saved.lastSend ? 'Trimite din nou…' : 'Trimite prin email…'}
+                </Button>
+              )}
               {!readOnly && document.draft && (
                 <>
                   <Button
@@ -546,6 +570,24 @@ function ServiceContractBody({
           </Button>
         )}
       </div>
+
+      {saved.lastSend && (
+        <p data-testid="contract-last-send" className="-mt-2 text-sm text-muted-foreground">
+          Revizia {saved.lastSend.revision} a fost trimisă la {saved.lastSend.sentTo} pe{' '}
+          {formatRoDate(saved.lastSend.sentAt.slice(0, 10))}.
+        </p>
+      )}
+      {document?.issued && (
+        <SendContractDialog
+          clientId={client.id}
+          clientName={client.legalName}
+          contactEmail={client.contactEmail}
+          revision={document.issued.revision}
+          open={sending}
+          onClose={() => setSending(false)}
+          onSent={refresh}
+        />
+      )}
 
       <Dialog
         open={confirming !== null}

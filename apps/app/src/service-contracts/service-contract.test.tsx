@@ -67,6 +67,7 @@ const state = (overrides: Record<string, unknown> = {}) => ({
   clientRepresentative: { name: 'Adnana POPA', role: 'Administrator' },
   readiness: { ready: true, missing: [] as string[] },
   document: null as ReturnType<typeof contractDocument> | null,
+  lastSend: null as { sentTo: string; sentAt: string; revision: number } | null,
   draftOutdated: false,
   ...overrides,
 });
@@ -76,7 +77,7 @@ type Route = (init: RequestInit | undefined) => Response;
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
-  routes: Partial<Record<'get' | 'save' | 'generate' | 'issue', Route>> & {
+  routes: Partial<Record<'get' | 'save' | 'generate' | 'issue' | 'send', Route>> & {
     role?: 'owner' | 'specialist';
     client?: Record<string, unknown>;
   } = {}
@@ -100,6 +101,9 @@ function mockApi(
     }
     if (pathname === `/clients/${leadId}/service-contract/generate`) {
       return routes.generate?.(init) ?? Response.json(state({ document: contractDocument() }));
+    }
+    if (pathname === `/clients/${leadId}/service-contract/send`) {
+      return routes.send?.(init) ?? Response.json(state());
     }
     if (pathname === `/clients/${leadId}/service-contract`) {
       return method === 'PUT'
@@ -287,6 +291,88 @@ describe('the service contract of a lead', () => {
     expect((await screen.findByTestId('contract-contractNumber-error')).textContent).toContain(
       'același an'
     );
+  });
+});
+
+describe('sending the contract', () => {
+  const issued = (hasPdf = true) =>
+    contractDocument({
+      draft: null,
+      issued: revision({ status: 'issued', issuedAt: '2026-09-21T11:00:00+00:00', hasPdf }),
+    });
+
+  it('goes to the contact, with a note, and then says when and where it went', async () => {
+    const sent = state({
+      document: issued(),
+      lastSend: {
+        sentTo: 'andrei@velocita.example',
+        sentAt: '2026-09-21T12:00:00+00:00',
+        revision: 1,
+      },
+    });
+    mockApi({
+      client: { ...lead, contactEmail: 'andrei@velocita.example' },
+      get: () => Response.json(state({ document: issued() })),
+      send: (init) => {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          to: 'andrei@velocita.example',
+          note: 'Cum am vorbit.',
+        });
+        return Response.json(sent);
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('contract-send'));
+    const dialog = await screen.findByTestId('send-contract-dialog');
+    expect(dialog.textContent).toContain('în numele tău');
+    expect((within(dialog).getByTestId('send-contract-to') as HTMLInputElement).value).toBe(
+      'andrei@velocita.example'
+    );
+    await user.type(within(dialog).getByTestId('send-contract-note'), 'Cum am vorbit.');
+    await user.click(within(dialog).getByTestId('send-contract-confirm'));
+
+    expect(
+      await screen.findByText('Contractul a fost trimis la andrei@velocita.example.')
+    ).toBeTruthy();
+    expect((await screen.findByTestId('contract-last-send')).textContent).toContain(
+      'Revizia 1 a fost trimisă la andrei@velocita.example pe 21.09.2026.'
+    );
+    expect(screen.getByTestId('contract-sent')).toBeTruthy();
+    expect(screen.getByTestId('contract-send').textContent).toContain('Trimite din nou');
+  });
+
+  it('asks for an address when the lead has no contact, and says when the email did not leave', async () => {
+    mockApi({
+      get: () => Response.json(state({ document: issued() })),
+      send: () => Response.json({ error: 'service_unavailable', message: 'down' }, { status: 503 }),
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('contract-send'));
+    await user.click(await screen.findByTestId('send-contract-confirm'));
+    expect((await screen.findByTestId('send-to-error')).textContent).toContain('Introdu adresa');
+    await user.type(screen.getByTestId('send-contract-to'), 'andrei@velocita.example');
+    await user.click(screen.getByTestId('send-contract-confirm'));
+    expect((await screen.findByTestId('send-contract-error')).textContent).toContain(
+      'nu a putut fi trimis acum'
+    );
+    expect(screen.getByTestId('send-contract-dialog')).toBeTruthy();
+  });
+
+  it('is not offered for a draft, and says why for an issued contract without a PDF', async () => {
+    mockApi({ get: () => Response.json(state({ document: contractDocument() })) });
+    mount();
+    await screen.findByTestId('contract-draft');
+    expect(screen.queryByTestId('contract-send')).toBeNull();
+  });
+
+  it('says why an issued contract without a PDF is not sent from here', async () => {
+    mockApi({ get: () => Response.json(state({ document: issued(false) })) });
+    mount();
+    const button = await screen.findByTestId('contract-send');
+    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('title')).toContain('nu are PDF');
   });
 });
 

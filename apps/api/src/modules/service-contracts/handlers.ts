@@ -23,6 +23,7 @@ import type {
   generateServiceContractRoute,
   getServiceContractRoute,
   saveServiceContractRoute,
+  sendServiceContractRoute,
 } from './routes';
 
 // The register usually starts again each year, so the year of the contract decides.
@@ -71,8 +72,32 @@ async function respond(db: DataClient, clientId: string): Promise<ServiceContrac
     },
     readiness: { ready: missing.length === 0, missing },
     document,
+    lastSend: document?.issued ? await lastSendOf(db, document.issued.id) : null,
     draftOutdated,
   };
+}
+
+async function lastSendOf(db: DataClient, revisionId: string) {
+  const { data, error } = await db
+    .from('service_contract_sends')
+    .select('sent_to, sent_at, document_revisions(revision)')
+    .eq('revision_id', revisionId)
+    .order('sent_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'last send of the service contract');
+  return data
+    ? { sentTo: data.sent_to, sentAt: data.sent_at, revision: data.document_revisions.revision }
+    : null;
+}
+
+// Workers have no Buffer; `btoa` takes a binary string, built in chunks that fit the stack.
+function toBase64(bytes: Uint8Array) {
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
 }
 
 export const getServiceContract: RouteHandler<typeof getServiceContractRoute, ApiEnv> = async (
@@ -190,5 +215,84 @@ export const generateServiceContract: RouteHandler<
     },
     buildServiceContractContext({ ...facts, contract: facts.contract })
   );
+  return c.json(await respond(db, clientId), 200);
+};
+
+export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const { to, note } = c.req.valid('json');
+  const mail = c.env.MAIL;
+  if (!mail) throw new ApiError('service_unavailable');
+  const db = createDataClient(c);
+  const user = c.get('user');
+  // Replies and the copy go to the owner, so an account without an address cannot send.
+  if (!user.email) throw new ApiError('conflict', 'Your account has no email address.');
+
+  const facts = await loadServiceContractFacts(db, clientId);
+  if (facts.client.archived_at) throw archivedClientError();
+  const { document } = await readOtherDocument(db, clientId, serviceContractTypeKey);
+  if (!facts.contract || !document?.issued) {
+    throw new ApiError(
+      'conflict',
+      'Only an issued contract is sent.',
+      undefined,
+      serviceContractConflictReasons.notIssued
+    );
+  }
+  const [revision, profile, organization] = await Promise.all([
+    db.from('document_revisions').select('pdf_path').eq('id', document.issued.id).single(),
+    db.from('profiles').select('full_name').eq('user_id', user.id).maybeSingle(),
+    db.from('organizations').select('name').single(),
+  ]);
+  if (revision.error) throw fromDatabaseError(revision.error, 'issued contract revision');
+  if (profile.error) throw fromDatabaseError(profile.error, 'profile of the sender');
+  if (organization.error) throw fromDatabaseError(organization.error, 'organization of the sender');
+  if (!revision.data.pdf_path) {
+    // Issued where no converter was configured. The Word file is not sent in its place: it
+    // invites the recipient to change clauses.
+    throw new ApiError(
+      'conflict',
+      'The issued contract has no PDF to send.',
+      undefined,
+      serviceContractConflictReasons.pdfMissing
+    );
+  }
+
+  const pdf = await createFileStore(c).readDocument(revision.data.pdf_path);
+  const { contractNumber, contractDate } = facts.contract;
+  let receipt;
+  try {
+    receipt = await mail.sendServiceContract({
+      to,
+      senderEmail: user.email,
+      senderName: profile.data?.full_name ?? null,
+      organizationName: facts.organization.legal_name ?? organization.data.name,
+      clientName: facts.client.legal_name,
+      contractNumber,
+      contractDate,
+      note: note ?? null,
+      attachment: {
+        fileName: `Contract nr. ${contractNumber} din ${contractDate.split('-').reverse().join('.')}.pdf`,
+        contentBase64: toBase64(pdf),
+      },
+    });
+  } catch (cause) {
+    console.error(`The service contract could not be emailed: ${String(cause)}`);
+    throw new ApiError('service_unavailable', 'The email could not be sent.');
+  }
+
+  // After the email: a send that is recorded was handed to the provider.
+  const recorded = await db.from('service_contract_sends').insert({
+    organization_id: c.get('membership').organizationId,
+    document_id: document.id,
+    revision_id: document.issued.id,
+    sent_to: to,
+    note: note ?? null,
+    provider_message_id: receipt.id,
+    sent_by: user.id,
+  });
+  if (recorded.error) throw fromDatabaseError(recorded.error, 'record service contract send');
   return c.json(await respond(db, clientId), 200);
 };

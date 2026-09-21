@@ -59,17 +59,22 @@ type SelectedClientRow = Pick<
 >;
 
 type ContractDocuments = {
-  client_documents?: { type_key: string; document_revisions: { status: string }[] }[];
+  client_documents?: {
+    type_key: string;
+    document_revisions: { status: string; service_contract_sends: { id: string }[] }[];
+  }[];
 };
 
 function serviceContractState({ client_documents: documents }: ContractDocuments) {
   if (!documents) return null;
-  const statuses =
-    documents
-      .find((document) => document.type_key === serviceContractTypeKey)
-      ?.document_revisions.map((revision) => revision.status) ?? [];
+  const revisions =
+    documents.find((document) => document.type_key === serviceContractTypeKey)
+      ?.document_revisions ?? [];
   // A draft beside an issued contract is a correction in progress: the contract is issued.
-  return statuses.includes('issued') ? 'issued' : statuses.includes('draft') ? 'draft' : 'none';
+  // Sent is about the revision in force, so one issued after the last send is not sent yet.
+  const issued = revisions.find((revision) => revision.status === 'issued');
+  if (issued) return issued.service_contract_sends.length > 0 ? 'sent' : 'issued';
+  return revisions.some((revision) => revision.status === 'draft') ? 'draft' : 'none';
 }
 
 export function toClient(row: SelectedClientRow & ContractDocuments): Client {
@@ -125,7 +130,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
       // relationship is named.
       .select(
         stage === 'lead'
-          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status))`
+          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id)))`
           : clientColumns,
         { count: 'exact' }
       )

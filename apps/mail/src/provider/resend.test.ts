@@ -32,6 +32,19 @@ describe('resendProvider', () => {
     });
   });
 
+  it('sends a copy and the attachments in the shape Resend takes', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => Response.json({ id: 'msg_2' }));
+    await resendProvider('re_test', fetcher).send({
+      ...email,
+      cc: 'olga@exemplu.example',
+      attachments: [{ fileName: 'Contract nr. 52.pdf', contentBase64: 'JVBERi0=' }],
+    });
+    expect(JSON.parse(fetcher.mock.calls[0]![1]?.body as string)).toMatchObject({
+      cc: ['olga@exemplu.example'],
+      attachments: [{ filename: 'Contract nr. 52.pdf', content: 'JVBERi0=' }],
+    });
+  });
+
   it('rejects with the status and body when Resend refuses the email', async () => {
     const fetcher = vi.fn<typeof fetch>(
       async () => new Response('{"message":"Invalid from"}', { status: 422 })

@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   saveServiceContractRequestSchema,
+  sendServiceContractRequestSchema,
   serviceContractResponseSchema,
 } from '@ssm-usor/contracts';
 
@@ -83,6 +84,41 @@ export const generateServiceContractRoute = createRoute({
     409: {
       description:
         'Something the contract prints is missing (`missing_contract_data`), no template is registered (`template_missing`), or the client is archived',
+      content: errorContent,
+    },
+  },
+});
+
+export const sendServiceContractRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/service-contract/send',
+  operationId: 'sendServiceContract',
+  summary: "Email the issued contract to the company's contact",
+  description:
+    "Owners only, and never by itself: issuing sends nothing. The PDF of the issued revision is attached; the email goes out in the owner's name, replies go to the owner, who is copied. Each send is recorded with its address and revision, and `lastSend` is about the revision in force. A contract can be sent again.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: {
+    params: clientParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: sendServiceContractRequestSchema.meta({ id: 'SendServiceContractRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    ...responses,
+    400: { description: 'Invalid path or request body', content: errorContent },
+    409: {
+      description:
+        'Nothing is issued (`contract_not_issued`), the issued revision has no PDF (`contract_pdf_missing`), or the client is archived',
+      content: errorContent,
+    },
+    503: {
+      description: 'The email could not be handed to the mail service',
       content: errorContent,
     },
   },

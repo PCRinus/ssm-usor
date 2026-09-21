@@ -54,6 +54,32 @@ export const signupConfirmationEmailSchema = z.object({
 
 export type SignupConfirmationEmail = z.infer<typeof signupConfirmationEmailSchema>;
 
+/**
+ * A service contract sent by an owner to the company's contact (ADR 007). Unlike the other
+ * emails it goes to someone who has no account, in the owner's name: replies go to the owner,
+ * who also gets a copy.
+ */
+export const serviceContractEmailSchema = z.object({
+  to: z.email(),
+  /** The owner who sends it: where replies go, and who is copied. */
+  senderEmail: z.email(),
+  /** Null when the owner has no profile name. */
+  senderName: z.string().trim().min(2).max(120).nullable(),
+  organizationName: z.string().trim().min(2).max(200),
+  clientName: z.string().trim().min(2).max(200),
+  contractNumber: z.int().min(1),
+  contractDate: z.iso.date(),
+  /** A few words of the owner's own, above the standard text. */
+  note: z.string().trim().max(1000).nullable(),
+  /** The issued PDF, in Base64. Resend takes 40 MB an email; a contract is well under one. */
+  attachment: z.object({
+    fileName: z.string().min(5).max(200).endsWith('.pdf'),
+    contentBase64: z.string().min(1).max(14_000_000),
+  }),
+});
+
+export type ServiceContractEmail = z.infer<typeof serviceContractEmailSchema>;
+
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
 
@@ -68,4 +94,5 @@ export interface MailService {
   sendPasswordReset(input: PasswordResetEmail): Promise<MailReceipt>;
   sendPasswordChanged(input: PasswordChangedEmail): Promise<MailReceipt>;
   sendSignupConfirmation(input: SignupConfirmationEmail): Promise<MailReceipt>;
+  sendServiceContract(input: ServiceContractEmail): Promise<MailReceipt>;
 }

@@ -321,7 +321,7 @@
                 "serviceContractState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["none", "draft", "issued", null]
+                  "enum": ["none", "draft", "issued", "sent", null]
                 },
                 "createdAt": {
                   "type": "string",
@@ -493,7 +493,7 @@
               "serviceContractState": {
                 "type": "string",
                 "nullable": true,
-                "enum": ["none", "draft", "issued", null]
+                "enum": ["none", "draft", "issued", "sent", null]
               },
               "createdAt": {
                 "type": "string",
@@ -3168,6 +3168,24 @@
             },
             "required": ["id", "clientId", "typeKey", "title", "decisionNumber", "draft", "issued"]
           },
+          "lastSend": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "sentTo": {
+                "type": "string"
+              },
+              "sentAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["sentTo", "sentAt", "revision"]
+          },
           "draftOutdated": {
             "type": "boolean"
           }
@@ -3178,6 +3196,7 @@
           "clientRepresentative",
           "readiness",
           "document",
+          "lastSend",
           "draftOutdated"
         ]
       },
@@ -3228,6 +3247,22 @@
           }
         },
         "required": ["contractNumber", "contractDate", "startDate", "durationMonths"]
+      },
+      "SendServiceContractRequest": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000
+          }
+        },
+        "required": ["to"]
       },
       "MembershipResponse": {
         "type": "object",
@@ -8706,6 +8741,121 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/service-contract/send": {
+      "post": {
+        "operationId": "sendServiceContract",
+        "summary": "Email the issued contract to the company's contact",
+        "description": "Owners only, and never by itself: issuing sends nothing. The PDF of the issued revision is attached; the email goes out in the owner's name, replies go to the owner, who is copied. Each send is recorded with its address and revision, and `lastSend` is about the revision in force. A contract can be sent again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendServiceContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract, what is missing for generating it, and its document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing is issued (`contract_not_issued`), the issued revision has no PDF (`contract_pdf_missing`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The email could not be handed to the mail service",
             "content": {
               "application/json": {
                 "schema": {

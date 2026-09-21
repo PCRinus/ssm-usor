@@ -252,7 +252,20 @@ after `pnpm supabase:start`. They cover what creates users: inviting, accepting 
 and with an existing account, changing a role, removing a member, resetting and changing a
 password, registering through to a new organization, and generating a client's documentation
 from the real templates (`pnpm templates:register:local` first), down to the downloaded file's
-name, and correcting a draft in the real editor: type, save, reload, and find the text again. `playwright.flows.config.ts` starts everything else itself, on ports of its own so
+name, and correcting a draft in the real editor: type, save, reload, and find the text again.
+They also cover a lead from the form to a client, with its contract generated, priced in the
+editor, issued and emailed. **Run them with a converter before changing anything that touches
+documents, Storage or their policies**: without `GOTENBERG_URL` issuing makes no PDF, so the
+path that writes one, and everything after it (the PDF download, sending a contract), is
+skipped, and CI, which has a converter, is the first to find out.
+
+```sh
+docker run -d --rm --name gotenberg-flows -p 3300:3000 gotenberg/gotenberg:8
+GOTENBERG_URL=http://localhost:3300 pnpm --filter @ssm-usor/app test:e2e:flows
+docker stop gotenberg-flows
+```
+
+`playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
 pointed at the local Supabase stack, and a preview of a production build of the SPA. That API
 refuses any Supabase URL that is not local and keeps emails in memory instead of calling the
@@ -491,8 +504,13 @@ mobile navigation link closes the Sheet.
   shows as a document: "Ciornă · rev. N", "Emis · rev. N", "Modificat", and "Date modificate"
   when `draftOutdated`. It opens in the editor, downloads as Word or PDF, is issued behind a
   confirmation that asks a second time while `DE COMPLETAT` is left (where the prices go),
-  and its draft can be deleted. The leads list has a "Contract" column from
-  `serviceContractState`.
+  and its draft can be deleted. An issued contract has "Trimite prin email…"
+  (`SendContractDialog`): the address starts as the contact's, a note is optional, and the
+  dialog says that the PDF goes out in the owner's name, with replies and a copy to them. The
+  card then shows "Trimis" and "Revizia N a fost trimisă la … pe …", and the button reads
+  "Trimite din nou…". Without a PDF the button is disabled and says to send the download
+  instead. The leads list has a "Contract" column from `serviceContractState`: Fără contract,
+  Ciornă, Emis, Trimis.
 - The editor is one view for both kinds of document. `DocumentEditorView` takes a
   `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and

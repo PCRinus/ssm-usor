@@ -212,15 +212,37 @@ describe('GET /clients', () => {
 
   it.each([
     [[], 'none'],
-    [[{ type_key: 'service_contract', document_revisions: [{ status: 'draft' }] }], 'draft'],
     [
       [
         {
           type_key: 'service_contract',
-          document_revisions: [{ status: 'superseded' }, { status: 'issued' }, { status: 'draft' }],
+          document_revisions: [{ status: 'draft', service_contract_sends: [] }],
+        },
+      ],
+      'draft',
+    ],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [
+            // Sent, and then replaced: the contract in force was not sent yet.
+            { status: 'superseded', service_contract_sends: [{ id: 's1' }] },
+            { status: 'issued', service_contract_sends: [] },
+            { status: 'draft', service_contract_sends: [] },
+          ],
         },
       ],
       'issued',
+    ],
+    [
+      [
+        {
+          type_key: 'service_contract',
+          document_revisions: [{ status: 'issued', service_contract_sends: [{ id: 's1' }] }],
+        },
+      ],
+      'sent',
     ],
   ])('says where the contract of a lead stands: %#', async (documents, state) => {
     mockUpstream({

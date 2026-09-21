@@ -14,6 +14,8 @@ vi.mock('@ssm-usor/document-engine', () => ({
   }),
 }));
 
+import type { MailService } from '@ssm-usor/contracts';
+
 import type { ApiEnv } from '../../lib/env';
 import { endDateOf, missingServiceContractData, type ServiceContractFacts } from './facts';
 
@@ -127,7 +129,9 @@ type Upstream =
   | 'documents'
   | 'templates'
   | 'revisions'
-  | 'upload';
+  | 'upload'
+  | 'sends'
+  | 'profiles';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -141,6 +145,13 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
     }
     switch (url.pathname) {
+      case '/rest/v1/service_contract_sends':
+        return (
+          handlers.sends?.(init, url) ??
+          (init?.method === 'POST' ? new Response(null, { status: 201 }) : Response.json([]))
+        );
+      case '/rest/v1/profiles':
+        return handlers.profiles?.(init, url) ?? Response.json([{ full_name: 'Olga Owner' }]);
       case '/rest/v1/document_templates':
         return handlers.templates?.(init, url) ?? Response.json([templateRow]);
       case '/rest/v1/document_revisions':
@@ -279,6 +290,7 @@ describe('GET /clients/{clientId}/service-contract', () => {
       clientRepresentative: { name: 'Adnana POPA', role: 'Administrator' },
       readiness: { ready: true, missing: [] },
       document: null,
+      lastSend: null,
       draftOutdated: false,
     });
     const [documents] = calls('/rest/v1/client_documents')[0]!;
@@ -537,5 +549,145 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
     const uploaded = serviceContractResponseSchema.parse(await (await request()).json());
     expect(uploaded.document?.draft?.revision).toBe(1);
     expect(uploaded.draftOutdated).toBe(false);
+  });
+});
+
+describe('POST /clients/{clientId}/service-contract/send', () => {
+  const sendServiceContract = vi.fn<MailService['sendServiceContract']>();
+  const mail = { sendServiceContract } as unknown as MailService;
+  const issuedRow = {
+    ...draftRow,
+    status: 'issued',
+    issued_at: '2026-09-21T11:00:00+00:00',
+    pdf_path: `${organizationId}/${clientId}/${documentId}/1.pdf`,
+  };
+  const issuedDocument = { ...documentRow, document_revisions: [issuedRow] };
+  const send = (body: unknown = { to: 'andrei@client.example', note: ' Cum am vorbit. ' }) =>
+    createApp().request(
+      `/clients/${clientId}/service-contract/send`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      { ...env, MAIL: mail }
+    );
+  const pdfPath: Handler = (init) =>
+    init?.method === 'POST'
+      ? Response.json({ id: revisionId })
+      : Response.json({ pdf_path: issuedRow.pdf_path });
+
+  beforeEach(() => {
+    sendServiceContract.mockReset();
+    sendServiceContract.mockResolvedValue({ id: 'msg_1' });
+  });
+
+  it('emails the PDF of the issued revision in the name of the owner, then records the send', async () => {
+    mockUpstream({
+      documents: () => Response.json([issuedDocument]),
+      revisions: pdfPath,
+      upload: () => new Response(new Uint8Array([37, 80, 68, 70])),
+      sends: (init) =>
+        init?.method === 'POST'
+          ? new Response(null, { status: 201 })
+          : Response.json([
+              {
+                sent_to: 'andrei@client.example',
+                sent_at: '2026-09-21T12:00:00+00:00',
+                document_revisions: { revision: 1 },
+              },
+            ]),
+    });
+    const response = await send();
+    expect(response.status).toBe(200);
+    const body = serviceContractResponseSchema.parse(await response.json());
+    expect(body.lastSend).toEqual({
+      sentTo: 'andrei@client.example',
+      sentAt: '2026-09-21T12:00:00+00:00',
+      revision: 1,
+    });
+
+    expect(sendServiceContract).toHaveBeenCalledWith({
+      to: 'andrei@client.example',
+      senderEmail: user.email,
+      senderName: 'Olga Owner',
+      organizationName: 'S.C. SAFETY S.R.L.',
+      clientName: 'S.C. VELOCITA URBANA S.R.L.',
+      contractNumber: 51,
+      contractDate: '2026-02-15',
+      note: 'Cum am vorbit.',
+      attachment: { fileName: 'Contract nr. 51 din 15.02.2026.pdf', contentBase64: 'JVBERg==' },
+    });
+    expect(
+      JSON.parse(String(calls('/rest/v1/service_contract_sends', 'POST')[0]![1]?.body))
+    ).toEqual({
+      organization_id: organizationId,
+      document_id: documentId,
+      revision_id: revisionId,
+      sent_to: 'andrei@client.example',
+      note: 'Cum am vorbit.',
+      provider_message_id: 'msg_1',
+      sent_by: user.id,
+    });
+  });
+
+  it('records nothing when the email could not be handed over', async () => {
+    sendServiceContract.mockRejectedValue(new Error('Resend rejected the email (422)'));
+    mockUpstream({
+      documents: () => Response.json([issuedDocument]),
+      revisions: pdfPath,
+      upload: () => new Response(new Uint8Array([37, 80, 68, 70])),
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    expect((await send()).status).toBe(503);
+    expect(calls('/rest/v1/service_contract_sends', 'POST')).toHaveLength(0);
+  });
+
+  it.each([
+    ['a draft', [documentRow], undefined, 'contract_not_issued'],
+    ['no contract', [], undefined, 'contract_not_issued'],
+    [
+      'an issued contract without a PDF',
+      [issuedDocument],
+      { pdf_path: null },
+      'contract_pdf_missing',
+    ],
+  ])('sends nothing for %s', async (_name, documents, revision, reason) => {
+    mockUpstream({
+      documents: () => Response.json(documents),
+      revisions: () => Response.json(revision ?? {}),
+    });
+    const response = await send();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(reason);
+    expect(sendServiceContract).not.toHaveBeenCalled();
+  });
+
+  it('refuses an address that is not one, an archived client, and a specialist', async () => {
+    mockUpstream({});
+    expect((await send({ to: 'andrei' })).status).toBe(400);
+
+    mockUpstream({
+      clients: () => Response.json([{ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }]),
+    });
+    expect((await send()).status).toBe(409);
+
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    expect((await send()).status).toBe(403);
+    expect(sendServiceContract).not.toHaveBeenCalled();
+  });
+
+  it('is unavailable where no mail service is bound', async () => {
+    mockUpstream({});
+    const response = await createApp().request(
+      `/clients/${clientId}/service-contract/send`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: 'andrei@client.example' }),
+      },
+      env
+    );
+    expect(response.status).toBe(503);
   });
 });

@@ -89,6 +89,15 @@ export const serviceContractResponseSchema = z.object({
   readiness: z.object({ ready: z.boolean(), missing: z.array(missingServiceContractDataSchema) }),
   // Null until the contract is generated.
   document: clientDocumentSchema.nullable(),
+  // The last time the contract in force, the issued revision, was emailed. Null when it was
+  // not, also when an earlier revision was: "sent" is about the contract in force.
+  lastSend: z
+    .object({
+      sentTo: z.string(),
+      sentAt: z.iso.datetime({ offset: true }),
+      revision: z.int().min(1),
+    })
+    .nullable(),
   // The details or the facts changed since the draft was generated: generating again would
   // print something else. Never for an issued revision, which records what it was built from.
   draftOutdated: z.boolean(),
@@ -96,9 +105,19 @@ export const serviceContractResponseSchema = z.object({
 
 export type ServiceContractResponse = z.infer<typeof serviceContractResponseSchema>;
 
+export const sendServiceContractRequestSchema = z.object({
+  to: z.email().max(254),
+  // A few words of the owner's own, above the standard text of the email.
+  note: z.string().trim().max(1000).nullish(),
+});
+
+export type SendServiceContractRequest = z.infer<typeof sendServiceContractRequestSchema>;
+
 // Reasons of a 409 that the app words itself.
 export const serviceContractConflictReasons = {
   numberTaken: 'contract_number_taken',
   missingData: 'missing_contract_data',
   templateMissing: 'template_missing',
+  notIssued: 'contract_not_issued',
+  pdfMissing: 'contract_pdf_missing',
 } as const;

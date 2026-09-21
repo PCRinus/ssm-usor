@@ -165,6 +165,15 @@ export async function recoveryTokenHash(email: string) {
   return data.properties.hashed_token;
 }
 
+// What the in-memory mailbox of the e2e API kept for an address: `url` is the link of an
+// email that has one, and a description of what it carried for one that does not.
+export async function emailsTo(to: string, kind: string) {
+  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
+  url.searchParams.set('to', to);
+  const emails = (await (await fetch(url)).json()) as { kind: string; url: string }[];
+  return emails.filter((item) => item.kind === kind);
+}
+
 export async function emailedLink(to: string, kind: string) {
   const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
   url.searchParams.set('to', to);
@@ -189,6 +198,7 @@ export async function cleanUp() {
       .eq('organization_id', id);
     const paths = (revisions.data ?? []).map((revision) => revision.docx_path as string);
     if (paths.length > 0) await admin.storage.from('documents').remove(paths);
+    await admin.from('service_contract_sends').delete().eq('organization_id', id);
     await admin.from('document_revisions').delete().eq('organization_id', id);
     await admin.from('client_documents').delete().eq('organization_id', id);
     await admin.from('document_generations').delete().eq('organization_id', id);
