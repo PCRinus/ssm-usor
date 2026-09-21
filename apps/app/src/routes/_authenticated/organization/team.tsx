@@ -1,6 +1,4 @@
-import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute } from '@tanstack/react-router';
-import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useMe } from '../../../account/use-me';
@@ -25,19 +23,11 @@ export function OrganizationTeamPage() {
 
   return (
     <div data-testid="organization-team-page" className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Cine lucrează în organizație și cu ce rol.
-          {!isOwner && ' Doar administratorii pot invita membri noi.'}
-        </p>
-        {isOwner && (
-          <Button data-testid="invite-open" onClick={() => setInviting(true)}>
-            <UserPlus aria-hidden="true" />
-            Invită un membru
-          </Button>
-        )}
-      </div>
-      <MembersCard userId={user.id} canManage={isOwner} />
+      <MembersCard
+        userId={user.id}
+        canManage={isOwner}
+        onInvite={isOwner ? () => setInviting(true) : undefined}
+      />
       {isOwner && <InvitationsCard userId={user.id} />}
       <InviteMemberDialog open={inviting} onClose={() => setInviting(false)} />
     </div>

@@ -1,4 +1,3 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
@@ -20,13 +19,7 @@ export function DashboardPage() {
 
   return (
     <div data-testid="dashboard-page" className="grid gap-6">
-      <div>
-        <Badge variant="secondary" className="mb-4">
-          În dezvoltare
-        </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Spațiul tău de lucru</h1>
-        <p className="mt-3 text-muted-foreground">Bine ai venit în SSM Ușor.</p>
-      </div>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Prezentare generală</h1>
       <Card className="max-w-2xl">
         <CardHeader>
           <h2 className="text-lg font-semibold">Contul tău</h2>
@@ -59,11 +52,10 @@ export function DashboardPage() {
       </Card>
       <Card className="max-w-2xl">
         <CardHeader>
-          <h2 className="text-lg font-semibold">Totul începe de aici</h2>
+          <h2 className="text-lg font-semibold">Clienți</h2>
         </CardHeader>
         <CardContent className="text-sm leading-relaxed text-muted-foreground">
-          Aici vei gestiona clienții, documentele și termenele tale. Pregătim primele
-          funcționalități pentru spațiul tău de lucru.
+          Vezi clienții și documentele la care lucrezi.
           <div className="mt-5">
             <Button asChild>
               <Link to="/clients">Vezi clienții</Link>

@@ -23,8 +23,8 @@ export function OtherDocumentsPage() {
   if (me.data?.membership?.role !== 'owner') {
     return (
       <Notice variant="info" data-testid="other-documents-owners-only">
-        Aici stau contractul de prestări servicii și alte documente pe care le văd doar
-        administratorii organizației.
+        Doar administratorii pot vedea contractul de prestări servicii și celelalte documente din
+        această secțiune.
       </Notice>
     );
   }

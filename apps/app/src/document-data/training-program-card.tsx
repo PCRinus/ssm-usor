@@ -61,8 +61,7 @@ export function TrainingProgramCard({
       <CardHeader>
         <h2 className="text-lg font-semibold">Instruire periodică</h2>
         <p className="text-sm text-muted-foreground">
-          Programul pe care îl tipărește decizia privind instruirea și pe care îl va urma calendarul
-          termenelor.
+          Intervalele alese apar în decizia de instruire și în calendarul termenelor.
         </p>
       </CardHeader>
       <CardContent>
@@ -196,8 +195,7 @@ function TrainingProgramSummary({
         <h3 className="text-sm font-medium">Posturi cu alt interval</h3>
         {exceptions.length === 0 ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            Toate posturile urmează intervalul categoriei lor. Un post care se instruiește altfel
-            își primește intervalul în{' '}
+            Toate posturile urmează intervalul categoriei lor. Poți seta un interval diferit în{' '}
             <Link
               to="/clients/$clientId/job-positions"
               params={{ clientId }}
@@ -221,8 +219,8 @@ function TrainingProgramSummary({
               ))}
             </ul>
             <p className="mt-2 text-xs text-muted-foreground">
-              Decizia privind instruirea tipărește deocamdată doar intervalele celor două categorii.
-              Se modifică din{' '}
+              Decizia de instruire include doar intervalele pe categorii. Intervalele speciale se
+              schimbă din{' '}
               <Link
                 to="/clients/$clientId/job-positions"
                 params={{ clientId }}

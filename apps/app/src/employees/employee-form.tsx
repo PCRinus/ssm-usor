@@ -76,8 +76,8 @@ export function EmployeeForm({
             title="Angajator"
             description={
               employee
-                ? 'Clientul la care lucrează angajatul. Nu se poate schimba.'
-                : 'Clientul la care se adaugă angajatul. Se schimbă din lista de clienți.'
+                ? 'Angajatorul acestui angajat nu poate fi schimbat.'
+                : 'Pentru alt angajator, revino la lista de clienți.'
             }
           >
             <Field id="client" label="Client" className="sm:col-span-2">
@@ -94,7 +94,7 @@ export function EmployeeForm({
 
           <FormSection
             title="Identificare"
-            description="Așa cum apar în actul de identitate. CNP-ul este opțional și rămâne vizibil doar pe fișa angajatului."
+            description="Introdu numele din actul de identitate. CNP-ul este opțional și apare doar pe fișa angajatului."
           >
             <Field id="lastName" label="Nume" mark="required" error={errors.lastName}>
               <Input
@@ -155,7 +155,7 @@ export function EmployeeForm({
 
           <FormSection
             title="Angajare"
-            description="Postul pe care lucrează, funcția din contract și data de la care curg termenele de instruire."
+            description="Data angajării stabilește de când se calculează termenele de instruire."
           >
             <Field
               id="jobPosition"
@@ -227,7 +227,7 @@ export function EmployeeForm({
 
           <FormSection
             title="Contact"
-            description="Pentru invitații la instruiri și semnarea documentelor de la distanță."
+            description="Pentru invitații la instruiri și semnarea documentelor online."
           >
             <Field id="email" label="Email" mark="optional" error={errors.email}>
               <Input
@@ -255,7 +255,7 @@ export function EmployeeForm({
 
           <FormSection
             title="Fișa de instruire"
-            description="Date tipărite pe fișa individuală de instruire. Toate sunt opționale."
+            description="Aceste date sunt opționale și apar pe fișa de instruire."
           >
             <Field id="birthDate" label="Data nașterii" mark="optional" error={errors.birthDate}>
               <Controller

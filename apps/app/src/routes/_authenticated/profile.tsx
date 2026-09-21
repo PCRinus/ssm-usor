@@ -82,12 +82,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
 
   return (
     <div data-testid="profile-page" className="grid max-w-2xl gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Profilul meu</h1>
-        <p className="mt-3 text-muted-foreground">
-          Numele tău apare în lista de membri și în invitațiile pe care le trimiți.
-        </p>
-      </div>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Profilul meu</h1>
       <Card>
         <CardHeader>
           <h2 className="text-lg font-semibold">Date personale</h2>
@@ -119,7 +114,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
               id="profile-professional-title"
               label="Titlu profesional"
               mark="optional"
-              hint="Apare lângă numele tău în documentele generate, de exemplu „Evaluator autorizat”."
+              hint="Apare lângă numele tău în documente, de exemplu „Evaluator autorizat”."
               error={errors.professionalTitle}
             >
               <Input

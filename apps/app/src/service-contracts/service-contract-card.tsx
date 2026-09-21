@@ -109,8 +109,7 @@ export function ServiceContractCard({
       <div>
         <h2 className="text-lg font-semibold">Contract de prestări servicii</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Generat dintr-un model pe care îl poți adapta în editor. Îl văd doar administratorii
-          organizației.
+          Poți adapta contractul în editor înainte de emitere.
         </p>
       </div>
       {contract.isPending ? (
@@ -374,10 +373,6 @@ function ServiceContractBody({
       <Card data-testid="contract-details-card">
         <CardHeader>
           <h3 className="font-semibold">Detaliile contractului</h3>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Numărul, datele și serviciile pe care contractul le tipărește. Aplicația le reține ca să
-            poată genera contractul din nou.
-          </p>
           {summarized && !readOnly && (
             <CardAction>
               <Button
@@ -591,11 +586,9 @@ function ServiceContractBody({
               data-testid="contract-prices-notice"
               title="Prețurile le scrii tu, în contract"
             >
-              Aplicația nu salvează prețurile. În contractul generat, în locul fiecărui preț apare „
-              {unfilledMark}”. Deschide ciorna și apasă pe „Locuri de completat” din bara
-              editorului. Vei fi dus, pe rând, la fiecare câmp care trebuie completat, iar textul
-              introdus va înlocui automat marcajul. Înainte de emiterea contractului, aplicația te
-              va avertiza dacă a rămas vreun câmp necompletat.
+              Prețurile se completează direct în ciornă. Folosește „Locuri de completat” în editor
+              ca să găsești fiecare marcaj „{unfilledMark}”. Te avertizăm înainte de emitere dacă au
+              rămas marcaje.
             </Notice>
           )}
 

@@ -351,7 +351,7 @@ describe('the service contract of a lead', () => {
     mount();
     const notice = await screen.findByTestId('contract-prices-notice');
     expect(notice.textContent).toContain('DE COMPLETAT');
-    expect(notice.textContent).toContain('locuri de completat');
+    expect(notice.textContent).toMatch(/locuri de completat/i);
   });
 });
 

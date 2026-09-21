@@ -42,11 +42,11 @@ export function CompanyDetailsCard({ userId, canEdit }: { userId: string; canEdi
 
   return (
     <div data-testid="company-details-card" className="grid gap-5">
-      <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-        Apar în documentele și în contractele pe care le generezi. Poți salva și pe rând: abia
-        generarea unui document le cere, și îți spune ce lipsește.
-        {!canEdit && ' Doar administratorii le pot modifica.'}
-      </p>
+      {canEdit && (
+        <Notice variant="info">
+          Poți completa datele pe rând. Când generezi un document, îți arătăm ce mai lipsește.
+        </Notice>
+      )}
       {details.isPending ? (
         <Skeleton className="h-96 w-full" />
       ) : details.isError ? (
@@ -191,7 +191,7 @@ function CompanyDetailsForm({
       <Card className="gap-0 divide-y py-0">
         <FormSection
           title="Identificare"
-          description="Codul fiscal aduce de la ANAF denumirea, sediul și dacă firma plătește TVA. Toate rămân editabile."
+          description="Introdu CUI-ul ca să preiei datele de la ANAF. Le poți corecta înainte să le salvezi."
         >
           <Field id="company-cui" label="CUI" error={errors.cui} className="sm:col-span-2">
             <div className="flex flex-wrap gap-2">
@@ -229,7 +229,7 @@ function CompanyDetailsForm({
             </p>
           )}
           {text('legalName', 'Denumire juridică', {
-            hint: 'Așa cum apare în documente, de exemplu „S.C. Exemplu S.R.L.”.',
+            hint: 'Așa cum apare în actele firmei.',
             className: 'sm:col-span-2',
             autoComplete: 'organization',
           })}
@@ -255,7 +255,7 @@ function CompanyDetailsForm({
 
         <FormSection
           title="Sediu și contact"
-          description="Sediul social, așa cum apare la registrul comerțului, și telefonul firmei."
+          description="Adresa din registrul comerțului și telefonul firmei."
         >
           <Field id="company-county" label="Județ" error={errors.countyCode}>
             <Controller
@@ -282,19 +282,16 @@ function CompanyDetailsForm({
 
         <FormSection
           title="Reprezentant legal"
-          description="Persoana care semnează documentele și contractele în numele firmei."
+          description="Cine semnează documentele în numele firmei."
         >
           {text('legalRepresentativeName', 'Nume și prenume', {
             autoComplete: 'name',
-            hint: 'Așa cum apar în documente.',
+            hint: 'Așa cum apare în actele firmei.',
           })}
           {text('legalRepresentativeRole', 'Funcție', { hint: 'De exemplu „Administrator”.' })}
         </FormSection>
 
-        <FormSection
-          title="Cont bancar"
-          description="Contul în care clienții plătesc serviciile. Apare doar în contracte."
-        >
+        <FormSection title="Cont bancar" description="Apare în contractele cu clienții.">
           {text('iban', 'IBAN', {
             hint: 'Cu sau fără spații, de exemplu RO49 AAAA 1B31 0075 9384 0000.',
           })}

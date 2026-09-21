@@ -103,13 +103,7 @@ export function WorkplacesCard({
   return (
     <Card data-testid="workplaces-card">
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Sediu și puncte de lucru</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Documentele aparțin clientului, nu unui punct de lucru; ele enumeră locurile în care își
-            desfășoară activitatea.
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold">Sediu și puncte de lucru</h2>
         {!readOnly && (
           <Button variant="outline" data-testid="workplace-add" onClick={() => setEditing('new')}>
             <Plus aria-hidden="true" />

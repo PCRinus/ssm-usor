@@ -11,12 +11,7 @@ export function ContactCard({ client, readOnly }: { client: Client; readOnly: bo
   return (
     <Card data-testid="contact-card">
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Persoană de contact</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Cu cine ții legătura la această companie.
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold">Persoană de contact</h2>
         {!readOnly && (
           <Button asChild variant="outline" size="sm">
             {client.stage === 'lead' ? (

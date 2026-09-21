@@ -133,8 +133,8 @@ describe("a client's job positions", () => {
   it('says how positions come to exist when there are none', async () => {
     mockApi({ items: [] });
     mount();
-    expect((await screen.findByTestId('job-positions-empty')).textContent).toContain(
-      'fiecare funcție nouă devine un post'
+    expect((await screen.findByTestId('job-positions-empty')).textContent).toMatch(
+      /fiecare funcție nouă devine un post/i
     );
   });
 
@@ -191,7 +191,7 @@ describe("a client's job positions", () => {
     await openRowMenu(user, 'Manager magazin');
     await user.click(await screen.findByTestId('job-position-edit'));
     expect(screen.getByTestId('job-position-dialog').textContent).toContain(
-      'nu se schimbă dacă redenumești postul'
+      'chiar dacă redenumești postul'
     );
     expect(screen.getByTestId<HTMLSelectElement>('job-position-category').value).toBe(
       'technical_administrative'

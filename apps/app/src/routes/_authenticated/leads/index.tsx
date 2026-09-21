@@ -85,13 +85,7 @@ export function LeadsPage() {
   return (
     <div data-testid="leads-page" className="space-y-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Clienți potențiali</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Companiile cu care discuți, până devin clienți. Le văd doar administratorii
-            organizației.
-          </p>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Clienți potențiali</h1>
         <Button asChild>
           <Link to="/leads/new" data-testid="leads-add">
             <Plus aria-hidden="true" />
@@ -191,8 +185,7 @@ export function LeadsPage() {
                   data-testid="leads-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
-                  Cei cu care discuția nu a dus nicăieri apar aici după arhivare și pot fi
-                  restaurați.
+                  Clienții potențiali arhivați vor apărea aici. Îi poți restaura oricând.
                 </p>
               </>
             ) : (
@@ -206,8 +199,8 @@ export function LeadsPage() {
                   data-testid="leads-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
-                  Adaugă o companie cu care discuți. Când semnați contractul, o transformi în client
-                  cu un clic, cu tot ce ai notat despre ea.
+                  Adaugă o companie cu care discuți. Când semnați contractul, o poți transforma în
+                  client împreună cu notele și datele salvate.
                 </p>
                 <Button asChild variant="outline" className="mt-5">
                   <Link to="/leads/new">

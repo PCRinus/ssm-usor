@@ -47,8 +47,8 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
       title="Persoană de contact"
       description={
         stage === 'lead'
-          ? 'Cu cine ții legătura. Poate fi altcineva decât reprezentantul legal; la adresa de email vei putea trimite contractul.'
-          : 'Cu cine ții legătura la această companie. Poate fi altcineva decât reprezentantul legal.'
+          ? 'Poate fi altcineva decât reprezentantul legal. La această adresă vei putea trimite contractul.'
+          : 'Poate fi altcineva decât reprezentantul legal.'
       }
     >
       <Field
@@ -112,7 +112,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
         <Card className="gap-0 divide-y py-0">
           <FormSection
             title="Identificare"
-            description="Codul fiscal aduce restul datelor publice; denumirea rămâne editabilă."
+            description="Introdu CUI-ul ca să preiei datele publice. Le poți corecta înainte să le salvezi."
           >
             <Field
               id="cui"
@@ -203,10 +203,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
 
           {stage === 'lead' && contactSection}
 
-          <FormSection
-            title="Înregistrare"
-            description="Activitatea principală și numărul din Registrul Comerțului, așa cum apar în acte."
-          >
+          <FormSection title="Înregistrare">
             <Field
               id="caenCode"
               label="Cod CAEN"
@@ -247,10 +244,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Sediu social"
-            description="Adresa înregistrată a companiei. Punctele de lucru se adaugă separat."
-          >
+          <FormSection title="Sediu social">
             <Field id="countyCode" label="Județ" mark="optional" error={errors.countyCode}>
               <Controller
                 control={control}
@@ -296,10 +290,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Alte informații"
-            description="Date pe care ANAF nu le oferă și pe care le poți actualiza oricând."
-          >
+          <FormSection title="Alte informații">
             {!client && (
               <Field
                 id="legalRepresentativeName"

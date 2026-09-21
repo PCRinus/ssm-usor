@@ -38,11 +38,11 @@ export function AuthorizationsCard({ userId, canEdit }: { userId: string; canEdi
 
   return (
     <div data-testid="authorizations-card" className="grid gap-5">
-      <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-        Apar în contractele de prestări servicii. Niciuna nu este obligatorie până atunci: abia
-        generarea unui contract le cere.
-        {!canEdit && ' Doar administratorii le pot modifica.'}
-      </p>
+      {canEdit && (
+        <Notice variant="info">
+          Poți salva abilitările pe rând. Îți vom cere datele necesare când generezi un contract.
+        </Notice>
+      )}
       {saved.isPending ? (
         <Skeleton className="h-72 w-full" />
       ) : saved.isError ? (
@@ -151,7 +151,7 @@ function AuthorizationsForm({
       <Card className="gap-0 divide-y py-0">
         <FormSection
           title="Certificat de abilitare SSM"
-          description="Certificatul serviciului extern de prevenire și protecție, pe care contractul îl citează."
+          description="Numărul și emitentul care vor apărea în contract."
         >
           {text('authorizationCertificateNumber', 'Număr')}
           <Field
@@ -184,7 +184,7 @@ function AuthorizationsForm({
 
         <FormSection
           title="Cadru tehnic PSI"
-          description="Doar dacă vinzi și servicii de apărare împotriva incendiilor: apare în contractele care le includ."
+          description="Completează doar dacă oferi și servicii de apărare împotriva incendiilor."
         >
           {text('fireSafetyTechnicianName', 'Nume și prenume')}
           {text('fireSafetyTechnicianCertificate', 'Certificat', {

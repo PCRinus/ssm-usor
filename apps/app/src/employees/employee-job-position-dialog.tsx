@@ -134,9 +134,8 @@ function Form({
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>
           <DialogDescription>
-            Postul este munca pe care o face omul, cu riscurile și instruirea ei. Funcția din
-            contract urmează postul doar când are aceeași denumire; altfel rămâne cum este, dacă nu
-            o schimbi și pe ea.
+            Noul post schimbă riscurile și instruirea. Funcția din contract se actualizează doar
+            dacă avea aceeași denumire ca postul vechi. O poți schimba și separat.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">

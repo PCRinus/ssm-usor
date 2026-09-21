@@ -87,14 +87,8 @@ export function EmployeesPage() {
 
   return (
     <div data-testid="employees-page" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="sr-only">Angajați</h2>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Persoanele angajate la acest client, pentru instruiri, fișe și documente.
-          </p>
-        </div>
-        {!readOnly && (
+      {!readOnly && (
+        <div className="flex justify-end">
           <Button asChild>
             <Link
               to="/clients/$clientId/employees/new"
@@ -105,8 +99,8 @@ export function EmployeesPage() {
               Adaugă angajat
             </Link>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
           <nav aria-label="Filtrează angajații" className="flex gap-1">

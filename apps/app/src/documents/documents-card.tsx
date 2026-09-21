@@ -293,13 +293,7 @@ export function DocumentsCard({
   return (
     <Card data-testid="documents-card">
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Documentația SSM</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Documentele sunt completate cu datele clientului și salvate ca fișiere Word. O ciornă
-            poate fi generată din nou sau ștearsă; un document emis nu se mai schimbă.
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold">Documentația SSM</h2>
         {!readOnly && documents.isSuccess && lacking > 0 && (
           <Button data-testid="documents-generate" onClick={() => setGenerating(true)}>
             <Sparkles aria-hidden="true" />

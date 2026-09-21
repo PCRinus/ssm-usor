@@ -53,8 +53,8 @@ export function OwnerNotesCard({
       <CardHeader>
         <h2 className="text-lg font-semibold">Note</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Vizibile doar administratorilor organizației, și după ce firma devine client: discuții,
-          prețuri, ce urmează.
+          Doar administratorii pot vedea aceste note. Păstrează aici discuțiile, prețurile și pașii
+          următori.
         </p>
       </CardHeader>
       <CardContent className="grid gap-4">

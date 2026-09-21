@@ -117,8 +117,7 @@ export function ResponsiblePersonsCard({
         <div>
           <h2 className="text-lg font-semibold">Persoane responsabile</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Persoanele pe care angajatorul le numește prin decizie. De multe ori aceeași persoană
-            are toate responsabilitățile.
+            Poți atribui mai multe responsabilități aceleiași persoane.
           </p>
         </div>
         {!readOnly && (

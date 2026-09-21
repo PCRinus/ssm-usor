@@ -66,6 +66,8 @@ export function InvitationsCard({ userId }: { userId: string }) {
     await queryClient.invalidateQueries({ queryKey: getListInvitationsQueryKey() });
   }
 
+  if (invitations.isSuccess && invitations.data.items.length === 0 && !error) return null;
+
   return (
     <Card data-testid="invitations-card">
       <CardHeader>
@@ -99,11 +101,7 @@ export function InvitationsCard({ userId }: { userId: string }) {
               Se încarcă invitațiile…
             </span>
           </>
-        ) : invitations.data.items.length === 0 ? (
-          <p data-testid="invitations-empty" className="text-sm text-muted-foreground">
-            Nicio invitație în așteptare. Cele acceptate apar direct în lista de membri.
-          </p>
-        ) : (
+        ) : invitations.data.items.length === 0 ? null : (
           <Table>
             <TableHeader>
               <TableRow>

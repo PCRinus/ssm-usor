@@ -91,14 +91,7 @@ export function JobPositionsCard({
   return (
     <Card data-testid="job-positions-card">
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Posturi de lucru</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Posturile pe care clientul are sau va avea oameni, așa cum le vede securitatea muncii.
-            Riscurile, echipamentul și instruirea țin de post, nu de persoană; fiecare angajat ocupă
-            unul.
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold">Posturi de lucru</h2>
         {!readOnly && (
           <Button data-testid="job-position-add" onClick={() => setEditing('new')}>
             <Plus aria-hidden="true" />
@@ -136,7 +129,7 @@ export function JobPositionsCard({
             <p className="max-w-md text-center text-sm text-muted-foreground">
               {readOnly
                 ? 'Clientul este arhivat, așa că nu i se mai adaugă posturi.'
-                : 'Adaugă posturile clientului sau adaugă angajați: fiecare funcție nouă devine un post.'}
+                : 'Adaugă posturile clientului sau începe cu angajații. Fiecare funcție nouă devine un post.'}
             </p>
           </div>
         ) : (

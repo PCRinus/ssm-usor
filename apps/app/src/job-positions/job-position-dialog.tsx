@@ -154,9 +154,9 @@ function JobPositionForm({
             {position ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}
           </DialogTitle>
           <DialogDescription>
-            Postul este munca așa cum o vede securitatea muncii, cu riscurile, echipamentul și
-            instruirea ei. Funcția din contract rămâne la fiecare angajat
-            {position ? ' și nu se schimbă dacă redenumești postul.' : '.'}
+            Riscurile, echipamentul și instruirea sunt legate de post. Funcția din contract se
+            păstrează separat pentru fiecare angajat
+            {position ? ', chiar dacă redenumești postul.' : '.'}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">

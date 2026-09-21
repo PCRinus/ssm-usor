@@ -169,8 +169,16 @@ describe('organization page', () => {
     await screen.findAllByTestId('member-row');
     expect(screen.queryByTestId('invite-open')).toBeNull();
     expect(screen.queryByTestId('invitations-card')).toBeNull();
-    expect(screen.getByText(/Doar administratorii pot invita membri noi/)).toBeTruthy();
     expect(requests('/organization/invitations')).toHaveLength(0);
+  });
+
+  it('keeps the invite action without an empty invitations card', async () => {
+    mockApi({ invitations: [] });
+    mount();
+
+    expect(await screen.findByTestId('invite-open')).toBeTruthy();
+    await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByTestId('invitations-card')).toBeNull());
   });
 
   it('sends an account without an organization to onboarding', async () => {

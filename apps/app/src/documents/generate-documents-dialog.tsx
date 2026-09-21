@@ -153,8 +153,8 @@ function GenerateDocumentsForm({
         <DialogHeader>
           <DialogTitle>Generează documentația</DialogTitle>
           <DialogDescription>
-            Documentele pe care clientul nu le are încă sunt completate cu datele lui și salvate ca
-            ciorne, în format Word. Cele existente rămân neschimbate.
+            Generăm doar documentele lipsă, ca fișiere Word completate cu datele clientului.
+            Documentele existente rămân neschimbate.
           </DialogDescription>
         </DialogHeader>
         {readiness.isPending ? (

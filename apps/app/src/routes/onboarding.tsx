@@ -123,7 +123,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
     <PublicFrame
       testId="onboarding-page"
       title="Configurează-ți organizația"
-      description="Organizația este serviciul tău extern de prevenire și protecție. Aici vei gestiona clienții, angajații lor și echipa ta."
+      description="Adaugă datele serviciului tău extern de prevenire și protecție. Vei putea invita echipa după configurare."
     >
       {pending.length > 0 && (
         <Notice

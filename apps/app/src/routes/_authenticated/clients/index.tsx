@@ -75,12 +75,7 @@ export function ClientsPage() {
   return (
     <div data-testid="clients-page" className="space-y-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Companiile pentru care asiguri serviciile de securitate și sănătate în muncă.
-          </p>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
         <Button asChild>
           <Link to="/clients/new" data-testid="clients-add">
             <Plus aria-hidden="true" />
@@ -179,7 +174,7 @@ export function ClientsPage() {
                   data-testid="clients-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
-                  Clienții arhivați apar aici, cu tot ce s-a lucrat pentru ei, și pot fi restaurați.
+                  Clienții arhivați vor apărea aici. Îi poți restaura oricând.
                 </p>
               </>
             ) : (

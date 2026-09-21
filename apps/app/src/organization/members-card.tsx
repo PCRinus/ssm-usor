@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { useRouteContext } from '@tanstack/react-router';
+import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -23,7 +24,15 @@ import { MemberActions } from './member-actions';
 
 // `canManage` adds an owner's row menu for everyone but themselves. Hiding it is a courtesy;
 // the database refuses the actions to anyone else.
-export function MembersCard({ userId, canManage }: { userId: string; canManage: boolean }) {
+export function MembersCard({
+  userId,
+  canManage,
+  onInvite,
+}: {
+  userId: string;
+  canManage: boolean;
+  onInvite?: () => void;
+}) {
   const [error, setError] = useState<string | null>(null);
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const members = useListOrganizationMembers({
@@ -33,8 +42,14 @@ export function MembersCard({ userId, canManage }: { userId: string; canManage: 
 
   return (
     <Card data-testid="members-card">
-      <CardHeader>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Membri</h2>
+        {onInvite && (
+          <Button data-testid="invite-open" onClick={onInvite}>
+            <UserPlus aria-hidden="true" />
+            Invită un membru
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="grid gap-4">
         {error && (

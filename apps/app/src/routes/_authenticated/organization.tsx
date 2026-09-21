@@ -47,14 +47,10 @@ export function OrganizationLayout() {
   if (!membership) return null;
 
   return (
-    <div data-testid="organization-page" className="grid gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          {membership.organization.name}
-        </h1>
-        <p className="mt-3 text-muted-foreground">
-          Rolul tău: {roleLabels[membership.role].toLowerCase()}.
-        </p>
+    <div data-testid="organization-page" className="grid gap-4">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="text-xl font-semibold tracking-tight">{membership.organization.name}</h1>
+        <span className="text-sm text-muted-foreground">{roleLabels[membership.role]}</span>
       </div>
       <nav
         aria-label="Secțiunile organizației"

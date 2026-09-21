@@ -27,8 +27,7 @@ export function LegalRepresentativeCard({
       <CardHeader>
         <h2 className="text-lg font-semibold">Reprezentant legal</h2>
         <p className="text-sm text-muted-foreground">
-          Deciziile sunt emise de reprezentantul legal, cu numele și funcția de mai jos. Generarea
-          documentelor le cere pe amândouă.
+          Numele și funcția vor apărea în deciziile generate.
         </p>
       </CardHeader>
       <CardContent>
