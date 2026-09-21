@@ -10,7 +10,7 @@ export function ContactCard({ client, readOnly }: { client: Client; readOnly: bo
   const empty = !client.contactName && !client.contactEmail && !client.contactPhone;
   return (
     <Card data-testid="contact-card">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Persoană de contact</h2>
         {!readOnly && (
           <Button asChild variant="outline" size="sm">

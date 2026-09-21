@@ -87,8 +87,9 @@ export function EmployeesPage() {
 
   return (
     <div data-testid="employees-page" className="space-y-5">
-      {!readOnly && (
-        <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Angajați</h2>
+        {!readOnly && (
           <Button asChild>
             <Link
               to="/clients/$clientId/employees/new"
@@ -99,8 +100,8 @@ export function EmployeesPage() {
               Adaugă angajat
             </Link>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
           <nav aria-label="Filtrează angajații" className="flex gap-1">

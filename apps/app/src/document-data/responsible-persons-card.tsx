@@ -27,7 +27,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -113,13 +113,8 @@ export function ResponsiblePersonsCard({
 
   return (
     <Card data-testid="responsible-persons-card">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Persoane responsabile</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Poți atribui mai multe responsabilități aceleiași persoane.
-          </p>
-        </div>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold">Persoane responsabile</h2>
         {!readOnly && (
           <Button variant="outline" data-testid="responsible-add" onClick={() => setEditing('new')}>
             <Plus aria-hidden="true" />
@@ -153,9 +148,18 @@ export function ResponsiblePersonsCard({
         ) : (
           <>
             {persons.data.items.length === 0 ? (
-              <p data-testid="responsible-persons-empty" className="text-sm text-muted-foreground">
-                Nicio persoană încă. Începe cu conducătorul locului de muncă.
-              </p>
+              <div
+                data-testid="responsible-persons-empty"
+                className="grid justify-items-center gap-2 py-10"
+              >
+                <UsersRound className="size-8 text-muted-foreground" aria-hidden="true" />
+                <p className="text-sm font-medium">Nicio persoană responsabilă încă</p>
+                <p className="max-w-md text-center text-sm text-muted-foreground">
+                  {readOnly
+                    ? 'Nu au fost desemnate persoane responsabile pentru acest client.'
+                    : 'Începe cu conducătorul locului de muncă. Poți atribui mai multe responsabilități aceleiași persoane.'}
+                </p>
+              </div>
             ) : (
               <Table>
                 <TableHeader>

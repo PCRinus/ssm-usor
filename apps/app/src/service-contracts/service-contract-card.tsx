@@ -106,12 +106,7 @@ export function ServiceContractCard({
 
   return (
     <section data-testid="service-contract-card" className="grid gap-4">
-      <div>
-        <h2 className="text-lg font-semibold">Contract de prestări servicii</h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Poți adapta contractul în editor înainte de emitere.
-        </p>
-      </div>
+      <h2 className="text-lg font-semibold">Contract de prestări servicii</h2>
       {contract.isPending ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : contract.isError ? (
@@ -370,22 +365,20 @@ function ServiceContractBody({
 
   return (
     <div className="grid gap-6">
-      <Card data-testid="contract-details-card">
-        <CardHeader>
+      <Card data-testid="contract-details-card" className="gap-3">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold">Detaliile contractului</h3>
           {summarized && !readOnly && (
-            <CardAction>
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="contract-details-edit"
-                disabled={busy}
-                onClick={() => setEditing(true)}
-              >
-                <Pencil aria-hidden="true" />
-                Modifică
-              </Button>
-            </CardAction>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="contract-details-edit"
+              disabled={busy}
+              onClick={() => setEditing(true)}
+            >
+              <Pencil aria-hidden="true" />
+              Modifică
+            </Button>
           )}
         </CardHeader>
         <CardContent>

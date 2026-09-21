@@ -4,10 +4,10 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Link } from '@tanstack/react-router';
-import { Search } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { Controller } from 'react-hook-form';
 
+import { AnafLookupButton } from '../components/anaf-lookup-button';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
@@ -133,22 +133,17 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
                   required
                   {...input('cui', true)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11"
-                  data-testid="client-lookup"
+                <AnafLookupButton
+                  testId="client-lookup"
+                  loading={lookup.status === 'loading'}
                   disabled={busy}
                   onClick={() => void lookupCui()}
-                >
-                  <Search aria-hidden="true" />
-                  {lookup.status === 'loading' ? 'Se caută…' : 'Caută la ANAF'}
-                </Button>
+                />
               </div>
             </Field>
             {lookup.status === 'done' && (
               <Notice
-                variant={lookup.inactive ? 'warning' : 'info'}
+                variant={lookup.inactive ? 'warning' : 'success'}
                 data-testid="client-lookup-status"
                 className="sm:col-span-2"
               >

@@ -84,7 +84,7 @@ export function LeadsPage() {
 
   return (
     <div data-testid="leads-page" className="space-y-7">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Clienți potențiali</h1>
         <Button asChild>
           <Link to="/leads/new" data-testid="leads-add">

@@ -91,6 +91,7 @@ function mockApi({
   removeMember = (() => new Response(null, { status: 204 })) as Route,
   saveCompanyDetails = (() => Response.json({ companyDetails })) as Route,
   saveAuthorizations = (() => Response.json({ authorizations })) as Route,
+  lookup = (() => Response.json({ company: anafCompany })) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -104,7 +105,7 @@ function mockApi({
     if (pathname === '/organization/authorizations') {
       return method === 'PUT' ? saveAuthorizations(init) : Response.json({ authorizations });
     }
-    if (pathname === '/companies/lookup') return Response.json({ company: anafCompany });
+    if (pathname === '/companies/lookup') return lookup(init);
     if (pathname === '/organization/members/user-two') {
       return method === 'DELETE' ? removeMember(init) : changeRole(init);
     }
@@ -477,6 +478,17 @@ describe('company details', () => {
       vatPayer: true,
       legalName: 'PROTECT SSM SRL',
     });
+  });
+
+  it('warns when ANAF reports an inactive company', async () => {
+    mockApi({ lookup: () => Response.json({ company: { ...anafCompany, inactive: true } }) });
+    mountCompany();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('company-cui');
+    await user.click(screen.getByTestId('company-lookup'));
+    const status = await screen.findByTestId('company-lookup-status');
+    expect(status.textContent).toContain('compania figurează ca inactivă');
   });
 
   it.each([

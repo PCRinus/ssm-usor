@@ -27,7 +27,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { Building2, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -102,7 +102,7 @@ export function WorkplacesCard({
 
   return (
     <Card data-testid="workplaces-card">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Sediu și puncte de lucru</h2>
         {!readOnly && (
           <Button variant="outline" data-testid="workplace-add" onClick={() => setEditing('new')}>
@@ -135,9 +135,15 @@ export function WorkplacesCard({
             Nu am putut încărca punctele de lucru.
           </Notice>
         ) : workplaces.data.items.length === 0 ? (
-          <p data-testid="workplaces-empty" className="text-sm text-muted-foreground">
-            Niciun punct de lucru încă. Începe cu sediul social.
-          </p>
+          <div data-testid="workplaces-empty" className="grid justify-items-center gap-2 py-10">
+            <Building2 className="size-8 text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm font-medium">Niciun punct de lucru încă</p>
+            <p className="max-w-md text-center text-sm text-muted-foreground">
+              {readOnly
+                ? 'Nu sunt puncte de lucru înregistrate pentru acest client.'
+                : 'Începe cu sediul social, apoi adaugă celelalte locuri în care lucrează clientul.'}
+            </p>
+          </div>
         ) : (
           <Table>
             <TableHeader>

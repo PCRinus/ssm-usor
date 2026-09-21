@@ -74,7 +74,7 @@ export function ClientsPage() {
 
   return (
     <div data-testid="clients-page" className="space-y-7">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
         <Button asChild>
           <Link to="/clients/new" data-testid="clients-add">

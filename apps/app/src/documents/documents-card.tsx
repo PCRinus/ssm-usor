@@ -292,7 +292,7 @@ export function DocumentsCard({
 
   return (
     <Card data-testid="documents-card">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Documentația SSM</h2>
         {!readOnly && documents.isSuccess && lacking > 0 && (
           <Button data-testid="documents-generate" onClick={() => setGenerating(true)}>

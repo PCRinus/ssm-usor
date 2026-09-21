@@ -90,7 +90,7 @@ export function JobPositionsCard({
 
   return (
     <Card data-testid="job-positions-card">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Posturi de lucru</h2>
         {!readOnly && (
           <Button data-testid="job-position-add" onClick={() => setEditing('new')}>

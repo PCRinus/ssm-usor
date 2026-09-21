@@ -20,6 +20,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { CountyCombobox } from '../clients/county-combobox';
+import { AnafLookupButton } from '../components/anaf-lookup-button';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
@@ -77,7 +78,10 @@ export function CompanyDetailsCard({ userId, canEdit }: { userId: string; canEdi
   );
 }
 
-type LookupState = { status: 'idle' | 'loading' } | { status: 'done' | 'error'; message: string };
+type LookupState =
+  | { status: 'idle' | 'loading' }
+  | { status: 'done'; inactive: boolean; message: string }
+  | { status: 'error'; message: string };
 
 type TextField = Exclude<keyof CompanyDetailsFormValues, 'countyCode' | 'vatPayer'>;
 
@@ -120,7 +124,10 @@ function CompanyDetailsForm({
       form.setValue('addressLine', company.addressLine ?? '', fill);
       setLookup({
         status: 'done',
-        message: `Date preluate de la ANAF pentru ${company.legalName}. Verifică-le înainte de salvare.`,
+        inactive: company.inactive,
+        message: company.inactive
+          ? `Date preluate de la ANAF pentru ${company.legalName}. Atenție: compania figurează ca inactivă.`
+          : `Date preluate de la ANAF pentru ${company.legalName}. Verifică-le înainte de salvare.`,
       });
     } catch (cause) {
       setLookup({
@@ -207,26 +214,33 @@ function CompanyDetailsForm({
                 {...form.register('cui')}
               />
               {canEdit && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  data-testid="company-lookup"
+                <AnafLookupButton
+                  testId="company-lookup"
+                  loading={lookup.status === 'loading'}
                   disabled={busy}
                   onClick={() => void lookupCui()}
-                >
-                  {lookup.status === 'loading' ? 'Se caută…' : 'Caută la ANAF'}
-                </Button>
+                />
               )}
             </div>
           </Field>
-          {(lookup.status === 'done' || lookup.status === 'error') && (
-            <p
+          {lookup.status === 'done' && (
+            <Notice
+              variant={lookup.inactive ? 'warning' : 'success'}
               data-testid="company-lookup-status"
-              role={lookup.status === 'error' ? 'alert' : 'status'}
-              className={`text-sm sm:col-span-2 ${lookup.status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
+              className="sm:col-span-2"
             >
               {lookup.message}
-            </p>
+            </Notice>
+          )}
+          {lookup.status === 'error' && (
+            <Notice
+              variant="warning"
+              role="alert"
+              data-testid="company-lookup-status"
+              className="sm:col-span-2"
+            >
+              {lookup.message}
+            </Notice>
           )}
           {text('legalName', 'Denumire juridică', {
             hint: 'Așa cum apare în actele firmei.',
