@@ -93,23 +93,26 @@ function AppNavigation({
               <SidebarMenu>
                 {navigation
                   .filter((item) => isOwner || !item.ownerOnly)
-                  .map(({ to, label, icon: Icon }) => (
-                    <SidebarMenuItem key={to}>
-                      <SidebarMenuButton asChild isActive={pathname === to} tooltip={label}>
-                        <Link
-                          to={to}
-                          data-testid={`nav-${to.slice(1)}`}
-                          aria-current={pathname === to ? 'page' : undefined}
-                          onClick={() => {
-                            if (isMobile) setOpenMobile(false);
-                          }}
-                        >
-                          <Icon aria-hidden="true" />
-                          <span>{label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  .map(({ to, label, icon: Icon }) => {
+                    const inside = pathname === to || pathname.startsWith(`${to}/`);
+                    return (
+                      <SidebarMenuItem key={to}>
+                        <SidebarMenuButton asChild isActive={inside} tooltip={label}>
+                          <Link
+                            to={to}
+                            data-testid={`nav-${to.slice(1)}`}
+                            aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
+                            onClick={() => {
+                              if (isMobile) setOpenMobile(false);
+                            }}
+                          >
+                            <Icon aria-hidden="true" />
+                            <span>{label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
               </SidebarMenu>
             </nav>
           </SidebarGroupContent>

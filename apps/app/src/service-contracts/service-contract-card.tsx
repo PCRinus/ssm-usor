@@ -429,13 +429,30 @@ function ServiceContractBody({
           title="Contractul nu poate fi generat încă"
         >
           <ul className="mt-1 grid gap-1">
-            {missing.organization.length > 0 && (
-              <li>
+            {missing.providerCompany.length > 0 && (
+              <li data-testid="contract-missing-company">
                 Despre organizația ta:{' '}
-                {missing.organization.map((name) => missingLabels[name]).join(', ')}. Le completezi
-                în{' '}
-                <Link to="/organization" className="font-medium underline underline-offset-4">
-                  Organizație
+                {missing.providerCompany.map((name) => missingLabels[name]).join(', ')}. Le
+                completezi în{' '}
+                <Link
+                  to="/organization/company"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Organizație, Date firmă
+                </Link>
+                .
+              </li>
+            )}
+            {missing.providerAuthorizations.length > 0 && (
+              <li data-testid="contract-missing-authorizations">
+                Despre abilitările organizației:{' '}
+                {missing.providerAuthorizations.map((name) => missingLabels[name]).join(', ')}. Le
+                completezi în{' '}
+                <Link
+                  to="/organization/authorizations"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Organizație, Abilitări
                 </Link>
                 .
               </li>

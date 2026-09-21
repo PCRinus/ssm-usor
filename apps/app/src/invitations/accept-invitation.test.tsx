@@ -223,7 +223,7 @@ describe('accept invitation: a person who already has an account', () => {
     await user.type(await screen.findByTestId('accept-full-name'), 'Ion Ionescu');
     await user.click(screen.getByTestId('accept-join'));
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/organization'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/organization/team'));
     expect(bodies('/invitations/join')).toEqual([
       { token: 'tok-123', termsVersion: '2026-09', fullName: 'Ion Ionescu' },
     ]);

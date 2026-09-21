@@ -1155,11 +1155,11 @@ export interface JobPositionRequest {
 /**
  * @nullable
  */
-export type OrganizationLegalDetailsResponseLegalDetailsCountyCode =
-  | (typeof OrganizationLegalDetailsResponseLegalDetailsCountyCode)[keyof typeof OrganizationLegalDetailsResponseLegalDetailsCountyCode]
+export type OrganizationCompanyDetailsResponseCompanyDetailsCountyCode =
+  | (typeof OrganizationCompanyDetailsResponseCompanyDetailsCountyCode)[keyof typeof OrganizationCompanyDetailsResponseCompanyDetailsCountyCode]
   | null;
 
-export const OrganizationLegalDetailsResponseLegalDetailsCountyCode = {
+export const OrganizationCompanyDetailsResponseCompanyDetailsCountyCode = {
   AB: 'AB',
   AR: 'AR',
   AG: 'AG',
@@ -1204,37 +1204,44 @@ export const OrganizationLegalDetailsResponseLegalDetailsCountyCode = {
   VN: 'VN',
 } as const;
 
-export type OrganizationLegalDetailsResponseLegalDetails = {
+export type OrganizationCompanyDetailsResponseCompanyDetails = {
   /** @nullable */
   legalName: string | null;
   /** @nullable */
   cui: string | null;
+  vatPayer: boolean;
   /** @nullable */
   tradeRegisterNumber: string | null;
   /** @nullable */
-  countyCode: OrganizationLegalDetailsResponseLegalDetailsCountyCode;
+  countyCode: OrganizationCompanyDetailsResponseCompanyDetailsCountyCode;
   /** @nullable */
   locality: string | null;
   /** @nullable */
   addressLine: string | null;
   /** @nullable */
+  phone: string | null;
+  /** @nullable */
   legalRepresentativeName: string | null;
   /** @nullable */
   legalRepresentativeRole: string | null;
+  /** @nullable */
+  iban: string | null;
+  /** @nullable */
+  bankName: string | null;
 };
 
-export interface OrganizationLegalDetailsResponse {
-  legalDetails: OrganizationLegalDetailsResponseLegalDetails;
+export interface OrganizationCompanyDetailsResponse {
+  companyDetails: OrganizationCompanyDetailsResponseCompanyDetails;
 }
 
 /**
  * @nullable
  */
-export type UpdateOrganizationLegalDetailsRequestCountyCode =
-  | (typeof UpdateOrganizationLegalDetailsRequestCountyCode)[keyof typeof UpdateOrganizationLegalDetailsRequestCountyCode]
+export type UpdateOrganizationCompanyDetailsRequestCountyCode =
+  | (typeof UpdateOrganizationCompanyDetailsRequestCountyCode)[keyof typeof UpdateOrganizationCompanyDetailsRequestCountyCode]
   | null;
 
-export const UpdateOrganizationLegalDetailsRequestCountyCode = {
+export const UpdateOrganizationCompanyDetailsRequestCountyCode = {
   AB: 'AB',
   AR: 'AR',
   AG: 'AG',
@@ -1279,7 +1286,7 @@ export const UpdateOrganizationLegalDetailsRequestCountyCode = {
   VN: 'VN',
 } as const;
 
-export interface UpdateOrganizationLegalDetailsRequest {
+export interface UpdateOrganizationCompanyDetailsRequest {
   /**
    * @minLength 2
    * @maxLength 200
@@ -1292,6 +1299,7 @@ export interface UpdateOrganizationLegalDetailsRequest {
    * @nullable
    */
   cui?: string | null;
+  vatPayer?: boolean;
   /**
    * @minLength 1
    * @maxLength 40
@@ -1299,7 +1307,7 @@ export interface UpdateOrganizationLegalDetailsRequest {
    */
   tradeRegisterNumber?: string | null;
   /** @nullable */
-  countyCode?: UpdateOrganizationLegalDetailsRequestCountyCode;
+  countyCode?: UpdateOrganizationCompanyDetailsRequestCountyCode;
   /**
    * @minLength 1
    * @maxLength 120
@@ -1313,6 +1321,12 @@ export interface UpdateOrganizationLegalDetailsRequest {
    */
   addressLine?: string | null;
   /**
+   * @minLength 5
+   * @maxLength 20
+   * @nullable
+   */
+  phone?: string | null;
+  /**
    * @minLength 2
    * @maxLength 160
    * @nullable
@@ -1324,39 +1338,6 @@ export interface UpdateOrganizationLegalDetailsRequest {
    * @nullable
    */
   legalRepresentativeRole?: string | null;
-}
-
-export type OrganizationContractDetailsResponseContractDetails = {
-  /** @nullable */
-  phone: string | null;
-  /** @nullable */
-  iban: string | null;
-  /** @nullable */
-  bankName: string | null;
-  /** @nullable */
-  authorizationCertificateNumber: string | null;
-  /** @nullable */
-  authorizationCertificateDate: string | null;
-  /** @nullable */
-  authorizationCertificateIssuer: string | null;
-  vatPayer: boolean;
-  /** @nullable */
-  fireSafetyTechnicianName: string | null;
-  /** @nullable */
-  fireSafetyTechnicianCertificate: string | null;
-};
-
-export interface OrganizationContractDetailsResponse {
-  contractDetails: OrganizationContractDetailsResponseContractDetails;
-}
-
-export interface UpdateOrganizationContractDetailsRequest {
-  /**
-   * @minLength 5
-   * @maxLength 20
-   * @nullable
-   */
-  phone?: string | null;
   /**
    * @maxLength 42
    * @nullable
@@ -1368,6 +1349,26 @@ export interface UpdateOrganizationContractDetailsRequest {
    * @nullable
    */
   bankName?: string | null;
+}
+
+export type OrganizationAuthorizationsResponseAuthorizations = {
+  /** @nullable */
+  authorizationCertificateNumber: string | null;
+  /** @nullable */
+  authorizationCertificateDate: string | null;
+  /** @nullable */
+  authorizationCertificateIssuer: string | null;
+  /** @nullable */
+  fireSafetyTechnicianName: string | null;
+  /** @nullable */
+  fireSafetyTechnicianCertificate: string | null;
+};
+
+export interface OrganizationAuthorizationsResponse {
+  authorizations: OrganizationAuthorizationsResponseAuthorizations;
+}
+
+export interface UpdateOrganizationAuthorizationsRequest {
   /**
    * @minLength 1
    * @maxLength 40
@@ -1382,7 +1383,6 @@ export interface UpdateOrganizationContractDetailsRequest {
    * @nullable
    */
   authorizationCertificateIssuer?: string | null;
-  vatPayer?: boolean;
   /**
    * @minLength 2
    * @maxLength 160
@@ -5362,69 +5362,69 @@ export const useRemoveJobPosition = <TError = ErrorType<ApiErrorResponse>, TCont
   return useMutation(getRemoveJobPositionMutationOptions(options), queryClient);
 };
 
-export const getGetOrganizationLegalDetailsUrl = () => {
-  return `/organization/legal-details`;
+export const getGetOrganizationCompanyDetailsUrl = () => {
+  return `/organization/company-details`;
 };
 
 /**
- * What documents print about the provider. Any member reads them.
- * @summary Read the organization's legal details
+ * Its name, registration, VAT status, registered office, phone, legal representative and bank account. Any member reads them. All optional; generating a document or a contract is what asks for them.
+ * @summary Read what documents print about the organization as a company
  */
-export const getOrganizationLegalDetails = async (
+export const getOrganizationCompanyDetails = async (
   options?: Parameters<typeof apiFetch>[1]
-): Promise<OrganizationLegalDetailsResponse> => {
-  return apiFetch<OrganizationLegalDetailsResponse>(getGetOrganizationLegalDetailsUrl(), {
+): Promise<OrganizationCompanyDetailsResponse> => {
+  return apiFetch<OrganizationCompanyDetailsResponse>(getGetOrganizationCompanyDetailsUrl(), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getGetOrganizationLegalDetailsQueryKey = () => {
-  return [`/organization/legal-details`] as const;
+export const getGetOrganizationCompanyDetailsQueryKey = () => {
+  return [`/organization/company-details`] as const;
 };
 
-export const getGetOrganizationLegalDetailsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+export const getGetOrganizationCompanyDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
   TError = ErrorType<ApiErrorResponse>,
 >(options?: {
   query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationCompanyDetails>>, TError, TData>
   >;
   request?: SecondParameter<typeof apiFetch>;
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationLegalDetailsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetOrganizationCompanyDetailsQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationLegalDetails>>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationCompanyDetails>>> = ({
     signal,
-  }) => getOrganizationLegalDetails({ signal, ...requestOptions });
+  }) => getOrganizationCompanyDetails({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+    Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type GetOrganizationLegalDetailsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationLegalDetails>>
+export type GetOrganizationCompanyDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrganizationCompanyDetails>>
 >;
-export type GetOrganizationLegalDetailsQueryError = ErrorType<ApiErrorResponse>;
+export type GetOrganizationCompanyDetailsQueryError = ErrorType<ApiErrorResponse>;
 
-export function useGetOrganizationLegalDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+export function useGetOrganizationCompanyDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options: {
     query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationCompanyDetails>>, TError, TData>
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+          Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
           TError,
-          Awaited<ReturnType<typeof getOrganizationLegalDetails>>
+          Awaited<ReturnType<typeof getOrganizationCompanyDetails>>
         >,
         'initialData'
       >;
@@ -5432,19 +5432,19 @@ export function useGetOrganizationLegalDetails<
   },
   queryClient?: QueryClient
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationLegalDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+export function useGetOrganizationCompanyDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationCompanyDetails>>, TError, TData>
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+          Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
           TError,
-          Awaited<ReturnType<typeof getOrganizationLegalDetails>>
+          Awaited<ReturnType<typeof getOrganizationCompanyDetails>>
         >,
         'initialData'
       >;
@@ -5452,35 +5452,35 @@ export function useGetOrganizationLegalDetails<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationLegalDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+export function useGetOrganizationCompanyDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationCompanyDetails>>, TError, TData>
     >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Read the organization's legal details
+ * @summary Read what documents print about the organization as a company
  */
 
-export function useGetOrganizationLegalDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationLegalDetails>>,
+export function useGetOrganizationCompanyDetails<
+  TData = Awaited<ReturnType<typeof getOrganizationCompanyDetails>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationLegalDetails>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationCompanyDetails>>, TError, TData>
     >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationLegalDetailsQueryOptions(options);
+  const queryOptions = getGetOrganizationCompanyDetailsQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -5489,258 +5489,18 @@ export function useGetOrganizationLegalDetails<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getUpdateOrganizationLegalDetailsUrl = () => {
-  return `/organization/legal-details`;
-};
-
-/**
- * Owners only. A field left out or null is cleared.
- * @summary Replace the organization's legal details
- */
-export const updateOrganizationLegalDetails = async (
-  updateOrganizationLegalDetailsRequest: UpdateOrganizationLegalDetailsRequest,
-  options?: Parameters<typeof apiFetch>[1]
-): Promise<OrganizationLegalDetailsResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string]
-        )
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-  return apiFetch<OrganizationLegalDetailsResponse>(getUpdateOrganizationLegalDetailsUrl(), {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateOrganizationLegalDetailsRequest),
-  });
-};
-
-export const getUpdateOrganizationLegalDetailsMutationKey = () =>
-  ['updateOrganizationLegalDetails'] as const;
-
-export const getUpdateOrganizationLegalDetailsMutationOptions = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
-    TError,
-    UpdateOrganizationLegalDetailsMutationVariables,
-    TContext
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
-  TError,
-  UpdateOrganizationLegalDetailsMutationVariables,
-  TContext
-> => {
-  const mutationKey = getUpdateOrganizationLegalDetailsMutationKey();
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
-    UpdateOrganizationLegalDetailsMutationVariables
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return updateOrganizationLegalDetails(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateOrganizationLegalDetailsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationLegalDetails>>
->;
-export type UpdateOrganizationLegalDetailsMutationBody = UpdateOrganizationLegalDetailsRequest;
-export type UpdateOrganizationLegalDetailsMutationError = ErrorType<ApiErrorResponse>;
-export type UpdateOrganizationLegalDetailsMutationVariables = {
-  data: UpdateOrganizationLegalDetailsRequest;
-};
-
-/**
- * @summary Replace the organization's legal details
- */
-export const useUpdateOrganizationLegalDetails = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
-      TError,
-      UpdateOrganizationLegalDetailsMutationVariables,
-      TContext
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationLegalDetails>>,
-  TError,
-  UpdateOrganizationLegalDetailsMutationVariables,
-  TContext
-> => {
-  return useMutation(getUpdateOrganizationLegalDetailsMutationOptions(options), queryClient);
-};
-
-export const getGetOrganizationContractDetailsUrl = () => {
-  return `/organization/contract-details`;
-};
-
-/**
- * Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.
- * @summary Read what a service contract prints about the organization
- */
-export const getOrganizationContractDetails = async (
-  options?: Parameters<typeof apiFetch>[1]
-): Promise<OrganizationContractDetailsResponse> => {
-  return apiFetch<OrganizationContractDetailsResponse>(getGetOrganizationContractDetailsUrl(), {
-    ...options,
-    method: 'GET',
-  });
-};
-
-export const getGetOrganizationContractDetailsQueryKey = () => {
-  return [`/organization/contract-details`] as const;
-};
-
-export const getGetOrganizationContractDetailsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-  TError = ErrorType<ApiErrorResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationContractDetailsQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationContractDetails>>> = ({
-    signal,
-  }) => getOrganizationContractDetails({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetOrganizationContractDetailsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationContractDetails>>
->;
-export type GetOrganizationContractDetailsQueryError = ErrorType<ApiErrorResponse>;
-
-export function useGetOrganizationContractDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-          TError,
-          Awaited<ReturnType<typeof getOrganizationContractDetails>>
-        >,
-        'initialData'
-      >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationContractDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-          TError,
-          Awaited<ReturnType<typeof getOrganizationContractDetails>>
-        >,
-        'initialData'
-      >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationContractDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary Read what a service contract prints about the organization
- */
-
-export function useGetOrganizationContractDetails<
-  TData = Awaited<ReturnType<typeof getOrganizationContractDetails>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationContractDetails>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationContractDetailsQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-export const getUpdateOrganizationContractDetailsUrl = () => {
-  return `/organization/contract-details`;
+export const getUpdateOrganizationCompanyDetailsUrl = () => {
+  return `/organization/company-details`;
 };
 
 /**
  * Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.
- * @summary Replace what a service contract prints about the organization
+ * @summary Replace what documents print about the organization as a company
  */
-export const updateOrganizationContractDetails = async (
-  updateOrganizationContractDetailsRequest: UpdateOrganizationContractDetailsRequest,
+export const updateOrganizationCompanyDetails = async (
+  updateOrganizationCompanyDetailsRequest: UpdateOrganizationCompanyDetailsRequest,
   options?: Parameters<typeof apiFetch>[1]
-): Promise<OrganizationContractDetailsResponse> => {
+): Promise<OrganizationCompanyDetailsResponse> => {
   const getHeaders = (
     h?: NonNullable<RequestInit['headers']>
   ): Record<string, string | readonly string[]> => {
@@ -5760,35 +5520,35 @@ export const updateOrganizationContractDetails = async (
     }
     return headers;
   };
-  return apiFetch<OrganizationContractDetailsResponse>(getUpdateOrganizationContractDetailsUrl(), {
+  return apiFetch<OrganizationCompanyDetailsResponse>(getUpdateOrganizationCompanyDetailsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateOrganizationContractDetailsRequest),
+    body: JSON.stringify(updateOrganizationCompanyDetailsRequest),
   });
 };
 
-export const getUpdateOrganizationContractDetailsMutationKey = () =>
-  ['updateOrganizationContractDetails'] as const;
+export const getUpdateOrganizationCompanyDetailsMutationKey = () =>
+  ['updateOrganizationCompanyDetails'] as const;
 
-export const getUpdateOrganizationContractDetailsMutationOptions = <
+export const getUpdateOrganizationCompanyDetailsMutationOptions = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+    Awaited<ReturnType<typeof updateOrganizationCompanyDetails>>,
     TError,
-    UpdateOrganizationContractDetailsMutationVariables,
+    UpdateOrganizationCompanyDetailsMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof apiFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+  Awaited<ReturnType<typeof updateOrganizationCompanyDetails>>,
   TError,
-  UpdateOrganizationContractDetailsMutationVariables,
+  UpdateOrganizationCompanyDetailsMutationVariables,
   TContext
 > => {
-  const mutationKey = getUpdateOrganizationContractDetailsMutationKey();
+  const mutationKey = getUpdateOrganizationCompanyDetailsMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
       ? options
@@ -5796,51 +5556,290 @@ export const getUpdateOrganizationContractDetailsMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
-    UpdateOrganizationContractDetailsMutationVariables
+    Awaited<ReturnType<typeof updateOrganizationCompanyDetails>>,
+    UpdateOrganizationCompanyDetailsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
-    return updateOrganizationContractDetails(data, requestOptions);
+    return updateOrganizationCompanyDetails(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateOrganizationContractDetailsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationContractDetails>>
+export type UpdateOrganizationCompanyDetailsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrganizationCompanyDetails>>
 >;
-export type UpdateOrganizationContractDetailsMutationBody =
-  UpdateOrganizationContractDetailsRequest;
-export type UpdateOrganizationContractDetailsMutationError = ErrorType<ApiErrorResponse>;
-export type UpdateOrganizationContractDetailsMutationVariables = {
-  data: UpdateOrganizationContractDetailsRequest;
+export type UpdateOrganizationCompanyDetailsMutationBody = UpdateOrganizationCompanyDetailsRequest;
+export type UpdateOrganizationCompanyDetailsMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateOrganizationCompanyDetailsMutationVariables = {
+  data: UpdateOrganizationCompanyDetailsRequest;
 };
 
 /**
- * @summary Replace what a service contract prints about the organization
+ * @summary Replace what documents print about the organization as a company
  */
-export const useUpdateOrganizationContractDetails = <
+export const useUpdateOrganizationCompanyDetails = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+      Awaited<ReturnType<typeof updateOrganizationCompanyDetails>>,
       TError,
-      UpdateOrganizationContractDetailsMutationVariables,
+      UpdateOrganizationCompanyDetailsMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationContractDetails>>,
+  Awaited<ReturnType<typeof updateOrganizationCompanyDetails>>,
   TError,
-  UpdateOrganizationContractDetailsMutationVariables,
+  UpdateOrganizationCompanyDetailsMutationVariables,
   TContext
 > => {
-  return useMutation(getUpdateOrganizationContractDetailsMutationOptions(options), queryClient);
+  return useMutation(getUpdateOrganizationCompanyDetailsMutationOptions(options), queryClient);
+};
+
+export const getGetOrganizationAuthorizationsUrl = () => {
+  return `/organization/authorizations`;
+};
+
+/**
+ * The certificate of authorization and the fire-safety technician. Any member reads them. All optional; generating a contract is what asks for them.
+ * @summary Read the organization's authorizations
+ */
+export const getOrganizationAuthorizations = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationAuthorizationsResponse> => {
+  return apiFetch<OrganizationAuthorizationsResponse>(getGetOrganizationAuthorizationsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetOrganizationAuthorizationsQueryKey = () => {
+  return [`/organization/authorizations`] as const;
+};
+
+export const getGetOrganizationAuthorizationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuthorizations>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrganizationAuthorizationsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationAuthorizations>>> = ({
+    signal,
+  }) => getOrganizationAuthorizations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetOrganizationAuthorizationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrganizationAuthorizations>>
+>;
+export type GetOrganizationAuthorizationsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetOrganizationAuthorizations<
+  TData = Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuthorizations>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationAuthorizations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationAuthorizations<
+  TData = Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuthorizations>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationAuthorizations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationAuthorizations<
+  TData = Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuthorizations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the organization's authorizations
+ */
+
+export function useGetOrganizationAuthorizations<
+  TData = Awaited<ReturnType<typeof getOrganizationAuthorizations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuthorizations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetOrganizationAuthorizationsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateOrganizationAuthorizationsUrl = () => {
+  return `/organization/authorizations`;
+};
+
+/**
+ * Owners only. A field left out or null is cleared.
+ * @summary Replace the organization's authorizations
+ */
+export const updateOrganizationAuthorizations = async (
+  updateOrganizationAuthorizationsRequest: UpdateOrganizationAuthorizationsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationAuthorizationsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<OrganizationAuthorizationsResponse>(getUpdateOrganizationAuthorizationsUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationAuthorizationsRequest),
+  });
+};
+
+export const getUpdateOrganizationAuthorizationsMutationKey = () =>
+  ['updateOrganizationAuthorizations'] as const;
+
+export const getUpdateOrganizationAuthorizationsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrganizationAuthorizations>>,
+    TError,
+    UpdateOrganizationAuthorizationsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOrganizationAuthorizations>>,
+  TError,
+  UpdateOrganizationAuthorizationsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateOrganizationAuthorizationsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOrganizationAuthorizations>>,
+    UpdateOrganizationAuthorizationsMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateOrganizationAuthorizations(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOrganizationAuthorizationsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrganizationAuthorizations>>
+>;
+export type UpdateOrganizationAuthorizationsMutationBody = UpdateOrganizationAuthorizationsRequest;
+export type UpdateOrganizationAuthorizationsMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateOrganizationAuthorizationsMutationVariables = {
+  data: UpdateOrganizationAuthorizationsRequest;
+};
+
+/**
+ * @summary Replace the organization's authorizations
+ */
+export const useUpdateOrganizationAuthorizations = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateOrganizationAuthorizations>>,
+      TError,
+      UpdateOrganizationAuthorizationsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateOrganizationAuthorizations>>,
+  TError,
+  UpdateOrganizationAuthorizationsMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateOrganizationAuthorizationsMutationOptions(options), queryClient);
 };
 
 export const getGetClientDocumentDetailsUrl = (clientId: string) => {

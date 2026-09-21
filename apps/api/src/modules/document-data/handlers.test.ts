@@ -1,8 +1,8 @@
 import {
   apiErrorResponseSchema,
   clientDocumentDetailsResponseSchema,
-  organizationContractDetailsResponseSchema,
-  organizationLegalDetailsResponseSchema,
+  organizationAuthorizationsResponseSchema,
+  organizationCompanyDetailsResponseSchema,
   responsiblePersonListResponseSchema,
   responsiblePersonResponseSchema,
   workplaceListResponseSchema,
@@ -36,15 +36,19 @@ const membership = { user_id: user.id, organization_id: organizationId, role: 'o
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const activeClient = { id: clientId, archived_at: null };
 
-const legalDetailsRow = {
+const companyDetailsRow = {
   legal_name: 'S.C. SAFETY S.R.L.',
   cui: '1590082',
+  vat_payer: true,
   trade_register_number: 'J35/1234/2015',
   county_code: 'TM',
   locality: 'Timișoara',
   address_line: 'Str. Lungă 5',
+  phone: '0722 776 011',
   legal_representative_name: 'Maria Popescu',
   legal_representative_role: 'Administrator',
+  iban: 'RO49AAAA1B31007593840000',
+  bank_name: 'Banca Transilvania',
 };
 
 const documentDetailsRow = {
@@ -97,7 +101,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
       case '/rest/v1/rpc/current_membership':
         return handlers.membership?.(init, url) ?? Response.json([membership]);
       case '/rest/v1/organizations':
-        return handlers.organizations?.(init, url) ?? Response.json(legalDetailsRow);
+        return handlers.organizations?.(init, url) ?? Response.json(companyDetailsRow);
       case '/rest/v1/clients':
         return handlers.clients?.(init, url) ?? Response.json(activeClient);
       case '/rest/v1/client_workplaces':
@@ -143,30 +147,35 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('/organization/legal-details', () => {
-  it('reads the legal details for any member', async () => {
+describe('/organization/company-details', () => {
+  it('reads them for any member', async () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
-    const response = await request('/organization/legal-details');
+    const response = await request('/organization/company-details');
     expect(response.status).toBe(200);
-    expect(organizationLegalDetailsResponseSchema.parse(await response.json())).toEqual({
-      legalDetails: {
+    expect(organizationCompanyDetailsResponseSchema.parse(await response.json())).toEqual({
+      companyDetails: {
         legalName: 'S.C. SAFETY S.R.L.',
         cui: '1590082',
+        vatPayer: true,
         tradeRegisterNumber: 'J35/1234/2015',
         countyCode: 'TM',
         locality: 'Timișoara',
         addressLine: 'Str. Lungă 5',
+        phone: '0722 776 011',
         legalRepresentativeName: 'Maria Popescu',
         legalRepresentativeRole: 'Administrator',
+        iban: 'RO49AAAA1B31007593840000',
+        bankName: 'Banca Transilvania',
       },
     });
   });
 
-  it('replaces them for an owner, storing the CUI as digits and clearing what is left out', async () => {
+  it('replaces them for an owner, storing the CUI and the IBAN bare and clearing what is left out', async () => {
     mockUpstream({});
-    const response = await request('/organization/legal-details', 'PUT', {
+    const response = await request('/organization/company-details', 'PUT', {
       legalName: ' S.C. SAFETY S.R.L. ',
       cui: 'RO 1590082',
+      iban: 'ro49 aaaa 1b31 0075 9384 0000',
     });
     expect(response.status).toBe(200);
     const [url] = calls('/rest/v1/organizations')[0]!;
@@ -174,100 +183,98 @@ describe('/organization/legal-details', () => {
     expect(sentBody('/rest/v1/organizations')).toEqual({
       legal_name: 'S.C. SAFETY S.R.L.',
       cui: '1590082',
+      vat_payer: false,
       trade_register_number: null,
       county_code: null,
       locality: null,
       address_line: null,
+      phone: null,
       legal_representative_name: null,
       legal_representative_role: null,
+      iban: 'RO49AAAA1B31007593840000',
+      bank_name: null,
     });
   });
 
   it('refuses a specialist', async () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
-    const response = await request('/organization/legal-details', 'PUT', { legalName: 'Firma' });
+    const response = await request('/organization/company-details', 'PUT', { legalName: 'Firma' });
     expect(response.status).toBe(403);
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });
 
-  it('refuses a CUI with a wrong control digit', async () => {
+  it.each([
+    [{ cui: '1590083' }, 'cui'],
+    [{ iban: 'RO48AAAA1B31007593840000' }, 'iban'],
+    [{ phone: '07' }, 'phone'],
+  ])('refuses %j', async (body, path) => {
     mockUpstream({});
-    const response = await request('/organization/legal-details', 'PUT', { cui: '1590083' });
+    const response = await request('/organization/company-details', 'PUT', body);
     expect(response.status).toBe(400);
-    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('cui');
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
+    expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });
 });
 
-describe('/organization/contract-details', () => {
-  const contractDetailsRow = {
-    phone: '0722 776 011',
-    iban: 'RO49AAAA1B31007593840000',
-    bank_name: 'Banca Transilvania',
+describe('/organization/authorizations', () => {
+  const authorizationsRow = {
     authorization_certificate_number: '17664',
     authorization_certificate_date: '2022-09-30',
     authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
-    vat_payer: true,
     fire_safety_technician_name: null,
     fire_safety_technician_certificate: null,
   };
 
-  it('reads them for an owner', async () => {
-    mockUpstream({ organizations: () => Response.json(contractDetailsRow) });
-    const response = await request('/organization/contract-details');
+  it('reads them for any member', async () => {
+    mockUpstream({
+      membership: () => Response.json([{ ...membership, role: 'specialist' }]),
+      organizations: () => Response.json(authorizationsRow),
+    });
+    const response = await request('/organization/authorizations');
     expect(response.status).toBe(200);
-    expect(organizationContractDetailsResponseSchema.parse(await response.json())).toEqual({
-      contractDetails: {
-        phone: '0722 776 011',
-        iban: 'RO49AAAA1B31007593840000',
-        bankName: 'Banca Transilvania',
+    expect(organizationAuthorizationsResponseSchema.parse(await response.json())).toEqual({
+      authorizations: {
         authorizationCertificateNumber: '17664',
         authorizationCertificateDate: '2022-09-30',
         authorizationCertificateIssuer: 'Direcția de muncă și protecție socială Timiș',
-        vatPayer: true,
         fireSafetyTechnicianName: null,
         fireSafetyTechnicianCertificate: null,
       },
     });
   });
 
-  it('replaces them, storing the IBAN bare and clearing what is left out', async () => {
-    mockUpstream({ organizations: () => Response.json(contractDetailsRow) });
-    const response = await request('/organization/contract-details', 'PUT', {
-      iban: 'ro49 aaaa 1b31 0075 9384 0000',
+  it('replaces them for an owner, clearing what is left out', async () => {
+    mockUpstream({ organizations: () => Response.json(authorizationsRow) });
+    const response = await request('/organization/authorizations', 'PUT', {
       authorizationCertificateDate: '2022-09-30',
     });
     expect(response.status).toBe(200);
     const [url] = calls('/rest/v1/organizations')[0]!;
     expect(new URL(String(url)).searchParams.get('id')).toBe(`eq.${organizationId}`);
     expect(sentBody('/rest/v1/organizations')).toEqual({
-      phone: null,
-      iban: 'RO49AAAA1B31007593840000',
-      bank_name: null,
       authorization_certificate_number: null,
       authorization_certificate_date: '2022-09-30',
       authorization_certificate_issuer: null,
-      vat_payer: false,
       fire_safety_technician_name: null,
       fire_safety_technician_certificate: null,
     });
   });
 
-  it.each([
-    [{ iban: 'RO48AAAA1B31007593840000' }, 'iban'],
-    [{ authorizationCertificateDate: '30.09.2022' }, 'authorizationCertificateDate'],
-    [{ phone: '07' }, 'phone'],
-  ])('refuses %j', async (body, path) => {
+  it('refuses a date that is not one', async () => {
     mockUpstream({});
-    const response = await request('/organization/contract-details', 'PUT', body);
+    const response = await request('/organization/authorizations', 'PUT', {
+      authorizationCertificateDate: '30.09.2022',
+    });
     expect(response.status).toBe(400);
-    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+      'authorizationCertificateDate'
+    );
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });
 
-  it('is not for specialists, to read or to write', async () => {
+  it('refuses a specialist who writes', async () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
-    expect((await request('/organization/contract-details')).status).toBe(403);
-    expect((await request('/organization/contract-details', 'PUT', {})).status).toBe(403);
+    expect((await request('/organization/authorizations', 'PUT', {})).status).toBe(403);
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });
 });

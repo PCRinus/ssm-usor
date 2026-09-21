@@ -1,23 +1,21 @@
-import { type CountyCode, countyCodes, isValidCuiInput } from '@ssm-usor/contracts';
+import {
+  type CountyCode,
+  countyCodes,
+  formatIban,
+  isValidCuiInput,
+  isValidIban,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
-  OrganizationLegalDetailsResponse,
-  UpdateOrganizationLegalDetailsRequest,
+  OrganizationCompanyDetailsResponse,
+  UpdateOrganizationCompanyDetailsRequest,
 } from '../api/generated/api';
+import { optionalText, textOrNull } from './optional-text';
 
-type LegalDetails = OrganizationLegalDetailsResponse['legalDetails'];
+type CompanyDetails = OrganizationCompanyDetailsResponse['companyDetails'];
 
-// Form values are strings so inputs stay controlled; the API request is derived on submit.
-// Everything is optional here: generating a document is what asks for it.
-const optionalText = (min: number, max: number, tooShort: string, tooLong: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, tooLong)
-    .refine((value) => value.length === 0 || value.length >= min, tooShort);
-
-export const legalDetailsFormSchema = z.object({
+export const companyDetailsFormSchema = z.object({
   cui: z
     .string()
     .trim()
@@ -25,6 +23,7 @@ export const legalDetailsFormSchema = z.object({
       (value) => value === '' || isValidCuiInput(value),
       'CUI invalid. Verifică cifrele și cifra de control.'
     ),
+  vatPayer: z.boolean(),
   legalName: optionalText(
     2,
     200,
@@ -45,6 +44,12 @@ export const legalDetailsFormSchema = z.object({
     ),
   locality: optionalText(1, 120, '', 'Localitatea are cel mult 120 de caractere.'),
   addressLine: optionalText(1, 240, '', 'Adresa are cel mult 240 de caractere.'),
+  phone: optionalText(
+    5,
+    20,
+    'Telefonul are cel puțin 5 caractere.',
+    'Telefonul are cel mult 20 de caractere.'
+  ),
   legalRepresentativeName: optionalText(
     2,
     160,
@@ -57,37 +62,56 @@ export const legalDetailsFormSchema = z.object({
     'Funcția are cel puțin 2 caractere.',
     'Funcția are cel mult 80 de caractere.'
   ),
+  iban: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || isValidIban(value),
+      'IBAN invalid. Verifică literele și cifrele.'
+    ),
+  bankName: optionalText(
+    2,
+    120,
+    'Numele băncii are cel puțin 2 caractere.',
+    'Numele băncii are cel mult 120 de caractere.'
+  ),
 });
 
-export type LegalDetailsFormValues = z.infer<typeof legalDetailsFormSchema>;
+export type CompanyDetailsFormValues = z.infer<typeof companyDetailsFormSchema>;
 
-export function toLegalDetailsForm(details: LegalDetails): LegalDetailsFormValues {
+export function toCompanyDetailsForm(details: CompanyDetails): CompanyDetailsFormValues {
   return {
     cui: details.cui ?? '',
+    vatPayer: details.vatPayer,
     legalName: details.legalName ?? '',
     tradeRegisterNumber: details.tradeRegisterNumber ?? '',
     countyCode: details.countyCode ?? '',
     locality: details.locality ?? '',
     addressLine: details.addressLine ?? '',
+    phone: details.phone ?? '',
     legalRepresentativeName: details.legalRepresentativeName ?? '',
     legalRepresentativeRole: details.legalRepresentativeRole ?? '',
+    iban: details.iban ? formatIban(details.iban) : '',
+    bankName: details.bankName ?? '',
   };
 }
 
-const textOrNull = (value: string) => (value ? value : null);
-
 // The route replaces every field, so an emptied input clears what was saved.
-export function toLegalDetailsRequest(
-  values: LegalDetailsFormValues
-): UpdateOrganizationLegalDetailsRequest {
+export function toCompanyDetailsRequest(
+  values: CompanyDetailsFormValues
+): UpdateOrganizationCompanyDetailsRequest {
   return {
     cui: textOrNull(values.cui),
+    vatPayer: values.vatPayer,
     legalName: textOrNull(values.legalName),
     tradeRegisterNumber: textOrNull(values.tradeRegisterNumber),
     countyCode: values.countyCode ? (values.countyCode as CountyCode) : null,
     locality: textOrNull(values.locality),
     addressLine: textOrNull(values.addressLine),
+    phone: textOrNull(values.phone),
     legalRepresentativeName: textOrNull(values.legalRepresentativeName),
     legalRepresentativeRole: textOrNull(values.legalRepresentativeRole),
+    iban: textOrNull(values.iban),
+    bankName: textOrNull(values.bankName),
   };
 }

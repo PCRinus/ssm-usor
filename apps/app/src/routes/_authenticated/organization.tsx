@@ -1,25 +1,24 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute } from '@tanstack/react-router';
-import { UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
+import { Award, Building2, UsersRound } from 'lucide-react';
 
 import { useMe } from '../../account/use-me';
 import { Notice } from '../../components/notice';
-import { ContractDetailsCard } from '../../organization/contract-details-card';
-import { InvitationsCard } from '../../organization/invitations-card';
-import { InviteMemberDialog } from '../../organization/invite-member-dialog';
 import { roleLabels } from '../../organization/labels';
-import { LegalDetailsCard } from '../../organization/legal-details-card';
-import { MembersCard } from '../../organization/members-card';
 
 export const Route = createFileRoute('/_authenticated/organization')({
   staticData: { title: 'Organizație' },
-  component: OrganizationPage,
+  component: OrganizationLayout,
 });
 
-export function OrganizationPage() {
+const sections = [
+  { to: '/organization/team', label: 'Echipă', icon: UsersRound },
+  { to: '/organization/company', label: 'Date firmă', icon: Building2 },
+  { to: '/organization/authorizations', label: 'Abilitări', icon: Award },
+] as const;
+
+export function OrganizationLayout() {
   const me = useMe();
-  const [inviting, setInviting] = useState(false);
 
   if (me.isPending) {
     return (
@@ -43,37 +42,42 @@ export function OrganizationPage() {
     );
   }
 
-  const { user, membership } = me.data;
+  const { membership } = me.data;
   // The shell sends an account without an organization to onboarding before this renders.
   if (!membership) return null;
 
-  // Hiding the owner's tools is a courtesy; the API and the database enforce the rule.
-  const isOwner = membership.role === 'owner';
-
   return (
     <div data-testid="organization-page" className="grid gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {membership.organization.name}
-          </h1>
-          <p className="mt-3 text-muted-foreground">
-            Rolul tău: {roleLabels[membership.role].toLowerCase()}.
-            {!isOwner && ' Doar administratorii pot invita membri noi.'}
-          </p>
-        </div>
-        {isOwner && (
-          <Button data-testid="invite-open" onClick={() => setInviting(true)}>
-            <UserPlus aria-hidden="true" />
-            Invită un membru
-          </Button>
-        )}
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          {membership.organization.name}
+        </h1>
+        <p className="mt-3 text-muted-foreground">
+          Rolul tău: {roleLabels[membership.role].toLowerCase()}.
+        </p>
       </div>
-      <MembersCard userId={user.id} canManage={isOwner} />
-      {isOwner && <InvitationsCard userId={user.id} />}
-      <LegalDetailsCard userId={user.id} canEdit={isOwner} />
-      {isOwner && <ContractDetailsCard userId={user.id} />}
-      <InviteMemberDialog open={inviting} onClose={() => setInviting(false)} />
+      <nav
+        aria-label="Secțiunile organizației"
+        className="sticky top-16 z-20 border-b bg-background"
+      >
+        <ul className="-mb-px flex gap-1">
+          {sections.map(({ to, label, icon: Icon }) => (
+            <li key={to}>
+              <Link
+                to={to}
+                resetScroll={false}
+                data-testid="organization-section"
+                className="inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
+                activeProps={{ 'aria-current': 'page' }}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <Outlet />
     </div>
   );
 }

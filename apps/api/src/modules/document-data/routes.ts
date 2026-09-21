@@ -1,14 +1,14 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientDocumentDetailsResponseSchema,
-  organizationContractDetailsResponseSchema,
-  organizationLegalDetailsResponseSchema,
+  organizationAuthorizationsResponseSchema,
+  organizationCompanyDetailsResponseSchema,
   responsiblePersonListResponseSchema,
   responsiblePersonRequestSchema,
   responsiblePersonResponseSchema,
   updateClientDocumentDetailsRequestSchema,
-  updateOrganizationContractDetailsRequestSchema,
-  updateOrganizationLegalDetailsRequestSchema,
+  updateOrganizationAuthorizationsRequestSchema,
+  updateOrganizationCompanyDetailsRequestSchema,
   workplaceListResponseSchema,
   workplaceRequestSchema,
   workplaceResponseSchema,
@@ -27,10 +27,17 @@ const noSuchClient = {
   content: errorContent,
 };
 
-const legalDetailsContent = {
+const companyDetailsContent = {
   'application/json': {
-    schema: organizationLegalDetailsResponseSchema.meta({
-      id: 'OrganizationLegalDetailsResponse',
+    schema: organizationCompanyDetailsResponseSchema.meta({
+      id: 'OrganizationCompanyDetailsResponse',
+    }),
+  },
+};
+const authorizationsContent = {
+  'application/json': {
+    schema: organizationAuthorizationsResponseSchema.meta({
+      id: 'OrganizationAuthorizationsResponse',
     }),
   },
 };
@@ -62,75 +69,26 @@ const responsiblePersonBody = {
   },
 };
 
-export const getOrganizationLegalDetailsRoute = createRoute({
+export const getOrganizationCompanyDetailsRoute = createRoute({
   method: 'get',
-  path: '/organization/legal-details',
-  operationId: 'getOrganizationLegalDetails',
-  summary: "Read the organization's legal details",
-  description: 'What documents print about the provider. Any member reads them.',
+  path: '/organization/company-details',
+  operationId: 'getOrganizationCompanyDetails',
+  summary: 'Read what documents print about the organization as a company',
+  description:
+    'Its name, registration, VAT status, registered office, phone, legal representative and bank account. Any member reads them. All optional; generating a document or a contract is what asks for them.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: {
-    200: { description: 'The legal details', content: legalDetailsContent },
+    200: { description: 'The company details', content: companyDetailsContent },
     ...membershipErrors,
   },
 });
 
-export const updateOrganizationLegalDetailsRoute = createRoute({
+export const updateOrganizationCompanyDetailsRoute = createRoute({
   method: 'put',
-  path: '/organization/legal-details',
-  operationId: 'updateOrganizationLegalDetails',
-  summary: "Replace the organization's legal details",
-  description: 'Owners only. A field left out or null is cleared.',
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
-  request: {
-    body: {
-      required: true,
-      content: {
-        'application/json': {
-          schema: updateOrganizationLegalDetailsRequestSchema.meta({
-            id: 'UpdateOrganizationLegalDetailsRequest',
-          }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: { description: 'The legal details after the change', content: legalDetailsContent },
-    400: { description: 'Invalid request body', content: errorContent },
-    ...ownerErrors,
-  },
-});
-
-const contractDetailsContent = {
-  'application/json': {
-    schema: organizationContractDetailsResponseSchema.meta({
-      id: 'OrganizationContractDetailsResponse',
-    }),
-  },
-};
-
-export const getOrganizationContractDetailsRoute = createRoute({
-  method: 'get',
-  path: '/organization/contract-details',
-  operationId: 'getOrganizationContractDetails',
-  summary: 'Read what a service contract prints about the organization',
-  description:
-    'Owners only, as service contracts are. The phone, the bank account, the certificate of authorization, whether the organization pays VAT, and the fire-safety technician. All optional; generating a contract is what asks for them.',
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
-  responses: {
-    200: { description: 'The contract details', content: contractDetailsContent },
-    ...ownerErrors,
-  },
-});
-
-export const updateOrganizationContractDetailsRoute = createRoute({
-  method: 'put',
-  path: '/organization/contract-details',
-  operationId: 'updateOrganizationContractDetails',
-  summary: 'Replace what a service contract prints about the organization',
+  path: '/organization/company-details',
+  operationId: 'updateOrganizationCompanyDetails',
+  summary: 'Replace what documents print about the organization as a company',
   description:
     'Owners only. A field left out or null is cleared. The IBAN is taken with or without spaces, checked, and stored without them.',
   security: bearerSecurity,
@@ -140,15 +98,57 @@ export const updateOrganizationContractDetailsRoute = createRoute({
       required: true,
       content: {
         'application/json': {
-          schema: updateOrganizationContractDetailsRequestSchema.meta({
-            id: 'UpdateOrganizationContractDetailsRequest',
+          schema: updateOrganizationCompanyDetailsRequestSchema.meta({
+            id: 'UpdateOrganizationCompanyDetailsRequest',
           }),
         },
       },
     },
   },
   responses: {
-    200: { description: 'The contract details after the change', content: contractDetailsContent },
+    200: { description: 'The company details after the change', content: companyDetailsContent },
+    400: { description: 'Invalid request body', content: errorContent },
+    ...ownerErrors,
+  },
+});
+
+export const getOrganizationAuthorizationsRoute = createRoute({
+  method: 'get',
+  path: '/organization/authorizations',
+  operationId: 'getOrganizationAuthorizations',
+  summary: "Read the organization's authorizations",
+  description:
+    'The certificate of authorization and the fire-safety technician. Any member reads them. All optional; generating a contract is what asks for them.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  responses: {
+    200: { description: 'The authorizations', content: authorizationsContent },
+    ...membershipErrors,
+  },
+});
+
+export const updateOrganizationAuthorizationsRoute = createRoute({
+  method: 'put',
+  path: '/organization/authorizations',
+  operationId: 'updateOrganizationAuthorizations',
+  summary: "Replace the organization's authorizations",
+  description: 'Owners only. A field left out or null is cleared.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateOrganizationAuthorizationsRequestSchema.meta({
+            id: 'UpdateOrganizationAuthorizationsRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'The authorizations after the change', content: authorizationsContent },
     400: { description: 'Invalid request body', content: errorContent },
     ...ownerErrors,
   },

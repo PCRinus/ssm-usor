@@ -9,30 +9,36 @@ import { isValidIban } from './iban';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
-/** Owners only. */
-export const organizationLegalDetailsSchema = z.object({
+/** What documents and contracts print about the provider as a company. Owners write it. */
+export const organizationCompanyDetailsSchema = z.object({
   legalName: z.string().nullable(),
   cui: z.string().nullable(),
+  // Decides the sentence about VAT beside the prices of a contract.
+  vatPayer: z.boolean(),
   tradeRegisterNumber: z.string().nullable(),
   countyCode: countyCodeSchema.nullable(),
   locality: z.string().nullable(),
   addressLine: z.string().nullable(),
+  phone: z.string().nullable(),
   legalRepresentativeName: z.string().nullable(),
   legalRepresentativeRole: z.string().nullable(),
+  // Without spaces; `formatIban` prints it.
+  iban: z.string().nullable(),
+  bankName: z.string().nullable(),
 });
 
-export type OrganizationLegalDetails = z.infer<typeof organizationLegalDetailsSchema>;
+export type OrganizationCompanyDetails = z.infer<typeof organizationCompanyDetailsSchema>;
 
-export const organizationLegalDetailsResponseSchema = z.object({
-  legalDetails: organizationLegalDetailsSchema,
+export const organizationCompanyDetailsResponseSchema = z.object({
+  companyDetails: organizationCompanyDetailsSchema,
 });
 
-export type OrganizationLegalDetailsResponse = z.infer<
-  typeof organizationLegalDetailsResponseSchema
+export type OrganizationCompanyDetailsResponse = z.infer<
+  typeof organizationCompanyDetailsResponseSchema
 >;
 
-// Replaces all of them: a field left out or null is cleared.
-export const updateOrganizationLegalDetailsRequestSchema = z.object({
+// Replaces all of them: a field left out or null is cleared, and `vatPayer` left out is false.
+export const updateOrganizationCompanyDetailsRequestSchema = z.object({
   legalName: optionalText(2, 200),
   cui: z
     .string()
@@ -41,45 +47,14 @@ export const updateOrganizationLegalDetailsRequestSchema = z.object({
     .max(16)
     .refine(isValidCuiInput, { message: 'Invalid CUI (format or control digit).' })
     .nullish(),
+  vatPayer: z.boolean().default(false),
   tradeRegisterNumber: optionalText(1, 40),
   countyCode: countyCodeSchema.nullish(),
   locality: optionalText(1, 120),
   addressLine: optionalText(1, 240),
+  phone: optionalText(5, 20),
   legalRepresentativeName: optionalText(2, 160),
   legalRepresentativeRole: optionalText(2, 80),
-});
-
-export type UpdateOrganizationLegalDetailsRequest = z.infer<
-  typeof updateOrganizationLegalDetailsRequestSchema
->;
-
-/** Owners only: what a service contract prints about the provider (ADR 007). */
-export const organizationContractDetailsSchema = z.object({
-  phone: z.string().nullable(),
-  // Without spaces; `formatIban` prints it.
-  iban: z.string().nullable(),
-  bankName: z.string().nullable(),
-  authorizationCertificateNumber: z.string().nullable(),
-  authorizationCertificateDate: z.iso.date().nullable(),
-  authorizationCertificateIssuer: z.string().nullable(),
-  vatPayer: z.boolean(),
-  fireSafetyTechnicianName: z.string().nullable(),
-  fireSafetyTechnicianCertificate: z.string().nullable(),
-});
-
-export type OrganizationContractDetails = z.infer<typeof organizationContractDetailsSchema>;
-
-export const organizationContractDetailsResponseSchema = z.object({
-  contractDetails: organizationContractDetailsSchema,
-});
-
-export type OrganizationContractDetailsResponse = z.infer<
-  typeof organizationContractDetailsResponseSchema
->;
-
-// Replaces all of them: a field left out or null is cleared, and `vatPayer` left out is false.
-export const updateOrganizationContractDetailsRequestSchema = z.object({
-  phone: optionalText(5, 20),
   iban: z
     .string()
     .trim()
@@ -87,16 +62,42 @@ export const updateOrganizationContractDetailsRequestSchema = z.object({
     .refine(isValidIban, { message: 'Invalid IBAN (format or check digits).' })
     .nullish(),
   bankName: optionalText(2, 120),
+});
+
+export type UpdateOrganizationCompanyDetailsRequest = z.infer<
+  typeof updateOrganizationCompanyDetailsRequestSchema
+>;
+
+/** The certificate of authorization and the fire-safety technician. Owners write them. */
+export const organizationAuthorizationsSchema = z.object({
+  authorizationCertificateNumber: z.string().nullable(),
+  authorizationCertificateDate: z.iso.date().nullable(),
+  authorizationCertificateIssuer: z.string().nullable(),
+  fireSafetyTechnicianName: z.string().nullable(),
+  fireSafetyTechnicianCertificate: z.string().nullable(),
+});
+
+export type OrganizationAuthorizations = z.infer<typeof organizationAuthorizationsSchema>;
+
+export const organizationAuthorizationsResponseSchema = z.object({
+  authorizations: organizationAuthorizationsSchema,
+});
+
+export type OrganizationAuthorizationsResponse = z.infer<
+  typeof organizationAuthorizationsResponseSchema
+>;
+
+// Replaces all of them: a field left out or null is cleared.
+export const updateOrganizationAuthorizationsRequestSchema = z.object({
   authorizationCertificateNumber: optionalText(1, 40),
   authorizationCertificateDate: z.iso.date().nullish(),
   authorizationCertificateIssuer: optionalText(2, 200),
-  vatPayer: z.boolean().default(false),
   fireSafetyTechnicianName: optionalText(2, 160),
   fireSafetyTechnicianCertificate: optionalText(1, 80),
 });
 
-export type UpdateOrganizationContractDetailsRequest = z.infer<
-  typeof updateOrganizationContractDetailsRequestSchema
+export type UpdateOrganizationAuthorizationsRequest = z.infer<
+  typeof updateOrganizationAuthorizationsRequestSchema
 >;
 
 // The durations an SSM specialist confirmed providers use (issue #81).

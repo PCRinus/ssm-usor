@@ -110,8 +110,13 @@ export function groupMissing(missing: Missing[]) {
     'client.representativeRole',
     'contract.details',
   ];
+  const authorizations: Missing[] = [
+    'provider.authorizationCertificate',
+    'provider.fireSafetyTechnician',
+  ];
   return {
-    organization: of('provider.'),
+    providerCompany: of('provider.').filter((name) => !authorizations.includes(name)),
+    providerAuthorizations: of('provider.', authorizations),
     company: of('client.').filter((name) => !here.includes(name)),
     form: missing.filter((name) => here.includes(name)),
   };

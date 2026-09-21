@@ -203,7 +203,12 @@ describe('the service contract of a lead', () => {
           state({
             readiness: {
               ready: false,
-              missing: ['provider.bankAccount', 'client.address', 'client.representativeRole'],
+              missing: [
+                'provider.bankAccount',
+                'provider.authorizationCertificate',
+                'client.address',
+                'client.representativeRole',
+              ],
             },
           })
         ),
@@ -213,7 +218,15 @@ describe('the service contract of a lead', () => {
     expect(missing.textContent).toContain('Despre organizația ta: contul bancar și banca');
     expect(missing.textContent).toContain('Despre VELOCITA URBANA SRL: adresa sediului');
     expect(missing.textContent).toContain('În formularul de mai sus: funcția reprezentantului');
-    expect(within(missing).getByRole('link', { name: 'Organizație' })).toBeTruthy();
+    expect(missing.textContent).toContain(
+      'Despre abilitările organizației: certificatul de abilitare'
+    );
+    expect(
+      within(missing).getByRole('link', { name: 'Organizație, Date firmă' }).getAttribute('href')
+    ).toBe('/organization/company');
+    expect(
+      within(missing).getByRole('link', { name: 'Organizație, Abilitări' }).getAttribute('href')
+    ).toBe('/organization/authorizations');
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
   });
 

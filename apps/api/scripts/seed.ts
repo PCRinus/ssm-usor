@@ -9,7 +9,7 @@ import { seedAdmin, seedConfigSchema } from './lib/seed-admin';
 import { fakeClients, fakeLeads, seedClients, seedLeads } from './lib/seed-clients';
 import {
   seedDocumentData,
-  seedOrganizationLegalDetails,
+  seedOrganizationCompanyDetails,
   seedProfessionalTitle,
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
@@ -104,12 +104,12 @@ try {
     const employees = fakeEmployees(clients, options.seed, organization.id, user.id);
     const employeeCount = await seedEmployees(client, employees);
     console.log(`Upserted ${employeeCount} fake employees across those clients.`);
-    const filled = await seedOrganizationLegalDetails(client, config.SEED_ADMIN_NAME);
+    const filled = await seedOrganizationCompanyDetails(client, config.SEED_ADMIN_NAME);
     await seedProfessionalTitle(client, user.id);
     console.log(
       filled
-        ? 'Filled in fake legal details for the organization.'
-        : 'Kept the legal details the organization already has.'
+        ? 'Filled in fake company details for the organization.'
+        : 'Kept the company details the organization already has.'
     );
     const documentData = await seedDocumentData(client, clients, user.id);
     console.log(

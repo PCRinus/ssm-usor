@@ -4,7 +4,7 @@ import {
   addressOf,
   addSpecialist,
   cleanUp,
-  completeContractDetails,
+  completeProviderDetails,
   createAccount,
   createClientCompany,
   createLead,
@@ -120,7 +120,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   const specialist = await createAccount('contract-specialist', 'Sorin Specialist');
   const organizationId = await createOrganization('Contract E2E', owner.id);
   await addSpecialist(organizationId, specialist.id);
-  await completeContractDetails(organizationId);
+  await completeProviderDetails(organizationId);
   const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
   const contact = addressOf('contract-contact');
 
@@ -141,11 +141,12 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(missing).toContainText('adresa sediului');
   await expect(page.getByTestId('contract-generate')).toBeDisabled();
 
-  await missing.getByRole('link', { name: 'Organizație' }).click();
-  await page.getByTestId('contract-iban').fill('RO49 AAAA 1B31 0075 9384 0000');
-  await page.getByTestId('contract-bankName').fill('Banca Transilvania');
-  await page.getByTestId('contract-details-save').click();
-  await expect(page.getByText('Datele pentru contracte au fost salvate.')).toBeVisible();
+  await missing.getByRole('link', { name: 'Organizație, Date firmă' }).click();
+  await expect(page).toHaveURL(/\/organization\/company$/);
+  await page.getByTestId('company-iban').fill('RO49 AAAA 1B31 0075 9384 0000');
+  await page.getByTestId('company-bankName').fill('Banca Transilvania');
+  await page.getByTestId('company-details-save').click();
+  await expect(page.getByText('Datele firmei au fost salvate.')).toBeVisible();
 
   await page.goto(`/leads/${leadId}/edit`);
   await page.getByTestId('client-trade-register').fill('J12/1234/2021');

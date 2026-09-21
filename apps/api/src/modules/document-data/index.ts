@@ -5,13 +5,13 @@ import {
   createResponsiblePerson,
   createWorkplace,
   getClientDocumentDetails,
-  getOrganizationContractDetails,
-  getOrganizationLegalDetails,
+  getOrganizationAuthorizations,
+  getOrganizationCompanyDetails,
   listResponsiblePersons,
   listWorkplaces,
   updateClientDocumentDetails,
-  updateOrganizationContractDetails,
-  updateOrganizationLegalDetails,
+  updateOrganizationAuthorizations,
+  updateOrganizationCompanyDetails,
   updateResponsiblePerson,
   updateWorkplace,
 } from './handlers';
@@ -21,22 +21,22 @@ import {
   createResponsiblePersonRoute,
   createWorkplaceRoute,
   getClientDocumentDetailsRoute,
-  getOrganizationContractDetailsRoute,
-  getOrganizationLegalDetailsRoute,
+  getOrganizationAuthorizationsRoute,
+  getOrganizationCompanyDetailsRoute,
   listResponsiblePersonsRoute,
   listWorkplacesRoute,
   updateClientDocumentDetailsRoute,
-  updateOrganizationContractDetailsRoute,
-  updateOrganizationLegalDetailsRoute,
+  updateOrganizationAuthorizationsRoute,
+  updateOrganizationCompanyDetailsRoute,
   updateResponsiblePersonRoute,
   updateWorkplaceRoute,
 } from './routes';
 
 export const documentDataRouter = createRouter()
-  .openapi(getOrganizationLegalDetailsRoute, getOrganizationLegalDetails)
-  .openapi(updateOrganizationLegalDetailsRoute, updateOrganizationLegalDetails)
-  .openapi(getOrganizationContractDetailsRoute, getOrganizationContractDetails)
-  .openapi(updateOrganizationContractDetailsRoute, updateOrganizationContractDetails)
+  .openapi(getOrganizationCompanyDetailsRoute, getOrganizationCompanyDetails)
+  .openapi(updateOrganizationCompanyDetailsRoute, updateOrganizationCompanyDetails)
+  .openapi(getOrganizationAuthorizationsRoute, getOrganizationAuthorizations)
+  .openapi(updateOrganizationAuthorizationsRoute, updateOrganizationAuthorizations)
   .openapi(getClientDocumentDetailsRoute, getClientDocumentDetails)
   .openapi(updateClientDocumentDetailsRoute, updateClientDocumentDetails)
   .openapi(listWorkplacesRoute, listWorkplaces)

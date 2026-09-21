@@ -118,7 +118,7 @@ test('a person who already has an account signs in to accept', async ({ page, br
   await expect(guest).toHaveURL(/\/accept-invitation\?token=/);
   await guest.getByTestId('accept-join').click();
 
-  await expect(guest).toHaveURL(/\/organization$/);
+  await expect(guest).toHaveURL(/\/organization\/team$/);
   await expect(guest.getByRole('heading', { level: 1 })).toHaveText('Al Doilea SSM E2E');
   await expect(guest.getByTestId('invite-open')).toBeVisible();
 });
