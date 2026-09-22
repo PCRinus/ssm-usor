@@ -1,4 +1,4 @@
-import { meResponseSchema, profileSchema } from '@ssm-usor/contracts';
+import { meResponseSchema, profileSchema, supportIdentitySchema } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -20,13 +20,17 @@ const profileRow = {
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockUpstream({ profile = profileRow as typeof profileRow | null, member = true } = {}) {
+function mockUpstream({
+  profile = profileRow as typeof profileRow | null,
+  member = true,
+  memberUserId = user.id,
+} = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json({ ...user, is_anonymous: false });
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return Response.json(
-        member ? [{ user_id: user.id, organization_id: organization.id, role: 'owner' }] : []
+        member ? [{ user_id: memberUserId, organization_id: organization.id, role: 'owner' }] : []
       );
     }
     if (url.pathname === '/rest/v1/rpc/my_open_invitations') {
@@ -57,11 +61,11 @@ function mockUpstream({ profile = profileRow as typeof profileRow | null, member
   });
 }
 
-const request = (path: string, init: RequestInit = {}) =>
+const request = (path: string, init: RequestInit = {}, bindings = env) =>
   createApp().request(
     path,
     { ...init, headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' } },
-    env
+    bindings
   );
 
 const profileWrites = () =>
@@ -100,6 +104,7 @@ describe('GET /me', () => {
         termsAcceptedAt: '2026-09-18T10:00:00.000Z',
       },
       membership: { organization, role: 'owner' },
+      impersonation: null,
     });
   });
 
@@ -109,7 +114,55 @@ describe('GET /me', () => {
     const response = await request('/me');
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ user, profile: null, membership: null });
+    expect(await response.json()).toEqual({
+      user,
+      profile: null,
+      membership: null,
+      impersonation: null,
+    });
+  });
+
+  it('reports impersonation using the effective member while preserving the real caller', async () => {
+    const targetMemberId = '9ae7d65f-fac5-4b57-9d9b-3e502febfd31';
+    mockUpstream({ memberUserId: targetMemberId });
+
+    const response = await request('/me');
+
+    expect(meResponseSchema.parse(await response.json())).toMatchObject({
+      user,
+      membership: { organization },
+      impersonation: { targetMemberId, targetOrganizationId: organization.id },
+    });
+  });
+});
+
+describe('GET /me/support-identity', () => {
+  it('signs only the verified caller ID', async () => {
+    mockUpstream();
+    const secret = 'test-support-secret';
+
+    const response = await request(
+      '/me/support-identity',
+      {},
+      {
+        ...env,
+        POSTHOG_SUPPORT_SECRET_KEY: secret,
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(supportIdentitySchema.parse(await response.json())).toEqual({
+      distinctId: user.id,
+      hash: '479f4b157ac17b5f3fbf9ed7a2987a43ef5140d87b950c9ccdc8e1a43a32d768',
+    });
+  });
+
+  it('does not issue unsigned identities when Support is unconfigured', async () => {
+    mockUpstream();
+
+    const response = await request('/me/support-identity');
+
+    expect(response.status).toBe(503);
   });
 });
 

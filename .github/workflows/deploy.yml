@@ -138,6 +138,9 @@ jobs:
       VITE_API_URL: https://api.ssmusor.ro
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_POSTHOG_PROJECT_TOKEN: ${{ vars.VITE_POSTHOG_PROJECT_TOKEN }}
+      POSTHOG_PROJECT_ID: ${{ vars.POSTHOG_PROJECT_ID }}
+      POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
       # Optional: without it the marketing waitlist form falls back to a mailto link.
       PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
     steps:
@@ -445,11 +448,12 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+          POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
@@ -471,6 +475,7 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+          POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
           # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
           # so that `wrangler dev`, where nothing answers that binding, issues without one.
           PDF_CONVERSION: service

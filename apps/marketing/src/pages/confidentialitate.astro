@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="18 septembrie 2026"
+  updated="23 septembrie 2026"
 >
   {
     !legalEntity.filled && (
@@ -76,6 +76,17 @@ const M = legalEntity.filled ? 'span' : 'mark';
       <strong>Date tehnice.</strong> Adresa IP, tipul browserului și jurnale de server, pentru securitatea
       și funcționarea site-ului. Temei: interesul legitim.
     </li>
+    <li>
+      <strong>Analiză, erori și asistență în platformă.</strong> După autentificare, folosim PostHog pentru
+      evenimente de utilizare, pagini și adrese URL accesate, erori JavaScript, detalii tehnice despre
+      cererile de rețea, înregistrări ale sesiunii și mesajele trimise prin „Raportează o problemă”. Asociem
+      aceste date cu utilizatorul, rolul și organizația sa ca să putem diagnostica probleme, îmbunătăți
+      funcțiile și răspunde solicitărilor. La sesiuni de impersonare, marcăm acțiunile administratorului
+      separat. Mascăm conținutul text, câmpurile introduse și atributele elementelor în înregistrări;
+      nu colectăm prin acestea corpul sau antetele cererilor de rețea. Totuși, adresele URL și mesajele
+      pe care ni le trimiți pot conține informații pe care le-ai inclus acolo. Temei: interesul legitim
+      de a menține și îmbunătăți serviciul și de a acorda asistență.
+    </li>
   </ul>
   <p>
     Nu folosim datele din platformă pentru publicitate și nu le folosim pentru antrenarea unor
@@ -85,8 +96,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>4. Cookie-uri</h2>
   <p>
     Site-ul de prezentare nu folosește cookie-uri de urmărire sau de publicitate. Platforma
-    folosește doar cookie-uri strict necesare pentru autentificare și pentru menținerea sesiunii.
-    Dacă vom introduce instrumente de analiză, vom cere consimțământul înainte de a le activa.
+    folosește stocarea locală pentru autentificare și, după autentificare, pentru PostHog:
+    identificarea sesiunii, analiza utilizării, înregistrări ale sesiunii și conversațiile de
+    asistență. PostHog nu se încarcă pe paginile de autentificare sau pe site-ul de prezentare.
   </p>
   <p>
     Formularul de anunțuri este protejat împotriva abuzurilor cu Cloudflare Turnstile, care se
@@ -104,6 +116,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
       semnat;
     </li>
     <li>email tranzacțional: <M>{legalEntity.emailProvider}</M>.</li>
+    <li>
+      analiză a platformei, înregistrări de sesiune, urmărirea erorilor și asistență: PostHog, cu
+      proiect găzduit în Uniunea Europeană.
+    </li>
   </ul>
   <p>
     Unii dintre acești furnizori au sediul în afara Uniunii Europene. Transferurile se fac în baza
@@ -125,6 +141,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
       serviciul extern le poate exporta, după care le ștergem;
     </li>
     <li>jurnalele tehnice: 90 de zile.</li>
+    <li>înregistrările sesiunilor în PostHog: ținta noastră este 30 de zile;</li>
+    <li>evenimentele de analiză și erorile în PostHog: ținta noastră este 12 luni;</li>
+    <li>conversațiile de asistență rezolvate: ținta noastră este 12 luni de la încheiere.</li>
   </ul>
 
   <h2>7. Drepturile tale</h2>

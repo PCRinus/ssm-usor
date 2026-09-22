@@ -1,9 +1,20 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type { MeResponse, PendingInvitationListResponse, Profile } from '@ssm-usor/contracts';
+import type {
+  MeResponse,
+  PendingInvitationListResponse,
+  Profile,
+  SupportIdentity,
+} from '@ssm-usor/contracts';
 
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import type { listMyInvitationsRoute, meRoute, updateProfileRoute } from './routes';
+import { ApiError } from '../../lib/errors';
+import type {
+  listMyInvitationsRoute,
+  meRoute,
+  supportIdentityRoute,
+  updateProfileRoute,
+} from './routes';
 
 const profileColumns = 'full_name, professional_title, terms_version, terms_accepted_at';
 
@@ -46,9 +57,36 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
         role && organization.data
           ? { organization: { id: organization.data.id, name: organization.data.name }, role }
           : null,
+      impersonation:
+        membership.data[0] && membership.data[0].user_id !== user.id
+          ? {
+              targetMemberId: membership.data[0].user_id,
+              targetOrganizationId: membership.data[0].organization_id,
+            }
+          : null,
     } satisfies MeResponse,
     200
   );
+};
+
+export const getSupportIdentity: RouteHandler<typeof supportIdentityRoute, ApiEnv> = async (c) => {
+  const secret = c.env.POSTHOG_SUPPORT_SECRET_KEY;
+  if (!secret) throw new ApiError('service_unavailable', 'Support is not configured.');
+
+  const distinctId = c.get('user').id;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(distinctId));
+  const hash = Array.from(new Uint8Array(signature), (byte) =>
+    byte.toString(16).padStart(2, '0')
+  ).join('');
+
+  return c.json({ distinctId, hash } satisfies SupportIdentity, 200);
 };
 
 export const updateProfile: RouteHandler<typeof updateProfileRoute, ApiEnv> = async (c) => {

@@ -3,6 +3,7 @@ import {
   meResponseSchema,
   pendingInvitationListResponseSchema,
   profileSchema,
+  supportIdentitySchema,
   updateProfileRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -22,6 +23,24 @@ export const meRoute = createRoute({
     200: {
       description: 'Verified user identity with profile and membership',
       content: { 'application/json': { schema: meResponseSchema.meta({ id: 'MeResponse' }) } },
+    },
+    ...authErrors,
+  },
+});
+
+export const supportIdentityRoute = createRoute({
+  method: 'get',
+  path: '/me/support-identity',
+  operationId: 'getSupportIdentity',
+  summary: 'Get the signed identity for the authenticated user in PostHog Support',
+  security: bearerSecurity,
+  middleware: [requireAuth] as const,
+  responses: {
+    200: {
+      description: 'The caller ID and its server-generated signature',
+      content: {
+        'application/json': { schema: supportIdentitySchema.meta({ id: 'SupportIdentity' }) },
+      },
     },
     ...authErrors,
   },

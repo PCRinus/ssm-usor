@@ -25,6 +25,10 @@ and deployment jobs use its variables, secrets, and protection rules. Add these 
 | `CLOUDFLARE_API_TOKEN`                                          | Secret   | Deployment token authorized to edit Workers and their custom-domain routes in this account/zone.                                                            |
 | `VITE_SUPABASE_URL`                                             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                                                                                         |
 | `VITE_SUPABASE_PUBLISHABLE_KEY`                                 | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                                                                                 |
+| `VITE_POSTHOG_PROJECT_TOKEN`                                    | Variable | Public project token for the production EU PostHog project. Without it, PostHog and Support are disabled in the SPA.                                        |
+| `POSTHOG_PROJECT_ID`                                            | Variable | Numeric project ID in the same EU PostHog project, used for source-map upload.                                                                              |
+| `POSTHOG_PERSONAL_API_KEY`                                      | Secret   | PostHog personal API key with access to upload source maps. It is used during the build and never exposed as a `VITE_` value.                               |
+| `POSTHOG_SUPPORT_SECRET_KEY`                                    | Secret   | Secret key for signed Support widget identity, from the same PostHog project. Passed only to the API Worker.                                                |
 | `E2E_EMAIL`                                                     | Secret   | Email of an existing Supabase test user.                                                                                                                    |
 | `E2E_PASSWORD`                                                  | Secret   | Password for that test user.                                                                                                                                |
 | `SUPABASE_PROJECT_ID`                                           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                                                                                     |
@@ -49,6 +53,14 @@ Repository-level variables and secrets also work, but values scoped to other env
 are unavailable here. The Cloudflare **Edit Cloudflare Workers** token template is a starting
 point; scope it to the account and zone hosting this project, as described in the marketing
 deployment guide.
+
+PostHog setup is a separate release prerequisite. Create a production project in the EU region,
+enable Error Tracking, Session Replay, and Support, and allow the `app.ssmusor.ro` widget domain.
+Set the Support greeting and email notification for new tickets in PostHog. Set session replay
+sampling to 100% for the pilot and verify the desired retention there. Store the four values above
+in the `production` GitHub environment before deploying. The build uploads hidden JavaScript source
+maps only when the personal API key and project ID are set; the plugin removes them from the release
+after upload. For local development use a separate EU project and leave the token unset by default.
 
 The workflow fixes `VITE_API_URL` to `https://api.ssmusor.ro`; no GitHub variable is needed
 for it. It builds the public Supabase settings into the SPA and passes the same settings to

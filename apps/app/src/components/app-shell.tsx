@@ -38,6 +38,7 @@ import {
   Handshake,
   LayoutDashboard,
   LogOut,
+  MessageSquareWarning,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ import { Fragment, useState } from 'react';
 
 import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
+import { usePostHogSession } from '../observability/use-posthog-session';
 import { CommitVersion } from './commit-version';
 import { Notice } from './notice';
 import { loaderCrumb } from './route-title';
@@ -70,6 +72,8 @@ function AppNavigation({
   isOwner,
   pending,
   onSignOut,
+  onReportProblem,
+  unreadCount,
 }: {
   email: string;
   // Both are missing while the account loads, and for an account that has neither.
@@ -78,6 +82,8 @@ function AppNavigation({
   isOwner: boolean;
   pending: boolean;
   onSignOut: () => Promise<void>;
+  onReportProblem: () => Promise<void>;
+  unreadCount: number;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
@@ -117,6 +123,27 @@ function AppNavigation({
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Raportează o problemă"
+              data-testid="report-problem"
+              onClick={() => {
+                if (isMobile) setOpenMobile(false);
+                void onReportProblem();
+              }}
+            >
+              <MessageSquareWarning aria-hidden="true" />
+              <span>Raportează o problemă</span>
+              {unreadCount > 0 && (
+                <span
+                  className="ml-auto rounded-full bg-primary px-1.5 text-xs text-primary-foreground"
+                  aria-label={`${unreadCount} răspunsuri necitite`}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -216,6 +243,12 @@ export function AppShell() {
   const email = session?.user.email ?? 'Contul meu';
   // A failed load leaves the menu with the email alone; the pages report the failure.
   const me = useMe();
+  const { openSupport, unreadCount } = usePostHogSession(me.data);
+
+  async function reportProblem() {
+    if (await openSupport()) return;
+    window.location.href = 'mailto:contact@ssmusor.ro?subject=Problem%C4%83%20SSM%20U%C8%99or';
+  }
 
   async function signOut() {
     setPending(true);
@@ -269,6 +302,8 @@ export function AppShell() {
           isOwner={me.data?.membership?.role === 'owner'}
           pending={pending}
           onSignOut={signOut}
+          onReportProblem={reportProblem}
+          unreadCount={unreadCount}
         />
         <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
           <main

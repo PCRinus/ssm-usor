@@ -130,9 +130,38 @@
               }
             },
             "required": ["organization", "role"]
+          },
+          "impersonation": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "targetMemberId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "targetOrganizationId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": ["targetMemberId", "targetOrganizationId"]
           }
         },
         "required": ["user", "profile", "membership"]
+      },
+      "SupportIdentity": {
+        "type": "object",
+        "properties": {
+          "distinctId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": ["distinctId", "hash"]
       },
       "ProfileResponse": {
         "type": "object",
@@ -3348,7 +3377,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-09"]
+            "enum": ["2026-09-23"]
           }
         },
         "required": ["organizationName", "fullName", "termsVersion"]
@@ -3582,7 +3611,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-09"]
+            "enum": ["2026-09-23"]
           }
         },
         "required": ["token", "fullName", "password", "termsVersion"]
@@ -3602,7 +3631,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-09"]
+            "enum": ["2026-09-23"]
           }
         },
         "required": ["token", "termsVersion"]
@@ -3685,6 +3714,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/support-identity": {
+      "get": {
+        "operationId": "getSupportIdentity",
+        "summary": "Get the signed identity for the authenticated user in PostHog Support",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller ID and its server-generated signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportIdentity"
                 }
               }
             }

@@ -172,7 +172,7 @@ describe('onboarding', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(created()).toEqual([
-      { fullName: 'Ana Popescu', organizationName: 'Protect SSM SRL', termsVersion: '2026-09' },
+      { fullName: 'Ana Popescu', organizationName: 'Protect SSM SRL', termsVersion: '2026-09-23' },
     ]);
     await waitFor(() =>
       expect(screen.getByTestId('account-organization').textContent).toBe('Protect SSM SRL')

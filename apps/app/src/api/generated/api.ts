@@ -104,12 +104,28 @@ export type MeResponseMembership = {
   role: MeResponseMembershipRole;
 } | null;
 
+/**
+ * @nullable
+ */
+export type MeResponseImpersonation = {
+  targetMemberId: string;
+  targetOrganizationId: string;
+} | null;
+
 export interface MeResponse {
   user: MeResponseUser;
   /** @nullable */
   profile: MeResponseProfile;
   /** @nullable */
   membership: MeResponseMembership;
+  /** @nullable */
+  impersonation?: MeResponseImpersonation;
+}
+
+export interface SupportIdentity {
+  distinctId: string;
+  /** @pattern ^[a-f0-9]{64}$ */
+  hash: string;
 }
 
 export interface ProfileResponse {
@@ -2296,7 +2312,7 @@ export type CreateOrganizationRequestTermsVersion =
   (typeof CreateOrganizationRequestTermsVersion)[keyof typeof CreateOrganizationRequestTermsVersion];
 
 export const CreateOrganizationRequestTermsVersion = {
-  '2026-09': '2026-09',
+  '2026-09-23': '2026-09-23',
 } as const;
 
 export interface CreateOrganizationRequest {
@@ -2466,7 +2482,7 @@ export type AcceptInvitationRequestTermsVersion =
   (typeof AcceptInvitationRequestTermsVersion)[keyof typeof AcceptInvitationRequestTermsVersion];
 
 export const AcceptInvitationRequestTermsVersion = {
-  '2026-09': '2026-09',
+  '2026-09-23': '2026-09-23',
 } as const;
 
 export interface AcceptInvitationRequest {
@@ -2493,7 +2509,7 @@ export type JoinWithInvitationRequestTermsVersion =
   (typeof JoinWithInvitationRequestTermsVersion)[keyof typeof JoinWithInvitationRequestTermsVersion];
 
 export const JoinWithInvitationRequestTermsVersion = {
-  '2026-09': '2026-09',
+  '2026-09-23': '2026-09-23',
 } as const;
 
 export interface JoinWithInvitationRequest {
@@ -2882,6 +2898,123 @@ export function useGetMe<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetMeQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetSupportIdentityUrl = () => {
+  return `/me/support-identity`;
+};
+
+/**
+ * @summary Get the signed identity for the authenticated user in PostHog Support
+ */
+export const getSupportIdentity = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SupportIdentity> => {
+  return apiFetch<SupportIdentity>(getGetSupportIdentityUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetSupportIdentityQueryKey = () => {
+  return [`/me/support-identity`] as const;
+};
+
+export const getGetSupportIdentityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSupportIdentity>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSupportIdentity>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSupportIdentityQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSupportIdentity>>> = ({ signal }) =>
+    getSupportIdentity({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSupportIdentity>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetSupportIdentityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSupportIdentity>>
+>;
+export type GetSupportIdentityQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetSupportIdentity<
+  TData = Awaited<ReturnType<typeof getSupportIdentity>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSupportIdentity>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSupportIdentity>>,
+          TError,
+          Awaited<ReturnType<typeof getSupportIdentity>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSupportIdentity<
+  TData = Awaited<ReturnType<typeof getSupportIdentity>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSupportIdentity>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSupportIdentity>>,
+          TError,
+          Awaited<ReturnType<typeof getSupportIdentity>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSupportIdentity<
+  TData = Awaited<ReturnType<typeof getSupportIdentity>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSupportIdentity>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the signed identity for the authenticated user in PostHog Support
+ */
+
+export function useGetSupportIdentity<
+  TData = Awaited<ReturnType<typeof getSupportIdentity>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSupportIdentity>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetSupportIdentityQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
