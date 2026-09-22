@@ -10,9 +10,9 @@
         "Efectuarea instruirilor în domeniul securității și sănătății în muncă la personalul angajat;",
         "Persoanele care fac parte din echipa de identificare și evaluare a riscurilor de accidentare și îmbolnăvire profesională pentru locurile de muncă încadrate și care desfășoară aceste activități în cadrul orelor de program;",
         "Aplicarea măsurilor de prim ajutor la personalul angajat;",
-        "Numirea lucrătorilor desemnați cu luarea măsurilor în caz de pericol grav și iminent.",
+        "Numirea lucrătorilor desemnați cu luarea măsurilor în caz de pericol grav și iminent;",
         {
-          "text": "Desemnarea reprezentanților lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă.",
+          "text": "Desemnarea reprezentanților lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă;",
           "when": "workersRepresentativeDecision"
         }
       ]

@@ -545,7 +545,16 @@ describe('decision_workers_representative', () => {
   it('prints the thresholds of H.G. 1425/2006 art. 53(1)', () => {
     const text = render(people);
     expect(text).toContain('va avea între 10 și 49 de lucrători inclusiv');
+    expect(text).toContain('doi reprezentanți, în cazul în care');
     expect(text).toContain('va avea între 50 și 100 de lucrători inclusiv');
+  });
+
+  it('says who elects the representatives in a sentence that reads', () => {
+    const text = render(people);
+    expect(text).toContain(
+      'Reprezentanții lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă sunt aleși de către și dintre lucrătorii'
+    );
+    expect(text).not.toContain('Numirea reprezentanților');
   });
 });
 
@@ -564,7 +573,7 @@ describe('cover_decisions', () => {
     expect(render([{}])).toContain('5. Desemnarea reprezentanților lucrătorilor');
     const without = render([]);
     expect(without).not.toContain('Desemnarea reprezentanților');
-    expect(without).toContain('4. Numirea lucrătorilor desemnați');
+    expect(without).toContain('grav și iminent;');
   });
 });
 
