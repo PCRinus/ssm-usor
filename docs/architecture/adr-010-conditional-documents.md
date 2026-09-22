@@ -13,7 +13,7 @@ The provider's template (`1.5._Decizie_privind_reprezentantul _lucratorilor.doc`
 
 A document of the set can depend on a fact about the client. Decision 1.5 is the first, and depends on the number of the client's current employees in the app; leavers do not count. Under 10 the decision is not generated and nothing is asked for it; from 10 at least one workers' representative is required, from 50 at least two. Clients over 100 employees are out of scope: they normally run an internal prevention service, and the app has nothing for the committee.
 
-The count comes from the employee list, not from a number typed on the client, which would drift from the list. Since an incomplete list silently drops the decision, the generation form states the count and what it requires, and the Documente tab shows a document that does not apply as "nu se aplică" with the reason, not as missing.
+The count comes from the employee list, not from a number typed on the client, which would drift from the list. The headcount a client declared at onboarding is therefore dropped from the client: its form no longer asks for it, and its page and the clients list show the list count. A lead keeps it, having no employee list yet, and the value stays in the database after promotion. Since an incomplete list silently drops the decision, the generation form states the count and what it requires, and the Documente tab shows a document that does not apply as "nu se aplică" with the reason, not as missing.
 
 A document that exists is never hidden or deleted because the fact changed: a 1.5 generated at 10 employees stays, draft or issued, when the client falls to 9, and only stops being required.
 

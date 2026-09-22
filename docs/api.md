@@ -224,7 +224,7 @@ so does a CNP or employee number already used by an active employee of that clie
 omits the CNP and, without `?status=`, returns current employees; archived rows
 are never listed. Lists are paginated with page numbers (`page` from 1, `pageSize` up to 100,
 25 by default) and sorted by one whitelisted key at a time (employees:
-`sort=name|jobTitle|hiredAt`; clients: `sort=legalName|cui|declaredEmployeeCount`;
+`sort=name|jobTitle|hiredAt`; clients: `sort=legalName|cui|currentEmployeeCount`;
 `order=asc|desc`), always with the id as a tiebreaker; the shared query and envelope schemas
 live in `packages/contracts/src/list.ts`. A page past the end answers an empty page with the
 real total. `POST` validates the CNP checksum and calendar date, stores it as digits,

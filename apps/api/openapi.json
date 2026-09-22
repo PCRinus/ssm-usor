@@ -326,6 +326,10 @@
                   "type": "integer",
                   "nullable": true
                 },
+                "currentEmployeeCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "stage": {
                   "type": "string",
                   "enum": ["lead", "client"]
@@ -378,6 +382,7 @@
                 "addressLine",
                 "legalRepresentativeName",
                 "declaredEmployeeCount",
+                "currentEmployeeCount",
                 "stage",
                 "contactName",
                 "contactEmail",
@@ -498,6 +503,10 @@
                 "type": "integer",
                 "nullable": true
               },
+              "currentEmployeeCount": {
+                "type": "integer",
+                "minimum": 0
+              },
               "stage": {
                 "type": "string",
                 "enum": ["lead", "client"]
@@ -550,6 +559,7 @@
               "addressLine",
               "legalRepresentativeName",
               "declaredEmployeeCount",
+              "currentEmployeeCount",
               "stage",
               "contactName",
               "contactEmail",
@@ -4013,7 +4023,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["legalName", "cui", "declaredEmployeeCount"],
+              "enum": ["legalName", "cui", "currentEmployeeCount"],
               "default": "legalName"
             },
             "required": false,

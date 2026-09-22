@@ -277,6 +277,7 @@ export type Database = {
           vat_payer: boolean;
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
+          current_employee_count: number | null;
         };
         Insert: {
           address_line?: string | null;
@@ -1240,6 +1241,12 @@ export type Database = {
           role: Database['public']['Enums']['organization_role'];
           sent_at: string;
         }[];
+      };
+      current_employee_count: {
+        Args: { '': Database['public']['Tables']['clients']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.current_employee_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       current_membership: {
         Args: never;

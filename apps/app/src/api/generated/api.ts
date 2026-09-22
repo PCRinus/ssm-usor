@@ -266,6 +266,8 @@ export type ClientListResponseItemsItem = {
   legalRepresentativeName: string | null;
   /** @nullable */
   declaredEmployeeCount: number | null;
+  /** @minimum 0 */
+  currentEmployeeCount: number;
   stage: ClientListResponseItemsItemStage;
   /** @nullable */
   contactName: string | null;
@@ -389,6 +391,8 @@ export type ClientResponseClient = {
   legalRepresentativeName: string | null;
   /** @nullable */
   declaredEmployeeCount: number | null;
+  /** @minimum 0 */
+  currentEmployeeCount: number;
   stage: ClientResponseClientStage;
   /** @nullable */
   contactName: string | null;
@@ -2609,7 +2613,7 @@ export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsS
 export const ListClientsSort = {
   legalName: 'legalName',
   cui: 'cui',
-  declaredEmployeeCount: 'declaredEmployeeCount',
+  currentEmployeeCount: 'currentEmployeeCount',
 } as const;
 
 export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClientsOrder];

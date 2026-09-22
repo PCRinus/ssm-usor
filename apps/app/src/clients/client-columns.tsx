@@ -23,7 +23,7 @@ export function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'localit
   return [client.locality, county].filter(Boolean).join(', ');
 }
 
-// Sortable column ids are the API sort keys: legalName, cui, declaredEmployeeCount.
+// Sortable column ids are the API sort keys: legalName, cui, currentEmployeeCount.
 // `onArchiveChange` is left out for a member who is not an owner.
 export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) => void) {
   return helper.columns([
@@ -65,15 +65,15 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
       meta: { skeletonClassName: 'w-36' },
       cell: ({ row }) => registeredOffice(row.original) || '—',
     }),
-    helper.accessor('declaredEmployeeCount', {
-      id: 'declaredEmployeeCount',
+    helper.accessor('currentEmployeeCount', {
+      id: 'currentEmployeeCount',
       header: 'Angajați',
       meta: {
         headerClassName: 'text-right',
         cellClassName: 'text-right tabular-nums',
         skeletonClassName: 'ml-auto w-10',
       },
-      cell: ({ getValue }) => getValue() ?? '—',
+      cell: ({ getValue }) => getValue(),
     }),
     helper.display({
       id: 'actions',

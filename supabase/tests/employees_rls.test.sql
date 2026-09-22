@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(17);
 
 -- Fixtures: two organizations with one member and one client each, plus an archived client in A.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -54,6 +54,10 @@ select throws_ok(
   'the CNP must have thirteen digits'
 );
 
+-- Organization B's client row, to hand to the headcount as someone who cannot read it.
+create temp table b_client as select * from public.clients where id = 'c2c2c2c2-0000-4000-8000-000000000001';
+grant select on b_client to authenticated;
+
 -- Owner A -------------------------------------------------------------------------
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001', '{"provider":"email"}');
 
@@ -61,6 +65,18 @@ select results_eq(
   $$ select last_name from public.employees order by last_name $$,
   $$ values ('Popescu') $$,
   'a member sees only employees of their organization'
+);
+
+select is(
+  (select public.current_employee_count(c) from public.clients c where c.id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  1,
+  'a client''s headcount counts its current employees'
+);
+
+select is(
+  (select public.current_employee_count(row(b.*)::public.clients) from b_client b),
+  0,
+  'the headcount of another organization''s client counts nothing the caller cannot see'
 );
 
 select lives_ok(

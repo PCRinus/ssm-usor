@@ -58,20 +58,20 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 
 `clients` stores the client companies of an organization, and its leads (ADR 007):
 
-| Column                                           | Notes                                                                           |
-| ------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `legal_name`                                     | Required.                                                                       |
-| `cui`                                            | Required, digits only, unique per organization; checksum validated by the API.  |
-| `vat_payer`                                      | The `RO` prefix is not stored; it is represented by this flag.                  |
-| `caen_code`                                      | Four digits, leading zeros preserved (CAEN Rev. 3).                             |
-| `trade_register_number`                          | As issued (`J40/1234/2020` or the newer `J2024…` format).                       |
-| `county_code`, `locality`, `address_line`        | Registered office; the county uses the vehicle registration code.               |
-| `legal_representative_name`                      | Name only for now.                                                              |
-| `declared_employee_count`                        | Headcount declared at onboarding; a live count will come from employee records. |
-| `stage`                                          | `lead` or `client`, the default. Only promotion changes it, and only one way.   |
-| `contact_name`, `contact_email`, `contact_phone` | The person the organization talks to, often not the legal representative.       |
-| `promoted_at`, `promoted_by`                     | Written by the trigger at promotion, never by hand; null for a lead.            |
-| `archived_at`                                    | Soft delete. There is no delete policy.                                         |
+| Column                                           | Notes                                                                                                                                                                |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `legal_name`                                     | Required.                                                                                                                                                            |
+| `cui`                                            | Required, digits only, unique per organization; checksum validated by the API.                                                                                       |
+| `vat_payer`                                      | The `RO` prefix is not stored; it is represented by this flag.                                                                                                       |
+| `caen_code`                                      | Four digits, leading zeros preserved (CAEN Rev. 3).                                                                                                                  |
+| `trade_register_number`                          | As issued (`J40/1234/2020` or the newer `J2024…` format).                                                                                                            |
+| `county_code`, `locality`, `address_line`        | Registered office; the county uses the vehicle registration code.                                                                                                    |
+| `legal_representative_name`                      | Name only for now.                                                                                                                                                   |
+| `declared_employee_count`                        | Headcount a lead declares before it has an employee list. A client goes by `current_employee_count(clients)`, a computed field over its current employees (ADR 010). |
+| `stage`                                          | `lead` or `client`, the default. Only promotion changes it, and only one way.                                                                                        |
+| `contact_name`, `contact_email`, `contact_phone` | The person the organization talks to, often not the legal representative.                                                                                            |
+| `promoted_at`, `promoted_by`                     | Written by the trigger at promotion, never by hand; null for a lead.                                                                                                 |
+| `archived_at`                                    | Soft delete. There is no delete policy.                                                                                                                              |
 
 Every member corrects a client's data, and only an owner archives or restores one: the update
 policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change

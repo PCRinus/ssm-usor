@@ -256,6 +256,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.goto(`/clients/${clientId}/documents`);
+  await expect(page.getByTestId('client-employee-count')).toHaveText('10');
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText(
     '10 angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor'

@@ -67,7 +67,9 @@ export const clientSchema = z.object({
   locality: z.string().nullable(),
   addressLine: z.string().nullable(),
   legalRepresentativeName: z.string().nullable(),
+  // What a lead declares; a client goes by its employee list instead.
   declaredEmployeeCount: z.int().nullable(),
+  currentEmployeeCount: z.int().min(0),
   stage: z.enum(clientStages),
   contactName: z.string().nullable(),
   contactEmail: z.string().nullable(),
@@ -86,7 +88,7 @@ export const clientResponseSchema = z.object({ client: clientSchema });
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
-export const clientSortKeys = ['legalName', 'cui', 'declaredEmployeeCount'] as const;
+export const clientSortKeys = ['legalName', 'cui', 'currentEmployeeCount'] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
 
 export const clientListStatuses = ['active', 'archived'] as const;

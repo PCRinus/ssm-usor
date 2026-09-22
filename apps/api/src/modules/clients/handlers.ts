@@ -32,7 +32,7 @@ import type {
 type ClientRow = Database['public']['Tables']['clients']['Row'];
 
 export const clientColumns =
-  'id, legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, declared_employee_count, stage, contact_name, contact_email, contact_phone, promoted_at, created_at, updated_at, archived_at';
+  'id, legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, declared_employee_count, current_employee_count, stage, contact_name, contact_email, contact_phone, promoted_at, created_at, updated_at, archived_at';
 
 // The documentation fields of ADR 005 get their own routes.
 type SelectedClientRow = Pick<
@@ -56,6 +56,7 @@ type SelectedClientRow = Pick<
   | 'created_at'
   | 'updated_at'
   | 'archived_at'
+  | 'current_employee_count'
 >;
 
 type ContractDocuments = {
@@ -97,6 +98,8 @@ export function toClient(row: SelectedClientRow & ContractDocuments): Client {
     addressLine: row.address_line,
     legalRepresentativeName: row.legal_representative_name,
     declaredEmployeeCount: row.declared_employee_count,
+    // A computed field, so the generated types cannot tell it is never null.
+    currentEmployeeCount: row.current_employee_count ?? 0,
     stage: row.stage,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
@@ -121,7 +124,7 @@ function requireOwnerForLeads(role: string) {
 const sortColumns: Record<ClientSortKey, string[]> = {
   legalName: ['legal_name'],
   cui: ['cui'],
-  declaredEmployeeCount: ['declared_employee_count', 'legal_name'],
+  currentEmployeeCount: ['current_employee_count', 'legal_name'],
 };
 
 export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async (c) => {
@@ -259,7 +262,10 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
       county_code: body.countyCode ?? null,
       locality: body.locality ?? null,
       address_line: body.addressLine ?? null,
-      declared_employee_count: body.declaredEmployeeCount ?? null,
+      // A client's form no longer asks for it; what its lead declared stays.
+      ...(body.declaredEmployeeCount !== undefined && {
+        declared_employee_count: body.declaredEmployeeCount,
+      }),
       ...(body.contactName !== undefined && { contact_name: body.contactName }),
       ...(body.contactEmail !== undefined && { contact_email: body.contactEmail }),
       ...(body.contactPhone !== undefined && { contact_phone: body.contactPhone }),

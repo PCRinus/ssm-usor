@@ -304,22 +304,24 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
                 />
               </Field>
             )}
-            <Field
-              id="declaredEmployeeCount"
-              label="Număr de angajați"
-              mark="optional"
-              hint="Numărul declarat la preluare; îl vei putea actualiza."
-              error={errors.declaredEmployeeCount}
-            >
-              <Input
+            {stage === 'lead' && (
+              <Field
                 id="declaredEmployeeCount"
-                data-testid="client-employees"
-                className="h-11"
-                {...register('declaredEmployeeCount')}
-                inputMode="numeric"
-                {...input('declaredEmployeeCount', true)}
-              />
-            </Field>
+                label="Număr de angajați"
+                mark="optional"
+                hint="Cât declară firma. Ca client, numărul vine din lista de angajați."
+                error={errors.declaredEmployeeCount}
+              >
+                <Input
+                  id="declaredEmployeeCount"
+                  data-testid="client-employees"
+                  className="h-11"
+                  {...register('declaredEmployeeCount')}
+                  inputMode="numeric"
+                  {...input('declaredEmployeeCount', true)}
+                />
+              </Field>
+            )}
           </FormSection>
           {stage === 'client' && contactSection}
         </Card>
