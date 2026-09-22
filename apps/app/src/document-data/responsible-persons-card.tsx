@@ -44,6 +44,7 @@ import {
   type ResponsiblePersonEditing,
 } from './responsible-person-dialog';
 import {
+  alwaysRequiredRoles,
   type ResponsiblePerson,
   responsibleRoleLabels,
   responsibleRoleOrder,
@@ -72,7 +73,7 @@ export function ResponsiblePersonsCard({
 
   // Each decision names someone, so a role nobody holds is what generating will ask for.
   const held = new Set(persons.data?.items.flatMap((person) => person.roles));
-  const missing = responsibleRoleOrder.filter((role) => !held.has(role));
+  const missing = alwaysRequiredRoles.filter((role) => !held.has(role));
 
   async function adoptContractTitle(person: ResponsiblePerson, jobTitle: string) {
     setError(null);

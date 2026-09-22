@@ -1731,6 +1731,7 @@ export const ResponsiblePersonListResponseItemsItemRolesItem = {
   first_aid: 'first_aid',
   risk_evaluation_team: 'risk_evaluation_team',
   imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
 } as const;
 
 export type ResponsiblePersonListResponseItemsItem = {
@@ -1760,6 +1761,7 @@ export const ResponsiblePersonResponseResponsiblePersonRolesItem = {
   first_aid: 'first_aid',
   risk_evaluation_team: 'risk_evaluation_team',
   imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
 } as const;
 
 export type ResponsiblePersonResponseResponsiblePerson = {
@@ -1789,6 +1791,7 @@ export const ResponsiblePersonRequestRolesItem = {
   first_aid: 'first_aid',
   risk_evaluation_team: 'risk_evaluation_team',
   imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
 } as const;
 
 export interface ResponsiblePersonRequest {
@@ -1806,7 +1809,7 @@ export interface ResponsiblePersonRequest {
   jobTitle: string;
   /**
    * @minItems 1
-   * @maxItems 4
+   * @maxItems 5
    */
   roles: ResponsiblePersonRequestRolesItem[];
 }
@@ -1827,6 +1830,10 @@ export const DocumentReadinessResponseMissingItem = {
   responsiblefirst_aid: 'responsible.first_aid',
   responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
   responsibleimminent_danger: 'responsible.imminent_danger',
+  responsibleworkers_representative: 'responsible.workers_representative',
+  responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
+  responsibleworkers_representative_is_legal_representative:
+    'responsible.workers_representative_is_legal_representative',
 } as const;
 
 export interface DocumentReadinessResponse {
@@ -6804,7 +6811,7 @@ export const getCreateResponsiblePersonUrl = (clientId: string) => {
 };
 
 /**
- * A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.
+ * A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.
  * @summary Add a responsible person to a client
  */
 export const createResponsiblePerson = async (

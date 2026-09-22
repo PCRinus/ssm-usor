@@ -245,6 +245,49 @@ describe('client responsible persons', () => {
     expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
   });
 
+  it("takes a workers' representative only from the employees", async () => {
+    mockApi({ items: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.type(await screen.findByTestId('responsible-name'), 'Maria Popescu');
+    await user.type(screen.getByTestId('responsible-job-title'), 'Vânzătoare');
+    await user.click(screen.getByTestId('responsible-role-workers_representative'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    expect((await screen.findByTestId('responsible-employee-error')).textContent).toContain(
+      'dintre angajații clientului'
+    );
+    expect(requests(listPath, 'POST')).toEqual([]);
+  });
+
+  it('says why the legal representative cannot represent the workers', async () => {
+    mockApi({
+      update: () =>
+        Response.json(
+          {
+            error: 'conflict',
+            message: 'Conflict',
+            reason: 'workers_representative_is_legal_representative',
+          },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-actions'));
+    await user.click(await screen.findByTestId('responsible-edit'));
+    await user.click(await screen.findByTestId('responsible-role-workers_representative'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    expect((await screen.findByTestId('responsible-roles-error')).textContent).toContain(
+      'Paolo-Antonio Luca este reprezentantul legal al clientului'
+    );
+    expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
+  });
+
   it('edits the roles starting from what is saved', async () => {
     mockApi();
     mount();

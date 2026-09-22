@@ -1,3 +1,5 @@
+import { requiredWorkersRepresentatives } from '@ssm-usor/contracts';
+
 import type { Database } from '../../src/database.types';
 import { type SeedClient, seedOrganizationId } from './seed-organization';
 
@@ -68,14 +70,16 @@ export function workplaceFor(client: SeededClient, createdBy: string): Workplace
 }
 
 // The usual small company: one employee runs the workplace and gives first aid, and the
-// legal representative, who is not an employee, takes the other two roles.
+// legal representative, who is not an employee, takes the other two roles. From 10 employees
+// the next ones in the list represent the workers.
 export function responsiblePersonsFor(
   client: SeededClient,
-  employee: SeededEmployee | null,
+  employees: SeededEmployee[],
   createdBy: string
 ): ResponsiblePersonInsert[] {
   const base = { organization_id: seedOrganizationId, client_id: client.id, created_by: createdBy };
   const rows: ResponsiblePersonInsert[] = [];
+  const [employee, ...others] = employees;
   if (employee) {
     rows.push({
       ...base,
@@ -91,6 +95,15 @@ export function responsiblePersonsFor(
       full_name: client.legal_representative_name,
       job_title: client.legal_representative_role ?? 'Administrator',
       roles: ['risk_evaluation_team', 'imminent_danger'],
+    });
+  }
+  for (const representative of others.slice(0, requiredWorkersRepresentatives(employees.length))) {
+    rows.push({
+      ...base,
+      employee_id: representative.id,
+      full_name: `${representative.first_name} ${representative.last_name}`,
+      job_title: representative.job_title,
+      roles: ['workers_representative'],
     });
   }
   return rows;
@@ -124,18 +137,16 @@ export async function seedDocumentData(db: SeedClient, clients: SeededClient[], 
       throw new Error(`Could not read responsible persons: ${existingPersons.error.message}`);
     }
     if (existingPersons.count !== 0) continue;
-    const employee = await db
+    const employees = await db
       .from('employees')
       .select('id, first_name, last_name, job_title')
       .eq('client_id', client.id)
       .eq('status', 'active')
       .is('archived_at', null)
       .order('hired_at')
-      .order('id')
-      .limit(1)
-      .maybeSingle();
-    if (employee.error) throw new Error(`Could not read employees: ${employee.error.message}`);
-    const rows = responsiblePersonsFor(client, employee.data, createdBy);
+      .order('id');
+    if (employees.error) throw new Error(`Could not read employees: ${employees.error.message}`);
+    const rows = responsiblePersonsFor(client, employees.data, createdBy);
     if (rows.length === 0) continue;
     const { error } = await db.from('client_responsible_persons').insert(rows);
     if (error) throw new Error(`Could not seed responsible persons: ${error.message}`);

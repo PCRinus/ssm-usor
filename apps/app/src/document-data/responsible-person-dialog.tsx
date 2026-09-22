@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { responsiblePersonConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
@@ -107,6 +108,15 @@ function ResponsiblePersonForm({
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      if (
+        status === 409 &&
+        body?.reason === responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative
+      ) {
+        form.setError('roles', {
+          message: `${values.fullName.trim()} este reprezentantul legal al clientului și nu poate fi și reprezentantul lucrătorilor.`,
+        });
+        return;
+      }
       if (status === 409) {
         form.setError('employeeId', {
           message: 'Angajatul este deja în listă. Modifică responsabilitățile lui de acolo.',

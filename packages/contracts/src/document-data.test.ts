@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   formatTrainingDuration,
   periodicTrainingMinutesOptions,
+  requiredWorkersRepresentatives,
   responsiblePersonRequestSchema,
+  samePersonName,
   trainingMonths,
   updateClientDocumentDetailsRequestSchema,
 } from './document-data';
@@ -87,5 +89,34 @@ describe('responsiblePersonRequestSchema', () => {
     expect(parse(['workplace_manager', 'first_aid']).success).toBe(true);
     expect(parse([]).success).toBe(false);
     expect(parse(['first_aid', 'first_aid']).success).toBe(false);
+  });
+
+  it("takes a workers' representative only from the employees", () => {
+    const parse = (employeeId: string | null) =>
+      responsiblePersonRequestSchema.safeParse({
+        ...person,
+        employeeId,
+        roles: ['workers_representative'],
+      });
+    expect(parse('0b8a3a39-7a55-4c7e-9a07-1f3c8f3a3c11').success).toBe(true);
+    expect(parse(null).error?.issues[0]?.path).toEqual(['employeeId']);
+  });
+});
+
+describe('samePersonName', () => {
+  it('ignores order, case, diacritics and hyphens', () => {
+    expect(samePersonName('Florin Cristian TALOȘ', 'talos florin-cristian')).toBe(true);
+    expect(samePersonName('  Ana  Pop ', 'POP ANA')).toBe(true);
+  });
+
+  it('tells different people apart', () => {
+    expect(samePersonName('Ana Pop', 'Ana Popa')).toBe(false);
+    expect(samePersonName('Ana Pop', 'Ana Maria Pop')).toBe(false);
+  });
+});
+
+describe('requiredWorkersRepresentatives', () => {
+  it('asks for none under 10, one from 10 and two from 50', () => {
+    expect([0, 9, 10, 49, 50, 100].map(requiredWorkersRepresentatives)).toEqual([0, 0, 1, 1, 2, 2]);
   });
 });

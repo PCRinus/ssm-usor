@@ -105,6 +105,9 @@ export const missingDocumentData = [
   'responsible.first_aid',
   'responsible.risk_evaluation_team',
   'responsible.imminent_danger',
+  'responsible.workers_representative',
+  'responsible.workers_representatives_two',
+  'responsible.workers_representative_is_legal_representative',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);

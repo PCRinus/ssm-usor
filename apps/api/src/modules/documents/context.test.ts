@@ -19,7 +19,9 @@ describe('what is missing', () => {
         },
         specialist: null,
         client: { ...facts.client, representativeRole: null, trainingDayTo: null },
-        responsiblePersons: [{ fullName: 'A B', jobTitle: 'C', roles: ['first_aid'] }],
+        responsiblePersons: [
+          { fullName: 'A B', jobTitle: 'C', roles: ['first_aid'], currentEmployee: true },
+        ],
       })
     ).toEqual([
       'provider.legalName',
@@ -62,6 +64,52 @@ describe('what is missing', () => {
     expect(withChoices(null, 3, true, false)).toEqual([]);
     expect(withChoices(6, null, false, false)).toContain('client.trainingSchedule');
     expect(withChoices(null, null, true, true)).toContain('client.trainingSchedule');
+  });
+
+  describe("workers' representatives", () => {
+    const representative = (fullName: string, currentEmployee = true) => ({
+      fullName,
+      jobTitle: 'Vânzător',
+      roles: ['workers_representative' as const],
+      currentEmployee,
+    });
+    const missing = (currentEmployeeCount: number, ...representatives: string[]) =>
+      missingDocumentData({
+        ...facts,
+        currentEmployeeCount,
+        responsiblePersons: [
+          ...facts.responsiblePersons,
+          ...representatives.map((name) => representative(name)),
+        ],
+      });
+
+    it('are not asked for under 10 current employees', () => {
+      expect(missing(9)).toEqual([]);
+      expect(missing(9, 'Florin Cristian TALOȘ')).toEqual([]);
+    });
+
+    it('need one from 10 current employees and two from 50', () => {
+      expect(missing(10)).toEqual(['responsible.workers_representative']);
+      expect(missing(10, 'Ioana PETRE')).toEqual([]);
+      expect(missing(50, 'Ioana PETRE')).toEqual(['responsible.workers_representatives_two']);
+      expect(missing(50, 'Ioana PETRE', 'Mihai DOBRE')).toEqual([]);
+    });
+
+    it('do not count once their employee has left', () => {
+      expect(
+        missingDocumentData({
+          ...facts,
+          currentEmployeeCount: 12,
+          responsiblePersons: [...facts.responsiblePersons, representative('Ioana PETRE', false)],
+        })
+      ).toEqual(['responsible.workers_representative']);
+    });
+
+    it('cannot include the legal representative, however the name is typed', () => {
+      expect(missing(12, 'Talos Florin-Cristian')).toEqual([
+        'responsible.workers_representative_is_legal_representative',
+      ]);
+    });
   });
 
   it('blocks a category with active employees from being excluded', () => {

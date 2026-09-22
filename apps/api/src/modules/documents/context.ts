@@ -2,7 +2,9 @@ import {
   decisionTypeKeys,
   formatTrainingDuration,
   type MissingDocumentData,
+  requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
+  samePersonName,
   type StaffCategory,
   trainingMonths,
   unfilledMark,
@@ -38,9 +40,16 @@ export type DocumentFacts = {
     trainingDayTo: number | null;
   };
   /** In the order they should be printed. */
-  responsiblePersons: { fullName: string; jobTitle: string; roles: ResponsiblePersonRole[] }[];
+  responsiblePersons: {
+    fullName: string;
+    jobTitle: string;
+    roles: ResponsiblePersonRole[];
+    /** Linked to an employee who has not left. */
+    currentEmployee: boolean;
+  }[];
   /** Categories held by at least one current employee, based on their job position. */
   staffCategoriesInUse: StaffCategory[];
+  currentEmployeeCount: number;
 };
 
 type Person = { name: string; jobTitle: string };
@@ -100,6 +109,11 @@ export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[]
     (!facts.staffCategoriesInUse.includes('technical_administrative') || administrative !== null) &&
     (!facts.staffCategoriesInUse.includes('execution') || worker !== null);
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
+  const representativesNeeded = requiredWorkersRepresentatives(facts.currentEmployeeCount);
+  // A representative whose employee has left no longer speaks for the workers.
+  const representatives = facts.responsiblePersons.filter(
+    (person) => person.roles.includes('workers_representative') && person.currentEmployee
+  );
   const checks: [MissingDocumentData, boolean][] = [
     ['provider.legalName', filled(organization.legalName)],
     ['provider.representativeName', filled(organization.representativeName)],
@@ -113,6 +127,21 @@ export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[]
     ['responsible.first_aid', held.has('first_aid')],
     ['responsible.risk_evaluation_team', held.has('risk_evaluation_team')],
     ['responsible.imminent_danger', held.has('imminent_danger')],
+    [
+      'responsible.workers_representative',
+      representativesNeeded === 0 || representatives.length > 0,
+    ],
+    [
+      'responsible.workers_representatives_two',
+      representatives.length === 0 || representatives.length >= representativesNeeded,
+    ],
+    [
+      'responsible.workers_representative_is_legal_representative',
+      representativesNeeded === 0 ||
+        !representatives.some((person) =>
+          samePersonName(person.fullName, client.representativeName ?? '')
+        ),
+    ],
   ];
   return checks.filter(([, present]) => !present).map(([code]) => code);
 }

@@ -2316,7 +2316,8 @@
                       "workplace_manager",
                       "first_aid",
                       "risk_evaluation_team",
-                      "imminent_danger"
+                      "imminent_danger",
+                      "workers_representative"
                     ]
                   },
                   "minItems": 1
@@ -2383,7 +2384,8 @@
                     "workplace_manager",
                     "first_aid",
                     "risk_evaluation_team",
-                    "imminent_danger"
+                    "imminent_danger",
+                    "workers_representative"
                   ]
                 },
                 "minItems": 1
@@ -2434,10 +2436,16 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["workplace_manager", "first_aid", "risk_evaluation_team", "imminent_danger"]
+              "enum": [
+                "workplace_manager",
+                "first_aid",
+                "risk_evaluation_team",
+                "imminent_danger",
+                "workers_representative"
+              ]
             },
             "minItems": 1,
-            "maxItems": 4
+            "maxItems": 5
           }
         },
         "required": ["fullName", "jobTitle", "roles"]
@@ -2464,7 +2472,10 @@
                 "responsible.workplace_manager",
                 "responsible.first_aid",
                 "responsible.risk_evaluation_team",
-                "responsible.imminent_danger"
+                "responsible.imminent_danger",
+                "responsible.workers_representative",
+                "responsible.workers_representatives_two",
+                "responsible.workers_representative_is_legal_representative"
               ]
             }
           }
@@ -7124,7 +7135,7 @@
       "post": {
         "operationId": "createResponsiblePerson",
         "summary": "Add a responsible person to a client",
-        "description": "A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.",
+        "description": "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.",
         "security": [
           {
             "bearerAuth": []
@@ -7203,7 +7214,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the employee is already a responsible person",
+            "description": "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative",
             "content": {
               "application/json": {
                 "schema": {
@@ -7326,7 +7337,7 @@
             }
           },
           "409": {
-            "description": "The employee is already a responsible person",
+            "description": "The employee is already a responsible person, or a workers' representative is the client's legal representative",
             "content": {
               "application/json": {
                 "schema": {

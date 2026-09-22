@@ -17,7 +17,7 @@ export async function loadDocumentFacts(
   specialistUserId: string
 ): Promise<StoredDocumentFacts> {
   const categories: StaffCategory[] = ['technical_administrative', 'execution'];
-  const [client, organization, members, persons, ...employeeCounts] = await Promise.all([
+  const [client, organization, members, persons, headcount, ...employeeCounts] = await Promise.all([
     db
       .from('clients')
       .select(
@@ -33,12 +33,18 @@ export async function loadDocumentFacts(
     db.rpc('organization_member_list'),
     db
       .from('client_responsible_persons')
-      .select('full_name, job_title, roles')
+      .select('full_name, job_title, roles, employees(status, archived_at)')
       .eq('client_id', clientId)
       .is('archived_at', null)
       // The order people were designated in is the order the decisions list them in.
       .order('created_at')
       .order('id'),
+    db
+      .from('employees')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+      .is('archived_at', null),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -57,6 +63,7 @@ export async function loadDocumentFacts(
     throw fromDatabaseError(organization.error, 'document facts: organization');
   if (members.error) throw fromDatabaseError(members.error, 'document facts: members');
   if (persons.error) throw fromDatabaseError(persons.error, 'document facts: responsible persons');
+  if (headcount.error) throw fromDatabaseError(headcount.error, 'document facts: employee count');
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
   }
@@ -91,7 +98,10 @@ export async function loadDocumentFacts(
       fullName: person.full_name,
       jobTitle: person.job_title,
       roles: person.roles as ResponsiblePersonRole[],
+      currentEmployee:
+        person.employees?.status === 'active' && person.employees.archived_at === null,
     })),
     staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
+    currentEmployeeCount: headcount.count ?? 0,
   };
 }

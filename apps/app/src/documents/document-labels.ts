@@ -49,6 +49,20 @@ export const missingDataLabels: Record<
     place: 'client',
     label: `o persoană pentru „${responsibleRoleLabels.imminent_danger.label}”`,
   },
+  'responsible.workers_representative': {
+    place: 'client',
+    label:
+      'un reprezentant al lucrătorilor, ales dintre angajați (clientul are cel puțin 10 angajați)',
+  },
+  'responsible.workers_representatives_two': {
+    place: 'client',
+    label: 'al doilea reprezentant al lucrătorilor (clientul are cel puțin 50 de angajați)',
+  },
+  'responsible.workers_representative_is_legal_representative': {
+    place: 'client',
+    label:
+      'alt reprezentant al lucrătorilor: reprezentantul legal al clientului nu îi poate reprezenta și pe lucrători',
+  },
 };
 
 export function groupMissing(missing: readonly MissingDocumentData[]) {
