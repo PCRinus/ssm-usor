@@ -13,6 +13,8 @@ export type ApiEnv = {
     TURNSTILE_SECRET_KEY?: string;
     // Signs Supabase Auth's hook calls: "v1,whsec_<base64>", the same value Supabase holds.
     SUPABASE_AUTH_HOOK_SECRET?: string;
+    // Used only by the API to sign verified PostHog Support identities.
+    POSTHOG_SUPPORT_SECRET_KEY?: string;
     MARKETING_ORIGIN?: string;
     // Where the SPA lives, for links in emails.
     APP_ORIGIN?: string;

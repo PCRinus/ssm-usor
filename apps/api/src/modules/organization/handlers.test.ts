@@ -202,7 +202,7 @@ describe('POST /organization', () => {
   const body = {
     organizationName: '  Protect SSM SRL ',
     fullName: ' Ana Popescu ',
-    termsVersion: '2026-09',
+    termsVersion: '2026-09-23',
   };
   const databaseError = (code: string, message: string) => () =>
     Response.json({ code, message }, { status: 400 });
@@ -221,7 +221,7 @@ describe('POST /organization', () => {
       {
         organization_name: 'Protect SSM SRL',
         owner_full_name: 'Ana Popescu',
-        accepted_terms_version: '2026-09',
+        accepted_terms_version: '2026-09-23',
       },
     ]);
   });

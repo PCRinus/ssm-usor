@@ -53,9 +53,20 @@ export const meResponseSchema = z.object({
   // Null for an account that belongs to no organization. During an impersonation this is
   // the impersonated user's membership, while `user` and `profile` stay the caller's own.
   membership: membershipSchema.nullable(),
+  impersonation: z
+    .object({ targetMemberId: z.uuid(), targetOrganizationId: z.uuid() })
+    .nullable()
+    .optional(),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+export const supportIdentitySchema = z.object({
+  distinctId: z.uuid(),
+  hash: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
+export type SupportIdentity = z.infer<typeof supportIdentitySchema>;
 
 export const apiErrorCodeSchema = z.enum([
   'unauthorized',

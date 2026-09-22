@@ -15,3 +15,6 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 # MARKETING_ORIGIN=http://localhost:4321
 # Signs the local Supabase stack's Send Email hook; the same value is in supabase/config.toml.
 # SUPABASE_AUTH_HOOK_SECRET=v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI=
+
+# Server-only PostHog Support identity signing secret from the matching EU project.
+# POSTHOG_SUPPORT_SECRET_KEY=replace_me

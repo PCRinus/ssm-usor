@@ -5,6 +5,28 @@ email/password authentication. Cloudflare serves the static build with SPA fallb
 
 ## Local configuration
 
+PostHog is optional locally. Add `VITE_POSTHOG_PROJECT_TOKEN` from a separate EU development
+project to enable analytics, error tracking, session replay, and the Support widget for signed-in
+members. Leave it absent to keep all PostHog code dormant. The API also needs
+`POSTHOG_SUPPORT_SECRET_KEY` in `apps/api/.dev.vars` to sign the real user ID for Support; the
+browser never receives this secret. The report button falls back to email if Support is not
+configured or cannot load.
+
+PostHog starts only after the app has loaded an authenticated membership. It identifies the
+Supabase user, associates ordinary member events with their organization, captures signed-in
+page views and unhandled browser errors, and records all eligible sessions. During impersonation,
+it keeps the real administrator as the actor and marks the target member and organization as
+context. The replay masks text, input values, and element attributes; network recording includes
+URL, method, status, and timing but excludes headers and bodies. The Support widget attaches the
+replay link and current URL to a new report. Sign-out clears the PostHog and Support identities.
+
+In each EU PostHog project, enable Error Tracking, Session Replay, and Support. Enable the Support
+widget for the app domain and set its greeting, button text, and new-ticket email notification in
+the dashboard. Configure replay sampling to 100% for the pilot, and review product retention and
+deletion settings before external users join. The floating PostHog launcher is hidden because the
+sidebar report button opens the widget. PostHog changes to the widget DOM may require updating
+the adapter in `src/observability/posthog.ts`.
+
 Copy `apps/app/.env.example` to `apps/app/.env.local` and set the project's URL and
 publishable key:
 

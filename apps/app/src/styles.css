@@ -13,3 +13,7 @@
     min-height: 100vh;
   }
 }
+
+#ph-conversations-widget-container:has(button[aria-label^='Open chat']) {
+  display: none;
+}
