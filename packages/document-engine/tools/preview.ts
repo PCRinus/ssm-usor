@@ -57,6 +57,9 @@ function sample(
       evaluationTeam: people,
       imminentDanger: people,
       imminentDangerText: described(people),
+      workersRepresentativeDecision: [{}],
+      workersRepresentatives: people,
+      workersRepresentativesLead: people.length === 1 ? 'următorul angajat' : 'următorii angajați',
       training: {
         periodicDuration: '2 ore',
         intervalPhrase: 'următoarele intervale de timp',

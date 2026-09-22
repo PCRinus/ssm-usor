@@ -5,6 +5,7 @@ import {
   completeDocumentData,
   createAccount,
   createClientCompany,
+  createEmployee,
   createOrganization,
   signIn,
 } from './support';
@@ -227,4 +228,54 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
   await expect(firstAid.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
   await expect(firstAid.getByTestId('document-edited')).toHaveText('Modificat');
+});
+
+test("from 10 employees the set includes the decision on the workers' representative", async ({
+  page,
+}) => {
+  const owner = await createAccount('documents-representative', 'Dana Documente');
+  const organizationId = await createOrganization('Reprezentant documente E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. ZECE ANGAJAȚI E2E S.R.L.');
+  await completeDocumentData(organizationId, owner.id, clientId);
+  for (let index = 1; index < 10; index++) {
+    await createEmployee(organizationId, clientId, {
+      firstName: `Angajat ${index}`,
+      lastName: 'Test',
+      jobTitle: 'Electrician',
+    });
+  }
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Ion',
+    lastName: 'Vasile',
+    jobTitle: 'Vânzător',
+  });
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.goto(`/clients/${clientId}/documents`);
+  await page.getByTestId('documents-generate').click();
+  await expect(page.getByTestId('generate-missing-place')).toContainText(
+    'un reprezentant al lucrătorilor'
+  );
+
+  await page.goto(`/clients/${clientId}/document-data`);
+  await page.getByTestId('responsible-add').click();
+  await page.getByTestId('responsible-employee').click();
+  await page.getByTestId('responsible-employee-search').fill('vasile');
+  await page.getByRole('option', { name: /Vasile/ }).click();
+  await page.getByTestId('responsible-role-workers_representative').click();
+  await page.getByTestId('responsible-save').click();
+  await expect(page.getByText('Persoana a fost adăugată.')).toBeVisible();
+
+  await page.goto(`/clients/${clientId}/documents`);
+  await page.getByTestId('documents-generate').click();
+  await page.getByTestId('generate-issue-date').fill('19.01.2026');
+  await page.getByTestId('generate-first-number').fill('3');
+  await page.getByTestId('generate-submit').click();
+  await expect(page.getByText('Au fost generate 19 documente.')).toBeVisible();
+  const decision = page
+    .getByTestId('document-row')
+    .filter({ hasText: 'Decizia privind reprezentanții lucrătorilor' });
+  await expect(decision).toContainText('Decizia nr. 7 SSM');
+  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
 });

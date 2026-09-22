@@ -11,9 +11,9 @@ export const generateDocumentsFormSchema = z.object({
   firstDecisionNumber: z
     .string()
     .trim()
-    .regex(/^\d{1,4}$/, 'Introdu un număr între 1 și 9996.')
-    .refine((value) => Number(value) >= 1 && Number(value) <= 9996, {
-      message: 'Introdu un număr între 1 și 9996.',
+    .regex(/^\d{1,4}$/, 'Introdu un număr între 1 și 9995.')
+    .refine((value) => Number(value) >= 1 && Number(value) <= 9995, {
+      message: 'Introdu un număr între 1 și 9995.',
     }),
 });
 

@@ -2651,9 +2651,36 @@
               }
             },
             "required": ["issueDate", "firstDecisionNumber"]
+          },
+          "notApplicable": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cover_decisions",
+                "decision_training",
+                "decision_risk_evaluation_team",
+                "decision_first_aid",
+                "decision_imminent_danger",
+                "decision_workers_representative",
+                "cover_general_training_material",
+                "general_training_material",
+                "cover_own_instructions",
+                "cover_training_themes",
+                "cover_tests",
+                "test_hiring",
+                "test_periodic",
+                "cover_event_registers",
+                "event_registers",
+                "control_report",
+                "cover_employer_briefing",
+                "employer_briefing",
+                "control_regulation"
+              ]
+            }
           }
         },
-        "required": ["items", "lastGeneration"]
+        "required": ["items", "lastGeneration", "notApplicable"]
       },
       "GenerateDocumentsResponse": {
         "type": "object",
@@ -2828,7 +2855,7 @@
           "firstDecisionNumber": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 9996,
+            "maximum": 9995,
             "default": 1
           }
         },
@@ -8669,6 +8696,7 @@
                 "decision_risk_evaluation_team",
                 "decision_first_aid",
                 "decision_imminent_danger",
+                "decision_workers_representative",
                 "cover_general_training_material",
                 "general_training_material",
                 "cover_own_instructions",

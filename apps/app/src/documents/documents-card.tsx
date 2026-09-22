@@ -159,7 +159,10 @@ export function DocumentsCard({
 
   const items = documents.data?.items ?? [];
   const existing = new Set(items.map((item) => item.typeKey));
-  const lacking = documentTypeKeys.filter((key) => !existing.has(key)).length;
+  const notApplicable = new Set(documents.data?.notApplicable);
+  const lacking = documentTypeKeys.filter(
+    (key) => !existing.has(key) && !notApplicable.has(key)
+  ).length;
   // The documents the app cannot write yet wait for a file, in their place in the pack.
   const packRows = packDocumentTypeKeys.flatMap((typeKey): Row[] => {
     const document = items.find((item) => item.typeKey === typeKey);

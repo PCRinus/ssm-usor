@@ -70,6 +70,11 @@ export type DocumentContext = {
   evaluationTeam: Person[];
   imminentDanger: Person[];
   imminentDangerText: string;
+  /** One item when decision 1.5 is part of the set, which the cover lists. */
+  workersRepresentativeDecision: Record<string, never>[];
+  workersRepresentatives: Person[];
+  /** "următorul angajat" or "următorii angajați". */
+  workersRepresentativesLead: string;
   training: {
     periodicDuration: string;
     intervalPhrase: string;
@@ -196,6 +201,9 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     facts.responsiblePersons
       .filter((person) => person.roles.includes(role))
       .map((person) => ({ name: person.fullName.trim(), jobTitle: person.jobTitle.trim() }));
+  const workersRepresentatives = facts.responsiblePersons
+    .filter((person) => person.roles.includes('workers_representative') && person.currentEmployee)
+    .map((person) => ({ name: person.fullName.trim(), jobTitle: person.jobTitle.trim() }));
   const workplaceManagers = withRole('workplace_manager');
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
@@ -230,6 +238,12 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     imminentDangerText: imminentDanger
       .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
       .join(', '),
+    workersRepresentativeDecision: documentApplies(facts, 'decision_workers_representative')
+      ? [{}]
+      : [],
+    workersRepresentatives,
+    workersRepresentativesLead:
+      workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',
     training: {
       periodicDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
       intervalPhrase:
@@ -261,6 +275,20 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     // chapter is generated as a row to fill in by hand (ADR 005).
     unitRisks: [{ risk: unfilledMark, measure: unfilledMark }],
   };
+}
+
+/**
+ * Whether a document belongs in this client's set. Decision 1.5 only does from 10 current
+ * employees (ADR 010); a document that already exists is kept regardless.
+ */
+export function documentApplies(
+  facts: Pick<DocumentFacts, 'currentEmployeeCount'>,
+  typeKey: string
+): boolean {
+  return (
+    typeKey !== 'decision_workers_representative' ||
+    requiredWorkersRepresentatives(facts.currentEmployeeCount) > 0
+  );
 }
 
 /**

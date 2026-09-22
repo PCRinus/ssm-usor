@@ -19,7 +19,7 @@ const allTemplateFiles = readdirSync(fileURLToPath(templatesUrl)).filter((name) 
 // What the provider's originals printed. None of it may survive in a template. A date counts
 // from 2020 on: the laws the documents quote are dated too, and older.
 const originals =
-  /VELOCITA|PIPETECH|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|D-na|D-l |\b\d{2}\.\d{2}\.202\d\b/;
+  /VELOCITA|PIPETECH|PROFLEX|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|GIURGEA|D-na|D-l |\b\d{2}\.\d{2}\.202\d\b/;
 
 // What only the decisions have: a signature block, an acknowledgement table, its wording.
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
@@ -70,7 +70,7 @@ describe('templates outside the pack', () => {
 });
 
 // Every original of the provider's pack is listed, ported or not, under its own number, so
-// the folder shows at a glance what is still to do.
+// the folder shows at a glance what is still to do. Decision 1.5 came later, from a third pack.
 describe('manifest', () => {
   const manifest = JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8')) as {
     templates: {
@@ -84,9 +84,9 @@ describe('manifest', () => {
   };
   const ported = manifest.templates.filter((entry) => entry.file);
 
-  it('lists all 23 originals once', () => {
-    expect(manifest.templates).toHaveLength(23);
-    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(23);
+  it('lists all 24 originals once', () => {
+    expect(manifest.templates).toHaveLength(24);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(24);
   });
 
   it('names each ported template after its original number and its type', () => {
@@ -510,6 +510,61 @@ describe('decision_imminent_danger', () => {
     expect(text.split(imminentDangerText)).toHaveLength(2);
     expect(text.match(/: lucrătorii desemnați/g)).toHaveLength(5);
     acknowledged(text);
+  });
+});
+
+describe('decision_workers_representative', () => {
+  const template = read('1.5_decision_workers_representative.docx');
+  const render = (workersRepresentatives: typeof people) =>
+    documentText(
+      renderDocument(template, {
+        ...shared,
+        decisionNumber: 5,
+        workersRepresentatives,
+        workersRepresentativesLead:
+          workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',
+      })
+    );
+
+  it('designates each representative once, and lists them in the table', () => {
+    const text = render(people);
+    expect(text).not.toContain('{{');
+    expect(text).toContain('Nr.: 5 SSM Din: 19.01.2026');
+    expect(text).toContain(
+      'Maria POPESCU având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
+    );
+    expect(text).toMatch(/pe următorii angajați:\s+Ion MARIN, având funcția de Manager magazin;/);
+    expect(text).toContain('Elena DUMITRU, având funcția de Lucrător comercial;');
+    acknowledged(text);
+  });
+
+  it('speaks of one employee when there is one', () => {
+    expect(render([people[0]!])).toContain('pe următorul angajat:');
+  });
+
+  it('prints the thresholds of H.G. 1425/2006 art. 53(1)', () => {
+    const text = render(people);
+    expect(text).toContain('va avea între 10 și 49 de lucrători inclusiv');
+    expect(text).toContain('va avea între 50 și 100 de lucrători inclusiv');
+  });
+});
+
+describe('cover_decisions', () => {
+  const template = read('1.0_cover_decisions.docx');
+  const render = (workersRepresentativeDecision: Record<string, never>[]) =>
+    documentText(
+      renderDocument(template, {
+        ...shared,
+        provider: { ...shared.provider, representativeRole: 'Administrator' },
+        workersRepresentativeDecision,
+      })
+    );
+
+  it('lists decision 1.5 only when it is part of the set', () => {
+    expect(render([{}])).toContain('5. Desemnarea reprezentanților lucrătorilor');
+    const without = render([]);
+    expect(without).not.toContain('Desemnarea reprezentanților');
+    expect(without).toContain('4. Numirea lucrătorilor desemnați');
   });
 });
 

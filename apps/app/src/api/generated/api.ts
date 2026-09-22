@@ -1924,10 +1924,36 @@ export type ClientDocumentListResponseLastGeneration = {
   firstDecisionNumber: number;
 } | null;
 
+export type ClientDocumentListResponseNotApplicableItem =
+  (typeof ClientDocumentListResponseNotApplicableItem)[keyof typeof ClientDocumentListResponseNotApplicableItem];
+
+export const ClientDocumentListResponseNotApplicableItem = {
+  cover_decisions: 'cover_decisions',
+  decision_training: 'decision_training',
+  decision_risk_evaluation_team: 'decision_risk_evaluation_team',
+  decision_first_aid: 'decision_first_aid',
+  decision_imminent_danger: 'decision_imminent_danger',
+  decision_workers_representative: 'decision_workers_representative',
+  cover_general_training_material: 'cover_general_training_material',
+  general_training_material: 'general_training_material',
+  cover_own_instructions: 'cover_own_instructions',
+  cover_training_themes: 'cover_training_themes',
+  cover_tests: 'cover_tests',
+  test_hiring: 'test_hiring',
+  test_periodic: 'test_periodic',
+  cover_event_registers: 'cover_event_registers',
+  event_registers: 'event_registers',
+  control_report: 'control_report',
+  cover_employer_briefing: 'cover_employer_briefing',
+  employer_briefing: 'employer_briefing',
+  control_regulation: 'control_regulation',
+} as const;
+
 export interface ClientDocumentListResponse {
   items: ClientDocumentListResponseItemsItem[];
   /** @nullable */
   lastGeneration: ClientDocumentListResponseLastGeneration;
+  notApplicable: ClientDocumentListResponseNotApplicableItem[];
 }
 
 export type GenerateDocumentsResponseCreatedItemDraftStatus =
@@ -2010,7 +2036,7 @@ export interface GenerateDocumentsRequest {
   issueDate: string;
   /**
    * @minimum 1
-   * @maximum 9996
+   * @maximum 9995
    */
   firstDecisionNumber?: number;
 }
@@ -8405,6 +8431,7 @@ export const getUploadClientDocumentUrl = (
     | 'decision_risk_evaluation_team'
     | 'decision_first_aid'
     | 'decision_imminent_danger'
+    | 'decision_workers_representative'
     | 'cover_general_training_material'
     | 'general_training_material'
     | 'cover_own_instructions'
@@ -8439,6 +8466,7 @@ export const uploadClientDocument = async (
     | 'decision_risk_evaluation_team'
     | 'decision_first_aid'
     | 'decision_imminent_danger'
+    | 'decision_workers_representative'
     | 'cover_general_training_material'
     | 'general_training_material'
     | 'cover_own_instructions'
@@ -8541,6 +8569,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'decision_risk_evaluation_team'
     | 'decision_first_aid'
     | 'decision_imminent_danger'
+    | 'decision_workers_representative'
     | 'cover_general_training_material'
     | 'general_training_material'
     | 'cover_own_instructions'

@@ -1,3 +1,4 @@
+import { documentTypeKeys } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -66,6 +67,7 @@ function mockApi({
   role = 'owner',
   items = [] as unknown[],
   lastGeneration = null as { issueDate: string; firstDecisionNumber: number } | null,
+  notApplicable = [] as string[],
   readiness = { ready: true, missing: [] as string[] },
   generate = (() =>
     Response.json({ created: [firstAid, report], skipped: [] }, { status: 201 })) as Route,
@@ -87,7 +89,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/documents`) {
-      return Response.json({ items, lastGeneration });
+      return Response.json({ items, lastGeneration, notApplicable });
     }
     if (pathname === `/clients/${clientId}/documents/readiness`) return Response.json(readiness);
     if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
@@ -188,6 +190,18 @@ describe('client documents', () => {
     expect(place!.textContent).toBe('Datele organizației: denumirea legală.');
   });
 
+  it('has nothing to generate once every document the client needs exists', async () => {
+    mockApi({
+      items: documentTypeKeys
+        .filter((typeKey) => typeKey !== 'decision_workers_representative')
+        .map((typeKey) => ({ ...report, id: crypto.randomUUID(), typeKey })),
+      notApplicable: ['decision_workers_representative'],
+    });
+    mount();
+    await screen.findAllByTestId('document-row');
+    expect(screen.queryByTestId('documents-generate')).toBeNull();
+  });
+
   it('generates with the date and the first number of the last generation', async () => {
     mockApi({
       items: [report],
@@ -226,7 +240,7 @@ describe('client documents', () => {
     await user.click(screen.getByTestId('generate-submit'));
 
     expect((await screen.findByTestId('generate-first-number-error')).textContent).toContain(
-      'între 1 și 9996'
+      'între 1 și 9995'
     );
     expect(requests('/documents/generate', 'POST')).toHaveLength(0);
   });

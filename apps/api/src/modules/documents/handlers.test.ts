@@ -341,6 +341,8 @@ describe('GET /clients/{clientId}/documents', () => {
     const body = clientDocumentListResponseSchema.parse(await response.json());
     expect(body.lastGeneration).toEqual({ issueDate: '2026-01-19', firstDecisionNumber: 3 });
     expect(body.items).toHaveLength(1);
+    // One current employee.
+    expect(body.notApplicable).toEqual(['decision_workers_representative']);
     // The documentation set only: the client's other documents have their own routes.
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
@@ -461,6 +463,33 @@ describe('POST /clients/{clientId}/documents/generate', () => {
       calls('/storage/v1/object/document-templates/built-in/decision_first_aid/new.docx')
     ).toHaveLength(1);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(2);
+  });
+
+  it('leaves out decision 1.5 under 10 current employees', async () => {
+    const workersRepresentativeTemplate = {
+      type_key: 'decision_workers_representative',
+      title: 'Decizia privind reprezentanții lucrătorilor',
+      document_template_versions: [
+        {
+          id: 'v4',
+          version: 1,
+          storage_path: 'built-in/decision_workers_representative/one.docx',
+        },
+      ],
+    };
+    mockUpstream({
+      templates: () => Response.json([workersRepresentativeTemplate, templateRows[1]]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+    });
+    expect((await generate()).status).toBe(201);
+    expect(sentBody('/rest/v1/client_documents')).toMatchObject({ type_key: 'control_report' });
+    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(1);
+    expect(
+      calls(
+        '/storage/v1/object/document-templates/built-in/decision_workers_representative/one.docx'
+      )
+    ).toHaveLength(0);
   });
 
   it('leaves the documents the client already has', async () => {

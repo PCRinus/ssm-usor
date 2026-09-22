@@ -18,7 +18,7 @@ from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 
 sys.path.insert(0, '/work/tools/import')
 from import_templates import (  # noqa: E402
-    FONT, MARGINS, POINT, ROMANIAN, add_branding, prop, start_office)
+    FONT, MARGINS, POINT, ROMANIAN, add_branding, prop, start_office, sweep)
 
 BODY = 10.0
 TITLE = 16.0
@@ -69,11 +69,19 @@ def build(desktop, definition, cover):
         paragraph(text, cursor, cover['subtitle'], below=6, keep=True)
         paragraph(text, cursor, '{{client.legalName}}', size=CLIENT, bold=True, below=18 if items else 0)
     for index, item in enumerate(items, start=1):
-        paragraph(text, cursor, f'{index}. {item}', adjust=LEFT, below=3)
+        # An item for a document only some clients have sits inside a condition of the merge
+        # data, its tags alone in their paragraphs so the merge leaves no empty line behind.
+        condition = item.get('when') if isinstance(item, dict) else None
+        if condition:
+            paragraph(text, cursor, f'{{{{#{condition}}}}}', adjust=LEFT, below=0)
+        paragraph(text, cursor, f'{index}. {item["text"] if isinstance(item, dict) else item}',
+                  adjust=LEFT, below=3)
         cursor.gotoStartOfParagraph(False)
         cursor.ParaLeftMargin = 1270
         cursor.ParaFirstLineIndent = -635
         cursor.gotoEndOfParagraph(False)
+        if condition:
+            paragraph(text, cursor, f'{{{{/{condition}}}}}', adjust=LEFT, below=0)
 
     handover = definition['handover']
     paragraph(text, cursor, handover['heading'], bold=True, above=72, below=6, keep=True)
@@ -114,16 +122,20 @@ def build(desktop, definition, cover):
     target = f'/work/templates/{cover["number"]}_{cover["typeKey"]}.docx'
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
+    sweep(target)
     print(f'{cover["number"]}_{cover["typeKey"]}')
 
 
 def main():
+    # build_covers.py [number ...]: only the covers named, by their number in the pack.
+    numbers = sys.argv[1:]
     with open('/work/tools/import/covers.ro.json', encoding='utf8') as file:
         definition = json.load(file)
     process, desktop = start_office()
     try:
         for cover in definition['covers']:
-            build(desktop, definition, cover)
+            if not numbers or cover['number'] in numbers:
+                build(desktop, definition, cover)
     finally:
         try:
             desktop.terminate()

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildDocumentContext, documentData, missingDocumentData } from './context';
+import {
+  buildDocumentContext,
+  documentApplies,
+  documentData,
+  missingDocumentData,
+} from './context';
 import { facts } from './context.fixture';
 
 describe('what is missing', () => {
@@ -223,5 +228,51 @@ describe('the merge context', () => {
   it('switches the branding line', () => {
     expect(context.branding).toEqual([{}]);
     expect(buildDocumentContext({ ...facts, branding: false }).branding).toEqual([]);
+  });
+});
+
+describe('decision 1.5', () => {
+  const withRepresentatives = {
+    ...facts,
+    currentEmployeeCount: 12,
+    responsiblePersons: [
+      ...facts.responsiblePersons,
+      {
+        fullName: 'Mihai DOBRE ',
+        jobTitle: 'Vânzător',
+        roles: ['workers_representative' as const],
+        currentEmployee: true,
+      },
+      {
+        fullName: 'Radu ENE',
+        jobTitle: 'Vânzător',
+        roles: ['workers_representative' as const],
+        currentEmployee: false,
+      },
+    ],
+  };
+
+  it('belongs in the set from 10 current employees', () => {
+    expect(documentApplies({ currentEmployeeCount: 9 }, 'decision_workers_representative')).toBe(
+      false
+    );
+    expect(documentApplies({ currentEmployeeCount: 10 }, 'decision_workers_representative')).toBe(
+      true
+    );
+    expect(documentApplies({ currentEmployeeCount: 0 }, 'decision_training')).toBe(true);
+  });
+
+  it('names the representatives who are still employees, and the cover lists it', () => {
+    const context = buildDocumentContext(withRepresentatives);
+    expect(context.workersRepresentatives).toEqual([{ name: 'Mihai DOBRE', jobTitle: 'Vânzător' }]);
+    expect(context.workersRepresentativesLead).toBe('următorul angajat');
+    expect(context.workersRepresentativeDecision).toEqual([{}]);
+    expect(documentData(context, 'decision_workers_representative')).toMatchObject({
+      decisionNumber: 9,
+    });
+  });
+
+  it('is left off the cover under 10 current employees', () => {
+    expect(buildDocumentContext(facts).workersRepresentativeDecision).toEqual([]);
   });
 });

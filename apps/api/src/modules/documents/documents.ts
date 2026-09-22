@@ -22,6 +22,7 @@ import type { PdfConverter } from '../../lib/pdf';
 import {
   buildDocumentContext,
   decisionNumberOf,
+  documentApplies,
   type DocumentContext,
   documentData,
   missingDocumentData,
@@ -184,6 +185,11 @@ export async function listClientDocuments(db: DataClient, actor: Actor, clientId
   if (generation.error) throw fromDatabaseError(generation.error, 'last document generation');
   return {
     items: documents.map((document) => toDocument(document, facts)).sort(byPackOrder),
+    notApplicable: documentTypeKeys.filter(
+      (typeKey) =>
+        !documentApplies(facts, typeKey) &&
+        !documents.some((document) => document.type_key === typeKey)
+    ),
     lastGeneration: generation.data
       ? {
           issueDate: generation.data.issue_date,
@@ -283,7 +289,9 @@ export async function generateClientDocuments(
   const complete = new Set(
     existing.filter((document) => document.document_revisions.length > 0).map((d) => d.type_key)
   );
-  const wanted = templates.filter((template) => !complete.has(template.typeKey));
+  const wanted = templates.filter(
+    (template) => !complete.has(template.typeKey) && documentApplies(facts, template.typeKey)
+  );
   if (wanted.length === 0) return { created: [], skipped: [...complete] };
 
   const generation = await db
