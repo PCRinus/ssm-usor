@@ -1,4 +1,5 @@
 import {
+  type DocumentTypeKey,
   documentTypeKeys,
   isUploadedDocumentType,
   type PackDocumentTypeKey,
@@ -53,12 +54,21 @@ import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
-import type { ClientDocument } from './document-labels';
+import {
+  type ClientDocument,
+  notApplicableTitles,
+  workersRepresentativesRule,
+} from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 
 type Revision = NonNullable<ClientDocument['draft']>;
 // A document, or the place of one that waits for a file.
-type Row = { typeKey: string; title: string; document: ClientDocument | null };
+type Row = {
+  typeKey: string;
+  title: string;
+  document: ClientDocument | null;
+  notApplicable?: boolean;
+};
 type Confirming = {
   // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
   action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
@@ -159,11 +169,18 @@ export function DocumentsCard({
 
   const items = documents.data?.items ?? [];
   const existing = new Set(items.map((item) => item.typeKey));
-  const lacking = documentTypeKeys.filter((key) => !existing.has(key)).length;
+  const notApplicable = new Set(documents.data?.notApplicable);
+  const lacking = documentTypeKeys.filter(
+    (key) => !existing.has(key) && !notApplicable.has(key)
+  ).length;
   // The documents the app cannot write yet wait for a file, in their place in the pack.
   const packRows = packDocumentTypeKeys.flatMap((typeKey): Row[] => {
     const document = items.find((item) => item.typeKey === typeKey);
     if (document) return [{ typeKey, title: document.title, document }];
+    const notApplicableTitle = notApplicableTitles[typeKey as DocumentTypeKey];
+    if (notApplicable.has(typeKey as DocumentTypeKey) && notApplicableTitle) {
+      return [{ typeKey, title: notApplicableTitle, document: null, notApplicable: true }];
+    }
     return isUploadedDocumentType(typeKey)
       ? [{ typeKey, title: uploadedDocumentTypes[typeKey], document: null }]
       : [];
@@ -278,11 +295,15 @@ export function DocumentsCard({
       setError(
         body?.reason === 'pdf_unavailable'
           ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
-          : body?.reason === 'missing_document_data'
-            ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
-            : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
-              ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-              : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
+          : body?.reason === 'missing_document_data' &&
+              document.typeKey === 'decision_workers_representative'
+            ? // Under 10 employees the generation form does not ask for a representative.
+              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Date pentru documente”.'
+            : body?.reason === 'missing_document_data'
+              ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
+              : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
+                ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
+                : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
       );
     }
     setConfirming(null);
@@ -347,7 +368,27 @@ export function DocumentsCard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map(({ typeKey, title, document }) => {
+              {rows.map(({ typeKey, title, document, notApplicable: skipped }) => {
+                if (skipped) {
+                  return (
+                    <TableRow key={typeKey} data-testid="document-not-applicable">
+                      <TableCell className="font-medium text-muted-foreground">{title}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          title={workersRepresentativesRule(
+                            documents.data?.currentEmployeeCount ?? 0,
+                            false
+                          )}
+                        >
+                          Nu se aplică
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">Sub 10 angajați</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  );
+                }
                 if (!document) {
                   return (
                     <TableRow key={typeKey} data-testid="document-slot">
@@ -570,6 +611,10 @@ export function DocumentsCard({
         userId={userId}
         open={generating}
         lastGeneration={documents.data?.lastGeneration ?? null}
+        workersRepresentativeDecisionGenerated={items.some(
+          (item) =>
+            item.typeKey === 'decision_workers_representative' && (item.draft || item.issued)
+        )}
         onClose={() => setGenerating(false)}
       />
       <Dialog

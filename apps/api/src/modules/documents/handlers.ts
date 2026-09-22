@@ -5,7 +5,7 @@ import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
 import { createPdfConverter } from '../../lib/pdf';
-import { missingDocumentData } from './context';
+import { missingDocumentData, workersRepresentativeClash } from './context';
 import {
   type Actor,
   attachSignedCopy,
@@ -55,7 +55,19 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
     issueDate: '2000-01-01',
     firstDecisionNumber: 1,
   });
-  return c.json({ ready: missing.length === 0, missing }, 200);
+  return c.json(
+    {
+      ready: missing.length === 0,
+      missing,
+      currentEmployeeCount: facts.currentEmployeeCount,
+      workersRepresentativeClash: missing.includes(
+        'responsible.workers_representative_is_legal_representative'
+      )
+        ? workersRepresentativeClash(facts)
+        : null,
+    },
+    200
+  );
 };
 
 export const listClientDocuments: RouteHandler<typeof listClientDocumentsRoute, ApiEnv> = async (

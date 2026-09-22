@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(24);
 
 -- Fixtures: organization A with an owner and a specialist, organization B with an owner;
 -- one active client each, plus an archived client in A.
@@ -91,6 +91,21 @@ select throws_ok(
   '23505',
   null,
   'an employee appears once among a client''s responsible persons'
+);
+
+select throws_ok(
+  $$ insert into public.client_responsible_persons (organization_id, client_id, full_name, job_title, roles)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Ana Vasile', 'Vânzătoare', '{workers_representative}') $$,
+  '23514',
+  null,
+  'a workers'' representative is one of the client''s employees'
+);
+
+select lives_ok(
+  $$ update public.client_responsible_persons
+     set roles = '{workplace_manager,first_aid,risk_evaluation_team,imminent_danger,workers_representative}'
+     where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
+  'an employee can hold all five roles'
 );
 
 select throws_ok(

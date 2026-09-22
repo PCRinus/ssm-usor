@@ -82,6 +82,7 @@ function mockApi({
       responsiblePerson: { ...manager, ...JSON.parse(String(init?.body)) },
     })) as Route,
   archive = (() => new Response(null, { status: 204 })) as Route,
+  details = emptyDetails as Record<string, unknown>,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -91,7 +92,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/document-details`) {
-      return Response.json({ documentDetails: emptyDetails });
+      return Response.json({ documentDetails: details });
     }
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/employees`) {
@@ -241,6 +242,50 @@ describe('client responsible persons', () => {
 
     expect((await screen.findByTestId('responsible-employee-error')).textContent).toContain(
       'este deja în listă'
+    );
+    expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
+  });
+
+  it("takes a workers' representative only from the employees", async () => {
+    mockApi({ items: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.type(await screen.findByTestId('responsible-name'), 'Maria Popescu');
+    await user.type(screen.getByTestId('responsible-job-title'), 'Vânzătoare');
+    await user.click(screen.getByTestId('responsible-role-workers_representative'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    expect((await screen.findByTestId('responsible-employee-error')).textContent).toContain(
+      'dintre angajații clientului'
+    );
+    expect(requests(listPath, 'POST')).toEqual([]);
+  });
+
+  it('names both people when the legal representative is chosen to represent the workers', async () => {
+    mockApi({
+      details: { ...emptyDetails, legalRepresentativeName: 'LUCA Paolo Antonio' },
+      update: () =>
+        Response.json(
+          {
+            error: 'conflict',
+            message: 'Conflict',
+            reason: 'workers_representative_is_legal_representative',
+          },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-actions'));
+    await user.click(await screen.findByTestId('responsible-edit'));
+    await user.click(await screen.findByTestId('responsible-role-workers_representative'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    expect((await screen.findByTestId('responsible-roles-error')).textContent).toContain(
+      '„Paolo-Antonio Luca” are același nume ca reprezentantul legal al clientului, „LUCA Paolo Antonio”'
     );
     expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
   });

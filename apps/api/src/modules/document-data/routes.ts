@@ -310,7 +310,7 @@ export const createResponsiblePersonRoute = createRoute({
   operationId: 'createResponsiblePerson',
   summary: 'Add a responsible person to a client',
   description:
-    'A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.',
+    "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, body: responsiblePersonBody },
@@ -322,7 +322,8 @@ export const createResponsiblePersonRoute = createRoute({
     },
     404: noSuchClient,
     409: {
-      description: 'The client is archived, or the employee is already a responsible person',
+      description:
+        "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative",
       content: errorContent,
     },
     ...membershipErrors,
@@ -350,7 +351,11 @@ export const updateResponsiblePersonRoute = createRoute({
       description: 'The responsible person does not exist under this client',
       content: errorContent,
     },
-    409: { description: 'The employee is already a responsible person', content: errorContent },
+    409: {
+      description:
+        "The employee is already a responsible person, or a workers' representative is the client's legal representative",
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

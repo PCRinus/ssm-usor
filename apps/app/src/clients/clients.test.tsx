@@ -17,6 +17,7 @@ const sampleClient = {
   addressLine: 'Str. Coralilor, nr. 22',
   legalRepresentativeName: null,
   declaredEmployeeCount: 120,
+  currentEmployeeCount: 8,
   stage: 'client',
   contactName: null,
   contactEmail: null,
@@ -133,7 +134,9 @@ describe('clients list', () => {
     expect(within(row).getByText('CAEN 0610')).toBeTruthy();
     expect(within(row).getByText('RO1590082')).toBeTruthy();
     expect(within(row).getByText('Sector 1 Mun. București, București')).toBeTruthy();
-    expect(within(row).getByText('120')).toBeTruthy();
+    // The list count, not what was declared.
+    expect(within(row).getByText('8')).toBeTruthy();
+    expect(within(row).queryByText('120')).toBeNull();
     expect(screen.getByTestId('clients-count').textContent).toBe('1 client');
     const [url, init] = requests('/clients')[0]!;
     const query = new URL(String(url)).searchParams;
@@ -173,16 +176,16 @@ describe('clients list', () => {
     await screen.findByText('ZETA SRL');
     expect(runtime.router.state.location.search).toEqual({ page: 2 });
     // A sort change replaces the entry and returns to the first page.
-    await user.click(screen.getByTestId('sort-declaredEmployeeCount'));
+    await user.click(screen.getByTestId('sort-currentEmployeeCount'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ sort: 'declaredEmployeeCount' })
+      expect(runtime.router.state.location.search).toEqual({ sort: 'currentEmployeeCount' })
     );
     expect(screen.getByRole('columnheader', { name: /Angajați/ }).getAttribute('aria-sort')).toBe(
       'ascending'
     );
     const last = requests('/clients').at(-1)!;
     const query = new URL(String(last[0])).searchParams;
-    expect(query.get('sort')).toBe('declaredEmployeeCount');
+    expect(query.get('sort')).toBe('currentEmployeeCount');
     expect(query.get('page')).toBe('1');
   });
 
@@ -272,10 +275,10 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-cui').getAttribute('aria-invalid')).toBe('true');
     await user.type(screen.getByTestId('client-cui'), '1590083');
     await user.type(screen.getByTestId('client-legal-name'), 'Firma');
-    await user.type(screen.getByTestId('client-employees'), '12a');
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('cui-error')).textContent).toContain('CUI invalid');
-    expect(screen.getByTestId('declaredEmployeeCount-error')).toBeTruthy();
+    // A client's headcount is its employee list; only a lead declares one.
+    expect(screen.queryByTestId('client-employees')).toBeNull();
     expect(requests('/clients', 'POST')).toHaveLength(0);
   });
 
@@ -312,7 +315,6 @@ describe('client creation', () => {
       'Sector 1 Mun. București'
     );
     await user.type(screen.getByTestId('client-representative'), 'Ion Popescu');
-    await user.type(screen.getByTestId('client-employees'), '120');
     await user.type(screen.getByTestId('client-contact-name'), 'Ana Contact');
     await user.click(screen.getByTestId('client-submit'));
     await screen.findByTestId('clients-page');
@@ -330,7 +332,6 @@ describe('client creation', () => {
       locality: 'Sector 1 Mun. București',
       addressLine: 'Str. Coralilor, nr. 22',
       legalRepresentativeName: 'Ion Popescu',
-      declaredEmployeeCount: 120,
       contactName: 'Ana Contact',
       contactEmail: null,
       contactPhone: null,
@@ -375,8 +376,10 @@ describe('client creation', () => {
       vatPayer: true,
       countyCode: 'CJ',
       caenCode: '6210',
-      declaredEmployeeCount: null,
     });
+    expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).not.toHaveProperty(
+      'declaredEmployeeCount'
+    );
   });
 
   it('finds CAEN classes by code prefix and accepts an unclassified four-digit code', async () => {
@@ -474,7 +477,7 @@ describe('client editing', () => {
     expect(runtime.router.state.location.pathname).toBe(editPath);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Modifică: OMV PETROM SA');
     expect((screen.getByTestId('client-cui') as HTMLInputElement).value).toBe('1590082');
-    expect((screen.getByTestId('client-employees') as HTMLInputElement).value).toBe('120');
+    expect(screen.queryByTestId('client-employees')).toBeNull();
     expect(screen.getByTestId('client-vat-payer').getAttribute('aria-checked')).toBe('true');
     expect(screen.queryByTestId('client-representative')).toBeNull();
   });
@@ -494,7 +497,6 @@ describe('client editing', () => {
           countyCode: 'B',
           locality: 'Sector 1 Mun. București',
           addressLine: 'Str. Coralilor, nr. 22',
-          declaredEmployeeCount: 120,
           contactName: null,
           contactEmail: null,
           contactPhone: null,

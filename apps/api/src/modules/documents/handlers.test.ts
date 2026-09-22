@@ -132,6 +132,7 @@ type Upstream =
   | 'persons'
   | 'employees'
   | 'documents'
+  | 'generatedDecision'
   | 'generations'
   | 'templates'
   | 'revisions'
@@ -178,6 +179,12 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           new Response(null, { headers: { 'content-range': '0-0/1' } })
         );
       case '/rest/v1/client_documents':
+        if (method === 'HEAD') {
+          return (
+            handlers.generatedDecision?.() ??
+            new Response(null, { headers: { 'content-range': '*/0' } })
+          );
+        }
         return (
           handlers.documents?.(init, url) ??
           (method === 'POST' ? Response.json({ id: documentId }) : Response.json([documentRow]))
@@ -255,6 +262,8 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
       ready: true,
       missing: [],
+      currentEmployeeCount: 1,
+      workersRepresentativeClash: null,
     });
     const persons = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
@@ -281,6 +290,32 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
         'responsible.risk_evaluation_team',
         'responsible.imminent_danger',
       ],
+      currentEmployeeCount: 1,
+      workersRepresentativeClash: null,
+    });
+  });
+
+  it("names the workers' representative who has the legal representative's name", async () => {
+    mockUpstream({
+      persons: () =>
+        Response.json([
+          personRow,
+          {
+            full_name: 'Talos Florin',
+            job_title: 'Vânzător',
+            roles: ['workers_representative'],
+            employees: { status: 'active', archived_at: null },
+          },
+        ]),
+      employees: () => new Response(null, { headers: { 'content-range': '0-0/12' } }),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
+      missing: ['responsible.workers_representative_is_legal_representative'],
+      workersRepresentativeClash: {
+        representativeName: 'Talos Florin',
+        legalRepresentativeName: 'Florin TALOȘ',
+      },
     });
   });
 
@@ -306,6 +341,8 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
       ready: true,
       missing: [],
+      currentEmployeeCount: 1,
+      workersRepresentativeClash: null,
     });
   });
 
@@ -341,6 +378,8 @@ describe('GET /clients/{clientId}/documents', () => {
     const body = clientDocumentListResponseSchema.parse(await response.json());
     expect(body.lastGeneration).toEqual({ issueDate: '2026-01-19', firstDecisionNumber: 3 });
     expect(body.items).toHaveLength(1);
+    expect(body.currentEmployeeCount).toBe(1);
+    expect(body.notApplicable).toEqual(['decision_workers_representative']);
     // The documentation set only: the client's other documents have their own routes.
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
@@ -461,6 +500,33 @@ describe('POST /clients/{clientId}/documents/generate', () => {
       calls('/storage/v1/object/document-templates/built-in/decision_first_aid/new.docx')
     ).toHaveLength(1);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(2);
+  });
+
+  it('leaves out decision 1.5 under 10 current employees', async () => {
+    const workersRepresentativeTemplate = {
+      type_key: 'decision_workers_representative',
+      title: 'Decizia privind reprezentanții lucrătorilor',
+      document_template_versions: [
+        {
+          id: 'v4',
+          version: 1,
+          storage_path: 'built-in/decision_workers_representative/one.docx',
+        },
+      ],
+    };
+    mockUpstream({
+      templates: () => Response.json([workersRepresentativeTemplate, templateRows[1]]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+    });
+    expect((await generate()).status).toBe(201);
+    expect(sentBody('/rest/v1/client_documents')).toMatchObject({ type_key: 'control_report' });
+    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(1);
+    expect(
+      calls(
+        '/storage/v1/object/document-templates/built-in/decision_workers_representative/one.docx'
+      )
+    ).toHaveLength(0);
   });
 
   it('leaves the documents the client already has', async () => {
@@ -671,6 +737,18 @@ describe('POST /documents/{documentId}/regenerate', () => {
 
     mockUpstream({ documents: oneDocument([revisionRow]), templates: () => Response.json([]) });
     expect((await regenerate()).status).toBe(409);
+  });
+
+  it('refuses a decision 1.5 kept under 10 employees once nobody represents the workers', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({ ...documentRow, type_key: 'decision_workers_representative' }),
+    });
+    const response = await regenerate();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'missing_document_data'
+    );
   });
 
   it('leaves a document that is not of the documentation set to its own page', async () => {

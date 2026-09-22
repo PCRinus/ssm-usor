@@ -114,7 +114,7 @@ export function useClientForm(client?: Client, newStage: ClientStage = 'client')
       if (client) {
         const saved = await update.mutateAsync({
           clientId: client.id,
-          data: toUpdateClientRequest(values),
+          data: toUpdateClientRequest(values, stage),
         });
         // The client page reads the record through its loader, which keeps whatever is cached.
         queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);

@@ -45,6 +45,7 @@ const clientRow = {
   address_line: 'Str. Coralilor, nr. 22',
   legal_representative_name: null,
   declared_employee_count: 120,
+  current_employee_count: 8,
   stage: 'client',
   contact_name: null,
   contact_email: null,
@@ -134,6 +135,7 @@ describe('GET /clients', () => {
           addressLine: 'Str. Coralilor, nr. 22',
           legalRepresentativeName: null,
           declaredEmployeeCount: 120,
+          currentEmployeeCount: 8,
           stage: 'client',
           contactName: null,
           contactEmail: null,
@@ -167,12 +169,12 @@ describe('GET /clients', () => {
     mockUpstream({
       clients: () => Response.json([clientRow], { headers: { 'Content-Range': '25-25/26' } }),
     });
-    const response = await request('/clients?page=2&sort=declaredEmployeeCount&order=desc');
+    const response = await request('/clients?page=2&sort=currentEmployeeCount&order=desc');
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ page: 2, pageSize: 25, total: 26 });
     const [listUrl] = calls('/rest/v1/clients')[0]!;
     const query = new URL(String(listUrl)).searchParams;
-    expect(query.get('order')).toBe('declared_employee_count.desc,legal_name.desc,id.asc');
+    expect(query.get('order')).toBe('current_employee_count.desc,legal_name.desc,id.asc');
     expect(query.get('offset')).toBe('25');
   });
 
@@ -526,6 +528,13 @@ describe('PUT /clients/{clientId}', () => {
       address_line: 'Str. Coralilor, nr. 22',
       declared_employee_count: 120,
     });
+  });
+
+  it("keeps what a lead declared when a client's form leaves the count out", async () => {
+    mockUpstream({ clients: () => Response.json([clientRow]) });
+    await putClient({ ...validBody, declaredEmployeeCount: undefined });
+    const sent = JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body)) as object;
+    expect(sent).not.toHaveProperty('declared_employee_count');
   });
 
   it('writes the contact fields that were sent, a cleared one included, and no others', async () => {

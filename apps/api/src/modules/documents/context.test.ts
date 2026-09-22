@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildDocumentContext, documentData, missingDocumentData } from './context';
+import {
+  buildDocumentContext,
+  documentApplies,
+  documentData,
+  missingDocumentData,
+  workersRepresentativeClash,
+} from './context';
 import { facts } from './context.fixture';
 
 describe('what is missing', () => {
@@ -19,7 +25,9 @@ describe('what is missing', () => {
         },
         specialist: null,
         client: { ...facts.client, representativeRole: null, trainingDayTo: null },
-        responsiblePersons: [{ fullName: 'A B', jobTitle: 'C', roles: ['first_aid'] }],
+        responsiblePersons: [
+          { fullName: 'A B', jobTitle: 'C', roles: ['first_aid'], currentEmployee: true },
+        ],
       })
     ).toEqual([
       'provider.legalName',
@@ -62,6 +70,87 @@ describe('what is missing', () => {
     expect(withChoices(null, 3, true, false)).toEqual([]);
     expect(withChoices(6, null, false, false)).toContain('client.trainingSchedule');
     expect(withChoices(null, null, true, true)).toContain('client.trainingSchedule');
+  });
+
+  describe("workers' representatives", () => {
+    const representative = (fullName: string, currentEmployee = true) => ({
+      fullName,
+      jobTitle: 'Vânzător',
+      roles: ['workers_representative' as const],
+      currentEmployee,
+    });
+    const missing = (currentEmployeeCount: number, ...representatives: string[]) =>
+      missingDocumentData({
+        ...facts,
+        currentEmployeeCount,
+        responsiblePersons: [
+          ...facts.responsiblePersons,
+          ...representatives.map((name) => representative(name)),
+        ],
+      });
+
+    it('are not asked for under 10 current employees', () => {
+      expect(missing(9)).toEqual([]);
+      expect(missing(9, 'Florin Cristian TALOȘ')).toEqual([]);
+    });
+
+    it('need one from 10 current employees and two from 50', () => {
+      expect(missing(10)).toEqual(['responsible.workers_representative']);
+      expect(missing(10, 'Ioana PETRE')).toEqual([]);
+      expect(missing(50, 'Ioana PETRE')).toEqual(['responsible.workers_representatives_two']);
+      expect(missing(50, 'Ioana PETRE', 'Mihai DOBRE')).toEqual([]);
+    });
+
+    it('do not count once their employee has left', () => {
+      expect(
+        missingDocumentData({
+          ...facts,
+          currentEmployeeCount: 12,
+          responsiblePersons: [...facts.responsiblePersons, representative('Ioana PETRE', false)],
+        })
+      ).toEqual(['responsible.workers_representative']);
+    });
+
+    it('cannot include the legal representative, however the name is typed', () => {
+      expect(missing(12, 'Talos Florin-Cristian')).toEqual([
+        'responsible.workers_representative_is_legal_representative',
+      ]);
+    });
+
+    it('names the two people who clash', () => {
+      const withClash = {
+        ...facts,
+        responsiblePersons: [...facts.responsiblePersons, representative('Talos Florin-Cristian ')],
+      };
+      expect(workersRepresentativeClash(withClash)).toEqual({
+        representativeName: 'Talos Florin-Cristian',
+        legalRepresentativeName: 'Florin Cristian TALOȘ',
+      });
+      expect(workersRepresentativeClash(facts)).toBeNull();
+    });
+
+    it('are still needed to generate a 1.5 again under 10 employees', () => {
+      const again = (...representatives: string[]) =>
+        missingDocumentData(
+          {
+            ...facts,
+            currentEmployeeCount: 6,
+            responsiblePersons: [
+              ...facts.responsiblePersons,
+              ...representatives.map((name) => representative(name)),
+            ],
+          },
+          'decision_workers_representative'
+        );
+      expect(again()).toEqual(['responsible.workers_representative']);
+      expect(again('Talos Florin-Cristian')).toEqual([
+        'responsible.workers_representative_is_legal_representative',
+      ]);
+      expect(again('Ioana PETRE')).toEqual([]);
+      expect(
+        missingDocumentData({ ...facts, currentEmployeeCount: 6 }, 'decision_training')
+      ).toEqual([]);
+    });
   });
 
   it('blocks a category with active employees from being excluded', () => {
@@ -175,5 +264,55 @@ describe('the merge context', () => {
   it('switches the branding line', () => {
     expect(context.branding).toEqual([{}]);
     expect(buildDocumentContext({ ...facts, branding: false }).branding).toEqual([]);
+  });
+});
+
+describe('decision 1.5', () => {
+  const withRepresentatives = {
+    ...facts,
+    currentEmployeeCount: 12,
+    responsiblePersons: [
+      ...facts.responsiblePersons,
+      {
+        fullName: 'Mihai DOBRE ',
+        jobTitle: 'Vânzător',
+        roles: ['workers_representative' as const],
+        currentEmployee: true,
+      },
+      {
+        fullName: 'Radu ENE',
+        jobTitle: 'Vânzător',
+        roles: ['workers_representative' as const],
+        currentEmployee: false,
+      },
+    ],
+  };
+
+  it('belongs in the set from 10 current employees', () => {
+    expect(documentApplies({ currentEmployeeCount: 9 }, 'decision_workers_representative')).toBe(
+      false
+    );
+    expect(documentApplies({ currentEmployeeCount: 10 }, 'decision_workers_representative')).toBe(
+      true
+    );
+    expect(documentApplies({ currentEmployeeCount: 0 }, 'decision_training')).toBe(true);
+  });
+
+  it('names the representatives who are still employees, and the cover lists it', () => {
+    const context = buildDocumentContext(withRepresentatives);
+    expect(context.workersRepresentatives).toEqual([{ name: 'Mihai DOBRE', jobTitle: 'Vânzător' }]);
+    expect(context.workersRepresentativesLead).toBe('următorul angajat');
+    expect(context.workersRepresentativeDecision).toEqual([{}]);
+    expect(documentData(context, 'decision_workers_representative')).toMatchObject({
+      decisionNumber: 9,
+    });
+  });
+
+  it('is left off the cover under 10 current employees, unless it was generated', () => {
+    expect(buildDocumentContext(facts).workersRepresentativeDecision).toEqual([]);
+    expect(
+      buildDocumentContext({ ...facts, workersRepresentativeDecisionGenerated: true })
+        .workersRepresentativeDecision
+    ).toEqual([{}]);
   });
 });

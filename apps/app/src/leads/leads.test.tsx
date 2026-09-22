@@ -144,6 +144,7 @@ describe('leads', () => {
     await user.type(screen.getByTestId('client-cui'), '41760933');
     await user.type(screen.getByTestId('client-legal-name'), 'Velocita Urbana SRL');
     await user.type(screen.getByTestId('client-contact-name'), 'Andrei Pop');
+    await user.type(screen.getByTestId('client-employees'), '25');
     await user.type(screen.getByTestId('client-contact-email'), 'andrei');
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('contactEmail-error')).textContent).toContain(
@@ -160,6 +161,7 @@ describe('leads', () => {
       contactName: 'Andrei Pop',
       contactEmail: 'andrei@velocita.example',
       contactPhone: null,
+      declaredEmployeeCount: 25,
     });
   });
 

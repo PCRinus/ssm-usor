@@ -277,6 +277,7 @@ export type Database = {
           vat_payer: boolean;
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
+          current_employee_count: number | null;
         };
         Insert: {
           address_line?: string | null;
@@ -1241,6 +1242,12 @@ export type Database = {
           sent_at: string;
         }[];
       };
+      current_employee_count: {
+        Args: { '': Database['public']['Tables']['clients']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.current_employee_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
       current_membership: {
         Args: never;
         Returns: {
@@ -1331,7 +1338,11 @@ export type Database = {
       employee_status: 'active' | 'terminated';
       organization_role: 'owner' | 'specialist';
       responsible_person_role:
-        'workplace_manager' | 'first_aid' | 'risk_evaluation_team' | 'imminent_danger';
+        | 'workplace_manager'
+        | 'first_aid'
+        | 'risk_evaluation_team'
+        | 'imminent_danger'
+        | 'workers_representative';
       staff_category: 'technical_administrative' | 'execution';
     };
     CompositeTypes: {
@@ -1464,6 +1475,7 @@ export const Constants = {
         'first_aid',
         'risk_evaluation_team',
         'imminent_danger',
+        'workers_representative',
       ],
       staff_category: ['technical_administrative', 'execution'],
     },

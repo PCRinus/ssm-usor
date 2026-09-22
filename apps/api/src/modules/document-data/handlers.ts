@@ -6,6 +6,9 @@ import {
   type OrganizationAuthorizations,
   type OrganizationCompanyDetails,
   type ResponsiblePerson,
+  responsiblePersonConflictReasons,
+  type ResponsiblePersonRequest,
+  samePersonName,
   type Workplace,
 } from '@ssm-usor/contracts';
 
@@ -410,6 +413,31 @@ function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
   };
 }
 
+// A representative who is not an employee is refused by the schema; this catches one who is.
+async function refuseLegalRepresentative(
+  db: DataClient,
+  clientId: string,
+  person: ResponsiblePersonRequest
+) {
+  if (!person.roles.includes('workers_representative')) return;
+  const { data, error } = await db
+    .from('clients')
+    .select('legal_representative_name')
+    .eq('id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'client legal representative');
+  if (!data) throw noSuchClient();
+  const legalRepresentative = data.legal_representative_name;
+  if (legalRepresentative && samePersonName(person.fullName, legalRepresentative)) {
+    throw new ApiError(
+      'conflict',
+      `${person.fullName} is the client's legal representative and cannot also represent the workers.`,
+      undefined,
+      responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative
+    );
+  }
+}
+
 const noSuchResponsiblePerson = () =>
   new ApiError('not_found', 'This responsible person does not exist under this client.');
 
@@ -454,6 +482,7 @@ export const createResponsiblePerson: RouteHandler<
     clientId,
     'This client is archived; responsible persons cannot be added.'
   );
+  await refuseLegalRepresentative(db, clientId, body);
   const { data, error } = await db
     .from('client_responsible_persons')
     .insert({
@@ -477,7 +506,9 @@ export const updateResponsiblePerson: RouteHandler<
 > = async (c) => {
   const { clientId, responsiblePersonId } = c.req.valid('param');
   const body = c.req.valid('json');
-  const { data, error } = await createDataClient(c)
+  const db = createDataClient(c);
+  await refuseLegalRepresentative(db, clientId, body);
+  const { data, error } = await db
     .from('client_responsible_persons')
     .update({
       employee_id: body.employeeId ?? null,

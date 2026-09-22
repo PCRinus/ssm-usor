@@ -28,8 +28,16 @@ export const facts: DocumentFacts = {
       fullName: 'Florin Cristian TALOȘ',
       jobTitle: 'Administrator',
       roles: ['workplace_manager', 'first_aid', 'risk_evaluation_team', 'imminent_danger'],
+      currentEmployee: false,
     },
-    { fullName: 'Ioana PETRE', jobTitle: 'Șef de echipă', roles: ['first_aid', 'imminent_danger'] },
+    {
+      fullName: 'Ioana PETRE',
+      jobTitle: 'Șef de echipă',
+      roles: ['first_aid', 'imminent_danger'],
+      currentEmployee: true,
+    },
   ],
   staffCategoriesInUse: ['technical_administrative', 'execution'],
+  currentEmployeeCount: 6,
+  workersRepresentativeDecisionGenerated: false,
 };

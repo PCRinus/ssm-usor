@@ -11,6 +11,7 @@ export const documentTypeKeys = [
   'decision_risk_evaluation_team',
   'decision_first_aid',
   'decision_imminent_danger',
+  'decision_workers_representative',
   'cover_general_training_material',
   'general_training_material',
   'cover_own_instructions',
@@ -55,6 +56,7 @@ export const packDocumentTypeKeys = [
   'decision_risk_evaluation_team',
   'decision_first_aid',
   'decision_imminent_danger',
+  'decision_workers_representative',
   'cover_general_training_material',
   'general_training_material',
   'cover_own_instructions',
@@ -85,6 +87,7 @@ export const decisionTypeKeys = [
   'decision_risk_evaluation_team',
   'decision_first_aid',
   'decision_imminent_danger',
+  'decision_workers_representative',
 ] as const satisfies readonly DocumentTypeKey[];
 
 /**
@@ -105,6 +108,9 @@ export const missingDocumentData = [
   'responsible.first_aid',
   'responsible.risk_evaluation_team',
   'responsible.imminent_danger',
+  'responsible.workers_representative',
+  'responsible.workers_representatives_two',
+  'responsible.workers_representative_is_legal_representative',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -114,6 +120,12 @@ export type MissingDocumentData = z.infer<typeof missingDocumentDataSchema>;
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
+  // What decides whether decision 1.5 is part of the set (ADR 010).
+  currentEmployeeCount: z.int().min(0),
+  // The two names behind `responsible.workers_representative_is_legal_representative`.
+  workersRepresentativeClash: z
+    .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
+    .nullable(),
 });
 
 export type DocumentReadinessResponse = z.infer<typeof documentReadinessResponseSchema>;
@@ -173,6 +185,9 @@ export const clientDocumentListResponseSchema = z.object({
   lastGeneration: z
     .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999) })
     .nullable(),
+  // Documents of the set this client does not need, such as decision 1.5 under 10 employees.
+  notApplicable: z.array(documentTypeKeySchema),
+  currentEmployeeCount: z.int().min(0),
 });
 
 export type ClientDocumentListResponse = z.infer<typeof clientDocumentListResponseSchema>;
@@ -181,7 +196,7 @@ export const generateDocumentsRequestSchema = z.object({
   // The date the documents carry, usually the start of the contract.
   issueDate: z.iso.date(),
   // Decisions are numbered from here: "Decizia nr. 1 SSM".
-  firstDecisionNumber: z.int().min(1).max(9996).default(1),
+  firstDecisionNumber: z.int().min(1).max(9995).default(1),
 });
 
 export type GenerateDocumentsRequest = z.infer<typeof generateDocumentsRequestSchema>;

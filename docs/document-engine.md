@@ -194,8 +194,9 @@ One thing can only be fixed when values are in: a company name ending in a full 
 closes a sentence gives "S.R.L..". `renderDocument` drops the second full stop after merging,
 across runs, and leaves an ellipsis alone.
 
-`templates/manifest.json` lists all 23 originals of the provider's pack under their own
-numbers, with the stage each belongs to. A template is named `<number>_<type_key>.docx`.
+`templates/manifest.json` lists all 24 originals under their own numbers, with the stage each
+belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
+which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
 All 23 are templates. Five of them are marked `contentPending`: the own instructions (3.2),
 the training themes (4.2), the protective equipment list (6), the risk assessment (9), and
@@ -226,7 +227,9 @@ above 12 pt.
 
 One correction to the content: the decisions' cover listed a fifth decision, naming the worker
 designated for prevention and protection, which the pack does not contain. The list now has
-the four decisions that exist.
+the four decisions that exist. A fifth item, for decision 1.5, sits inside
+`{{#workersRepresentativeDecision}}`: an item in `covers.ro.json` may be an object with
+`text` and `when`, and prints only when the merge data has that condition.
 
 Covers need `provider.representativeRole` besides what the decisions use.
 
@@ -303,7 +306,14 @@ The API builds the data once per generation and merges every template with it
 - `missingDocumentData(facts)` lists what is in the way, as codes grouped by where the user
   fills it in: `provider.*` (the organization's company details), `specialist.*` (the profile of
   the member who generates), `client.representativeName`, `client.representativeRole`,
-  `client.trainingSchedule`, and `responsible.<role>` for every role nobody holds.
+  `client.trainingSchedule`, and `responsible.<role>` for every role nobody holds. The
+  workers' representative is required only from 10 current employees, two from 50
+  (`responsible.workers_representative`, `responsible.workers_representatives_two`), counts
+  only while their employee has not left, and must not have the client's legal
+  representative's name (`responsible.workers_representative_is_legal_representative`;
+  readiness also returns the two names as `workersRepresentativeClash`).
+  `missingDocumentData(facts, typeKey)` is what generating one document again needs: a 1.5
+  kept under 10 employees still needs one representative.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
@@ -313,8 +323,11 @@ The API builds the data once per generation and merges every template with it
   dates as `19.01.2026`, people under the roles they hold in the order they were designated,
   the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`),
   and `branding`. The decisions are numbered from the first decision number in the order
-  training, evaluation team, first aid, imminent danger; `documentData(context, typeKey)` gives
+  training, evaluation team, first aid, imminent danger, workers' representatives; `documentData(context, typeKey)` gives
   one template its number. The context is what a revision keeps as its data snapshot.
+- `documentApplies(facts, typeKey)` says whether a document belongs in the client's set:
+  decision 1.5 only from 10 current employees. Generating leaves out the rest; a document
+  that already exists stays, and cover 1.0 keeps listing a 1.5 that was generated.
 - `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
 
 A test merges every registered template with this context; the engine throws on a placeholder
@@ -324,24 +337,25 @@ same test.
 
 ## Built-in templates
 
-| `type_key`                      | Document                                                                     | Data beyond `decisionNumber`, `issueDate`, `client`, `provider`                                                                                                  |
-| ------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `decision_training`             | Decision no. 1: who trains whom, and the periodic training schedule          | `workplaceManagers[]`, `training` (`periodicDuration`, `administrativeFrequency`, `administrativeMonths`, `workerFrequency`, `workerMonths`, `dayFrom`, `dayTo`) |
-| `decision_risk_evaluation_team` | Decision no. 2: the risk evaluation team                                     | `evaluationTeam[]`, `specialist` (`name`, `professionalTitle`)                                                                                                   |
-| `decision_first_aid`            | Decision no. 3: who gives first aid, with its two acknowledgement tables     | `firstAiders[]`, `firstAiderNames`                                                                                                                               |
-| `control_regulation`            | The internal regulation on the employer's own checks, with its schedule      | `issueYear`, `followingYear` for the schedule's heading                                                                                                          |
-| `test_hiring`                   | The test after the general introductory training, with its specimen          | None                                                                                                                                                             |
-| `test_periodic`                 | The yearly test, with its specimen                                           | None                                                                                                                                                             |
-| `event_registers`               | The four registers of accidents and dangerous incidents, A4 landscape        | None                                                                                                                                                             |
-| `control_report`                | The report form filled in by hand at each control visit                      | None                                                                                                                                                             |
-| `employer_briefing`             | What the law asks of the employer, chapter by chapter, about 30 pages        | None                                                                                                                                                             |
-| `general_training_material`     | The material for the general introductory training, about 85 pages           | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
-| `own_instructions`              | The own instructions, about 75 pages. Content pending                        | None yet                                                                                                                                                         |
-| `training_themes`               | Themes and schedule of the three kinds of training. Content pending          | `specialist`, `workplaceManager`                                                                                                                                 |
-| `protective_equipment_list`     | Protective equipment per job, A4 landscape. Content pending                  | None yet                                                                                                                                                         |
-| `risk_assessment`               | The risk assessment, about 75 pages, portrait and landscape. Content pending | `specialist`                                                                                                                                                     |
-| `prevention_plan`               | The prevention and protection plan, A4 landscape. Content pending            | None yet                                                                                                                                                         |
-| `decision_imminent_danger`      | Decision no. 4: who acts in serious and imminent danger                      | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
+| `type_key`                        | Document                                                                     | Data beyond `decisionNumber`, `issueDate`, `client`, `provider`                                                                                                  |
+| --------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `decision_training`               | Decision no. 1: who trains whom, and the periodic training schedule          | `workplaceManagers[]`, `training` (`periodicDuration`, `administrativeFrequency`, `administrativeMonths`, `workerFrequency`, `workerMonths`, `dayFrom`, `dayTo`) |
+| `decision_risk_evaluation_team`   | Decision no. 2: the risk evaluation team                                     | `evaluationTeam[]`, `specialist` (`name`, `professionalTitle`)                                                                                                   |
+| `decision_first_aid`              | Decision no. 3: who gives first aid, with its two acknowledgement tables     | `firstAiders[]`, `firstAiderNames`                                                                                                                               |
+| `control_regulation`              | The internal regulation on the employer's own checks, with its schedule      | `issueYear`, `followingYear` for the schedule's heading                                                                                                          |
+| `test_hiring`                     | The test after the general introductory training, with its specimen          | None                                                                                                                                                             |
+| `test_periodic`                   | The yearly test, with its specimen                                           | None                                                                                                                                                             |
+| `event_registers`                 | The four registers of accidents and dangerous incidents, A4 landscape        | None                                                                                                                                                             |
+| `control_report`                  | The report form filled in by hand at each control visit                      | None                                                                                                                                                             |
+| `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages        | None                                                                                                                                                             |
+| `general_training_material`       | The material for the general introductory training, about 85 pages           | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
+| `own_instructions`                | The own instructions, about 75 pages. Content pending                        | None yet                                                                                                                                                         |
+| `training_themes`                 | Themes and schedule of the three kinds of training. Content pending          | `specialist`, `workplaceManager`                                                                                                                                 |
+| `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                  | None yet                                                                                                                                                         |
+| `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending | `specialist`                                                                                                                                                     |
+| `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending            | None yet                                                                                                                                                         |
+| `decision_imminent_danger`        | Decision no. 4: who acts in serious and imminent danger                      | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
+| `decision_workers_representative` | Decision no. 5: the workers' representatives, from 10 employees              | `workersRepresentatives[]`, `workersRepresentativesLead`                                                                                                         |
 
 For `decision_training`, `training` has `periodicDuration`, `intervalPhrase`, `dayFrom`, and
 `dayTo`. The `administrative[]` and `worker[]` arrays contain one item when applicable and are

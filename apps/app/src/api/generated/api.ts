@@ -266,6 +266,8 @@ export type ClientListResponseItemsItem = {
   legalRepresentativeName: string | null;
   /** @nullable */
   declaredEmployeeCount: number | null;
+  /** @minimum 0 */
+  currentEmployeeCount: number;
   stage: ClientListResponseItemsItemStage;
   /** @nullable */
   contactName: string | null;
@@ -389,6 +391,8 @@ export type ClientResponseClient = {
   legalRepresentativeName: string | null;
   /** @nullable */
   declaredEmployeeCount: number | null;
+  /** @minimum 0 */
+  currentEmployeeCount: number;
   stage: ClientResponseClientStage;
   /** @nullable */
   contactName: string | null;
@@ -1731,6 +1735,7 @@ export const ResponsiblePersonListResponseItemsItemRolesItem = {
   first_aid: 'first_aid',
   risk_evaluation_team: 'risk_evaluation_team',
   imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
 } as const;
 
 export type ResponsiblePersonListResponseItemsItem = {
@@ -1760,6 +1765,7 @@ export const ResponsiblePersonResponseResponsiblePersonRolesItem = {
   first_aid: 'first_aid',
   risk_evaluation_team: 'risk_evaluation_team',
   imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
 } as const;
 
 export type ResponsiblePersonResponseResponsiblePerson = {
@@ -1789,6 +1795,7 @@ export const ResponsiblePersonRequestRolesItem = {
   first_aid: 'first_aid',
   risk_evaluation_team: 'risk_evaluation_team',
   imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
 } as const;
 
 export interface ResponsiblePersonRequest {
@@ -1806,7 +1813,7 @@ export interface ResponsiblePersonRequest {
   jobTitle: string;
   /**
    * @minItems 1
-   * @maxItems 4
+   * @maxItems 5
    */
   roles: ResponsiblePersonRequestRolesItem[];
 }
@@ -1827,11 +1834,27 @@ export const DocumentReadinessResponseMissingItem = {
   responsiblefirst_aid: 'responsible.first_aid',
   responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
   responsibleimminent_danger: 'responsible.imminent_danger',
+  responsibleworkers_representative: 'responsible.workers_representative',
+  responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
+  responsibleworkers_representative_is_legal_representative:
+    'responsible.workers_representative_is_legal_representative',
 } as const;
+
+/**
+ * @nullable
+ */
+export type DocumentReadinessResponseWorkersRepresentativeClash = {
+  representativeName: string;
+  legalRepresentativeName: string;
+} | null;
 
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
+  /** @minimum 0 */
+  currentEmployeeCount: number;
+  /** @nullable */
+  workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
@@ -1917,10 +1940,38 @@ export type ClientDocumentListResponseLastGeneration = {
   firstDecisionNumber: number;
 } | null;
 
+export type ClientDocumentListResponseNotApplicableItem =
+  (typeof ClientDocumentListResponseNotApplicableItem)[keyof typeof ClientDocumentListResponseNotApplicableItem];
+
+export const ClientDocumentListResponseNotApplicableItem = {
+  cover_decisions: 'cover_decisions',
+  decision_training: 'decision_training',
+  decision_risk_evaluation_team: 'decision_risk_evaluation_team',
+  decision_first_aid: 'decision_first_aid',
+  decision_imminent_danger: 'decision_imminent_danger',
+  decision_workers_representative: 'decision_workers_representative',
+  cover_general_training_material: 'cover_general_training_material',
+  general_training_material: 'general_training_material',
+  cover_own_instructions: 'cover_own_instructions',
+  cover_training_themes: 'cover_training_themes',
+  cover_tests: 'cover_tests',
+  test_hiring: 'test_hiring',
+  test_periodic: 'test_periodic',
+  cover_event_registers: 'cover_event_registers',
+  event_registers: 'event_registers',
+  control_report: 'control_report',
+  cover_employer_briefing: 'cover_employer_briefing',
+  employer_briefing: 'employer_briefing',
+  control_regulation: 'control_regulation',
+} as const;
+
 export interface ClientDocumentListResponse {
   items: ClientDocumentListResponseItemsItem[];
   /** @nullable */
   lastGeneration: ClientDocumentListResponseLastGeneration;
+  notApplicable: ClientDocumentListResponseNotApplicableItem[];
+  /** @minimum 0 */
+  currentEmployeeCount: number;
 }
 
 export type GenerateDocumentsResponseCreatedItemDraftStatus =
@@ -2003,7 +2054,7 @@ export interface GenerateDocumentsRequest {
   issueDate: string;
   /**
    * @minimum 1
-   * @maximum 9996
+   * @maximum 9995
    */
   firstDecisionNumber?: number;
 }
@@ -2572,7 +2623,7 @@ export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsS
 export const ListClientsSort = {
   legalName: 'legalName',
   cui: 'cui',
-  declaredEmployeeCount: 'declaredEmployeeCount',
+  currentEmployeeCount: 'currentEmployeeCount',
 } as const;
 
 export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClientsOrder];
@@ -6804,7 +6855,7 @@ export const getCreateResponsiblePersonUrl = (clientId: string) => {
 };
 
 /**
- * A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.
+ * A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.
  * @summary Add a responsible person to a client
  */
 export const createResponsiblePerson = async (
@@ -8398,6 +8449,7 @@ export const getUploadClientDocumentUrl = (
     | 'decision_risk_evaluation_team'
     | 'decision_first_aid'
     | 'decision_imminent_danger'
+    | 'decision_workers_representative'
     | 'cover_general_training_material'
     | 'general_training_material'
     | 'cover_own_instructions'
@@ -8432,6 +8484,7 @@ export const uploadClientDocument = async (
     | 'decision_risk_evaluation_team'
     | 'decision_first_aid'
     | 'decision_imminent_danger'
+    | 'decision_workers_representative'
     | 'cover_general_training_material'
     | 'general_training_material'
     | 'cover_own_instructions'
@@ -8534,6 +8587,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'decision_risk_evaluation_team'
     | 'decision_first_aid'
     | 'decision_imminent_danger'
+    | 'decision_workers_representative'
     | 'cover_general_training_material'
     | 'general_training_material'
     | 'cover_own_instructions'

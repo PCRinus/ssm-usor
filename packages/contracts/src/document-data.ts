@@ -231,6 +231,7 @@ export const responsiblePersonRoles = [
   'first_aid',
   'risk_evaluation_team',
   'imminent_danger',
+  'workers_representative',
 ] as const;
 
 export const responsiblePersonRoleSchema = z.enum(responsiblePersonRoles);
@@ -269,18 +270,30 @@ export const responsiblePersonListResponseSchema = z.object({
 
 export type ResponsiblePersonListResponse = z.infer<typeof responsiblePersonListResponseSchema>;
 
-export const responsiblePersonRequestSchema = z.object({
-  employeeId: z.uuid().nullish(),
-  fullName: z.string().trim().min(2).max(160),
-  jobTitle: z.string().trim().min(2).max(160),
-  roles: z
-    .array(responsiblePersonRoleSchema)
-    .min(1)
-    .max(responsiblePersonRoles.length)
-    .refine((roles) => new Set(roles).size === roles.length, { message: 'A role appears twice.' }),
-});
+export const responsiblePersonRequestSchema = z
+  .object({
+    employeeId: z.uuid().nullish(),
+    fullName: z.string().trim().min(2).max(160),
+    jobTitle: z.string().trim().min(2).max(160),
+    roles: z
+      .array(responsiblePersonRoleSchema)
+      .min(1)
+      .max(responsiblePersonRoles.length)
+      .refine((roles) => new Set(roles).size === roles.length, {
+        message: 'A role appears twice.',
+      }),
+  })
+  .refine((person) => !person.roles.includes('workers_representative') || person.employeeId, {
+    message: "A workers' representative is one of the client's employees.",
+    path: ['employeeId'],
+  });
 
 export type ResponsiblePersonRequest = z.infer<typeof responsiblePersonRequestSchema>;
+
+// Reasons of a 409 that the app words itself.
+export const responsiblePersonConflictReasons = {
+  workersRepresentativeIsLegalRepresentative: 'workers_representative_is_legal_representative',
+} as const;
 
 /**
  * The months of the year with a periodic training: the first month, then every `interval`
@@ -290,4 +303,28 @@ export function trainingMonths(firstMonth: number, intervalMonths: number): numb
   const months: number[] = [];
   for (let month = firstMonth; month <= 12; month += intervalMonths) months.push(month);
   return months;
+}
+
+/**
+ * Whether two names are the same person's, the way people type them: in either order, with or
+ * without diacritics or hyphens, in any case.
+ */
+export function samePersonName(first: string, second: string): boolean {
+  const words = (name: string) =>
+    name
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .toLocaleLowerCase('ro')
+      .split(/[\s-]+/)
+      .filter(Boolean)
+      .sort()
+      .join(' ');
+  return words(first) === words(second);
+}
+
+/** The fewest workers' representatives a client needs for its current employees (ADR 010). */
+export function requiredWorkersRepresentatives(currentEmployees: number): number {
+  if (currentEmployees >= 50) return 2;
+  if (currentEmployees >= 10) return 1;
+  return 0;
 }

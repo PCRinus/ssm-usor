@@ -326,6 +326,10 @@
                   "type": "integer",
                   "nullable": true
                 },
+                "currentEmployeeCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "stage": {
                   "type": "string",
                   "enum": ["lead", "client"]
@@ -378,6 +382,7 @@
                 "addressLine",
                 "legalRepresentativeName",
                 "declaredEmployeeCount",
+                "currentEmployeeCount",
                 "stage",
                 "contactName",
                 "contactEmail",
@@ -498,6 +503,10 @@
                 "type": "integer",
                 "nullable": true
               },
+              "currentEmployeeCount": {
+                "type": "integer",
+                "minimum": 0
+              },
               "stage": {
                 "type": "string",
                 "enum": ["lead", "client"]
@@ -550,6 +559,7 @@
               "addressLine",
               "legalRepresentativeName",
               "declaredEmployeeCount",
+              "currentEmployeeCount",
               "stage",
               "contactName",
               "contactEmail",
@@ -2316,7 +2326,8 @@
                       "workplace_manager",
                       "first_aid",
                       "risk_evaluation_team",
-                      "imminent_danger"
+                      "imminent_danger",
+                      "workers_representative"
                     ]
                   },
                   "minItems": 1
@@ -2383,7 +2394,8 @@
                     "workplace_manager",
                     "first_aid",
                     "risk_evaluation_team",
-                    "imminent_danger"
+                    "imminent_danger",
+                    "workers_representative"
                   ]
                 },
                 "minItems": 1
@@ -2434,10 +2446,16 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["workplace_manager", "first_aid", "risk_evaluation_team", "imminent_danger"]
+              "enum": [
+                "workplace_manager",
+                "first_aid",
+                "risk_evaluation_team",
+                "imminent_danger",
+                "workers_representative"
+              ]
             },
             "minItems": 1,
-            "maxItems": 4
+            "maxItems": 5
           }
         },
         "required": ["fullName", "jobTitle", "roles"]
@@ -2464,12 +2482,32 @@
                 "responsible.workplace_manager",
                 "responsible.first_aid",
                 "responsible.risk_evaluation_team",
-                "responsible.imminent_danger"
+                "responsible.imminent_danger",
+                "responsible.workers_representative",
+                "responsible.workers_representatives_two",
+                "responsible.workers_representative_is_legal_representative"
               ]
             }
+          },
+          "currentEmployeeCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "workersRepresentativeClash": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "representativeName": {
+                "type": "string"
+              },
+              "legalRepresentativeName": {
+                "type": "string"
+              }
+            },
+            "required": ["representativeName", "legalRepresentativeName"]
           }
         },
-        "required": ["ready", "missing"]
+        "required": ["ready", "missing", "currentEmployeeCount", "workersRepresentativeClash"]
       },
       "ClientDocumentListResponse": {
         "type": "object",
@@ -2640,9 +2678,40 @@
               }
             },
             "required": ["issueDate", "firstDecisionNumber"]
+          },
+          "notApplicable": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cover_decisions",
+                "decision_training",
+                "decision_risk_evaluation_team",
+                "decision_first_aid",
+                "decision_imminent_danger",
+                "decision_workers_representative",
+                "cover_general_training_material",
+                "general_training_material",
+                "cover_own_instructions",
+                "cover_training_themes",
+                "cover_tests",
+                "test_hiring",
+                "test_periodic",
+                "cover_event_registers",
+                "event_registers",
+                "control_report",
+                "cover_employer_briefing",
+                "employer_briefing",
+                "control_regulation"
+              ]
+            }
+          },
+          "currentEmployeeCount": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items", "lastGeneration"]
+        "required": ["items", "lastGeneration", "notApplicable", "currentEmployeeCount"]
       },
       "GenerateDocumentsResponse": {
         "type": "object",
@@ -2817,7 +2886,7 @@
           "firstDecisionNumber": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 9996,
+            "maximum": 9995,
             "default": 1
           }
         },
@@ -3967,7 +4036,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["legalName", "cui", "declaredEmployeeCount"],
+              "enum": ["legalName", "cui", "currentEmployeeCount"],
               "default": "legalName"
             },
             "required": false,
@@ -7124,7 +7193,7 @@
       "post": {
         "operationId": "createResponsiblePerson",
         "summary": "Add a responsible person to a client",
-        "description": "A name, a job title, and one or more roles. `employeeId` is optional: the administrator is often designated without being an employee.",
+        "description": "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.",
         "security": [
           {
             "bearerAuth": []
@@ -7203,7 +7272,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the employee is already a responsible person",
+            "description": "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative",
             "content": {
               "application/json": {
                 "schema": {
@@ -7326,7 +7395,7 @@
             }
           },
           "409": {
-            "description": "The employee is already a responsible person",
+            "description": "The employee is already a responsible person, or a workers' representative is the client's legal representative",
             "content": {
               "application/json": {
                 "schema": {
@@ -8658,6 +8727,7 @@
                 "decision_risk_evaluation_team",
                 "decision_first_aid",
                 "decision_imminent_danger",
+                "decision_workers_representative",
                 "cover_general_training_material",
                 "general_training_material",
                 "cover_own_instructions",

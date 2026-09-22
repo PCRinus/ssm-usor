@@ -28,7 +28,12 @@ import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { dateToIso } from '../lib/dates';
-import { groupMissing, type MissingPlace, missingPlaces } from './document-labels';
+import {
+  groupMissing,
+  type MissingPlace,
+  missingPlaces,
+  workersRepresentativesRule,
+} from './document-labels';
 import {
   generateDocumentsFormSchema,
   type GenerateDocumentsFormValues,
@@ -40,12 +45,14 @@ export function GenerateDocumentsDialog({
   userId,
   open,
   lastGeneration,
+  workersRepresentativeDecisionGenerated,
   onClose,
 }: {
   clientId: string;
   userId: string;
   open: boolean;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
+  workersRepresentativeDecisionGenerated: boolean;
   onClose: () => void;
 }) {
   return (
@@ -55,6 +62,7 @@ export function GenerateDocumentsDialog({
           clientId={clientId}
           userId={userId}
           lastGeneration={lastGeneration}
+          workersRepresentativeDecisionGenerated={workersRepresentativeDecisionGenerated}
           onClose={onClose}
         />
       )}
@@ -88,11 +96,13 @@ function GenerateDocumentsForm({
   clientId,
   userId,
   lastGeneration,
+  workersRepresentativeDecisionGenerated,
   onClose,
 }: {
   clientId: string;
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
+  workersRepresentativeDecisionGenerated: boolean;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -113,7 +123,9 @@ function GenerateDocumentsForm({
   });
   const { errors } = form.formState;
   const busy = generate.isPending;
-  const missing = readiness.data ? groupMissing(readiness.data.missing) : [];
+  const missing = readiness.data
+    ? groupMissing(readiness.data.missing, readiness.data.workersRepresentativeClash)
+    : [];
   const ready = readiness.data?.ready === true;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -176,7 +188,15 @@ function GenerateDocumentsForm({
           >
             Nu am putut verifica datele clientului.
           </Notice>
-        ) : !ready ? (
+        ) : (
+          <Notice variant="info" data-testid="generate-headcount" className="mt-5">
+            {workersRepresentativesRule(
+              readiness.data.currentEmployeeCount,
+              workersRepresentativeDecisionGenerated
+            )}
+          </Notice>
+        )}
+        {!readiness.data ? null : !ready ? (
           <div data-testid="generate-missing" className="mt-5 grid gap-3 text-sm">
             <p>
               Documentele nu lasă niciun câmp gol, așa că mai întâi trebuie completate câteva date:
@@ -232,7 +252,7 @@ function GenerateDocumentsForm({
               id="generate-first-number"
               label="Numărul primei decizii"
               mark="required"
-              hint="Cele patru decizii primesc numere consecutive."
+              hint="Deciziile primesc numere consecutive."
               error={errors.firstDecisionNumber}
             >
               <Input

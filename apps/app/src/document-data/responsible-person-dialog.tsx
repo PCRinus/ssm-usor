@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { responsiblePersonConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
@@ -16,8 +17,10 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
+  getGetClientDocumentDetailsQueryKey,
   getListResponsiblePersonsQueryKey,
   useCreateResponsiblePerson,
+  useGetClientDocumentDetails,
   useUpdateResponsiblePerson,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
@@ -78,6 +81,11 @@ function ResponsiblePersonForm({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
+  // The page shows the legal representative from the same query, so it is already loaded.
+  const details = useGetClientDocumentDetails(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
+  });
   const form = useForm<ResponsiblePersonFormValues>({
     resolver: zodResolver(responsiblePersonFormSchema),
     defaultValues: person ? toResponsiblePersonForm(person) : emptyResponsiblePersonForm,
@@ -107,6 +115,18 @@ function ResponsiblePersonForm({
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      if (
+        status === 409 &&
+        body?.reason === responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative
+      ) {
+        const legalRepresentative = details.data?.documentDetails.legalRepresentativeName;
+        form.setError('roles', {
+          message: legalRepresentative
+            ? `„${values.fullName.trim()}” are același nume ca reprezentantul legal al clientului, „${legalRepresentative}”, și nu poate fi și reprezentantul lucrătorilor.`
+            : `${values.fullName.trim()} este reprezentantul legal al clientului și nu poate fi și reprezentantul lucrătorilor.`,
+        });
+        return;
+      }
       if (status === 409) {
         form.setError('employeeId', {
           message: 'Angajatul este deja în listă. Modifică responsabilitățile lui de acolo.',

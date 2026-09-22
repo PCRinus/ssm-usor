@@ -251,6 +251,48 @@ test('an employee is designated once, and the administrator is added by hand', a
   await expect(page.getByTestId('responsible-row')).toHaveCount(2);
 });
 
+test("the workers' representative is an employee other than the legal representative", async ({
+  page,
+}) => {
+  const owner = await createAccount('workers-representative-owner');
+  const organizationId = await createOrganization('Reprezentant lucrători E2E', owner.id);
+  // Its legal representative is Maria Popescu.
+  const clientId = await createClientCompany(organizationId, 'CLIENT REPREZENTANT E2E SRL');
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Maria',
+    lastName: 'POPESCU',
+    jobTitle: 'Director general',
+  });
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Ion',
+    lastName: 'Vasile',
+    jobTitle: 'Vânzător',
+  });
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/document-data`);
+
+  const designate = async (search: string, name: RegExp) => {
+    await page.getByTestId('responsible-add').click();
+    await page.getByTestId('responsible-employee').click();
+    await page.getByTestId('responsible-employee-search').fill(search);
+    await page.getByRole('option', { name }).click();
+    await page.getByTestId('responsible-role-workers_representative').click();
+    await page.getByTestId('responsible-save').click();
+  };
+
+  await designate('popescu', /Popescu/i);
+  await expect(page.getByTestId('responsible-roles-error')).toContainText(
+    'are același nume ca reprezentantul legal al clientului, „Maria Popescu”'
+  );
+  await page.getByRole('button', { name: 'Renunță' }).click();
+
+  await designate('vasile', /Vasile/);
+  await expect(page.getByText('Persoana a fost adăugată.')).toBeVisible();
+  await expect(page.getByTestId('responsible-row')).toHaveCount(1);
+  await expect(page.getByTestId('responsible-row')).toContainText('Reprezentantul lucrătorilor');
+});
+
 test('employee choices scroll with the wheel inside the responsible-person dialog', async ({
   page,
 }) => {

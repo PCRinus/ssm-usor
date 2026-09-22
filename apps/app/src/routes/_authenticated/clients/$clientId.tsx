@@ -136,11 +136,11 @@ export function ClientLayout() {
               </Fact>
             )}
             {office && <Fact label="Sediu">{office}</Fact>}
-            {client.declaredEmployeeCount !== null && (
-              <Fact label="Angajați declarați">
-                <span className="tabular-nums">{client.declaredEmployeeCount}</span>
-              </Fact>
-            )}
+            <Fact label="Angajați">
+              <span className="tabular-nums" data-testid="client-employee-count">
+                {client.currentEmployeeCount}
+              </span>
+            </Fact>
           </dl>
         </div>
         {!client.archivedAt && (

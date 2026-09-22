@@ -510,6 +510,42 @@ describe('/clients/{clientId}/responsible-persons', () => {
     expect((await request(`${path}/${responsiblePersonRow.id}`, 'PUT', body)).status).toBe(409);
   });
 
+  describe("as the workers' representative", () => {
+    const representative = { ...body, roles: ['workers_representative'] };
+    const withLegalRepresentative = (name: string) =>
+      mockUpstream({
+        clients: () => Response.json({ ...activeClient, legal_representative_name: name }),
+        responsiblePersons: () => Response.json(responsiblePersonRow, { status: 201 }),
+      });
+
+    it('refuses someone who is not an employee', async () => {
+      mockUpstream({});
+      const response = await request(path, 'POST', { ...representative, employeeId: null });
+      expect(response.status).toBe(400);
+      expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+    });
+
+    it("refuses the client's legal representative, however the name is typed", async () => {
+      withLegalRepresentative('POPESCU Ion');
+      for (const [method, url] of [
+        ['POST', path],
+        ['PUT', `${path}/${responsiblePersonRow.id}`],
+      ] as const) {
+        const response = await request(url, method, representative);
+        expect(response.status).toBe(409);
+        expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+          'workers_representative_is_legal_representative'
+        );
+      }
+      expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+    });
+
+    it('takes another employee', async () => {
+      withLegalRepresentative('Maria Popescu');
+      expect((await request(path, 'POST', representative)).status).toBe(201);
+    });
+  });
+
   it('replaces and archives one, and answers 404 when it is not there', async () => {
     const item = `${path}/${responsiblePersonRow.id}`;
     mockUpstream({ responsiblePersons: () => Response.json(responsiblePersonRow) });

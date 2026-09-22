@@ -70,7 +70,7 @@ describe('workplaceFor', () => {
 
 describe('responsiblePersonsFor', () => {
   it('covers the four roles between an employee and the legal representative', () => {
-    const rows = responsiblePersonsFor(client, employee, userId);
+    const rows = responsiblePersonsFor(client, [employee], userId);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       employee_id: employee.id,
@@ -88,7 +88,19 @@ describe('responsiblePersonsFor', () => {
 
   it('seeds nobody for a client without employees and without a representative', () => {
     expect(
-      responsiblePersonsFor({ ...client, legal_representative_name: null }, null, userId)
+      responsiblePersonsFor({ ...client, legal_representative_name: null }, [], userId)
     ).toEqual([]);
+  });
+
+  it("adds workers' representatives from 10 employees, two from 50", () => {
+    const staff = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({ ...employee, id: `employee-${index}` }));
+    const representatives = (count: number) =>
+      responsiblePersonsFor(client, staff(count), userId)
+        .filter((row) => row.roles?.includes('workers_representative'))
+        .map((row) => row.employee_id);
+    expect(representatives(9)).toEqual([]);
+    expect(representatives(10)).toEqual(['employee-1']);
+    expect(representatives(50)).toEqual(['employee-1', 'employee-2']);
   });
 });

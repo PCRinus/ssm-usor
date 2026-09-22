@@ -100,9 +100,12 @@ export function toCreateClientRequest(
     locality: textOrNull(values.locality),
     addressLine: textOrNull(values.addressLine),
     legalRepresentativeName: textOrNull(values.legalRepresentativeName),
-    declaredEmployeeCount: values.declaredEmployeeCount
-      ? Number(values.declaredEmployeeCount)
-      : null,
+    // Only a lead declares a headcount; a client has its employee list (ADR 010).
+    ...(stage === 'lead' && {
+      declaredEmployeeCount: values.declaredEmployeeCount
+        ? Number(values.declaredEmployeeCount)
+        : null,
+    }),
     contactName: textOrNull(values.contactName),
     contactEmail: textOrNull(values.contactEmail),
     contactPhone: textOrNull(values.contactPhone),
@@ -110,8 +113,11 @@ export function toCreateClientRequest(
   };
 }
 
-export function toUpdateClientRequest(values: ClientFormValues): UpdateClientRequest {
-  const request: Partial<CreateClientRequest> = toCreateClientRequest(values);
+export function toUpdateClientRequest(
+  values: ClientFormValues,
+  stage: ClientStage
+): UpdateClientRequest {
+  const request: Partial<CreateClientRequest> = toCreateClientRequest(values, stage);
   delete request.legalRepresentativeName;
   delete request.stage;
   return request as UpdateClientRequest;
