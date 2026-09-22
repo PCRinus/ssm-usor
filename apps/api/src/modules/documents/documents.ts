@@ -190,6 +190,7 @@ export async function listClientDocuments(db: DataClient, actor: Actor, clientId
         !documentApplies(facts, typeKey) &&
         !documents.some((document) => document.type_key === typeKey)
     ),
+    currentEmployeeCount: facts.currentEmployeeCount,
     lastGeneration: generation.data
       ? {
           issueDate: generation.data.issue_date,

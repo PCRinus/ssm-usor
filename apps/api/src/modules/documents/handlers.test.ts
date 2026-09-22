@@ -255,6 +255,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
       ready: true,
       missing: [],
+      currentEmployeeCount: 1,
     });
     const persons = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
@@ -281,6 +282,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
         'responsible.risk_evaluation_team',
         'responsible.imminent_danger',
       ],
+      currentEmployeeCount: 1,
     });
   });
 
@@ -306,6 +308,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
       ready: true,
       missing: [],
+      currentEmployeeCount: 1,
     });
   });
 
@@ -341,7 +344,7 @@ describe('GET /clients/{clientId}/documents', () => {
     const body = clientDocumentListResponseSchema.parse(await response.json());
     expect(body.lastGeneration).toEqual({ issueDate: '2026-01-19', firstDecisionNumber: 3 });
     expect(body.items).toHaveLength(1);
-    // One current employee.
+    expect(body.currentEmployeeCount).toBe(1);
     expect(body.notApplicable).toEqual(['decision_workers_representative']);
     // The documentation set only: the client's other documents have their own routes.
     expect(

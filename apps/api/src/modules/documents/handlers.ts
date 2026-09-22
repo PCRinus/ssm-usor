@@ -55,7 +55,10 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
     issueDate: '2000-01-01',
     firstDecisionNumber: 1,
   });
-  return c.json({ ready: missing.length === 0, missing }, 200);
+  return c.json(
+    { ready: missing.length === 0, missing, currentEmployeeCount: facts.currentEmployeeCount },
+    200
+  );
 };
 
 export const listClientDocuments: RouteHandler<typeof listClientDocumentsRoute, ApiEnv> = async (

@@ -1,7 +1,12 @@
-import type { MissingDocumentData } from '@ssm-usor/contracts';
+import {
+  type DocumentTypeKey,
+  type MissingDocumentData,
+  requiredWorkersRepresentatives,
+} from '@ssm-usor/contracts';
 
 import type { ClientDocumentListResponse } from '../api/generated/api';
 import { responsibleRoleLabels } from '../document-data/responsible-person-schema';
+import { employeeCountLabel } from '../job-positions/job-position-schema';
 
 export type ClientDocument = ClientDocumentListResponse['items'][number];
 
@@ -75,4 +80,22 @@ export function groupMissing(missing: readonly MissingDocumentData[]) {
         .map((code) => missingDataLabels[code].label),
     }))
     .filter((group) => group.labels.length > 0);
+}
+
+// The API names a document only once it exists; one that does not apply is named here.
+export const notApplicableTitles: Partial<Record<DocumentTypeKey, string>> = {
+  decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
+};
+
+/** What the employee count means for decision 1.5, said where documents are generated. */
+export function workersRepresentativesRule(currentEmployeeCount: number) {
+  const count = `${employeeCountLabel(currentEmployeeCount)} în lista clientului`;
+  switch (requiredWorkersRepresentatives(currentEmployeeCount)) {
+    case 0:
+      return `${count}, așa că decizia privind reprezentanții lucrătorilor nu se generează. Este necesară de la 10 angajați.`;
+    case 1:
+      return `${count}, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin un reprezentant.`;
+    default:
+      return `${count}, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin doi reprezentanți.`;
+  }
 }

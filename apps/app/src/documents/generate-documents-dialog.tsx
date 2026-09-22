@@ -28,7 +28,12 @@ import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { dateToIso } from '../lib/dates';
-import { groupMissing, type MissingPlace, missingPlaces } from './document-labels';
+import {
+  groupMissing,
+  type MissingPlace,
+  missingPlaces,
+  workersRepresentativesRule,
+} from './document-labels';
 import {
   generateDocumentsFormSchema,
   type GenerateDocumentsFormValues,
@@ -176,7 +181,12 @@ function GenerateDocumentsForm({
           >
             Nu am putut verifica datele clientului.
           </Notice>
-        ) : !ready ? (
+        ) : (
+          <Notice variant="info" data-testid="generate-headcount" className="mt-5">
+            {workersRepresentativesRule(readiness.data.currentEmployeeCount)}
+          </Notice>
+        )}
+        {!readiness.data ? null : !ready ? (
           <div data-testid="generate-missing" className="mt-5 grid gap-3 text-sm">
             <p>
               Documentele nu lasă niciun câmp gol, așa că mai întâi trebuie completate câteva date:
@@ -232,7 +242,7 @@ function GenerateDocumentsForm({
               id="generate-first-number"
               label="Numărul primei decizii"
               mark="required"
-              hint="Cele patru decizii primesc numere consecutive."
+              hint="Deciziile primesc numere consecutive."
               error={errors.firstDecisionNumber}
             >
               <Input

@@ -68,7 +68,12 @@ function mockApi({
   items = [] as unknown[],
   lastGeneration = null as { issueDate: string; firstDecisionNumber: number } | null,
   notApplicable = [] as string[],
-  readiness = { ready: true, missing: [] as string[] },
+  readiness = { ready: true, missing: [] as string[] } as {
+    ready: boolean;
+    missing: string[];
+    currentEmployeeCount?: number;
+  },
+  currentEmployeeCount = 6,
   generate = (() =>
     Response.json({ created: [firstAid, report], skipped: [] }, { status: 201 })) as Route,
   action = (() => Response.json({ document: firstAid })) as Route,
@@ -89,9 +94,11 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/documents`) {
-      return Response.json({ items, lastGeneration, notApplicable });
+      return Response.json({ items, lastGeneration, notApplicable, currentEmployeeCount });
     }
-    if (pathname === `/clients/${clientId}/documents/readiness`) return Response.json(readiness);
+    if (pathname === `/clients/${clientId}/documents/readiness`) {
+      return Response.json({ currentEmployeeCount, ...readiness });
+    }
     if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
     if (pathname.endsWith('/upload')) return upload(init);
     if (pathname.endsWith('/download')) {
@@ -200,6 +207,44 @@ describe('client documents', () => {
     mount();
     await screen.findAllByTestId('document-row');
     expect(screen.queryByTestId('documents-generate')).toBeNull();
+    const skipped = screen.getByTestId('document-not-applicable');
+    expect(skipped.textContent).toContain('Decizia privind reprezentanții lucrătorilor');
+    expect(skipped.textContent).toContain('Nu se aplică');
+  });
+
+  it.each([
+    [
+      6,
+      '6 angajați în lista clientului, așa că decizia privind reprezentanții lucrătorilor nu se generează',
+    ],
+    [
+      12,
+      '12 angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin un reprezentant',
+    ],
+    [
+      50,
+      '50 de angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin doi reprezentanți',
+    ],
+  ])('says before generating what %i employees mean for decision 1.5', async (count, rule) => {
+    mockApi({ currentEmployeeCount: count });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-headcount')).textContent).toContain(rule);
+  });
+
+  it('shows the number of employees also while data is missing', async () => {
+    mockApi({
+      readiness: { ready: false, missing: ['responsible.workers_representative'] },
+      currentEmployeeCount: 12,
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-headcount')).textContent).toContain('12 angajați');
+    expect((await screen.findByTestId('generate-missing-place')).textContent).toContain(
+      'un reprezentant al lucrătorilor'
+    );
   });
 
   it('generates with the date and the first number of the last generation', async () => {

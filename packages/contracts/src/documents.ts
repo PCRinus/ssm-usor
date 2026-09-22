@@ -120,6 +120,8 @@ export type MissingDocumentData = z.infer<typeof missingDocumentDataSchema>;
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
+  // What decides whether decision 1.5 is part of the set (ADR 010).
+  currentEmployeeCount: z.int().min(0),
 });
 
 export type DocumentReadinessResponse = z.infer<typeof documentReadinessResponseSchema>;
@@ -181,6 +183,7 @@ export const clientDocumentListResponseSchema = z.object({
     .nullable(),
   // Documents of the set this client does not need, such as decision 1.5 under 10 employees.
   notApplicable: z.array(documentTypeKeySchema),
+  currentEmployeeCount: z.int().min(0),
 });
 
 export type ClientDocumentListResponse = z.infer<typeof clientDocumentListResponseSchema>;

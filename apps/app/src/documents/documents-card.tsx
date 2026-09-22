@@ -1,4 +1,5 @@
 import {
+  type DocumentTypeKey,
   documentTypeKeys,
   isUploadedDocumentType,
   type PackDocumentTypeKey,
@@ -53,12 +54,21 @@ import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
-import type { ClientDocument } from './document-labels';
+import {
+  type ClientDocument,
+  notApplicableTitles,
+  workersRepresentativesRule,
+} from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 
 type Revision = NonNullable<ClientDocument['draft']>;
 // A document, or the place of one that waits for a file.
-type Row = { typeKey: string; title: string; document: ClientDocument | null };
+type Row = {
+  typeKey: string;
+  title: string;
+  document: ClientDocument | null;
+  notApplicable?: boolean;
+};
 type Confirming = {
   // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
   action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
@@ -167,6 +177,10 @@ export function DocumentsCard({
   const packRows = packDocumentTypeKeys.flatMap((typeKey): Row[] => {
     const document = items.find((item) => item.typeKey === typeKey);
     if (document) return [{ typeKey, title: document.title, document }];
+    const notApplicableTitle = notApplicableTitles[typeKey as DocumentTypeKey];
+    if (notApplicable.has(typeKey as DocumentTypeKey) && notApplicableTitle) {
+      return [{ typeKey, title: notApplicableTitle, document: null, notApplicable: true }];
+    }
     return isUploadedDocumentType(typeKey)
       ? [{ typeKey, title: uploadedDocumentTypes[typeKey], document: null }]
       : [];
@@ -350,7 +364,26 @@ export function DocumentsCard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map(({ typeKey, title, document }) => {
+              {rows.map(({ typeKey, title, document, notApplicable: skipped }) => {
+                if (skipped) {
+                  return (
+                    <TableRow key={typeKey} data-testid="document-not-applicable">
+                      <TableCell className="font-medium text-muted-foreground">{title}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          title={workersRepresentativesRule(
+                            documents.data?.currentEmployeeCount ?? 0
+                          )}
+                        >
+                          Nu se aplică
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">Sub 10 angajați</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  );
+                }
                 if (!document) {
                   return (
                     <TableRow key={typeKey} data-testid="document-slot">

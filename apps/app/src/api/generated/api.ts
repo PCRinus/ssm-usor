@@ -1839,6 +1839,8 @@ export const DocumentReadinessResponseMissingItem = {
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
+  /** @minimum 0 */
+  currentEmployeeCount: number;
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
@@ -1954,6 +1956,8 @@ export interface ClientDocumentListResponse {
   /** @nullable */
   lastGeneration: ClientDocumentListResponseLastGeneration;
   notApplicable: ClientDocumentListResponseNotApplicableItem[];
+  /** @minimum 0 */
+  currentEmployeeCount: number;
 }
 
 export type GenerateDocumentsResponseCreatedItemDraftStatus =

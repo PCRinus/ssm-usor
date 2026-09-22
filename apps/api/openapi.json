@@ -2478,9 +2478,13 @@
                 "responsible.workers_representative_is_legal_representative"
               ]
             }
+          },
+          "currentEmployeeCount": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["ready", "missing"]
+        "required": ["ready", "missing", "currentEmployeeCount"]
       },
       "ClientDocumentListResponse": {
         "type": "object",
@@ -2678,9 +2682,13 @@
                 "control_regulation"
               ]
             }
+          },
+          "currentEmployeeCount": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items", "lastGeneration", "notApplicable"]
+        "required": ["items", "lastGeneration", "notApplicable", "currentEmployeeCount"]
       },
       "GenerateDocumentsResponse": {
         "type": "object",

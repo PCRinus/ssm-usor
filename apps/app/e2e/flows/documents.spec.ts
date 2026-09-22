@@ -66,6 +66,9 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(rows).toHaveCount(18);
   // The whole set exists, so there is nothing left to generate.
   await expect(page.getByTestId('documents-generate')).toHaveCount(0);
+  await expect(page.getByTestId('document-not-applicable')).toContainText(
+    'Decizia privind reprezentanții lucrătorilorNu se aplică'
+  );
   const firstAid = rows.filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
   await expect(firstAid).toContainText('Decizia nr. 5 SSM');
   await expect(firstAid).toContainText('19.01.2026');
@@ -254,6 +257,9 @@ test("from 10 employees the set includes the decision on the workers' representa
 
   await page.goto(`/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
+  await expect(page.getByTestId('generate-headcount')).toContainText(
+    '10 angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor'
+  );
   await expect(page.getByTestId('generate-missing-place')).toContainText(
     'un reprezentant al lucrătorilor'
   );
