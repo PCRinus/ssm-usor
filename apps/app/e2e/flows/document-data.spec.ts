@@ -283,7 +283,7 @@ test("the workers' representative is an employee other than the legal representa
 
   await designate('popescu', /Popescu/i);
   await expect(page.getByTestId('responsible-roles-error')).toContainText(
-    'este reprezentantul legal al clientului'
+    'are același nume ca reprezentantul legal al clientului, „Maria Popescu”'
   );
   await page.getByRole('button', { name: 'Renunță' }).click();
 

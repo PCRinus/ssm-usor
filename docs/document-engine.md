@@ -310,7 +310,10 @@ The API builds the data once per generation and merges every template with it
   workers' representative is required only from 10 current employees, two from 50
   (`responsible.workers_representative`, `responsible.workers_representatives_two`), counts
   only while their employee has not left, and must not have the client's legal
-  representative's name (`responsible.workers_representative_is_legal_representative`).
+  representative's name (`responsible.workers_representative_is_legal_representative`;
+  readiness also returns the two names as `workersRepresentativeClash`).
+  `missingDocumentData(facts, typeKey)` is what generating one document again needs: a 1.5
+  kept under 10 employees still needs one representative.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
@@ -324,7 +327,7 @@ The API builds the data once per generation and merges every template with it
   one template its number. The context is what a revision keeps as its data snapshot.
 - `documentApplies(facts, typeKey)` says whether a document belongs in the client's set:
   decision 1.5 only from 10 current employees. Generating leaves out the rest; a document
-  that already exists stays.
+  that already exists stays, and cover 1.0 keeps listing a 1.5 that was generated.
 - `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
 
 A test merges every registered template with this context; the engine throws on a placeholder

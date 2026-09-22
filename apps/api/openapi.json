@@ -2492,9 +2492,22 @@
           "currentEmployeeCount": {
             "type": "integer",
             "minimum": 0
+          },
+          "workersRepresentativeClash": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "representativeName": {
+                "type": "string"
+              },
+              "legalRepresentativeName": {
+                "type": "string"
+              }
+            },
+            "required": ["representativeName", "legalRepresentativeName"]
           }
         },
-        "required": ["ready", "missing", "currentEmployeeCount"]
+        "required": ["ready", "missing", "currentEmployeeCount", "workersRepresentativeClash"]
       },
       "ClientDocumentListResponse": {
         "type": "object",

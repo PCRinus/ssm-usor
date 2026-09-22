@@ -295,11 +295,15 @@ export function DocumentsCard({
       setError(
         body?.reason === 'pdf_unavailable'
           ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
-          : body?.reason === 'missing_document_data'
-            ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
-            : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
-              ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-              : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
+          : body?.reason === 'missing_document_data' &&
+              document.typeKey === 'decision_workers_representative'
+            ? // Under 10 employees the generation form does not ask for a representative.
+              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Date pentru documente”.'
+            : body?.reason === 'missing_document_data'
+              ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
+              : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
+                ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
+                : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
       );
     }
     setConfirming(null);
@@ -373,7 +377,8 @@ export function DocumentsCard({
                         <Badge
                           variant="outline"
                           title={workersRepresentativesRule(
-                            documents.data?.currentEmployeeCount ?? 0
+                            documents.data?.currentEmployeeCount ?? 0,
+                            false
                           )}
                         >
                           Nu se aplică
@@ -606,6 +611,10 @@ export function DocumentsCard({
         userId={userId}
         open={generating}
         lastGeneration={documents.data?.lastGeneration ?? null}
+        workersRepresentativeDecisionGenerated={items.some(
+          (item) =>
+            item.typeKey === 'decision_workers_representative' && (item.draft || item.issued)
+        )}
         onClose={() => setGenerating(false)}
       />
       <Dialog

@@ -45,12 +45,14 @@ export function GenerateDocumentsDialog({
   userId,
   open,
   lastGeneration,
+  workersRepresentativeDecisionGenerated,
   onClose,
 }: {
   clientId: string;
   userId: string;
   open: boolean;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
+  workersRepresentativeDecisionGenerated: boolean;
   onClose: () => void;
 }) {
   return (
@@ -60,6 +62,7 @@ export function GenerateDocumentsDialog({
           clientId={clientId}
           userId={userId}
           lastGeneration={lastGeneration}
+          workersRepresentativeDecisionGenerated={workersRepresentativeDecisionGenerated}
           onClose={onClose}
         />
       )}
@@ -93,11 +96,13 @@ function GenerateDocumentsForm({
   clientId,
   userId,
   lastGeneration,
+  workersRepresentativeDecisionGenerated,
   onClose,
 }: {
   clientId: string;
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
+  workersRepresentativeDecisionGenerated: boolean;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -118,7 +123,9 @@ function GenerateDocumentsForm({
   });
   const { errors } = form.formState;
   const busy = generate.isPending;
-  const missing = readiness.data ? groupMissing(readiness.data.missing) : [];
+  const missing = readiness.data
+    ? groupMissing(readiness.data.missing, readiness.data.workersRepresentativeClash)
+    : [];
   const ready = readiness.data?.ready === true;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -183,7 +190,10 @@ function GenerateDocumentsForm({
           </Notice>
         ) : (
           <Notice variant="info" data-testid="generate-headcount" className="mt-5">
-            {workersRepresentativesRule(readiness.data.currentEmployeeCount)}
+            {workersRepresentativesRule(
+              readiness.data.currentEmployeeCount,
+              workersRepresentativeDecisionGenerated
+            )}
           </Notice>
         )}
         {!readiness.data ? null : !ready ? (

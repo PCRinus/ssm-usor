@@ -72,6 +72,7 @@ function mockApi({
     ready: boolean;
     missing: string[];
     currentEmployeeCount?: number;
+    workersRepresentativeClash?: { representativeName: string; legalRepresentativeName: string };
   },
   currentEmployeeCount = 6,
   generate = (() =>
@@ -244,6 +245,40 @@ describe('client documents', () => {
     expect((await screen.findByTestId('generate-headcount')).textContent).toContain('12 angajați');
     expect((await screen.findByTestId('generate-missing-place')).textContent).toContain(
       'un reprezentant al lucrătorilor'
+    );
+  });
+
+  it('says when decision 1.5 already exists instead of promising it again', async () => {
+    mockApi({
+      currentEmployeeCount: 12,
+      items: [{ ...firstAid, typeKey: 'decision_workers_representative' }],
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    const notice = (await screen.findByTestId('generate-headcount')).textContent;
+    expect(notice).toContain('este nevoie de cel puțin un reprezentant al lucrătorilor');
+    expect(notice).toContain('este deja generată');
+    expect(notice).not.toContain('se generează și');
+  });
+
+  it("names the representative who has the legal representative's name", async () => {
+    mockApi({
+      readiness: {
+        ready: false,
+        missing: ['responsible.workers_representative_is_legal_representative'],
+        workersRepresentativeClash: {
+          representativeName: 'Talos Florin',
+          legalRepresentativeName: 'Florin TALOȘ',
+        },
+      },
+      currentEmployeeCount: 12,
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-missing-place')).textContent).toContain(
+      '„Talos Florin” are același nume ca reprezentantul legal al clientului, „Florin TALOȘ”'
     );
   });
 
@@ -568,6 +603,33 @@ describe('client documents', () => {
     await user.click(await screen.findByTestId('document-confirm'));
 
     expect((await screen.findByTestId('documents-error')).textContent).toContain('Lipsesc date');
+  });
+
+  it('says what a decision 1.5 needs when regenerating it is refused', async () => {
+    mockApi({
+      items: [
+        {
+          ...firstAid,
+          typeKey: 'decision_workers_representative',
+          title: 'Decizia privind reprezentanții lucrătorilor',
+        },
+      ],
+      action: () =>
+        Response.json(
+          { error: 'conflict', message: 'missing', reason: 'missing_document_data' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'reprezentanții lucrătorilor');
+    await user.click(await screen.findByTestId('document-regenerate'));
+    await user.click(await screen.findByTestId('document-confirm'));
+
+    expect((await screen.findByTestId('documents-error')).textContent).toContain(
+      'cel puțin un reprezentant al lucrătorilor'
+    );
   });
 
   it('only offers downloads for an archived client', async () => {

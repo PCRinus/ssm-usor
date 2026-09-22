@@ -17,8 +17,10 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
+  getGetClientDocumentDetailsQueryKey,
   getListResponsiblePersonsQueryKey,
   useCreateResponsiblePerson,
+  useGetClientDocumentDetails,
   useUpdateResponsiblePerson,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
@@ -79,6 +81,11 @@ function ResponsiblePersonForm({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
+  // The page shows the legal representative from the same query, so it is already loaded.
+  const details = useGetClientDocumentDetails(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
+  });
   const form = useForm<ResponsiblePersonFormValues>({
     resolver: zodResolver(responsiblePersonFormSchema),
     defaultValues: person ? toResponsiblePersonForm(person) : emptyResponsiblePersonForm,
@@ -112,8 +119,11 @@ function ResponsiblePersonForm({
         status === 409 &&
         body?.reason === responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative
       ) {
+        const legalRepresentative = details.data?.documentDetails.legalRepresentativeName;
         form.setError('roles', {
-          message: `${values.fullName.trim()} este reprezentantul legal al clientului și nu poate fi și reprezentantul lucrătorilor.`,
+          message: legalRepresentative
+            ? `„${values.fullName.trim()}” are același nume ca reprezentantul legal al clientului, „${legalRepresentative}”, și nu poate fi și reprezentantul lucrătorilor.`
+            : `${values.fullName.trim()} este reprezentantul legal al clientului și nu poate fi și reprezentantul lucrătorilor.`,
         });
         return;
       }

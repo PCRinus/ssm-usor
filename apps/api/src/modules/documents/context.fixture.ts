@@ -39,4 +39,5 @@ export const facts: DocumentFacts = {
   ],
   staffCategoriesInUse: ['technical_administrative', 'execution'],
   currentEmployeeCount: 6,
+  workersRepresentativeDecisionGenerated: false,
 };

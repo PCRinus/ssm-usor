@@ -122,6 +122,10 @@ export const documentReadinessResponseSchema = z.object({
   missing: z.array(missingDocumentDataSchema),
   // What decides whether decision 1.5 is part of the set (ADR 010).
   currentEmployeeCount: z.int().min(0),
+  // The two names behind `responsible.workers_representative_is_legal_representative`.
+  workersRepresentativeClash: z
+    .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
+    .nullable(),
 });
 
 export type DocumentReadinessResponse = z.infer<typeof documentReadinessResponseSchema>;

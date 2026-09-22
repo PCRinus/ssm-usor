@@ -70,14 +70,24 @@ export const missingDataLabels: Record<
   },
 };
 
-export function groupMissing(missing: readonly MissingDocumentData[]) {
+export type WorkersRepresentativeClash = {
+  representativeName: string;
+  legalRepresentativeName: string;
+};
+
+export function groupMissing(
+  missing: readonly MissingDocumentData[],
+  clash: WorkersRepresentativeClash | null = null
+) {
+  const label = (code: MissingDocumentData) =>
+    code === 'responsible.workers_representative_is_legal_representative' && clash
+      ? `alt reprezentant al lucrătorilor: „${clash.representativeName}” are același nume ca reprezentantul legal al clientului, „${clash.legalRepresentativeName}”`
+      : missingDataLabels[code].label;
   const places: MissingPlace[] = ['organization', 'profile', 'client'];
   return places
     .map((place) => ({
       place,
-      labels: missing
-        .filter((code) => missingDataLabels[code].place === place)
-        .map((code) => missingDataLabels[code].label),
+      labels: missing.filter((code) => missingDataLabels[code].place === place).map(label),
     }))
     .filter((group) => group.labels.length > 0);
 }
@@ -88,14 +98,18 @@ export const notApplicableTitles: Partial<Record<DocumentTypeKey, string>> = {
 };
 
 /** What the employee count means for decision 1.5, said where documents are generated. */
-export function workersRepresentativesRule(currentEmployeeCount: number) {
+export function workersRepresentativesRule(currentEmployeeCount: number, generated: boolean) {
   const count = `${employeeCountLabel(currentEmployeeCount)} în lista clientului`;
-  switch (requiredWorkersRepresentatives(currentEmployeeCount)) {
-    case 0:
-      return `${count}, așa că decizia privind reprezentanții lucrătorilor nu se generează. Este necesară de la 10 angajați.`;
-    case 1:
-      return `${count}, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin un reprezentant.`;
-    default:
-      return `${count}, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin doi reprezentanți.`;
+  const needed = requiredWorkersRepresentatives(currentEmployeeCount);
+  if (needed === 0) {
+    return generated
+      ? `${count}. Decizia privind reprezentanții lucrătorilor este deja generată și rămâne în documentație, deși este necesară doar de la 10 angajați.`
+      : `${count}, așa că decizia privind reprezentanții lucrătorilor nu se generează. Este necesară de la 10 angajați.`;
   }
+  if (generated) {
+    const representatives =
+      needed === 1 ? 'un reprezentant al lucrătorilor' : 'doi reprezentanți ai lucrătorilor';
+    return `${count}, așa că este nevoie de cel puțin ${representatives}. Decizia privind reprezentanții lucrătorilor este deja generată.`;
+  }
+  return `${count}, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin ${needed === 1 ? 'un reprezentant' : 'doi reprezentanți'}.`;
 }

@@ -82,6 +82,7 @@ function mockApi({
       responsiblePerson: { ...manager, ...JSON.parse(String(init?.body)) },
     })) as Route,
   archive = (() => new Response(null, { status: 204 })) as Route,
+  details = emptyDetails as Record<string, unknown>,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -91,7 +92,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/document-details`) {
-      return Response.json({ documentDetails: emptyDetails });
+      return Response.json({ documentDetails: details });
     }
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/employees`) {
@@ -262,8 +263,9 @@ describe('client responsible persons', () => {
     expect(requests(listPath, 'POST')).toEqual([]);
   });
 
-  it('says why the legal representative cannot represent the workers', async () => {
+  it('names both people when the legal representative is chosen to represent the workers', async () => {
     mockApi({
+      details: { ...emptyDetails, legalRepresentativeName: 'LUCA Paolo Antonio' },
       update: () =>
         Response.json(
           {
@@ -283,7 +285,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     expect((await screen.findByTestId('responsible-roles-error')).textContent).toContain(
-      'Paolo-Antonio Luca este reprezentantul legal al clientului'
+      '„Paolo-Antonio Luca” are același nume ca reprezentantul legal al clientului, „LUCA Paolo Antonio”'
     );
     expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
   });

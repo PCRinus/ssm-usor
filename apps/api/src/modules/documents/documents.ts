@@ -82,7 +82,7 @@ function dataChanged(
     issueDate: revision.document_generations.issue_date,
     firstDecisionNumber: 1,
   };
-  if (missingDocumentData(input).length > 0) return true;
+  if (missingDocumentData(input, document.type_key).length > 0) return true;
   const current: Record<string, unknown> = documentData(
     buildDocumentContext(input),
     document.type_key,
@@ -565,7 +565,7 @@ export async function regenerateDocument(
     ]);
   }
   const input = { ...facts, issueDate, firstDecisionNumber: 1 };
-  const missing = missingDocumentData(input);
+  const missing = missingDocumentData(input, document.type_key);
   if (missing.length > 0) {
     throw new ApiError(
       'conflict',

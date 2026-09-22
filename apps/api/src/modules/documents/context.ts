@@ -50,6 +50,8 @@ export type DocumentFacts = {
   /** Categories held by at least one current employee, based on their job position. */
   staffCategoriesInUse: StaffCategory[];
   currentEmployeeCount: number;
+  /** Whether decision 1.5 was generated for this client, whatever the headcount is now. */
+  workersRepresentativeDecisionGenerated: boolean;
 };
 
 type Person = { name: string; jobTitle: string };
@@ -93,8 +95,11 @@ export type DocumentContext = {
 const filled = (value: string | null | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0;
 
-/** What is in the way of generating, in the order the form lists it. Empty when ready. */
-export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[] {
+/**
+ * What is in the way of generating, in the order the form lists it. Empty when ready. With a
+ * `typeKey`, what generating that one document again needs.
+ */
+export function missingDocumentData(facts: DocumentFacts, typeKey?: string): MissingDocumentData[] {
   const { organization, specialist, client } = facts;
   const sharedSchedule = [
     client.periodicTrainingMinutes,
@@ -114,11 +119,12 @@ export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[]
     (!facts.staffCategoriesInUse.includes('technical_administrative') || administrative !== null) &&
     (!facts.staffCategoriesInUse.includes('execution') || worker !== null);
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
-  const representativesNeeded = requiredWorkersRepresentatives(facts.currentEmployeeCount);
-  // A representative whose employee has left no longer speaks for the workers.
-  const representatives = facts.responsiblePersons.filter(
-    (person) => person.roles.includes('workers_representative') && person.currentEmployee
+  // A 1.5 kept below 10 employees still names someone when it is generated again (ADR 010).
+  const representativesNeeded = Math.max(
+    requiredWorkersRepresentatives(facts.currentEmployeeCount),
+    typeKey === 'decision_workers_representative' ? 1 : 0
   );
+  const representatives = currentWorkersRepresentatives(facts);
   const checks: [MissingDocumentData, boolean][] = [
     ['provider.legalName', filled(organization.legalName)],
     ['provider.representativeName', filled(organization.representativeName)],
@@ -142,13 +148,29 @@ export function missingDocumentData(facts: DocumentFacts): MissingDocumentData[]
     ],
     [
       'responsible.workers_representative_is_legal_representative',
-      representativesNeeded === 0 ||
-        !representatives.some((person) =>
-          samePersonName(person.fullName, client.representativeName ?? '')
-        ),
+      representativesNeeded === 0 || workersRepresentativeClash(facts) === null,
     ],
   ];
   return checks.filter(([, present]) => !present).map(([code]) => code);
+}
+
+// A representative whose employee has left no longer speaks for the workers.
+const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePersons'>) =>
+  facts.responsiblePersons.filter(
+    (person) => person.roles.includes('workers_representative') && person.currentEmployee
+  );
+
+export function workersRepresentativeClash(
+  facts: Pick<DocumentFacts, 'client' | 'responsiblePersons'>
+): { representativeName: string; legalRepresentativeName: string } | null {
+  const legalRepresentativeName = facts.client.representativeName?.trim();
+  if (!legalRepresentativeName) return null;
+  const representative = currentWorkersRepresentatives(facts).find((person) =>
+    samePersonName(person.fullName, legalRepresentativeName)
+  );
+  return representative
+    ? { representativeName: representative.fullName.trim(), legalRepresentativeName }
+    : null;
 }
 
 const monthNames = [
@@ -201,9 +223,10 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     facts.responsiblePersons
       .filter((person) => person.roles.includes(role))
       .map((person) => ({ name: person.fullName.trim(), jobTitle: person.jobTitle.trim() }));
-  const workersRepresentatives = facts.responsiblePersons
-    .filter((person) => person.roles.includes('workers_representative') && person.currentEmployee)
-    .map((person) => ({ name: person.fullName.trim(), jobTitle: person.jobTitle.trim() }));
+  const workersRepresentatives = currentWorkersRepresentatives(facts).map((person) => ({
+    name: person.fullName.trim(),
+    jobTitle: person.jobTitle.trim(),
+  }));
   const workplaceManagers = withRole('workplace_manager');
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
@@ -238,9 +261,12 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     imminentDangerText: imminentDanger
       .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
       .join(', '),
-    workersRepresentativeDecision: documentApplies(facts, 'decision_workers_representative')
-      ? [{}]
-      : [],
+    // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
+    workersRepresentativeDecision:
+      documentApplies(facts, 'decision_workers_representative') ||
+      facts.workersRepresentativeDecisionGenerated
+        ? [{}]
+        : [],
     workersRepresentatives,
     workersRepresentativesLead:
       workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',

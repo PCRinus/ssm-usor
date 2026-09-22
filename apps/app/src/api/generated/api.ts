@@ -1840,11 +1840,21 @@ export const DocumentReadinessResponseMissingItem = {
     'responsible.workers_representative_is_legal_representative',
 } as const;
 
+/**
+ * @nullable
+ */
+export type DocumentReadinessResponseWorkersRepresentativeClash = {
+  representativeName: string;
+  legalRepresentativeName: string;
+} | null;
+
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
   /** @minimum 0 */
   currentEmployeeCount: number;
+  /** @nullable */
+  workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
