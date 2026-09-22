@@ -49,3 +49,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 **Template**: the Word file a document is merged from. Built-in templates live in the repository and are registered in versions.
 
 **Uploaded document type**: a document of the pack the app cannot write yet, which comes to exist by uploading a `.docx` written elsewhere.
+
+## Product feedback
+
+**Problem report** (_raportare a unei probleme_): a member's account of app UI or behavior that failed or behaved unexpectedly. A question, feature idea, or concern about generated document content is not a problem report.
