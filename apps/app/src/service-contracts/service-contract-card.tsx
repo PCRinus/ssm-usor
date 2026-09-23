@@ -184,42 +184,65 @@ function ContractTrail({
     },
   ];
   const next = steps.findIndex((step) => !step.done);
+  // Side by side, the dots sit at the start, the middle and the end of one track, and the
+  // track is coloured as far as the last step reached. Stacked, each step draws the piece of
+  // track down to the next one.
+  const reached = ['sm:w-0', 'sm:w-1/2', 'sm:w-full'][steps.filter((step) => step.done).length - 1];
+  const align = ['', 'sm:text-center', 'sm:text-right'];
+  const place = ['', 'sm:mx-auto', 'sm:ml-auto'];
 
   return (
-    <ol data-testid="contract-trail" className="grid gap-3 sm:grid-cols-3 sm:gap-2">
-      {steps.map((step, index) => (
-        <li key={step.label} className="flex gap-3 sm:block">
-          <div className="flex items-center pt-1.5 sm:pt-0 sm:pr-3">
-            <span
-              aria-hidden="true"
-              className={`size-2.5 shrink-0 rounded-full ${
-                step.done
-                  ? 'bg-primary'
-                  : index === next
-                    ? 'ring-2 ring-primary ring-inset'
-                    : 'ring-1 ring-border ring-inset'
-              }`}
-            />
+    <ol data-testid="contract-trail" className="relative grid gap-4 sm:grid-cols-3 sm:gap-0">
+      <span
+        aria-hidden="true"
+        className="absolute top-[5px] right-1.5 left-1.5 hidden h-0.5 rounded-full bg-muted-foreground/35 sm:block"
+      />
+      <span
+        aria-hidden="true"
+        className={`absolute top-[5px] left-1.5 hidden h-0.5 rounded-full bg-primary sm:block ${reached}`}
+      />
+      {steps.map((step, index) => {
+        const current = index === next;
+        return (
+          <li key={step.label} className={`relative flex gap-3 sm:block ${align[index]}`}>
             {index < steps.length - 1 && (
               <span
                 aria-hidden="true"
-                className={`ml-2 hidden h-px flex-1 sm:block ${
-                  steps[index + 1]!.done ? 'bg-primary' : 'bg-border'
+                className={`absolute top-4 -bottom-5 left-[5px] w-0.5 rounded-full sm:hidden ${
+                  steps[index + 1]!.done ? 'bg-primary' : 'bg-muted-foreground/35'
                 }`}
               />
             )}
-          </div>
-          <div className="text-sm sm:mt-2">
-            <p
-              data-testid={step.done ? step.testId : undefined}
-              className={step.done ? 'font-medium' : 'text-muted-foreground'}
-            >
-              {step.label}
-            </p>
-            <p className="text-muted-foreground">{step.detail}</p>
-          </div>
-        </li>
-      ))}
+            <span className={`relative mt-1 flex size-3 shrink-0 sm:mt-0 ${place[index]}`}>
+              {current && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -inset-1 animate-ping rounded-full bg-primary/30 [animation-duration:2.4s] motion-reduce:animate-none"
+                />
+              )}
+              <span
+                aria-hidden="true"
+                className={`absolute inset-0 rounded-full ${
+                  step.done
+                    ? 'bg-primary'
+                    : current
+                      ? 'bg-background ring-2 ring-primary ring-inset'
+                      : 'bg-background ring-2 ring-muted-foreground/40 ring-inset'
+                }`}
+              />
+            </span>
+            <div className="text-sm sm:mt-2">
+              <p
+                data-testid={step.done ? step.testId : undefined}
+                className={step.done || current ? 'font-medium' : 'text-muted-foreground'}
+              >
+                {step.label}
+              </p>
+              <p className="text-muted-foreground">{step.detail}</p>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
