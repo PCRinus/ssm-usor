@@ -147,16 +147,17 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const method = init?.method ?? 'GET';
-    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
-      return Response.json({ signedURL: `/object/sign/documents/x?token=t` });
-    }
-    if (url.pathname.startsWith('/storage/v1/object/document-templates/')) {
-      return new Response(new Uint8Array([1, 2, 3]));
+    if (url.pathname.startsWith('/storage/v1/object/sign/')) {
+      if (method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      // Files are read through the link just signed.
+      if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
+        return new Response(new Uint8Array([1, 2, 3]));
+      }
+      return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
     }
     if (url.pathname.startsWith('/storage/v1/object/documents')) {
-      if (method === 'GET') {
-        return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
-      }
       if (method === 'DELETE') return Response.json([]);
       return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
     }
@@ -497,7 +498,10 @@ describe('POST /clients/{clientId}/documents/generate', () => {
       })
     );
     expect(
-      calls('/storage/v1/object/document-templates/built-in/decision_first_aid/new.docx')
+      calls(
+        '/storage/v1/object/sign/document-templates/built-in/decision_first_aid/new.docx',
+        'POST'
+      )
     ).toHaveLength(1);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(2);
   });
@@ -790,7 +794,7 @@ describe('POST /documents/{documentId}/issue', () => {
     const response = await issue();
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
-    expect(calls('/storage/v1/object/documents')).toHaveLength(0);
+    expect(calls('/storage/v1/object/sign/documents/', 'POST')).toHaveLength(0);
     expect(calls('/rest/v1/rpc/issue_document_revision')).toHaveLength(0);
   });
 
@@ -908,7 +912,7 @@ describe('POST /documents/{documentId}/draft', () => {
       edited_at: editedAt,
       edited_by: user.id,
     });
-    const [read] = calls('/storage/v1/object/documents/');
+    const [read] = calls('/storage/v1/object/sign/documents/', 'POST');
     expect(String(read![0])).toContain(issued.docx_path);
     const [written] = calls('/storage/v1/object/documents/', 'POST');
     expect(String(written![0])).toContain('/2.docx');
@@ -941,7 +945,7 @@ describe('POST /documents/{documentId}/draft', () => {
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
     expect((await start()).status).toBe(409);
-    expect(calls('/storage/v1/object/documents/')).toHaveLength(0);
+    expect(calls('/storage/v1/object/sign/documents/', 'POST')).toHaveLength(0);
     expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
   });
 

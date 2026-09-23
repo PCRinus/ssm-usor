@@ -25,10 +25,20 @@ export function createFileStore(c: Context<ApiEnv>) {
     },
   }).storage;
 
+  const fetchFile = requestFetch(c, 20_000);
+
+  // Not `download()`: that reads the object by its path, and the CDN in front of Storage
+  // keeps such a read for up to an hour, invalidating it up to a minute after the object
+  // changes (https://supabase.com/docs/guides/storage/cdn/smart-cdn). A draft is read back
+  // seconds after the editor saved it, and issuing from the previous bytes once locked a
+  // contract with old prices. A signed URL is new every time, so it is never in that cache.
   async function read(bucket: string, path: string, context: string) {
-    const { data, error } = await storage.from(bucket).download(path);
+    const { data, error } = await storage.from(bucket).createSignedUrl(path, 60);
     if (error || !data) throw fileError(context, error);
-    return new Uint8Array(await data.arrayBuffer());
+    const response = await fetchFile(data.signedUrl);
+    if (!response.ok)
+      throw fileError(context, { message: `signed read answered ${response.status}` });
+    return new Uint8Array(await response.arrayBuffer());
   }
 
   return {

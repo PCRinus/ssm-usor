@@ -130,6 +130,7 @@ type Upstream =
   | 'templates'
   | 'revisions'
   | 'upload'
+  | 'file'
   | 'sends'
   | 'profiles';
 
@@ -138,8 +139,12 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname.startsWith('/storage/v1/object/document-templates/')) {
-      return new Response(new Uint8Array([1, 2, 3]));
+    if (url.pathname.startsWith('/storage/v1/object/sign/')) {
+      if (init?.method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      // Files are read through the link just signed.
+      return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
     }
     if (url.pathname.startsWith('/storage/v1/object/documents')) {
       return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
@@ -595,7 +600,7 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
     mockUpstream({
       documents: () => Response.json([issuedDocument]),
       revisions: pdfPath,
-      upload: () => new Response(new Uint8Array([37, 80, 68, 70])),
+      file: () => new Response(new Uint8Array([37, 80, 68, 70])),
       sends: (init) =>
         init?.method === 'POST'
           ? new Response(null, { status: 201 })
@@ -645,7 +650,7 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
     mockUpstream({
       documents: () => Response.json([issuedDocument]),
       revisions: pdfPath,
-      upload: () => new Response(new Uint8Array([37, 80, 68, 70])),
+      file: () => new Response(new Uint8Array([37, 80, 68, 70])),
     });
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     expect((await send()).status).toBe(503);
