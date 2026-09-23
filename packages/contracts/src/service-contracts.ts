@@ -121,3 +121,47 @@ export const serviceContractConflictReasons = {
   notIssued: 'contract_not_issued',
   pdfMissing: 'contract_pdf_missing',
 } as const;
+
+// The return link (ADR 007, amended): what the public page learns from a token, and what it
+// sends back. The token travels in request bodies, never in URLs the API logs.
+export const contractReturnRequestSchema = z.object({
+  token: z.string().min(20).max(200),
+});
+
+export type ContractReturnRequest = z.infer<typeof contractReturnRequestSchema>;
+
+// `open`: waiting for the signed copy. `received`: one arrived and can still be replaced.
+// `confirmed`: an owner confirmed a copy, and the link has done its work. `superseded`: a
+// newer revision was issued since the send. `expired`: too old. An unknown token is a 404.
+export const contractReturnStatuses = [
+  'open',
+  'received',
+  'confirmed',
+  'superseded',
+  'expired',
+] as const;
+
+export type ContractReturnStatus = (typeof contractReturnStatuses)[number];
+
+export const contractReturnResponseSchema = z.object({
+  status: z.enum(contractReturnStatuses),
+  organizationName: z.string(),
+  clientName: z.string(),
+  contractNumber: z.int().min(1),
+  contractDate: z.iso.date(),
+  revision: z.int().min(1),
+  // Whom to write to: the owner who sent the contract.
+  contactEmail: z.string().nullable(),
+  // When the copy that is there now arrived through the link; null unless `received`.
+  receivedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
+export type ContractReturnResponse = z.infer<typeof contractReturnResponseSchema>;
+
+export const contractReturnConflictReasons = {
+  closed: 'return_link_closed',
+  tooManyUploads: 'return_link_too_many_uploads',
+} as const;
+
+// A received copy that an owner accepts as the signed copy.
+export const confirmSignedCopyConflictReason = 'no_received_copy';

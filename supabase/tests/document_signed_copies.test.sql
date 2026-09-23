@@ -39,27 +39,27 @@ select ok(
 );
 
 select throws_ok(
-  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256)
+  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256, confirmed_at)
      values ('eeeeeeee-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001',
-       '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/dddddddd-0000-4000-8000-000000000001/2.signed.pdf', repeat('b', 64)) $$,
+       '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/dddddddd-0000-4000-8000-000000000001/2.signed.pdf', repeat('b', 64), now()) $$,
   'DOC04',
   null,
   'a draft has no signed copy'
 );
 
 select throws_ok(
-  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256)
+  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256, confirmed_at)
      values ('eeeeeeee-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001',
-       '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/dddddddd-0000-4000-8000-000000000001/9.signed.pdf', repeat('b', 64)) $$,
+       '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/dddddddd-0000-4000-8000-000000000001/9.signed.pdf', repeat('b', 64), now()) $$,
   '23514',
   null,
   'the copy lives beside the file of its revision'
 );
 
 select lives_ok(
-  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256)
+  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256, confirmed_at)
      values ('eeeeeeee-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001',
-       '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/dddddddd-0000-4000-8000-000000000001/1.signed.pdf', repeat('b', 64)) $$,
+       '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/dddddddd-0000-4000-8000-000000000001/1.signed.pdf', repeat('b', 64), now()) $$,
   'an owner attaches the signed copy of the issued contract'
 );
 

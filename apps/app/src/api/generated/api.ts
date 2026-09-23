@@ -244,6 +244,7 @@ export const ClientListResponseItemsItemServiceContractState = {
   draft: 'draft',
   issued: 'issued',
   sent: 'sent',
+  received: 'received',
   signed: 'signed',
 } as const;
 
@@ -369,6 +370,7 @@ export const ClientResponseClientServiceContractState = {
   draft: 'draft',
   issued: 'issued',
   sent: 'sent',
+  received: 'received',
   signed: 'signed',
 } as const;
 
@@ -1869,6 +1871,13 @@ export const ClientDocumentListResponseItemsItemDraftStatus = {
 /**
  * @nullable
  */
+export type ClientDocumentListResponseItemsItemDraftReceivedCopy = {
+  uploadedAt: string;
+} | null;
+
+/**
+ * @nullable
+ */
 export type ClientDocumentListResponseItemsItemDraft = {
   id: string;
   /** @minimum 1 */
@@ -1883,6 +1892,8 @@ export type ClientDocumentListResponseItemsItemDraft = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: ClientDocumentListResponseItemsItemDraftReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -1894,6 +1905,13 @@ export const ClientDocumentListResponseItemsItemIssuedStatus = {
   issued: 'issued',
   superseded: 'superseded',
 } as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemIssuedReceivedCopy = {
+  uploadedAt: string;
+} | null;
 
 /**
  * @nullable
@@ -1912,6 +1930,8 @@ export type ClientDocumentListResponseItemsItemIssued = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: ClientDocumentListResponseItemsItemIssuedReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -1986,6 +2006,13 @@ export const GenerateDocumentsResponseCreatedItemDraftStatus = {
 /**
  * @nullable
  */
+export type GenerateDocumentsResponseCreatedItemDraftReceivedCopy = {
+  uploadedAt: string;
+} | null;
+
+/**
+ * @nullable
+ */
 export type GenerateDocumentsResponseCreatedItemDraft = {
   id: string;
   /** @minimum 1 */
@@ -2000,6 +2027,8 @@ export type GenerateDocumentsResponseCreatedItemDraft = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: GenerateDocumentsResponseCreatedItemDraftReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -2011,6 +2040,13 @@ export const GenerateDocumentsResponseCreatedItemIssuedStatus = {
   issued: 'issued',
   superseded: 'superseded',
 } as const;
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemIssuedReceivedCopy = {
+  uploadedAt: string;
+} | null;
 
 /**
  * @nullable
@@ -2029,6 +2065,8 @@ export type GenerateDocumentsResponseCreatedItemIssued = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: GenerateDocumentsResponseCreatedItemIssuedReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -2077,6 +2115,13 @@ export const ClientDocumentResponseDocumentDraftStatus = {
 /**
  * @nullable
  */
+export type ClientDocumentResponseDocumentDraftReceivedCopy = {
+  uploadedAt: string;
+} | null;
+
+/**
+ * @nullable
+ */
 export type ClientDocumentResponseDocumentDraft = {
   id: string;
   /** @minimum 1 */
@@ -2091,6 +2136,8 @@ export type ClientDocumentResponseDocumentDraft = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: ClientDocumentResponseDocumentDraftReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -2102,6 +2149,13 @@ export const ClientDocumentResponseDocumentIssuedStatus = {
   issued: 'issued',
   superseded: 'superseded',
 } as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentIssuedReceivedCopy = {
+  uploadedAt: string;
+} | null;
 
 /**
  * @nullable
@@ -2120,6 +2174,8 @@ export type ClientDocumentResponseDocumentIssued = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: ClientDocumentResponseDocumentIssuedReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -2215,6 +2271,13 @@ export const ServiceContractResponseDocumentDraftStatus = {
 /**
  * @nullable
  */
+export type ServiceContractResponseDocumentDraftReceivedCopy = {
+  uploadedAt: string;
+} | null;
+
+/**
+ * @nullable
+ */
 export type ServiceContractResponseDocumentDraft = {
   id: string;
   /** @minimum 1 */
@@ -2229,6 +2292,8 @@ export type ServiceContractResponseDocumentDraft = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: ServiceContractResponseDocumentDraftReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -2240,6 +2305,13 @@ export const ServiceContractResponseDocumentIssuedStatus = {
   issued: 'issued',
   superseded: 'superseded',
 } as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentIssuedReceivedCopy = {
+  uploadedAt: string;
+} | null;
 
 /**
  * @nullable
@@ -2258,6 +2330,8 @@ export type ServiceContractResponseDocumentIssued = {
   issuedAt: string | null;
   hasPdf: boolean;
   hasSignedCopy: boolean;
+  /** @nullable */
+  receivedCopy: ServiceContractResponseDocumentIssuedReceivedCopy;
   createdAt: string;
 } | null;
 
@@ -2339,6 +2413,49 @@ export interface SendServiceContractRequest {
    * @nullable
    */
   note?: string | null;
+}
+
+export type ContractReturnResponseStatus =
+  (typeof ContractReturnResponseStatus)[keyof typeof ContractReturnResponseStatus];
+
+export const ContractReturnResponseStatus = {
+  open: 'open',
+  received: 'received',
+  confirmed: 'confirmed',
+  superseded: 'superseded',
+  expired: 'expired',
+} as const;
+
+export interface ContractReturnResponse {
+  status: ContractReturnResponseStatus;
+  organizationName: string;
+  clientName: string;
+  /** @minimum 1 */
+  contractNumber: number;
+  contractDate: string;
+  /** @minimum 1 */
+  revision: number;
+  /** @nullable */
+  contactEmail: string | null;
+  /** @nullable */
+  receivedAt: string | null;
+}
+
+export interface ContractReturnRequest {
+  /**
+   * @minLength 20
+   * @maxLength 200
+   */
+  token: string;
+}
+
+export interface ContractReturnUploadRequest {
+  /**
+   * @minLength 20
+   * @maxLength 200
+   */
+  token: string;
+  file: Blob;
 }
 
 export type MembershipResponseOrganization = {
@@ -8441,6 +8558,95 @@ export const useRemoveDocumentSignedCopy = <
   return useMutation(getRemoveDocumentSignedCopyMutationOptions(options), queryClient);
 };
 
+export const getConfirmDocumentSignedCopyUrl = (documentId: string) => {
+  return `/documents/${documentId}/signed-copy/confirm`;
+};
+
+/**
+ * A copy the client uploaded through the return link is a received copy until an owner opens it and confirms it here; only then is the contract signed and the link closed.
+ * @summary Accept the copy received through the return link as the signed copy
+ */
+export const confirmDocumentSignedCopy = async (
+  documentId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientDocumentResponse> => {
+  return apiFetch<ClientDocumentResponse>(getConfirmDocumentSignedCopyUrl(documentId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getConfirmDocumentSignedCopyMutationKey = () => ['confirmDocumentSignedCopy'] as const;
+
+export const getConfirmDocumentSignedCopyMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmDocumentSignedCopy>>,
+    TError,
+    ConfirmDocumentSignedCopyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmDocumentSignedCopy>>,
+  TError,
+  ConfirmDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getConfirmDocumentSignedCopyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmDocumentSignedCopy>>,
+    ConfirmDocumentSignedCopyMutationVariables
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return confirmDocumentSignedCopy(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmDocumentSignedCopyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmDocumentSignedCopy>>
+>;
+
+export type ConfirmDocumentSignedCopyMutationError = ErrorType<ApiErrorResponse>;
+export type ConfirmDocumentSignedCopyMutationVariables = { documentId: string };
+
+/**
+ * @summary Accept the copy received through the return link as the signed copy
+ */
+export const useConfirmDocumentSignedCopy = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof confirmDocumentSignedCopy>>,
+      TError,
+      ConfirmDocumentSignedCopyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof confirmDocumentSignedCopy>>,
+  TError,
+  ConfirmDocumentSignedCopyMutationVariables,
+  TContext
+> => {
+  return useMutation(getConfirmDocumentSignedCopyMutationOptions(options), queryClient);
+};
+
 export const getUploadClientDocumentUrl = (
   clientId: string,
   typeKey:
@@ -9070,6 +9276,311 @@ export const useSendServiceContract = <TError = ErrorType<ApiErrorResponse>, TCo
   TContext
 > => {
   return useMutation(getSendServiceContractMutationOptions(options), queryClient);
+};
+
+export const getLookupContractReturnUrl = () => {
+  return `/contract-returns/lookup`;
+};
+
+/**
+ * Public, and changes nothing. Says which contract the link is for, from whom, and whether it still takes a signed copy: `open`, `received` (one arrived and can be replaced), `confirmed`, `superseded` by a newer revision, or `expired`.
+ * @summary Describe the contract behind a return link
+ */
+export const lookupContractReturn = async (
+  contractReturnRequest: ContractReturnRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ContractReturnResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ContractReturnResponse>(getLookupContractReturnUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(contractReturnRequest),
+  });
+};
+
+export const getLookupContractReturnMutationKey = () => ['lookupContractReturn'] as const;
+
+export const getLookupContractReturnMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof lookupContractReturn>>,
+    TError,
+    LookupContractReturnMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof lookupContractReturn>>,
+  TError,
+  LookupContractReturnMutationVariables,
+  TContext
+> => {
+  const mutationKey = getLookupContractReturnMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof lookupContractReturn>>,
+    LookupContractReturnMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return lookupContractReturn(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LookupContractReturnMutationResult = NonNullable<
+  Awaited<ReturnType<typeof lookupContractReturn>>
+>;
+export type LookupContractReturnMutationBody = ContractReturnRequest;
+export type LookupContractReturnMutationError = ErrorType<ApiErrorResponse>;
+export type LookupContractReturnMutationVariables = { data: ContractReturnRequest };
+
+/**
+ * @summary Describe the contract behind a return link
+ */
+export const useLookupContractReturn = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof lookupContractReturn>>,
+      TError,
+      LookupContractReturnMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof lookupContractReturn>>,
+  TError,
+  LookupContractReturnMutationVariables,
+  TContext
+> => {
+  return useMutation(getLookupContractReturnMutationOptions(options), queryClient);
+};
+
+export const getDownloadContractReturnUrl = () => {
+  return `/contract-returns/download`;
+};
+
+/**
+ * The same revision the email carried, for a link that is `open` or `received`. A closed link answers 409 with the reason `return_link_closed`.
+ * @summary A short-lived link to the PDF that was sent
+ */
+export const downloadContractReturn = async (
+  contractReturnRequest: ContractReturnRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DocumentDownloadResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<DocumentDownloadResponse>(getDownloadContractReturnUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(contractReturnRequest),
+  });
+};
+
+export const getDownloadContractReturnMutationKey = () => ['downloadContractReturn'] as const;
+
+export const getDownloadContractReturnMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof downloadContractReturn>>,
+    TError,
+    DownloadContractReturnMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof downloadContractReturn>>,
+  TError,
+  DownloadContractReturnMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDownloadContractReturnMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof downloadContractReturn>>,
+    DownloadContractReturnMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return downloadContractReturn(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DownloadContractReturnMutationResult = NonNullable<
+  Awaited<ReturnType<typeof downloadContractReturn>>
+>;
+export type DownloadContractReturnMutationBody = ContractReturnRequest;
+export type DownloadContractReturnMutationError = ErrorType<ApiErrorResponse>;
+export type DownloadContractReturnMutationVariables = { data: ContractReturnRequest };
+
+/**
+ * @summary A short-lived link to the PDF that was sent
+ */
+export const useDownloadContractReturn = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof downloadContractReturn>>,
+      TError,
+      DownloadContractReturnMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof downloadContractReturn>>,
+  TError,
+  DownloadContractReturnMutationVariables,
+  TContext
+> => {
+  return useMutation(getDownloadContractReturnMutationOptions(options), queryClient);
+};
+
+export const getUploadContractReturnUrl = () => {
+  return `/contract-returns/upload`;
+};
+
+/**
+ * One PDF of at most 15 MB, signed with a qualified certificate or scanned. It is kept as the received copy of the revision that was sent, replacing an earlier one that no owner has confirmed yet; the owner is told. Refused with `return_link_closed` once a copy is confirmed, a newer revision is issued or the link expired, and with `return_link_too_many_uploads` past a bounded number of tries.
+ * @summary Send the signed copy back through the link
+ */
+export const uploadContractReturn = async (
+  contractReturnUploadRequest: ContractReturnUploadRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ContractReturnResponse> => {
+  const formData = new FormData();
+  formData.append(`token`, contractReturnUploadRequest.token);
+  formData.append(`file`, contractReturnUploadRequest.file);
+
+  return apiFetch<ContractReturnResponse>(getUploadContractReturnUrl(), {
+    ...options,
+    method: 'POST',
+    body: formData,
+  });
+};
+
+export const getUploadContractReturnMutationKey = () => ['uploadContractReturn'] as const;
+
+export const getUploadContractReturnMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadContractReturn>>,
+    TError,
+    UploadContractReturnMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadContractReturn>>,
+  TError,
+  UploadContractReturnMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUploadContractReturnMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadContractReturn>>,
+    UploadContractReturnMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return uploadContractReturn(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadContractReturnMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadContractReturn>>
+>;
+export type UploadContractReturnMutationBody = ContractReturnUploadRequest;
+export type UploadContractReturnMutationError = ErrorType<ApiErrorResponse>;
+export type UploadContractReturnMutationVariables = { data: ContractReturnUploadRequest };
+
+/**
+ * @summary Send the signed copy back through the link
+ */
+export const useUploadContractReturn = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof uploadContractReturn>>,
+      TError,
+      UploadContractReturnMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof uploadContractReturn>>,
+  TError,
+  UploadContractReturnMutationVariables,
+  TContext
+> => {
+  return useMutation(getUploadContractReturnMutationOptions(options), queryClient);
 };
 
 export const getCreateOrganizationUrl = () => {

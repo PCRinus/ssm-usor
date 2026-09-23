@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { unfilledMark } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardAction, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
+import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
@@ -12,12 +12,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ssm-usor/ui/components/dropdown-menu';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { Download, FileSignature, FileText, Pencil, Send, Sparkles } from 'lucide-react';
+import {
+  Download,
+  FilePen,
+  FileSignature,
+  FileText,
+  MoreHorizontal,
+  Pencil,
+  Send,
+  Sparkles,
+} from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -28,6 +44,7 @@ import {
   getListClientsQueryKey,
   type ServiceContractResponse,
   useAttachDocumentSignedCopy,
+  useConfirmDocumentSignedCopy,
   useDeleteDocumentDraft,
   useGenerateServiceContract,
   useGetServiceContract,
@@ -86,6 +103,157 @@ const confirmations = {
     destructive: true,
   },
 } as const;
+
+function FileTile({
+  testId,
+  icon,
+  title,
+  badge,
+  meta,
+  placeholder = false,
+  children,
+}: {
+  testId: string;
+  icon: ReactNode;
+  title: string;
+  badge?: ReactNode;
+  meta: string;
+  /** The place where a file is expected, before there is one. */
+  placeholder?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      data-testid={testId}
+      className={`flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border p-3 pl-4 ${
+        placeholder ? 'border-dashed' : 'bg-background'
+      }`}
+    >
+      <div
+        className={`flex size-10 shrink-0 items-center justify-center rounded-md [&_svg]:size-5 ${
+          placeholder ? 'text-muted-foreground' : 'bg-muted text-foreground'
+        }`}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1 basis-56">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={placeholder ? 'text-muted-foreground' : 'font-medium'}>{title}</span>
+          {badge}
+        </div>
+        <p className="text-sm text-muted-foreground">{meta}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
+// Where the issued revision stands, in the order things happen to it.
+function ContractTrail({
+  issuedAt,
+  lastSend,
+  signed,
+  received,
+}: {
+  issuedAt: string;
+  lastSend: ServiceContractResponse['lastSend'];
+  signed: boolean;
+  /** When a copy came through the return link and waits to be confirmed. */
+  received: string | null;
+}) {
+  const steps = [
+    {
+      label: 'Emis',
+      done: true,
+      detail: `pe ${formatRoDate(issuedAt.slice(0, 10))}`,
+    },
+    {
+      label: 'Trimis',
+      done: lastSend !== null,
+      testId: 'contract-sent',
+      detail: lastSend ? (
+        <span data-testid="contract-last-send">
+          Revizia {lastSend.revision} a fost trimisă la {lastSend.sentTo} pe{' '}
+          {formatRoDate(lastSend.sentAt.slice(0, 10))}.
+        </span>
+      ) : (
+        'prin email, cu PDF-ul atașat'
+      ),
+    },
+    {
+      label: 'Semnat',
+      done: signed,
+      testId: 'contract-signed',
+      detail: signed
+        ? 'exemplarul semnat este atașat'
+        : received
+          ? `exemplar primit pe ${formatRoDate(received.slice(0, 10))}, de confirmat`
+          : 'când se întoarce exemplarul semnat',
+    },
+  ];
+  const next = steps.findIndex((step) => !step.done);
+  // Side by side, the dots sit at the start, the middle and the end of one track, and the
+  // track is coloured as far as the last step reached. Stacked, each step draws the piece of
+  // track down to the next one.
+  const reached = ['sm:w-0', 'sm:w-1/2', 'sm:w-full'][steps.filter((step) => step.done).length - 1];
+  const align = ['', 'sm:text-center', 'sm:text-right'];
+  const place = ['', 'sm:mx-auto', 'sm:ml-auto'];
+
+  return (
+    <ol data-testid="contract-trail" className="relative grid gap-4 sm:grid-cols-3 sm:gap-0">
+      <span
+        aria-hidden="true"
+        className="absolute top-[5px] right-1.5 left-1.5 hidden h-0.5 rounded-full bg-muted-foreground/35 sm:block"
+      />
+      <span
+        aria-hidden="true"
+        className={`absolute top-[5px] left-1.5 hidden h-0.5 rounded-full bg-primary sm:block ${reached}`}
+      />
+      {steps.map((step, index) => {
+        const current = index === next;
+        return (
+          <li key={step.label} className={`relative flex gap-3 sm:block ${align[index]}`}>
+            {index < steps.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={`absolute top-4 -bottom-5 left-[5px] w-0.5 rounded-full sm:hidden ${
+                  steps[index + 1]!.done ? 'bg-primary' : 'bg-muted-foreground/35'
+                }`}
+              />
+            )}
+            <span className={`relative mt-1 flex size-3 shrink-0 sm:mt-0 ${place[index]}`}>
+              {current && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -inset-1 animate-ping rounded-full bg-primary/30 [animation-duration:2.4s] motion-reduce:animate-none"
+                />
+              )}
+              <span
+                aria-hidden="true"
+                className={`absolute inset-0 rounded-full ${
+                  step.done
+                    ? 'bg-primary'
+                    : current
+                      ? 'bg-background ring-2 ring-primary ring-inset'
+                      : 'bg-background ring-2 ring-muted-foreground/40 ring-inset'
+                }`}
+              />
+            </span>
+            <div className="text-sm sm:mt-2">
+              <p
+                data-testid={step.done ? step.testId : undefined}
+                className={step.done || current ? 'font-medium' : 'text-muted-foreground'}
+              >
+                {step.label}
+              </p>
+              <p className="text-muted-foreground">{step.detail}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 // Rendered for owners only, as the API answers only them. `editor` is where the contract
 // opens: under the lead or under the client. `readOnly` is an archived company.
@@ -158,6 +326,7 @@ function ServiceContractBody({
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
   const attachSigned = useAttachDocumentSignedCopy({ request: apiRequest });
+  const confirmSigned = useConfirmDocumentSignedCopy({ request: apiRequest });
   const removeSigned = useRemoveDocumentSignedCopy({ request: apiRequest });
   const signedInput = useRef<HTMLInputElement>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
@@ -175,6 +344,7 @@ function ServiceContractBody({
     issue.isPending ||
     remove.isPending ||
     attachSigned.isPending ||
+    confirmSigned.isPending ||
     removeSigned.isPending;
   const locked = busy || readOnly;
   const { readiness } = saved;
@@ -184,6 +354,14 @@ function ServiceContractBody({
   // The details count as saved only once they are: a suggested number is still a suggestion.
   const unsaved = isDirty || saved.contract === null;
   const summarized = saved.contract !== null && !editing;
+  const title = saved.contract
+    ? `Contract nr. ${saved.contract.contractNumber} din ${formatRoDate(saved.contract.contractDate)}`
+    : (document?.title ?? 'Contractul');
+  const generateBlocked = unsaved
+    ? 'Salvează mai întâi detaliile contractului.'
+    : readiness.ready
+      ? undefined
+      : 'Mai lipsesc date pe care contractul le tipărește.';
 
   async function refresh(response?: ServiceContractResponse) {
     if (response) queryClient.setQueryData(queryKey, response);
@@ -275,6 +453,18 @@ function ServiceContractBody({
           ? 'Exemplarul semnat trebuie să fie un PDF de cel mult 15 MB. Dacă ai o fotografie a contractului, salveaz-o ca PDF.'
           : 'Nu am putut atașa exemplarul semnat. Verifică conexiunea și încearcă din nou.'
       );
+      await refresh();
+    }
+  }
+
+  async function confirmSignedCopy() {
+    setError(null);
+    try {
+      await confirmSigned.mutateAsync({ documentId: document!.id });
+      await refresh();
+      toast.success('Exemplarul semnat a fost confirmat.');
+    } catch {
+      setError('Nu am putut confirma exemplarul semnat. Verifică conexiunea și încearcă din nou.');
       await refresh();
     }
   }
@@ -531,46 +721,6 @@ function ServiceContractBody({
                   : 'Ciorna este a ta: deschide-o, scrie prețurile și adapteaz-o, apoi emite contractul.'
                 : `Revizia ${document.issued!.revision} este emisă și nu se mai modifică; o corectură este o ciornă nouă.`}
           </p>
-          {document && (
-            <CardAction>
-              <span className="flex flex-wrap gap-1.5">
-                {document.issued && (
-                  <Badge data-testid="contract-issued">
-                    Emis · rev. {document.issued.revision}
-                  </Badge>
-                )}
-                {saved.lastSend && (
-                  <Badge variant="outline" data-testid="contract-sent">
-                    Trimis
-                  </Badge>
-                )}
-                {document.issued?.hasSignedCopy && (
-                  <Badge variant="outline" data-testid="contract-signed">
-                    Semnat
-                  </Badge>
-                )}
-                {document.draft && (
-                  <Badge variant="secondary" data-testid="contract-draft">
-                    Ciornă · rev. {document.draft.revision}
-                  </Badge>
-                )}
-                {document.draft?.editedAt && (
-                  <Badge variant="outline" data-testid="contract-edited">
-                    Modificat
-                  </Badge>
-                )}
-                {saved.draftOutdated && (
-                  <Badge
-                    variant="outline"
-                    data-testid="contract-outdated"
-                    title="Detaliile sau datele s-au schimbat de când a fost generată ciorna. Generează contractul din nou ca să le preia, sau corectează-l în editor."
-                  >
-                    Date modificate
-                  </Badge>
-                )}
-              </span>
-            </CardAction>
-          )}
         </CardHeader>
         <CardContent className="grid gap-5">
           {!readOnly && (!document || document.draft) && (
@@ -659,108 +809,203 @@ function ServiceContractBody({
               {error}
             </Notice>
           )}
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {document && (
-              <>
-                {editor(
-                  document.draft && !readOnly ? 'Deschide și modifică' : 'Deschide',
-                  'contract-open'
-                )}
-                {document.issued?.hasPdf && (
+          {document?.issued && (
+            <ContractTrail
+              issuedAt={document.issued.issuedAt!}
+              lastSend={saved.lastSend}
+              signed={document.issued.hasSignedCopy}
+              received={document.issued.receivedCopy?.uploadedAt ?? null}
+            />
+          )}
+          {document?.issued && (
+            <FileTile
+              testId="contract-issued-tile"
+              icon={<FileText aria-hidden="true" />}
+              title={title}
+              badge={
+                <Badge data-testid="contract-issued">Emis · rev. {document.issued.revision}</Badge>
+              }
+              meta={`Revizia ${document.issued.revision}, emisă pe ${formatRoDate(document.issued.issuedAt!.slice(0, 10))}${document.draft ? '. O ciornă nouă o înlocuiește la emitere.' : '.'}`}
+            >
+              {!document.draft && editor('Deschide', 'contract-open')}
+              {!readOnly && (
+                <Button
+                  variant={document.draft ? 'outline' : 'default'}
+                  size="sm"
+                  data-testid="contract-send"
+                  disabled={busy || !document.issued.hasPdf}
+                  title={
+                    document.issued.hasPdf
+                      ? undefined
+                      : 'Contractul emis nu are PDF. Descarcă-l și trimite-l din emailul tău.'
+                  }
+                  onClick={() => setSending(true)}
+                >
+                  <Send aria-hidden="true" />
+                  {saved.lastSend ? 'Trimite din nou…' : 'Trimite prin email…'}
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    data-testid="contract-download-pdf"
-                    onClick={() => void download(document.issued!.id, 'pdf')}
+                    variant="ghost"
+                    size="icon-sm"
+                    data-testid="contract-issued-actions"
+                    aria-label="Alte acțiuni pentru contractul emis"
+                  >
+                    <MoreHorizontal aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {document.issued.hasPdf && (
+                    <DropdownMenuItem
+                      data-testid="contract-download-pdf"
+                      onSelect={() => void download(document.issued!.id, 'pdf')}
+                    >
+                      <Download aria-hidden="true" />
+                      Descarcă PDF
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    data-testid="contract-download-issued"
+                    onSelect={() => void download(document.issued!.id, 'docx')}
                   >
                     <Download aria-hidden="true" />
-                    PDF
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  data-testid="contract-download"
-                  onClick={() => void download((document.draft ?? document.issued)!.id, 'docx')}
-                >
-                  <Download aria-hidden="true" />
-                  Word
-                </Button>
-                {!readOnly && document.issued && (
-                  <Button
-                    variant={document.draft ? 'outline' : 'default'}
-                    size="sm"
-                    data-testid="contract-send"
-                    disabled={busy || !document.issued.hasPdf}
-                    title={
-                      document.issued.hasPdf
-                        ? undefined
-                        : 'Contractul emis nu are PDF. Descarcă-l și trimite-l din emailul tău.'
-                    }
-                    onClick={() => setSending(true)}
-                  >
-                    <Send aria-hidden="true" />
-                    {saved.lastSend ? 'Trimite din nou…' : 'Trimite prin email…'}
-                  </Button>
-                )}
-                {!readOnly && document.draft && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      data-testid="contract-delete-draft"
-                      disabled={busy}
-                      onClick={() => setConfirming('delete')}
-                    >
-                      Șterge ciorna
-                    </Button>
-                    <Button
-                      size="sm"
-                      data-testid="contract-issue"
-                      disabled={busy}
-                      onClick={() => setConfirming('issue')}
-                    >
-                      Emite
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-            {!readOnly && (
-              <Button
-                variant={document ? 'ghost' : 'default'}
-                size="sm"
-                data-testid="contract-generate"
-                disabled={busy || unsaved || !readiness.ready}
-                title={
-                  unsaved
-                    ? 'Salvează mai întâi detaliile contractului.'
-                    : readiness.ready
-                      ? undefined
-                      : 'Mai lipsesc date pe care contractul le tipărește.'
-                }
-                onClick={() =>
-                  document?.draft ? setConfirming('regenerate') : void run('generate')
-                }
-              >
-                <Sparkles aria-hidden="true" />
-                {generate.isPending
-                  ? 'Se generează…'
-                  : document
-                    ? 'Generează din nou'
-                    : 'Generează contractul'}
-              </Button>
-            )}
-          </div>
-          {document?.issued && (
-            <div
-              data-testid="contract-signed-copy"
-              className="flex flex-wrap items-center gap-2 border-t pt-4 text-sm"
-            >
-              <FileSignature className="size-4 text-muted-foreground" aria-hidden="true" />
-              {document.issued.hasSignedCopy ? (
+                    Descarcă Word
+                  </DropdownMenuItem>
+                  {!readOnly && !document.draft && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        data-testid="contract-generate"
+                        disabled={busy || unsaved || !readiness.ready}
+                        title={generateBlocked}
+                        onSelect={() => void run('generate')}
+                      >
+                        <Sparkles aria-hidden="true" />
+                        Generează din nou
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </FileTile>
+          )}
+          {document?.draft && (
+            <FileTile
+              testId="contract-draft-tile"
+              icon={<FilePen aria-hidden="true" />}
+              title={title}
+              badge={
                 <>
-                  <span>Exemplarul semnat este atașat reviziei {document.issued.revision}.</span>
+                  <Badge variant="secondary" data-testid="contract-draft">
+                    Ciornă · rev. {document.draft.revision}
+                  </Badge>
+                  {document.draft.editedAt && (
+                    <Badge variant="outline" data-testid="contract-edited">
+                      Modificat
+                    </Badge>
+                  )}
+                  {saved.draftOutdated && (
+                    <Badge
+                      variant="outline"
+                      data-testid="contract-outdated"
+                      title="Detaliile sau datele s-au schimbat de când a fost generată ciorna. Generează contractul din nou ca să le preia, sau corectează-l în editor."
+                    >
+                      Date modificate
+                    </Badge>
+                  )}
+                </>
+              }
+              meta={
+                document.draft.editedAt
+                  ? `Ciornă modificată în editor pe ${formatRoDate(document.draft.editedAt.slice(0, 10))}.`
+                  : `Ciornă generată din șablon pe ${formatRoDate(document.draft.createdAt.slice(0, 10))}.`
+              }
+            >
+              {editor(readOnly ? 'Deschide' : 'Deschide și modifică', 'contract-open')}
+              {!readOnly && (
+                <Button
+                  size="sm"
+                  data-testid="contract-issue"
+                  disabled={busy}
+                  onClick={() => setConfirming('issue')}
+                >
+                  Emite
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    data-testid="contract-draft-actions"
+                    aria-label="Alte acțiuni pentru ciornă"
+                  >
+                    <MoreHorizontal aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    data-testid="contract-download"
+                    onSelect={() => void download(document.draft!.id, 'docx')}
+                  >
+                    <Download aria-hidden="true" />
+                    Descarcă Word
+                  </DropdownMenuItem>
+                  {!readOnly && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        data-testid="contract-generate"
+                        disabled={busy || unsaved || !readiness.ready}
+                        title={generateBlocked}
+                        onSelect={() => setConfirming('regenerate')}
+                      >
+                        <Sparkles aria-hidden="true" />
+                        Generează din nou
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        data-testid="contract-delete-draft"
+                        disabled={busy}
+                        onSelect={() => setConfirming('delete')}
+                      >
+                        Șterge ciorna
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </FileTile>
+          )}
+          {document?.issued && (
+            <FileTile
+              testId="contract-signed-copy"
+              icon={<FileSignature aria-hidden="true" />}
+              title="Exemplarul semnat"
+              placeholder={!document.issued.hasSignedCopy && !document.issued.receivedCopy}
+              badge={
+                document.issued.receivedCopy && (
+                  <Badge
+                    variant="outline"
+                    className="border-warning-border bg-warning text-warning-foreground"
+                    data-testid="contract-received"
+                  >
+                    De confirmat
+                  </Badge>
+                )
+              }
+              meta={
+                document.issued.hasSignedCopy
+                  ? `Exemplarul semnat este atașat reviziei ${document.issued.revision}.`
+                  : document.issued.receivedCopy
+                    ? `Primit de la client prin linkul din email, pe ${formatRoDate(document.issued.receivedCopy.uploadedAt.slice(0, 10))}. Deschide-l și confirmă-l: până atunci contractul nu este socotit semnat.`
+                    : 'Când contractul se întoarce semnat, atașează aici exemplarul, scanat sau semnat electronic.'
+              }
+            >
+              {document.issued.hasSignedCopy || document.issued.receivedCopy ? (
+                <>
                   <Button
                     variant="outline"
                     size="sm"
@@ -770,47 +1015,60 @@ function ServiceContractBody({
                     <Download aria-hidden="true" />
                     Descarcă
                   </Button>
+                  {!readOnly && document.issued.receivedCopy && (
+                    <Button
+                      size="sm"
+                      data-testid="contract-signed-confirm"
+                      disabled={busy}
+                      onClick={() => void confirmSignedCopy()}
+                    >
+                      {confirmSigned.isPending ? 'Se confirmă…' : 'Confirmă exemplarul'}
+                    </Button>
+                  )}
                   {!readOnly && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid="contract-signed-replace"
-                        disabled={busy}
-                        onClick={() => signedInput.current?.click()}
-                      >
-                        Înlocuiește
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid="contract-signed-remove"
-                        disabled={busy}
-                        onClick={() => setConfirming('removeSigned')}
-                      >
-                        Elimină
-                      </Button>
-                    </>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          data-testid="contract-signed-actions"
+                          aria-label="Alte acțiuni pentru exemplarul semnat"
+                        >
+                          <MoreHorizontal aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          data-testid="contract-signed-replace"
+                          disabled={busy}
+                          onSelect={() => signedInput.current?.click()}
+                        >
+                          Înlocuiește
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          data-testid="contract-signed-remove"
+                          disabled={busy}
+                          onSelect={() => setConfirming('removeSigned')}
+                        >
+                          Elimină
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </>
               ) : (
-                <>
-                  <span className="text-muted-foreground">
-                    Când contractul se întoarce semnat, atașează aici exemplarul, scanat sau semnat
-                    electronic.
-                  </span>
-                  {!readOnly && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      data-testid="contract-signed-attach"
-                      disabled={busy}
-                      onClick={() => signedInput.current?.click()}
-                    >
-                      {attachSigned.isPending ? 'Se atașează…' : 'Atașează exemplarul semnat'}
-                    </Button>
-                  )}
-                </>
+                !readOnly && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="contract-signed-attach"
+                    disabled={busy}
+                    onClick={() => signedInput.current?.click()}
+                  >
+                    {attachSigned.isPending ? 'Se atașează…' : 'Atașează exemplarul semnat'}
+                  </Button>
+                )
               )}
               <input
                 ref={signedInput}
@@ -825,13 +1083,20 @@ function ServiceContractBody({
                   void attachSignedCopy(file);
                 }}
               />
-            </div>
+            </FileTile>
           )}
-          {saved.lastSend && (
-            <p data-testid="contract-last-send" className="text-sm text-muted-foreground">
-              Revizia {saved.lastSend.revision} a fost trimisă la {saved.lastSend.sentTo} pe{' '}
-              {formatRoDate(saved.lastSend.sentAt.slice(0, 10))}.
-            </p>
+          {!document && !readOnly && (
+            <div className="flex justify-end">
+              <Button
+                data-testid="contract-generate"
+                disabled={busy || unsaved || !readiness.ready}
+                title={generateBlocked}
+                onClick={() => void run('generate')}
+              >
+                <Sparkles aria-hidden="true" />
+                {generate.isPending ? 'Se generează…' : 'Generează contractul'}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

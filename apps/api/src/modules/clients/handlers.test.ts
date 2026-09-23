@@ -254,7 +254,10 @@ describe('GET /clients', () => {
             {
               status: 'issued',
               service_contract_sends: [],
-              document_signed_copies: { revision_id: 'r1' },
+              document_signed_copies: {
+                revision_id: 'r1',
+                confirmed_at: '2026-09-21T11:00:00+00:00',
+              },
             },
           ],
         },

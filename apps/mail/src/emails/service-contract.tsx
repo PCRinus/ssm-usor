@@ -1,8 +1,11 @@
 import { Layout } from './_components/layout';
-import { Paragraph, Title } from './_components/text';
+import { Action, FallbackLink, Paragraph, Title } from './_components/text';
 
 export type ServiceContractProps = {
   senderName: string | null;
+  /** Where a reply lands, printed so that the recipient knows it is not a machine. */
+  senderEmail: string;
+  returnUrl: string;
   organizationName: string;
   clientName: string;
   contractNumber: number;
@@ -17,9 +20,12 @@ export const subject = (organizationName: string) =>
 const printedDate = (isoDate: string) => isoDate.split('-').reverse().join('.');
 
 // Written to someone who has no account and did not ask for an email from us: formal, in the
-// provider's name, with nothing to click. The contract is the attachment.
+// provider's name. The contract is the attachment; the one thing to click brings the signed
+// copy back.
 export default function ServiceContract({
   senderName,
+  senderEmail,
+  returnUrl,
   organizationName,
   clientName,
   contractNumber,
@@ -29,7 +35,7 @@ export default function ServiceContract({
   return (
     <Layout
       preview={`Contractul de prestări servicii nr. ${contractNumber}, de la ${organizationName}.`}
-      reason={`Ați primit acest email pentru că ${organizationName} v-a trimis un contract prin SSM Ușor, aplicația în care își ține evidența clienților. Răspunsul dumneavoastră ajunge direct la ${organizationName}.`}
+      reason={`Ați primit acest email pentru că ${organizationName} v-a trimis un contract prin SSM Ușor, aplicația în care își ține evidența clienților. Un răspuns la acest email ajunge la ${senderName ?? organizationName}, ${senderEmail}.`}
     >
       <Title>Contract de prestări servicii</Title>
       <Paragraph>Bună ziua,</Paragraph>
@@ -40,9 +46,14 @@ export default function ServiceContract({
         {`Vă transmitem atașat contractul de prestări servicii nr. ${contractNumber} din ${printedDate(contractDate)}, încheiat între ${organizationName} și ${clientName}.`}
       </Paragraph>
       <Paragraph>
-        Vă rugăm să ni-l returnați semnat, răspunzând la acest email. Pentru orice întrebare ne
-        puteți scrie la aceeași adresă.
+        Vă rugăm să îl semnați, electronic, cu certificatul calificat al firmei, sau pe hârtie și
+        scanat, și să ne trimiteți exemplarul semnat prin butonul de mai jos. Puteți și să
+        răspundeți la acest email cu fișierul atașat: răspunsul ajunge la{' '}
+        {senderName ?? organizationName}, {senderEmail}.
       </Paragraph>
+      <Action href={returnUrl}>Trimiteți exemplarul semnat</Action>
+      <FallbackLink href={returnUrl} />
+      <Paragraph>Pentru orice întrebare ne puteți scrie la aceeași adresă.</Paragraph>
       <Paragraph>
         Cu stimă,
         <br />
@@ -60,6 +71,8 @@ export default function ServiceContract({
 
 ServiceContract.PreviewProps = {
   senderName: 'Olga Popescu',
+  senderEmail: 'olga@exemplu.example',
+  returnUrl: 'https://app.ssmusor.ro/contract?token=exemplu',
   organizationName: 'S.C. Exemplu SSM S.R.L.',
   clientName: 'S.C. Gelateria Florești S.R.L.',
   contractNumber: 52,

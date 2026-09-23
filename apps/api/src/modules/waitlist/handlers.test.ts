@@ -20,6 +20,7 @@ const env: ApiEnv['Bindings'] = {
     sendPasswordChanged: vi.fn(),
     sendSignupConfirmation: vi.fn(),
     sendServiceContract: vi.fn(),
+    sendSignedCopyReceived: vi.fn(),
   },
 };
 

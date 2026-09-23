@@ -7,10 +7,13 @@ import ServiceContract, { type ServiceContractProps, subject } from './service-c
 
 const env: MailEnv = {
   MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
+  MAIL_FROM_CONTRACTS: 'SSM Ușor <contracte@mail.ssmusor.ro>',
   MAIL_REPLY_TO: 'contact@ssmusor.ro',
 };
 const contract: ServiceContractProps = {
   senderName: 'Olga Popescu',
+  senderEmail: 'olga@exemplu.example',
+  returnUrl: 'https://app.ssmusor.ro/contract?token=abc',
   organizationName: 'S.C. Exemplu SSM S.R.L.',
   clientName: 'S.C. Gelateria Florești S.R.L.',
   contractNumber: 52,
@@ -27,7 +30,8 @@ async function send(props: ServiceContractProps = contract) {
       to: 'andrei@gelateria.example',
       subject: subject(props.organizationName),
       body: <ServiceContract {...props} />,
-      sender: { name: props.senderName, email: 'olga@exemplu.example' },
+      sender: { name: props.senderName, email: props.senderEmail },
+      from: env.MAIL_FROM_CONTRACTS,
       attachments: [attachment],
     },
     {
@@ -43,7 +47,7 @@ async function send(props: ServiceContractProps = contract) {
 describe('service contract', () => {
   it('goes out in the name of the owner, who gets the replies and a copy', async () => {
     const email = await send();
-    expect(email.from).toBe('"Olga Popescu prin SSM Ușor" <noreply@mail.ssmusor.ro>');
+    expect(email.from).toBe('"Olga Popescu prin SSM Ușor" <contracte@mail.ssmusor.ro>');
     expect(email.replyTo).toBe('olga@exemplu.example');
     expect(email.cc).toBe('olga@exemplu.example');
     expect(email.to).toBe('andrei@gelateria.example');
@@ -59,16 +63,16 @@ describe('service contract', () => {
       expect(body).toContain('21.09.2026');
       expect(body).toContain('S.C. Gelateria Florești S.R.L.');
       expect(body).toContain('Am trecut abonamentul lunar convenit.');
-      expect(body).toContain('returnați semnat');
-      expect(body).toContain('Olga Popescu');
+      expect(body).toContain('certificatul calificat');
+      expect(body).toContain('Olga Popescu, olga@exemplu.example');
+      expect(body).toContain('https://app.ssmusor.ro/contract?token=abc');
     }
-    // Nothing to click: the recipient has no account, and the contract is the attachment.
-    expect(email.html).not.toContain('app.ssmusor.ro');
   });
 
   it('signs as the organization when the owner has no name, and keeps our own sender', async () => {
     const email = await send({ ...contract, senderName: null, note: null });
-    expect(email.from).toBe(env.MAIL_FROM);
+    expect(email.from).toBe(env.MAIL_FROM_CONTRACTS);
+    expect(email.text).toContain('S.C. Exemplu SSM S.R.L., olga@exemplu.example');
     expect(email.text).toContain('Cu stimă');
     expect(email.text).not.toContain('Am trecut');
   });

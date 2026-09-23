@@ -12,9 +12,10 @@ import {
   type DataClient,
   fromDatabaseError,
 } from '../../lib/db';
-import type { ApiEnv } from '../../lib/env';
+import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { createToken, hashToken } from '../../lib/tokens';
 import { stableJson } from '../documents/context';
 import { generateOtherDocument, readOtherDocument } from '../documents/documents';
 import { buildServiceContractContext } from './context';
@@ -90,6 +91,8 @@ async function lastSendOf(db: DataClient, revisionId: string) {
     ? { sentTo: data.sent_to, sentAt: data.sent_at, revision: data.document_revisions.revision }
     : null;
 }
+
+const returnLinkDays = 60;
 
 // Workers have no Buffer; `btoa` takes a binary string, built in chunks that fit the stack.
 function toBase64(bytes: Uint8Array) {
@@ -262,6 +265,10 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
 
   const pdf = await createFileStore(c).readDocument(revision.data.pdf_path);
   const { contractNumber, contractDate } = facts.contract;
+  // The return link: the token goes out in the email, its hash stays with the send.
+  const token = createToken();
+  const returnUrl = new URL('/contract', appOrigin(c.env));
+  returnUrl.searchParams.set('token', token);
   let receipt;
   try {
     receipt = await mail.sendServiceContract({
@@ -273,6 +280,7 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
       contractNumber,
       contractDate,
       note: note ?? null,
+      returnUrl: returnUrl.href,
       attachment: {
         fileName: `Contract nr. ${contractNumber} din ${contractDate.split('-').reverse().join('.')}.pdf`,
         contentBase64: toBase64(pdf),
@@ -292,6 +300,8 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
     note: note ?? null,
     provider_message_id: receipt.id,
     sent_by: user.id,
+    token_hash: await hashToken(token),
+    return_expires_at: new Date(Date.now() + returnLinkDays * 86_400_000).toISOString(),
   });
   if (recorded.error) throw fromDatabaseError(recorded.error, 'record service contract send');
   return c.json(await respond(db, clientId), 200);

@@ -115,6 +115,7 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
 // (`pnpm templates:register:local`), merged by the API and stored in Storage.
 test('an owner generates the contract of a lead, writes the price, issues it, and keeps it after promotion', async ({
   page,
+  browser,
 }) => {
   const owner = await createAccount('contract-owner', 'Olga Owner');
   const specialist = await createAccount('contract-specialist', 'Sorin Specialist');
@@ -214,13 +215,55 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     expect(email!.url).toContain('JVBERi0');
     await page.goto('/leads');
     await expect(page.getByTestId('leads-contract')).toHaveText('Trimis');
+
+    // The return link, opened by the recipient, who has no account.
+    const returnUrl = new URL(email!.url.split(' ')[0]!);
+    const recipient = await browser.newContext();
+    const returnPage = await recipient.newPage();
+    await returnPage.goto(returnUrl.pathname + returnUrl.search);
+    await expect(returnPage.getByTestId('contract-return-page')).toContainText(
+      'S.C. VIITOR CONTRACT E2E S.R.L.'
+    );
+    const sentPdf = returnPage.waitForEvent('download');
+    await returnPage.getByTestId('return-download').click();
+    expect((await sentPdf).suggestedFilename()).toMatch(
+      /^Contract nr\. 51 din \d{2}\.\d{2}\.\d{4}\.pdf$/
+    );
+    await returnPage.getByTestId('return-file').setInputFiles({
+      name: 'contract semnat.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4\n% exemplar semnat prin link\n'),
+    });
+    await returnPage.getByTestId('return-upload').click();
+    await expect(returnPage.getByTestId('return-done')).toBeVisible();
+    // Opened again, it offers to replace what arrived.
+    await returnPage.reload();
+    await expect(returnPage.getByTestId('return-received')).toBeVisible();
+    await recipient.close();
+    const [notice] = await emailsTo(owner.email, 'signed-copy-received');
+    expect(notice!.url).toContain('/leads/');
+
+    // Received is not signed: the owner confirms it.
+    await page.goto('/leads');
+    await expect(page.getByTestId('leads-contract')).toHaveText('Primit');
+    await page.getByTestId('leads-open').click();
+    await page.getByTestId('lead-promote').click();
+    await expect(page.getByTestId('promote-lead-unsigned')).toContainText('nu este confirmat');
+    await page.keyboard.press('Escape');
+    await page.getByTestId('contract-signed-confirm').click();
+    await expect(page.getByTestId('contract-signed')).toHaveText('Semnat');
+    await expect(page.getByTestId('contract-received')).toHaveCount(0);
+    await page.goto('/leads');
+    await expect(page.getByTestId('leads-contract')).toHaveText('Semnat');
   }
 
   await page.getByTestId('leads-open').click();
-  // Promoting without the signed copy is allowed, and says so.
-  await page.getByTestId('lead-promote').click();
-  await expect(page.getByTestId('promote-lead-unsigned')).toBeVisible();
-  await page.keyboard.press('Escape');
+  if (!process.env.GOTENBERG_URL) {
+    // Promoting without the signed copy is allowed, and says so.
+    await page.getByTestId('lead-promote').click();
+    await expect(page.getByTestId('promote-lead-unsigned')).toBeVisible();
+    await page.keyboard.press('Escape');
+  }
 
   // Any PDF will do for what comes back signed: the app cannot tell a signature.
   await page.getByTestId('contract-signed-input').setInputFiles({

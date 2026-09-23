@@ -63,9 +63,19 @@ Signing happens outside the app. The owner sends the issued PDF from the app: an
 
 What comes back, a scan or a file signed with the company's own certificate, is attached to the issued revision as its **signed copy** (_exemplar semnat_): a PDF stored with its hash. The app cannot tell whether a file is signed, only that one was attached. It is the place a signature made in the app will fill when that arrives, with its own ADR.
 
+### The return link (amended 2026-09-24)
+
+The first version asked the recipient to reply with the signed file, which works, since replies go to the owner, but leaves the owner to attach it by hand, and the email left from a no-reply address, which said the opposite of what the footer promised. The amendment closes the loop without building signing.
+
+Each send carries a **return link**: a random token, stored hashed on the send, to a public page of the app. The page names the provider, the company and the contract, offers the PDF that was sent, says how to sign (with the company's own qualified certificate, which every Romanian company holds for its tax filings, or on paper and scanned), and takes one PDF back. What arrives is a **received copy**: stored where the signed copy lives, with its hash, marked as coming from the client and not confirmed. The owner is emailed, opens it from the lead's page and confirms it, replaces it or removes it; only a confirmed copy makes the contract signed. The recipient may upload again until then; after confirmation the page says to write to the owner instead. The link also dies when a newer revision is issued, since the copy would be of a superseded text, and after sixty days.
+
+No login, no CAPTCHA: the token is the capability, thirty-two random bytes that only the mailbox has, and a send accepts a bounded number of uploads. The public routes run with the secret key, so every path and revision is derived from the token and never taken from the request. The email now leaves from `contracte@`, in the owner's name, and says in the body that a reply reaches the owner, with the address. A qualified electronic signature is not verified by the app; it is expected, and the legal review (#61) covers the wording, the privacy line on the page and the form requirements for the contract. Signing inside the app, with a trust service provider, stays a later ADR.
+
+Rejected: an inbound address per send, with the reply parsed for its attachment, which adds a mail-receiving surface and forwarding rules for one gain; a signature drawn on the page, which is at best an advanced signature and not what a contract needs.
+
 ### Promotion
 
-"Transformă în client" is a button an owner presses. It works without a signed copy and says so when there is none: contracts are also signed on paper, with the scan arriving later, and the copy can be attached afterwards. Promotion records who and when, makes the client visible to the team, and cannot be undone; a client whose contract ends is archived. Nothing is generated and nobody is emailed.
+"Transformă în client" is a button an owner presses. It works without a signed copy and says so when there is none: contracts are also signed on paper, with the scan arriving later, and the copy can be attached afterwards. A received copy that is not confirmed counts as none, and the warning says one is waiting. Promotion records who and when, makes the client visible to the team, and cannot be undone; a client whose contract ends is archived. Nothing is generated and nobody is emailed.
 
 ### In the app
 
@@ -91,4 +101,5 @@ Steps 2 and 3 already give an owner a list of leads that become clients.
 - The mail provider gains attachments and a reply address per message. Resend accepts 40 MB per email; a contract is well under one.
 - The starter contract is legal text under our name. Its review joins issue #61, together with what the contract that was read lacks or overstates: a data protection clause, the penalty clause, the non-compete clause, the late-payment rate.
 - Fire safety is recorded as a contracted service while the app produces nothing for it.
+- The return link adds the app's first public page that writes a file, and the first email to a person who is not a member that asks them to do something. Both are limited to the one send they belong to.
 - A document exists once per client, so a renegotiated contract is a new revision, not a second contract. The amendment (_act adițional_), several contracts per client, reminders before a contract ends, stored prices, the organization's own template, an onboarding checklist for the provider details, and signing in the app are left out on purpose. Each can be added without undoing this.

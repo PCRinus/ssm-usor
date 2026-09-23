@@ -49,6 +49,7 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   issuedAt: null,
   hasPdf: false,
   hasSignedCopy: false,
+  receivedCopy: null,
   createdAt: '2026-09-21T10:00:00+00:00',
   ...overrides,
 });
@@ -79,7 +80,7 @@ const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
   routes: Partial<
-    Record<'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'promote', Route>
+    Record<'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'confirm' | 'promote', Route>
   > & {
     role?: 'owner' | 'specialist';
     client?: Record<string, unknown>;
@@ -112,6 +113,9 @@ function mockApi(
       return method === 'PUT'
         ? (routes.save?.(init) ?? Response.json(state()))
         : (routes.get?.(init) ?? Response.json(state()));
+    }
+    if (pathname === `/documents/${documentId}/signed-copy/confirm`) {
+      return routes.confirm?.(init) ?? Response.json({ document: contractDocument() });
     }
     if (pathname === `/documents/${documentId}/signed-copy`) {
       return method === 'DELETE'
@@ -241,7 +245,10 @@ describe('the service contract of a lead', () => {
     expect(screen.getByTestId('contract-open').getAttribute('href')).toBe(
       `/leads/${leadId}/contract`
     );
-    expect(screen.getByTestId('contract-generate').textContent).toContain('Generează din nou');
+    await user.click(screen.getByTestId('contract-draft-actions'));
+    expect((await screen.findByTestId('contract-generate')).textContent).toContain(
+      'Generează din nou'
+    );
   });
 
   it('asks before generating over a draft, and marks one that the details have left behind', async () => {
@@ -260,7 +267,8 @@ describe('the service contract of a lead', () => {
     const user = userEvent.setup();
     expect(await screen.findByTestId('contract-outdated')).toBeTruthy();
     expect(screen.getByTestId('contract-edited')).toBeTruthy();
-    await user.click(screen.getByTestId('contract-generate'));
+    await user.click(screen.getByTestId('contract-draft-actions'));
+    await user.click(await screen.findByTestId('contract-generate'));
     expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
       'Prețurile și celelalte modificări făcute de mână în ea se pierd'
     );
@@ -473,7 +481,8 @@ describe('the signed copy', () => {
       'Exemplarul semnat este atașat reviziei 1.'
     );
     expect(screen.getByTestId('contract-signed-download')).toBeTruthy();
-    expect(screen.getByTestId('contract-signed-replace')).toBeTruthy();
+    await user.click(screen.getByTestId('contract-signed-actions'));
+    expect(await screen.findByTestId('contract-signed-replace')).toBeTruthy();
   });
 
   it('says what a refused file is, and asks before removing a copy', async () => {
@@ -492,7 +501,8 @@ describe('the signed copy', () => {
     expect((await screen.findByTestId('contract-error')).textContent).toContain(
       'trebuie să fie un PDF'
     );
-    await user.click(screen.getByTestId('contract-signed-remove'));
+    await user.click(screen.getByTestId('contract-signed-actions'));
+    await user.click(await screen.findByTestId('contract-signed-remove'));
     expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
       'Contractul emis rămâne neschimbat'
     );
@@ -524,6 +534,70 @@ describe('the signed copy', () => {
       expect(within(dialog).getByTestId('promote-lead-confirm')).toHaveProperty('disabled', false);
     }
   );
+});
+
+describe('the copy received through the return link', () => {
+  const received = () =>
+    contractDocument({
+      draft: null,
+      issued: revision({
+        status: 'issued',
+        issuedAt: '2026-09-21T11:00:00+00:00',
+        hasPdf: true,
+        hasSignedCopy: false,
+        receivedCopy: { uploadedAt: '2026-09-22T09:30:00+00:00' },
+      }),
+    });
+
+  it('is shown as received, not signed, and is confirmed with one click', async () => {
+    let confirmed = false;
+    mockApi({
+      get: () =>
+        Response.json(
+          state({
+            document: confirmed
+              ? contractDocument({
+                  draft: null,
+                  issued: revision({
+                    status: 'issued',
+                    issuedAt: '2026-09-21T11:00:00+00:00',
+                    hasPdf: true,
+                    hasSignedCopy: true,
+                  }),
+                })
+              : received(),
+          })
+        ),
+      confirm: () => {
+        confirmed = true;
+        return Response.json({ document: received() });
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+    const tile = await screen.findByTestId('contract-signed-copy');
+    expect(tile.textContent).toContain('Primit de la client');
+    expect(tile.textContent).toContain('22.09.2026');
+    expect(screen.getByTestId('contract-received').textContent).toBe('De confirmat');
+    expect(screen.queryByTestId('contract-signed')).toBeNull();
+    expect(screen.getByTestId('contract-trail').textContent).toContain('de confirmat');
+
+    await user.click(screen.getByTestId('contract-signed-confirm'));
+    expect(await screen.findByText('Exemplarul semnat a fost confirmat.')).toBeTruthy();
+    expect(await screen.findByTestId('contract-signed')).toBeTruthy();
+    expect(screen.queryByTestId('contract-received')).toBeNull();
+  });
+
+  it('warns before promotion that the copy is not confirmed', async () => {
+    mockApi({ get: () => Response.json(state({ document: received() })) });
+    mount();
+    const user = userEvent.setup();
+    await screen.findByTestId('contract-received');
+    await user.click(screen.getByTestId('lead-promote'));
+    expect((await screen.findByTestId('promote-lead-unsigned')).textContent).toContain(
+      'nu este confirmat încă'
+    );
+  });
 });
 
 describe('the other documents of a client', () => {

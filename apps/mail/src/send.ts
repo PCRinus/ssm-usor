@@ -12,6 +12,8 @@ type Message = {
   // For an email sent in a member's name: who it reads as from, who gets the replies and a
   // copy. The address it leaves from stays ours, which is the one the domain vouches for.
   sender?: { name: string | null; email: string };
+  /** Instead of MAIL_FROM; the same domain, so that the same records vouch for it. */
+  from?: string;
   attachments?: { fileName: string; contentBase64: string }[];
 };
 
@@ -25,7 +27,7 @@ function fromOnBehalfOf(from: string, name: string | null) {
 
 export async function sendEmail(
   env: MailEnv,
-  { to, subject, body, sender, attachments }: Message,
+  { to, subject, body, sender, from = env.MAIL_FROM, attachments }: Message,
   provider: MailProvider = createProvider(env)
 ): Promise<MailReceipt> {
   // Rendering is the expensive step, so the plain text is derived from the HTML
@@ -34,7 +36,7 @@ export async function sendEmail(
   const text = toPlainText(html);
 
   return provider.send({
-    from: sender ? fromOnBehalfOf(env.MAIL_FROM, sender.name) : env.MAIL_FROM,
+    from: sender ? fromOnBehalfOf(from, sender.name) : from,
     replyTo: sender?.email ?? env.MAIL_REPLY_TO,
     to,
     cc: sender?.email,

@@ -286,10 +286,14 @@ path that writes one, and everything after it (the PDF download, sending a contr
 skipped, and CI, which has a converter, is the first to find out.
 
 ```sh
-docker run -d --rm --name gotenberg-flows -p 3300:3000 gotenberg/gotenberg:8
+pnpm dev:pdf
 GOTENBERG_URL=http://localhost:3300 pnpm --filter @ssm-usor/app test:e2e:flows
-docker stop gotenberg-flows
+pnpm stop:pdf
 ```
+
+`pnpm dev:pdf` starts the converter from `compose.yaml`, the same image the deployment runs
+([PDF Worker](pdf.md)). The variable is not needed on the command line when
+`apps/api/.dev.vars` already has it.
 
 `playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,

@@ -9,6 +9,7 @@ import { missingDocumentData, workersRepresentativeClash } from './context';
 import {
   type Actor,
   attachSignedCopy,
+  confirmSignedCopy,
   deleteDraft,
   documentDownloadLink,
   generateClientDocuments as generate,
@@ -23,6 +24,7 @@ import {
 import { loadDocumentFacts } from './facts';
 import type {
   attachDocumentSignedCopyRoute,
+  confirmDocumentSignedCopyRoute,
   deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
   getDocumentDownloadRoute,
@@ -202,6 +204,15 @@ export const attachDocumentSignedCopy: RouteHandler<
     documentId,
     bytes
   );
+  return c.json({ document }, 200);
+};
+
+export const confirmDocumentSignedCopy: RouteHandler<
+  typeof confirmDocumentSignedCopyRoute,
+  ApiEnv
+> = async (c) => {
+  const { documentId } = c.req.valid('param');
+  const document = await confirmSignedCopy(createDataClient(c), actorOf(c), documentId);
   return c.json({ document }, 200);
 };
 

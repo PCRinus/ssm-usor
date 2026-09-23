@@ -69,6 +69,14 @@ export function leadColumns(
         const state = row.original.serviceContractState;
         return state === 'signed' ? (
           <Badge data-testid="leads-contract">Semnat</Badge>
+        ) : state === 'received' ? (
+          <Badge
+            variant="outline"
+            className="border-warning-border bg-warning text-warning-foreground"
+            data-testid="leads-contract"
+          >
+            Primit
+          </Badge>
         ) : state === 'sent' ? (
           <Badge variant="outline" data-testid="leads-contract">
             Trimis

@@ -151,9 +151,12 @@ export const documentRevisionSchema = z.object({
   issuedAt: z.iso.datetime({ offset: true }).nullable(),
   // Whether a PDF was made when the revision was issued. Never for a draft.
   hasPdf: z.boolean(),
-  // Whether the copy that came back signed was attached (ADR 007). The app knows that a file
-  // was attached, not that it is signed. Never for a draft.
+  // Whether the copy that came back signed was attached and confirmed by an owner (ADR 007).
+  // The app knows that a file was attached, not that it is signed. Never for a draft.
   hasSignedCopy: z.boolean(),
+  // A copy that came through the return link and that no owner has confirmed yet; the
+  // contract is not signed by it. Null once confirmed, when `hasSignedCopy` takes over.
+  receivedCopy: z.object({ uploadedAt: z.iso.datetime({ offset: true }) }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
