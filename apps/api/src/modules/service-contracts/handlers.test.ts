@@ -630,11 +630,14 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
       contractNumber: 51,
       contractDate: '2026-02-15',
       note: 'Cum am vorbit.',
+      returnUrl: expect.stringMatching(/^https:\/\/app\.ssmusor\.ro\/contract\?token=[\w-]{40,}$/),
       attachment: { fileName: 'Contract nr. 51 din 15.02.2026.pdf', contentBase64: 'JVBERg==' },
     });
-    expect(
-      JSON.parse(String(calls('/rest/v1/service_contract_sends', 'POST')[0]![1]?.body))
-    ).toEqual({
+    const returnUrl = new URL(sendServiceContract.mock.calls[0]![0].returnUrl);
+    const recorded = JSON.parse(
+      String(calls('/rest/v1/service_contract_sends', 'POST')[0]![1]?.body)
+    );
+    expect(recorded).toEqual({
       organization_id: organizationId,
       document_id: documentId,
       revision_id: revisionId,
@@ -642,7 +645,14 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
       note: 'Cum am vorbit.',
       provider_message_id: 'msg_1',
       sent_by: user.id,
+      token_hash: expect.stringMatching(/^[0-9a-f]{64}$/),
+      return_expires_at: expect.any(String),
     });
+    // Only the hash is kept, and the link works for two months.
+    expect(recorded.token_hash).not.toContain(returnUrl.searchParams.get('token'));
+    expect(new Date(recorded.return_expires_at).getTime()).toBeGreaterThan(
+      Date.now() + 59 * 86_400_000
+    );
   });
 
   it('records nothing when the email could not be handed over', async () => {

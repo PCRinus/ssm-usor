@@ -507,28 +507,37 @@ export type Database = {
       };
       document_signed_copies: {
         Row: {
+          confirmed_at: string | null;
+          confirmed_by: string | null;
           document_id: string;
           organization_id: string;
           revision_id: string;
           sha256: string;
+          source: string;
           storage_path: string;
           uploaded_at: string;
           uploaded_by: string | null;
         };
         Insert: {
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
           document_id: string;
           organization_id: string;
           revision_id: string;
           sha256: string;
+          source?: string;
           storage_path: string;
           uploaded_at?: string;
           uploaded_by?: string | null;
         };
         Update: {
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
           document_id?: string;
           organization_id?: string;
           revision_id?: string;
           sha256?: string;
+          source?: string;
           storage_path?: string;
           uploaded_at?: string;
           uploaded_by?: string | null;
@@ -1040,10 +1049,13 @@ export type Database = {
           note: string | null;
           organization_id: string;
           provider_message_id: string | null;
+          return_expires_at: string | null;
+          return_uploads: number;
           revision_id: string;
           sent_at: string;
           sent_by: string | null;
           sent_to: string;
+          token_hash: string | null;
         };
         Insert: {
           document_id: string;
@@ -1051,10 +1063,13 @@ export type Database = {
           note?: string | null;
           organization_id: string;
           provider_message_id?: string | null;
+          return_expires_at?: string | null;
+          return_uploads?: number;
           revision_id: string;
           sent_at?: string;
           sent_by?: string | null;
           sent_to: string;
+          token_hash?: string | null;
         };
         Update: {
           document_id?: string;
@@ -1062,10 +1077,13 @@ export type Database = {
           note?: string | null;
           organization_id?: string;
           provider_message_id?: string | null;
+          return_expires_at?: string | null;
+          return_uploads?: number;
           revision_id?: string;
           sent_at?: string;
           sent_by?: string | null;
           sent_to?: string;
+          token_hash?: string | null;
         };
         Relationships: [
           {

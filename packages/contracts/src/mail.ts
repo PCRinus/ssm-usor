@@ -71,6 +71,8 @@ export const serviceContractEmailSchema = z.object({
   contractDate: z.iso.date(),
   /** A few words of the owner's own, above the standard text. */
   note: z.string().trim().max(1000).nullable(),
+  /** The public page where the signed copy comes back, token included. */
+  returnUrl: z.url(),
   /** The issued PDF, in Base64. Resend takes 40 MB an email; a contract is well under one. */
   attachment: z.object({
     fileName: z.string().min(5).max(200).endsWith('.pdf'),
@@ -79,6 +81,18 @@ export const serviceContractEmailSchema = z.object({
 });
 
 export type ServiceContractEmail = z.infer<typeof serviceContractEmailSchema>;
+
+/** Tells the owner who sent a contract that its signed copy came back through the return link. */
+export const signedCopyReceivedEmailSchema = z.object({
+  to: z.email(),
+  clientName: z.string().trim().min(2).max(200),
+  contractNumber: z.int().min(1),
+  contractDate: z.iso.date(),
+  /** The lead's page in the SPA, where the copy is confirmed. */
+  leadUrl: z.url(),
+});
+
+export type SignedCopyReceivedEmail = z.infer<typeof signedCopyReceivedEmailSchema>;
 
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
@@ -95,4 +109,5 @@ export interface MailService {
   sendPasswordChanged(input: PasswordChangedEmail): Promise<MailReceipt>;
   sendSignupConfirmation(input: SignupConfirmationEmail): Promise<MailReceipt>;
   sendServiceContract(input: ServiceContractEmail): Promise<MailReceipt>;
+  sendSignedCopyReceived(input: SignedCopyReceivedEmail): Promise<MailReceipt>;
 }

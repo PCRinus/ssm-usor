@@ -66,7 +66,7 @@ type ContractDocuments = {
       status: string;
       service_contract_sends: { id: string }[];
       // One to one: an object, or null.
-      document_signed_copies: { revision_id: string } | null;
+      document_signed_copies: { revision_id: string; confirmed_at: string | null } | null;
     }[];
   }[];
 };
@@ -79,7 +79,8 @@ function serviceContractState({ client_documents: documents }: ContractDocuments
   // A draft beside an issued contract is a correction in progress: the contract is issued.
   // Sent is about the revision in force, so one issued after the last send is not sent yet.
   const issued = revisions.find((revision) => revision.status === 'issued');
-  if (issued?.document_signed_copies) return 'signed';
+  if (issued?.document_signed_copies?.confirmed_at) return 'signed';
+  if (issued?.document_signed_copies) return 'received';
   if (issued) return issued.service_contract_sends.length > 0 ? 'sent' : 'issued';
   return revisions.some((revision) => revision.status === 'draft') ? 'draft' : 'none';
 }
@@ -139,7 +140,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
       // relationship is named.
       .select(
         stage === 'lead'
-          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id)))`
+          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))`
           : clientColumns,
         { count: 'exact' }
       )

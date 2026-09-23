@@ -1,5 +1,6 @@
 import {
   type ClientDocument,
+  confirmSignedCopyConflictReason,
   type DocumentFileFormat,
   type DocumentRevision,
   documentTypeKeys,
@@ -46,7 +47,12 @@ type RevisionRow = Pick<
 > & {
   document_generations: { issue_date: string } | null;
   // One to one, so PostgREST embeds an object, or null where nothing was attached.
-  document_signed_copies?: { revision_id: string } | null;
+  document_signed_copies?: {
+    revision_id: string;
+    source: string;
+    confirmed_at: string | null;
+    uploaded_at: string;
+  } | null;
 };
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
@@ -54,7 +60,7 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
 const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
 
@@ -108,7 +114,11 @@ function toRevision(
     editedAt: revision.edited_at,
     issuedAt: revision.issued_at,
     hasPdf: revision.pdf_path !== null,
-    hasSignedCopy: Boolean(revision.document_signed_copies),
+    hasSignedCopy: Boolean(revision.document_signed_copies?.confirmed_at),
+    receivedCopy:
+      revision.document_signed_copies && !revision.document_signed_copies.confirmed_at
+        ? { uploadedAt: revision.document_signed_copies.uploaded_at }
+        : null,
     createdAt: revision.created_at,
   };
 }
@@ -946,6 +956,10 @@ export async function attachSignedCopy(
       sha256: await sha256(bytes),
       uploaded_by: actor.createdBy,
       uploaded_at: new Date().toISOString(),
+      // An owner looked at what they attach.
+      source: 'owner',
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: actor.createdBy,
     },
     { onConflict: 'revision_id' }
   );
@@ -960,6 +974,28 @@ export async function attachSignedCopy(
     }
     throw error;
   }
+  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  return toDocument(await readDocument(db, documentId), facts);
+}
+
+/** The owner accepts what came through the return link as the signed copy. */
+export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId: string) {
+  const document = await readDocument(db, documentId);
+  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  if (!issued?.document_signed_copies || issued.document_signed_copies.confirmed_at) {
+    throw new ApiError(
+      'conflict',
+      'This document has no received copy to confirm.',
+      undefined,
+      confirmSignedCopyConflictReason
+    );
+  }
+  await requireActiveClient(db, document.client_id);
+  const { error } = await db
+    .from('document_signed_copies')
+    .update({ confirmed_at: new Date().toISOString(), confirmed_by: actor.createdBy })
+    .eq('revision_id', issued.id);
+  if (error) throw fromDatabaseError(error, 'confirm signed copy');
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
   return toDocument(await readDocument(db, documentId), facts);
 }

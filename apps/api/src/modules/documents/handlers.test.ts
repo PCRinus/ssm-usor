@@ -142,6 +142,12 @@ type Upstream =
   | 'signedCopies';
 
 const fetchMock = vi.fn<typeof fetch>();
+const confirmedCopy = {
+  revision_id: revisionId,
+  source: 'owner',
+  confirmed_at: '2026-09-21T11:00:00+00:00',
+  uploaded_at: '2026-09-21T11:00:00+00:00',
+};
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -960,6 +966,71 @@ describe('POST /documents/{documentId}/draft', () => {
   });
 });
 
+describe('the copy received through the return link', () => {
+  const receivedCopy = {
+    revision_id: revisionId,
+    source: 'client',
+    confirmed_at: null,
+    uploaded_at: '2026-09-22T09:00:00+00:00',
+  };
+  const confirm = () => request(`/documents/${documentId}/signed-copy/confirm`, 'POST');
+
+  it('is reported as received, not signed, until an owner confirms it', async () => {
+    let confirmed = false;
+    mockUpstream({
+      documents: (_init, url) => {
+        const document = {
+          ...documentRow,
+          document_revisions: [
+            {
+              ...issuedRevision,
+              document_signed_copies: confirmed
+                ? { ...receivedCopy, confirmed_at: '2026-09-23T09:00:00+00:00' }
+                : receivedCopy,
+            },
+          ],
+        };
+        // The list, or the one document read before confirming.
+        return Response.json(url?.searchParams.has('id') ? document : [document]);
+      },
+      signedCopies: (init) => {
+        expect(init?.method).toBe('PATCH');
+        expect(JSON.parse(String(init?.body))).toMatchObject({
+          confirmed_at: expect.any(String),
+          confirmed_by: user.id,
+        });
+        confirmed = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+    const listed = await request(`/clients/${clientId}/documents`);
+    const before = clientDocumentListResponseSchema.parse(await listed.json());
+    expect(before.items[0]!.issued).toMatchObject({
+      hasSignedCopy: false,
+      receivedCopy: { uploadedAt: '2026-09-22T09:00:00+00:00' },
+    });
+
+    const response = await confirm();
+    expect(response.status).toBe(200);
+    const { document } = clientDocumentResponseSchema.parse(await response.json());
+    expect(document.issued).toMatchObject({ hasSignedCopy: true, receivedCopy: null });
+  });
+
+  it('cannot be confirmed twice, nor where nothing was received', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          document_revisions: [{ ...issuedRevision, document_signed_copies: confirmedCopy }],
+        }),
+    });
+    const response = await confirm();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('no_received_copy');
+    expect(calls('/rest/v1/document_signed_copies', 'PATCH')).toHaveLength(0);
+  });
+});
+
 describe('the signed copy of an issued revision', () => {
   const pdf = new Uint8Array([...new TextEncoder().encode('%PDF-1.7 signed'), 1, 2, 3]);
   const attach = (body: Uint8Array = pdf) =>
@@ -1008,9 +1079,7 @@ describe('the signed copy of an issued revision', () => {
         Response.json([
           {
             ...documentRow,
-            document_revisions: [
-              { ...issuedRevision, document_signed_copies: { revision_id: revisionId } },
-            ],
+            document_revisions: [{ ...issuedRevision, document_signed_copies: confirmedCopy }],
           },
         ]),
       revisions: () =>
@@ -1056,9 +1125,7 @@ describe('the signed copy of an issued revision', () => {
       documents: () =>
         Response.json({
           ...documentRow,
-          document_revisions: [
-            { ...issuedRevision, document_signed_copies: { revision_id: revisionId } },
-          ],
+          document_revisions: [{ ...issuedRevision, document_signed_copies: confirmedCopy }],
         }),
       upload: () => Response.json({ message: 'down' }, { status: 500 }),
     });
@@ -1088,9 +1155,7 @@ describe('the signed copy of an issued revision', () => {
       documents: () =>
         Response.json({
           ...documentRow,
-          document_revisions: [
-            { ...issuedRevision, document_signed_copies: { revision_id: revisionId } },
-          ],
+          document_revisions: [{ ...issuedRevision, document_signed_copies: confirmedCopy }],
         }),
     });
     expect((await request(`/documents/${documentId}/signed-copy`, 'DELETE')).status).toBe(204);

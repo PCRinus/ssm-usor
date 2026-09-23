@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import type { Database } from '../database.types';
 import { requestFetch, supabaseConfig } from './db';
@@ -16,10 +17,25 @@ const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml
 
 export function createFileStore(c: Context<ApiEnv>) {
   const config = supabaseConfig(c);
-  const storage = createClient<Database>(config.SUPABASE_URL, config.SUPABASE_PUBLISHABLE_KEY, {
+  return fileStore(c, config.SUPABASE_PUBLISHABLE_KEY, `Bearer ${c.get('accessToken')}`);
+}
+
+const secretKeySchema = z.string().startsWith('sb_secret_').min(16);
+
+// The policies do not apply to the secret key: for the return link, where nobody is signed
+// in, and where every path comes from the token's own send.
+export function createAdminFileStore(c: Context<ApiEnv>) {
+  const secretKey = secretKeySchema.safeParse(c.env.SUPABASE_SECRET_KEY);
+  if (!secretKey.success) throw new ApiError('service_unavailable');
+  return fileStore(c, secretKey.data, `Bearer ${secretKey.data}`);
+}
+
+function fileStore(c: Context<ApiEnv>, key: string, authorization: string) {
+  const config = supabaseConfig(c);
+  const storage = createClient<Database>(config.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
-      headers: { Authorization: `Bearer ${c.get('accessToken')}` },
+      headers: { Authorization: authorization },
       // Files are larger than rows: the biggest template is about a megabyte.
       fetch: requestFetch(c, 20_000),
     },

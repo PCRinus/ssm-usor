@@ -1,6 +1,7 @@
 import { createRouter } from '../../router';
 import {
   attachDocumentSignedCopy,
+  confirmDocumentSignedCopy,
   deleteDocumentDraft,
   generateClientDocuments,
   getDocumentDownload,
@@ -15,6 +16,7 @@ import {
 } from './handlers';
 import {
   attachDocumentSignedCopyRoute,
+  confirmDocumentSignedCopyRoute,
   deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
   getDocumentDownloadRoute,
@@ -39,5 +41,6 @@ export const documentsRouter = createRouter()
   .openapi(deleteDocumentDraftRoute, deleteDocumentDraft)
   .openapi(saveDocumentDraftFileRoute, saveDocumentDraftFile)
   .openapi(attachDocumentSignedCopyRoute, attachDocumentSignedCopy)
+  .openapi(confirmDocumentSignedCopyRoute, confirmDocumentSignedCopy)
   .openapi(removeDocumentSignedCopyRoute, removeDocumentSignedCopy)
   .openapi(uploadClientDocumentRoute, uploadClientDocument);

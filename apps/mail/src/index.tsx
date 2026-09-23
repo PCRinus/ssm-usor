@@ -9,6 +9,8 @@ import {
   passwordResetEmailSchema,
   type ServiceContractEmail,
   serviceContractEmailSchema,
+  type SignedCopyReceivedEmail,
+  signedCopyReceivedEmailSchema,
   type SignupConfirmationEmail,
   signupConfirmationEmailSchema,
   type WaitlistConfirmationEmail,
@@ -22,6 +24,9 @@ import OrganizationInvitation, {
 import PasswordChanged, { subject as passwordChangedSubject } from './emails/password-changed';
 import PasswordReset, { subject as passwordResetSubject } from './emails/password-reset';
 import ServiceContract, { subject as serviceContractSubject } from './emails/service-contract';
+import SignedCopyReceived, {
+  subject as signedCopyReceivedSubject,
+} from './emails/signed-copy-received';
 import SignupConfirmation, {
   subject as signupConfirmationSubject,
 } from './emails/signup-confirmation';
@@ -81,14 +86,25 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
   }
 
   async sendServiceContract(input: ServiceContractEmail): Promise<MailReceipt> {
-    const { to, senderEmail, attachment, ...contract } = serviceContractEmailSchema.parse(input);
+    const { to, attachment, ...contract } = serviceContractEmailSchema.parse(input);
 
     return sendEmail(this.env, {
       to,
       subject: serviceContractSubject(contract.organizationName),
       body: <ServiceContract {...contract} />,
-      sender: { name: contract.senderName, email: senderEmail },
+      sender: { name: contract.senderName, email: contract.senderEmail },
+      from: this.env.MAIL_FROM_CONTRACTS,
       attachments: [attachment],
+    });
+  }
+
+  async sendSignedCopyReceived(input: SignedCopyReceivedEmail): Promise<MailReceipt> {
+    const { to, ...received } = signedCopyReceivedEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: signedCopyReceivedSubject(received.clientName),
+      body: <SignedCopyReceived {...received} />,
     });
   }
 }

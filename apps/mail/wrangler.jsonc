@@ -9,6 +9,7 @@
   "preview_urls": false,
   "vars": {
     "MAIL_FROM": "SSM Ușor <noreply@mail.ssmusor.ro>",
+    "MAIL_FROM_CONTRACTS": "SSM Ușor <contracte@mail.ssmusor.ro>",
     "MAIL_REPLY_TO": "contact@ssmusor.ro",
   },
   "observability": {

@@ -323,6 +323,31 @@ export const attachDocumentSignedCopyRoute = createRoute({
   },
 });
 
+export const confirmDocumentSignedCopyRoute = createRoute({
+  method: 'post',
+  path: '/documents/{documentId}/signed-copy/confirm',
+  operationId: 'confirmDocumentSignedCopy',
+  summary: 'Accept the copy received through the return link as the signed copy',
+  description:
+    'A copy the client uploaded through the return link is a received copy until an owner opens it and confirms it here; only then is the contract signed and the link closed.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: documentParams },
+  responses: {
+    200: {
+      description: 'The document, whose issued revision has a confirmed signed copy',
+      content: documentContent,
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchDocument,
+    409: {
+      description: 'There is no received copy (`no_received_copy`), or the client is archived',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
 export const removeDocumentSignedCopyRoute = createRoute({
   method: 'delete',
   path: '/documents/{documentId}/signed-copy',

@@ -37,12 +37,13 @@ const mail: MailService = {
   sendSignupConfirmation: ({ to, confirmUrl }) => record('signup-confirmation', to, confirmUrl),
   sendPasswordChanged: ({ to, forgotPasswordUrl }) =>
     record('password-changed', to, forgotPasswordUrl),
-  sendServiceContract: ({ to, senderEmail, attachment }) =>
+  sendServiceContract: ({ to, senderEmail, attachment, returnUrl }) =>
     record(
       'service-contract',
       to,
-      `cc=${senderEmail}; ${attachment.fileName}; ${attachment.contentBase64.slice(0, 8)}`
+      `${returnUrl} cc=${senderEmail}; ${attachment.fileName}; ${attachment.contentBase64.slice(0, 8)}`
     ),
+  sendSignedCopyReceived: ({ to, leadUrl }) => record('signed-copy-received', to, leadUrl),
 };
 
 const env: ApiEnv['Bindings'] = {

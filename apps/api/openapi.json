@@ -354,7 +354,7 @@
                 "serviceContractState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["none", "draft", "issued", "sent", "signed", null]
+                  "enum": ["none", "draft", "issued", "sent", "received", "signed", null]
                 },
                 "createdAt": {
                   "type": "string",
@@ -531,7 +531,7 @@
               "serviceContractState": {
                 "type": "string",
                 "nullable": true,
-                "enum": ["none", "draft", "issued", "sent", "signed", null]
+                "enum": ["none", "draft", "issued", "sent", "received", "signed", null]
               },
               "createdAt": {
                 "type": "string",
@@ -2575,6 +2575,17 @@
                     "hasSignedCopy": {
                       "type": "boolean"
                     },
+                    "receivedCopy": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "uploadedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": ["uploadedAt"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2590,6 +2601,7 @@
                     "issuedAt",
                     "hasPdf",
                     "hasSignedCopy",
+                    "receivedCopy",
                     "createdAt"
                   ]
                 },
@@ -2633,6 +2645,17 @@
                     "hasSignedCopy": {
                       "type": "boolean"
                     },
+                    "receivedCopy": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "uploadedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": ["uploadedAt"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2648,6 +2671,7 @@
                     "issuedAt",
                     "hasPdf",
                     "hasSignedCopy",
+                    "receivedCopy",
                     "createdAt"
                   ]
                 }
@@ -2779,6 +2803,17 @@
                     "hasSignedCopy": {
                       "type": "boolean"
                     },
+                    "receivedCopy": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "uploadedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": ["uploadedAt"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2794,6 +2829,7 @@
                     "issuedAt",
                     "hasPdf",
                     "hasSignedCopy",
+                    "receivedCopy",
                     "createdAt"
                   ]
                 },
@@ -2837,6 +2873,17 @@
                     "hasSignedCopy": {
                       "type": "boolean"
                     },
+                    "receivedCopy": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "uploadedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": ["uploadedAt"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2852,6 +2899,7 @@
                     "issuedAt",
                     "hasPdf",
                     "hasSignedCopy",
+                    "receivedCopy",
                     "createdAt"
                   ]
                 }
@@ -2972,6 +3020,17 @@
                   "hasSignedCopy": {
                     "type": "boolean"
                   },
+                  "receivedCopy": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["uploadedAt"]
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -2987,6 +3046,7 @@
                   "issuedAt",
                   "hasPdf",
                   "hasSignedCopy",
+                  "receivedCopy",
                   "createdAt"
                 ]
               },
@@ -3030,6 +3090,17 @@
                   "hasSignedCopy": {
                     "type": "boolean"
                   },
+                  "receivedCopy": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["uploadedAt"]
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -3045,6 +3116,7 @@
                   "issuedAt",
                   "hasPdf",
                   "hasSignedCopy",
+                  "receivedCopy",
                   "createdAt"
                 ]
               }
@@ -3233,6 +3305,17 @@
                   "hasSignedCopy": {
                     "type": "boolean"
                   },
+                  "receivedCopy": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["uploadedAt"]
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -3248,6 +3331,7 @@
                   "issuedAt",
                   "hasPdf",
                   "hasSignedCopy",
+                  "receivedCopy",
                   "createdAt"
                 ]
               },
@@ -3291,6 +3375,17 @@
                   "hasSignedCopy": {
                     "type": "boolean"
                   },
+                  "receivedCopy": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["uploadedAt"]
+                  },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
@@ -3306,6 +3401,7 @@
                   "issuedAt",
                   "hasPdf",
                   "hasSignedCopy",
+                  "receivedCopy",
                   "createdAt"
                 ]
               }
@@ -3407,6 +3503,78 @@
           }
         },
         "required": ["to"]
+      },
+      "ContractReturnResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["open", "received", "confirmed", "superseded", "expired"]
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "contractNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "contractDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "contactEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "organizationName",
+          "clientName",
+          "contractNumber",
+          "contractDate",
+          "revision",
+          "contactEmail",
+          "receivedAt"
+        ]
+      },
+      "ContractReturnRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 200
+          }
+        },
+        "required": ["token"]
+      },
+      "ContractReturnUploadRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 200
+          },
+          "file": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "required": ["token", "file"]
       },
       "MembershipResponse": {
         "type": "object",
@@ -8698,6 +8866,111 @@
         }
       }
     },
+    "/documents/{documentId}/signed-copy/confirm": {
+      "post": {
+        "operationId": "confirmDocumentSignedCopy",
+        "summary": "Accept the copy received through the return link as the signed copy",
+        "description": "A copy the client uploaded through the return link is a received copy until an owner opens it and confirms it here; only then is the contract signed and the link closed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document, whose issued revision has a confirmed signed copy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The document does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "There is no received copy (`no_received_copy`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/documents/{typeKey}/upload": {
       "post": {
         "operationId": "uploadClientDocument",
@@ -9265,6 +9538,233 @@
           },
           "503": {
             "description": "The email could not be handed to the mail service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contract-returns/lookup": {
+      "post": {
+        "operationId": "lookupContractReturn",
+        "summary": "Describe the contract behind a return link",
+        "description": "Public, and changes nothing. Says which contract the link is for, from whom, and whether it still takes a signed copy: `open`, `received` (one arrived and can be replaced), `confirmed`, `superseded` by a newer revision, or `expired`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractReturnRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The contract the link is for, and where it stands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractReturnResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No send has this token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contract-returns/download": {
+      "post": {
+        "operationId": "downloadContractReturn",
+        "summary": "A short-lived link to the PDF that was sent",
+        "description": "The same revision the email carried, for a link that is `open` or `received`. A closed link answers 409 with the reason `return_link_closed`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractReturnRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Where to fetch the PDF from, and the name to save it under",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDownloadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No send has this token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The link no longer takes a copy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contract-returns/upload": {
+      "post": {
+        "operationId": "uploadContractReturn",
+        "summary": "Send the signed copy back through the link",
+        "description": "One PDF of at most 15 MB, signed with a qualified certificate or scanned. It is kept as the received copy of the revision that was sent, replacing an earlier one that no owner has confirmed yet; the owner is told. Refused with `return_link_closed` once a copy is confirmed, a newer revision is issued or the link expired, and with `return_link_too_many_uploads` past a bounded number of tries.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractReturnUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The copy was received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractReturnResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or not a PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No send has this token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The link no longer takes a copy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {
