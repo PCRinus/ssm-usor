@@ -241,7 +241,10 @@ describe('the service contract of a lead', () => {
     expect(screen.getByTestId('contract-open').getAttribute('href')).toBe(
       `/leads/${leadId}/contract`
     );
-    expect(screen.getByTestId('contract-generate').textContent).toContain('Generează din nou');
+    await user.click(screen.getByTestId('contract-draft-actions'));
+    expect((await screen.findByTestId('contract-generate')).textContent).toContain(
+      'Generează din nou'
+    );
   });
 
   it('asks before generating over a draft, and marks one that the details have left behind', async () => {
@@ -260,7 +263,8 @@ describe('the service contract of a lead', () => {
     const user = userEvent.setup();
     expect(await screen.findByTestId('contract-outdated')).toBeTruthy();
     expect(screen.getByTestId('contract-edited')).toBeTruthy();
-    await user.click(screen.getByTestId('contract-generate'));
+    await user.click(screen.getByTestId('contract-draft-actions'));
+    await user.click(await screen.findByTestId('contract-generate'));
     expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
       'Prețurile și celelalte modificări făcute de mână în ea se pierd'
     );
@@ -473,7 +477,8 @@ describe('the signed copy', () => {
       'Exemplarul semnat este atașat reviziei 1.'
     );
     expect(screen.getByTestId('contract-signed-download')).toBeTruthy();
-    expect(screen.getByTestId('contract-signed-replace')).toBeTruthy();
+    await user.click(screen.getByTestId('contract-signed-actions'));
+    expect(await screen.findByTestId('contract-signed-replace')).toBeTruthy();
   });
 
   it('says what a refused file is, and asks before removing a copy', async () => {
@@ -492,7 +497,8 @@ describe('the signed copy', () => {
     expect((await screen.findByTestId('contract-error')).textContent).toContain(
       'trebuie să fie un PDF'
     );
-    await user.click(screen.getByTestId('contract-signed-remove'));
+    await user.click(screen.getByTestId('contract-signed-actions'));
+    await user.click(await screen.findByTestId('contract-signed-remove'));
     expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
       'Contractul emis rămâne neschimbat'
     );
