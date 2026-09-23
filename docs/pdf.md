@@ -35,11 +35,11 @@ that the bytes are a `.docx` before asking.
 
 `apps/api/src/lib/pdf.ts` picks the converter:
 
-| Where                       | Converter                                                                                                                                                                                                       |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Deployed                    | The `PDF` service binding, switched on by the variable `PDF_CONVERSION=service`, which only the deployment job sets                                                                                             |
-| Flow tests, local by choice | `GOTENBERG_URL`, a Gotenberg started by hand: `docker run --rm -p 3300:3000 gotenberg/gotenberg:8.37.0`, then `GOTENBERG_URL=http://localhost:3300` in `apps/api/.dev.vars` or in the shell that runs the flows |
-| `pnpm dev` with neither     | None: documents are issued without a PDF                                                                                                                                                                        |
+| Where                       | Converter                                                                                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployed                    | The `PDF` service binding, switched on by the variable `PDF_CONVERSION=service`, which only the deployment job sets                                                        |
+| Flow tests, local by choice | `GOTENBERG_URL`, a Gotenberg started by `pnpm dev:pdf` (see below), then `GOTENBERG_URL=http://localhost:3300` in `apps/api/.dev.vars` or in the shell that runs the flows |
+| `pnpm dev` with neither     | None: documents are issued without a PDF                                                                                                                                   |
 
 The variable exists because `wrangler dev` creates the binding too, with nothing behind it:
 `apps/pdf` is not part of `pnpm dev`.
@@ -77,10 +77,30 @@ billed, and an hour beyond it costs about four cents.
 
 ## Running it locally
 
-`pnpm --filter @ssm-usor/pdf start` runs `wrangler dev`, which builds the image with the local
-Docker and starts the container on the first conversion. The script is not called `dev` on
-purpose: `pnpm dev` at the root must not need Docker or a 1.7 GB image. Tests
-(`src/convert.test.ts`) cover the request and the failure handling without a container.
+`pnpm dev` runs the API under `wrangler dev`, which creates the `PDF` binding with nothing
+behind it: `apps/pdf` is not part of `pnpm dev`, on purpose, so that the root command needs
+neither Docker nor a 1.7 GB image. Service bindings under `wrangler dev` only ever reach other
+local dev sessions, never the deployed Workers, even when the API points at the hosted
+Supabase. So a document issued locally has no PDF, and its contract cannot be emailed, until
+a converter is configured.
+
+The converter is one command away. `compose.yaml` at the root builds the same image as the
+deployed container, from `apps/pdf/Dockerfile`, and publishes it on port 3300:
+
+```sh
+pnpm dev:pdf      # docker compose up, waits until Gotenberg answers /health
+pnpm stop:pdf     # docker compose down
+```
+
+Then set `GOTENBERG_URL=http://localhost:3300` in `apps/api/.dev.vars` (the example file has
+the line, commented out) and restart `pnpm dev`. From then on issuing makes the PDF and the
+send button on a contract is enabled. A revision issued without a PDF stays without one; issue
+a new draft.
+
+`pnpm --filter @ssm-usor/pdf start` is the other way: it runs `wrangler dev` for the Worker
+itself, which builds the image and starts the container on the first conversion, for working
+on `apps/pdf`. Tests (`src/convert.test.ts`) cover the request and the failure handling
+without a container.
 
 ## Deployment
 

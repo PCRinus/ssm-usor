@@ -18,3 +18,8 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 # Server-only PostHog Support identity signing secret from the matching EU project.
 # POSTHOG_SUPPORT_SECRET_KEY=replace_me
+
+# Word to PDF while issuing a document. Without it, documents are issued with no PDF, and a
+# contract cannot be emailed. `pnpm dev:pdf` starts the converter (Docker), `pnpm stop:pdf`
+# stops it.
+# GOTENBERG_URL=http://localhost:3300
