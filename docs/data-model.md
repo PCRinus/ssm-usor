@@ -334,11 +334,17 @@ stored: they live in the file, where they are binding. The archived-client trigg
 
 `service_contract_sends` keeps each time an owner emailed an issued contract: `revision_id`,
 `sent_to`, the owner's `note`, the provider's message id, `sent_by`, `sent_at`. Rows are
-written once and never changed (no update or delete grant). Owners insert, and only for an
-issued revision of a document they can reach; they read through `can_access_document`. "Sent"
-is about the revision in force: a revision issued after the last send has none. The table
-has one foreign key to `document_revisions`, not also a composite one, because PostgREST
+written once and never changed by members (no update or delete grant). Owners insert, and only
+for an issued revision of a document they can reach; they read through `can_access_document`.
+"Sent" is about the revision in force: a revision issued after the last send has none. The
+table has one foreign key to `document_revisions`, not also a composite one, because PostgREST
 embeds through it and two would make the relationship ambiguous.
+
+Each send also carries its return link (ADR 007, amended): `token_hash`, the SHA-256 of the
+token in the email, unique; `return_expires_at`, sixty days on; and `return_uploads`, how many
+files came through it, bounded to twenty. The secret key alone writes the last two, from the
+public routes. An owner can read the hash of their own sends, which lets them mint nothing
+they could not already do: the link only uploads a copy to a contract they attach copies to.
 
 ### Signed copies
 
@@ -348,8 +354,12 @@ and not columns of `document_revisions` because an issued revision never changes
 trigger and the column grants both hold, and a signed copy arrives after issuing and can be
 replaced. `check_signed_copy` refuses a draft (`DOC04`), a revision of another document, and
 any path but the revision's own, `<organization>/<client>/<document>/<revision>.signed.pdf`,
-beside the Word file and the PDF. Whoever reaches the document reads, attaches, replaces and
-removes, through `can_access_document`, so a contract's copy is its owners'. The
+beside the Word file and the PDF. `source` says who put it there, `owner` in the app or
+`client` through the return link, and `confirmed_at` with `confirmed_by` when an owner accepted
+it; a check keeps an owner's own copy confirmed from the start, so only a client's copy waits,
+as the **received copy** that does not yet make the contract signed. Whoever reaches the
+document reads, attaches, replaces, confirms and removes, through `can_access_document`, so a
+contract's copy is its owners'. The
 archived-client trigger applies. Files follow the row as a draft's files do: the row first,
 then `is_signed_copy_path` lets the object in; `is_readable_document_path` reads the third
 file beside a revision. A superseded revision keeps the copy it had.

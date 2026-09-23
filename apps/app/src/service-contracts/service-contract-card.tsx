@@ -44,6 +44,7 @@ import {
   getListClientsQueryKey,
   type ServiceContractResponse,
   useAttachDocumentSignedCopy,
+  useConfirmDocumentSignedCopy,
   useDeleteDocumentDraft,
   useGenerateServiceContract,
   useGetServiceContract,
@@ -152,10 +153,13 @@ function ContractTrail({
   issuedAt,
   lastSend,
   signed,
+  received,
 }: {
   issuedAt: string;
   lastSend: ServiceContractResponse['lastSend'];
   signed: boolean;
+  /** When a copy came through the return link and waits to be confirmed. */
+  received: string | null;
 }) {
   const steps = [
     {
@@ -180,7 +184,11 @@ function ContractTrail({
       label: 'Semnat',
       done: signed,
       testId: 'contract-signed',
-      detail: signed ? 'exemplarul semnat este atașat' : 'când se întoarce exemplarul semnat',
+      detail: signed
+        ? 'exemplarul semnat este atașat'
+        : received
+          ? `exemplar primit pe ${formatRoDate(received.slice(0, 10))}, de confirmat`
+          : 'când se întoarce exemplarul semnat',
     },
   ];
   const next = steps.findIndex((step) => !step.done);
@@ -318,6 +326,7 @@ function ServiceContractBody({
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
   const attachSigned = useAttachDocumentSignedCopy({ request: apiRequest });
+  const confirmSigned = useConfirmDocumentSignedCopy({ request: apiRequest });
   const removeSigned = useRemoveDocumentSignedCopy({ request: apiRequest });
   const signedInput = useRef<HTMLInputElement>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
@@ -335,6 +344,7 @@ function ServiceContractBody({
     issue.isPending ||
     remove.isPending ||
     attachSigned.isPending ||
+    confirmSigned.isPending ||
     removeSigned.isPending;
   const locked = busy || readOnly;
   const { readiness } = saved;
@@ -443,6 +453,18 @@ function ServiceContractBody({
           ? 'Exemplarul semnat trebuie să fie un PDF de cel mult 15 MB. Dacă ai o fotografie a contractului, salveaz-o ca PDF.'
           : 'Nu am putut atașa exemplarul semnat. Verifică conexiunea și încearcă din nou.'
       );
+      await refresh();
+    }
+  }
+
+  async function confirmSignedCopy() {
+    setError(null);
+    try {
+      await confirmSigned.mutateAsync({ documentId: document!.id });
+      await refresh();
+      toast.success('Exemplarul semnat a fost confirmat.');
+    } catch {
+      setError('Nu am putut confirma exemplarul semnat. Verifică conexiunea și încearcă din nou.');
       await refresh();
     }
   }
@@ -792,6 +814,7 @@ function ServiceContractBody({
               issuedAt={document.issued.issuedAt!}
               lastSend={saved.lastSend}
               signed={document.issued.hasSignedCopy}
+              received={document.issued.receivedCopy?.uploadedAt ?? null}
             />
           )}
           {document?.issued && (
@@ -961,14 +984,27 @@ function ServiceContractBody({
               testId="contract-signed-copy"
               icon={<FileSignature aria-hidden="true" />}
               title="Exemplarul semnat"
-              placeholder={!document.issued.hasSignedCopy}
+              placeholder={!document.issued.hasSignedCopy && !document.issued.receivedCopy}
+              badge={
+                document.issued.receivedCopy && (
+                  <Badge
+                    variant="outline"
+                    className="border-warning-border bg-warning text-warning-foreground"
+                    data-testid="contract-received"
+                  >
+                    De confirmat
+                  </Badge>
+                )
+              }
               meta={
                 document.issued.hasSignedCopy
                   ? `Exemplarul semnat este atașat reviziei ${document.issued.revision}.`
-                  : 'Când contractul se întoarce semnat, atașează aici exemplarul, scanat sau semnat electronic.'
+                  : document.issued.receivedCopy
+                    ? `Primit de la client prin linkul din email, pe ${formatRoDate(document.issued.receivedCopy.uploadedAt.slice(0, 10))}. Deschide-l și confirmă-l: până atunci contractul nu este socotit semnat.`
+                    : 'Când contractul se întoarce semnat, atașează aici exemplarul, scanat sau semnat electronic.'
               }
             >
-              {document.issued.hasSignedCopy ? (
+              {document.issued.hasSignedCopy || document.issued.receivedCopy ? (
                 <>
                   <Button
                     variant="outline"
@@ -979,6 +1015,16 @@ function ServiceContractBody({
                     <Download aria-hidden="true" />
                     Descarcă
                   </Button>
+                  {!readOnly && document.issued.receivedCopy && (
+                    <Button
+                      size="sm"
+                      data-testid="contract-signed-confirm"
+                      disabled={busy}
+                      onClick={() => void confirmSignedCopy()}
+                    >
+                      {confirmSigned.isPending ? 'Se confirmă…' : 'Confirmă exemplarul'}
+                    </Button>
+                  )}
                   {!readOnly && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

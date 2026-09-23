@@ -151,6 +151,7 @@ export function LeadPage() {
       <PromoteLeadDialog
         lead={promoting ? lead : null}
         signed={contract.data ? Boolean(contract.data.document?.issued?.hasSignedCopy) : undefined}
+        received={Boolean(contract.data?.document?.issued?.receivedCopy)}
         onClose={() => setPromoting(false)}
       />
     </div>

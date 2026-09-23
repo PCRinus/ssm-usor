@@ -99,6 +99,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
 | `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                               |
 | `DELETE /documents/{documentId}/signed-copy`                           | Verified user with a membership       | `204` after removing the signed copy and its file                                                                         |
+| `POST /documents/{documentId}/signed-copy/confirm`                     | Verified user with a membership       | `{ "document": { … } }` after accepting the copy received through the return link as the signed copy                      |
+| `POST /contract-returns/lookup`                                        | Public, by emailed token              | What the return page shows: the contract, the parties, and whether the link still takes a copy                            |
+| `POST /contract-returns/download`                                      | Public, by emailed token              | A short-lived link to the PDF that was sent                                                                               |
+| `POST /contract-returns/upload`                                        | Public, by emailed token              | The same as lookup, `received`, after keeping the uploaded PDF as the received copy                                       |
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
@@ -198,7 +202,25 @@ and records nothing. `409` with `contract_not_issued` when nothing is issued, an
 `contract_pdf_missing` for a revision issued where no converter was configured: the Word file
 is not sent in its place, because it invites the recipient to change clauses. The response's
 `lastSend` is the last send of the revision in force, so issuing a new revision clears it, and
-`serviceContractState` of a lead gains `sent` on the same rule.
+`serviceContractState` of a lead gains `sent` on the same rule. Every send also mints a
+**return link**: a random token, hashed onto the send with a 60-day expiry, and the email
+carries `https://app.ssmusor.ro/contract?token=…`. The email leaves from `contracte@`, in the
+owner's name, and prints the owner's address as where a reply lands.
+
+The return link's three routes are public and run with the secret key, as the invitation
+lookup does; the token travels in request bodies, never in the path. `POST
+/contract-returns/lookup` answers the contract number and date, the parties, the owner's
+address to write to, and a `status`: `open`, `received` (a copy arrived and can still be
+replaced, with `receivedAt`), `confirmed`, `superseded` (a newer revision was issued since the
+send), or `expired` (also for an archived client); an unknown token is `404`. `POST
+/contract-returns/download` signs a one-minute link to the PDF of the revision that was sent,
+and `POST /contract-returns/upload` (`multipart/form-data`, `token` and `file`) keeps one PDF
+of up to 15 MB as the **received copy**: the same row and path as a signed copy, with `source`
+`client` and no `confirmed_at`, replacing an earlier unconfirmed one; the owner who sent the
+contract is emailed (`sendSignedCopyReceived`). Both answer `409` with `return_link_closed`
+once the status is not `open` or `received`, and the upload with
+`return_link_too_many_uploads` past twenty tries on one send. Every path and row comes from
+the send the token names, never from the request.
 
 `PUT /documents/{documentId}/signed-copy` takes the bytes of a PDF, up to 15 MB, that starts
 with `%PDF-`: a scan of the signed paper, or the file signed with the signer's own
@@ -206,8 +228,11 @@ certificate. The row is written first, with the file's SHA-256, because the poli
 file in only where a row says it lives; a first copy whose file cannot be stored is taken
 back, and a failed replacement keeps the earlier row. `409` with `not_issued` for a document
 with nothing issued. The app records that a file was attached, not that it is signed.
-Revisions carry `hasSignedCopy`, `GET …/download?format=signed` links to it under a name
-that ends in "- semnat.pdf", and `DELETE` removes the file and then the row. These are
+Revisions carry `hasSignedCopy`, true only for a confirmed copy, and `receivedCopy` with its
+`uploadedAt` while a copy from the return link waits; `POST …/signed-copy/confirm` turns the
+one into the other (`409` with `no_received_copy` otherwise). `GET …/download?format=signed`
+links to either under a name that ends in "- semnat.pdf", and `DELETE` removes the file and
+then the row. These are
 routes of any document, reachable by whoever reaches it; the contract's is its owners'. A
 lead's `serviceContractState` becomes `signed` when the revision in force has a copy, ahead
 of `sent`. `GET /clients/{clientId}/documents` lists the documentation set only, and

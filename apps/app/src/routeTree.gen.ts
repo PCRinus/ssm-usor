@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index';
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated';
 import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation';
 import { Route as ConfirmEmailRouteImport } from './routes/confirm-email';
+import { Route as ContractRouteImport } from './routes/contract';
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as OnboardingRouteImport } from './routes/onboarding';
@@ -70,6 +71,11 @@ const AcceptInvitationRoute = AcceptInvitationRouteImport.update({
 const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
   id: '/confirm-email',
   path: '/confirm-email',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ContractRoute = ContractRouteImport.update({
+  id: '/contract',
+  path: '/contract',
   getParentRoute: () => rootRouteImport,
 } as any);
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/accept-invitation': typeof AcceptInvitationRoute;
   '/confirm-email': typeof ConfirmEmailRoute;
+  '/contract': typeof ContractRoute;
   '/forgot-password': typeof ForgotPasswordRoute;
   '/login': typeof LoginRoute;
   '/onboarding': typeof OnboardingRoute;
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/accept-invitation': typeof AcceptInvitationRoute;
   '/confirm-email': typeof ConfirmEmailRoute;
+  '/contract': typeof ContractRoute;
   '/forgot-password': typeof ForgotPasswordRoute;
   '/login': typeof LoginRoute;
   '/onboarding': typeof OnboardingRoute;
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren;
   '/accept-invitation': typeof AcceptInvitationRoute;
   '/confirm-email': typeof ConfirmEmailRoute;
+  '/contract': typeof ContractRoute;
   '/forgot-password': typeof ForgotPasswordRoute;
   '/login': typeof LoginRoute;
   '/onboarding': typeof OnboardingRoute;
@@ -427,6 +436,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invitation'
     | '/confirm-email'
+    | '/contract'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -471,6 +481,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invitation'
     | '/confirm-email'
+    | '/contract'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/accept-invitation'
     | '/confirm-email'
+    | '/contract'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -554,6 +566,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
   AcceptInvitationRoute: typeof AcceptInvitationRoute;
   ConfirmEmailRoute: typeof ConfirmEmailRoute;
+  ContractRoute: typeof ContractRoute;
   ForgotPasswordRoute: typeof ForgotPasswordRoute;
   LoginRoute: typeof LoginRoute;
   OnboardingRoute: typeof OnboardingRoute;
@@ -589,6 +602,13 @@ declare module '@tanstack/react-router' {
       path: '/confirm-email';
       fullPath: '/confirm-email';
       preLoaderRoute: typeof ConfirmEmailRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/contract': {
+      id: '/contract';
+      path: '/contract';
+      fullPath: '/contract';
+      preLoaderRoute: typeof ContractRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/forgot-password': {
@@ -1060,6 +1080,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AcceptInvitationRoute: AcceptInvitationRoute,
   ConfirmEmailRoute: ConfirmEmailRoute,
+  ContractRoute: ContractRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,

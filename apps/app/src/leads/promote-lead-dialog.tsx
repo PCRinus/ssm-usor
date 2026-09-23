@@ -32,12 +32,15 @@ function serverMessage(cause: unknown) {
 export function PromoteLeadDialog({
   lead,
   signed,
+  received = false,
   onClose,
 }: {
   lead: { id: string; legalName: string } | null;
   // Whether the signed copy of the contract in force is attached. Left out while it is not
   // known yet, so that the warning never flashes for a contract that is signed.
   signed?: boolean;
+  /** A copy came through the return link and nobody confirmed it: as good as none, but said. */
+  received?: boolean;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -80,8 +83,9 @@ export function PromoteLeadDialog({
           </DialogHeader>
           {signed === false && (
             <Notice variant="warning" data-testid="promote-lead-unsigned">
-              Nu ai atașat exemplarul semnat al contractului. Poți continua: îl vei putea atașa și
-              după aceea, din „Alte documente”.
+              {received
+                ? 'Exemplarul semnat primit de la client nu este confirmat încă. Poți continua: îl vei putea confirma și după aceea, din „Alte documente”.'
+                : 'Nu ai atașat exemplarul semnat al contractului. Poți continua: îl vei putea atașa și după aceea, din „Alte documente”.'}
             </Notice>
           )}
           {error && (
