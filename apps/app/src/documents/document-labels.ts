@@ -12,7 +12,7 @@ export type ClientDocument = ClientDocumentListResponse['items'][number];
 
 // Where a missing piece of data is filled in. The form groups what is missing by place, so a
 // person makes one trip to each page.
-export type MissingPlace = 'organization' | 'profile' | 'client';
+export type MissingPlace = 'organization' | 'profile' | 'client' | 'jobPositions';
 
 export const missingPlaces: Record<MissingPlace, { label: string; hint?: string }> = {
   organization: {
@@ -21,6 +21,7 @@ export const missingPlaces: Record<MissingPlace, { label: string; hint?: string 
   },
   profile: { label: 'Profilul tău' },
   client: { label: 'Datele pentru documente ale clientului' },
+  jobPositions: { label: 'Posturile de lucru ale clientului' },
 };
 
 export const missingDataLabels: Record<
@@ -68,6 +69,14 @@ export const missingDataLabels: Record<
     label:
       'alt reprezentant al lucrătorilor: reprezentantul legal al clientului nu îi poate reprezenta și pe lucrători',
   },
+  'positions.any': {
+    place: 'jobPositions',
+    label: 'cel puțin un post de lucru (lista de dotare cu echipament se face pe posturi)',
+  },
+  'positions.equipment': {
+    place: 'jobPositions',
+    label: 'echipamentul individual de protecție al fiecărui post, sau că postul nu necesită',
+  },
 };
 
 export type WorkersRepresentativeClash = {
@@ -75,15 +84,20 @@ export type WorkersRepresentativeClash = {
   legalRepresentativeName: string;
 };
 
+export type UndecidedJobPosition = { id: string; name: string };
+
 export function groupMissing(
   missing: readonly MissingDocumentData[],
-  clash: WorkersRepresentativeClash | null = null
+  clash: WorkersRepresentativeClash | null = null,
+  undecidedJobPositions: readonly UndecidedJobPosition[] = []
 ) {
   const label = (code: MissingDocumentData) =>
     code === 'responsible.workers_representative_is_legal_representative' && clash
       ? `alt reprezentant al lucrătorilor: „${clash.representativeName}” are același nume ca reprezentantul legal al clientului, „${clash.legalRepresentativeName}”`
-      : missingDataLabels[code].label;
-  const places: MissingPlace[] = ['organization', 'profile', 'client'];
+      : code === 'positions.equipment' && undecidedJobPositions.length > 0
+        ? `echipamentul individual de protecție, sau că nu necesită, pentru ${undecidedJobPositions.map((position) => `„${position.name}”`).join(', ')}`
+        : missingDataLabels[code].label;
+  const places: MissingPlace[] = ['organization', 'profile', 'client', 'jobPositions'];
   return places
     .map((place) => ({
       place,

@@ -43,6 +43,7 @@ const welder = {
   work_zone: 'Atelier, teren',
   activities: 'Sudură electrică',
   training_interval_months: null as number | null,
+  needs_protective_equipment: null as boolean | null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };
@@ -73,8 +74,8 @@ function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {})
       // The count of current employees per position is a query of its own.
       if (url.searchParams.get('select')?.includes('employees(count)')) {
         return Response.json([
-          { id: welderId, employees: [{ count: 3 }] },
-          { id: accountantId, employees: [{ count: 0 }] },
+          { id: welderId, employees: [{ count: 3 }], job_position_equipment: [{ count: 2 }] },
+          { id: accountantId, employees: [{ count: 0 }], job_position_equipment: [{ count: 0 }] },
         ]);
       }
       return Response.json([accountant, welder]);

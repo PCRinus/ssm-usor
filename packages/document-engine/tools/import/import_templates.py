@@ -399,6 +399,11 @@ def rebuild_table(document, definition):
     if 'replaceTable' in definition:
         tables = [item for item in body if item.supportsService('com.sun.star.text.TextTable')]
         old = tables[definition['replaceTable']]
+        if definition.get('remove'):
+            # A table the document does not get at all: the grid of risks against body parts,
+            # copy-pasted unchanged between clients (ADR 011).
+            old.dispose()
+            return None
         following = body[body.index(old) + 1]
         if 'rows' not in definition:
             # The original's own text, in columns that fit it. `number` writes the first column
@@ -458,6 +463,11 @@ def rebuild_table(document, definition):
 
     text = document.Text
     cursor = text.createTextCursorByRange(following.getStart())
+    if definition.get('loop'):
+        # Loop tags alone in paragraphs of their own, around the heading and the table, are what
+        # makes the engine repeat both per item: one section per job position.
+        text.insertString(cursor, f'{{{{#{definition["loop"]}}}}}', False)
+        text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
     if definition.get('heading'):
         text.insertString(cursor, definition['heading'], False)
         text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
@@ -476,11 +486,16 @@ def rebuild_table(document, definition):
     table.initialize(len(rows), columns)
     text.insertTextContent(text.createTextCursorByRange(following.getStart()), table, False)
     table.HoriOrient = FULL_WIDTH
+    if definition.get('loop'):
+        closing = text.createTextCursorByRange(following.getStart())
+        text.insertString(closing, f'{{{{/{definition["loop"]}}}}}', False)
+        text.insertControlCharacter(closing, PARAGRAPH_BREAK, False)
     # A register may run over pages; a form stays whole. A heading with cells merged downwards
     # is not repeated on the next page: LibreOffice draws the repeat over the rows under it.
     spans_rows = any(isinstance(cell, dict) and cell.get('rowspan', 1) > 1 for row in definition['rows'] for cell in row)
     flags = ('Split' if definition.get('split') else '') + \
-        ('Once' if spans_rows or not definition.get('headerRows', 1) else '')
+        ('Once' if spans_rows or not definition.get('headerRows', 1) else '') + \
+        ('Loop' if definition.get('loop') else '')
     table.Name = f"{DRAWN}{flags}{definition.get('replaceTable', len(DRAWN_SIZES) + 100)}"
     DRAWN_SIZES[table.Name] = definition.get('size', BODY_SIZE)
     total, position = sum(definition['widths']), 0
@@ -1121,6 +1136,9 @@ def typeset(document, kind, shrink_empty=False):
             before = elements[index - 1]
             if before.getString().strip():
                 before.ParaBottomMargin = max(before.ParaBottomMargin, round(6 * POINT))
+                if 'Loop' in element.Name:
+                    # Repeated per item, the heading comes right after the previous item's table.
+                    before.ParaTopMargin = round(12 * POINT)
         if index + 1 < len(elements) and elements[index + 1].supportsService('com.sun.star.text.Paragraph'):
             after = elements[index + 1]
             if after.getString().strip():

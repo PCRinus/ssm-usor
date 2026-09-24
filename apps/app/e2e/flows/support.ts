@@ -140,6 +140,38 @@ export async function completeDocumentData(
     roles: ['workplace_manager', 'first_aid', 'risk_evaluation_team', 'imminent_danger'],
   });
   if (person.error) throw person.error;
+  // The equipment list needs a position, decided about its equipment (ADR 011): one with an
+  // entry, so the list has a section to print.
+  await createJobPosition(organizationId, clientId, 'Lucrător comercial', {
+    risk: 'Alunecare, cădere la același nivel',
+    item: 'Încălțăminte antiderapantă',
+    durationMonths: 12,
+  });
+}
+
+export async function createJobPosition(
+  organizationId: string,
+  clientId: string,
+  name: string,
+  entry?: { risk: string; item: string; durationMonths: number }
+) {
+  const position = await admin
+    .from('job_positions')
+    .insert({ organization_id: organizationId, client_id: clientId, name })
+    .select('id')
+    .single();
+  if (position.error) throw position.error;
+  if (!entry) return position.data.id;
+  const equipment = await admin.from('job_position_equipment').insert({
+    organization_id: organizationId,
+    client_id: clientId,
+    job_position_id: position.data.id,
+    risk: entry.risk,
+    item: entry.item,
+    duration_months: entry.durationMonths,
+  });
+  if (equipment.error) throw equipment.error;
+  return position.data.id;
 }
 
 export async function createEmployee(

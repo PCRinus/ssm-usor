@@ -97,6 +97,25 @@ const revisionRow = {
   created_at: '2026-09-19T10:00:00+00:00',
   document_generations: { issue_date: '2026-01-19' },
 };
+const positionRow = {
+  id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  name: 'Sudor',
+  staff_category: 'execution',
+  work_zone: 'Atelier',
+  activities: null,
+  needs_protective_equipment: true,
+  job_position_equipment: [
+    {
+      id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      risk: 'Lovituri',
+      item: 'Cască',
+      quantity: 1,
+      duration_months: 24,
+      allocation: 'personal_inventory',
+      created_at: '2026-09-24T10:00:00+00:00',
+    },
+  ],
+};
 const documentRow = {
   id: documentId,
   client_id: clientId,
@@ -131,6 +150,7 @@ type Upstream =
   | 'members'
   | 'persons'
   | 'employees'
+  | 'positions'
   | 'documents'
   | 'generatedDecision'
   | 'generations'
@@ -185,6 +205,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           handlers.employees?.(init, url) ??
           new Response(null, { headers: { 'content-range': '0-0/1' } })
         );
+      case '/rest/v1/job_positions':
+        return handlers.positions?.(init, url) ?? Response.json([positionRow]);
       case '/rest/v1/client_documents':
         if (method === 'HEAD') {
           return (
@@ -271,7 +293,13 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       missing: [],
       currentEmployeeCount: 1,
       workersRepresentativeClash: null,
+      undecidedJobPositions: [],
     });
+    const positions = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.pathname === '/rest/v1/job_positions')!;
+    expect(positions.searchParams.get('archived_at')).toBe('is.null');
+    expect(positions.searchParams.get('order')).toBe('name.asc,id.asc');
     const persons = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
       .find((url) => url.pathname === '/rest/v1/client_responsible_persons')!;
@@ -299,7 +327,35 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       ],
       currentEmployeeCount: 1,
       workersRepresentativeClash: null,
+      undecidedJobPositions: [],
     });
+  });
+
+  it('names the positions whose equipment is undecided, and needs at least one position', async () => {
+    mockUpstream({
+      positions: () =>
+        Response.json([
+          positionRow,
+          {
+            ...positionRow,
+            id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+            name: 'Zidar',
+            needs_protective_equipment: null,
+            job_position_equipment: [],
+          },
+        ]),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
+      ready: false,
+      missing: ['positions.equipment'],
+      undecidedJobPositions: [{ id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Zidar' }],
+    });
+    mockUpstream({ positions: () => Response.json([]) });
+    const none = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await none.json()).missing).toEqual([
+      'positions.any',
+    ]);
   });
 
   it("names the workers' representative who has the legal representative's name", async () => {
@@ -350,6 +406,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       missing: [],
       currentEmployeeCount: 1,
       workersRepresentativeClash: null,
+      undecidedJobPositions: [],
     });
   });
 

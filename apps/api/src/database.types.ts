@@ -776,6 +776,80 @@ export type Database = {
         };
         Relationships: [];
       };
+      job_position_equipment: {
+        Row: {
+          allocation: Database['public']['Enums']['equipment_allocation'];
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          duration_months: number | null;
+          id: string;
+          item: string;
+          job_position_id: string;
+          organization_id: string;
+          quantity: number;
+          risk: string;
+          updated_at: string;
+        };
+        Insert: {
+          allocation?: Database['public']['Enums']['equipment_allocation'];
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          duration_months?: number | null;
+          id?: string;
+          item: string;
+          job_position_id: string;
+          organization_id: string;
+          quantity?: number;
+          risk: string;
+          updated_at?: string;
+        };
+        Update: {
+          allocation?: Database['public']['Enums']['equipment_allocation'];
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          duration_months?: number | null;
+          id?: string;
+          item?: string;
+          job_position_id?: string;
+          organization_id?: string;
+          quantity?: number;
+          risk?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'job_position_equipment_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_position_in_client';
+            columns: ['job_position_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_positions';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
       job_positions: {
         Row: {
           activities: string | null;
@@ -785,6 +859,7 @@ export type Database = {
           created_by: string | null;
           id: string;
           name: string;
+          needs_protective_equipment: boolean | null;
           organization_id: string;
           staff_category: Database['public']['Enums']['staff_category'];
           training_interval_months: number | null;
@@ -799,6 +874,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name: string;
+          needs_protective_equipment?: boolean | null;
           organization_id: string;
           staff_category?: Database['public']['Enums']['staff_category'];
           training_interval_months?: number | null;
@@ -813,6 +889,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name?: string;
+          needs_protective_equipment?: boolean | null;
           organization_id?: string;
           staff_category?: Database['public']['Enums']['staff_category'];
           training_interval_months?: number | null;
@@ -1354,6 +1431,7 @@ export type Database = {
       document_group: 'documentation_set' | 'other';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
+      equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
       organization_role: 'owner' | 'specialist';
       responsible_person_role:
         | 'workplace_manager'
@@ -1487,6 +1565,7 @@ export const Constants = {
       document_group: ['documentation_set', 'other'],
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
+      equipment_allocation: ['personal_inventory', 'section_inventory', 'consumable'],
       organization_role: ['owner', 'specialist'],
       responsible_person_role: [
         'workplace_manager',

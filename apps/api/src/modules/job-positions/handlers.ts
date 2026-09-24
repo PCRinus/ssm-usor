@@ -25,14 +25,22 @@ type JobPositionRow = Pick<
   | 'work_zone'
   | 'activities'
   | 'training_interval_months'
+  | 'needs_protective_equipment'
   | 'created_at'
   | 'updated_at'
 >;
 
-const jobPositionColumns =
-  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, created_at, updated_at';
+export const jobPositionColumns =
+  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, created_at, updated_at';
 
-const toJobPosition = (row: JobPositionRow, employeeCount: number): JobPosition => ({
+export type JobPositionCounts = { employees: number; equipment: number };
+
+const noCounts: JobPositionCounts = { employees: 0, equipment: 0 };
+
+export const toJobPosition = (
+  row: JobPositionRow,
+  counts: JobPositionCounts = noCounts
+): JobPosition => ({
   id: row.id,
   clientId: row.client_id,
   name: row.name,
@@ -40,7 +48,9 @@ const toJobPosition = (row: JobPositionRow, employeeCount: number): JobPosition 
   workZone: row.work_zone,
   activities: row.activities,
   trainingIntervalMonths: row.training_interval_months,
-  employeeCount,
+  employeeCount: counts.employees,
+  needsProtectiveEquipment: row.needs_protective_equipment,
+  equipmentCount: counts.equipment,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -64,6 +74,19 @@ const nameTaken = () =>
     'job_position_name_taken'
   );
 
+export async function findJobPosition(db: DataClient, clientId: string, jobPositionId: string) {
+  const { data, error } = await db
+    .from('job_positions')
+    .select('id, needs_protective_equipment')
+    .eq('id', jobPositionId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find job position');
+  if (!data) throw noSuchJobPosition();
+  return data;
+}
+
 async function findClient(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
@@ -75,20 +98,31 @@ async function findClient(db: DataClient, clientId: string) {
   return data;
 }
 
-/** How many current employees are in each of the client's positions. */
-async function employeeCounts(db: DataClient, clientId: string, jobPositionId?: string) {
+/** How many current employees, and how many equipment entries, each of the client's positions has. */
+export async function jobPositionCounts(db: DataClient, clientId: string, jobPositionId?: string) {
   // Counted by the database, one row per position, so a large client is not cut short by the
   // limit on rows a request returns.
   let query = db
     .from('job_positions')
-    .select('id, employees(count)')
+    .select('id, employees(count), job_position_equipment(count)')
     .eq('client_id', clientId)
     .neq('employees.status', 'terminated')
     .is('employees.archived_at', null);
   if (jobPositionId) query = query.eq('id', jobPositionId);
-  const { data, error } = await query.returns<{ id: string; employees: { count: number }[] }[]>();
-  if (error) throw fromDatabaseError(error, 'count employees by job position');
-  return new Map(data.map((row) => [row.id, row.employees[0]?.count ?? 0]));
+  const { data, error } =
+    await query.returns<
+      { id: string; employees: { count: number }[]; job_position_equipment: { count: number }[] }[]
+    >();
+  if (error) throw fromDatabaseError(error, 'count by job position');
+  return new Map(
+    data.map((row) => [
+      row.id,
+      {
+        employees: row.employees[0]?.count ?? 0,
+        equipment: row.job_position_equipment[0]?.count ?? 0,
+      },
+    ])
+  );
 }
 
 export const listJobPositions: RouteHandler<typeof listJobPositionsRoute, ApiEnv> = async (c) => {
@@ -103,8 +137,8 @@ export const listJobPositions: RouteHandler<typeof listJobPositionsRoute, ApiEnv
     .order('name')
     .order('id');
   if (error) throw fromDatabaseError(error, 'list job positions');
-  const counts = await employeeCounts(db, clientId);
-  return c.json({ items: data.map((row) => toJobPosition(row, counts.get(row.id) ?? 0)) }, 200);
+  const counts = await jobPositionCounts(db, clientId);
+  return c.json({ items: data.map((row) => toJobPosition(row, counts.get(row.id))) }, 200);
 };
 
 export const createJobPosition: RouteHandler<typeof createJobPositionRoute, ApiEnv> = async (c) => {
@@ -126,7 +160,7 @@ export const createJobPosition: RouteHandler<typeof createJobPositionRoute, ApiE
     .single();
   if (error)
     throw error.code === '23505' ? nameTaken() : fromDatabaseError(error, 'create job position');
-  return c.json({ jobPosition: toJobPosition(data, 0) }, 201);
+  return c.json({ jobPosition: toJobPosition(data) }, 201);
 };
 
 export const updateJobPosition: RouteHandler<typeof updateJobPositionRoute, ApiEnv> = async (c) => {
@@ -143,8 +177,8 @@ export const updateJobPosition: RouteHandler<typeof updateJobPositionRoute, ApiE
   if (error)
     throw error.code === '23505' ? nameTaken() : fromDatabaseError(error, 'update job position');
   if (!data) throw noSuchJobPosition();
-  const counts = await employeeCounts(db, clientId, jobPositionId);
-  return c.json({ jobPosition: toJobPosition(data, counts.get(jobPositionId) ?? 0) }, 200);
+  const counts = await jobPositionCounts(db, clientId, jobPositionId);
+  return c.json({ jobPosition: toJobPosition(data, counts.get(jobPositionId)) }, 200);
 };
 
 export const removeJobPosition: RouteHandler<typeof removeJobPositionRoute, ApiEnv> = async (c) => {

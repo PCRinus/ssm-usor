@@ -235,6 +235,28 @@ describe('client documents', () => {
     expect((await screen.findByTestId('generate-headcount')).textContent).toContain(rule);
   });
 
+  it('names the positions whose equipment is undecided, and links to the positions', async () => {
+    mockApi({
+      readiness: {
+        ready: false,
+        missing: ['positions.equipment'],
+        undecidedJobPositions: [
+          { id: 'p1', name: 'Zidar' },
+          { id: 'p2', name: 'Sudor' },
+        ],
+      } as never,
+    });
+    mount();
+    await userEvent.setup().click(await screen.findByTestId('documents-generate'));
+    const place = await screen.findByTestId('generate-missing-place');
+    expect(place.textContent).toContain('pentru „Zidar”, „Sudor”');
+    expect(
+      within(place)
+        .getByRole('link', { name: 'Posturile de lucru ale clientului' })
+        .getAttribute('href')
+    ).toBe(`/clients/${clientId}/job-positions`);
+  });
+
   it('shows the number of employees also while data is missing', async () => {
     mockApi({
       readiness: { ready: false, missing: ['responsible.workers_representative'] },
@@ -489,13 +511,12 @@ describe('client documents', () => {
     expect(slots.map((slot) => slot.textContent)).toEqual([
       expect.stringContaining('Instrucțiuni proprii'),
       expect.stringContaining('Tematica'),
-      expect.stringContaining('Lista internă de dotare'),
       expect.stringContaining('Evaluarea riscurilor'),
       expect.stringContaining('Planul de prevenire'),
     ]);
-    expect(slots[3]!.textContent).toContain('Neîncărcat');
+    expect(slots[2]!.textContent).toContain('Neîncărcat');
 
-    await user.click(within(slots[3]!).getByTestId('document-slot-upload'));
+    await user.click(within(slots[2]!).getByTestId('document-slot-upload'));
     const file = new File([new Uint8Array([80, 75, 3, 4])], 'evaluare.docx');
     await user.upload(screen.getByTestId<HTMLInputElement>('document-file-input'), file);
 

@@ -5,6 +5,7 @@ import {
   documentApplies,
   documentData,
   missingDocumentData,
+  undecidedJobPositions,
   workersRepresentativeClash,
 } from './context';
 import { facts } from './context.fixture';
@@ -39,6 +40,18 @@ describe('what is missing', () => {
       'responsible.workplace_manager',
       'responsible.risk_evaluation_team',
       'responsible.imminent_danger',
+    ]);
+  });
+
+  it('needs a position, and a decision on the equipment of every position', () => {
+    expect(missingDocumentData({ ...facts, jobPositions: [] })).toEqual(['positions.any']);
+    const undecided = {
+      ...facts,
+      jobPositions: [{ ...facts.jobPositions[0]!, needsProtectiveEquipment: null }],
+    };
+    expect(missingDocumentData(undecided)).toEqual(['positions.equipment']);
+    expect(undecidedJobPositions(undecided)).toEqual([
+      { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Contabil' },
     ]);
   });
 
@@ -259,6 +272,47 @@ describe('the merge context', () => {
     expect(documentData(context, 'decision_imminent_danger')).toMatchObject({ decisionNumber: 8 });
     expect(documentData(context, 'control_regulation')).not.toHaveProperty('decisionNumber');
     expect(documentData(context, 'decision_training')).not.toHaveProperty('decisionNumbers');
+  });
+
+  it('lists every position for the table of posts, and the equipped ones with their entries', () => {
+    expect(context.positions).toEqual([
+      {
+        name: 'Contabil',
+        activities: '—',
+        staffCategory: 'Tehnic-administrativ',
+        workZone: 'Birou',
+        workZoneLine: [{}],
+        equipment: [],
+      },
+      {
+        name: 'Sudor',
+        activities: 'Sudură electrică și autogenă.',
+        staffCategory: 'Execuție',
+        workZone: '',
+        workZoneLine: [],
+        equipment: [
+          {
+            risk: 'Radiații, împroșcare (față, ochi)',
+            item: 'Mască de sudură',
+            quantityLabel: '1 buc. / 24 luni',
+            allocationLabel: 'Inventar de secție',
+          },
+          {
+            risk: 'Căldură, foc (mâini)',
+            item: 'Mănuși de sudor',
+            quantityLabel: '2 buc. / 1 lună',
+            allocationLabel: 'Inventar personal',
+          },
+          {
+            risk: 'Pulberi',
+            item: 'Mască de unică folosință',
+            quantityLabel: '50 buc.',
+            allocationLabel: 'Consum',
+          },
+        ],
+      },
+    ]);
+    expect(context.equippedPositions.map((position) => position.name)).toEqual(['Sudor']);
   });
 
   it('switches the branding line', () => {

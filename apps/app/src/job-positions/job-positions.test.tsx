@@ -33,6 +33,8 @@ const barista = {
   activities: 'Prepară și servește înghețată și cafea.',
   trainingIntervalMonths: null as number | null,
   employeeCount: 3,
+  needsProtectiveEquipment: true as boolean | null,
+  equipmentCount: 2,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
 };
@@ -45,6 +47,8 @@ const manager = {
   workZone: 'Birou',
   activities: null,
   employeeCount: 0,
+  needsProtectiveEquipment: null,
+  equipmentCount: 0,
 };
 
 const listPath = `/clients/${clientId}/job-positions`;
@@ -73,6 +77,9 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
+    if (pathname.endsWith('/equipment')) {
+      return Response.json({ items: [], needsProtectiveEquipment: null });
+    }
     if (pathname.startsWith(`${listPath}/`))
       return method === 'DELETE' ? remove(init) : update(init);
     throw new Error(`Unexpected request: ${method} ${pathname}`);
@@ -123,11 +130,28 @@ describe("a client's job positions", () => {
     expect(within(second!).getByTestId('job-position-employees').textContent).toBe(
       'Niciun angajat'
     );
+    expect(within(first!).getByTestId('job-position-equipment').textContent).toBe('2 articole');
+    expect(within(second!).getByTestId('job-position-equipment').textContent).toBe('Nedecis');
 
     const sections = screen.getAllByTestId('client-section').map((item) => item.textContent);
     expect(sections.slice(0, 2)).toEqual(['Angajați', 'Posturi de lucru']);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText('Posturi de lucru')).toBeTruthy();
+  });
+
+  it('opens a position on its own page from its name', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+    const [row] = await screen.findAllByTestId('job-position-row');
+    await user.click(within(row!).getByTestId('job-position-open'));
+    await screen.findByTestId('job-position-page');
+    expect(runtime.router.state.location.pathname).toBe(`${listPath}/${barista.id}`);
+    expect(screen.getByRole('heading', { level: 1, name: 'Barman preparator' })).toBeTruthy();
+    expect(screen.getByText('Prepară și servește înghețată și cafea.')).toBeTruthy();
+    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(within(breadcrumb).getByRole('link', { name: 'Posturi de lucru' })).toBeTruthy();
+    expect(within(breadcrumb).getByText('Barman preparator')).toBeTruthy();
   });
 
   it('says how positions come to exist when there are none', async () => {

@@ -1,5 +1,6 @@
 import {
   decisionTypeKeys,
+  type EquipmentAllocation,
   formatTrainingDuration,
   type MissingDocumentData,
   requiredWorkersRepresentatives,
@@ -47,6 +48,23 @@ export type DocumentFacts = {
     /** Linked to an employee who has not left. */
     currentEmployee: boolean;
   }[];
+  /** The current positions in the order of the positions table, each with its equipment. */
+  jobPositions: {
+    id: string;
+    name: string;
+    staffCategory: StaffCategory;
+    workZone: string | null;
+    activities: string | null;
+    /** Null until decided; false when the post needs none; true while it has entries (ADR 011). */
+    needsProtectiveEquipment: boolean | null;
+    equipment: {
+      risk: string;
+      item: string;
+      quantity: number;
+      durationMonths: number | null;
+      allocation: EquipmentAllocation;
+    }[];
+  }[];
   /** Categories held by at least one current employee, based on their job position. */
   staffCategoriesInUse: StaffCategory[];
   currentEmployeeCount: number;
@@ -55,6 +73,16 @@ export type DocumentFacts = {
 };
 
 type Person = { name: string; jobTitle: string };
+
+type PositionContext = {
+  name: string;
+  activities: string;
+  staffCategory: string;
+  workZone: string;
+  /** One item when the position has a work zone, which the section head then prints. */
+  workZoneLine: Record<string, never>[];
+  equipment: { risk: string; item: string; quantityLabel: string; allocationLabel: string }[];
+};
 
 export type DocumentContext = {
   branding: Record<string, never>[];
@@ -90,7 +118,35 @@ export type DocumentContext = {
     dayTo: number;
   };
   unitRisks: { risk: string; measure: string }[];
+  /** Every current position, for the table of posts; then only the ones with equipment. */
+  positions: PositionContext[];
+  equippedPositions: PositionContext[];
 };
+
+const staffCategoryLabels: Record<StaffCategory, string> = {
+  technical_administrative: 'Tehnic-administrativ',
+  execution: 'Execuție',
+};
+
+const allocationLabels: Record<EquipmentAllocation, string> = {
+  personal_inventory: 'Inventar personal',
+  section_inventory: 'Inventar de secție',
+  consumable: 'Consum',
+};
+
+/** "2 buc. / 12 luni"; a consumable has no duration, and its mode says so in its column. */
+function quantityLabel(entry: { quantity: number; durationMonths: number | null }) {
+  const pieces = `${entry.quantity} buc.`;
+  if (entry.durationMonths === null) return pieces;
+  return `${pieces} / ${entry.durationMonths === 1 ? '1 lună' : `${entry.durationMonths} luni`}`;
+}
+
+/** The positions whose equipment is still undecided, which blocks generating (ADR 011). */
+export function undecidedJobPositions(facts: Pick<DocumentFacts, 'jobPositions'>) {
+  return facts.jobPositions
+    .filter((position) => position.needsProtectiveEquipment === null)
+    .map((position) => ({ id: position.id, name: position.name }));
+}
 
 const filled = (value: string | null | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0;
@@ -150,6 +206,8 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
       'responsible.workers_representative_is_legal_representative',
       representativesNeeded === 0 || workersRepresentativeClash(facts) === null,
     ],
+    ['positions.any', facts.jobPositions.length > 0],
+    ['positions.equipment', undecidedJobPositions(facts).length === 0],
   ];
   return checks.filter(([, present]) => !present).map(([code]) => code);
 }
@@ -227,6 +285,19 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     name: person.fullName.trim(),
     jobTitle: person.jobTitle.trim(),
   }));
+  const positions: PositionContext[] = facts.jobPositions.map((position) => ({
+    name: position.name.trim(),
+    activities: position.activities?.trim() || '—',
+    staffCategory: staffCategoryLabels[position.staffCategory],
+    workZone: position.workZone?.trim() ?? '',
+    workZoneLine: position.workZone?.trim() ? [{}] : [],
+    equipment: position.equipment.map((entry) => ({
+      risk: entry.risk.trim(),
+      item: entry.item.trim(),
+      quantityLabel: quantityLabel(entry),
+      allocationLabel: allocationLabels[entry.allocation],
+    })),
+  }));
   const workplaceManagers = withRole('workplace_manager');
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
@@ -300,6 +371,8 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     // The unit's own risks come from the risk assessment, which is not in the app yet: the
     // chapter is generated as a row to fill in by hand (ADR 005).
     unitRisks: [{ risk: unfilledMark, measure: unfilledMark }],
+    positions,
+    equippedPositions: positions.filter((position) => position.equipment.length > 0),
   };
 }
 

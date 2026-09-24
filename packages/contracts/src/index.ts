@@ -19,6 +19,7 @@ export * from './mail';
 export * from './organizations';
 export * from './pdf';
 export * from './profile';
+export * from './protective-equipment';
 export * from './service-contracts';
 export * from './waitlist';
 
