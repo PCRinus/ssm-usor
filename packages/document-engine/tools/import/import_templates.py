@@ -490,6 +490,12 @@ def rebuild_table(document, definition):
         closing = text.createTextCursorByRange(following.getStart())
         text.insertString(closing, f'{{{{/{definition["loop"]}}}}}', False)
         text.insertControlCharacter(closing, PARAGRAPH_BREAK, False)
+    if definition.get('after'):
+        # Said once after the table, and after every repetition of it: a note that would be
+        # left alone on a page as a last row of the table.
+        trailing = text.createTextCursorByRange(following.getStart())
+        write_paragraph(text, trailing, definition['after'], adjust=LEFT, above=6, first=True)
+        text.insertControlCharacter(trailing, PARAGRAPH_BREAK, False)
     # A register may run over pages; a form stays whole. A heading with cells merged downwards
     # is not repeated on the next page: LibreOffice draws the repeat over the rows under it.
     spans_rows = any(isinstance(cell, dict) and cell.get('rowspan', 1) > 1 for row in definition['rows'] for cell in row)
@@ -523,6 +529,10 @@ def rebuild_table(document, definition):
                 write_paragraph(cell, cell_cursor, line, size=size,
                                 bold=row_index < header_rows or column_index in bold_columns
                                 or cell_definition.get('bold', False),
+                                # A row whose paragraphs keep with the next stays on the page of
+                                # the row below it: with every row but the last marked, a short
+                                # table stays whole and a long one never leaves its last row alone.
+                                keep=row_index in definition.get('keepWithNext', []),
                                 adjust={'left': LEFT, 'center': CENTER}[aligned] if aligned else
                                 LEFT if column_index in left and row_index >= header_rows
                                 and not re.fullmatch(r'-+', line) else CENTER,
@@ -1143,6 +1153,11 @@ def typeset(document, kind, shrink_empty=False):
             after = elements[index + 1]
             if after.getString().strip():
                 after.ParaTopMargin = max(after.ParaTopMargin, round(6 * POINT))
+            # A loop's closing tag leaves no trace when merged: the paragraph after it is what
+            # follows the table, and gets the room.
+            if after.getString().strip().startswith('{{/') and index + 2 < len(elements) \
+                    and elements[index + 2].supportsService('com.sun.star.text.Paragraph'):
+                elements[index + 2].ParaTopMargin = max(elements[index + 2].ParaTopMargin, round(12 * POINT))
 
     # From a heading to the table it introduces, everything moves to the next page together.
     block = []
@@ -1223,6 +1238,11 @@ def sweep(path):
                 xml = re.sub(r'<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>', r'\1', xml, flags=re.S)
                 xml = xml.replace('<w:jc w:val="both"/>', '<w:jc w:val="left"/>')
                 xml = re.sub(r'<wp:anchor .*?</wp:anchor>', inline_drawing, xml, flags=re.S)
+                # LibreOffice writes the page fields as "PAGE \* ARABIC", the default format
+                # spelled out. The in-app editor evaluates a page field only when its code is
+                # the bare keyword; with the switch it paints the result cached in the file, the
+                # last page's number, on every page.
+                xml = re.sub(r'(<w:instrText[^>]*>\s*(?:PAGE|NUMPAGES|SECTIONPAGES))\s+\\\* ARABIC\s*(?=<)', r'\1 ', xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')

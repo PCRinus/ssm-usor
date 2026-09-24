@@ -52,6 +52,19 @@ function sample(
           workZoneLine: [{}],
           equipment: [],
         },
+        {
+          name: 'Sudor',
+          activities: 'Sudură electrică și autogenă în atelier și pe șantier.',
+          staffCategory: 'Execuție',
+          workZone: 'Atelier',
+          workZoneLine: [{}],
+          equipment: Array.from({ length: 30 }, (_, index) => ({
+            risk: `Risc ${index + 1}: înțepături, tăieturi, zgârieturi (mâini, brațe)`,
+            item: `Articol ${index + 1}`,
+            quantityLabel: '1 buc. / 12 luni',
+            allocationLabel: 'Inventar personal',
+          })),
+        },
         ...people.map(({ jobTitle }, index) => ({
           name: jobTitle,
           activities:
