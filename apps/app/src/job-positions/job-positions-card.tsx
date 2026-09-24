@@ -26,7 +26,7 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
+import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { BriefcaseBusiness, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -39,6 +39,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
+import { equipmentStateLabel } from '../protective-equipment/equipment-schema';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
 import {
   employeeCountLabel,
@@ -64,6 +65,7 @@ export function JobPositionsCard({
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId] },
   });
   const remove = useRemoveJobPosition({ request: apiRequest });
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<JobPositionEditing>(null);
   const [removing, setRemoving] = useState<JobPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +143,7 @@ export function JobPositionsCard({
                 <TableHead>Instruire</TableHead>
                 <TableHead>Zona de lucru</TableHead>
                 <TableHead>Angajați</TableHead>
+                <TableHead>EIP</TableHead>
                 {!readOnly && (
                   <TableHead className="w-12">
                     <span className="sr-only">Acțiuni</span>
@@ -153,10 +156,23 @@ export function JobPositionsCard({
                 <TableRow
                   key={position.id}
                   data-testid="job-position-row"
-                  {...rowClickProps(readOnly ? undefined : () => setEditing(position))}
+                  {...rowClickProps(
+                    () =>
+                      void navigate({
+                        to: '/clients/$clientId/job-positions/$jobPositionId',
+                        params: { clientId, jobPositionId: position.id },
+                      })
+                  )}
                 >
                   <TableCell>
-                    <span className="font-medium">{position.name}</span>
+                    <Link
+                      to="/clients/$clientId/job-positions/$jobPositionId"
+                      params={{ clientId, jobPositionId: position.id }}
+                      data-testid="job-position-open"
+                      className="font-medium hover:underline"
+                    >
+                      {position.name}
+                    </Link>
                     {position.activities && (
                       <span className="mt-0.5 line-clamp-2 block max-w-xl text-xs whitespace-normal text-muted-foreground">
                         {position.activities}
@@ -187,6 +203,16 @@ export function JobPositionsCard({
                     className="text-muted-foreground tabular-nums"
                   >
                     {employeeCountLabel(position.employeeCount)}
+                  </TableCell>
+                  <TableCell
+                    data-testid="job-position-equipment"
+                    className={
+                      position.needsProtectiveEquipment === null
+                        ? 'text-amber-700 dark:text-amber-400'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    {equipmentStateLabel(position)}
                   </TableCell>
                   {!readOnly && (
                     <TableCell>
