@@ -1198,7 +1198,7 @@ export type EquipmentListResponseItemsItem = {
   item: string;
   /**
    * @minimum 1
-   * @maximum 99
+   * @maximum 999
    */
   quantity: number;
   /**
@@ -1234,7 +1234,7 @@ export type EquipmentEntryResponseEntry = {
   item: string;
   /**
    * @minimum 1
-   * @maximum 99
+   * @maximum 999
    */
   quantity: number;
   /**
@@ -1274,7 +1274,7 @@ export interface EquipmentEntryRequest {
   item: string;
   /**
    * @minimum 1
-   * @maximum 99
+   * @maximum 999
    */
   quantity?: number;
   /**
