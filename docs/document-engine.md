@@ -128,9 +128,14 @@ cannot carry over a page and cut off instead.
 
 A `tables` entry with `loop` puts loop tags in paragraphs of their own around its heading and
 the table, so the engine repeats both per item: the equipment list draws one section per job
-position this way, its heading printing the work zone only inside an inline loop. One with
-`remove: true` takes the original's table out and draws nothing: the equipment list's grid of
-risks against body parts, copy-pasted unchanged between clients.
+position this way, its heading printing the work zone only inside an inline loop, and `after`
+writes a paragraph once past the loop, for a note that would otherwise be left alone on a page
+as the table's last row. `keepWithNext` lists the rows whose paragraphs keep with the next row,
+so a heading row is never the last thing on a page. Do not mark every row to keep a table whole:
+LibreOffice, which makes the PDFs, drops a row at the page break of a keep chain longer than a
+page, and moves the table's start to a new page. One with `remove: true` takes the original's
+table out and draws nothing: the equipment list's grid of risks against body parts, copy-pasted
+unchanged between clients.
 
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
@@ -189,6 +194,7 @@ pass over the templates that exist, covers included, without originals or an off
 | Signature block  | The client's name, the representative's role and name: centred, so a long name grows both ways instead of drifting off a column of spaces                                                                                                                                                                                   |
 | Staying together | From a heading to the table it introduces, everything moves to the next page together; a short table does not split; two lines at least stay together at a page break                                                                                                                                                       |
 | Characters       | Romanian as the language, no font colours (the provider marks in red what they replace by hand), no dead internal hyperlinks and the underline they left, no boxes or shading around a paragraph, no empty shapes drawn behind a title                                                                                      |
+| Page fields      | "Pag. X din Y" in the header box is real `PAGE` and `NUMPAGES` fields, written as the bare keywords: LibreOffice spells the default format out as `\* ARABIC`, and the in-app editor then paints the cached result, the last page's number, on every page instead of evaluating the field                                   |
 | Footer           | Every footer ends with `{{#branding}}Document generat cu SSM Ușor · ssmusor.ro{{/branding}}`, Arial 7.5 pt, grey, centred: alone where the document had no footer, one more paragraph where it had one. `branding: [{}]` in the merge data prints it; empty or missing prints nothing. See [branding](document-branding.md) |
 | The end          | A document that closes with a table keeps the one paragraph Word needs after it, at 1 pt, so it cannot spill onto an empty last page                                                                                                                                                                                        |
 

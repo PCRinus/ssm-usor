@@ -66,7 +66,9 @@ down a long table is what breaks**. It is now a rule for every template we build
 
 - **The page field in the header shows the last page on the first page** ("Pag. 13 din 13" on
   page 1) until the field is refreshed. Word and LibreOffice recompute it, and the saved file is
-  unchanged, so it is cosmetic. Worth reporting upstream.
+  unchanged, so it is cosmetic. Found later (2026-09-25) to be the `\* ARABIC` format switch
+  LibreOffice writes into the field code: with the bare `PAGE` keyword the editor evaluates the
+  field per page, so the import now strips the switch.
 - **A banner says some fonts are missing** (Liberation Serif, Noto Serif CJK SC). They come from
   the defaults LibreOffice writes into `styles.xml`, not from any text. Cleaning those defaults
   in the import removes the banner; the editor also takes a `fonts` configuration.
