@@ -128,9 +128,14 @@ cannot carry over a page and cut off instead.
 
 A `tables` entry with `loop` puts loop tags in paragraphs of their own around its heading and
 the table, so the engine repeats both per item: the equipment list draws one section per job
-position this way, its heading printing the work zone only inside an inline loop. One with
-`remove: true` takes the original's table out and draws nothing: the equipment list's grid of
-risks against body parts, copy-pasted unchanged between clients.
+position this way, its heading printing the work zone only inside an inline loop, and `after`
+writes a paragraph once past the loop, for a note that would otherwise be left alone on a page
+as the table's last row. `keepWithNext` lists the rows whose paragraphs keep with the next row,
+so a heading row is never the last thing on a page. Do not mark every row to keep a table whole:
+LibreOffice, which makes the PDFs, drops a row at the page break of a keep chain longer than a
+page, and moves the table's start to a new page. One with `remove: true` takes the original's
+table out and draws nothing: the equipment list's grid of risks against body parts, copy-pasted
+unchanged between clients.
 
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
