@@ -57,7 +57,7 @@ A responsible person who is an employee keeps being entered with the contract ti
 
 ### Generated documents do not change
 
-The documents of ADR 005 read the client, the organization, the responsible persons and the specialist, never the employees. Positions cannot reach them: issued files are locked, drafts are files, and the "Date modificate" badge compares data that holds no positions. Listing the positions of each category in the training decision is a possible follow-up, on its own, because it changes the wording of a legal act.
+The documents of ADR 005 read the client, the organization, the responsible persons and the specialist, never the employees. Positions cannot reach them: issued files are locked, drafts are files, and the "Date modificate" badge compares data that holds no positions. Listing the positions of each category in the training decision is a possible follow-up, on its own, because it changes the wording of a legal act. (Amended by [ADR 011](adr-011-protective-equipment.md): from the protective equipment list on, generated documents read the current positions and their equipment, and the data snapshot holds them, so the badge fires on those changes too.)
 
 ### Order of work
 
