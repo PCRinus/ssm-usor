@@ -462,8 +462,9 @@ mobile navigation link closes the Sheet.
   while a built-in type from the contracts' `documentTypeKeys` is missing. Its dialog asks
   `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
   what is missing, grouped by the page it is filled in on with a link to each (the
-  organization, the profile, the client's document data; a specialist is told that the owner
-  fills in the organization's details). When ready it asks for the date and the first
+  organization, the profile, the client's document data, the client's job positions, whose
+  entry names every position still undecided about its equipment; a specialist is told that
+  the owner fills in the organization's details). When ready it asks for the date and the first
   decision number, filled in from the last generation. A row's menu downloads the draft or
   the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
   confirmation that says what is lost or locked. An issued document without a draft also has

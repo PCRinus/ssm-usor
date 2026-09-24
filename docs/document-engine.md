@@ -126,6 +126,12 @@ top, `wholeRows: true` moves a row to the next page instead of cutting it in two
 this way: the original merged the workplace cell down the whole table, which some viewers
 cannot carry over a page and cut off instead.
 
+A `tables` entry with `loop` puts loop tags in paragraphs of their own around its heading and
+the table, so the engine repeats both per item: the equipment list draws one section per job
+position this way, its heading printing the work zone only inside an inline loop. One with
+`remove: true` takes the original's table out and draws nothing: the equipment list's grid of
+risks against body parts, copy-pasted unchanged between clients.
+
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
 the original lays it out in text frames, which LibreOffice cannot read back as a table. In a

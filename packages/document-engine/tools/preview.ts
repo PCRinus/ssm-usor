@@ -43,6 +43,53 @@ function sample(
         },
       ],
       followingYear: '2027',
+      positions: [
+        {
+          name: 'Manager magazin',
+          activities: 'Conduce magazinul și ține legătura cu furnizorii.',
+          staffCategory: 'Tehnic-administrativ',
+          workZone: 'Birou',
+          workZoneLine: [{}],
+          equipment: [],
+        },
+        ...people.map(({ jobTitle }, index) => ({
+          name: jobTitle,
+          activities:
+            index === 0 ? '—' : 'Montaj și întreținere de instalații criogenice pe șantier.',
+          staffCategory: index === 0 ? 'Tehnic-administrativ' : 'Execuție',
+          workZone: index === 0 ? '' : 'Atelier, șantier temporar',
+          workZoneLine: index === 0 ? [] : [{}],
+          equipment: [
+            {
+              risk: 'Lovituri, impact, cădere de obiecte de la înălțime (craniu)',
+              item: 'Cască de protecție',
+              quantityLabel: '1 buc. / 24 luni',
+              allocationLabel: 'Inventar personal',
+            },
+            {
+              risk: 'Înțepături, tăieturi, zgârieturi (mâini, brațe)',
+              item: 'Mănuși împotriva agresiunilor mecanice',
+              quantityLabel: '2 buc. / 6 luni',
+              allocationLabel: 'Inventar personal',
+            },
+            {
+              risk: 'Radiații, împroșcare (față, ochi)',
+              item: 'Mască de sudură',
+              quantityLabel: '1 buc. / 24 luni',
+              allocationLabel: 'Inventar de secție',
+            },
+            {
+              risk: 'Pulberi, fibre',
+              item: 'Mască de unică folosință FFP2',
+              quantityLabel: '20 buc.',
+              allocationLabel: 'Consum',
+            },
+          ],
+        })),
+      ],
+      get equippedPositions() {
+        return this.positions.filter((position) => position.equipment.length > 0);
+      },
       client: { legalName, representativeName, representativeRole: 'Administrator' },
       provider: {
         legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',

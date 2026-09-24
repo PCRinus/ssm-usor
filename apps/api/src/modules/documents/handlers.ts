@@ -5,7 +5,7 @@ import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
 import { createPdfConverter } from '../../lib/pdf';
-import { missingDocumentData, workersRepresentativeClash } from './context';
+import { missingDocumentData, undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
   type Actor,
   attachSignedCopy,
@@ -67,6 +67,7 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
       )
         ? workersRepresentativeClash(facts)
         : null,
+      undecidedJobPositions: undecidedJobPositions(facts),
     },
     200
   );

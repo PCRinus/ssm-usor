@@ -19,6 +19,7 @@ export const documentTypeKeys = [
   'cover_tests',
   'test_hiring',
   'test_periodic',
+  'protective_equipment_list',
   'cover_event_registers',
   'event_registers',
   'control_report',
@@ -39,7 +40,6 @@ export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 export const uploadedDocumentTypes = {
   own_instructions: 'Instrucțiuni proprii de securitate și sănătate în muncă',
   training_themes: 'Tematica și programul de instruire',
-  protective_equipment_list: 'Lista internă de dotare cu echipament individual de protecție',
   risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
   prevention_plan: 'Planul de prevenire și protecție',
 } as const;
@@ -111,6 +111,8 @@ export const missingDocumentData = [
   'responsible.workers_representative',
   'responsible.workers_representatives_two',
   'responsible.workers_representative_is_legal_representative',
+  'positions.any',
+  'positions.equipment',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -126,6 +128,8 @@ export const documentReadinessResponseSchema = z.object({
   workersRepresentativeClash: z
     .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
     .nullable(),
+  // The positions behind `positions.equipment`, so the form can send someone to each.
+  undecidedJobPositions: z.array(z.object({ id: z.uuid(), name: z.string() })),
 });
 
 export type DocumentReadinessResponse = z.infer<typeof documentReadinessResponseSchema>;

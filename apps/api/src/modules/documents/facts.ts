@@ -1,4 +1,8 @@
-import type { ResponsiblePersonRole, StaffCategory } from '@ssm-usor/contracts';
+import type {
+  EquipmentAllocation,
+  ResponsiblePersonRole,
+  StaffCategory,
+} from '@ssm-usor/contracts';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
@@ -17,51 +21,71 @@ export async function loadDocumentFacts(
   specialistUserId: string
 ): Promise<StoredDocumentFacts> {
   const categories: StaffCategory[] = ['technical_administrative', 'execution'];
-  const [client, organization, members, persons, headcount, generatedDecision, ...employeeCounts] =
-    await Promise.all([
-      db
-        .from('clients')
-        .select(
-          'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, archived_at'
-        )
-        .eq('id', clientId)
-        .maybeSingle(),
-      // A member sees exactly one organization: their own.
-      db
-        .from('organizations')
-        .select('legal_name, legal_representative_name, legal_representative_role')
-        .single(),
-      db.rpc('organization_member_list'),
-      db
-        .from('client_responsible_persons')
-        .select('full_name, job_title, roles, employees(status, archived_at)')
-        .eq('client_id', clientId)
-        .is('archived_at', null)
-        // The order people were designated in is the order the decisions list them in.
-        .order('created_at')
-        .order('id'),
+  const [
+    client,
+    organization,
+    members,
+    persons,
+    headcount,
+    generatedDecision,
+    positions,
+    ...employeeCounts
+  ] = await Promise.all([
+    db
+      .from('clients')
+      .select(
+        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, archived_at'
+      )
+      .eq('id', clientId)
+      .maybeSingle(),
+    // A member sees exactly one organization: their own.
+    db
+      .from('organizations')
+      .select('legal_name, legal_representative_name, legal_representative_role')
+      .single(),
+    db.rpc('organization_member_list'),
+    db
+      .from('client_responsible_persons')
+      .select('full_name, job_title, roles, employees(status, archived_at)')
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      // The order people were designated in is the order the decisions list them in.
+      .order('created_at')
+      .order('id'),
+    db
+      .from('employees')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+      .is('archived_at', null),
+    // A document row without a revision is a failed generation, not a generated document.
+    db
+      .from('client_documents')
+      .select('id, document_revisions!inner(id)', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('type_key', 'decision_workers_representative'),
+    // In the order of the positions table, with the entries in the order they were added.
+    db
+      .from('job_positions')
+      .select(
+        'id, name, staff_category, work_zone, activities, needs_protective_equipment, job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id)'
+      )
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      .order('name')
+      .order('id')
+      .order('created_at', { referencedTable: 'job_position_equipment' })
+      .order('id', { referencedTable: 'job_position_equipment' }),
+    ...categories.map((category) =>
       db
         .from('employees')
-        .select('id', { count: 'exact', head: true })
+        .select('id, job_positions!inner(staff_category)', { count: 'exact', head: true })
         .eq('client_id', clientId)
         .eq('status', 'active')
-        .is('archived_at', null),
-      // A document row without a revision is a failed generation, not a generated document.
-      db
-        .from('client_documents')
-        .select('id, document_revisions!inner(id)', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('type_key', 'decision_workers_representative'),
-      ...categories.map((category) =>
-        db
-          .from('employees')
-          .select('id, job_positions!inner(staff_category)', { count: 'exact', head: true })
-          .eq('client_id', clientId)
-          .eq('status', 'active')
-          .is('archived_at', null)
-          .eq('job_positions.staff_category', category)
-      ),
-    ]);
+        .is('archived_at', null)
+        .eq('job_positions.staff_category', category)
+    ),
+  ]);
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
   if (!client.data) {
     throw new ApiError('not_found', 'This client does not exist in your organization.');
@@ -74,6 +98,7 @@ export async function loadDocumentFacts(
   if (generatedDecision.error) {
     throw fromDatabaseError(generatedDecision.error, 'document facts: generated decision 1.5');
   }
+  if (positions.error) throw fromDatabaseError(positions.error, 'document facts: job positions');
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
   }
@@ -110,6 +135,21 @@ export async function loadDocumentFacts(
       roles: person.roles as ResponsiblePersonRole[],
       currentEmployee:
         person.employees?.status === 'active' && person.employees.archived_at === null,
+    })),
+    jobPositions: positions.data.map((position) => ({
+      id: position.id,
+      name: position.name,
+      staffCategory: position.staff_category,
+      workZone: position.work_zone,
+      activities: position.activities,
+      needsProtectiveEquipment: position.needs_protective_equipment,
+      equipment: position.job_position_equipment.map((entry) => ({
+        risk: entry.risk,
+        item: entry.item,
+        quantity: entry.quantity,
+        durationMonths: entry.duration_months,
+        allocation: entry.allocation as EquipmentAllocation,
+      })),
     })),
     staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
     currentEmployeeCount: headcount.count ?? 0,

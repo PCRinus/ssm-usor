@@ -432,8 +432,11 @@ The `documents` module generates a client's documentation from the built-in Word
 
 `GET …/documents/readiness` lists what is missing as codes grouped by where it is filled in:
 `provider.*`, `specialist.*` (the caller's own profile), `client.representativeName`,
-`client.representativeRole`, `client.trainingSchedule`, and `responsible.<role>` for every
-role nobody holds. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
+`client.representativeRole`, `client.trainingSchedule`, `responsible.<role>` for every
+role nobody holds, `positions.any` for a client without a current position, and
+`positions.equipment` while a position is undecided about its protective equipment
+([ADR 011](architecture/adr-011-protective-equipment.md)); `undecidedJobPositions` names
+those, so the form can send someone to each. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (default 1) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template is registered
 (`pnpm templates:register`).
@@ -485,9 +488,9 @@ document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
 the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. Five of them are `uploadedDocumentTypes`, which the app cannot write until stages
-2 and 3 (the own instructions, the training themes, the protective equipment list, the risk
-assessment, the prevention plan): for those the upload is how the document comes to exist, as
+its order. Four of them are `uploadedDocumentTypes`, which the app cannot write until stages
+2 and 3 are done (the own instructions, the training themes, the risk assessment, the
+prevention plan; the protective equipment list is generated since ADR 011): for those the upload is how the document comes to exist, as
 revision 1 in draft under the title its template will carry, so a client's set can be
 complete today. For a document that exists, the file replaces the draft, or starts the next
 draft beside the issued revision, keeping the generation and so the date. An uploaded

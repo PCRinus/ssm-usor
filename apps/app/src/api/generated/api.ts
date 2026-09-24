@@ -1965,6 +1965,8 @@ export const DocumentReadinessResponseMissingItem = {
   responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
   responsibleworkers_representative_is_legal_representative:
     'responsible.workers_representative_is_legal_representative',
+  positionsany: 'positions.any',
+  positionsequipment: 'positions.equipment',
 } as const;
 
 /**
@@ -1975,6 +1977,11 @@ export type DocumentReadinessResponseWorkersRepresentativeClash = {
   legalRepresentativeName: string;
 } | null;
 
+export type DocumentReadinessResponseUndecidedJobPositionsItem = {
+  id: string;
+  name: string;
+};
+
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
@@ -1982,6 +1989,7 @@ export interface DocumentReadinessResponse {
   currentEmployeeCount: number;
   /** @nullable */
   workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
+  undecidedJobPositions: DocumentReadinessResponseUndecidedJobPositionsItem[];
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
@@ -2102,6 +2110,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   cover_tests: 'cover_tests',
   test_hiring: 'test_hiring',
   test_periodic: 'test_periodic',
+  protective_equipment_list: 'protective_equipment_list',
   cover_event_registers: 'cover_event_registers',
   event_registers: 'event_registers',
   control_report: 'control_report',

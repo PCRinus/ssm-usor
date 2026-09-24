@@ -2695,7 +2695,9 @@
                 "responsible.imminent_danger",
                 "responsible.workers_representative",
                 "responsible.workers_representatives_two",
-                "responsible.workers_representative_is_legal_representative"
+                "responsible.workers_representative_is_legal_representative",
+                "positions.any",
+                "positions.equipment"
               ]
             }
           },
@@ -2715,9 +2717,31 @@
               }
             },
             "required": ["representativeName", "legalRepresentativeName"]
+          },
+          "undecidedJobPositions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "name"]
+            }
           }
         },
-        "required": ["ready", "missing", "currentEmployeeCount", "workersRepresentativeClash"]
+        "required": [
+          "ready",
+          "missing",
+          "currentEmployeeCount",
+          "workersRepresentativeClash",
+          "undecidedJobPositions"
+        ]
       },
       "ClientDocumentListResponse": {
         "type": "object",
@@ -2931,6 +2955,7 @@
                 "cover_tests",
                 "test_hiring",
                 "test_periodic",
+                "protective_equipment_list",
                 "cover_event_registers",
                 "event_registers",
                 "control_report",

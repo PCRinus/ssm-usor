@@ -85,6 +85,12 @@ function PlaceLink({ place, clientId }: { place: MissingPlace; clientId: string 
         {label}
       </Link>
     );
+  if (place === 'jobPositions')
+    return (
+      <Link to="/clients/$clientId/job-positions" params={{ clientId }} className={className}>
+        {label}
+      </Link>
+    );
   return (
     <Link to="/clients/$clientId/document-data" params={{ clientId }} className={className}>
       {label}
@@ -124,7 +130,11 @@ function GenerateDocumentsForm({
   const { errors } = form.formState;
   const busy = generate.isPending;
   const missing = readiness.data
-    ? groupMissing(readiness.data.missing, readiness.data.workersRepresentativeClash)
+    ? groupMissing(
+        readiness.data.missing,
+        readiness.data.workersRepresentativeClash,
+        readiness.data.undecidedJobPositions
+      )
     : [];
   const ready = readiness.data?.ready === true;
 
