@@ -51,6 +51,9 @@ export const jobPositionSchema = z.object({
   trainingIntervalMonths: trainingIntervalMonths.nullable(),
   // Current employees in it: those who left, and rows archived as mistakes, do not count.
   employeeCount: z.int().min(0),
+  // Null until decided; false when the post needs none; true while it has entries (ADR 011).
+  needsProtectiveEquipment: z.boolean().nullable(),
+  equipmentCount: z.int().min(0),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });

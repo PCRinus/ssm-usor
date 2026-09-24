@@ -1098,6 +1098,10 @@ export type JobPositionListResponseItemsItem = {
   trainingIntervalMonths: number | null;
   /** @minimum 0 */
   employeeCount: number;
+  /** @nullable */
+  needsProtectiveEquipment: boolean | null;
+  /** @minimum 0 */
+  equipmentCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1131,6 +1135,10 @@ export type JobPositionResponseJobPosition = {
   trainingIntervalMonths: number | null;
   /** @minimum 0 */
   employeeCount: number;
+  /** @nullable */
+  needsProtectiveEquipment: boolean | null;
+  /** @minimum 0 */
+  equipmentCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1172,6 +1180,123 @@ export interface JobPositionRequest {
    * @nullable
    */
   trainingIntervalMonths?: number | null;
+}
+
+export type EquipmentListResponseItemsItemAllocation =
+  (typeof EquipmentListResponseItemsItemAllocation)[keyof typeof EquipmentListResponseItemsItemAllocation];
+
+export const EquipmentListResponseItemsItemAllocation = {
+  personal_inventory: 'personal_inventory',
+  section_inventory: 'section_inventory',
+  consumable: 'consumable',
+} as const;
+
+export type EquipmentListResponseItemsItem = {
+  id: string;
+  jobPositionId: string;
+  risk: string;
+  item: string;
+  /**
+   * @minimum 1
+   * @maximum 99
+   */
+  quantity: number;
+  /**
+   * @minimum 1
+   * @maximum 120
+   * @nullable
+   */
+  durationMonths: number | null;
+  allocation: EquipmentListResponseItemsItemAllocation;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface EquipmentListResponse {
+  items: EquipmentListResponseItemsItem[];
+  /** @nullable */
+  needsProtectiveEquipment: boolean | null;
+}
+
+export type EquipmentEntryResponseEntryAllocation =
+  (typeof EquipmentEntryResponseEntryAllocation)[keyof typeof EquipmentEntryResponseEntryAllocation];
+
+export const EquipmentEntryResponseEntryAllocation = {
+  personal_inventory: 'personal_inventory',
+  section_inventory: 'section_inventory',
+  consumable: 'consumable',
+} as const;
+
+export type EquipmentEntryResponseEntry = {
+  id: string;
+  jobPositionId: string;
+  risk: string;
+  item: string;
+  /**
+   * @minimum 1
+   * @maximum 99
+   */
+  quantity: number;
+  /**
+   * @minimum 1
+   * @maximum 120
+   * @nullable
+   */
+  durationMonths: number | null;
+  allocation: EquipmentEntryResponseEntryAllocation;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface EquipmentEntryResponse {
+  entry: EquipmentEntryResponseEntry;
+}
+
+export type EquipmentEntryRequestAllocation =
+  (typeof EquipmentEntryRequestAllocation)[keyof typeof EquipmentEntryRequestAllocation];
+
+export const EquipmentEntryRequestAllocation = {
+  personal_inventory: 'personal_inventory',
+  section_inventory: 'section_inventory',
+  consumable: 'consumable',
+} as const;
+
+export interface EquipmentEntryRequest {
+  /**
+   * @minLength 1
+   * @maxLength 240
+   */
+  risk: string;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   */
+  item: string;
+  /**
+   * @minimum 1
+   * @maximum 99
+   */
+  quantity?: number;
+  /**
+   * @minimum 1
+   * @maximum 120
+   * @nullable
+   */
+  durationMonths?: number | null;
+  allocation?: EquipmentEntryRequestAllocation;
+}
+
+export interface CopyEquipmentRequest {
+  fromJobPositionId: string;
+}
+
+export interface ProtectiveEquipmentDecision {
+  /** @nullable */
+  needsProtectiveEquipment: boolean | null;
+}
+
+export interface EquipmentSuggestionsResponse {
+  items: string[];
 }
 
 /**
@@ -2808,6 +2933,22 @@ export type ListEmployeesStatus = (typeof ListEmployeesStatus)[keyof typeof List
 export const ListEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
+} as const;
+
+export type ListEquipmentSuggestionsParams = {
+  field: ListEquipmentSuggestionsField;
+  /**
+   * @maxLength 240
+   */
+  query?: string;
+};
+
+export type ListEquipmentSuggestionsField =
+  (typeof ListEquipmentSuggestionsField)[keyof typeof ListEquipmentSuggestionsField];
+
+export const ListEquipmentSuggestionsField = {
+  risk: 'risk',
+  item: 'item',
 } as const;
 
 export type GetDocumentDownloadParams = {
@@ -5666,6 +5807,845 @@ export const useRemoveJobPosition = <TError = ErrorType<ApiErrorResponse>, TCont
 > => {
   return useMutation(getRemoveJobPositionMutationOptions(options), queryClient);
 };
+
+export const getListEquipmentUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/equipment`;
+};
+
+/**
+ * The entries of the position in the order they were added, with the position’s decision: `needsProtectiveEquipment` is null until decided, false when the post needs none, true while it has entries (ADR 011).
+ * @summary List a job position's protective equipment
+ */
+export const listEquipment = async (
+  clientId: string,
+  jobPositionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EquipmentListResponse> => {
+  return apiFetch<EquipmentListResponse>(getListEquipmentUrl(clientId, jobPositionId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListEquipmentQueryKey = (clientId: string, jobPositionId: string) => {
+  return [`/clients/${clientId}/job-positions/${jobPositionId}/equipment`] as const;
+};
+
+export const getListEquipmentQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEquipment>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listEquipment>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListEquipmentQueryKey(clientId, jobPositionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listEquipment>>> = ({ signal }) =>
+    listEquipment(clientId, jobPositionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      jobPositionId !== null &&
+      jobPositionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listEquipment>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListEquipmentQueryResult = NonNullable<Awaited<ReturnType<typeof listEquipment>>>;
+export type ListEquipmentQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListEquipment<
+  TData = Awaited<ReturnType<typeof listEquipment>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listEquipment>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEquipment>>,
+          TError,
+          Awaited<ReturnType<typeof listEquipment>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEquipment<
+  TData = Awaited<ReturnType<typeof listEquipment>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listEquipment>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEquipment>>,
+          TError,
+          Awaited<ReturnType<typeof listEquipment>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEquipment<
+  TData = Awaited<ReturnType<typeof listEquipment>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listEquipment>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a job position's protective equipment
+ */
+
+export function useListEquipment<
+  TData = Awaited<ReturnType<typeof listEquipment>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listEquipment>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListEquipmentQueryOptions(clientId, jobPositionId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateEquipmentEntryUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/equipment`;
+};
+
+/**
+ * The first entry decides that the position needs equipment. Inventory carries a duration of use in months; a consumable carries none.
+ * @summary Add an equipment entry to a job position
+ */
+export const createEquipmentEntry = async (
+  clientId: string,
+  jobPositionId: string,
+  equipmentEntryRequest: EquipmentEntryRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EquipmentEntryResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EquipmentEntryResponse>(getCreateEquipmentEntryUrl(clientId, jobPositionId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(equipmentEntryRequest),
+  });
+};
+
+export const getCreateEquipmentEntryMutationKey = () => ['createEquipmentEntry'] as const;
+
+export const getCreateEquipmentEntryMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEquipmentEntry>>,
+    TError,
+    CreateEquipmentEntryMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEquipmentEntry>>,
+  TError,
+  CreateEquipmentEntryMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateEquipmentEntryMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEquipmentEntry>>,
+    CreateEquipmentEntryMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, data } = props ?? {};
+
+    return createEquipmentEntry(clientId, jobPositionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEquipmentEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEquipmentEntry>>
+>;
+export type CreateEquipmentEntryMutationBody = EquipmentEntryRequest;
+export type CreateEquipmentEntryMutationError = ErrorType<ApiErrorResponse>;
+export type CreateEquipmentEntryMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  data: EquipmentEntryRequest;
+};
+
+/**
+ * @summary Add an equipment entry to a job position
+ */
+export const useCreateEquipmentEntry = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createEquipmentEntry>>,
+      TError,
+      CreateEquipmentEntryMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createEquipmentEntry>>,
+  TError,
+  CreateEquipmentEntryMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateEquipmentEntryMutationOptions(options), queryClient);
+};
+
+export const getCopyEquipmentUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/equipment/copy`;
+};
+
+/**
+ * Adds copies of the entries of `fromJobPositionId`, another position of the same client, after the entries the position already has.
+ * @summary Copy the entries of another job position
+ */
+export const copyEquipment = async (
+  clientId: string,
+  jobPositionId: string,
+  copyEquipmentRequest: CopyEquipmentRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EquipmentListResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EquipmentListResponse>(getCopyEquipmentUrl(clientId, jobPositionId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(copyEquipmentRequest),
+  });
+};
+
+export const getCopyEquipmentMutationKey = () => ['copyEquipment'] as const;
+
+export const getCopyEquipmentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof copyEquipment>>,
+    TError,
+    CopyEquipmentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof copyEquipment>>,
+  TError,
+  CopyEquipmentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCopyEquipmentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof copyEquipment>>,
+    CopyEquipmentMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, data } = props ?? {};
+
+    return copyEquipment(clientId, jobPositionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CopyEquipmentMutationResult = NonNullable<Awaited<ReturnType<typeof copyEquipment>>>;
+export type CopyEquipmentMutationBody = CopyEquipmentRequest;
+export type CopyEquipmentMutationError = ErrorType<ApiErrorResponse>;
+export type CopyEquipmentMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  data: CopyEquipmentRequest;
+};
+
+/**
+ * @summary Copy the entries of another job position
+ */
+export const useCopyEquipment = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof copyEquipment>>,
+      TError,
+      CopyEquipmentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof copyEquipment>>,
+  TError,
+  CopyEquipmentMutationVariables,
+  TContext
+> => {
+  return useMutation(getCopyEquipmentMutationOptions(options), queryClient);
+};
+
+export const getUpdateEquipmentEntryUrl = (
+  clientId: string,
+  jobPositionId: string,
+  entryId: string
+) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/equipment/${entryId}`;
+};
+
+/**
+ * @summary Replace an equipment entry
+ */
+export const updateEquipmentEntry = async (
+  clientId: string,
+  jobPositionId: string,
+  entryId: string,
+  equipmentEntryRequest: EquipmentEntryRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EquipmentEntryResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EquipmentEntryResponse>(
+    getUpdateEquipmentEntryUrl(clientId, jobPositionId, entryId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(equipmentEntryRequest),
+    }
+  );
+};
+
+export const getUpdateEquipmentEntryMutationKey = () => ['updateEquipmentEntry'] as const;
+
+export const getUpdateEquipmentEntryMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEquipmentEntry>>,
+    TError,
+    UpdateEquipmentEntryMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEquipmentEntry>>,
+  TError,
+  UpdateEquipmentEntryMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateEquipmentEntryMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEquipmentEntry>>,
+    UpdateEquipmentEntryMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, entryId, data } = props ?? {};
+
+    return updateEquipmentEntry(clientId, jobPositionId, entryId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEquipmentEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEquipmentEntry>>
+>;
+export type UpdateEquipmentEntryMutationBody = EquipmentEntryRequest;
+export type UpdateEquipmentEntryMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEquipmentEntryMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  entryId: string;
+  data: EquipmentEntryRequest;
+};
+
+/**
+ * @summary Replace an equipment entry
+ */
+export const useUpdateEquipmentEntry = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateEquipmentEntry>>,
+      TError,
+      UpdateEquipmentEntryMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateEquipmentEntry>>,
+  TError,
+  UpdateEquipmentEntryMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateEquipmentEntryMutationOptions(options), queryClient);
+};
+
+export const getRemoveEquipmentEntryUrl = (
+  clientId: string,
+  jobPositionId: string,
+  entryId: string
+) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/equipment/${entryId}`;
+};
+
+/**
+ * Removing the last entry leaves the position undecided again.
+ * @summary Remove an equipment entry
+ */
+export const removeEquipmentEntry = async (
+  clientId: string,
+  jobPositionId: string,
+  entryId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRemoveEquipmentEntryUrl(clientId, jobPositionId, entryId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveEquipmentEntryMutationKey = () => ['removeEquipmentEntry'] as const;
+
+export const getRemoveEquipmentEntryMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeEquipmentEntry>>,
+    TError,
+    RemoveEquipmentEntryMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeEquipmentEntry>>,
+  TError,
+  RemoveEquipmentEntryMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveEquipmentEntryMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeEquipmentEntry>>,
+    RemoveEquipmentEntryMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, entryId } = props ?? {};
+
+    return removeEquipmentEntry(clientId, jobPositionId, entryId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveEquipmentEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeEquipmentEntry>>
+>;
+
+export type RemoveEquipmentEntryMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveEquipmentEntryMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  entryId: string;
+};
+
+/**
+ * @summary Remove an equipment entry
+ */
+export const useRemoveEquipmentEntry = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeEquipmentEntry>>,
+      TError,
+      RemoveEquipmentEntryMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeEquipmentEntry>>,
+  TError,
+  RemoveEquipmentEntryMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveEquipmentEntryMutationOptions(options), queryClient);
+};
+
+export const getDecideProtectiveEquipmentUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/protective-equipment`;
+};
+
+/**
+ * `needsProtectiveEquipment: false` marks the post as needing none; `null` leaves the question open again. `true` is refused with the reason `equipment_decided_by_entries`: adding an entry says it. Refused with the reason `equipment_entries_exist` while the position has entries.
+ * @summary Say that a job position needs no equipment, or take that back
+ */
+export const decideProtectiveEquipment = async (
+  clientId: string,
+  jobPositionId: string,
+  protectiveEquipmentDecision: ProtectiveEquipmentDecision,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<JobPositionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<JobPositionResponse>(getDecideProtectiveEquipmentUrl(clientId, jobPositionId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(protectiveEquipmentDecision),
+  });
+};
+
+export const getDecideProtectiveEquipmentMutationKey = () => ['decideProtectiveEquipment'] as const;
+
+export const getDecideProtectiveEquipmentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideProtectiveEquipment>>,
+    TError,
+    DecideProtectiveEquipmentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof decideProtectiveEquipment>>,
+  TError,
+  DecideProtectiveEquipmentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDecideProtectiveEquipmentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof decideProtectiveEquipment>>,
+    DecideProtectiveEquipmentMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, data } = props ?? {};
+
+    return decideProtectiveEquipment(clientId, jobPositionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DecideProtectiveEquipmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof decideProtectiveEquipment>>
+>;
+export type DecideProtectiveEquipmentMutationBody = ProtectiveEquipmentDecision;
+export type DecideProtectiveEquipmentMutationError = ErrorType<ApiErrorResponse>;
+export type DecideProtectiveEquipmentMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  data: ProtectiveEquipmentDecision;
+};
+
+/**
+ * @summary Say that a job position needs no equipment, or take that back
+ */
+export const useDecideProtectiveEquipment = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof decideProtectiveEquipment>>,
+      TError,
+      DecideProtectiveEquipmentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof decideProtectiveEquipment>>,
+  TError,
+  DecideProtectiveEquipmentMutationVariables,
+  TContext
+> => {
+  return useMutation(getDecideProtectiveEquipmentMutationOptions(options), queryClient);
+};
+
+export const getListEquipmentSuggestionsUrl = (params: ListEquipmentSuggestionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/equipment-suggestions?${stringifiedParams}`
+    : `/equipment-suggestions`;
+};
+
+/**
+ * The distinct values of `field` across the organization’s equipment entries that contain `query`, most recently used first, at most twenty.
+ * @summary Risks or items typed before, for autocomplete
+ */
+export const listEquipmentSuggestions = async (
+  params: ListEquipmentSuggestionsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EquipmentSuggestionsResponse> => {
+  return apiFetch<EquipmentSuggestionsResponse>(getListEquipmentSuggestionsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListEquipmentSuggestionsQueryKey = (params?: ListEquipmentSuggestionsParams) => {
+  return [`/equipment-suggestions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListEquipmentSuggestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListEquipmentSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSuggestions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListEquipmentSuggestionsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listEquipmentSuggestions>>> = ({
+    signal,
+  }) => listEquipmentSuggestions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListEquipmentSuggestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEquipmentSuggestions>>
+>;
+export type ListEquipmentSuggestionsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListEquipmentSuggestions<
+  TData = Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListEquipmentSuggestionsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSuggestions>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+          TError,
+          Awaited<ReturnType<typeof listEquipmentSuggestions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEquipmentSuggestions<
+  TData = Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListEquipmentSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSuggestions>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+          TError,
+          Awaited<ReturnType<typeof listEquipmentSuggestions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEquipmentSuggestions<
+  TData = Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListEquipmentSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSuggestions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Risks or items typed before, for autocomplete
+ */
+
+export function useListEquipmentSuggestions<
+  TData = Awaited<ReturnType<typeof listEquipmentSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListEquipmentSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSuggestions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListEquipmentSuggestionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetOrganizationCompanyDetailsUrl = () => {
   return `/organization/company-details`;

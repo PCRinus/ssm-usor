@@ -17,6 +17,7 @@ import { invitationsRouter } from './modules/invitations';
 import { jobPositionsRouter } from './modules/job-positions';
 import { meRouter } from './modules/me';
 import { organizationRouter } from './modules/organization';
+import { protectiveEquipmentRouter } from './modules/protective-equipment';
 import { serviceContractsRouter } from './modules/service-contracts';
 import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
@@ -44,6 +45,7 @@ export function createApp() {
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
   app.route('/', jobPositionsRouter);
+  app.route('/', protectiveEquipmentRouter);
   app.route('/', documentDataRouter);
   app.route('/', documentsRouter);
   app.route('/', serviceContractsRouter);

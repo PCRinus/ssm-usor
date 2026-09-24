@@ -252,6 +252,31 @@ Members read, create, update and delete the positions of their organization; upd
 granted on the descriptive columns and `archived_at` only. Deleting succeeds only for a
 position no employee points at: the foreign key keeps the rest.
 
+## Protective equipment
+
+`job_position_equipment` holds what the holders of a job position receive against the risks
+of the post ([ADR 011](architecture/adr-011-protective-equipment.md)): one row per item, on
+the position, never on the employee. It carries the same `client_id`, `organization_id` and
+composite foreign keys as the position, and goes with a position deleted as a mistake.
+
+| Column            | Notes                                                                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `risk`            | What the item protects against, free text: "Înțepături, tăieturi (mâini, brațe)".                                                        |
+| `item`            | The item, free text: "Mănuși de protecție mecanică".                                                                                     |
+| `quantity`        | Granted at once, 1 to 999, default 1.                                                                                                    |
+| `duration_months` | The normed duration of use. Required for the two inventory modes, null for a consumable: a check constraint ties the two.                |
+| `allocation`      | `personal_inventory`, `section_inventory` (kept at the workplace and shared) or `consumable`, the modes Ordinul 225/1995 names plus one. |
+
+`job_positions.needs_protective_equipment` is the position's decision: null until decided,
+which blocks generating the documentation; false when the post needs none; true while it
+has entries. Triggers keep it in step: the first entry sets it to true, deleting the last one
+sets it back to null, and an update by hand is refused when it contradicts the entries
+(`EQP01` for false with entries, `EQP02` for true without).
+
+Members read, create, update and delete the entries of their organization under active
+clients; updates are granted on the five descriptive columns only, so an entry never moves to
+another position.
+
 ## Generated documents
 
 A document is generated from a versioned Word template and from then on its `.docx` file is

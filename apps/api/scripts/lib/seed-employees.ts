@@ -39,7 +39,7 @@ const jobTitles = [
   'Recepționer',
 ];
 
-const officeJobTitles = [
+export const officeJobTitles: string[] = [
   'Contabil',
   'Economist',
   'Inginer',

@@ -14,6 +14,7 @@ import {
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedOrganization } from './lib/seed-organization';
+import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
@@ -114,6 +115,10 @@ try {
     const documentData = await seedDocumentData(client, clients, user.id);
     console.log(
       `Added ${documentData.workplaces} registered offices and ${documentData.persons} responsible persons to clients that had none.`
+    );
+    const equipment = await seedProtectiveEquipment(client, organization.id, user.id);
+    console.log(
+      `Added ${equipment.entries} equipment entries and decided ${equipment.decided} office posts need none, where undecided.`
     );
   }
 } catch (error) {

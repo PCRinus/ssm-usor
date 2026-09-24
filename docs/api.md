@@ -116,6 +116,13 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/job-positions`                               | Verified user with a membership       | `201 { "jobPosition": { … } }`                                                                                            |
 | `PUT /clients/{clientId}/job-positions/{jobPositionId}`                | Verified user with a membership       | `{ "jobPosition": { … } }` after the change                                                                               |
 | `DELETE /clients/{clientId}/job-positions/{jobPositionId}`             | Verified user with a membership       | `204`: deleted, or archived when people who left still point at it                                                        |
+| `GET /clients/{clientId}/job-positions/{jobPositionId}/equipment`      | Verified user with a membership       | `{ "items": [ … ], "needsProtectiveEquipment" }`, the position's entries and its decision                                 |
+| `POST /clients/{clientId}/job-positions/{jobPositionId}/equipment`     | Verified user with a membership       | `201 { "entry": { … } }`                                                                                                  |
+| `POST …/job-positions/{jobPositionId}/equipment/copy`                  | Verified user with a membership       | `{ "items": [ … ], "needsProtectiveEquipment" }` after copying another position's entries                                 |
+| `PUT …/job-positions/{jobPositionId}/equipment/{entryId}`              | Verified user with a membership       | `{ "entry": { … } }` after the change                                                                                     |
+| `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                     |
+| `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
+| `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                           | item&query=` |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -276,6 +283,22 @@ client lacks it. Employees carry `jobPosition: { id, name }` in the list and the
 the list sorts by `jobPosition` as well. `PATCH …/employees/{employeeId}/job-position` moves
 a person to another position; the contract title changes only when `jobTitle` is sent with
 it, since a post can change without a new contract.
+
+Protective equipment ([ADR 011](architecture/adr-011-protective-equipment.md)) hangs off the
+job position: `GET …/equipment` lists its entries in the order they were added, with
+`needsProtectiveEquipment`, null until decided, false when the post needs none, true while it
+has entries. `POST` adds an entry, which decides "needs equipment" by itself; a consumable
+carries no `durationMonths` and inventory must, or the answer is `400` on `durationMonths`.
+`DELETE` of the last entry leaves the position undecided again. `POST …/equipment/copy`
+appends copies of another position's entries, with `400` on `fromJobPositionId` for the
+position itself or one of another client. `PATCH …/protective-equipment` takes
+`needsProtectiveEquipment: false` or `null`; `true` answers `400` with the reason
+`equipment_decided_by_entries`, and `false` while entries exist answers `409` with the reason
+`equipment_entries_exist`. Job positions carry `needsProtectiveEquipment` and
+`equipmentCount` in every response. `GET /equipment-suggestions` returns, for `field` `risk`
+or `item`, the distinct values the organization typed before that contain `query`, most
+recently used first, at most twenty; it filters in the Worker, so a typed `%` or `,` is a
+character, not a PostgREST operator.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
