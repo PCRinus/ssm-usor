@@ -123,6 +123,23 @@ describe('typesetting', () => {
     }
   });
 
+  // The in-app editor evaluates a page field only when its code is the bare keyword; the
+  // "\\* ARABIC" LibreOffice spells out makes it paint the cached result on every page.
+  it.each(templateFiles)('%s writes its page fields without a format switch', (name) => {
+    const zip = new PizZip(read(name));
+    const parts = Object.keys(zip.files).filter((file) =>
+      /^word\/(header|footer)\d*\.xml$/.test(file)
+    );
+    const codes = parts.flatMap(
+      (part) =>
+        zip
+          .file(part)!
+          .asText()
+          .match(/<w:instrText[^>]*>[^<]*<\/w:instrText>/g) ?? []
+    );
+    expect(codes.filter((code) => /PAGE/.test(code) && /\\\*/.test(code))).toEqual([]);
+  });
+
   it.each(templateFiles)(
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {

@@ -1223,6 +1223,11 @@ def sweep(path):
                 xml = re.sub(r'<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>', r'\1', xml, flags=re.S)
                 xml = xml.replace('<w:jc w:val="both"/>', '<w:jc w:val="left"/>')
                 xml = re.sub(r'<wp:anchor .*?</wp:anchor>', inline_drawing, xml, flags=re.S)
+                # LibreOffice writes the page fields as "PAGE \* ARABIC", the default format
+                # spelled out. The in-app editor evaluates a page field only when its code is
+                # the bare keyword; with the switch it paints the result cached in the file, the
+                # last page's number, on every page.
+                xml = re.sub(r'(<w:instrText[^>]*>\s*(?:PAGE|NUMPAGES|SECTIONPAGES))\s+\\\* ARABIC\s*(?=<)', r'\1 ', xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
