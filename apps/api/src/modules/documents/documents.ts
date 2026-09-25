@@ -733,6 +733,21 @@ function requireDocx(bytes: Uint8Array) {
 }
 
 /**
+ * A PDF of a Word file of the document, made to be printed and not kept. The file is sent
+ * rather than read from Storage because the editor prints what it shows, unsaved edits included.
+ */
+export async function printDocument(
+  db: DataClient,
+  pdf: PdfConverter,
+  documentId: string,
+  bytes: Uint8Array
+) {
+  requireDocx(bytes);
+  await readDocument(db, documentId);
+  return pdf.convertDocx(bytes);
+}
+
+/**
  * Stores what the editor saved, or a file edited elsewhere, as the draft's file. From then on
  * the draft is "edited": generating it again would discard this.
  */

@@ -9348,6 +9348,115 @@ export const useSaveDocumentDraftFile = <TError = ErrorType<ApiErrorResponse>, T
   return useMutation(getSaveDocumentDraftFileMutationOptions(options), queryClient);
 };
 
+export const getPrintDocumentUrl = (documentId: string) => {
+  return `/documents/${documentId}/print`;
+};
+
+/**
+ * Takes the bytes of a `.docx`, up to 15 MB, as the editor shows it, unsaved edits included, and answers with its PDF, made by the converter that makes the PDF at issuing. Nothing is stored. The PDF made at issuing is at the download link of the revision.
+ * @summary Make a PDF of a Word file of the document, to print it
+ */
+export const printDocument = async (
+  documentId: string,
+  printDocumentBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<Blob>(getPrintDocumentUrl(documentId), {
+    ...options,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ...getHeaders(options?.headers),
+    },
+    body: printDocumentBody,
+  });
+};
+
+export const getPrintDocumentMutationKey = () => ['printDocument'] as const;
+
+export const getPrintDocumentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof printDocument>>,
+    TError,
+    PrintDocumentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof printDocument>>,
+  TError,
+  PrintDocumentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPrintDocumentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof printDocument>>,
+    PrintDocumentMutationVariables
+  > = (props) => {
+    const { documentId, data } = props ?? {};
+
+    return printDocument(documentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PrintDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof printDocument>>>;
+export type PrintDocumentMutationBody = Blob;
+export type PrintDocumentMutationError = ErrorType<ApiErrorResponse>;
+export type PrintDocumentMutationVariables = { documentId: string; data: Blob };
+
+/**
+ * @summary Make a PDF of a Word file of the document, to print it
+ */
+export const usePrintDocument = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof printDocument>>,
+      TError,
+      PrintDocumentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof printDocument>>,
+  TError,
+  PrintDocumentMutationVariables,
+  TContext
+> => {
+  return useMutation(getPrintDocumentMutationOptions(options), queryClient);
+};
+
 export const getAttachDocumentSignedCopyUrl = (documentId: string) => {
   return `/documents/${documentId}/signed-copy`;
 };

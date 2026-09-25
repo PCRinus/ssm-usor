@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getGetMeQueryOptions, getMe } from './generated/api';
+import { getGetMeQueryOptions, getMe, printDocument } from './generated/api';
 import { apiFetch, ApiHttpError } from './http';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -36,6 +36,16 @@ describe('generated client HTTP adapter', () => {
     const body = { error: 'test_error', message: 'Test error' };
     fetchMock.mockResolvedValue(Response.json(body, { status }));
     await expect(getMe({ baseUrl })).rejects.toMatchObject({ status, body, name: 'ApiHttpError' });
+  });
+
+  it('returns a PDF as a blob', async () => {
+    const pdf = '%PDF-1.7 printed';
+    fetchMock.mockResolvedValue(
+      new Response(pdf, { headers: { 'Content-Type': 'application/pdf' } })
+    );
+    const printed = await printDocument('test-document', new Blob(['docx']), { baseUrl });
+    expect(printed).toBeInstanceOf(Blob);
+    expect(await printed.text()).toBe(pdf);
   });
 
   it('preserves the status of non-JSON proxy errors', async () => {

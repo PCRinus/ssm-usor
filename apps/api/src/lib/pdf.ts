@@ -58,3 +58,9 @@ export function createPdfConverter(c: Context<ApiEnv>): PdfConverter | null {
     },
   };
 }
+
+export function requirePdfConverter(c: Context<ApiEnv>): PdfConverter {
+  const converter = createPdfConverter(c);
+  if (!converter) throw unavailable();
+  return converter;
+}

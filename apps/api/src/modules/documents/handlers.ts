@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
-import { createPdfConverter } from '../../lib/pdf';
+import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { missingDocumentData, undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
   type Actor,
@@ -15,6 +15,7 @@ import {
   generateClientDocuments as generate,
   issueDocument as issue,
   listClientDocuments as list,
+  printDocument as print,
   regenerateDocument as regenerate,
   removeSignedCopy,
   saveDraftFile,
@@ -31,6 +32,7 @@ import type {
   getDocumentReadinessRoute,
   issueDocumentRoute,
   listClientDocumentsRoute,
+  printDocumentRoute,
   regenerateDocumentRoute,
   removeDocumentSignedCopyRoute,
   saveDocumentDraftFileRoute,
@@ -173,6 +175,13 @@ export const saveDocumentDraftFile: RouteHandler<
     bytes
   );
   return c.json({ document }, 200);
+};
+
+export const printDocument: RouteHandler<typeof printDocumentRoute, ApiEnv> = async (c) => {
+  const { documentId } = c.req.valid('param');
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const pdf = await print(createDataClient(c), requirePdfConverter(c), documentId, bytes);
+  return c.body(new Uint8Array(pdf), 200, { 'Content-Type': 'application/pdf' });
 };
 
 export const uploadClientDocument: RouteHandler<typeof uploadClientDocumentRoute, ApiEnv> = async (

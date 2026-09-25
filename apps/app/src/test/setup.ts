@@ -47,3 +47,8 @@ beforeEach(() => {
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
 });
+
+// jsdom has no PDF viewer and does not say so; the browsers the app supports have one.
+beforeEach(() => {
+  Object.defineProperty(navigator, 'pdfViewerEnabled', { value: true, configurable: true });
+});

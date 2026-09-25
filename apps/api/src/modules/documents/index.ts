@@ -8,6 +8,7 @@ import {
   getDocumentReadiness,
   issueDocument,
   listClientDocuments,
+  printDocument,
   regenerateDocument,
   removeDocumentSignedCopy,
   saveDocumentDraftFile,
@@ -23,6 +24,7 @@ import {
   getDocumentReadinessRoute,
   issueDocumentRoute,
   listClientDocumentsRoute,
+  printDocumentRoute,
   regenerateDocumentRoute,
   removeDocumentSignedCopyRoute,
   saveDocumentDraftFileRoute,
@@ -40,6 +42,7 @@ export const documentsRouter = createRouter()
   .openapi(startDocumentDraftRoute, startDocumentDraft)
   .openapi(deleteDocumentDraftRoute, deleteDocumentDraft)
   .openapi(saveDocumentDraftFileRoute, saveDocumentDraftFile)
+  .openapi(printDocumentRoute, printDocument)
   .openapi(attachDocumentSignedCopyRoute, attachDocumentSignedCopy)
   .openapi(confirmDocumentSignedCopyRoute, confirmDocumentSignedCopy)
   .openapi(removeDocumentSignedCopyRoute, removeDocumentSignedCopy)

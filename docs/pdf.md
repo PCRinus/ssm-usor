@@ -1,6 +1,6 @@
 # PDF Worker
 
-Status: deployed by CI; the API calls it while issuing a document  
+Status: deployed by CI; the API calls it while issuing a document, and to print one  
 Audience: engineering
 
 [ADR 005](architecture/adr-005-document-generation.md) makes the PDF a static copy produced
@@ -39,7 +39,7 @@ that the bytes are a `.docx` before asking.
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Deployed                    | The `PDF` service binding, switched on by the variable `PDF_CONVERSION=service`, which only the deployment job sets                                                        |
 | Flow tests, local by choice | `GOTENBERG_URL`, a Gotenberg started by `pnpm dev:pdf` (see below), then `GOTENBERG_URL=http://localhost:3300` in `apps/api/.dev.vars` or in the shell that runs the flows |
-| `pnpm dev` with neither     | None: documents are issued without a PDF                                                                                                                                   |
+| `pnpm dev` with neither     | None: documents are issued without a PDF, and printing answers `503`                                                                                                       |
 
 The variable exists because `wrangler dev` creates the binding too, with nothing behind it:
 `apps/pdf` is not part of `pnpm dev`.
@@ -50,6 +50,12 @@ policies accept it, and then calls `issue_document_revision` with both hashes. F
 neither file can be written. When the conversion fails nothing is issued: `503` with the
 reason `pdf_unavailable`, and the person tries again. A PDF left behind by an issuing that
 failed afterwards is overwritten by the next one and removed with the draft.
+
+Printing goes through a PDF too, so that paper matches the file. An issued revision that has
+a PDF prints that PDF. Anything else, a draft or what the editor shows with its unsaved edits,
+is sent as Word bytes to `POST /documents/{documentId}/print`, which converts them the same
+way and stores nothing. The app opens the result in a hidden frame and calls the browser's
+print dialog on it; a browser without a PDF viewer gets the file as a download instead.
 
 ## The container
 

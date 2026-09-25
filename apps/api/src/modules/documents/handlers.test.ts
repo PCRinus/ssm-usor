@@ -1331,6 +1331,84 @@ describe('PUT /documents/{documentId}/draft/file', () => {
   });
 });
 
+describe('POST /documents/{documentId}/print', () => {
+  const docx = new Uint8Array([
+    0x50,
+    0x4b,
+    0x03,
+    0x04,
+    ...new TextEncoder().encode('…word/document.xml…'),
+  ]);
+  const pdfBytes = new TextEncoder().encode('%PDF-1.7 printed');
+  const print = (body: Uint8Array, bindings: Partial<ApiEnv['Bindings']> = {}) =>
+    createApp().request(
+      `/documents/${documentId}/print`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer test-access-token',
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+        body: new Uint8Array(body),
+      },
+      { ...env, ...bindings }
+    );
+  const converter = () =>
+    vi.fn(async (source: ArrayBuffer) => {
+      void source;
+      return pdfBytes.slice().buffer;
+    });
+
+  it('answers with the PDF of the file it is sent, and stores nothing', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [issuedRevision] }),
+    });
+    const convertDocx = converter();
+    const response = await print(docx, { PDF_CONVERSION: 'service', PDF: { convertDocx } });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('application/pdf');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(pdfBytes);
+    expect(new Uint8Array(convertDocx.mock.calls[0]![0])).toEqual(docx);
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
+
+  it('refuses what is not a Word document, before converting anything', async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+    });
+    const convertDocx = converter();
+    const bindings = { PDF_CONVERSION: 'service', PDF: { convertDocx } } as const;
+    expect((await print(new TextEncoder().encode('%PDF-1.7'), bindings)).status).toBe(400);
+    expect(convertDocx).not.toHaveBeenCalled();
+  });
+
+  it('says why when there is no converter, or it fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+    });
+    for (const bindings of [
+      {},
+      {
+        PDF_CONVERSION: 'service',
+        PDF: { convertDocx: async () => Promise.reject(new Error('pdf_conversion_failed')) },
+      },
+    ]) {
+      const response = await print(docx, bindings);
+      expect(response.status).toBe(503);
+      expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('pdf_unavailable');
+    }
+  });
+
+  it('answers 404 for a document of another organization', async () => {
+    mockUpstream({ documents: () => Response.json(null) });
+    const convertDocx = converter();
+    const response = await print(docx, { PDF_CONVERSION: 'service', PDF: { convertDocx } });
+    expect(response.status).toBe(404);
+    expect(convertDocx).not.toHaveBeenCalled();
+  });
+});
+
 describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
   const docx = new Uint8Array([
     0x50,

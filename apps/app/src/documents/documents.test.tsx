@@ -439,6 +439,83 @@ describe('client documents', () => {
     expect(screen.queryByTestId('document-download-pdf')).toBeNull();
   });
 
+  it('prints a draft through a PDF made of its file, and an issued revision from its own PDF', async () => {
+    const issued = revision({
+      id: '2c3e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
+      status: 'issued',
+      issuedAt: '2026-09-19T11:00:00+00:00',
+    });
+    mockApi({
+      items: [{ ...firstAid, issued: { ...issued, hasPdf: true } }],
+      action: () => new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } }),
+    });
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:printed', revokeObjectURL: () => {} })
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-print-draft'));
+    await waitFor(() => expect(requests('/print', 'POST')).toHaveLength(1));
+    expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(1);
+    expect(await screen.findByTestId('print-frame')).toBeTruthy();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-print-issued'));
+    await waitFor(() =>
+      expect(requests(`/revisions/${issued.id}/download`, 'GET').length).toBeGreaterThan(0)
+    );
+    const [[url]] = requests(`/revisions/${issued.id}/download`, 'GET') as [[string]];
+    expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
+    expect(requests('/print', 'POST')).toHaveLength(1);
+  });
+
+  it('downloads the PDF to print where the browser cannot show one', async () => {
+    Object.defineProperty(navigator, 'pdfViewerEnabled', { value: false, configurable: true });
+    mockApi({
+      items: [firstAid],
+      action: () => new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } }),
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-print-draft'));
+
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe(
+      'Decizia privind responsabilii cu primul ajutor.pdf'
+    );
+    expect(await screen.findByText(/Deschide fișierul și tipărește-l/)).toBeTruthy();
+  });
+
+  it('says so when a document cannot be prepared for printing', async () => {
+    mockApi({
+      items: [firstAid],
+      action: () =>
+        Response.json(
+          { error: 'service_unavailable', message: 'No PDF.', reason: 'pdf_unavailable' },
+          { status: 503 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    await user.click(await screen.findByTestId('document-print-draft'));
+
+    expect((await screen.findByTestId('documents-error')).textContent).toContain(
+      'serviciul care face PDF-ul nu răspunde acum'
+    );
+  });
+
   it('says that nothing was issued when the PDF could not be made', async () => {
     mockApi({
       items: [firstAid],
@@ -654,7 +731,7 @@ describe('client documents', () => {
     );
   });
 
-  it('only offers downloads for an archived client', async () => {
+  it('only offers downloads and printing for an archived client', async () => {
     mockApi({
       client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' },
       items: [firstAid],
@@ -664,6 +741,7 @@ describe('client documents', () => {
 
     await openMenu(user, 'primul ajutor');
     expect(await screen.findByTestId('document-download-draft')).toBeTruthy();
+    expect(screen.getByTestId('document-print-draft')).toBeTruthy();
     expect(screen.queryByTestId('document-regenerate')).toBeNull();
     expect(screen.queryByTestId('document-issue')).toBeNull();
     expect(screen.queryByTestId('documents-generate')).toBeNull();

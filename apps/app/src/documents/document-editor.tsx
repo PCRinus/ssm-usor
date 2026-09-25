@@ -26,6 +26,8 @@ const fonts = packagedFonts({ allow: ['Arial'] });
 export interface DocumentEditorHandle {
   /** The document as a `.docx`, or null when the editor has nothing loaded. */
   save: () => Promise<Uint8Array | null>;
+  /** The same, without counting as saved. */
+  copy: () => Promise<Uint8Array | null>;
 }
 
 // Formatting the mark in the file itself, red or highlighted, was the other way: what is typed
@@ -90,6 +92,10 @@ export default function DocumentEditor({
     save: async () => {
       const buffer = await editor.current?.save();
       cleanRevision.current = editor.current?.getDocumentHandle()?.revision ?? null;
+      return buffer ? new Uint8Array(buffer) : null;
+    },
+    copy: async () => {
+      const buffer = await editor.current?.save();
       return buffer ? new Uint8Array(buffer) : null;
     },
   }));
