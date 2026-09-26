@@ -13,6 +13,7 @@ import { documentDataRouter } from './modules/document-data';
 import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
 import { healthRouter } from './modules/health';
+import { instructionModulesRouter } from './modules/instruction-modules';
 import { invitationsRouter } from './modules/invitations';
 import { jobPositionsRouter } from './modules/job-positions';
 import { meRouter } from './modules/me';
@@ -46,6 +47,7 @@ export function createApp() {
   app.route('/', employeesRouter);
   app.route('/', jobPositionsRouter);
   app.route('/', protectiveEquipmentRouter);
+  app.route('/', instructionModulesRouter);
   app.route('/', documentDataRouter);
   app.route('/', documentsRouter);
   app.route('/', serviceContractsRouter);

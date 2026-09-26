@@ -277,6 +277,36 @@ Members read, create, update and delete the entries of their organization under 
 clients; updates are granted on the five descriptive columns only, so an entry never moves to
 another position.
 
+## Instruction modules
+
+`instruction_modules` is the organization's instruction library
+([ADR 012](architecture/adr-012-own-instructions.md)): one row per own instruction for a work
+activity, a piece of work equipment or a category of protective equipment, with a `title`,
+unique within the organization among the modules in use ignoring case, a `module_group`
+(`work_activity`, `work_equipment`, `protective_equipment`) and `archived_at`. The file is
+the module, kept as its author made it: `instruction_module_versions` holds one row per save
+or upload, numbered from 1 per module, with the `sha256`, `size_bytes` and `article_count` of
+the file (the top-level items of its most used numbered list, which the training themes
+cite) and its `docx_path`, which a check constraint holds to
+`<organization>/<module>/<number>.docx`. Nothing changes in place: versions are never updated
+or deleted, so a document snapshot can name the version it annexed. The files live in the
+`instruction-modules` bucket; the row comes first, and the storage policy accepts an upload
+only at a path a version of the caller's organization names.
+
+`job_position_instructions` says which modules a job position applies, one row per pair,
+with the same composite foreign keys as the equipment entries and a third one tying the
+module to the same organization. `job_positions.needs_instructions` is the position's
+decision, kept in step by triggers exactly like the equipment decision: null until decided,
+which blocks generating the own instructions; false when the post needs none beyond the
+common part; true while it applies modules (`INS01` for false with modules applied, `INS02`
+for true without). Applying an archived module is refused (`INS03`), archiving a module a
+current position applies is refused (`INS04`), and an archived module takes no new version
+(`INS05`).
+
+Members read, create and update their organization's modules, add versions, and apply and
+remove modules for positions of active clients; updates are granted on the title, the group
+and `archived_at` only.
+
 ## Generated documents
 
 A document is generated from a versioned Word template and from then on its `.docx` file is

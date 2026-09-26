@@ -776,6 +776,101 @@ export type Database = {
         };
         Relationships: [];
       };
+      instruction_module_versions: {
+        Row: {
+          article_count: number;
+          created_at: string;
+          created_by: string | null;
+          docx_path: string;
+          id: string;
+          module_id: string;
+          number: number;
+          organization_id: string;
+          sha256: string;
+          size_bytes: number;
+        };
+        Insert: {
+          article_count?: number;
+          created_at?: string;
+          created_by?: string | null;
+          docx_path: string;
+          id?: string;
+          module_id: string;
+          number: number;
+          organization_id: string;
+          sha256: string;
+          size_bytes: number;
+        };
+        Update: {
+          article_count?: number;
+          created_at?: string;
+          created_by?: string | null;
+          docx_path?: string;
+          id?: string;
+          module_id?: string;
+          number?: number;
+          organization_id?: string;
+          sha256?: string;
+          size_bytes?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'instruction_module_versions_module_in_organization';
+            columns: ['module_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'instruction_modules';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'instruction_module_versions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      instruction_modules: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          module_group: Database['public']['Enums']['instruction_module_group'];
+          organization_id: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          module_group: Database['public']['Enums']['instruction_module_group'];
+          organization_id: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          module_group?: Database['public']['Enums']['instruction_module_group'];
+          organization_id?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'instruction_modules_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       job_position_equipment: {
         Row: {
           allocation: Database['public']['Enums']['equipment_allocation'];
@@ -850,6 +945,72 @@ export type Database = {
           },
         ];
       };
+      job_position_instructions: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          job_position_id: string;
+          module_id: string;
+          organization_id: string;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          job_position_id: string;
+          module_id: string;
+          organization_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          job_position_id?: string;
+          module_id?: string;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'job_position_instructions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_position_instructions_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_instructions_module_in_organization';
+            columns: ['module_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'instruction_modules';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_instructions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_position_instructions_position_in_client';
+            columns: ['job_position_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_positions';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
       job_positions: {
         Row: {
           activities: string | null;
@@ -859,6 +1020,7 @@ export type Database = {
           created_by: string | null;
           id: string;
           name: string;
+          needs_instructions: boolean | null;
           needs_protective_equipment: boolean | null;
           organization_id: string;
           staff_category: Database['public']['Enums']['staff_category'];
@@ -874,6 +1036,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name: string;
+          needs_instructions?: boolean | null;
           needs_protective_equipment?: boolean | null;
           organization_id: string;
           staff_category?: Database['public']['Enums']['staff_category'];
@@ -889,6 +1052,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name?: string;
+          needs_instructions?: boolean | null;
           needs_protective_equipment?: boolean | null;
           organization_id?: string;
           staff_category?: Database['public']['Enums']['staff_category'];
@@ -1354,6 +1518,7 @@ export type Database = {
       current_organization_id: { Args: never; Returns: string };
       effective_user_id: { Args: never; Returns: string };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
+      is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
       is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
@@ -1432,6 +1597,7 @@ export type Database = {
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
+      instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       organization_role: 'owner' | 'specialist';
       responsible_person_role:
         | 'workplace_manager'
@@ -1566,6 +1732,7 @@ export const Constants = {
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       equipment_allocation: ['personal_inventory', 'section_inventory', 'consumable'],
+      instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       organization_role: ['owner', 'specialist'],
       responsible_person_role: [
         'workplace_manager',

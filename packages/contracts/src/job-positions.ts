@@ -54,6 +54,9 @@ export const jobPositionSchema = z.object({
   // Null until decided; false when the post needs none; true while it has entries (ADR 011).
   needsProtectiveEquipment: z.boolean().nullable(),
   equipmentCount: z.int().min(0),
+  // Null until decided; false when the post needs none; true while it applies modules (ADR 012).
+  needsInstructions: z.boolean().nullable(),
+  instructionCount: z.int().min(0),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
