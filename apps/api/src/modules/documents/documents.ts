@@ -680,7 +680,8 @@ export async function issueDocument(
   // second try.
   let pdfFile: { path: string; hash: string } | null = null;
   if (pdf) {
-    const converted = await pdf.convertDocx(bytes);
+    const annexes = await readAnnexes(db, files, draft.data_snapshot);
+    const converted = await pdf.convertDocuments([bytes, ...annexes]);
     const path = pdfPathOf(draft.docx_path);
     await files.writeDocument(path, converted, { replace: true });
     pdfFile = { path, hash: await sha256(converted) };
@@ -704,13 +705,53 @@ export async function issueDocument(
  */
 export async function printDocument(
   db: DataClient,
+  files: FileStore,
   pdf: PdfConverter,
   documentId: string,
   bytes: Uint8Array
 ) {
   requireDocx(bytes);
-  await readDocument(db, documentId);
-  return pdf.convertDocx(bytes);
+  const document = await readDocument(db, documentId);
+  // The draft's annexes, or the issued revision's when there is no draft: what the binder
+  // holds, printed with the file as shown.
+  const revision = newest(document);
+  const annexes = await readAnnexes(db, files, revision?.data_snapshot ?? null);
+  return pdf.convertDocuments([bytes, ...annexes]);
+}
+
+/**
+ * The version ids of the instruction modules a snapshot annexes (ADR 012), as the own
+ * instructions' context lists them under `annexes`. Any other document annexes nothing.
+ */
+export function annexedVersionIds(snapshot: Json | null): string[] {
+  const annexes = (snapshot as { annexes?: unknown } | null)?.annexes;
+  if (!Array.isArray(annexes)) return [];
+  return annexes.flatMap((annex) =>
+    typeof (annex as { versionId?: unknown })?.versionId === 'string'
+      ? [(annex as { versionId: string }).versionId]
+      : []
+  );
+}
+
+/** The files of the annexed module versions, in the snapshot's order. */
+async function readAnnexes(db: DataClient, files: FileStore, snapshot: Json | null) {
+  const versionIds = annexedVersionIds(snapshot);
+  if (versionIds.length === 0) return [];
+  const { data, error } = await db
+    .from('instruction_module_versions')
+    .select('id, docx_path')
+    .in('id', versionIds);
+  if (error) throw fromDatabaseError(error, 'read annexed module versions');
+  const paths = new Map(data.map((row) => [row.id, row.docx_path]));
+  return Promise.all(
+    versionIds.map((versionId) => {
+      const path = paths.get(versionId);
+      // A version row is never deleted, so a missing one is a snapshot from another
+      // organization's module, which the policies keep out of reach.
+      if (!path) throw new ApiError('conflict', 'An annexed instruction is not in the library.');
+      return files.readModule(path);
+    })
+  );
 }
 
 /**
