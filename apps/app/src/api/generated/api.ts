@@ -2281,6 +2281,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   cover_general_training_material: 'cover_general_training_material',
   general_training_material: 'general_training_material',
   cover_own_instructions: 'cover_own_instructions',
+  own_instructions: 'own_instructions',
   cover_training_themes: 'cover_training_themes',
   cover_tests: 'cover_tests',
   test_hiring: 'test_hiring',

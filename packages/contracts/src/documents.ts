@@ -15,6 +15,7 @@ export const documentTypeKeys = [
   'cover_general_training_material',
   'general_training_material',
   'cover_own_instructions',
+  'own_instructions',
   'cover_training_themes',
   'cover_tests',
   'test_hiring',
@@ -38,7 +39,6 @@ export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
  * can, the provider writes them elsewhere and uploads the file, so the set is complete.
  */
 export const uploadedDocumentTypes = {
-  own_instructions: 'Instrucțiuni proprii de securitate și sănătate în muncă',
   training_themes: 'Tematica și programul de instruire',
   risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
   prevention_plan: 'Planul de prevenire și protecție',

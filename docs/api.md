@@ -474,10 +474,12 @@ The `documents` module generates a client's documentation from the built-in Word
 `GET …/documents/readiness` lists what is missing as codes grouped by where it is filled in:
 `provider.*`, `specialist.*` (the caller's own profile), `client.representativeName`,
 `client.representativeRole`, `client.trainingSchedule`, `responsible.<role>` for every
-role nobody holds, `positions.any` for a client without a current position, and
+role nobody holds, `positions.any` for a client without a current position,
 `positions.equipment` while a position is undecided about its protective equipment
-([ADR 011](architecture/adr-011-protective-equipment.md)); `undecidedJobPositions` names
-those, so the form can send someone to each. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
+([ADR 011](architecture/adr-011-protective-equipment.md)), and `positions.instructions` while
+one is undecided about the instruction modules it applies
+([ADR 012](architecture/adr-012-own-instructions.md)); `undecidedJobPositions` names those,
+so the form can send someone to each. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (default 1) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template is registered
 (`pnpm templates:register`).

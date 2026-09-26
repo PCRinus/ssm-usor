@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+
 import { expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
@@ -141,19 +144,71 @@ export async function completeDocumentData(
   });
   if (person.error) throw person.error;
   // The equipment list needs a position, decided about its equipment (ADR 011): one with an
-  // entry, so the list has a section to print.
-  await createJobPosition(organizationId, clientId, 'Lucrător comercial', {
-    risk: 'Alunecare, cădere la același nivel',
-    item: 'Încălțăminte antiderapantă',
-    durationMonths: 12,
+  // entry, so the list has a section to print. The own instructions need it decided about its
+  // modules too (ADR 012): one applied, so the document has an annex to merge.
+  const moduleId = await createInstructionModule(organizationId, userId, 'Scări metalice');
+  await createJobPosition(
+    organizationId,
+    clientId,
+    'Lucrător comercial',
+    {
+      risk: 'Alunecare, cădere la același nivel',
+      item: 'Încălțăminte antiderapantă',
+      durationMonths: 12,
+    },
+    moduleId
+  );
+}
+
+const moduleFixture = new URL(
+  '../../../api/scripts/fixtures/instruction-modules/metal-ladders.docx',
+  import.meta.url
+);
+
+/** A module of the library, from the fixture file the dev seed uses, as its first version. */
+export async function createInstructionModule(
+  organizationId: string,
+  createdBy: string,
+  title: string
+) {
+  const bytes = await readFile(moduleFixture);
+  const module = await admin
+    .from('instruction_modules')
+    .insert({
+      organization_id: organizationId,
+      title,
+      module_group: 'work_equipment',
+      created_by: createdBy,
+    })
+    .select('id')
+    .single();
+  if (module.error) throw module.error;
+  const docxPath = `${organizationId}/${module.data.id}/1.docx`;
+  const version = await admin.from('instruction_module_versions').insert({
+    organization_id: organizationId,
+    module_id: module.data.id,
+    number: 1,
+    docx_path: docxPath,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    size_bytes: bytes.length,
+    article_count: 11,
+    created_by: createdBy,
   });
+  if (version.error) throw version.error;
+  const upload = await admin.storage.from('instruction-modules').upload(docxPath, bytes, {
+    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    upsert: true,
+  });
+  if (upload.error) throw upload.error;
+  return module.data.id;
 }
 
 export async function createJobPosition(
   organizationId: string,
   clientId: string,
   name: string,
-  entry?: { risk: string; item: string; durationMonths: number }
+  entry?: { risk: string; item: string; durationMonths: number },
+  moduleId?: string
 ) {
   const position = await admin
     .from('job_positions')
@@ -161,6 +216,15 @@ export async function createJobPosition(
     .select('id')
     .single();
   if (position.error) throw position.error;
+  if (moduleId) {
+    const applied = await admin.from('job_position_instructions').insert({
+      organization_id: organizationId,
+      client_id: clientId,
+      job_position_id: position.data.id,
+      module_id: moduleId,
+    });
+    if (applied.error) throw applied.error;
+  }
   if (!entry) return position.data.id;
   const equipment = await admin.from('job_position_equipment').insert({
     organization_id: organizationId,
