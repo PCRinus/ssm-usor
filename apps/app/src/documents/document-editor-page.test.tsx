@@ -21,14 +21,20 @@ vi.mock('./document-editor', async () => {
       title: string;
       editable: boolean;
       back: React.ReactNode;
-      handle: React.Ref<{ save: () => Promise<Uint8Array | null> }>;
+      handle: React.Ref<{
+        save: () => Promise<Uint8Array | null>;
+        copy: () => Promise<Uint8Array | null>;
+      }>;
       actions: React.ReactNode;
       onReady: () => void;
       onFailed: () => void;
       onChange: () => void;
       onSaveShortcut: () => void;
     }) {
-      useImperativeHandle(props.handle, () => ({ save: async () => editorMock.saved }));
+      useImperativeHandle(props.handle, () => ({
+        save: async () => editorMock.saved,
+        copy: async () => editorMock.saved,
+      }));
       useEffect(() => {
         editorMock.releaseReady = props.onReady;
         if (editorMock.fail) props.onFailed();
@@ -108,6 +114,8 @@ function mockApi({
   file = (() => new Response(new Uint8Array([80, 75, 3, 4]))) as () => Response | Promise<Response>,
   save = (() => Response.json({ document: firstAid })) as () => Response,
   start = (() => Response.json({ document: firstAid })) as () => Response,
+  print = (() =>
+    new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } })) as () => Response,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -129,9 +137,15 @@ function mockApi({
     if (pathname === '/signed') return file();
     if (pathname === `/documents/${documentId}/draft/file` && method === 'PUT') return save();
     if (pathname === `/documents/${documentId}/draft` && method === 'POST') return start();
+    if (pathname === `/documents/${documentId}/print` && method === 'POST') return print();
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
+
+const prints = () =>
+  fetchMock.mock.calls.filter(
+    ([input, init]) => String(input).endsWith('/print') && init?.method === 'POST'
+  );
 
 const saves = () =>
   fetchMock.mock.calls.filter(
@@ -243,6 +257,66 @@ describe('the document editor page', () => {
       'Descarcă fișierul ca să nu pierzi modificările'
     );
     expect(screen.getByTestId('editor-saved-state').textContent).toBe('Modificări nesalvate');
+  });
+
+  it('prints what the editor shows, unsaved edits included, without saving them', async () => {
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:printed', revokeObjectURL: () => {} })
+    );
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('fake-type'));
+    await user.click(screen.getByTestId('editor-print'));
+
+    await waitFor(() => expect(prints()).toHaveLength(1));
+    expect((prints()[0]![1]?.body as Blob).size).toBe(5);
+    const frame = await waitFor(() => screen.getByTestId<HTMLIFrameElement>('print-frame'));
+    expect(frame.src).toBe('blob:printed');
+    expect(saves()).toHaveLength(0);
+    expect(screen.getByTestId('editor-saved-state').textContent).toBe('Modificări nesalvate');
+  });
+
+  it('prints an issued document from the PDF made when it was issued', async () => {
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:printed', revokeObjectURL: () => {} })
+    );
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    mockApi({ items: [{ ...firstAid, draft: null, issued: { ...issued, hasPdf: true } }] });
+    mount();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('fake-editor');
+    await user.click(screen.getByTestId('editor-print'));
+
+    await waitFor(() => expect(screen.getByTestId('print-frame')).toBeTruthy());
+    expect(prints()).toHaveLength(0);
+    const formats = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .filter((url) => url.pathname.endsWith('/download'))
+      .map((url) => url.searchParams.get('format'));
+    expect(formats).toContain('pdf');
+  });
+
+  it('says so when the PDF to print cannot be made', async () => {
+    mockApi({
+      print: () =>
+        Response.json(
+          { error: 'service_unavailable', message: 'No PDF.', reason: 'pdf_unavailable' },
+          { status: 503 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('editor-print'));
+
+    expect((await screen.findByTestId('editor-print-error')).textContent).toContain(
+      'serviciul care face PDF-ul nu răspunde acum'
+    );
   });
 
   it('opens an issued document for reading only', async () => {

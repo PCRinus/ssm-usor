@@ -31,6 +31,7 @@ import {
   FileText,
   MoreHorizontal,
   Pencil,
+  Printer,
   Send,
   Sparkles,
 } from 'lucide-react';
@@ -57,6 +58,7 @@ import type { Client } from '../clients/client-form-schema';
 import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { pdfOfRevision, usePrint } from '../documents/print';
 import { todayIso } from '../employees/employee-format';
 import { formatRoDate } from '../lib/dates';
 import { SendContractDialog } from './send-contract-dialog';
@@ -328,6 +330,7 @@ function ServiceContractBody({
   const attachSigned = useAttachDocumentSignedCopy({ request: apiRequest });
   const confirmSigned = useConfirmDocumentSignedCopy({ request: apiRequest });
   const removeSigned = useRemoveDocumentSignedCopy({ request: apiRequest });
+  const { printing, print } = usePrint();
   const signedInput = useRef<HTMLInputElement>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [sending, setSending] = useState(false);
@@ -486,6 +489,11 @@ function ServiceContractBody({
     } catch {
       setError('Nu am putut descărca fișierul. Verifică conexiunea și încearcă din nou.');
     }
+  }
+
+  async function printRevision(revision: { id: string; hasPdf: boolean }) {
+    setError(null);
+    setError(await print(title, () => pdfOfRevision(apiRequest, document!.id, revision)));
   }
 
   const text = (
@@ -873,6 +881,14 @@ function ServiceContractBody({
                     <Download aria-hidden="true" />
                     Descarcă Word
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    data-testid="contract-print-issued"
+                    disabled={printing}
+                    onSelect={() => void printRevision(document.issued!)}
+                  >
+                    <Printer aria-hidden="true" />
+                    Tipărește
+                  </DropdownMenuItem>
                   {!readOnly && !document.draft && (
                     <>
                       <DropdownMenuSeparator />
@@ -952,6 +968,14 @@ function ServiceContractBody({
                   >
                     <Download aria-hidden="true" />
                     Descarcă Word
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    data-testid="contract-print-draft"
+                    disabled={printing}
+                    onSelect={() => void printRevision(document.draft!)}
+                  >
+                    <Printer aria-hidden="true" />
+                    Tipărește
                   </DropdownMenuItem>
                   {!readOnly && (
                     <>

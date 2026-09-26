@@ -290,6 +290,45 @@ export const saveDocumentDraftFileRoute = createRoute({
   },
 });
 
+export const printDocumentRoute = createRoute({
+  method: 'post',
+  path: '/documents/{documentId}/print',
+  operationId: 'printDocument',
+  summary: 'Make a PDF of a Word file of the document, to print it',
+  description:
+    'Takes the bytes of a `.docx`, up to 15 MB, as the editor shows it, unsaved edits included, and answers with its PDF, made by the converter that makes the PDF at issuing. Nothing is stored. The PDF made at issuing is at the download link of the revision.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: documentParams,
+    body: {
+      required: true,
+      content: {
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+          schema: z.string().openapi({ type: 'string', format: 'binary' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The PDF',
+      content: {
+        'application/pdf': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+      },
+    },
+    400: { description: 'Invalid path, or not a Word document', content: errorContent },
+    404: noSuchDocument,
+    ...membershipErrors,
+    // After the shared 503, which it replaces for this route.
+    503: {
+      description:
+        'Supabase is unavailable, or there is no converter or it failed (reason `pdf_unavailable`)',
+      content: errorContent,
+    },
+  },
+});
+
 export const attachDocumentSignedCopyRoute = createRoute({
   method: 'put',
   path: '/documents/{documentId}/signed-copy',

@@ -37,6 +37,9 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     credentials: 'omit',
     redirect: 'error',
   });
+  if (response.ok && response.headers.get('Content-Type')?.startsWith('application/pdf')) {
+    return (await response.blob()) as T;
+  }
   const text = await response.text();
   let body: unknown;
   try {

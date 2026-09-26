@@ -128,6 +128,17 @@ function mockApi(
     if (pathname === `/documents/${documentId}/issue`) {
       return routes.issue?.(init) ?? Response.json({ document: contractDocument() });
     }
+    if (pathname.endsWith('/download')) {
+      return Response.json({
+        url: 'https://files.example.test/signed',
+        fileName: 'Contract.docx',
+        expiresInSeconds: 60,
+      });
+    }
+    if (pathname === '/signed') return new Response(new Uint8Array([80, 75, 3, 4]));
+    if (pathname === `/documents/${documentId}/print`) {
+      return new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } });
+    }
     if (pathname === '/clients')
       return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
     throw new Error(`Unexpected request: ${method} ${pathname}`);
@@ -249,6 +260,44 @@ describe('the service contract of a lead', () => {
     expect((await screen.findByTestId('contract-generate')).textContent).toContain(
       'Generează din nou'
     );
+  });
+
+  it('prints the draft through a PDF made of its file, and the issued contract from its own', async () => {
+    const issuedId = '2c3e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d';
+    mockApi({
+      get: () =>
+        Response.json(
+          state({
+            document: contractDocument({
+              issued: revision({
+                id: issuedId,
+                status: 'issued',
+                issuedAt: '2026-09-21T11:00:00+00:00',
+                hasPdf: true,
+              }),
+            }),
+          })
+        ),
+    });
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:printed', revokeObjectURL: () => {} })
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('contract-draft-actions'));
+    await user.click(await screen.findByTestId('contract-print-draft'));
+    await waitFor(() => expect(requests(`/documents/${documentId}/print`, 'POST')).toHaveLength(1));
+    expect(await screen.findByTestId('print-frame')).toBeTruthy();
+
+    await user.click(screen.getByTestId('contract-issued-actions'));
+    await user.click(await screen.findByTestId('contract-print-issued'));
+    const issuedDownload = `/documents/${documentId}/revisions/${issuedId}/download`;
+    await waitFor(() => expect(requests(issuedDownload, 'GET')).toHaveLength(1));
+    const [[url]] = requests(issuedDownload, 'GET') as [[string]];
+    expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
+    expect(requests(`/documents/${documentId}/print`, 'POST')).toHaveLength(1);
   });
 
   it('asks before generating over a draft, and marks one that the details have left behind', async () => {

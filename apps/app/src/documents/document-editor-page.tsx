@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useBlocker, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, Download, LoaderCircle, Pencil, Save } from 'lucide-react';
+import { ArrowLeft, Download, LoaderCircle, Pencil, Printer, Save } from 'lucide-react';
 import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -17,6 +17,7 @@ import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
 import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
+import { pdfOf, pdfOfRevision, usePrint } from './print';
 
 const DocumentEditor = lazy(() => import('./document-editor'));
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -160,6 +161,8 @@ export function DocumentEditorView({
   const [dirty, setDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [startError, setStartError] = useState(false);
+  const { printing, print } = usePrint();
+  const [printError, setPrintError] = useState<string | null>(null);
 
   const revision = document?.draft ?? document?.issued ?? null;
   const editable = !readOnly && document?.draft != null;
@@ -238,6 +241,18 @@ export function DocumentEditorView({
     saveAs(current ?? loaded.bytes, loaded.fileName);
   }
 
+  async function printShown() {
+    if (!loaded || !document || !revision) return;
+    setPrintError(null);
+    setPrintError(
+      await print(document.title, async () => {
+        if (!editable && revision.hasPdf) return pdfOfRevision(apiRequest, documentId, revision);
+        const current = ready ? await editor.current?.copy() : null;
+        return pdfOf(apiRequest, documentId, current ?? loaded.bytes);
+      })
+    );
+  }
+
   if (documents.isPending || (revision && !loaded && !loadError)) {
     return (
       <div data-testid="editor-frame" className={editorFrameClassName}>
@@ -291,6 +306,16 @@ export function DocumentEditorView({
         <Download aria-hidden="true" />
         Descarcă
       </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        data-testid="editor-print"
+        disabled={printing}
+        onClick={() => void printShown()}
+      >
+        <Printer aria-hidden="true" />
+        {printing ? 'Se pregătește…' : 'Tipărește'}
+      </Button>
       {canStartDraft && (
         <Button
           size="sm"
@@ -328,6 +353,11 @@ export function DocumentEditorView({
       {startError && (
         <Notice variant="destructive" data-testid="editor-start-draft-error">
           Nu am putut porni o ciornă nouă. Verifică conexiunea și încearcă din nou.
+        </Notice>
+      )}
+      {printError && (
+        <Notice variant="destructive" data-testid="editor-print-error">
+          {printError}
         </Notice>
       )}
       {saveError && (

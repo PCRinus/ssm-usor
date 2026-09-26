@@ -60,6 +60,7 @@ import {
   workersRepresentativesRule,
 } from './document-labels';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
+import { pdfOfRevision, usePrint } from './print';
 
 type Revision = NonNullable<ClientDocument['draft']>;
 // A document, or the place of one that waits for a file.
@@ -154,6 +155,7 @@ export function DocumentsCard({
   const remove = useDeleteDocumentDraft({ request: apiRequest });
   const upload = useUploadClientDocument({ request: apiRequest });
   const startDraft = useStartDocumentDraft({ request: apiRequest });
+  const { printing, print } = usePrint();
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadTarget = useRef<{ typeKey: PackDocumentTypeKey; title: string } | null>(null);
@@ -241,6 +243,11 @@ export function DocumentsCard({
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
       );
     }
+  }
+
+  async function printRevision(document: ClientDocument, revision: Revision) {
+    setError(null);
+    setError(await print(document.title, () => pdfOfRevision(apiRequest, document.id, revision)));
   }
 
   async function startDraftFromIssued(document: ClientDocument) {
@@ -531,6 +538,24 @@ export function DocumentsCard({
                               onSelect={() => void download(document, document.issued!, 'pdf')}
                             >
                               Descarcă PDF-ul documentului emis
+                            </DropdownMenuItem>
+                          )}
+                          {document.draft && (
+                            <DropdownMenuItem
+                              data-testid="document-print-draft"
+                              disabled={printing}
+                              onSelect={() => void printRevision(document, document.draft!)}
+                            >
+                              Tipărește ciorna
+                            </DropdownMenuItem>
+                          )}
+                          {document.issued && (
+                            <DropdownMenuItem
+                              data-testid="document-print-issued"
+                              disabled={printing}
+                              onSelect={() => void printRevision(document, document.issued!)}
+                            >
+                              Tipărește documentul emis
                             </DropdownMenuItem>
                           )}
                           {!readOnly && (
