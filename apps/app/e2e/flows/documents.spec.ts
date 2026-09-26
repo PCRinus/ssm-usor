@@ -63,10 +63,10 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 19 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 20 documente.')).toBeVisible();
 
   const rows = page.getByTestId('document-row');
-  await expect(rows).toHaveCount(19);
+  await expect(rows).toHaveCount(20);
   // The equipment list is generated from the positions and their entries (ADR 011).
   await expect(
     rows.filter({ hasText: 'Lista internă de dotare' }).getByTestId('document-draft')
@@ -136,9 +136,21 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByRole('button', { name: 'Emite oricum' }).click();
   await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
 
+  // The own instructions annex the module the position applies (ADR 012): issuing converts
+  // the common part and the module's file into the one PDF the revision keeps.
+  const instructions = page
+    .getByTestId('document-row')
+    .filter({ hasText: /^Instrucțiuni proprii de securitate/ });
+  await act(page, instructions, 'document-issue');
+  await page.getByTestId('document-confirm').click();
+  await expect(instructions.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await instructions.getByTestId('document-actions').click();
+  await expect(page.getByTestId('document-download-pdf')).toBeVisible();
+  await page.keyboard.press('Escape');
+
   // The risk assessment is written elsewhere and uploaded; any Word file will do here. A file
   // uploaded again after issuing is the next draft, beside the issued revision.
-  await expect(page.getByTestId('document-slot')).toHaveCount(4);
+  await expect(page.getByTestId('document-slot')).toHaveCount(3);
   const wordFile = await file.path();
   const slot = page.getByTestId('document-slot').filter({ hasText: 'Evaluarea riscurilor' });
   await expect(slot).toContainText('Neîncărcat');
@@ -148,7 +160,7 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   const assessment = rows.filter({ hasText: 'Evaluarea riscurilor' });
   await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
   await expect(assessment.getByTestId('document-uploaded')).toHaveText('Încărcat');
-  await expect(page.getByTestId('document-slot')).toHaveCount(3);
+  await expect(page.getByTestId('document-slot')).toHaveCount(2);
 
   await act(page, assessment, 'document-issue');
   await page.getByTestId('document-confirm').click();
@@ -180,7 +192,7 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   await page.goto(`/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByTestId('document-row')).toHaveCount(19);
+  await expect(page.getByTestId('document-row')).toHaveCount(20);
 
   await page.getByRole('link', { name: 'Decizia privind responsabilii cu primul ajutor' }).click();
   const frame = page.getByTestId('editor-frame');
@@ -292,6 +304,11 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('equipment-save').click();
   await expect(page.getByText('Articolul a fost adăugat.')).toBeVisible();
   await expect(page.getByTestId('equipment-state')).toHaveText('Un articol');
+  // The same page decides the instruction modules the post applies (ADR 012).
+  await page.getByTestId('instructions-pick').click();
+  await page.getByTestId('instructions-pick-option').first().click();
+  await page.getByTestId('instructions-pick-save').click();
+  await expect(page.getByTestId('instructions-state')).toHaveText('O instrucțiune');
   await page.getByTestId('job-position-back').click();
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')
@@ -299,6 +316,8 @@ test("from 10 employees the set includes the decision on the workers' representa
   await positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-open').click();
   await page.getByTestId('equipment-decide-none').click();
   await expect(page.getByTestId('equipment-none')).toBeVisible();
+  await page.getByTestId('instructions-decide-none').click();
+  await expect(page.getByTestId('instructions-none')).toBeVisible();
   await page.getByTestId('job-position-back').click();
   await expect(
     positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-equipment')
@@ -318,7 +337,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 20 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 21 documente.')).toBeVisible();
   const decision = page
     .getByTestId('document-row')
     .filter({ hasText: 'Decizia privind reprezentanții lucrătorilor' });

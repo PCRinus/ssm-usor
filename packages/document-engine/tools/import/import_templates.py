@@ -1249,6 +1249,40 @@ def sweep(path):
             archive.writestr(item, data)
 
 
+def cut_tail(document, pattern):
+    """Removes everything from the first paragraph matching `pattern` to the end of the body:
+    the chapter a document no longer carries, annexed as separate files instead (ADR 012)."""
+    text = document.Text
+    elements = list(_elements(text))
+    start = next((index for index, element in enumerate(elements)
+                  if element.supportsService('com.sun.star.text.Paragraph')
+                  and re.search(pattern, element.getString())), None)
+    if start is None:
+        raise RuntimeError(f'cut: no paragraph matches {pattern!r}')
+    for element in elements[start:]:
+        if element.supportsService('com.sun.star.text.TextTable'):
+            element.dispose()
+    cursor = text.createTextCursorByRange(elements[start].getStart())
+    cursor.gotoEnd(True)
+    cursor.setString('')
+    return len(elements) - start
+
+
+def append_paragraphs(document, items):
+    """Writes paragraphs at the end of the body, into the empty paragraph a cut leaves."""
+    text = document.Text
+    cursor = text.createTextCursor()
+    cursor.gotoEnd(False)
+    first = cursor.getString() == '' and text.getString().endswith('\n') is False and \
+        list(_elements(text))[-1].getString() == ''
+    for item in items:
+        write_paragraph(text, cursor, item['text'], bold=item.get('bold', False),
+                        italic=item.get('italic', False), adjust=LEFT,
+                        above=item.get('above', 0), below=item.get('below', 6),
+                        keep=item.get('keep', False), first=first)
+        first = False
+
+
 def import_template(desktop, spec_path, wording, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
@@ -1266,6 +1300,10 @@ def import_template(desktop, spec_path, wording, output):
             if count < replacement.get('min', 1):
                 label = replacement.get('find') or f'/{replacement["pattern"]}/'
                 problems.append(f'{label!r} found {count} times, expected at least {replacement.get("min", 1)}')
+        if spec.get('cut'):
+            cut_tail(document, spec['cut'])
+        if spec.get('append'):
+            append_paragraphs(document, spec['append'])
         if spec.get('header'):
             build_header(document, spec['header'])
         strip_spacing(document)

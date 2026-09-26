@@ -44,7 +44,21 @@ export const facts: DocumentFacts = {
       staffCategory: 'technical_administrative',
       workZone: 'Birou',
       activities: null,
+      trainingIntervalMonths: null,
       needsProtectiveEquipment: false,
+      needsInstructions: true,
+      instructions: [
+        {
+          moduleId: 'a0a0a0a0-0000-4000-8000-000000000002',
+          title: 'Activități de birou',
+          group: 'work_activity',
+          version: {
+            id: 'b0b0b0b0-0000-4000-8000-000000000002',
+            number: 1,
+            createdAt: '2026-09-26T10:00:00+00:00',
+          },
+        },
+      ],
       equipment: [],
     },
     {
@@ -53,7 +67,31 @@ export const facts: DocumentFacts = {
       staffCategory: 'execution',
       workZone: null,
       activities: 'Sudură electrică și autogenă.',
+      trainingIntervalMonths: 2,
       needsProtectiveEquipment: true,
+      needsInstructions: true,
+      instructions: [
+        {
+          moduleId: 'a0a0a0a0-0000-4000-8000-000000000001',
+          title: 'Sudură oxiacetilenică',
+          group: 'work_equipment',
+          version: {
+            id: 'b0b0b0b0-0000-4000-8000-000000000001',
+            number: 3,
+            createdAt: '2026-09-25T08:30:00+00:00',
+          },
+        },
+        {
+          moduleId: 'a0a0a0a0-0000-4000-8000-000000000002',
+          title: 'Activități de birou',
+          group: 'work_activity',
+          version: {
+            id: 'b0b0b0b0-0000-4000-8000-000000000002',
+            number: 1,
+            createdAt: '2026-09-26T10:00:00+00:00',
+          },
+        },
+      ],
       equipment: [
         {
           risk: 'Radiații, împroșcare (față, ochi)',

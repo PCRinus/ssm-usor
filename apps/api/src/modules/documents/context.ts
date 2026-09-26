@@ -2,6 +2,7 @@ import {
   decisionTypeKeys,
   type EquipmentAllocation,
   formatTrainingDuration,
+  type InstructionModuleGroup,
   type MissingDocumentData,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
@@ -55,8 +56,19 @@ export type DocumentFacts = {
     staffCategory: StaffCategory;
     workZone: string | null;
     activities: string | null;
+    /** The post's own interval, or null for the client's interval of its category. */
+    trainingIntervalMonths: number | null;
     /** Null until decided; false when the post needs none; true while it has entries (ADR 011). */
     needsProtectiveEquipment: boolean | null;
+    /** Null until decided; false when the post needs none; true while it applies modules (ADR 012). */
+    needsInstructions: boolean | null;
+    /** The instruction modules the post applies, each with its current version. */
+    instructions: {
+      moduleId: string;
+      title: string;
+      group: InstructionModuleGroup;
+      version: { id: string; number: number; createdAt: string };
+    }[];
     equipment: {
       risk: string;
       item: string;
@@ -81,7 +93,22 @@ type PositionContext = {
   workZone: string;
   /** One item when the position has a work zone, which the section head then prints. */
   workZoneLine: Record<string, never>[];
+  /** The zone, or a dash in a table cell. */
+  workZoneOrDash: string;
+  /** "la 3 luni", the post's own interval or its category's. */
+  intervalLabel: string;
+  /** "2 ore", the client's periodic training duration. */
+  trainingDuration: string;
   equipment: { risk: string; item: string; quantityLabel: string; allocationLabel: string }[];
+};
+
+/** One annexed instruction module of the own instructions (ADR 012). */
+type AnnexContext = {
+  number: number;
+  title: string;
+  /** The module version the document annexes; what issuing merges into the PDF. */
+  versionId: string;
+  versionDate: string;
 };
 
 export type DocumentContext = {
@@ -121,6 +148,10 @@ export type DocumentContext = {
   /** Every current position, for the table of posts; then only the ones with equipment. */
   positions: PositionContext[];
   equippedPositions: PositionContext[];
+  /** The modules the positions apply, each once, in the order of the groups and titles. */
+  annexes: AnnexContext[];
+  /** One item when no position applies a module, which the chapter then says. */
+  noAnnexes: Record<string, never>[];
 };
 
 const staffCategoryLabels: Record<StaffCategory, string> = {
@@ -141,11 +172,21 @@ function quantityLabel(entry: { quantity: number; durationMonths: number | null 
   return `${pieces} / ${entry.durationMonths === 1 ? '1 lună' : `${entry.durationMonths} luni`}`;
 }
 
-/** The positions whose equipment is still undecided, which blocks generating (ADR 011). */
-export function undecidedJobPositions(facts: Pick<DocumentFacts, 'jobPositions'>) {
+/**
+ * The positions still undecided about their equipment (ADR 011) or their instructions
+ * (ADR 012), either of which blocks generating; each once.
+ */
+export function undecidedJobPositions(
+  facts: Pick<DocumentFacts, 'jobPositions'>,
+  about: 'equipment' | 'instructions' | 'either' = 'either'
+) {
   return facts.jobPositions
-    .filter((position) => position.needsProtectiveEquipment === null)
-    .map((position) => ({ id: position.id, name: position.name }));
+    .filter(
+      (position) =>
+        (about !== 'instructions' && position.needsProtectiveEquipment === null) ||
+        (about !== 'equipment' && position.needsInstructions === null)
+    )
+    .map((position) => ({ id: position.id, name: position.name.trim() }));
 }
 
 const filled = (value: string | null | undefined): value is string =>
@@ -207,7 +248,8 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
       representativesNeeded === 0 || workersRepresentativeClash(facts) === null,
     ],
     ['positions.any', facts.jobPositions.length > 0],
-    ['positions.equipment', undecidedJobPositions(facts).length === 0],
+    ['positions.equipment', undecidedJobPositions(facts, 'equipment').length === 0],
+    ['positions.instructions', undecidedJobPositions(facts, 'instructions').length === 0],
   ];
   return checks.filter(([, present]) => !present).map(([code]) => code);
 }
@@ -285,12 +327,20 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     name: person.fullName.trim(),
     jobTitle: person.jobTitle.trim(),
   }));
+  const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
+    position.trainingIntervalMonths ??
+    (position.staffCategory === 'execution'
+      ? client.workerTrainingIntervalMonths
+      : client.administrativeTrainingIntervalMonths);
   const positions: PositionContext[] = facts.jobPositions.map((position) => ({
     name: position.name.trim(),
     activities: position.activities?.trim() || '—',
     staffCategory: staffCategoryLabels[position.staffCategory],
     workZone: position.workZone?.trim() ?? '',
     workZoneLine: position.workZone?.trim() ? [{}] : [],
+    workZoneOrDash: position.workZone?.trim() || '—',
+    intervalLabel: intervalLabel(intervalOf(position)),
+    trainingDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
     equipment: position.equipment.map((entry) => ({
       risk: entry.risk.trim(),
       item: entry.item.trim(),
@@ -299,6 +349,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     })),
   }));
   const workplaceManagers = withRole('workplace_manager');
+  const annexes = annexedModules(facts);
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
   return {
@@ -373,7 +424,38 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     unitRisks: [{ risk: unfilledMark, measure: unfilledMark }],
     positions,
     equippedPositions: positions.filter((position) => position.equipment.length > 0),
+    annexes,
+    noAnnexes: annexes.length === 0 ? [{}] : [],
   };
+}
+
+const groupOrder: Record<InstructionModuleGroup, number> = {
+  work_activity: 0,
+  work_equipment: 1,
+  protective_equipment: 2,
+};
+const collator = new Intl.Collator('ro');
+
+/** The modules the current positions apply, each once, numbered in group and title order. */
+export function annexedModules(facts: Pick<DocumentFacts, 'jobPositions'>): AnnexContext[] {
+  const modules = new Map<string, DocumentFacts['jobPositions'][number]['instructions'][number]>();
+  for (const position of facts.jobPositions) {
+    for (const module of position.instructions) modules.set(module.moduleId, module);
+  }
+  return [...modules.values()]
+    .sort((a, b) => groupOrder[a.group] - groupOrder[b.group] || collator.compare(a.title, b.title))
+    .map((module, index) => ({
+      number: index + 1,
+      title: module.title.trim(),
+      versionId: module.version.id,
+      versionDate: printedDate(module.version.createdAt.slice(0, 10)),
+    }));
+}
+
+/** "la 3 luni", "lunar"; a post whose category has no interval prints a dash. */
+function intervalLabel(months: number | null) {
+  if (months === null) return '—';
+  return months === 1 ? 'lunar' : `la ${months} luni`;
 }
 
 /**

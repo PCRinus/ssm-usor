@@ -103,7 +103,25 @@ const positionRow = {
   staff_category: 'execution',
   work_zone: 'Atelier',
   activities: null,
+  training_interval_months: null,
   needs_protective_equipment: true,
+  needs_instructions: true,
+  job_position_instructions: [
+    {
+      module_id: 'a0a0a0a0-0000-4000-8000-000000000001',
+      instruction_modules: {
+        title: 'Scări metalice',
+        module_group: 'work_equipment',
+        instruction_module_versions: [
+          {
+            id: 'b0b0b0b0-0000-4000-8000-000000000001',
+            number: 2,
+            created_at: '2026-09-26T10:00:00+00:00',
+          },
+        ],
+      },
+    },
+  ],
   job_position_equipment: [
     {
       id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
@@ -347,6 +365,8 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
             id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
             name: 'Zidar',
             needs_protective_equipment: null,
+            needs_instructions: null,
+            job_position_instructions: [],
             job_position_equipment: [],
           },
         ]),
@@ -354,7 +374,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       ready: false,
-      missing: ['positions.equipment'],
+      missing: ['positions.equipment', 'positions.instructions'],
       undecidedJobPositions: [{ id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Zidar' }],
     });
     mockUpstream({ positions: () => Response.json([]) });

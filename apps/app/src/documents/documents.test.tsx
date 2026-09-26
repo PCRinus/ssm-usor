@@ -586,14 +586,13 @@ describe('client documents', () => {
 
     const slots = await screen.findAllByTestId('document-slot');
     expect(slots.map((slot) => slot.textContent)).toEqual([
-      expect.stringContaining('Instrucțiuni proprii'),
       expect.stringContaining('Tematica'),
       expect.stringContaining('Evaluarea riscurilor'),
       expect.stringContaining('Planul de prevenire'),
     ]);
-    expect(slots[2]!.textContent).toContain('Neîncărcat');
+    expect(slots[1]!.textContent).toContain('Neîncărcat');
 
-    await user.click(within(slots[2]!).getByTestId('document-slot-upload'));
+    await user.click(within(slots[1]!).getByTestId('document-slot-upload'));
     const file = new File([new Uint8Array([80, 75, 3, 4])], 'evaluare.docx');
     await user.upload(screen.getByTestId<HTMLInputElement>('document-file-input'), file);
 

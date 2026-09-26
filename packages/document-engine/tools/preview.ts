@@ -50,6 +50,9 @@ function sample(
           staffCategory: 'Tehnic-administrativ',
           workZone: 'Birou',
           workZoneLine: [{}],
+          workZoneOrDash: 'Birou',
+          intervalLabel: 'la 6 luni',
+          trainingDuration: '2 ore',
           equipment: [],
         },
         {
@@ -58,6 +61,9 @@ function sample(
           staffCategory: 'Execuție',
           workZone: 'Atelier',
           workZoneLine: [{}],
+          workZoneOrDash: 'Atelier',
+          intervalLabel: 'la 2 luni',
+          trainingDuration: '2 ore',
           equipment: Array.from({ length: 30 }, (_, index) => ({
             risk: `Risc ${index + 1}: înțepături, tăieturi, zgârieturi (mâini, brațe)`,
             item: `Articol ${index + 1}`,
@@ -72,6 +78,9 @@ function sample(
           staffCategory: index === 0 ? 'Tehnic-administrativ' : 'Execuție',
           workZone: index === 0 ? '' : 'Atelier, șantier temporar',
           workZoneLine: index === 0 ? [] : [{}],
+          workZoneOrDash: index === 0 ? '—' : 'Atelier, șantier temporar',
+          intervalLabel: index === 0 ? 'la 6 luni' : 'la 3 luni',
+          trainingDuration: '2 ore',
           equipment: [
             {
               risk: 'Lovituri, impact, cădere de obiecte de la înălțime (craniu)',
@@ -103,6 +112,17 @@ function sample(
       get equippedPositions() {
         return this.positions.filter((position) => position.equipment.length > 0);
       },
+      annexes: [
+        { number: 1, title: 'Activități de birou', versionId: 'v-1', versionDate: '26.09.2026' },
+        { number: 2, title: 'Scări metalice', versionId: 'v-2', versionDate: '12.03.2026' },
+        {
+          number: 3,
+          title: 'Aparat de sudură oxiacetilenică',
+          versionId: 'v-3',
+          versionDate: '26.09.2026',
+        },
+      ],
+      noAnnexes: [],
       client: { legalName, representativeName, representativeRole: 'Administrator' },
       provider: {
         legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',
