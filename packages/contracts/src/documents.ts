@@ -113,6 +113,7 @@ export const missingDocumentData = [
   'responsible.workers_representative_is_legal_representative',
   'positions.any',
   'positions.equipment',
+  'positions.instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -128,7 +129,8 @@ export const documentReadinessResponseSchema = z.object({
   workersRepresentativeClash: z
     .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
     .nullable(),
-  // The positions behind `positions.equipment`, so the form can send someone to each.
+  // The positions behind `positions.equipment` and `positions.instructions`, so the form can
+  // send someone to each.
   undecidedJobPositions: z.array(z.object({ id: z.uuid(), name: z.string() })),
 });
 

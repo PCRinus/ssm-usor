@@ -1455,6 +1455,14 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "needsInstructions": {
+                  "type": "boolean",
+                  "nullable": true
+                },
+                "instructionCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -1475,6 +1483,8 @@
                 "employeeCount",
                 "needsProtectiveEquipment",
                 "equipmentCount",
+                "needsInstructions",
+                "instructionCount",
                 "createdAt",
                 "updatedAt"
               ]
@@ -1530,6 +1540,14 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "needsInstructions": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "instructionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -1550,6 +1568,8 @@
               "employeeCount",
               "needsProtectiveEquipment",
               "equipmentCount",
+              "needsInstructions",
+              "instructionCount",
               "createdAt",
               "updatedAt"
             ]
@@ -1780,6 +1800,289 @@
           }
         },
         "required": ["items"]
+      },
+      "InstructionModuleListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 200
+                },
+                "group": {
+                  "type": "string",
+                  "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                },
+                "archivedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "version": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "number": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sizeBytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "articleCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["id", "number", "sha256", "sizeBytes", "articleCount", "createdAt"]
+                },
+                "appliedCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "group",
+                "archivedAt",
+                "version",
+                "appliedCount",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "InstructionModuleResponse": {
+        "type": "object",
+        "properties": {
+          "module": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 200
+              },
+              "group": {
+                "type": "string",
+                "enum": ["work_activity", "work_equipment", "protective_equipment"]
+              },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "version": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "articleCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": ["id", "number", "sha256", "sizeBytes", "articleCount", "createdAt"]
+              },
+              "appliedCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "group",
+              "archivedAt",
+              "version",
+              "appliedCount",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["module"]
+      },
+      "CreateInstructionModuleRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "group": {
+            "type": "string",
+            "enum": ["work_activity", "work_equipment", "protective_equipment"]
+          }
+        },
+        "required": ["title", "group"]
+      },
+      "UpdateInstructionModuleRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "group": {
+            "type": "string",
+            "enum": ["work_activity", "work_equipment", "protective_equipment"]
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "InstructionModuleFileLinkResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["url", "fileName", "expiresAt"]
+      },
+      "PositionInstructionsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "moduleId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "string",
+                  "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                },
+                "archivedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                }
+              },
+              "required": ["moduleId", "title", "group", "archivedAt"]
+            }
+          },
+          "needsInstructions": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": ["items", "needsInstructions"]
+      },
+      "ApplyInstructionsRequest": {
+        "type": "object",
+        "properties": {
+          "moduleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": ["moduleIds"]
+      },
+      "CopyInstructionsRequest": {
+        "type": "object",
+        "properties": {
+          "fromJobPositionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["fromJobPositionId"]
+      },
+      "InstructionsDecision": {
+        "type": "object",
+        "properties": {
+          "needsInstructions": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": ["needsInstructions"]
       },
       "OrganizationCompanyDetailsResponse": {
         "type": "object",
@@ -2697,7 +3000,8 @@
                 "responsible.workers_representatives_two",
                 "responsible.workers_representative_is_legal_representative",
                 "positions.any",
-                "positions.equipment"
+                "positions.equipment",
+                "positions.instructions"
               ]
             }
           },
@@ -7369,6 +7673,1193 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules": {
+      "get": {
+        "operationId": "listInstructionModules",
+        "summary": "List the organization's instruction modules",
+        "description": "The library (ADR 012), by group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            },
+            "required": false,
+            "name": "archived",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The modules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createInstructionModule",
+        "summary": "Start a module from the skeleton",
+        "description": "A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor. Titles are unique within the organization, ignoring case (reason `instruction_module_title_taken`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInstructionModuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The title is taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/upload": {
+      "post": {
+        "operationId": "uploadInstructionModule",
+        "summary": "Add a module from a Word file",
+        "description": "Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity. One file per request: the app uploads several by calling this once each.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "title",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["work_activity", "work_equipment", "protective_equipment"],
+              "default": "work_activity"
+            },
+            "required": false,
+            "name": "group",
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query, or the body is not a Word document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The title is taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/{moduleId}": {
+      "get": {
+        "operationId": "getInstructionModule",
+        "summary": "Read one module",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moduleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateInstructionModule",
+        "summary": "Rename, regroup, archive or restore a module",
+        "description": "Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moduleId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstructionModuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The module after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The title is taken, or the module is applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/{moduleId}/file-link": {
+      "get": {
+        "operationId": "getInstructionModuleFileLink",
+        "summary": "A short-lived link to the current file",
+        "description": "A signed link to the Word file of the current version, valid for a minute, named after the module. The editor loads it; a download saves it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moduleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleFileLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/{moduleId}/file": {
+      "put": {
+        "operationId": "saveInstructionModuleFile",
+        "summary": "Store the next version of the file",
+        "description": "Takes the bytes of a `.docx`, up to 15 MB, as the body: what the editor saves, or a file uploaded again. Nothing changes in place; every save is the next version, and documents generated before keep citing the one they annexed. Refused on an archived module (reason `instruction_module_archived`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moduleId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The module with its new version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, or the body is not a Word document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The module is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/job-positions/{jobPositionId}/instructions": {
+      "get": {
+        "operationId": "listPositionInstructions",
+        "summary": "List the modules a job position applies",
+        "description": "The modules by group and title, with the position’s decision: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules (ADR 012).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobPositionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The modules and the decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionInstructionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "applyPositionInstructions",
+        "summary": "Set the modules a job position applies",
+        "description": "Replaces the set. Applying the first module decides that the position needs instructions; an empty set leaves it undecided again. An archived module is refused (reason `instruction_module_archived`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobPositionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyInstructionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The modules and the decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionInstructionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body, or a module is not in the library",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A module is archived, or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/job-positions/{jobPositionId}/instructions/copy": {
+      "post": {
+        "operationId": "copyPositionInstructions",
+        "summary": "Apply another position's modules too",
+        "description": "Adds the modules of another position of the same client to this one’s.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobPositionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyInstructionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The modules and the decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionInstructionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body, or the source is not a position of this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/job-positions/{jobPositionId}/instructions-decision": {
+      "patch": {
+        "operationId": "decidePositionInstructions",
+        "summary": "Say that a job position needs no module, or take that back",
+        "description": "`needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules are applied is refused (reason `instructions_applied`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobPositionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstructionsDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The job position after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPositionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Modules are applied, or the client is archived",
             "content": {
               "application/json": {
                 "schema": {

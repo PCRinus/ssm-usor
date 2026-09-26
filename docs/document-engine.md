@@ -286,6 +286,27 @@ The context is built by `apps/api/src/modules/service-contracts/context.ts`, and
 `apps/api/scripts/lib/contract-template.test.ts` merges the real file with it, in every
 combination above.
 
+## Instruction modules
+
+An instruction module ([ADR 012](architecture/adr-012-own-instructions.md)) is a Word file the
+provider writes or uploads, never merged: the engine only reads what the app needs from one
+and changes its fonts. `firstLine` is the first paragraph with text, the title proposed for
+an upload. `countArticles` is how many top-level items the file's most used numbered list
+has, whether the paragraphs carry the numbering themselves or through their style, which is
+the count the training themes cite as "Art. 1–N"; a file without a numbered list counts
+none. `sweepFonts` names the house font in every `rFonts`, in the font table and in the
+theme, so the editor, which serves only that font, shows no notice; nothing else in the file
+changes. `instructionModuleSkeleton()` is the file a module written in the app starts from.
+
+The skeleton and the fixture modules of the dev seed and the flow tests are written by
+`tools/import/build_modules.py` from `tools/import/modules.ro.json` (`pnpm --filter
+@ssm-usor/document-engine build-modules`), as plain OOXML without LibreOffice: a module has
+no header, no footer and no page furniture. The skeleton lands in `src/skeleton.ts`, base64
+in a TypeScript module so the API needs no file at run time; the fixtures land in
+`apps/api/scripts/fixtures/instruction-modules/` with an `index.json` naming their titles
+and groups. Their article list is the one the templates keep, "Art. 1." flush left with
+"1." and "a)" tiers under it.
+
 ## Registering the templates
 
 Both manifests are registered: the pack's, and `templates/other/manifest.json`.

@@ -1102,6 +1102,10 @@ export type JobPositionListResponseItemsItem = {
   needsProtectiveEquipment: boolean | null;
   /** @minimum 0 */
   equipmentCount: number;
+  /** @nullable */
+  needsInstructions: boolean | null;
+  /** @minimum 0 */
+  instructionCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1139,6 +1143,10 @@ export type JobPositionResponseJobPosition = {
   needsProtectiveEquipment: boolean | null;
   /** @minimum 0 */
   equipmentCount: number;
+  /** @nullable */
+  needsInstructions: boolean | null;
+  /** @minimum 0 */
+  instructionCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1297,6 +1305,172 @@ export interface ProtectiveEquipmentDecision {
 
 export interface EquipmentSuggestionsResponse {
   items: string[];
+}
+
+export type InstructionModuleListResponseItemsItemGroup =
+  (typeof InstructionModuleListResponseItemsItemGroup)[keyof typeof InstructionModuleListResponseItemsItemGroup];
+
+export const InstructionModuleListResponseItemsItemGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+} as const;
+
+export type InstructionModuleListResponseItemsItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+  /** @minimum 1 */
+  sizeBytes: number;
+  /** @minimum 0 */
+  articleCount: number;
+  createdAt: string;
+};
+
+export type InstructionModuleListResponseItemsItem = {
+  id: string;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title: string;
+  group: InstructionModuleListResponseItemsItemGroup;
+  /** @nullable */
+  archivedAt: string | null;
+  version: InstructionModuleListResponseItemsItemVersion;
+  /** @minimum 0 */
+  appliedCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface InstructionModuleListResponse {
+  items: InstructionModuleListResponseItemsItem[];
+}
+
+export type InstructionModuleResponseModuleGroup =
+  (typeof InstructionModuleResponseModuleGroup)[keyof typeof InstructionModuleResponseModuleGroup];
+
+export const InstructionModuleResponseModuleGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+} as const;
+
+export type InstructionModuleResponseModuleVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+  /** @minimum 1 */
+  sizeBytes: number;
+  /** @minimum 0 */
+  articleCount: number;
+  createdAt: string;
+};
+
+export type InstructionModuleResponseModule = {
+  id: string;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title: string;
+  group: InstructionModuleResponseModuleGroup;
+  /** @nullable */
+  archivedAt: string | null;
+  version: InstructionModuleResponseModuleVersion;
+  /** @minimum 0 */
+  appliedCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface InstructionModuleResponse {
+  module: InstructionModuleResponseModule;
+}
+
+export type CreateInstructionModuleRequestGroup =
+  (typeof CreateInstructionModuleRequestGroup)[keyof typeof CreateInstructionModuleRequestGroup];
+
+export const CreateInstructionModuleRequestGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+} as const;
+
+export interface CreateInstructionModuleRequest {
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title: string;
+  group: CreateInstructionModuleRequestGroup;
+}
+
+export type UpdateInstructionModuleRequestGroup =
+  (typeof UpdateInstructionModuleRequestGroup)[keyof typeof UpdateInstructionModuleRequestGroup];
+
+export const UpdateInstructionModuleRequestGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+} as const;
+
+export interface UpdateInstructionModuleRequest {
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title?: string;
+  group?: UpdateInstructionModuleRequestGroup;
+  archived?: boolean;
+}
+
+export interface InstructionModuleFileLinkResponse {
+  url: string;
+  fileName: string;
+  expiresAt: string;
+}
+
+export type PositionInstructionsResponseItemsItemGroup =
+  (typeof PositionInstructionsResponseItemsItemGroup)[keyof typeof PositionInstructionsResponseItemsItemGroup];
+
+export const PositionInstructionsResponseItemsItemGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+} as const;
+
+export type PositionInstructionsResponseItemsItem = {
+  moduleId: string;
+  title: string;
+  group: PositionInstructionsResponseItemsItemGroup;
+  /** @nullable */
+  archivedAt: string | null;
+};
+
+export interface PositionInstructionsResponse {
+  items: PositionInstructionsResponseItemsItem[];
+  /** @nullable */
+  needsInstructions: boolean | null;
+}
+
+export interface ApplyInstructionsRequest {
+  /** @maxItems 100 */
+  moduleIds: string[];
+}
+
+export interface CopyInstructionsRequest {
+  fromJobPositionId: string;
+}
+
+export interface InstructionsDecision {
+  /** @nullable */
+  needsInstructions: boolean | null;
 }
 
 /**
@@ -1967,6 +2141,7 @@ export const DocumentReadinessResponseMissingItem = {
     'responsible.workers_representative_is_legal_representative',
   positionsany: 'positions.any',
   positionsequipment: 'positions.equipment',
+  positionsinstructions: 'positions.instructions',
 } as const;
 
 /**
@@ -2958,6 +3133,36 @@ export type ListEquipmentSuggestionsField =
 export const ListEquipmentSuggestionsField = {
   risk: 'risk',
   item: 'item',
+} as const;
+
+export type ListInstructionModulesParams = {
+  archived?: ListInstructionModulesArchived;
+};
+
+export type ListInstructionModulesArchived =
+  (typeof ListInstructionModulesArchived)[keyof typeof ListInstructionModulesArchived];
+
+export const ListInstructionModulesArchived = {
+  true: 'true',
+  false: 'false',
+} as const;
+
+export type UploadInstructionModuleParams = {
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title?: string;
+  group?: UploadInstructionModuleGroup;
+};
+
+export type UploadInstructionModuleGroup =
+  (typeof UploadInstructionModuleGroup)[keyof typeof UploadInstructionModuleGroup];
+
+export const UploadInstructionModuleGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
 } as const;
 
 export type GetDocumentDownloadParams = {
@@ -6655,6 +6860,1400 @@ export function useListEquipmentSuggestions<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getListInstructionModulesUrl = (params?: ListInstructionModulesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/instruction-modules?${stringifiedParams}`
+    : `/instruction-modules`;
+};
+
+/**
+ * The library (ADR 012), by group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them.
+ * @summary List the organization's instruction modules
+ */
+export const listInstructionModules = async (
+  params?: ListInstructionModulesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleListResponse> => {
+  return apiFetch<InstructionModuleListResponse>(getListInstructionModulesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListInstructionModulesQueryKey = (params?: ListInstructionModulesParams) => {
+  return [`/instruction-modules`, ...(params ? [params] : [])] as const;
+};
+
+export const getListInstructionModulesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInstructionModules>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModulesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModules>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInstructionModulesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listInstructionModules>>> = ({ signal }) =>
+    listInstructionModules(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInstructionModules>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListInstructionModulesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInstructionModules>>
+>;
+export type ListInstructionModulesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListInstructionModules<
+  TData = Awaited<ReturnType<typeof listInstructionModules>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListInstructionModulesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModules>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listInstructionModules>>,
+          TError,
+          Awaited<ReturnType<typeof listInstructionModules>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListInstructionModules<
+  TData = Awaited<ReturnType<typeof listInstructionModules>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModulesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModules>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listInstructionModules>>,
+          TError,
+          Awaited<ReturnType<typeof listInstructionModules>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListInstructionModules<
+  TData = Awaited<ReturnType<typeof listInstructionModules>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModulesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModules>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's instruction modules
+ */
+
+export function useListInstructionModules<
+  TData = Awaited<ReturnType<typeof listInstructionModules>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModulesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModules>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListInstructionModulesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateInstructionModuleUrl = () => {
+  return `/instruction-modules`;
+};
+
+/**
+ * A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor. Titles are unique within the organization, ignoring case (reason `instruction_module_title_taken`).
+ * @summary Start a module from the skeleton
+ */
+export const createInstructionModule = async (
+  createInstructionModuleRequest: CreateInstructionModuleRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InstructionModuleResponse>(getCreateInstructionModuleUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createInstructionModuleRequest),
+  });
+};
+
+export const getCreateInstructionModuleMutationKey = () => ['createInstructionModule'] as const;
+
+export const getCreateInstructionModuleMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInstructionModule>>,
+    TError,
+    CreateInstructionModuleMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createInstructionModule>>,
+  TError,
+  CreateInstructionModuleMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateInstructionModuleMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createInstructionModule>>,
+    CreateInstructionModuleMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createInstructionModule(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateInstructionModuleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createInstructionModule>>
+>;
+export type CreateInstructionModuleMutationBody = CreateInstructionModuleRequest;
+export type CreateInstructionModuleMutationError = ErrorType<ApiErrorResponse>;
+export type CreateInstructionModuleMutationVariables = { data: CreateInstructionModuleRequest };
+
+/**
+ * @summary Start a module from the skeleton
+ */
+export const useCreateInstructionModule = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createInstructionModule>>,
+      TError,
+      CreateInstructionModuleMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createInstructionModule>>,
+  TError,
+  CreateInstructionModuleMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateInstructionModuleMutationOptions(options), queryClient);
+};
+
+export const getUploadInstructionModuleUrl = (params?: UploadInstructionModuleParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/instruction-modules/upload?${stringifiedParams}`
+    : `/instruction-modules/upload`;
+};
+
+/**
+ * Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity. One file per request: the app uploads several by calling this once each.
+ * @summary Add a module from a Word file
+ */
+export const uploadInstructionModule = async (
+  uploadInstructionModuleBody: Blob,
+  params?: UploadInstructionModuleParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InstructionModuleResponse>(getUploadInstructionModuleUrl(params), {
+    ...options,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ...getHeaders(options?.headers),
+    },
+    body: uploadInstructionModuleBody,
+  });
+};
+
+export const getUploadInstructionModuleMutationKey = () => ['uploadInstructionModule'] as const;
+
+export const getUploadInstructionModuleMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadInstructionModule>>,
+    TError,
+    UploadInstructionModuleMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadInstructionModule>>,
+  TError,
+  UploadInstructionModuleMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUploadInstructionModuleMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadInstructionModule>>,
+    UploadInstructionModuleMutationVariables
+  > = (props) => {
+    const { data, params } = props ?? {};
+
+    return uploadInstructionModule(data, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadInstructionModuleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadInstructionModule>>
+>;
+export type UploadInstructionModuleMutationBody = Blob;
+export type UploadInstructionModuleMutationError = ErrorType<ApiErrorResponse>;
+export type UploadInstructionModuleMutationVariables = {
+  data: Blob;
+  params?: UploadInstructionModuleParams;
+};
+
+/**
+ * @summary Add a module from a Word file
+ */
+export const useUploadInstructionModule = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof uploadInstructionModule>>,
+      TError,
+      UploadInstructionModuleMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof uploadInstructionModule>>,
+  TError,
+  UploadInstructionModuleMutationVariables,
+  TContext
+> => {
+  return useMutation(getUploadInstructionModuleMutationOptions(options), queryClient);
+};
+
+export const getGetInstructionModuleUrl = (moduleId: string) => {
+  return `/instruction-modules/${moduleId}`;
+};
+
+/**
+ * @summary Read one module
+ */
+export const getInstructionModule = async (
+  moduleId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleResponse> => {
+  return apiFetch<InstructionModuleResponse>(getGetInstructionModuleUrl(moduleId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetInstructionModuleQueryKey = (moduleId: string) => {
+  return [`/instruction-modules/${moduleId}`] as const;
+};
+
+export const getGetInstructionModuleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModule>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInstructionModuleQueryKey(moduleId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstructionModule>>> = ({ signal }) =>
+    getInstructionModule(moduleId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: moduleId !== null && moduleId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getInstructionModule>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetInstructionModuleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInstructionModule>>
+>;
+export type GetInstructionModuleQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetInstructionModule<
+  TData = Awaited<ReturnType<typeof getInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModule>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInstructionModule>>,
+          TError,
+          Awaited<ReturnType<typeof getInstructionModule>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInstructionModule<
+  TData = Awaited<ReturnType<typeof getInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModule>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInstructionModule>>,
+          TError,
+          Awaited<ReturnType<typeof getInstructionModule>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInstructionModule<
+  TData = Awaited<ReturnType<typeof getInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModule>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read one module
+ */
+
+export function useGetInstructionModule<
+  TData = Awaited<ReturnType<typeof getInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModule>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetInstructionModuleQueryOptions(moduleId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateInstructionModuleUrl = (moduleId: string) => {
+  return `/instruction-modules/${moduleId}`;
+};
+
+/**
+ * Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file.
+ * @summary Rename, regroup, archive or restore a module
+ */
+export const updateInstructionModule = async (
+  moduleId: string,
+  updateInstructionModuleRequest: UpdateInstructionModuleRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InstructionModuleResponse>(getUpdateInstructionModuleUrl(moduleId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateInstructionModuleRequest),
+  });
+};
+
+export const getUpdateInstructionModuleMutationKey = () => ['updateInstructionModule'] as const;
+
+export const getUpdateInstructionModuleMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateInstructionModule>>,
+    TError,
+    UpdateInstructionModuleMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateInstructionModule>>,
+  TError,
+  UpdateInstructionModuleMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateInstructionModuleMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateInstructionModule>>,
+    UpdateInstructionModuleMutationVariables
+  > = (props) => {
+    const { moduleId, data } = props ?? {};
+
+    return updateInstructionModule(moduleId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateInstructionModuleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateInstructionModule>>
+>;
+export type UpdateInstructionModuleMutationBody = UpdateInstructionModuleRequest;
+export type UpdateInstructionModuleMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateInstructionModuleMutationVariables = {
+  moduleId: string;
+  data: UpdateInstructionModuleRequest;
+};
+
+/**
+ * @summary Rename, regroup, archive or restore a module
+ */
+export const useUpdateInstructionModule = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateInstructionModule>>,
+      TError,
+      UpdateInstructionModuleMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateInstructionModule>>,
+  TError,
+  UpdateInstructionModuleMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateInstructionModuleMutationOptions(options), queryClient);
+};
+
+export const getGetInstructionModuleFileLinkUrl = (moduleId: string) => {
+  return `/instruction-modules/${moduleId}/file-link`;
+};
+
+/**
+ * A signed link to the Word file of the current version, valid for a minute, named after the module. The editor loads it; a download saves it.
+ * @summary A short-lived link to the current file
+ */
+export const getInstructionModuleFileLink = async (
+  moduleId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleFileLinkResponse> => {
+  return apiFetch<InstructionModuleFileLinkResponse>(getGetInstructionModuleFileLinkUrl(moduleId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetInstructionModuleFileLinkQueryKey = (moduleId: string) => {
+  return [`/instruction-modules/${moduleId}/file-link`] as const;
+};
+
+export const getGetInstructionModuleFileLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInstructionModuleFileLinkQueryKey(moduleId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstructionModuleFileLink>>> = ({
+    signal,
+  }) => getInstructionModuleFileLink(moduleId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: moduleId !== null && moduleId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetInstructionModuleFileLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInstructionModuleFileLink>>
+>;
+export type GetInstructionModuleFileLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetInstructionModuleFileLink<
+  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+          TError,
+          Awaited<ReturnType<typeof getInstructionModuleFileLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInstructionModuleFileLink<
+  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+          TError,
+          Awaited<ReturnType<typeof getInstructionModuleFileLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInstructionModuleFileLink<
+  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to the current file
+ */
+
+export function useGetInstructionModuleFileLink<
+  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetInstructionModuleFileLinkQueryOptions(moduleId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getSaveInstructionModuleFileUrl = (moduleId: string) => {
+  return `/instruction-modules/${moduleId}/file`;
+};
+
+/**
+ * Takes the bytes of a `.docx`, up to 15 MB, as the body: what the editor saves, or a file uploaded again. Nothing changes in place; every save is the next version, and documents generated before keep citing the one they annexed. Refused on an archived module (reason `instruction_module_archived`).
+ * @summary Store the next version of the file
+ */
+export const saveInstructionModuleFile = async (
+  moduleId: string,
+  saveInstructionModuleFileBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<InstructionModuleResponse>(getSaveInstructionModuleFileUrl(moduleId), {
+    ...options,
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ...getHeaders(options?.headers),
+    },
+    body: saveInstructionModuleFileBody,
+  });
+};
+
+export const getSaveInstructionModuleFileMutationKey = () => ['saveInstructionModuleFile'] as const;
+
+export const getSaveInstructionModuleFileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+    TError,
+    SaveInstructionModuleFileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+  TError,
+  SaveInstructionModuleFileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveInstructionModuleFileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+    SaveInstructionModuleFileMutationVariables
+  > = (props) => {
+    const { moduleId, data } = props ?? {};
+
+    return saveInstructionModuleFile(moduleId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveInstructionModuleFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveInstructionModuleFile>>
+>;
+export type SaveInstructionModuleFileMutationBody = Blob;
+export type SaveInstructionModuleFileMutationError = ErrorType<ApiErrorResponse>;
+export type SaveInstructionModuleFileMutationVariables = { moduleId: string; data: Blob };
+
+/**
+ * @summary Store the next version of the file
+ */
+export const useSaveInstructionModuleFile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+      TError,
+      SaveInstructionModuleFileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+  TError,
+  SaveInstructionModuleFileMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveInstructionModuleFileMutationOptions(options), queryClient);
+};
+
+export const getListPositionInstructionsUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/instructions`;
+};
+
+/**
+ * The modules by group and title, with the position’s decision: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules (ADR 012).
+ * @summary List the modules a job position applies
+ */
+export const listPositionInstructions = async (
+  clientId: string,
+  jobPositionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PositionInstructionsResponse> => {
+  return apiFetch<PositionInstructionsResponse>(
+    getListPositionInstructionsUrl(clientId, jobPositionId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListPositionInstructionsQueryKey = (clientId: string, jobPositionId: string) => {
+  return [`/clients/${clientId}/job-positions/${jobPositionId}/instructions`] as const;
+};
+
+export const getListPositionInstructionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPositionInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPositionInstructionsQueryKey(clientId, jobPositionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPositionInstructions>>> = ({
+    signal,
+  }) => listPositionInstructions(clientId, jobPositionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      jobPositionId !== null &&
+      jobPositionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListPositionInstructionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPositionInstructions>>
+>;
+export type ListPositionInstructionsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListPositionInstructions<
+  TData = Awaited<ReturnType<typeof listPositionInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPositionInstructions>>,
+          TError,
+          Awaited<ReturnType<typeof listPositionInstructions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPositionInstructions<
+  TData = Awaited<ReturnType<typeof listPositionInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPositionInstructions>>,
+          TError,
+          Awaited<ReturnType<typeof listPositionInstructions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPositionInstructions<
+  TData = Awaited<ReturnType<typeof listPositionInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the modules a job position applies
+ */
+
+export function useListPositionInstructions<
+  TData = Awaited<ReturnType<typeof listPositionInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListPositionInstructionsQueryOptions(clientId, jobPositionId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getApplyPositionInstructionsUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/instructions`;
+};
+
+/**
+ * Replaces the set. Applying the first module decides that the position needs instructions; an empty set leaves it undecided again. An archived module is refused (reason `instruction_module_archived`).
+ * @summary Set the modules a job position applies
+ */
+export const applyPositionInstructions = async (
+  clientId: string,
+  jobPositionId: string,
+  applyInstructionsRequest: ApplyInstructionsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PositionInstructionsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<PositionInstructionsResponse>(
+    getApplyPositionInstructionsUrl(clientId, jobPositionId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(applyInstructionsRequest),
+    }
+  );
+};
+
+export const getApplyPositionInstructionsMutationKey = () => ['applyPositionInstructions'] as const;
+
+export const getApplyPositionInstructionsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyPositionInstructions>>,
+    TError,
+    ApplyPositionInstructionsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyPositionInstructions>>,
+  TError,
+  ApplyPositionInstructionsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getApplyPositionInstructionsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyPositionInstructions>>,
+    ApplyPositionInstructionsMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, data } = props ?? {};
+
+    return applyPositionInstructions(clientId, jobPositionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyPositionInstructionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyPositionInstructions>>
+>;
+export type ApplyPositionInstructionsMutationBody = ApplyInstructionsRequest;
+export type ApplyPositionInstructionsMutationError = ErrorType<ApiErrorResponse>;
+export type ApplyPositionInstructionsMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  data: ApplyInstructionsRequest;
+};
+
+/**
+ * @summary Set the modules a job position applies
+ */
+export const useApplyPositionInstructions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof applyPositionInstructions>>,
+      TError,
+      ApplyPositionInstructionsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof applyPositionInstructions>>,
+  TError,
+  ApplyPositionInstructionsMutationVariables,
+  TContext
+> => {
+  return useMutation(getApplyPositionInstructionsMutationOptions(options), queryClient);
+};
+
+export const getCopyPositionInstructionsUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/instructions/copy`;
+};
+
+/**
+ * Adds the modules of another position of the same client to this one’s.
+ * @summary Apply another position's modules too
+ */
+export const copyPositionInstructions = async (
+  clientId: string,
+  jobPositionId: string,
+  copyInstructionsRequest: CopyInstructionsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PositionInstructionsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<PositionInstructionsResponse>(
+    getCopyPositionInstructionsUrl(clientId, jobPositionId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(copyInstructionsRequest),
+    }
+  );
+};
+
+export const getCopyPositionInstructionsMutationKey = () => ['copyPositionInstructions'] as const;
+
+export const getCopyPositionInstructionsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof copyPositionInstructions>>,
+    TError,
+    CopyPositionInstructionsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof copyPositionInstructions>>,
+  TError,
+  CopyPositionInstructionsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCopyPositionInstructionsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof copyPositionInstructions>>,
+    CopyPositionInstructionsMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, data } = props ?? {};
+
+    return copyPositionInstructions(clientId, jobPositionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CopyPositionInstructionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof copyPositionInstructions>>
+>;
+export type CopyPositionInstructionsMutationBody = CopyInstructionsRequest;
+export type CopyPositionInstructionsMutationError = ErrorType<ApiErrorResponse>;
+export type CopyPositionInstructionsMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  data: CopyInstructionsRequest;
+};
+
+/**
+ * @summary Apply another position's modules too
+ */
+export const useCopyPositionInstructions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof copyPositionInstructions>>,
+      TError,
+      CopyPositionInstructionsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof copyPositionInstructions>>,
+  TError,
+  CopyPositionInstructionsMutationVariables,
+  TContext
+> => {
+  return useMutation(getCopyPositionInstructionsMutationOptions(options), queryClient);
+};
+
+export const getDecidePositionInstructionsUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/instructions-decision`;
+};
+
+/**
+ * `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules are applied is refused (reason `instructions_applied`).
+ * @summary Say that a job position needs no module, or take that back
+ */
+export const decidePositionInstructions = async (
+  clientId: string,
+  jobPositionId: string,
+  instructionsDecision: InstructionsDecision,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<JobPositionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<JobPositionResponse>(getDecidePositionInstructionsUrl(clientId, jobPositionId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(instructionsDecision),
+  });
+};
+
+export const getDecidePositionInstructionsMutationKey = () =>
+  ['decidePositionInstructions'] as const;
+
+export const getDecidePositionInstructionsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decidePositionInstructions>>,
+    TError,
+    DecidePositionInstructionsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof decidePositionInstructions>>,
+  TError,
+  DecidePositionInstructionsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDecidePositionInstructionsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof decidePositionInstructions>>,
+    DecidePositionInstructionsMutationVariables
+  > = (props) => {
+    const { clientId, jobPositionId, data } = props ?? {};
+
+    return decidePositionInstructions(clientId, jobPositionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DecidePositionInstructionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof decidePositionInstructions>>
+>;
+export type DecidePositionInstructionsMutationBody = InstructionsDecision;
+export type DecidePositionInstructionsMutationError = ErrorType<ApiErrorResponse>;
+export type DecidePositionInstructionsMutationVariables = {
+  clientId: string;
+  jobPositionId: string;
+  data: InstructionsDecision;
+};
+
+/**
+ * @summary Say that a job position needs no module, or take that back
+ */
+export const useDecidePositionInstructions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof decidePositionInstructions>>,
+      TError,
+      DecidePositionInstructionsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof decidePositionInstructions>>,
+  TError,
+  DecidePositionInstructionsMutationVariables,
+  TContext
+> => {
+  return useMutation(getDecidePositionInstructionsMutationOptions(options), queryClient);
+};
 
 export const getGetOrganizationCompanyDetailsUrl = () => {
   return `/organization/company-details`;
