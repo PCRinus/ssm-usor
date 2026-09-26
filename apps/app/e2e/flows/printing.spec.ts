@@ -54,7 +54,7 @@ test('a document is printed as a PDF, from the list and from the editor', async 
   await page.goto(`/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByTestId('document-row')).toHaveCount(19);
+  await expect(page.getByTestId('document-row')).toHaveCount(20);
   const firstAid = page
     .getByTestId('document-row')
     .filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
