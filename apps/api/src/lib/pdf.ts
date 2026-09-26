@@ -11,7 +11,11 @@ import { ApiError } from './errors';
 // hand instead, for local development and the flow tests. With neither, there is no
 // converter, and documents are issued without a PDF rather than not at all.
 
-export type PdfConverter = { convertDocx: (docx: Uint8Array) => Promise<Uint8Array> };
+export type PdfConverter = {
+  convertDocx: (docx: Uint8Array) => Promise<Uint8Array>;
+  /** One PDF of a document and the files it annexes, in the order given (ADR 012). */
+  convertDocuments: (files: Uint8Array[]) => Promise<Uint8Array>;
+};
 
 const unavailable = () =>
   new ApiError(
@@ -24,9 +28,14 @@ const unavailable = () =>
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 /** The same request apps/pdf sends, for a Gotenberg reached by URL. */
-async function convertAt(url: string, docx: Uint8Array) {
+async function convertAt(url: string, files: Uint8Array[]) {
   const form = new FormData();
-  form.append('files', new Blob([new Uint8Array(docx)], { type: docxType }), 'document.docx');
+  files.forEach((file, index) => {
+    // Gotenberg merges in the alphanumeric order of the names.
+    const name = `${String(index + 1).padStart(4, '0')}.docx`;
+    form.append('files', new Blob([new Uint8Array(file)], { type: docxType }), name);
+  });
+  if (files.length > 1) form.append('merge', 'true');
   form.append('pdfa', 'PDF/A-2b');
   const response = await fetch(new URL('/forms/libreoffice/convert', url), {
     method: 'POST',
@@ -41,22 +50,24 @@ export function createPdfConverter(c: Context<ApiEnv>): PdfConverter | null {
   const { GOTENBERG_URL } = c.env;
   const PDF = c.env.PDF_CONVERSION === 'service' ? c.env.PDF : undefined;
   if (!PDF && !GOTENBERG_URL) return null;
-  return {
-    async convertDocx(docx) {
-      try {
-        const pdf = GOTENBERG_URL
-          ? await convertAt(GOTENBERG_URL, docx)
-          : // A copy with a plain ArrayBuffer behind it, which is what crosses the binding.
-            await PDF!.convertDocx(new Uint8Array(docx).buffer);
-        return new Uint8Array(pdf);
-      } catch (error) {
-        // apps/pdf has logged why; here it is enough to know that it was the conversion.
-        const known = error instanceof Error && error.message.includes(pdfConversionFailed);
-        console.error(`PDF conversion failed${known ? '' : `: ${String(error)}`}`);
-        throw unavailable();
-      }
-    },
-  };
+  async function convert(files: Uint8Array[]) {
+    try {
+      // Copies with a plain ArrayBuffer behind them, which is what crosses the binding.
+      const buffers = files.map((file) => new Uint8Array(file).buffer);
+      const pdf = GOTENBERG_URL
+        ? await convertAt(GOTENBERG_URL, files)
+        : files.length === 1
+          ? await PDF!.convertDocx(buffers[0]!)
+          : await PDF!.convertDocuments(buffers);
+      return new Uint8Array(pdf);
+    } catch (error) {
+      // apps/pdf has logged why; here it is enough to know that it was the conversion.
+      const known = error instanceof Error && error.message.includes(pdfConversionFailed);
+      console.error(`PDF conversion failed${known ? '' : `: ${String(error)}`}`);
+      throw unavailable();
+    }
+  }
+  return { convertDocx: (docx) => convert([docx]), convertDocuments: convert };
 }
 
 export function requirePdfConverter(c: Context<ApiEnv>): PdfConverter {

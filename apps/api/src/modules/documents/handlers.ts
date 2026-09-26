@@ -180,7 +180,13 @@ export const saveDocumentDraftFile: RouteHandler<
 export const printDocument: RouteHandler<typeof printDocumentRoute, ApiEnv> = async (c) => {
   const { documentId } = c.req.valid('param');
   const bytes = new Uint8Array(await c.req.arrayBuffer());
-  const pdf = await print(createDataClient(c), requirePdfConverter(c), documentId, bytes);
+  const pdf = await print(
+    createDataClient(c),
+    createFileStore(c),
+    requirePdfConverter(c),
+    documentId,
+    bytes
+  );
   return c.body(new Uint8Array(pdf), 200, { 'Content-Type': 'application/pdf' });
 };
 

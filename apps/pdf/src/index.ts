@@ -2,7 +2,7 @@ import { Container, getContainer } from '@cloudflare/containers';
 import type { PdfService } from '@ssm-usor/contracts';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
-import { convertDocx } from './convert';
+import { convertDocuments, convertDocx } from './convert';
 
 type PdfEnv = { GOTENBERG: DurableObjectNamespace<Gotenberg> };
 
@@ -26,6 +26,11 @@ export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService {
     const container = getContainer(this.env.GOTENBERG);
     // `fetch` starts the container when it sleeps and waits for its port.
     return convertDocx((request) => container.fetch(request), docx);
+  }
+
+  async convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer> {
+    const container = getContainer(this.env.GOTENBERG);
+    return convertDocuments((request) => container.fetch(request), files);
   }
 }
 

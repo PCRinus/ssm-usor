@@ -19,7 +19,13 @@ stay out of the API's deployment: a problem here cannot block an API release.
 
 ```ts
 convertDocx(docx: ArrayBuffer): Promise<ArrayBuffer>;
+convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 ```
+
+`convertDocuments` is one PDF of several Word files in the order given, for a document and
+the instruction modules it annexes ([ADR 012](architecture/adr-012-own-instructions.md)):
+one request to Gotenberg's LibreOffice route with `merge=true`, the files named `0001.docx`,
+`0002.docx` and so on, since Gotenberg merges in the alphanumeric order of the names.
 
 The result is PDF/A-2b: fonts embedded, nothing fetched when it is opened, the flavour meant
 for a copy that is kept as evidence and later signed. It rejects with the message
@@ -44,7 +50,9 @@ that the bytes are a `.docx` before asking.
 The variable exists because `wrangler dev` creates the binding too, with nothing behind it:
 `apps/pdf` is not part of `pnpm dev`.
 
-Issuing reads the draft's Word file, converts those bytes, writes the PDF beside the file
+Issuing reads the draft's Word file and, for the own instructions, the files of the module
+versions its snapshot annexes (`annexes[].versionId`, read from `instruction_module_versions`
+and the `instruction-modules` bucket), converts them into one PDF, writes it beside the file
 (`…/<revision>.pdf`) while the revision is still a draft, which is what lets the storage
 policies accept it, and then calls `issue_document_revision` with both hashes. From then on
 neither file can be written. When the conversion fails nothing is issued: `503` with the
@@ -54,7 +62,7 @@ failed afterwards is overwritten by the next one and removed with the draft.
 Printing goes through a PDF too, so that paper matches the file. An issued revision that has
 a PDF prints that PDF. Anything else, a draft or what the editor shows with its unsaved edits,
 is sent as Word bytes to `POST /documents/{documentId}/print`, which converts them the same
-way and stores nothing. The app opens the result in a hidden frame and calls the browser's
+way, the annexes of the newest revision included, and stores nothing. The app opens the result in a hidden frame and calls the browser's
 print dialog on it; a browser without a PDF viewer gets the file as a download instead.
 
 ## The container
