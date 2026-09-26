@@ -21,6 +21,7 @@ import {
 } from '../../../../../api/generated/api';
 import { ApiHttpError } from '../../../../../api/http';
 import { useAuth } from '../../../../../auth/auth-context';
+import { PositionInstructionsCard } from '../../../../../instructions/position-instructions-card';
 import { JobPositionDialog } from '../../../../../job-positions/job-position-dialog';
 import {
   employeeCountLabel,
@@ -147,6 +148,12 @@ export function JobPositionPage() {
           </dl>
         </section>
         <EquipmentCard
+          clientId={clientId}
+          position={position}
+          userId={userId}
+          readOnly={readOnly}
+        />
+        <PositionInstructionsCard
           clientId={clientId}
           position={position}
           userId={userId}

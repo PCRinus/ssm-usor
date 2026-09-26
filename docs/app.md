@@ -144,7 +144,10 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`              | `/clients/:id/employees`                    | The client's employees with a status filter in the search params.                                                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`                | `/clients/:id/employees/new`                | Form that adds an employee to the client.                                                                                                                         |
 | `routes/_authenticated/clients/$clientId/job-positions/index.tsx`          | `/clients/:id/job-positions`                | The client's job positions (ADR 006): the posts it employs people in.                                                                                             |
-| `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx` | `/clients/:id/job-positions/:jobPositionId` | One position with its protective equipment (ADR 011). Full page, read from the client's list of positions.                                                        |
+| `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx` | `/clients/:id/job-positions/:jobPositionId` | One position with its protective equipment (ADR 011) and the instruction modules it applies (ADR 012). Full page, read from the client's list of positions.       |
+| `routes/_authenticated/instructions.tsx`                                   | `/instructions`                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                          |
+| `routes/_authenticated/instructions/index.tsx`                             | `/instructions`                             | The library: the modules by group, uploading files, starting one from the skeleton, archiving.                                                                    |
+| `routes/_authenticated/instructions/$moduleId.tsx`                         | `/instructions/:moduleId`                   | One module in the in-app Word editor; a full page. Every save is the next version.                                                                                |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`  | `/clients/:id/employees/:employeeId/edit`   | Corrects what was entered about an employee, in the form that adds one (`src/employees/employee-form.tsx`). Full page; returns to the employee page with a toast. |
 | `routes/_authenticated/clients/$clientId/document-data.tsx`                | `/clients/:id/document-data`                | What the client's generated documents print: the representative, the training schedule, workplaces, and responsible persons.                                      |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`              | `/clients/:id/documents`                    | The client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                         |
@@ -601,6 +604,31 @@ mobile navigation link closes the Sheet.
   section of its own, the one fire-safety technician (issue #170), from
   `GET /organization/authorizations`, with the same rules. The contract card's notice of
   missing data links to whichever of the two sections holds what is missing.
+- `/instructions`: the organization's instruction library
+  ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/instructions/`, an entry of
+  the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by
+  group and title, each module with its version and how many articles the file numbers, and
+  how many current positions apply it; "Arată arhiva" lists the archived ones instead. "Încarcă
+  fișiere" takes several `.docx` files and posts each to `POST /instruction-modules/upload`,
+  which titles it after its first line, or the file name when it has none, and puts it in the
+  work activities group; a notice then says to correct titles and groups from the row menu,
+  which also archives and restores. "Scrie o instrucțiune" asks for a title and a group,
+  starts the module from the skeleton and opens it. A title the library already has is
+  reported on the field. Archiving a module a position applies is refused with the positions
+  counted.
+- `/instructions/:moduleId`: the module in the same editor as a document, loaded through
+  `GET …/file-link`. Saving sends the bytes to `PUT …/file` as the next version and keeps
+  what the editor shows, so nothing is fetched again; the badge names the version. An archived
+  module opens in view mode. A file the editor cannot lay out is offered for download, to be
+  fixed in Word and uploaded again.
+- On a job position's page, the card "Instrucțiuni specifice" beside the equipment card:
+  `GET …/instructions` with the same three states as equipment ("Nedecis", "Nu necesită",
+  the count), "Alege instrucțiunile" opens the library as a checklist by group with a search
+  box and a "Vezi" link per module, and saves the set through `PUT …/instructions`; a row's
+  cross removes one module the same way; "Copiază de la alt post" adds another position's
+  modules; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go through
+  `PATCH …/instructions-decision`. The positions table has an "Instrucțiuni" column with the
+  state, amber while undecided.
 - `/profile`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
