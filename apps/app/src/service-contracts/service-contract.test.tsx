@@ -245,6 +245,41 @@ describe('the service contract of a lead', () => {
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
   });
 
+  it('asks again what is missing on coming back, without showing the old list meanwhile', async () => {
+    let gets = 0;
+    mockApi({
+      get: () =>
+        Response.json(
+          gets++ === 0
+            ? state({ readiness: { ready: false, missing: ['provider.bankAccount'] } })
+            : state()
+        ),
+    });
+    const runtime = mount();
+    await screen.findByTestId('contract-missing');
+
+    const answer = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    fetchMock.mockImplementation(async (input, init) => {
+      if (new URL(String(input)).pathname === `/clients/${leadId}/service-contract`) await held;
+      return answer(input, init);
+    });
+    await runtime.router.navigate({ to: '/clients' });
+    await screen.findByTestId('clients-page');
+    runtime.router.history.back();
+
+    const generate = await screen.findByTestId('contract-generate');
+    await waitFor(() => expect(gets).toBe(1));
+    expect(screen.queryByTestId('contract-missing')).toBeNull();
+    expect(generate).toHaveProperty('disabled', true);
+    release();
+    await waitFor(() =>
+      expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', false)
+    );
+    expect(screen.queryByTestId('contract-missing')).toBeNull();
+  });
+
   it('generates the contract and offers it in the editor', async () => {
     mockApi();
     mount();
