@@ -61,6 +61,7 @@ import { Notice } from '../components/notice';
 import { pdfOfRevision, usePrint } from '../documents/print';
 import { todayIso } from '../employees/employee-format';
 import { formatRoDate } from '../lib/dates';
+import { saveFile } from '../lib/save-file';
 import { SendContractDialog } from './send-contract-dialog';
 import {
   groupMissing,
@@ -476,16 +477,9 @@ function ServiceContractBody({
     setError(null);
     try {
       const link = await getDocumentDownload(document!.id, revisionId, { format }, apiRequest);
-      // Saved from a blob, so the file keeps its name with diacritics: a browser ignores
-      // `download` on a link to another origin.
       const response = await fetch(link.url);
       if (!response.ok) throw new Error(`Download failed (${response.status}).`);
-      const objectUrl = URL.createObjectURL(await response.blob());
-      const anchor = window.document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = link.fileName;
-      anchor.click();
-      URL.revokeObjectURL(objectUrl);
+      saveFile(await response.blob(), link.fileName);
     } catch {
       setError('Nu am putut descărca fișierul. Verifică conexiunea și încearcă din nou.');
     }

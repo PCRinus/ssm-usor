@@ -15,6 +15,7 @@ import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
 import { formatRoDate } from '../lib/dates';
+import { saveFile } from '../lib/save-file';
 
 // Public: the return link in a contract email lands here (ADR 007, amended). The person has
 // no account; the token in the address is all that identifies the send, and it goes to the
@@ -179,16 +180,9 @@ function ReturnForm({
     setDownloading(true);
     try {
       const link = await downloadContractReturn({ token }, apiRequest);
-      // Saved from a blob, so the file keeps its name: a browser ignores `download` on a link
-      // to another origin.
       const response = await fetch(link.url);
       if (!response.ok) throw new Error(`Download failed (${response.status}).`);
-      const objectUrl = URL.createObjectURL(await response.blob());
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = link.fileName;
-      anchor.click();
-      URL.revokeObjectURL(objectUrl);
+      saveFile(await response.blob(), link.fileName);
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 409) onChanged();
       else setError('Nu am putut descărca contractul. Verificați conexiunea și încercați din nou.');
