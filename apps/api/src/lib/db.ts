@@ -76,7 +76,12 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
         clientConflictReasons.clientIsLead
       );
   }
-  console.error(`Database request failed (${context}): ${error.code ?? 'no code'}`);
-  // No code means the request never reached PostgREST (network, timeout, gateway).
-  return new ApiError(error.code ? 'internal_error' : 'service_unavailable');
+  // No code means the request never reached PostgREST (network, timeout, gateway). Only then
+  // is the message logged: with a code it can quote the row's values.
+  if (!error.code) {
+    console.error(`Database request failed (${context}): no code: ${error.message ?? ''}`);
+    return new ApiError('service_unavailable');
+  }
+  console.error(`Database request failed (${context}): ${error.code}`);
+  return new ApiError('internal_error');
 }

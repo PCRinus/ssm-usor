@@ -156,6 +156,7 @@ describe('API routes', () => {
   it.each([429, 500, 503])(
     'distinguishes an upstream outage (%s) from invalid credentials',
     async (status) => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
       fetchMock.mockResolvedValue(
         Response.json({ message: 'Sensitive upstream details' }, { status })
       );
@@ -165,6 +166,9 @@ describe('API routes', () => {
         error: 'service_unavailable',
         message: 'Authentication is temporarily unavailable.',
       });
+      expect(logged).toHaveBeenCalledWith(
+        expect.stringMatching(new RegExp(`^Authentication check failed: .*status ${status}`))
+      );
     }
   );
 

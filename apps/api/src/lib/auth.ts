@@ -28,6 +28,9 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
     if (error.status === 401 || error.status === 403 || error.code === 'bad_jwt') {
       throw new ApiError('unauthorized');
     }
+    console.error(
+      `Authentication check failed: ${error.name} (status ${error.status ?? 'none'}, code ${error.code ?? 'none'}${c.req.raw.signal.aborted ? ', caller gone' : ''}): ${error.message}`
+    );
     throw new ApiError('service_unavailable', 'Authentication is temporarily unavailable.');
   }
 
