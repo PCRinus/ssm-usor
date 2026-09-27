@@ -9,7 +9,10 @@ export function loadPostHog(): Promise<PostHog | null> {
   clientPromise ??= import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(token, {
-        api_host: 'https://eu.i.posthog.com',
+        // PostHog's managed proxy on our domain: Firefox's tracking protection blocks
+        // PostHog's own hosts, and with them the support chat.
+        api_host: 'https://e.ssmusor.ro',
+        ui_host: 'https://eu.posthog.com',
         defaults: '2026-05-30',
         capture_pageview: false,
         capture_pageleave: false,

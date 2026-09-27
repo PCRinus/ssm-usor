@@ -158,6 +158,22 @@ describe('dashboard authentication and routing', () => {
     expect(screen.getByTestId('clients-table')).toBeTruthy();
   });
 
+  it('shows the support address when the support chat cannot open', async () => {
+    mount(authFixture(makeSession()).client);
+    const user = userEvent.setup();
+    await screen.findByTestId('dashboard-page');
+    await user.click(screen.getByTestId('report-problem'));
+    const dialog = await screen.findByTestId('report-problem-dialog');
+    expect(within(dialog).getByTestId('report-problem-email').textContent).toBe(
+      'contact@ssmusor.ro'
+    );
+    expect(
+      within(dialog)
+        .getByRole('link', { name: 'Deschide aplicația de e-mail' })
+        .getAttribute('href')
+    ).toMatch(/^mailto:contact@ssmusor\.ro\?/);
+  });
+
   it('closes mobile navigation after selecting a page', async () => {
     vi.stubGlobal(
       'matchMedia',

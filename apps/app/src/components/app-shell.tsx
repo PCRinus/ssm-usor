@@ -50,6 +50,7 @@ import { useAuth } from '../auth/auth-context';
 import { usePostHogSession } from '../observability/use-posthog-session';
 import { CommitVersion } from './commit-version';
 import { Notice } from './notice';
+import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
@@ -242,6 +243,7 @@ export function AppShell() {
   });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportingByEmail, setReportingByEmail] = useState(false);
   const email = session?.user.email ?? 'Contul meu';
   // A failed load leaves the menu with the email alone; the pages report the failure.
   const me = useMe();
@@ -249,7 +251,7 @@ export function AppShell() {
 
   async function reportProblem() {
     if (await openSupport()) return;
-    window.location.href = 'mailto:contact@ssmusor.ro?subject=Problem%C4%83%20SSM%20U%C8%99or';
+    setReportingByEmail(true);
   }
 
   async function signOut() {
@@ -367,6 +369,7 @@ export function AppShell() {
           )}
         </div>
       </div>
+      <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
     </SidebarProvider>
   );
 }
