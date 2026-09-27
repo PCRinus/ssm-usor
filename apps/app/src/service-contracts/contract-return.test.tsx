@@ -49,6 +49,7 @@ beforeEach(() => {
 afterEach(() => {
   disposeRuntimes();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('the return page', () => {
@@ -85,6 +86,20 @@ describe('the return page', () => {
     const form = upload![1]?.body as FormData;
     expect(form.get('token')).toBe('tok-123');
     expect((form.get('file') as File).name).toBe('contract semnat.pdf');
+  });
+
+  it('downloads the contract through its signed link, in the same tab', async () => {
+    mockApi();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mountApp(authFixture().client, '/contract?token=tok-123');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('return-download'));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    const anchor = click.mock.contexts[0] as HTMLAnchorElement;
+    expect(anchor.href).toBe('https://files.example/x');
+    expect(anchor.target).toBe('');
+    const [download] = calls('/contract-returns/download');
+    expect(JSON.parse(String(download![1]?.body))).toEqual({ token: 'tok-123' });
   });
 
   it('says that a copy is already there, and that it can be replaced', async () => {

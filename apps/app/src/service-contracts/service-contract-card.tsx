@@ -62,7 +62,7 @@ import { useRevealErrors } from '../components/use-reveal-errors';
 import { pdfOfRevision, usePrint } from '../documents/print';
 import { todayIso } from '../employees/employee-format';
 import { formatRoDate } from '../lib/dates';
-import { saveFile } from '../lib/save-file';
+import { openDownload } from '../lib/save-file';
 import { SendContractDialog } from './send-contract-dialog';
 import {
   groupMissing,
@@ -488,9 +488,7 @@ function ServiceContractBody({
     setError(null);
     try {
       const link = await getDocumentDownload(document!.id, revisionId, { format }, apiRequest);
-      const response = await fetch(link.url);
-      if (!response.ok) throw new Error(`Download failed (${response.status}).`);
-      saveFile(await response.blob(), link.fileName);
+      openDownload(link.url);
     } catch {
       setError('Nu am putut descărca fișierul. Verifică conexiunea și încearcă din nou.');
     }
