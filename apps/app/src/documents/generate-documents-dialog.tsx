@@ -27,6 +27,7 @@ import { ApiHttpError } from '../api/http';
 import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { dateToIso } from '../lib/dates';
 import {
   groupMissing,
@@ -127,6 +128,7 @@ function GenerateDocumentsForm({
       firstDecisionNumber: String(lastGeneration?.firstDecisionNumber ?? 1),
     },
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = generate.isPending;
   const missing = readiness.data
@@ -173,7 +175,7 @@ function GenerateDocumentsForm({
 
   return (
     <DialogContent data-testid="generate-documents-dialog" className="sm:max-w-xl">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Generează documentația</DialogTitle>
           <DialogDescription>

@@ -24,6 +24,7 @@ import { AnafLookupButton } from '../components/anaf-lookup-button';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   companyDetailsFormSchema,
   type CompanyDetailsFormValues,
@@ -101,6 +102,7 @@ function CompanyDetailsForm({
     resolver: zodResolver(companyDetailsFormSchema),
     defaultValues: toCompanyDetailsForm(saved),
   });
+  const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const busy = update.isPending || lookup.status === 'loading';
   const locked = busy || !canEdit;
@@ -189,6 +191,7 @@ function CompanyDetailsForm({
 
   return (
     <form
+      ref={formRef}
       data-testid="company-details-form"
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}

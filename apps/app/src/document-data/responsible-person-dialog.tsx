@@ -26,6 +26,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field, FieldMessage } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { EmployeeCombobox } from './employee-combobox';
 import {
   emptyResponsiblePersonForm,
@@ -90,6 +91,7 @@ function ResponsiblePersonForm({
     resolver: zodResolver(responsiblePersonFormSchema),
     defaultValues: person ? toResponsiblePersonForm(person) : emptyResponsiblePersonForm,
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const contractTitle = person?.employeeJobTitle;
@@ -150,7 +152,7 @@ function ResponsiblePersonForm({
 
   return (
     <DialogContent data-testid="responsible-dialog" className="sm:max-w-2xl">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {person ? 'Modifică persoana responsabilă' : 'Adaugă o persoană responsabilă'}

@@ -4,6 +4,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   type ClientSummary,
   describedBy,
@@ -59,10 +60,12 @@ function LegalRepresentativeForm({
     fields,
     successMessage: 'Reprezentantul legal a fost salvat.',
   });
+  const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
 
   return (
     <form
+      ref={formRef}
       data-testid="legal-representative-form"
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}

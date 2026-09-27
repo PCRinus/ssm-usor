@@ -429,6 +429,9 @@ describe('client creation', () => {
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('cui-error')).textContent).toContain('Există deja');
     expect(runtime.router.state.location.pathname).toBe('/clients/new');
+    const cui = screen.getByTestId('client-cui');
+    await waitFor(() => expect(document.activeElement).toBe(cui));
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts).toContain(cui);
   });
 
   it('maps server validation issues to fields and other failures to the form', async () => {

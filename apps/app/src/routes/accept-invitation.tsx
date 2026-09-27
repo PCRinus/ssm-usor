@@ -24,6 +24,7 @@ import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
 import { PublicFrame } from '../components/public-frame';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   createAccountSchema,
   type CreateAccountValues,
@@ -247,6 +248,7 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
     resolver: zodResolver(createAccountSchema),
     defaultValues: { fullName: '', password: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ fullName, password }) => {
@@ -277,6 +279,7 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
   return (
     <Frame title={`Alătură-te echipei ${invitation.organizationName}`} description={description}>
       <form
+        ref={formRef}
         className="grid gap-5"
         aria-busy={isSubmitting}
         noValidate
@@ -350,6 +353,7 @@ function JoinForm({ token, invitation, description }: AcceptFormProps) {
     resolver: needsName ? zodResolver(joinSchema) : undefined,
     defaultValues: { fullName: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ fullName }) => {
@@ -371,6 +375,7 @@ function JoinForm({ token, invitation, description }: AcceptFormProps) {
   return (
     <Frame title={`Intră în ${invitation.organizationName}`} description={description}>
       <form
+        ref={formRef}
         className="grid gap-5"
         aria-busy={isSubmitting}
         noValidate

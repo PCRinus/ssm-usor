@@ -18,6 +18,7 @@ import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { todayIso } from '../employees/employee-format';
 import {
   authorizationsFormSchema,
@@ -90,6 +91,7 @@ function AuthorizationsForm({
     resolver: zodResolver(authorizationsFormSchema),
     defaultValues: toAuthorizationsForm(saved),
   });
+  const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const busy = update.isPending;
   const locked = busy || !canEdit;
@@ -142,6 +144,7 @@ function AuthorizationsForm({
 
   return (
     <form
+      ref={formRef}
       data-testid="authorizations-form"
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}

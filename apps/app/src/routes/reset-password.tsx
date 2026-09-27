@@ -17,6 +17,7 @@ import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
 import { PublicFrame } from '../components/public-frame';
+import { useRevealErrors } from '../components/use-reveal-errors';
 
 // Public: the link in a password reset email lands here. Opening it does nothing; the
 // token is used only when a new password is submitted, because mail scanners open links.
@@ -51,6 +52,7 @@ export function ResetPasswordPage() {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { password: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ password }) => {
@@ -83,6 +85,7 @@ export function ResetPasswordPage() {
       description="După salvare intri direct în aplicație, iar celelalte dispozitive sunt deconectate."
     >
       <form
+        ref={formRef}
         className="grid gap-5"
         aria-busy={isSubmitting}
         noValidate

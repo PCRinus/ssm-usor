@@ -23,6 +23,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 
 const schema = z.object({
   to: z
@@ -57,6 +58,7 @@ export function SendContractDialog({
     resolver: zodResolver(schema),
     values: { to: contactEmail ?? '', note: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
 
   function close() {
@@ -95,7 +97,12 @@ export function SendContractDialog({
             vine la adresa ta de email, unde primești și o copie a mesajului.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={(event) => void onSubmit(event)} noValidate className="grid gap-5">
+        <form
+          ref={formRef}
+          onSubmit={(event) => void onSubmit(event)}
+          noValidate
+          className="grid gap-5"
+        >
           <Field id="send-to" label="Către" mark="required" error={errors.to}>
             <Input
               id="send-to"

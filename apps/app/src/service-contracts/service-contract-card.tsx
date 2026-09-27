@@ -58,6 +58,7 @@ import type { Client } from '../clients/client-form-schema';
 import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { pdfOfRevision, usePrint } from '../documents/print';
 import { todayIso } from '../employees/employee-format';
 import { formatRoDate } from '../lib/dates';
@@ -348,6 +349,7 @@ function ServiceContractBody({
     resolver: zodResolver(serviceContractFormSchema),
     defaultValues: toServiceContractForm(saved, todayIso()),
   });
+  const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const busy =
     save.isPending ||
@@ -634,6 +636,7 @@ function ServiceContractBody({
             </dl>
           ) : (
             <form
+              ref={formRef}
               data-testid="service-contract-form"
               onSubmit={(event) => void onSubmit(event)}
               aria-busy={busy}
