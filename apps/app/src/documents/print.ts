@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { type ApiErrorResponse, getDocumentDownload, printDocument } from '../api/generated/api';
 import { ApiHttpError, type ApiRequestOptions } from '../api/http';
+import { saveFile } from '../lib/save-file';
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -25,15 +26,6 @@ function printPdf(pdf: Blob) {
   printed.src = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }));
   window.document.body.append(printed);
   frame = printed;
-}
-
-function saveAs(file: Blob, fileName: string) {
-  const objectUrl = URL.createObjectURL(file);
-  const anchor = window.document.createElement('a');
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  anchor.click();
-  URL.revokeObjectURL(objectUrl);
 }
 
 async function fetchFile(
@@ -73,7 +65,7 @@ export function usePrint() {
       const file = await pdf();
       // Without a viewer, a PDF in a frame is downloaded under a random name and never printed.
       if (!navigator.pdfViewerEnabled) {
-        saveAs(file, `${title}.pdf`);
+        saveFile(file, `${title}.pdf`);
         toast.info(
           `Browserul nu afișează PDF-uri, așa că „${title}” a fost descărcat. Deschide fișierul și tipărește-l de acolo.`
         );

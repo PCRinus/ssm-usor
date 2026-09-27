@@ -54,6 +54,7 @@ import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
+import { saveFile } from '../lib/save-file';
 import {
   type ClientDocument,
   notApplicableTitles,
@@ -227,17 +228,9 @@ export function DocumentsCard({
     setError(null);
     try {
       const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
-      // Saved from a blob, so the file gets the document's name with its diacritics: a
-      // browser ignores `download` on a link to another origin, and Storage's own header
-      // percent-encodes the name.
       const response = await fetch(link.url);
       if (!response.ok) throw new Error(`Download failed (${response.status}).`);
-      const objectUrl = URL.createObjectURL(await response.blob());
-      const anchor = window.document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = link.fileName;
-      anchor.click();
-      URL.revokeObjectURL(objectUrl);
+      saveFile(await response.blob(), link.fileName);
     } catch {
       setError(
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
