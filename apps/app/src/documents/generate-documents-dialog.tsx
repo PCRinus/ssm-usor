@@ -136,7 +136,9 @@ function GenerateDocumentsForm({
         readiness.data.undecidedJobPositions
       )
     : [];
-  const ready = readiness.data?.ready === true;
+  // The cached answer predates what was filled in since, so it waits for the one asked above.
+  const checking = readiness.isPending || (readiness.isFetching && !readiness.isFetchedAfterMount);
+  const ready = !checking && readiness.data?.ready === true;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -179,7 +181,7 @@ function GenerateDocumentsForm({
             Documentele existente rămân neschimbate.
           </DialogDescription>
         </DialogHeader>
-        {readiness.isPending ? (
+        {checking ? (
           <Skeleton className="mt-5 h-28 w-full" />
         ) : readiness.isError ? (
           <Notice
@@ -206,7 +208,7 @@ function GenerateDocumentsForm({
             )}
           </Notice>
         )}
-        {!readiness.data ? null : !ready ? (
+        {checking || !readiness.data ? null : !ready ? (
           <div data-testid="generate-missing" className="mt-5 grid gap-3 text-sm">
             <p>
               Documentele nu lasă niciun câmp gol, așa că mai întâi trebuie completate câteva date:

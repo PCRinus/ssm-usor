@@ -189,6 +189,33 @@ describe('client documents', () => {
     expect(screen.queryByTestId('generate-submit')).toBeNull();
   });
 
+  it('does not show the old missing list while asking again on reopening', async () => {
+    mockApi({ readiness: { ready: false, missing: ['responsible.first_aid'] } });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    await screen.findByTestId('generate-missing-place');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('generate-documents-dialog')).toBeNull());
+
+    const answer = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    fetchMock.mockImplementation(async (input, init) => {
+      if (new URL(String(input)).pathname !== `/clients/${clientId}/documents/readiness`) {
+        return answer(input, init);
+      }
+      await held;
+      return Response.json({ currentEmployeeCount: 6, ready: true, missing: [] });
+    });
+    await user.click(screen.getByTestId('documents-generate'));
+    await screen.findByTestId('generate-documents-dialog');
+    expect(screen.queryByTestId('generate-missing-place')).toBeNull();
+    release();
+    await screen.findByTestId('generate-submit');
+    expect(screen.queryByTestId('generate-missing-place')).toBeNull();
+  });
+
   it('does not tell an owner to ask the owner', async () => {
     mockApi({ readiness: { ready: false, missing: ['provider.legalName'] } });
     mount();

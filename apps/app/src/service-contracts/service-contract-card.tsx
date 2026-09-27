@@ -272,7 +272,11 @@ export function ServiceContractCard({
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryKey = [...getGetServiceContractQueryKey(client.id), userId];
-  const contract = useGetServiceContract(client.id, { request: apiRequest, query: { queryKey } });
+  // Fetched again every time the card shows: the missing data is filled in on other pages.
+  const contract = useGetServiceContract(client.id, {
+    request: apiRequest,
+    query: { queryKey, staleTime: 0 },
+  });
 
   return (
     <section data-testid="service-contract-card" className="grid gap-4">
@@ -300,6 +304,7 @@ export function ServiceContractCard({
           key={JSON.stringify([contract.data.contract, contract.data.clientRepresentative])}
           client={client}
           saved={contract.data}
+          checking={contract.isFetching && !contract.isFetchedAfterMount}
           queryKey={queryKey}
           readOnly={readOnly}
           editor={editor}
@@ -312,12 +317,14 @@ export function ServiceContractCard({
 function ServiceContractBody({
   client,
   saved,
+  checking,
   queryKey,
   readOnly,
   editor,
 }: {
   client: Client;
   saved: ServiceContractResponse;
+  checking: boolean;
   queryKey: readonly unknown[];
   readOnly: boolean;
   editor: (children: ReactNode, testId: string) => ReactNode;
@@ -362,9 +369,11 @@ function ServiceContractBody({
     : (document?.title ?? 'Contractul');
   const generateBlocked = unsaved
     ? 'Salvează mai întâi detaliile contractului.'
-    : readiness.ready
-      ? undefined
-      : 'Mai lipsesc date pe care contractul le tipărește.';
+    : checking
+      ? 'Verificăm dacă datele sunt complete…'
+      : readiness.ready
+        ? undefined
+        : 'Mai lipsesc date pe care contractul le tipărește.';
 
   async function refresh(response?: ServiceContractResponse) {
     if (response) queryClient.setQueryData(queryKey, response);
@@ -743,7 +752,7 @@ function ServiceContractBody({
             </Notice>
           )}
 
-          {!readOnly && readiness.missing.length > 0 && saved.contract !== null && (
+          {!readOnly && !checking && readiness.missing.length > 0 && saved.contract !== null && (
             <Notice
               variant="warning"
               data-testid="contract-missing"
@@ -894,7 +903,7 @@ function ServiceContractBody({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         data-testid="contract-generate"
-                        disabled={busy || unsaved || !readiness.ready}
+                        disabled={busy || unsaved || checking || !readiness.ready}
                         title={generateBlocked}
                         onSelect={() => void run('generate')}
                       >
@@ -982,7 +991,7 @@ function ServiceContractBody({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         data-testid="contract-generate"
-                        disabled={busy || unsaved || !readiness.ready}
+                        disabled={busy || unsaved || checking || !readiness.ready}
                         title={generateBlocked}
                         onSelect={() => setConfirming('regenerate')}
                       >
@@ -1113,7 +1122,7 @@ function ServiceContractBody({
             <div className="flex justify-end">
               <Button
                 data-testid="contract-generate"
-                disabled={busy || unsaved || !readiness.ready}
+                disabled={busy || unsaved || checking || !readiness.ready}
                 title={generateBlocked}
                 onClick={() => void run('generate')}
               >
