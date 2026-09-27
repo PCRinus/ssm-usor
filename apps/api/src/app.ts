@@ -26,6 +26,16 @@ import { createRouter } from './router';
 export function createApp() {
   const app = createRouter();
 
+  // Every 5xx leaves a line, also from a path that does not log its cause. The ray id is the
+  // one the SPA reports for a failed request.
+  app.use('*', async (c, next) => {
+    const started = Date.now();
+    await next();
+    if (c.res.status < 500) return;
+    console.error(
+      `${c.req.method} ${c.req.path} answered ${c.res.status} after ${Date.now() - started} ms (ray ${c.req.header('cf-ray') ?? 'none'})`
+    );
+  });
   app.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
     await next();
@@ -35,6 +45,7 @@ export function createApp() {
       // The waitlist form is the only thing the marketing site may call.
       origin: c.req.path === '/waitlist' ? [marketingOrigin(c.env)] : allowedOrigins(c.env),
       allowHeaders: ['Authorization', 'Content-Type'],
+      exposeHeaders: ['cf-ray'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       maxAge: 600,
     })(c, next)

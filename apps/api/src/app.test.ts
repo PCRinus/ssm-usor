@@ -172,6 +172,20 @@ describe('API routes', () => {
     }
   );
 
+  it('logs every 5xx with its route, status, time and ray id', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchMock.mockResolvedValue(Response.json({}, { status: 503 }));
+    const response = await createApp().request(
+      '/me',
+      { headers: { Authorization: 'Bearer token', 'cf-ray': '8c1f2a3b4c5d6e7f-OTP' } },
+      env
+    );
+    expect(response.status).toBe(503);
+    expect(logged).toHaveBeenCalledWith(
+      expect.stringMatching(/^GET \/me answered 503 after \d+ ms \(ray 8c1f2a3b4c5d6e7f-OTP\)$/)
+    );
+  });
+
   it('handles network failures without exposing their details', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     fetchMock.mockRejectedValue(new TypeError('Sensitive connection details'));
@@ -225,6 +239,17 @@ describe('CORS', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     }
   );
+
+  it('lets the SPA read the ray id of a response', async () => {
+    const response = await createApp().request(
+      '/health',
+      { headers: { Origin: 'https://app.ssmusor.ro' } },
+      env
+    );
+    expect(response.headers.get('Access-Control-Expose-Headers')?.toLowerCase()).toContain(
+      'cf-ray'
+    );
+  });
 
   // A browser refuses a method the preflight does not list, and mocked handler tests cannot
   // see that. Every method a route uses must be allowed.

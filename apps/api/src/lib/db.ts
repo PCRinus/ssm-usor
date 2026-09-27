@@ -6,12 +6,34 @@ import type { Database } from '../database.types';
 import { type ApiEnv, supabaseConfigSchema } from './env';
 import { ApiError } from './errors';
 
+const slowRequestMs = 2_000;
+
+// Slow requests are logged whether or not they succeed: an upstream that wakes slowly after a
+// quiet spell shows here before its requests start to time out.
 export function requestFetch(c: Context<ApiEnv>, timeoutMs: number): typeof fetch {
-  return (input, init) =>
-    fetch(input, {
-      ...init,
-      signal: AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(timeoutMs)]),
-    });
+  return async (input, init) => {
+    const started = Date.now();
+    let outcome = 'no response';
+    try {
+      const response = await fetch(input, {
+        ...init,
+        signal: AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(timeoutMs)]),
+      });
+      outcome = `status ${response.status}`;
+      return response;
+    } finally {
+      const elapsed = Date.now() - started;
+      if (elapsed >= slowRequestMs) {
+        console.warn(`Slow upstream request: ${upstream(input)} took ${elapsed} ms (${outcome})`);
+      }
+    }
+  };
+}
+
+// The service and the resource only: the ids, filters and signed tokens after them stay out.
+function upstream(input: RequestInfo | URL) {
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  return url.host + url.pathname.split('/').slice(0, 4).join('/');
 }
 
 export function supabaseConfig(c: Context<ApiEnv>) {

@@ -47,6 +47,12 @@ export function loadPostHog(): Promise<PostHog | null> {
   return clientPromise;
 }
 
+// Never loads PostHog: a page without a signed-in user has none running, and capturing is
+// off until the session opts in.
+export function captureEvent(event: string, properties: Record<string, unknown>) {
+  void clientPromise?.then((client) => client?.capture(event, properties)).catch(() => {});
+}
+
 export function stopPostHog(client: PostHog) {
   client.conversations.hide();
   client.clearIdentity();

@@ -4,10 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getGetMeQueryOptions, getMe, printDocument } from './generated/api';
 import { apiFetch, ApiHttpError } from './http';
 
+const captured = vi.hoisted(() => vi.fn());
+vi.mock('../observability/posthog', () => ({ captureEvent: captured }));
+
 const fetchMock = vi.fn<typeof fetch>();
 const baseUrl = 'https://api.example.test';
 
 beforeEach(() => {
+  captured.mockReset();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -95,5 +99,63 @@ describe('generated client HTTP adapter', () => {
     await rejection;
     expect(signal?.aborted).toBe(true);
     expect(client.getQueryCache().getAll()).toHaveLength(0);
+  });
+});
+
+describe('reporting failed requests', () => {
+  const clientId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
+
+  it('reports a server failure with its route, status and ray id, without ids', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json(
+        { error: 'service_unavailable' },
+        { status: 503, headers: { 'cf-ray': 'abc-OTP' } }
+      )
+    );
+    await expect(apiFetch(`/clients/${clientId}/documents`, { baseUrl })).rejects.toThrow();
+    expect(captured).toHaveBeenCalledWith(
+      'api_request_failed',
+      expect.objectContaining({
+        method: 'GET',
+        route: '/clients/:id/documents',
+        kind: 'status',
+        status: 503,
+        cf_ray: 'abc-OTP',
+        duration_ms: expect.any(Number),
+      })
+    );
+  });
+
+  it('reports a request that never got an answer, without its query string', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(
+      apiFetch('/contract-returns/lookup?token=secret', { baseUrl, method: 'POST' })
+    ).rejects.toThrow('Failed to fetch');
+    expect(captured).toHaveBeenCalledWith(
+      'api_request_failed',
+      expect.objectContaining({
+        method: 'POST',
+        route: '/contract-returns/lookup',
+        kind: 'network',
+        error: 'TypeError: Failed to fetch',
+      })
+    );
+    expect(JSON.stringify(captured.mock.calls)).not.toContain('secret');
+  });
+
+  it.each([400, 403, 404, 409])('leaves out an answer the forms handle (%s)', async (status) => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'x' }, { status }));
+    await expect(apiFetch('/me', { baseUrl })).rejects.toThrow();
+    expect(captured).not.toHaveBeenCalled();
+  });
+
+  it('leaves out a request the app cancelled', async () => {
+    const controller = new AbortController();
+    fetchMock.mockImplementation(async () => {
+      controller.abort();
+      throw new DOMException('Aborted', 'AbortError');
+    });
+    await expect(apiFetch('/me', { baseUrl, signal: controller.signal })).rejects.toThrow();
+    expect(captured).not.toHaveBeenCalled();
   });
 });
