@@ -139,7 +139,12 @@ export function LeadPage() {
           readOnly={archived}
           editor={(children, testId) => (
             <Button asChild variant="outline" size="sm">
-              <Link to="/leads/$leadId/contract" params={{ leadId: lead.id }} data-testid={testId}>
+              <Link
+                to="/leads/$leadId/contract"
+                params={{ leadId: lead.id }}
+                state={{ openedFromList: true }}
+                data-testid={testId}
+              >
                 {children}
               </Link>
             </Button>

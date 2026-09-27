@@ -39,6 +39,7 @@ export function OtherDocumentsPage() {
             <Link
               to="/clients/$clientId/other-documents/contract"
               params={{ clientId: client.id }}
+              state={{ openedFromList: true }}
               data-testid={testId}
             >
               {children}

@@ -21,6 +21,10 @@ declare module '@tanstack/react-router' {
   }
   // Routes declare their breadcrumb title; the shell reads it from the matched routes.
   // A route under a client sets fullPage to render without the client summary and tabs.
+  // Set by a link from a list to its editor, whose back link then goes back instead.
+  interface HistoryState {
+    openedFromList?: boolean;
+  }
   interface StaticDataRouteOption {
     title?: string;
     fullPage?: boolean;

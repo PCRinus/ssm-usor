@@ -267,6 +267,7 @@ export function DocumentsCard({
     await navigate({
       to: '/clients/$clientId/documents/$documentId',
       params: { clientId, documentId: document.id },
+      state: { openedFromList: true },
     });
   }
 
@@ -437,6 +438,7 @@ export function DocumentsCard({
                         void navigate({
                           to: '/clients/$clientId/documents/$documentId',
                           params: { clientId, documentId: document.id },
+                          state: { openedFromList: true },
                         })
                     )}
                   >
@@ -444,6 +446,7 @@ export function DocumentsCard({
                       <Link
                         to="/clients/$clientId/documents/$documentId"
                         params={{ clientId, documentId: document.id }}
+                        state={{ openedFromList: true }}
                         data-testid="document-title"
                         className="font-medium underline-offset-4 hover:underline"
                       >

@@ -684,6 +684,34 @@ describe('client documents', () => {
     expect(await screen.findByTestId('editor-back')).toBeTruthy();
   });
 
+  it('goes back to the list it was opened from, instead of adding the list again', async () => {
+    mockApi({ items: [firstAid, report] });
+    const runtime = mount();
+    const user = userEvent.setup();
+    const [title] = await screen.findAllByTestId('document-title');
+    await user.click(title!);
+    await screen.findByText('Salvat');
+    await user.click(screen.getByTestId('editor-back'));
+    await screen.findAllByTestId('document-row');
+    expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.history.length).toBe(2);
+  });
+
+  it('follows the link to the list from an editor opened directly', async () => {
+    mockApi({ items: [firstAid, report] });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/documents/${firstAidId}`
+    );
+    const user = userEvent.setup();
+    // The placeholder's back link is replaced once the editor loads.
+    await screen.findByText('Salvat');
+    await user.click(screen.getByTestId('editor-back'));
+    await screen.findAllByTestId('document-row');
+    expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.history.length).toBe(2);
+  });
+
   it('points to the generation form when regenerating is refused for missing data', async () => {
     mockApi({
       items: [firstAid],
