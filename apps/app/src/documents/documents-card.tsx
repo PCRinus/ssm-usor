@@ -228,7 +228,7 @@ export function DocumentsCard({
     setError(null);
     try {
       const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
-      openDownload(link.url);
+      openDownload(apiRequest.baseUrl, link);
     } catch {
       setError(
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`

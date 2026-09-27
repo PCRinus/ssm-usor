@@ -180,7 +180,7 @@ function ReturnForm({
     setDownloading(true);
     try {
       const link = await downloadContractReturn({ token }, apiRequest);
-      openDownload(link.url);
+      openDownload(apiRequest.baseUrl, link);
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 409) onChanged();
       else setError('Nu am putut descărca contractul. Verificați conexiunea și încercați din nou.');

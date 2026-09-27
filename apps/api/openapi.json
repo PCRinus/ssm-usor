@@ -11770,6 +11770,57 @@
         }
       }
     },
+    "/files/download": {
+      "get": {
+        "operationId": "downloadFile",
+        "summary": "Save a file from a signed Storage link under its own name",
+        "description": "Opened by the browser, not fetched: the answer is an attachment, which a mobile browser hands to its download manager. The signed link authorizes the read and expires on its own.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "source",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file, as an attachment",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/service-contract": {
       "get": {
         "operationId": "getServiceContract",

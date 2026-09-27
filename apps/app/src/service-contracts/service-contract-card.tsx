@@ -488,7 +488,7 @@ function ServiceContractBody({
     setError(null);
     try {
       const link = await getDocumentDownload(document!.id, revisionId, { format }, apiRequest);
-      openDownload(link.url);
+      openDownload(apiRequest.baseUrl, link);
     } catch {
       setError('Nu am putut descărca fișierul. Verifică conexiunea și încearcă din nou.');
     }

@@ -13,13 +13,20 @@ export function saveFile(file: Blob, fileName: string) {
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }
 
-// For a file in Storage, through a link signed with its name, which Storage answers as an
-// attachment under that name. Not fetched into the page and saved from a blob: Firefox on
+// For a file in Storage: the API passes it through under a header with its real name, and
+// the browser opens that address. Not fetched into the page and saved from a blob: Firefox on
 // Android cannot save an object URL at all and shows a blank tab, while its download manager
 // fetches a real address like any other file. Same tab, so no empty tab is left behind.
-export function openDownload(url: string) {
+export function openDownload(
+  apiBaseUrl: string | undefined,
+  link: { url: string; fileName: string }
+) {
+  if (!apiBaseUrl) throw new Error('The API URL is not configured.');
+  const address = new URL('files/download', `${apiBaseUrl.replace(/\/$/, '')}/`);
+  address.searchParams.set('source', link.url);
+  address.searchParams.set('name', link.fileName);
   const anchor = document.createElement('a');
-  anchor.href = url;
+  anchor.href = address.href;
   anchor.hidden = true;
   document.body.append(anchor);
   anchor.click();

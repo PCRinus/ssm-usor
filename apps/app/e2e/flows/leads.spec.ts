@@ -229,6 +229,9 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     expect((await sentPdf).suggestedFilename()).toMatch(
       /^Contract nr\. 51 din \d{2}\.\d{2}\.\d{4}\.pdf$/
     );
+    // A real address the browser's download manager can fetch: Firefox on Android cannot
+    // save an in-page object URL and shows a blank tab.
+    expect((await sentPdf).url()).toContain('/files/download?');
     await returnPage.getByTestId('return-file').setInputFiles({
       name: 'contract semnat.pdf',
       mimeType: 'application/pdf',
