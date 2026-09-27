@@ -14,6 +14,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
+import { useBackToList } from '../components/use-back-to-list';
 import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
 import { editorFrameClassName, saveAs } from './editor-frame';
@@ -51,6 +52,7 @@ export function DocumentEditorPage({
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const backToList = useBackToList();
   const documents = useListClientDocuments(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
@@ -72,6 +74,7 @@ export function DocumentEditorPage({
               to="/clients/$clientId/documents"
               params={{ clientId }}
               data-testid="editor-back"
+              onClick={backToList}
               aria-label="Înapoi la documente"
             >
               <ArrowLeft aria-hidden="true" />

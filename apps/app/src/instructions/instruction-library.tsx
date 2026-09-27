@@ -229,13 +229,18 @@ export function InstructionLibrary({ userId }: { userId: string }) {
                     key={module.id}
                     data-testid="instruction-row"
                     {...rowClickProps(() =>
-                      navigate({ to: '/instructions/$moduleId', params: { moduleId: module.id } })
+                      navigate({
+                        to: '/instructions/$moduleId',
+                        params: { moduleId: module.id },
+                        state: { openedFromList: true },
+                      })
                     )}
                   >
                     <TableCell className="font-medium whitespace-normal">
                       <Link
                         to="/instructions/$moduleId"
                         params={{ moduleId: module.id }}
+                        state={{ openedFromList: true }}
                         data-testid="instruction-open"
                         className="hover:underline"
                       >
@@ -316,7 +321,11 @@ export function InstructionLibrary({ userId }: { userId: string }) {
         onClose={() => setEditing(null)}
         onSaved={(module) => {
           if (editing === 'new') {
-            void navigate({ to: '/instructions/$moduleId', params: { moduleId: module.id } });
+            void navigate({
+              to: '/instructions/$moduleId',
+              params: { moduleId: module.id },
+              state: { openedFromList: true },
+            });
           }
         }}
       />

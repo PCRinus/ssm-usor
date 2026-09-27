@@ -3,6 +3,7 @@ import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 
 import { useAuth } from '../../../../../auth/auth-context';
+import { useBackToList } from '../../../../../components/use-back-to-list';
 import { ServiceContractEditor } from '../../../../../service-contracts/service-contract-editor';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/other-documents/contract')({
@@ -15,6 +16,7 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 export function ClientContractPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
+  const backToList = useBackToList();
   // The shell renders this only for a signed-in user.
   if (!session) return null;
   return (
@@ -28,6 +30,7 @@ export function ClientContractPage() {
             to="/clients/$clientId/other-documents"
             params={{ clientId: client.id }}
             data-testid="editor-back"
+            onClick={backToList}
             aria-label="Înapoi la alte documente"
           >
             <ArrowLeft aria-hidden="true" />

@@ -13,6 +13,7 @@ import {
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
+import { useBackToList } from '../components/use-back-to-list';
 import type { DocumentEditorHandle } from '../documents/document-editor';
 import { editorFrameClassName, saveAs } from '../documents/editor-frame';
 import { EditorPlaceholder } from '../documents/editor-placeholder';
@@ -27,6 +28,7 @@ type Loaded = { versionId: string; bytes: Uint8Array; fileName: string };
 // file; the versions documents annexed before stay as they were.
 export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; userId: string }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const backToList = useBackToList();
   const query = useGetInstructionModule(moduleId, {
     request: apiRequest,
     query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
@@ -108,7 +110,12 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
 
   const back = (
     <Button asChild variant="ghost" size="sm">
-      <Link to="/instructions" data-testid="editor-back" aria-label="Înapoi la bibliotecă">
+      <Link
+        to="/instructions"
+        data-testid="editor-back"
+        onClick={backToList}
+        aria-label="Înapoi la bibliotecă"
+      >
         <ArrowLeft aria-hidden="true" />
         <span className="hidden sm:inline">Instrucțiuni</span>
       </Link>
