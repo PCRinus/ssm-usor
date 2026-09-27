@@ -87,6 +87,9 @@ importers:
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
+      pizzip:
+        specifier: ^3.2.0
+        version: 3.2.0
       tsx:
         specifier: ^4.23.13
         version: 4.23.13

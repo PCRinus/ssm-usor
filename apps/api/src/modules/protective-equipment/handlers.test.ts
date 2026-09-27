@@ -47,6 +47,7 @@ const welder = {
   activities: null,
   training_interval_months: null,
   needs_protective_equipment: true,
+  needs_instructions: null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };
@@ -89,7 +90,12 @@ function mockUpstream(handlers: { positions?: Handler; equipment?: Handler } = {
       const select = url.searchParams.get('select') ?? '';
       if (select.includes('employees(count)')) {
         return Response.json([
-          { id: welderId, employees: [{ count: 3 }], job_position_equipment: [{ count: 2 }] },
+          {
+            id: welderId,
+            employees: [{ count: 3 }],
+            job_position_equipment: [{ count: 2 }],
+            job_position_instructions: [{ count: 0 }],
+          },
         ]);
       }
       if (init?.method === 'PATCH') return Response.json(welder);

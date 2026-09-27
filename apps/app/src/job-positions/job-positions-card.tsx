@@ -39,6 +39,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
+import { instructionStateLabel } from '../instructions/instruction-schema';
 import { equipmentStateLabel } from '../protective-equipment/equipment-schema';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
 import {
@@ -144,6 +145,7 @@ export function JobPositionsCard({
                 <TableHead>Zona de lucru</TableHead>
                 <TableHead>Angajați</TableHead>
                 <TableHead>EIP</TableHead>
+                <TableHead>Instrucțiuni</TableHead>
                 {!readOnly && (
                   <TableHead className="w-12">
                     <span className="sr-only">Acțiuni</span>
@@ -213,6 +215,16 @@ export function JobPositionsCard({
                     }
                   >
                     {equipmentStateLabel(position)}
+                  </TableCell>
+                  <TableCell
+                    data-testid="job-position-instructions"
+                    className={
+                      position.needsInstructions === null
+                        ? 'text-amber-700 dark:text-amber-400'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    {instructionStateLabel(position)}
                   </TableCell>
                   {!readOnly && (
                     <TableCell>

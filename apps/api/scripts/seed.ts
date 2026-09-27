@@ -13,6 +13,7 @@ import {
   seedProfessionalTitle,
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
+import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
@@ -119,6 +120,10 @@ try {
     const equipment = await seedProtectiveEquipment(client, organization.id, user.id);
     console.log(
       `Added ${equipment.entries} equipment entries and decided ${equipment.decided} office posts need none, where undecided.`
+    );
+    const instructions = await seedInstructionModules(client, organization.id, user.id);
+    console.log(
+      `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} to posts and decided ${instructions.decided} need none, where undecided.`
     );
   }
 } catch (error) {

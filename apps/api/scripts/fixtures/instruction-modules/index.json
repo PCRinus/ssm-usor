@@ -1,0 +1,17 @@
+[
+  {
+    "file": "metal-ladders.docx",
+    "title": "Scări metalice",
+    "group": "work_equipment"
+  },
+  {
+    "file": "office-work.docx",
+    "title": "Activități de birou",
+    "group": "work_activity"
+  },
+  {
+    "file": "cleaning.docx",
+    "title": "Activități de curățenie",
+    "group": "work_activity"
+  }
+]

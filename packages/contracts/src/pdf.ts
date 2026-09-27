@@ -9,4 +9,9 @@ export interface PdfService {
    * when the container behind it has to start first. Rejects when it cannot be converted.
    */
   convertDocx(docx: ArrayBuffer): Promise<ArrayBuffer>;
+  /**
+   * Several Word documents as one PDF/A-2b file, in the order given: a document and the
+   * files it annexes (ADR 012). Rejects when any of them cannot be converted.
+   */
+  convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 }

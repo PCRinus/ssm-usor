@@ -17,6 +17,7 @@ import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-
 
 import type { Database, Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
+import { maxDocxBytes, requireDocx, sha256 } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
 import type { PdfConverter } from '../../lib/pdf';
@@ -633,12 +634,6 @@ export async function regenerateDocument(
 // The PDF lives beside the Word file, under its name; the database holds them to that.
 const pdfPathOf = (docxPath: string) => docxPath.replace(/\.docx$/, '.pdf');
 
-async function sha256(bytes: Uint8Array) {
-  // A copy with a plain ArrayBuffer behind it, which is what the digest is typed to take.
-  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
 /**
  * Whether the file still reads the mark a person was meant to replace. Asked of the file
  * itself, when it matters, because a draft changes by more roads than generation: the editor,
@@ -685,7 +680,8 @@ export async function issueDocument(
   // second try.
   let pdfFile: { path: string; hash: string } | null = null;
   if (pdf) {
-    const converted = await pdf.convertDocx(bytes);
+    const annexes = await readAnnexes(db, files, draft.data_snapshot);
+    const converted = await pdf.convertDocuments([bytes, ...annexes]);
     const path = pdfPathOf(draft.docx_path);
     await files.writeDocument(path, converted, { replace: true });
     pdfFile = { path, hash: await sha256(converted) };
@@ -703,48 +699,59 @@ export async function issueDocument(
   return toDocument(await readDocument(db, documentId), facts);
 }
 
-const maxDraftBytes = 15 * 1024 * 1024;
-const bytesOf = (text: string) => new TextEncoder().encode(text);
-const zipSignature = [0x50, 0x4b, 0x03, 0x04];
-const documentPart = bytesOf('word/document.xml');
-
-function includes(haystack: Uint8Array, needle: Uint8Array) {
-  outer: for (let start = 0; start <= haystack.length - needle.length; start += 1) {
-    for (let index = 0; index < needle.length; index += 1) {
-      if (haystack[start + index] !== needle[index]) continue outer;
-    }
-    return true;
-  }
-  return false;
-}
-
-// A zip that names the main part of a Word document. File names are stored as they are, so
-// this needs no unzipping; it keeps a PDF or a picture out, not a determined forger.
-const looksLikeDocx = (bytes: Uint8Array) =>
-  zipSignature.every((byte, index) => bytes[index] === byte) && includes(bytes, documentPart);
-
-function requireDocx(bytes: Uint8Array) {
-  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
-    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
-  }
-  if (!looksLikeDocx(bytes)) {
-    throw new ApiError('validation_error', 'The file is not a Word document (.docx).');
-  }
-}
-
 /**
  * A PDF of a Word file of the document, made to be printed and not kept. The file is sent
  * rather than read from Storage because the editor prints what it shows, unsaved edits included.
  */
 export async function printDocument(
   db: DataClient,
+  files: FileStore,
   pdf: PdfConverter,
   documentId: string,
   bytes: Uint8Array
 ) {
   requireDocx(bytes);
-  await readDocument(db, documentId);
-  return pdf.convertDocx(bytes);
+  const document = await readDocument(db, documentId);
+  // The draft's annexes, or the issued revision's when there is no draft: what the binder
+  // holds, printed with the file as shown.
+  const revision = newest(document);
+  const annexes = await readAnnexes(db, files, revision?.data_snapshot ?? null);
+  return pdf.convertDocuments([bytes, ...annexes]);
+}
+
+/**
+ * The version ids of the instruction modules a snapshot annexes (ADR 012), as the own
+ * instructions' context lists them under `annexes`. Any other document annexes nothing.
+ */
+export function annexedVersionIds(snapshot: Json | null): string[] {
+  const annexes = (snapshot as { annexes?: unknown } | null)?.annexes;
+  if (!Array.isArray(annexes)) return [];
+  return annexes.flatMap((annex) =>
+    typeof (annex as { versionId?: unknown })?.versionId === 'string'
+      ? [(annex as { versionId: string }).versionId]
+      : []
+  );
+}
+
+/** The files of the annexed module versions, in the snapshot's order. */
+async function readAnnexes(db: DataClient, files: FileStore, snapshot: Json | null) {
+  const versionIds = annexedVersionIds(snapshot);
+  if (versionIds.length === 0) return [];
+  const { data, error } = await db
+    .from('instruction_module_versions')
+    .select('id, docx_path')
+    .in('id', versionIds);
+  if (error) throw fromDatabaseError(error, 'read annexed module versions');
+  const paths = new Map(data.map((row) => [row.id, row.docx_path]));
+  return Promise.all(
+    versionIds.map((versionId) => {
+      const path = paths.get(versionId);
+      // A version row is never deleted, so a missing one is a snapshot from another
+      // organization's module, which the policies keep out of reach.
+      if (!path) throw new ApiError('conflict', 'An annexed instruction is not in the library.');
+      return files.readModule(path);
+    })
+  );
 }
 
 /**
@@ -944,7 +951,7 @@ export async function attachSignedCopy(
   documentId: string,
   bytes: Uint8Array
 ) {
-  if (bytes.length === 0 || bytes.length > maxDraftBytes) {
+  if (bytes.length === 0 || bytes.length > maxDocxBytes) {
     throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
   }
   if (!pdfSignature.every((byte, index) => bytes[index] === byte)) {

@@ -103,7 +103,25 @@ const positionRow = {
   staff_category: 'execution',
   work_zone: 'Atelier',
   activities: null,
+  training_interval_months: null,
   needs_protective_equipment: true,
+  needs_instructions: true,
+  job_position_instructions: [
+    {
+      module_id: 'a0a0a0a0-0000-4000-8000-000000000001',
+      instruction_modules: {
+        title: 'Scări metalice',
+        module_group: 'work_equipment',
+        instruction_module_versions: [
+          {
+            id: 'b0b0b0b0-0000-4000-8000-000000000001',
+            number: 2,
+            created_at: '2026-09-26T10:00:00+00:00',
+          },
+        ],
+      },
+    },
+  ],
   job_position_equipment: [
     {
       id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
@@ -159,7 +177,8 @@ type Upstream =
   | 'issue'
   | 'file'
   | 'upload'
-  | 'signedCopies';
+  | 'signedCopies'
+  | 'moduleVersions';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -180,6 +199,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       // Files are read through the link just signed.
       if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
         return new Response(new Uint8Array([1, 2, 3]));
+      }
+      if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
+        return new Response(new Uint8Array([9, 9]));
       }
       return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
     }
@@ -225,6 +247,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
             ? Response.json({ id: generationId })
             : Response.json({ issue_date: '2026-01-19', first_decision_number: 3 }))
         );
+      case '/rest/v1/instruction_module_versions':
+        return handlers.moduleVersions?.(init, url) ?? Response.json([]);
       case '/rest/v1/document_signed_copies':
         return handlers.signedCopies?.(init, url) ?? new Response(null, { status: 201 });
       case '/rest/v1/rpc/issue_document_revision':
@@ -341,6 +365,8 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
             id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
             name: 'Zidar',
             needs_protective_equipment: null,
+            needs_instructions: null,
+            job_position_instructions: [],
             job_position_equipment: [],
           },
         ]),
@@ -348,7 +374,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       ready: false,
-      missing: ['positions.equipment'],
+      missing: ['positions.equipment', 'positions.instructions'],
       undecidedJobPositions: [{ id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Zidar' }],
     });
     mockUpstream({ positions: () => Response.json([]) });
@@ -863,11 +889,15 @@ describe('POST /documents/{documentId}/issue', () => {
 
   // The converter is apps/pdf behind a service binding, switched on by the deployment.
   const pdfBytes = new TextEncoder().encode('%PDF-1.7 converted');
-  const issueWith = (convertDocx: (docx: ArrayBuffer) => Promise<ArrayBuffer>) =>
+  const issueWith = (
+    convertDocx: (docx: ArrayBuffer) => Promise<ArrayBuffer>,
+    convertDocuments: (files: ArrayBuffer[]) => Promise<ArrayBuffer> = (files) =>
+      convertDocx(files[0]!)
+  ) =>
     createApp().request(
       `/documents/${documentId}/issue`,
       { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      { ...env, PDF_CONVERSION: 'service', PDF: { convertDocx } }
+      { ...env, PDF_CONVERSION: 'service', PDF: { convertDocx, convertDocuments } }
     );
 
   it('makes the PDF first, stores it beside the Word file, and issues both', async () => {
@@ -890,6 +920,52 @@ describe('POST /documents/{documentId}/issue', () => {
     expect(sent.p_pdf_sha256).not.toBe(sent.p_docx_sha256);
   });
 
+  it('annexes the module versions the snapshot names, in one PDF', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          type_key: 'own_instructions',
+          document_revisions: [
+            {
+              ...revisionRow,
+              data_snapshot: {
+                annexes: [
+                  { versionId: 'v-ladders', title: 'Scări metalice' },
+                  { versionId: 'v-offices', title: 'Birouri' },
+                ],
+              },
+            },
+          ],
+        }),
+      moduleVersions: () =>
+        Response.json([
+          { id: 'v-offices', docx_path: `${organizationId}/m-offices/1.docx` },
+          { id: 'v-ladders', docx_path: `${organizationId}/m-ladders/2.docx` },
+        ]),
+    });
+    const convertDocx = vi.fn();
+    const convertDocuments = vi.fn(async (files: ArrayBuffer[]) => {
+      void files;
+      return pdfBytes.slice().buffer;
+    });
+    expect((await issueWith(convertDocx, convertDocuments)).status).toBe(200);
+    expect(convertDocx).not.toHaveBeenCalled();
+    const files = convertDocuments.mock.calls[0]![0].map((file) => [...new Uint8Array(file)]);
+    expect(files).toEqual([
+      [1, 2, 3],
+      [9, 9],
+      [9, 9],
+    ]);
+    const signed = calls('/storage/v1/object/sign/instruction-modules/', 'POST').map(
+      ([input]) => new URL(String(input)).pathname
+    );
+    expect(signed).toEqual([
+      `/storage/v1/object/sign/instruction-modules/${organizationId}/m-ladders/2.docx`,
+      `/storage/v1/object/sign/instruction-modules/${organizationId}/m-offices/1.docx`,
+    ]);
+  });
+
   it('issues nothing when the PDF cannot be made, and ignores the binding unless switched on', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpstream({
@@ -905,7 +981,7 @@ describe('POST /documents/{documentId}/issue', () => {
     const local = await createApp().request(
       `/documents/${documentId}/issue`,
       { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      { ...env, PDF: { convertDocx } }
+      { ...env, PDF: { convertDocx, convertDocuments: convertDocx } }
     );
     expect(local.status).toBe(200);
     expect(convertDocx).not.toHaveBeenCalled();
@@ -1358,13 +1434,17 @@ describe('POST /documents/{documentId}/print', () => {
       void source;
       return pdfBytes.slice().buffer;
     });
+  const service = (convertDocx: (source: ArrayBuffer) => Promise<ArrayBuffer>) => ({
+    convertDocx,
+    convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+  });
 
   it('answers with the PDF of the file it is sent, and stores nothing', async () => {
     mockUpstream({
       documents: () => Response.json({ ...documentRow, document_revisions: [issuedRevision] }),
     });
     const convertDocx = converter();
-    const response = await print(docx, { PDF_CONVERSION: 'service', PDF: { convertDocx } });
+    const response = await print(docx, { PDF_CONVERSION: 'service', PDF: service(convertDocx) });
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('application/pdf');
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(pdfBytes);
@@ -1377,7 +1457,7 @@ describe('POST /documents/{documentId}/print', () => {
       documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
     });
     const convertDocx = converter();
-    const bindings = { PDF_CONVERSION: 'service', PDF: { convertDocx } } as const;
+    const bindings = { PDF_CONVERSION: 'service', PDF: service(convertDocx) } as const;
     expect((await print(new TextEncoder().encode('%PDF-1.7'), bindings)).status).toBe(400);
     expect(convertDocx).not.toHaveBeenCalled();
   });
@@ -1391,7 +1471,7 @@ describe('POST /documents/{documentId}/print', () => {
       {},
       {
         PDF_CONVERSION: 'service',
-        PDF: { convertDocx: async () => Promise.reject(new Error('pdf_conversion_failed')) },
+        PDF: service(async () => Promise.reject(new Error('pdf_conversion_failed'))),
       },
     ]) {
       const response = await print(docx, bindings);
@@ -1403,7 +1483,7 @@ describe('POST /documents/{documentId}/print', () => {
   it('answers 404 for a document of another organization', async () => {
     mockUpstream({ documents: () => Response.json(null) });
     const convertDocx = converter();
-    const response = await print(docx, { PDF_CONVERSION: 'service', PDF: { convertDocx } });
+    const response = await print(docx, { PDF_CONVERSION: 'service', PDF: service(convertDocx) });
     expect(response.status).toBe(404);
     expect(convertDocx).not.toHaveBeenCalled();
   });

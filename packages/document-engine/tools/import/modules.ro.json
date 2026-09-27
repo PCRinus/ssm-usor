@@ -1,0 +1,152 @@
+{
+  "skeleton": {
+    "sections": [
+      {
+        "heading": "Domeniul de aplicare",
+        "paragraphs": [
+          "Activitatea, postul de lucru sau echipamentul de muncă la care se aplică prezenta instrucțiune, și cine trebuie să o respecte."
+        ]
+      },
+      {
+        "heading": "Calificarea necesară",
+        "paragraphs": [
+          "Pregătirea pe care trebuie să o aibă lucrătorul și, după caz, autorizarea cerută pentru a desfășura activitatea."
+        ]
+      },
+      {
+        "heading": "Modul de lucru în condiții de securitate",
+        "articles": [
+          "Operațiile efectuate, echipamentele de muncă utilizate și întreținerea care revine lucrătorului, descrise în ordinea în care se desfășoară.",
+          "Operațiile care prezintă riscuri, riscurile pentru lucrător sau pentru alte persoane și măsurile de prevenire și protecție: echipamentul individual de protecție purtat, semnalizarea de securitate."
+        ]
+      },
+      {
+        "heading": "Acțiuni interzise",
+        "articles": ["Ce nu are voie să facă lucrătorul, pentru a nu se expune riscurilor."]
+      },
+      {
+        "heading": "Situații de urgență",
+        "articles": [
+          "Cum acționează lucrătorul în caz de incendiu, la acordarea primului ajutor, la evacuare și în caz de pericol grav și iminent."
+        ]
+      },
+      {
+        "heading": "Acte normative avute în vedere",
+        "paragraphs": [
+          "Legea nr. 319/2006, H.G. nr. 1425/2006 și reglementările specifice activității."
+        ]
+      }
+    ]
+  },
+  "fixtures": [
+    {
+      "key": "metal-ladders",
+      "title": "Scări metalice",
+      "group": "work_equipment",
+      "sections": [
+        {
+          "heading": "Domeniul de aplicare",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică lucrătorilor care folosesc scări metalice simple, cu unul, două sau trei tronsoane, culisante sau duble, la lucrări la înălțime mică."
+          ]
+        },
+        {
+          "heading": "Măsuri înainte de fiecare utilizare",
+          "articles": [
+            "Se alege o scară de tipul și cu capacitatea corespunzătoare activității, astfel încât înălțimea de lucru să nu depășească recomandările producătorului.",
+            "Se citesc și se respectă instrucțiunile și pictogramele de pe scară.",
+            "O scară proiectată pentru o singură persoană nu se urcă de mai multe persoane deodată.",
+            "Înainte de utilizare, scara se verifică vizual cu atenție. Nu se folosesc scări cu defecte de fabricație sau cu defecte provenite din utilizări anterioare.",
+            "Se verifică montarea și starea dopurilor de plastic și a elementului de siguranță suplimentară.",
+            "Scara cu două sau trei tronsoane se deschide complet și corect înainte de urcare."
+          ]
+        },
+        {
+          "heading": "Reguli generale de siguranță",
+          "articles": [
+            {
+              "text": "În timpul lucrului pe scară se respectă următoarele reguli:",
+              "items": [
+                "scara se așază pe o suprafață plană și stabilă, cu picioarele bine sprijinite;",
+                "nu se depășește ultima treaptă permisă de producător;",
+                "urcarea și coborârea se fac cu fața spre scară, ținându-se cu ambele mâini;",
+                "nu se aplecă lateral peste marginea scării; scara se mută în dreptul lucrării."
+              ]
+            },
+            "Nu se recomandă încălțămintea cu talpă din piele; se folosește încălțăminte cu talpă antiderapantă.",
+            "Scara nu se folosește în apropierea instalațiilor electrice sub tensiune."
+          ]
+        },
+        {
+          "heading": "Păstrarea scărilor",
+          "articles": [
+            "Scările se păstrează în locuri uscate, ferite de intemperii, așezate orizontal sau suspendate, fără sarcini pe ele.",
+            "O scară deteriorată se retrage din folosință și se anunță conducătorul locului de muncă."
+          ]
+        }
+      ]
+    },
+    {
+      "key": "office-work",
+      "title": "Activități de birou",
+      "group": "work_activity",
+      "sections": [
+        {
+          "heading": "Domeniul de aplicare",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică lucrătorilor care își desfășoară activitatea în birouri, cu echipamente de calcul, de copiat și de birotică."
+          ]
+        },
+        {
+          "heading": "Echipamentele de calcul",
+          "articles": [
+            "Se interzice accesul la echipamentele de calcul pe care lucrătorul nu le cunoaște și pentru care nu a fost instruit.",
+            "Un echipament nu se pune în funcțiune înainte de a i se cunoaște modul de funcționare și niciodată după ce i s-a scos carcasa.",
+            "Orice reparație a echipamentelor de calcul se face de personal autorizat, în conformitate cu documentația tehnică a echipamentului.",
+            "Se interzice curățarea sau ungerea echipamentelor în timpul funcționării acestora.",
+            "Zgomotul emis de echipamentele postului de lucru nu trebuie să distragă atenția și să perturbe comunicarea verbală."
+          ]
+        },
+        {
+          "heading": "Organizarea locului de muncă",
+          "articles": [
+            "Cablurile de alimentare se așază astfel încât să nu poată fi călcate, agățate sau smulse.",
+            "Locul de muncă la care se lucrează în poziție așezat se dotează cu scaun reglabil, corespunzător caracteristicilor antropometrice ale lucrătorului.",
+            "Activitatea la ecran se întrerupe prin pauze, conform reglementărilor privind echipamentele cu ecran de vizualizare."
+          ]
+        }
+      ]
+    },
+    {
+      "key": "cleaning",
+      "title": "Activități de curățenie",
+      "group": "work_activity",
+      "sections": [
+        {
+          "heading": "Domeniul de aplicare",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică lucrătorilor încadrați la curățenie, dar și celor care desfășoară astfel de activități ocazional."
+          ]
+        },
+        {
+          "heading": "Echipamentele și instalațiile electrice",
+          "articles": [
+            "Aspiratorul se folosește în conformitate cu instrucțiunile date de producător.",
+            "Se interzice folosirea instalațiilor și utilajelor ale căror părți, care nu sunt în mod normal sub tensiune, curentează.",
+            "Deconectarea de la priză se face cu mâinile uscate și numai după atenționarea celor care lucrează cu aparate conectate la aceleași prize.",
+            "La apariția unor cabluri cu izolația ruptă în zonele de spălare, activitatea se oprește și se anunță conducătorul locului de muncă."
+          ]
+        },
+        {
+          "heading": "Substanțele chimice",
+          "articles": [
+            "Înainte de utilizarea unei substanțe de curățare se citesc instrucțiunile de utilizare și frazele de pericol de pe ambalaj sau din fișa cu date de securitate.",
+            "Se folosește echipamentul individual de protecție potrivit riscurilor sau recomandat de producător: mănuși de protecție pe durata pregătirii și aplicării soluțiilor.",
+            "Substanțele se păstrează în recipientele originale, etichetate corespunzător; recipientele goale nu se refolosesc.",
+            "Dezinsecția și deratizarea se fac numai de firme specializate și autorizate."
+          ]
+        }
+      ]
+    }
+  ]
+}

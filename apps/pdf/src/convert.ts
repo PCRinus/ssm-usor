@@ -11,18 +11,28 @@ const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml
  * A container that was asleep sometimes fails its first start and comes up on the second,
  * so a failure that is not about the document is tried once more after a pause.
  */
-export async function convertDocx(
+export function convertDocx(
   fetcher: Fetcher,
   docx: ArrayBuffer,
   pauseMs = 2000
 ): Promise<ArrayBuffer> {
+  return convertDocuments(fetcher, [docx], pauseMs);
+}
+
+/** One PDF of several Word files, in the order given: a document and its annexes. */
+export async function convertDocuments(
+  fetcher: Fetcher,
+  files: ArrayBuffer[],
+  pauseMs = 2000
+): Promise<ArrayBuffer> {
+  if (files.length === 0) throw new Error(pdfConversionFailed);
   try {
-    return await convertOnce(fetcher, docx);
+    return await convertOnce(fetcher, files);
   } catch (error) {
     if (!(error instanceof RetryableFailure)) throw error;
     await new Promise((resolve) => setTimeout(resolve, pauseMs));
     try {
-      return await convertOnce(fetcher, docx);
+      return await convertOnce(fetcher, files);
     } catch {
       throw new Error(pdfConversionFailed);
     }
@@ -31,10 +41,15 @@ export async function convertDocx(
 
 class RetryableFailure extends Error {}
 
-async function convertOnce(fetcher: Fetcher, docx: ArrayBuffer): Promise<ArrayBuffer> {
+async function convertOnce(fetcher: Fetcher, files: ArrayBuffer[]): Promise<ArrayBuffer> {
   const form = new FormData();
-  // Gotenberg picks the converter by the file's extension; the name is never seen again.
-  form.append('files', new Blob([docx], { type: docxType }), 'document.docx');
+  files.forEach((file, index) => {
+    // Gotenberg picks the converter by the file's extension and merges in the alphanumeric
+    // order of the names, so the names count from one with leading zeros.
+    const name = `${String(index + 1).padStart(4, '0')}.docx`;
+    form.append('files', new Blob([file], { type: docxType }), name);
+  });
+  if (files.length > 1) form.append('merge', 'true');
   // The archival flavour: fonts embedded, nothing fetched from outside when it is opened,
   // which is what a copy kept as evidence, and later signed, should be.
   form.append('pdfa', 'PDF/A-2b');

@@ -1,7 +1,7 @@
 import { pdfConversionFailed } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { convertDocx } from './convert';
+import { convertDocuments, convertDocx } from './convert';
 
 const docx = new TextEncoder().encode('PK word/document.xml').buffer as ArrayBuffer;
 const pdf = new TextEncoder().encode('%PDF-1.7 …');
@@ -20,8 +20,23 @@ describe('convertDocx', () => {
     const form = await request.formData();
     expect(form.get('pdfa')).toBe('PDF/A-2b');
     const file = form.get('files') as File;
-    expect(file.name).toBe('document.docx');
+    expect(file.name).toBe('0001.docx');
     expect(file.size).toBe(docx.byteLength);
+    expect(form.get('merge')).toBeNull();
+  });
+
+  it('merges several files into one PDF, in the order given', async () => {
+    const fetcher = vi.fn<(request: Request) => Promise<Response>>(async () => new Response(pdf));
+    const annex = new TextEncoder().encode('PK annex').buffer as ArrayBuffer;
+    await convertDocuments(fetcher, [docx, annex, annex]);
+    const form = await fetcher.mock.calls[0]![0].formData();
+    expect((form.getAll('files') as File[]).map((file) => file.name)).toEqual([
+      '0001.docx',
+      '0002.docx',
+      '0003.docx',
+    ]);
+    expect(form.get('merge')).toBe('true');
+    expect(form.get('pdfa')).toBe('PDF/A-2b');
   });
 
   it('fails the same way when Gotenberg refuses, is unreachable, or answers something else', async () => {

@@ -14,6 +14,9 @@ export type StoredDocumentFacts = Omit<DocumentFacts, 'issueDate' | 'firstDecisi
   clientArchived: boolean;
 };
 
+const moduleVersionsPath =
+  'job_position_instructions.instruction_modules.instruction_module_versions';
+
 export async function loadDocumentFacts(
   db: DataClient,
   clientId: string,
@@ -68,14 +71,17 @@ export async function loadDocumentFacts(
     db
       .from('job_positions')
       .select(
-        'id, name, staff_category, work_zone, activities, needs_protective_equipment, job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id)'
+        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
       .order('name')
       .order('id')
       .order('created_at', { referencedTable: 'job_position_equipment' })
-      .order('id', { referencedTable: 'job_position_equipment' }),
+      .order('id', { referencedTable: 'job_position_equipment' })
+      // The current version of each applied module: the newest number, one row.
+      .order('number', { referencedTable: moduleVersionsPath, ascending: false })
+      .limit(1, { referencedTable: moduleVersionsPath }),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -142,7 +148,22 @@ export async function loadDocumentFacts(
       staffCategory: position.staff_category,
       workZone: position.work_zone,
       activities: position.activities,
+      trainingIntervalMonths: position.training_interval_months,
       needsProtectiveEquipment: position.needs_protective_equipment,
+      needsInstructions: position.needs_instructions,
+      instructions: position.job_position_instructions.flatMap((applied) => {
+        const version = applied.instruction_modules.instruction_module_versions[0];
+        // A module row is written before its first version; one caught in between annexes nothing.
+        if (!version) return [];
+        return [
+          {
+            moduleId: applied.module_id,
+            title: applied.instruction_modules.title,
+            group: applied.instruction_modules.module_group,
+            version: { id: version.id, number: version.number, createdAt: version.created_at },
+          },
+        ];
+      }),
       equipment: position.job_position_equipment.map((entry) => ({
         risk: entry.risk,
         item: entry.item,

@@ -94,7 +94,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/documents/generate`                          | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                    |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                |
-| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision                                                                          |
+| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes the own instructions' modules                           |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                      |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
 | `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                               |
@@ -123,6 +123,17 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                     |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                           | item&query=` |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the library by group and title; `?archived=true` lists the archived ones instead                    |
+| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                      |
+| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=`                                                  |
+| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                     |
+| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, archiving or restoring                                                  |
+| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                               |
+| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                            |
+| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "items": [ … ], "needsInstructions" }`, the modules the position applies and its decision                              |
+| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set with `moduleIds`                                                                        |
+| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules                                                                         |
+| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -300,6 +311,36 @@ or `item`, the distinct values the organization typed before that contain `query
 recently used first, at most twenty; it filters in the Worker, so a typed `%` or `,` is a
 character, not a PostgREST operator.
 
+The instruction library ([ADR 012](architecture/adr-012-own-instructions.md)) is the
+organization's own instructions, one Word file each, kept as their author made them. `GET
+/instruction-modules` lists the modules in use by group and title, each with its current
+version (`number`, `sha256`, `sizeBytes`, `articleCount`, the top-level items of the file's
+most used numbered list) and `appliedCount`, how many current positions across the
+organization's clients apply it; `?archived=true` lists the archived ones instead. `POST
+/instruction-modules` starts a module from the skeleton the app ships, in the house style
+with the Labour Inspection's headings; `POST /instruction-modules/upload` takes the bytes of
+a `.docx` as the body, one file per request, sweeps its fonts to the house font and nothing
+else, and titles it after `?title=` or the first line of the file, in `?group=` or a work
+activity. A title the library already has answers `409` with the reason
+`instruction_module_title_taken`. `PUT …/file` stores the body as the next version, which is
+what the editor saves; versions are never replaced, so documents generated before keep
+citing the one they annexed. `PATCH` renames, regroups, archives (`archived: true`) or
+restores; archiving a module a current position applies answers `409` with the reason
+`instruction_module_applied`, and a file for an archived module answers `409` with
+`instruction_module_archived`. `GET …/file-link` signs a one-minute link to the current file,
+named after the module.
+
+A job position applies modules through `GET`/`PUT …/instructions`: `PUT` takes `moduleIds`
+and replaces the set, adding first so a swap never passes through "undecided"; the first
+module applied decides "needs instructions" by itself, an empty set leaves the position
+undecided again, an archived module answers `409` with `instruction_module_archived`, and a
+module not in the library `400` on `moduleIds`. `POST …/instructions/copy` adds another
+position's modules, with `400` on `fromJobPositionId` for the position itself or one of
+another client. `PATCH …/instructions-decision` takes `needsInstructions: false` or `null`;
+`true` answers `400` with the reason `instructions_decided_by_modules`, and `false` while
+modules are applied `409` with `instructions_applied`. Job positions carry
+`needsInstructions` and `instructionCount` in every response.
+
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
 `src/database.types.ts` are generated from the schema (`pnpm generate:db`) and checked in CI.
@@ -433,10 +474,12 @@ The `documents` module generates a client's documentation from the built-in Word
 `GET …/documents/readiness` lists what is missing as codes grouped by where it is filled in:
 `provider.*`, `specialist.*` (the caller's own profile), `client.representativeName`,
 `client.representativeRole`, `client.trainingSchedule`, `responsible.<role>` for every
-role nobody holds, `positions.any` for a client without a current position, and
+role nobody holds, `positions.any` for a client without a current position,
 `positions.equipment` while a position is undecided about its protective equipment
-([ADR 011](architecture/adr-011-protective-equipment.md)); `undecidedJobPositions` names
-those, so the form can send someone to each. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
+([ADR 011](architecture/adr-011-protective-equipment.md)), and `positions.instructions` while
+one is undecided about the instruction modules it applies
+([ADR 012](architecture/adr-012-own-instructions.md)); `undecidedJobPositions` names those,
+so the form can send someone to each. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (default 1) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template is registered
 (`pnpm templates:register`).

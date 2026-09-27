@@ -43,16 +43,26 @@ describe('what is missing', () => {
     ]);
   });
 
-  it('needs a position, and a decision on the equipment of every position', () => {
+  it('needs a position, and a decision on the equipment and the instructions of every position', () => {
     expect(missingDocumentData({ ...facts, jobPositions: [] })).toEqual(['positions.any']);
     const undecided = {
       ...facts,
-      jobPositions: [{ ...facts.jobPositions[0]!, needsProtectiveEquipment: null }],
+      jobPositions: [
+        { ...facts.jobPositions[0]!, needsProtectiveEquipment: null },
+        { ...facts.jobPositions[1]!, needsInstructions: null },
+      ],
     };
-    expect(missingDocumentData(undecided)).toEqual(['positions.equipment']);
+    expect(missingDocumentData(undecided)).toEqual([
+      'positions.equipment',
+      'positions.instructions',
+    ]);
     expect(undecidedJobPositions(undecided)).toEqual([
       { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Contabil' },
+      { id: '7c9e6679-7425-40de-944b-e07fc1f90ae7', name: 'Sudor' },
     ]);
+    expect(
+      undecidedJobPositions(undecided, 'instructions').map((position) => position.name)
+    ).toEqual(['Sudor']);
   });
 
   it('stops the context from being built', () => {
@@ -282,6 +292,9 @@ describe('the merge context', () => {
         staffCategory: 'Tehnic-administrativ',
         workZone: 'Birou',
         workZoneLine: [{}],
+        workZoneOrDash: 'Birou',
+        intervalLabel: 'la 6 luni',
+        trainingDuration: '2 ore',
         equipment: [],
       },
       {
@@ -290,6 +303,9 @@ describe('the merge context', () => {
         staffCategory: 'Execuție',
         workZone: '',
         workZoneLine: [],
+        workZoneOrDash: '—',
+        intervalLabel: 'la 2 luni',
+        trainingDuration: '2 ore',
         equipment: [
           {
             risk: 'Radiații, împroșcare (față, ochi)',
@@ -313,6 +329,33 @@ describe('the merge context', () => {
       },
     ]);
     expect(context.equippedPositions.map((position) => position.name)).toEqual(['Sudor']);
+  });
+
+  it('annexes the modules the positions apply, each once, by group and title, with their versions', () => {
+    expect(context.annexes).toEqual([
+      {
+        number: 1,
+        title: 'Activități de birou',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000002',
+        versionDate: '26.09.2026',
+      },
+      {
+        number: 2,
+        title: 'Sudură oxiacetilenică',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000001',
+        versionDate: '25.09.2026',
+      },
+    ]);
+    expect(context.noAnnexes).toEqual([]);
+    const none = buildDocumentContext({
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        needsInstructions: false,
+        instructions: [],
+      })),
+    });
+    expect([none.annexes, none.noAnnexes]).toEqual([[], [{}]]);
   });
 
   it('switches the branding line', () => {

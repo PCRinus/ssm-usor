@@ -21,12 +21,15 @@ import { Route as RegisterRouteImport } from './routes/register';
 import { Route as ResetPasswordRouteImport } from './routes/reset-password';
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
+import { Route as AuthenticatedInstructionsRouteImport } from './routes/_authenticated/instructions';
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads';
 import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization';
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile';
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients/$clientId';
 import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authenticated/clients/new';
+import { Route as AuthenticatedInstructionsIndexRouteImport } from './routes/_authenticated/instructions/index';
+import { Route as AuthenticatedInstructionsModuleIdRouteImport } from './routes/_authenticated/instructions/$moduleId';
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads/index';
 import { Route as AuthenticatedLeadsLeadIdRouteImport } from './routes/_authenticated/leads/$leadId';
 import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticated/leads/new';
@@ -115,6 +118,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
+const AuthenticatedInstructionsRoute =
+  AuthenticatedInstructionsRouteImport.update({
+    id: '/instructions',
+    path: '/instructions',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any);
 const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -148,6 +157,18 @@ const AuthenticatedClientsNewRoute = AuthenticatedClientsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any);
+const AuthenticatedInstructionsIndexRoute =
+  AuthenticatedInstructionsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInstructionsRoute,
+  } as any);
+const AuthenticatedInstructionsModuleIdRoute =
+  AuthenticatedInstructionsModuleIdRouteImport.update({
+    id: '/$moduleId',
+    path: '/$moduleId',
+    getParentRoute: () => AuthenticatedInstructionsRoute,
+  } as any);
 const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -327,17 +348,20 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute;
   '/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
+  '/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
   '/leads': typeof AuthenticatedLeadsRouteWithChildren;
   '/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/profile': typeof AuthenticatedProfileRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
+  '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRouteWithChildren;
   '/leads/new': typeof AuthenticatedLeadsNewRoute;
   '/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/clients/': typeof AuthenticatedClientsIndexRoute;
+  '/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/leads/': typeof AuthenticatedLeadsIndexRoute;
   '/organization/': typeof AuthenticatedOrganizationIndexRoute;
   '/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
@@ -375,11 +399,13 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profile': typeof AuthenticatedProfileRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
+  '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/leads/new': typeof AuthenticatedLeadsNewRoute;
   '/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/clients': typeof AuthenticatedClientsIndexRoute;
+  '/instructions': typeof AuthenticatedInstructionsIndexRoute;
   '/leads': typeof AuthenticatedLeadsIndexRoute;
   '/organization': typeof AuthenticatedOrganizationIndexRoute;
   '/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
@@ -414,17 +440,20 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute;
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
+  '/_authenticated/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
   '/_authenticated/leads': typeof AuthenticatedLeadsRouteWithChildren;
   '/_authenticated/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/_authenticated/profile': typeof AuthenticatedProfileRoute;
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
+  '/_authenticated/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/_authenticated/leads/$leadId': typeof AuthenticatedLeadsLeadIdRouteWithChildren;
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute;
   '/_authenticated/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/_authenticated/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/_authenticated/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
+  '/_authenticated/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute;
   '/_authenticated/organization/': typeof AuthenticatedOrganizationIndexRoute;
   '/_authenticated/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
@@ -463,17 +492,20 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/clients'
     | '/dashboard'
+    | '/instructions'
     | '/leads'
     | '/organization'
     | '/profile'
     | '/clients/$clientId'
     | '/clients/new'
+    | '/instructions/$moduleId'
     | '/leads/$leadId'
     | '/leads/new'
     | '/organization/authorizations'
     | '/organization/company'
     | '/organization/team'
     | '/clients/'
+    | '/instructions/'
     | '/leads/'
     | '/organization/'
     | '/clients/$clientId/contact'
@@ -511,11 +543,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/clients/new'
+    | '/instructions/$moduleId'
     | '/leads/new'
     | '/organization/authorizations'
     | '/organization/company'
     | '/organization/team'
     | '/clients'
+    | '/instructions'
     | '/leads'
     | '/organization'
     | '/clients/$clientId/contact'
@@ -549,17 +583,20 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
+    | '/_authenticated/instructions'
     | '/_authenticated/leads'
     | '/_authenticated/organization'
     | '/_authenticated/profile'
     | '/_authenticated/clients/$clientId'
     | '/_authenticated/clients/new'
+    | '/_authenticated/instructions/$moduleId'
     | '/_authenticated/leads/$leadId'
     | '/_authenticated/leads/new'
     | '/_authenticated/organization/authorizations'
     | '/_authenticated/organization/company'
     | '/_authenticated/organization/team'
     | '/_authenticated/clients/'
+    | '/_authenticated/instructions/'
     | '/_authenticated/leads/'
     | '/_authenticated/organization/'
     | '/_authenticated/clients/$clientId/contact'
@@ -684,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
+    '/_authenticated/instructions': {
+      id: '/_authenticated/instructions';
+      path: '/instructions';
+      fullPath: '/instructions';
+      preLoaderRoute: typeof AuthenticatedInstructionsRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
     '/_authenticated/leads': {
       id: '/_authenticated/leads';
       path: '/leads';
@@ -725,6 +769,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/new';
       preLoaderRoute: typeof AuthenticatedClientsNewRouteImport;
       parentRoute: typeof AuthenticatedClientsRoute;
+    };
+    '/_authenticated/instructions/': {
+      id: '/_authenticated/instructions/';
+      path: '/';
+      fullPath: '/instructions/';
+      preLoaderRoute: typeof AuthenticatedInstructionsIndexRouteImport;
+      parentRoute: typeof AuthenticatedInstructionsRoute;
+    };
+    '/_authenticated/instructions/$moduleId': {
+      id: '/_authenticated/instructions/$moduleId';
+      path: '/$moduleId';
+      fullPath: '/instructions/$moduleId';
+      preLoaderRoute: typeof AuthenticatedInstructionsModuleIdRouteImport;
+      parentRoute: typeof AuthenticatedInstructionsRoute;
     };
     '/_authenticated/leads/': {
       id: '/_authenticated/leads/';
@@ -1055,6 +1113,23 @@ const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
 const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren);
 
+interface AuthenticatedInstructionsRouteChildren {
+  AuthenticatedInstructionsModuleIdRoute: typeof AuthenticatedInstructionsModuleIdRoute;
+  AuthenticatedInstructionsIndexRoute: typeof AuthenticatedInstructionsIndexRoute;
+}
+
+const AuthenticatedInstructionsRouteChildren: AuthenticatedInstructionsRouteChildren =
+  {
+    AuthenticatedInstructionsModuleIdRoute:
+      AuthenticatedInstructionsModuleIdRoute,
+    AuthenticatedInstructionsIndexRoute: AuthenticatedInstructionsIndexRoute,
+  };
+
+const AuthenticatedInstructionsRouteWithChildren =
+  AuthenticatedInstructionsRoute._addFileChildren(
+    AuthenticatedInstructionsRouteChildren,
+  );
+
 interface AuthenticatedLeadsLeadIdRouteChildren {
   AuthenticatedLeadsLeadIdContractRoute: typeof AuthenticatedLeadsLeadIdContractRoute;
   AuthenticatedLeadsLeadIdEditRoute: typeof AuthenticatedLeadsLeadIdEditRoute;
@@ -1114,6 +1189,7 @@ const AuthenticatedOrganizationRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren;
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
+  AuthenticatedInstructionsRoute: typeof AuthenticatedInstructionsRouteWithChildren;
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRouteWithChildren;
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren;
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
@@ -1122,6 +1198,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInstructionsRoute: AuthenticatedInstructionsRouteWithChildren,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRouteWithChildren,
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,

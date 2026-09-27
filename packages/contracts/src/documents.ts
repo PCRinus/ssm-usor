@@ -15,6 +15,7 @@ export const documentTypeKeys = [
   'cover_general_training_material',
   'general_training_material',
   'cover_own_instructions',
+  'own_instructions',
   'cover_training_themes',
   'cover_tests',
   'test_hiring',
@@ -38,7 +39,6 @@ export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
  * can, the provider writes them elsewhere and uploads the file, so the set is complete.
  */
 export const uploadedDocumentTypes = {
-  own_instructions: 'Instrucțiuni proprii de securitate și sănătate în muncă',
   training_themes: 'Tematica și programul de instruire',
   risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
   prevention_plan: 'Planul de prevenire și protecție',
@@ -113,6 +113,7 @@ export const missingDocumentData = [
   'responsible.workers_representative_is_legal_representative',
   'positions.any',
   'positions.equipment',
+  'positions.instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -128,7 +129,8 @@ export const documentReadinessResponseSchema = z.object({
   workersRepresentativeClash: z
     .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
     .nullable(),
-  // The positions behind `positions.equipment`, so the form can send someone to each.
+  // The positions behind `positions.equipment` and `positions.instructions`, so the form can
+  // send someone to each.
   undecidedJobPositions: z.array(z.object({ id: z.uuid(), name: z.string() })),
 });
 

@@ -77,6 +77,10 @@ export const missingDataLabels: Record<
     place: 'jobPositions',
     label: 'echipamentul individual de protecție al fiecărui post, sau că postul nu necesită',
   },
+  'positions.instructions': {
+    place: 'jobPositions',
+    label: 'instrucțiunile specifice ale fiecărui post, sau că postul nu necesită',
+  },
 };
 
 export type WorkersRepresentativeClash = {
@@ -96,7 +100,9 @@ export function groupMissing(
       ? `alt reprezentant al lucrătorilor: „${clash.representativeName}” are același nume ca reprezentantul legal al clientului, „${clash.legalRepresentativeName}”`
       : code === 'positions.equipment' && undecidedJobPositions.length > 0
         ? `echipamentul individual de protecție, sau că nu necesită, pentru ${undecidedJobPositions.map((position) => `„${position.name}”`).join(', ')}`
-        : missingDataLabels[code].label;
+        : code === 'positions.instructions' && undecidedJobPositions.length > 0
+          ? `instrucțiunile specifice, sau că nu necesită, pentru ${undecidedJobPositions.map((position) => `„${position.name}”`).join(', ')}`
+          : missingDataLabels[code].label;
   const places: MissingPlace[] = ['organization', 'profile', 'client', 'jobPositions'];
   return places
     .map((place) => ({
