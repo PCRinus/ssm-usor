@@ -22,6 +22,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { inviteFormSchema, type InviteFormValues } from './invite-schema';
 import { roleLabels } from './labels';
 
@@ -65,6 +66,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
     resolver: zodResolver(inviteFormSchema),
     defaultValues: { email: '', role: 'specialist' },
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending;
 
@@ -88,7 +90,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
 
   return (
     <DialogContent data-testid="invite-dialog" className="sm:max-w-md">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Invită un membru</DialogTitle>
           <DialogDescription>

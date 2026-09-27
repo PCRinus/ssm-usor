@@ -11,6 +11,7 @@ import { AnafLookupButton } from '../components/anaf-lookup-button';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { CaenCombobox } from './caen-combobox';
 import type { Client, ClientStage } from './client-form-schema';
 import { CountyCombobox } from './county-combobox';
@@ -28,6 +29,7 @@ const wording = {
 // lead when asked to.
 export function ClientForm({ client, newStage }: { client?: Client; newStage?: ClientStage }) {
   const { form, onSubmit, lookup, lookupCui, stage, isSaving } = useClientForm(client, newStage);
+  const formRef = useRevealErrors(form);
   const words = wording[stage];
   const {
     register,
@@ -103,6 +105,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
         </h1>
       </div>
       <form
+        ref={formRef}
         className="grid gap-6"
         aria-busy={busy}
         aria-describedby={errors.root?.server ? 'client-form-error' : undefined}

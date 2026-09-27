@@ -23,6 +23,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   groupHints,
   groupLabels,
@@ -77,6 +78,7 @@ function ModuleForm({
       ? { title: module.title, group: module.group }
       : { title: '', group: 'work_activity' },
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const group = useWatch({ control: form.control, name: 'group' });
@@ -112,7 +114,7 @@ function ModuleForm({
 
   return (
     <DialogContent data-testid="instruction-module-dialog" className="sm:max-w-lg">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>{module ? 'Modifică instrucțiunea' : 'Scrie o instrucțiune'}</DialogTitle>
           <DialogDescription>

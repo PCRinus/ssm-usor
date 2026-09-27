@@ -21,6 +21,7 @@ import { Controller, useWatch } from 'react-hook-form';
 
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { intervalLabel, staffCategoryLabels } from '../job-positions/job-position-schema';
 import { useJobPositionOptions } from '../job-positions/use-job-position-options';
 import { intervalOptions, monthNames, notApplicable } from './document-details-schema';
@@ -389,6 +390,7 @@ function TrainingProgramForm({
     fields,
     successMessage: 'Programul de instruire a fost salvat.',
   });
+  const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const [firstMonth, administrativeInterval, workerInterval, duration, dayFrom, dayTo] = useWatch({
     control: form.control,
@@ -426,6 +428,7 @@ function TrainingProgramForm({
 
   return (
     <form
+      ref={formRef}
       data-testid="training-program-form"
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}

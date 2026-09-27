@@ -25,6 +25,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { JobPositionCombobox } from '../job-positions/job-position-combobox';
 
 type Employee = EmployeeResponse['employee'];
@@ -87,6 +88,7 @@ function Form({
     resolver: zodResolver(schema),
     defaultValues: { jobPosition: employee.jobPosition.id, jobTitle: employee.jobTitle },
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = move.isPending;
 
@@ -130,7 +132,7 @@ function Form({
 
   return (
     <DialogContent data-testid="employee-job-position-dialog" className="sm:max-w-xl">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>
           <DialogDescription>

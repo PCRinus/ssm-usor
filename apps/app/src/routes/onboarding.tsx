@@ -26,6 +26,7 @@ import { useAuth } from '../auth/auth-context';
 import { Field, FieldMessage } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { onboardingSchema, type OnboardingValues } from '../onboarding/onboarding-schema';
 import { roleLabels } from '../organization/labels';
 
@@ -88,6 +89,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
       acceptsTerms: false,
     },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ fullName, organizationName }) => {
@@ -149,6 +151,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
         </Notice>
       )}
       <form
+        ref={formRef}
         className="grid gap-5"
         aria-busy={isSubmitting}
         noValidate

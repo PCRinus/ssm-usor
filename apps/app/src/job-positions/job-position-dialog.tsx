@@ -26,6 +26,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   emptyJobPositionForm,
   intervalOptionsFor,
@@ -93,6 +94,7 @@ function JobPositionForm({
       ? toJobPositionForm(position)
       : { ...emptyJobPositionForm, name: initialName },
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const staffCategory = useWatch({ control: form.control, name: 'staffCategory' });
@@ -139,6 +141,7 @@ function JobPositionForm({
   return (
     <DialogContent data-testid="job-position-dialog" className="sm:max-w-2xl">
       <form
+        ref={formRef}
         onSubmit={(event) => {
           // The dialog also opens from inside other forms (the employee's position picker). It is
           // drawn elsewhere on the page, but React events bubble through the component tree, and

@@ -13,6 +13,7 @@ import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '../../api/g
 import { ApiHttpError } from '../../api/http';
 import { Field } from '../../components/form-field';
 import { Notice } from '../../components/notice';
+import { useRevealErrors } from '../../components/use-reveal-errors';
 import { roleLabels } from '../../organization/labels';
 
 export const Route = createFileRoute('/_authenticated/profile')({
@@ -60,6 +61,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
       professionalTitle: me.profile?.professionalTitle ?? '',
     },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const busy = update.isPending;
 
@@ -89,6 +91,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
         </CardHeader>
         <CardContent>
           <form
+            ref={formRef}
             onSubmit={(event) => void onSubmit(event)}
             aria-busy={busy}
             noValidate

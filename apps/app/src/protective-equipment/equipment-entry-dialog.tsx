@@ -27,6 +27,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   allocationHints,
   allocationLabels,
@@ -110,6 +111,7 @@ function EquipmentEntryForm({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: entry ? toEquipmentForm(entry) : emptyEquipmentForm,
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const allocation = useWatch({ control: form.control, name: 'allocation' });
@@ -150,7 +152,7 @@ function EquipmentEntryForm({
 
   return (
     <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {entry ? 'Modifică articolul' : 'Adaugă un articol de echipament'}

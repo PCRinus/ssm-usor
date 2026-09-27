@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { useLoginForm } from '../auth/use-login-form';
 import { CommitVersion } from '../components/commit-version';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 
 export const Route = createFileRoute('/login')({
   staticData: { title: 'Autentificare' },
@@ -29,6 +30,7 @@ export const Route = createFileRoute('/login')({
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { form, onSubmit } = useLoginForm(Route.useSearch().invitation);
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   return (
@@ -53,6 +55,7 @@ export function LoginPage() {
           </CardHeader>
           <CardContent className="sm:px-8">
             <form
+              ref={formRef}
               className="grid gap-5"
               aria-busy={isSubmitting}
               aria-describedby={errors.root?.auth ? 'login-error' : undefined}

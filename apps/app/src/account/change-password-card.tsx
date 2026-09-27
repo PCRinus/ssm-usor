@@ -13,6 +13,7 @@ import {
 } from '../auth/password-schema';
 import { Field } from '../components/form-field';
 import { PasswordInput } from '../components/password-input';
+import { useRevealErrors } from '../components/use-reveal-errors';
 
 const codeOf = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error ? error.code : null;
@@ -25,6 +26,7 @@ export function ChangePasswordCard({ email }: { email: string }) {
     resolver: zodResolver(changePasswordSchema),
     defaultValues: { currentPassword: '', newPassword: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ currentPassword, newPassword }) => {
@@ -48,6 +50,7 @@ export function ChangePasswordCard({ email }: { email: string }) {
       </CardHeader>
       <CardContent>
         <form
+          ref={formRef}
           onSubmit={(event) => void onSubmit(event)}
           aria-busy={isSubmitting}
           noValidate

@@ -24,6 +24,7 @@ import { ApiHttpError } from '../api/http';
 import { CountyCombobox } from '../clients/county-combobox';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { LocalityCombobox } from '../localities/locality-combobox';
 import {
   emptyWorkplaceForm,
@@ -76,6 +77,7 @@ function WorkplaceForm({
     resolver: zodResolver(workplaceFormSchema),
     defaultValues: workplace ? toWorkplaceForm(workplace) : emptyWorkplaceForm,
   });
+  const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const countyCode = useWatch({ control: form.control, name: 'countyCode' });
@@ -111,7 +113,7 @@ function WorkplaceForm({
 
   return (
     <DialogContent data-testid="workplace-dialog" className="sm:max-w-2xl">
-      <form onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {workplace ? 'Modifică punctul de lucru' : 'Adaugă un punct de lucru'}

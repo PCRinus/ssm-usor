@@ -11,6 +11,7 @@ import { forgotPasswordSchema, type ForgotPasswordValues } from '../auth/passwor
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
+import { useRevealErrors } from '../components/use-reveal-errors';
 
 export const Route = createFileRoute('/forgot-password')({
   staticData: { title: 'Recuperare parolă' },
@@ -29,6 +30,7 @@ export function ForgotPasswordPage() {
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ email }) => {
@@ -71,6 +73,7 @@ export function ForgotPasswordPage() {
       description="Scrie adresa de email a contului și îți trimitem un link pentru alegerea unei parole noi."
     >
       <form
+        ref={formRef}
         className="grid gap-5"
         aria-busy={isSubmitting}
         noValidate

@@ -13,6 +13,7 @@ import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
 import { PasswordStrengthIndicator } from '../components/password-strength-indicator';
 import { PublicFrame } from '../components/public-frame';
+import { useRevealErrors } from '../components/use-reveal-errors';
 
 // Registration is Supabase's own signup (ADR 004). The page creates an identity only; the
 // organization comes with onboarding, after the email is confirmed.
@@ -33,6 +34,7 @@ export function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: { email: '', password: '' },
   });
+  const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
   const password = useWatch({ control: form.control, name: 'password' });
   const email = useWatch({ control: form.control, name: 'email' });
@@ -80,6 +82,7 @@ export function RegisterPage() {
       description="Pentru servicii externe de prevenire și protecție. După confirmarea adresei de email îți configurezi organizația."
     >
       <form
+        ref={formRef}
         className="grid gap-5"
         aria-busy={isSubmitting}
         noValidate

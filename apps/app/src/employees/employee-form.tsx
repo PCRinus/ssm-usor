@@ -12,6 +12,7 @@ import { DatePicker } from '../components/date-picker';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
+import { useRevealErrors } from '../components/use-reveal-errors';
 import { JobPositionCombobox } from '../job-positions/job-position-combobox';
 import type { Employee, EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
@@ -39,6 +40,7 @@ export function EmployeeForm({
     clientId,
     employee
   );
+  const formRef = useRevealErrors(form);
   const {
     register,
     control: formControl,
@@ -65,6 +67,7 @@ export function EmployeeForm({
         </h1>
       </div>
       <form
+        ref={formRef}
         className="grid gap-6"
         aria-busy={isSaving}
         aria-describedby={errors.root?.server ? 'employee-form-error' : undefined}
