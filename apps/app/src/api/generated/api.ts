@@ -3179,6 +3179,15 @@ export const GetDocumentDownloadFormat = {
   signed: 'signed',
 } as const;
 
+export type DownloadFileParams = {
+  source: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  name: string;
+};
+
 export type ConfirmWaitlistSubscriptionParams = {
   /**
    * @maxLength 200
@@ -11535,6 +11544,138 @@ export const useUploadClientDocument = <TError = ErrorType<ApiErrorResponse>, TC
 > => {
   return useMutation(getUploadClientDocumentMutationOptions(options), queryClient);
 };
+
+export const getDownloadFileUrl = (params: DownloadFileParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/files/download?${stringifiedParams}` : `/files/download`;
+};
+
+/**
+ * Opened by the browser, not fetched: the answer is an attachment, which a mobile browser hands to its download manager. The signed link authorizes the read and expires on its own.
+ * @summary Save a file from a signed Storage link under its own name
+ */
+export const downloadFile = async (
+  params: DownloadFileParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getDownloadFileUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getDownloadFileQueryKey = (params?: DownloadFileParams) => {
+  return [`/files/download`, ...(params ? [params] : [])] as const;
+};
+
+export const getDownloadFileQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: DownloadFileParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadFileQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadFile>>> = ({ signal }) =>
+    downloadFile(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadFile>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DownloadFileQueryResult = NonNullable<Awaited<ReturnType<typeof downloadFile>>>;
+export type DownloadFileQueryError = ErrorType<ApiErrorResponse>;
+
+export function useDownloadFile<
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: DownloadFileParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadFile>>,
+          TError,
+          Awaited<ReturnType<typeof downloadFile>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDownloadFile<
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: DownloadFileParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadFile>>,
+          TError,
+          Awaited<ReturnType<typeof downloadFile>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDownloadFile<
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: DownloadFileParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Save a file from a signed Storage link under its own name
+ */
+
+export function useDownloadFile<
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: DownloadFileParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDownloadFileQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetServiceContractUrl = (clientId: string) => {
   return `/clients/${clientId}/service-contract`;

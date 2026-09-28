@@ -419,13 +419,9 @@ describe('client documents', () => {
     );
   });
 
-  it('downloads a draft under the name of the document', async () => {
+  it('downloads a draft through the API under its name, without fetching it into the page', async () => {
     mockApi({ items: [firstAid] });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
-    );
     mount();
     const user = userEvent.setup();
 
@@ -434,8 +430,15 @@ describe('client documents', () => {
 
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
     const anchor = click.mock.contexts[0] as HTMLAnchorElement;
-    expect(anchor.download).toBe('Decizia privind responsabilii cu primul ajutor - rev. 1.docx');
+    const address = new URL(anchor.href);
+    expect(address.origin + address.pathname).toBe('http://localhost:8787/files/download');
+    expect(address.searchParams.get('source')).toBe('https://files.example.test/signed');
+    expect(address.searchParams.get('name')).toBe(
+      'Decizia privind responsabilii cu primul ajutor - rev. 1.docx'
+    );
+    expect(anchor.target).toBe('');
     expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(1);
+    expect(requests('/signed', 'GET')).toHaveLength(0);
   });
 
   it('offers the PDF of an issued revision that has one, and asks the API for that format', async () => {

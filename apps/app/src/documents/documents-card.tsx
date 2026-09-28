@@ -54,7 +54,7 @@ import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
-import { saveFile } from '../lib/save-file';
+import { openDownload } from '../lib/save-file';
 import {
   type ClientDocument,
   notApplicableTitles,
@@ -228,9 +228,7 @@ export function DocumentsCard({
     setError(null);
     try {
       const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
-      const response = await fetch(link.url);
-      if (!response.ok) throw new Error(`Download failed (${response.status}).`);
-      saveFile(await response.blob(), link.fileName);
+      openDownload(apiRequest.baseUrl, link);
     } catch {
       setError(
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
