@@ -11794,6 +11794,16 @@
             "required": true,
             "name": "name",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["attachment", "inline"],
+              "default": "attachment"
+            },
+            "required": false,
+            "name": "disposition",
+            "in": "query"
           }
         ],
         "responses": {

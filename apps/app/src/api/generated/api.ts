@@ -3186,7 +3186,16 @@ export type DownloadFileParams = {
    * @maxLength 200
    */
   name: string;
+  disposition?: DownloadFileDisposition;
 };
+
+export type DownloadFileDisposition =
+  (typeof DownloadFileDisposition)[keyof typeof DownloadFileDisposition];
+
+export const DownloadFileDisposition = {
+  attachment: 'attachment',
+  inline: 'inline',
+} as const;
 
 export type ConfirmWaitlistSubscriptionParams = {
   /**

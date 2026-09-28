@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, useRouteContext } from '@tanstack/react-router';
-import { type ReactNode, useRef, useState } from 'react';
+import { type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
 import {
@@ -15,7 +15,7 @@ import { ApiHttpError } from '../api/http';
 import { Notice } from '../components/notice';
 import { PublicFrame } from '../components/public-frame';
 import { formatRoDate } from '../lib/dates';
-import { openDownload } from '../lib/save-file';
+import { fileAddress } from '../lib/save-file';
 
 // Public: the return link in a contract email lands here (ADR 007, amended). The person has
 // no account; the token in the address is all that identifies the send, and it goes to the
@@ -172,21 +172,32 @@ function ReturnForm({
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
   const [done, setDone] = useState(false);
+  // A real link, ready before the tap: the in-app browser of Gmail on Android (a Firefox custom
+  // tab) cannot download at all, but shows a PDF in its viewer, which can save it. The token
+  // stays in request bodies (ADR 003), so the link is a signed one, renewed before it expires.
+  const link = useQuery({
+    queryKey: ['contract-return-link', token],
+    queryFn: ({ signal }) => downloadContractReturn({ token }, { ...apiRequest, signal }),
+    retry: false,
+    refetchInterval: (query) =>
+      Math.max((query.state.data?.expiresInSeconds ?? 600) - 60, 30) * 1_000,
+  });
+  const closed = link.error instanceof ApiHttpError && link.error.status === 409;
+  const reportedClosed = useRef(false);
+  useEffect(() => {
+    if (!closed || reportedClosed.current) return;
+    reportedClosed.current = true;
+    onChanged();
+  }, [closed, onChanged]);
 
-  async function download() {
-    setError(null);
-    setDownloading(true);
-    try {
-      const link = await downloadContractReturn({ token }, apiRequest);
-      openDownload(apiRequest.baseUrl, link);
-    } catch (cause) {
-      if (cause instanceof ApiHttpError && cause.status === 409) onChanged();
-      else setError('Nu am putut descărca contractul. Verificați conexiunea și încercați din nou.');
-    } finally {
-      setDownloading(false);
-    }
+  // A phone that slept may keep a link past its expiry before the renewal runs.
+  async function openFresh(event: MouseEvent<HTMLAnchorElement>) {
+    const lifetime = (link.data?.expiresInSeconds ?? 600) * 1_000;
+    if (Date.now() - link.dataUpdatedAt < lifetime - 30_000) return;
+    event.preventDefault();
+    const { data } = await link.refetch();
+    if (data) window.location.assign(fileAddress(apiRequest.baseUrl, data, 'inline'));
   }
 
   async function send() {
@@ -240,18 +251,33 @@ function ReturnForm({
       <ol className="grid gap-5 text-sm leading-relaxed">
         <li className="grid gap-2">
           <p>
-            <span className="font-semibold">1. Descărcați contractul</span>, același fișier ca în
-            email.
+            <span className="font-semibold">1. Deschideți contractul</span>, același fișier ca în
+            email. Îl salvați din vizualizatorul de PDF al browserului.
           </p>
           <div>
-            <Button
-              variant="outline"
-              data-testid="return-download"
-              disabled={downloading}
-              onClick={() => void download()}
-            >
-              {downloading ? 'Se descarcă…' : 'Descărcați PDF-ul'}
-            </Button>
+            {link.data ? (
+              <Button asChild variant="outline">
+                <a
+                  data-testid="return-download"
+                  href={fileAddress(apiRequest.baseUrl, link.data, 'inline')}
+                  onClick={(event) => void openFresh(event)}
+                >
+                  Deschideți PDF-ul
+                </a>
+              </Button>
+            ) : link.isError && !closed ? (
+              <Button
+                variant="outline"
+                data-testid="return-download-retry"
+                onClick={() => void link.refetch()}
+              >
+                Nu am putut pregăti PDF-ul. Încercați din nou
+              </Button>
+            ) : (
+              <Button variant="outline" disabled data-testid="return-download-pending">
+                Se pregătește PDF-ul…
+              </Button>
+            )}
           </div>
         </li>
         <li>

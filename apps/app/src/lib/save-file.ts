@@ -21,14 +21,23 @@ export function openDownload(
   apiBaseUrl: string | undefined,
   link: { url: string; fileName: string }
 ) {
-  if (!apiBaseUrl) throw new Error('The API URL is not configured.');
-  const address = new URL('files/download', `${apiBaseUrl.replace(/\/$/, '')}/`);
-  address.searchParams.set('source', link.url);
-  address.searchParams.set('name', link.fileName);
   const anchor = document.createElement('a');
-  anchor.href = address.href;
+  anchor.href = fileAddress(apiBaseUrl, link, 'attachment');
   anchor.hidden = true;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
+}
+
+export function fileAddress(
+  apiBaseUrl: string | undefined,
+  link: { url: string; fileName: string },
+  disposition: 'attachment' | 'inline'
+) {
+  if (!apiBaseUrl) throw new Error('The API URL is not configured.');
+  const address = new URL('files/download', `${apiBaseUrl.replace(/\/$/, '')}/`);
+  address.searchParams.set('source', link.url);
+  address.searchParams.set('name', link.fileName);
+  address.searchParams.set('disposition', disposition);
+  return address.href;
 }

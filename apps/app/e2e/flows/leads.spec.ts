@@ -224,14 +224,19 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     await expect(returnPage.getByTestId('contract-return-page')).toContainText(
       'S.C. VIITOR CONTRACT E2E S.R.L.'
     );
-    const sentPdf = returnPage.waitForEvent('download');
-    await returnPage.getByTestId('return-download').click();
-    expect((await sentPdf).suggestedFilename()).toMatch(
-      /^Contract nr\. 51 din \d{2}\.\d{2}\.\d{4}\.pdf$/
+    // A real link that shows the PDF in the browser's viewer: the in-app browser of Gmail on
+    // Android cannot download, only show. The token stays out of the address.
+    const open = returnPage.getByTestId('return-download');
+    const href = await open.getAttribute('href');
+    expect(href).toContain('/files/download?');
+    expect(href).not.toContain(returnUrl.searchParams.get('token')!);
+    const sentPdf = await recipient.request.get(href!);
+    expect(sentPdf.status()).toBe(200);
+    expect(sentPdf.headers()['content-type']).toBe('application/pdf');
+    expect(sentPdf.headers()['content-disposition']).toMatch(
+      /^inline; filename="Contract nr\. 51 din \d{2}\.\d{2}\.\d{4}\.pdf"; filename\*=UTF-8''/
     );
-    // A real address the browser's download manager can fetch: Firefox on Android cannot
-    // save an in-page object URL and shows a blank tab.
-    expect((await sentPdf).url()).toContain('/files/download?');
+    expect((await sentPdf.body()).subarray(0, 4).toString()).toBe('%PDF');
     await returnPage.getByTestId('return-file').setInputFiles({
       name: 'contract semnat.pdf',
       mimeType: 'application/pdf',

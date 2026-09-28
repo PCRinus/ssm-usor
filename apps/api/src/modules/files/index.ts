@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 
+import { contentDisposition } from '../../lib/content-disposition';
 import { requestFetch, supabaseConfig } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import { publicErrors } from '../../lib/openapi';
@@ -16,6 +17,9 @@ export const fileDownloadRoute = createRoute({
     query: z.object({
       source: z.url(),
       name: z.string().trim().min(1).max(200),
+      // `inline` shows a PDF in the browser's viewer, which can save it: the in-app browser
+      // of Gmail on Android (a Firefox custom tab) cannot download an attachment at all.
+      disposition: z.enum(['attachment', 'inline']).default('attachment'),
     }),
   },
   responses: {
@@ -27,11 +31,10 @@ export const fileDownloadRoute = createRoute({
   },
 });
 
-// Storage names the file itself, but percent-encodes it in the plain `filename`, which is the
-// one browsers use there: "Copertă" is saved as "Copert%C4%83". So the bytes come through
-// here, under a header that gives an ASCII name and the real one (RFC 6266 / RFC 8187).
+// Storage names the file itself, but not in a way browsers read correctly, so the bytes come
+// through here under our own header.
 export const filesRouter = createRouter().openapi(fileDownloadRoute, async (c) => {
-  const { source, name } = c.req.valid('query');
+  const { source, name, disposition } = c.req.valid('query');
   const link = new URL(source);
   // Only a signed read from our own Storage: anything else would make this an open proxy.
   if (
@@ -45,24 +48,15 @@ export const filesRouter = createRouter().openapi(fileDownloadRoute, async (c) =
     // An expired signed link is the usual reason: the page asks for a new one on the next try.
     throw new ApiError('not_found', 'The download link has expired. Try again.');
   }
+  const type = upstream.headers.get('Content-Type') ?? 'application/octet-stream';
+  // Only a PDF is ever shown: any other type rendered from the API's origin could run there.
+  const shown = disposition === 'inline' && type.split(';')[0]!.trim() === 'application/pdf';
   return new Response(upstream.body, {
     headers: {
-      'Content-Type': upstream.headers.get('Content-Type') ?? 'application/octet-stream',
-      'Content-Disposition': attachment(name),
+      'Content-Type': type,
+      'Content-Disposition': contentDisposition(shown ? 'inline' : 'attachment', name),
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
     },
   });
 });
-
-export function attachment(name: string) {
-  const ascii = name
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\x20-\x7e]|["\\]/g, '_');
-  const encoded = encodeURIComponent(name).replace(
-    /['()*]/g,
-    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
-  );
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
-}
