@@ -10,9 +10,9 @@ export const fileDownloadRoute = createRoute({
   method: 'get',
   path: '/files/download',
   operationId: 'downloadFile',
-  summary: 'Save a file from a signed Storage link under its own name',
+  summary: 'Download or show a file from a signed Storage link, under its own name',
   description:
-    'Opened by the browser, not fetched: the answer is an attachment, which a mobile browser hands to its download manager. The signed link authorizes the read and expires on its own.',
+    'Opened by the browser, not fetched. `attachment` downloads the file; `inline` shows a PDF in the browser, and any other type is still downloaded. The signed link authorizes the read and expires on its own.',
   request: {
     query: z.object({
       source: z.url(),
@@ -24,7 +24,7 @@ export const fileDownloadRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'The file, as an attachment',
+      description: 'The file, downloaded or shown',
       content: { 'application/octet-stream': { schema: z.string().meta({ format: 'binary' }) } },
     },
     ...publicErrors,

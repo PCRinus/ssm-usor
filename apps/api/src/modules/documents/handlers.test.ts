@@ -724,7 +724,7 @@ describe('POST /clients/{clientId}/documents/generate', () => {
 });
 
 describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
-  it('signs a link that downloads under the name of the document', async () => {
+  it('signs a link to the file and names it for the download', async () => {
     mockUpstream();
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
     expect(response.status).toBe(200);
@@ -732,7 +732,8 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     expect(body.fileName).toBe('Copertă - Deciziile interne - rev. 1.docx');
     expect(body.expiresInSeconds).toBe(60);
     expect(body.url).toContain('https://example.supabase.co/storage/v1/object/sign/documents/');
-    expect(body.url).toContain('download=');
+    // The name travels in the answer; the API's download route puts it in the header.
+    expect(body.url).not.toContain('download=');
   });
 
   it('links to the PDF of an issued revision, and says when there is none', async () => {

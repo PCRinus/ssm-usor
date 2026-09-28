@@ -151,11 +151,7 @@ export const downloadContractReturn: RouteHandler<
   // for a while.
   const expiresInSeconds = 600;
   const fileName = `Contract nr. ${found.contract.contract_number} din ${printedDate(found.contract.contract_date)}.pdf`;
-  const url = await createAdminFileStore(c).documentLink(
-    found.revision.pdf_path,
-    fileName,
-    expiresInSeconds
-  );
+  const url = await createAdminFileStore(c).documentLink(found.revision.pdf_path, expiresInSeconds);
   return c.json({ url, fileName, expiresInSeconds }, 200);
 };
 
