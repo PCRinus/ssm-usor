@@ -3186,7 +3186,16 @@ export type DownloadFileParams = {
    * @maxLength 200
    */
   name: string;
+  disposition?: DownloadFileDisposition;
 };
+
+export type DownloadFileDisposition =
+  (typeof DownloadFileDisposition)[keyof typeof DownloadFileDisposition];
+
+export const DownloadFileDisposition = {
+  attachment: 'attachment',
+  inline: 'inline',
+} as const;
 
 export type ConfirmWaitlistSubscriptionParams = {
   /**
@@ -11560,8 +11569,8 @@ export const getDownloadFileUrl = (params: DownloadFileParams) => {
 };
 
 /**
- * Opened by the browser, not fetched: the answer is an attachment, which a mobile browser hands to its download manager. The signed link authorizes the read and expires on its own.
- * @summary Save a file from a signed Storage link under its own name
+ * Opened by the browser, not fetched. `attachment` downloads the file; `inline` shows a PDF in the browser, and any other type is still downloaded. The signed link authorizes the read and expires on its own.
+ * @summary Download or show a file from a signed Storage link, under its own name
  */
 export const downloadFile = async (
   params: DownloadFileParams,
@@ -11654,7 +11663,7 @@ export function useDownloadFile<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Save a file from a signed Storage link under its own name
+ * @summary Download or show a file from a signed Storage link, under its own name
  */
 
 export function useDownloadFile<

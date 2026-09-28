@@ -88,19 +88,18 @@ describe('the return page', () => {
     expect((form.get('file') as File).name).toBe('contract semnat.pdf');
   });
 
-  it('downloads the contract through the API, in the same tab', async () => {
+  it('opens the contract in the browser from a real link, without the token in it', async () => {
     mockApi();
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mountApp(authFixture().client, '/contract?token=tok-123');
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('return-download'));
-    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-    const anchor = click.mock.contexts[0] as HTMLAnchorElement;
-    const address = new URL(anchor.href);
+    const link = await screen.findByTestId('return-download');
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('target')).toBeNull();
+    const address = new URL(link.getAttribute('href')!);
     expect(address.pathname).toBe('/files/download');
     expect(address.searchParams.get('source')).toBe('https://files.example/x');
     expect(address.searchParams.get('name')).toBe('x.pdf');
-    expect(anchor.target).toBe('');
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(address.href).not.toContain('tok-123');
     const [download] = calls('/contract-returns/download');
     expect(JSON.parse(String(download![1]?.body))).toEqual({ token: 'tok-123' });
   });

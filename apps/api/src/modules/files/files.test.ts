@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { contentDisposition } from '../../lib/content-disposition';
 import type { ApiEnv } from '../../lib/env';
-import { attachment } from '.';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -14,9 +14,13 @@ const signed =
   'https://example.supabase.co/storage/v1/object/sign/documents/org/client/doc.pdf?token=t&download=x';
 const fetchMock = vi.fn<typeof fetch>();
 
-const download = (source: string, name = 'Contract de prestări servicii - rev. 1.pdf') =>
+const download = (
+  source: string,
+  name = 'Contract de prestări servicii - rev. 1.pdf',
+  extra: Record<string, string> = {}
+) =>
   createApp().request(
-    `/files/download?${new URLSearchParams({ source, name }).toString()}`,
+    `/files/download?${new URLSearchParams({ source, name, ...extra }).toString()}`,
     {},
     env
   );
@@ -44,6 +48,25 @@ describe('saving a file from a signed Storage link', () => {
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('Authorization')).toBeNull();
   });
 
+  it('shows a PDF in the browser when asked, under the same name', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } })
+    );
+    const response = await download(signed, 'Contract nr. 12.pdf', { disposition: 'inline' });
+    expect(response.headers.get('Content-Disposition')).toBe(
+      `inline; filename="Contract nr. 12.pdf"; filename*=UTF-8''Contract%20nr.%2012.pdf`
+    );
+  });
+
+  it('never shows anything but a PDF in the browser', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('<script>alert(1)</script>', { headers: { 'Content-Type': 'text/html' } })
+    );
+    const response = await download(signed, 'x.html', { disposition: 'inline' });
+    expect(response.headers.get('Content-Disposition')).toMatch(/^attachment;/);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
   it.each([
     'https://attacker.example/storage/v1/object/sign/documents/x.pdf?token=t',
     'https://example.supabase.co/rest/v1/clients?select=*',
@@ -68,7 +91,9 @@ describe('saving a file from a signed Storage link', () => {
 
 describe('attachment', () => {
   it('gives an ASCII name and the real one, encoded as RFC 8187 asks', () => {
-    expect(attachment(`Copertă – Deciziile „interne” (O'Neil) "x".docx`)).toBe(
+    expect(
+      contentDisposition('attachment', `Copertă – Deciziile „interne” (O'Neil) "x".docx`)
+    ).toBe(
       `attachment; filename="Coperta _ Deciziile _interne_ (O'Neil) _x_.docx"; ` +
         `filename*=UTF-8''Copert%C4%83%20%E2%80%93%20Deciziile%20%E2%80%9Einterne%E2%80%9D%20%28O%27Neil%29%20%22x%22.docx`
     );

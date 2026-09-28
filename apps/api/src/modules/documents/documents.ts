@@ -1071,7 +1071,7 @@ export async function documentDownloadLink(
       ? `${fileNameOf(data.client_documents.title)} - rev. ${data.revision} - semnat.pdf`
       : `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
   return {
-    url: await files.documentLink(path, fileName, expiresInSeconds),
+    url: await files.documentLink(path, expiresInSeconds),
     fileName,
     expiresInSeconds,
   };

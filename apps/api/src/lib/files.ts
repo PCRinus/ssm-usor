@@ -76,10 +76,10 @@ function fileStore(c: Context<ApiEnv>, key: string, authorization: string) {
       if (error) throw fileError('remove document', error);
     },
 
-    async documentLink(path: string, fileName: string, expiresInSeconds = 60) {
+    async documentLink(path: string, expiresInSeconds = 60) {
       const { data, error } = await storage
         .from(documentsBucket)
-        .createSignedUrl(path, expiresInSeconds, { download: fileName });
+        .createSignedUrl(path, expiresInSeconds);
       if (error || !data) throw fileError('sign document link', error);
       return data.signedUrl;
     },
@@ -94,10 +94,10 @@ function fileStore(c: Context<ApiEnv>, key: string, authorization: string) {
       if (error) throw fileError('write instruction module', error);
     },
 
-    async moduleLink(path: string, fileName: string, expiresInSeconds = 60) {
+    async moduleLink(path: string, expiresInSeconds = 60) {
       const { data, error } = await storage
         .from(modulesBucket)
-        .createSignedUrl(path, expiresInSeconds, { download: fileName });
+        .createSignedUrl(path, expiresInSeconds);
       if (error || !data) throw fileError('sign instruction module link', error);
       return data.signedUrl;
     },

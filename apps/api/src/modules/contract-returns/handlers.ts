@@ -147,13 +147,11 @@ export const downloadContractReturn: RouteHandler<
   if (found.status !== 'open' && found.status !== 'received') throw closed();
   // Sent, so it has one; a revision issued without a PDF is refused at sending.
   if (!found.revision.pdf_path) throw closed();
-  const expiresInSeconds = 60;
+  // The page keeps a link ready on a real button and renews it; a phone may leave it asleep
+  // for a while.
+  const expiresInSeconds = 600;
   const fileName = `Contract nr. ${found.contract.contract_number} din ${printedDate(found.contract.contract_date)}.pdf`;
-  const url = await createAdminFileStore(c).documentLink(
-    found.revision.pdf_path,
-    fileName,
-    expiresInSeconds
-  );
+  const url = await createAdminFileStore(c).documentLink(found.revision.pdf_path, expiresInSeconds);
   return c.json({ url, fileName, expiresInSeconds }, 200);
 };
 

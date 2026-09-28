@@ -320,7 +320,7 @@ export const getInstructionModuleFileLink: RouteHandler<
   const fileName = fileNameOf(module.title);
   return c.json(
     {
-      url: await createFileStore(c).moduleLink(path, fileName, expiresInSeconds),
+      url: await createFileStore(c).moduleLink(path, expiresInSeconds),
       fileName,
       expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
     },
