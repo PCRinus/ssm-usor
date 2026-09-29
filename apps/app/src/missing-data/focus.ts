@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useEffect, useEffectEvent } from 'react';
 import { z } from 'zod';
 
@@ -101,37 +101,62 @@ function whenPresent(id: string, found: (element: HTMLElement) => void, gaveUp: 
 const settledAfter = 120;
 const startsWithin = 400;
 const movesAtMost = 1500;
-const beat = 350;
+const beat = 600;
+const pointedFor = 1800;
+const tries = 3;
+const centred = 24;
 
-// The middle of the window: an anchor near an edge is brought to the centre too, so the eye
-// finds it before the dialog covers the page.
-function atEase(element: HTMLElement) {
-  const bounds = element.getBoundingClientRect();
-  return bounds.top >= coveredTop && bounds.bottom <= window.innerHeight * 0.7;
+// Styled in styles.css. It says which button or field the row was about, also on a page too
+// short to scroll.
+function point(element: HTMLElement) {
+  element.setAttribute('data-pointed', '');
+  setTimeout(() => element.removeAttribute('data-pointed'), pointedFor);
 }
 
-// Waits for the smooth scroll to end before `then`, by watching where the element is: a page
-// that has just rendered can start moving several frames late, and Safari has no `scrollend`.
-// A beat follows even when nothing had to move: a dialog that opens with the page reads as
-// the page failing to load. An element without a box, as in a test without layout, has
-// nowhere to move and nobody to watch it.
+function offCentre(element: HTMLElement) {
+  const bounds = element.getBoundingClientRect();
+  return (bounds.top + bounds.bottom) / 2 - window.innerHeight / 2;
+}
+
+function canMoveTo(element: HTMLElement) {
+  const page = document.scrollingElement;
+  const by = offCentre(element);
+  if (!page || Math.abs(by) <= centred) return false;
+  return by > 0 ? page.scrollTop < page.scrollHeight - page.clientHeight - 1 : page.scrollTop > 0;
+}
+
+// Brings the element as near the middle of the window as the page allows, points at it, and
+// calls `then` a beat later. It watches where the element is rather than the scroll events:
+// Safari has no `scrollend`, and the router's own scroll to the top, or a card that loads
+// above, can undo a scroll that started too early, which is why it tries again. An element
+// without a box, as in a test without layout, has nowhere to move and nobody to watch it.
 function scrollThen(element: HTMLElement, then: () => void) {
-  const laidOut = element.getClientRects().length > 0;
   const still = stillMotion();
-  const moving = !atEase(element);
-  if (moving || !laidOut) {
+  const scroll = () =>
     element.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
-  }
-  if (!laidOut) {
+  if (element.getClientRects().length === 0) {
+    scroll();
     then();
     return () => {};
   }
   let frame = 0;
   let pause: ReturnType<typeof setTimeout> | undefined;
-  const afterBeat = () => {
+  let tried = 0;
+  const arrive = () => {
+    point(element);
     pause = setTimeout(then, beat);
   };
-  if (moving && !still) {
+  const move = () => {
+    if (tried >= tries || !canMoveTo(element)) {
+      arrive();
+      return;
+    }
+    tried += 1;
+    scroll();
+    if (still) {
+      arrive();
+      return;
+    }
     const started = performance.now();
     let top = element.getBoundingClientRect().top;
     let restingSince = started;
@@ -144,21 +169,15 @@ function scrollThen(element: HTMLElement, then: () => void) {
         restingSince = now;
         moved = true;
       }
-      if (moved ? now - restingSince > settledAfter : now - started > startsWithin) {
-        if (moved) afterBeat();
-        else then();
-        return;
-      }
-      if (now - started > movesAtMost) {
-        then();
-        return;
-      }
-      frame = requestAnimationFrame(watch);
+      if (now - started > movesAtMost) arrive();
+      else if (moved ? now - restingSince > settledAfter : now - started > startsWithin) move();
+      else frame = requestAnimationFrame(watch);
     };
     frame = requestAnimationFrame(watch);
-  } else {
-    afterBeat();
-  }
+  };
+  frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(move);
+  });
   return () => {
     cancelAnimationFrame(frame);
     clearTimeout(pause);
@@ -170,6 +189,7 @@ function focusField(element: HTMLElement) {
     element.scrollIntoView({ block: 'center', behavior: stillMotion() ? 'auto' : 'smooth' });
   }
   element.focus({ preventScroll: true });
+  point(element);
 }
 
 // The page first scrolls to `anchor`, the button that opens the dialog or the card's form, and
@@ -190,6 +210,8 @@ export function useFocusRequest(
   }
 ) {
   const navigate = useNavigate();
+  // The router scrolls to the top when a page opens; the request waits for that to be over.
+  const arrived = useRouterState({ select: (state) => state.status === 'idle' });
   const answer = useEffectEvent(() => {
     const done = () =>
       void navigate({
@@ -227,7 +249,7 @@ export function useFocusRequest(
   });
 
   useEffect(() => {
-    if (!requested || !ready) return;
+    if (!requested || !ready || !arrived) return;
     return answer();
-  }, [requested, ready]);
+  }, [requested, ready, arrived]);
 }
