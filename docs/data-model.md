@@ -359,12 +359,13 @@ well as its row, and tenancy and impersonation apply to files exactly as they do
 because the policies use `current_organization_id()`. Supabase's database backups cover these
 rows but not the files (issue #77).
 
-### Other documents, and documents for owners only
+### The service contract's group, and documents for owners only
 
-`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007):
-the documents about a client that are not part of its set, of which the service contract is
-the first. `owners_only` marks a document that only an owner reaches, and a check constraint
-keeps a `service_contract` from being anything else, whoever writes the row.
+`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007),
+which holds the service contract. The value predates client files, which are the "other
+documents" of the app (ADR 013) and live in a table of their own. `owners_only` marks a
+document that only an owner reaches, and a check constraint keeps a `service_contract` from
+being anything else, whoever writes the row.
 
 `can_access_document(id)` is the one answer for every way to a document: the select and
 insert policies of `client_documents` carry the same condition, the four policies of
