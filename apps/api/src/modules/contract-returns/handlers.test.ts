@@ -52,7 +52,9 @@ type Upstream = 'sends' | 'revision' | 'copies' | 'upload' | 'sign';
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
+function mockUpstream(
+  handlers: Partial<Record<Upstream, Handler>> & { stage?: 'lead' | 'client' } = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const method = init?.method ?? 'GET';
@@ -84,6 +86,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return Response.json({
           id: clientId,
           legal_name: 'S.C. VELOCITA URBANA S.R.L.',
+          stage: handlers.stage ?? 'lead',
           archived_at: null,
         });
       case '/rest/v1/service_contracts':
@@ -250,6 +253,16 @@ describe('the return link', () => {
       contractDate: '2026-02-15',
       leadUrl: `https://app.ssmusor.ro/leads/${clientId}`,
     });
+  });
+
+  it('points the owner of a client, not a lead, to the Contract tab', async () => {
+    mockUpstream({ stage: 'client' });
+    expect((await upload()).status).toBe(200);
+    expect(sendSignedCopyReceived).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadUrl: `https://app.ssmusor.ro/clients/${clientId}/contract`,
+      })
+    );
   });
 
   it('takes only a PDF, and only so many times', async () => {
