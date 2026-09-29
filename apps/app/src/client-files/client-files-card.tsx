@@ -457,16 +457,16 @@ function FileRow({
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span data-testid="client-file-kind">{kind.label}</span>
               <span className="sm:hidden">· {size}</span>
-              <span className="sm:hidden">
-                · {date}
-                {uploader && `, ${uploader}`}
-              </span>
               {showOwnersOnly && file.ownersOnly && (
                 <Badge variant="secondary" data-testid="client-file-owners-only">
                   <Lock aria-hidden="true" />
                   Doar administratori
                 </Badge>
               )}
+              <span className="basis-full sm:hidden">
+                {date}
+                {uploader && `, ${uploader}`}
+              </span>
             </div>
             {file.note && (
               <p
@@ -489,7 +489,7 @@ function FileRow({
         )}
       </TableCell>
       <TableCell className="align-top max-sm:col-start-2 max-sm:row-start-1 max-sm:p-0">
-        <div className="flex justify-end gap-1">
+        <div className="flex gap-1 max-sm:justify-end">
           <Button
             variant="ghost"
             size="icon"
