@@ -1,6 +1,6 @@
 # ADR 013: Client files, the other documents of a client
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-30
 
 ## Context
