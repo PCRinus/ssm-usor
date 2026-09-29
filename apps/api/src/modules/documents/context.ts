@@ -3,6 +3,8 @@ import {
   type EquipmentAllocation,
   formatTrainingDuration,
   type InstructionModuleGroup,
+  type JobPositionDecision,
+  jobPositionDecisions,
   type MissingDocumentData,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
@@ -174,19 +176,25 @@ function quantityLabel(entry: { quantity: number; durationMonths: number | null 
 
 /**
  * The positions still undecided about their equipment (ADR 011) or their instructions
- * (ADR 012), either of which blocks generating; each once.
+ * (ADR 012), either of which blocks generating; each once, with what it has not decided.
  */
 export function undecidedJobPositions(
   facts: Pick<DocumentFacts, 'jobPositions'>,
-  about: 'equipment' | 'instructions' | 'either' = 'either'
+  about: JobPositionDecision | 'either' = 'either'
 ) {
   return facts.jobPositions
-    .filter(
-      (position) =>
-        (about !== 'instructions' && position.needsProtectiveEquipment === null) ||
-        (about !== 'equipment' && position.needsInstructions === null)
-    )
-    .map((position) => ({ id: position.id, name: position.name.trim() }));
+    .map((position) => ({
+      id: position.id,
+      name: position.name.trim(),
+      undecided: jobPositionDecisions.filter(
+        (decision) =>
+          (about === 'either' || about === decision) &&
+          (decision === 'equipment'
+            ? position.needsProtectiveEquipment === null
+            : position.needsInstructions === null)
+      ),
+    }))
+    .filter((position) => position.undecided.length > 0);
 }
 
 const filled = (value: string | null | undefined): value is string =>

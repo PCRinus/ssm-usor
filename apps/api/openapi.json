@@ -3051,9 +3051,17 @@
                 },
                 "name": {
                   "type": "string"
+                },
+                "undecided": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["equipment", "instructions"]
+                  },
+                  "minItems": 1
                 }
               },
-              "required": ["id", "name"]
+              "required": ["id", "name", "undecided"]
             }
           }
         },

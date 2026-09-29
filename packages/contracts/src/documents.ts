@@ -120,6 +120,12 @@ export const missingDocumentDataSchema = z.enum(missingDocumentData);
 
 export type MissingDocumentData = z.infer<typeof missingDocumentDataSchema>;
 
+export const jobPositionDecisions = ['equipment', 'instructions'] as const;
+
+export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
+
+export type JobPositionDecision = z.infer<typeof jobPositionDecisionSchema>;
+
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
@@ -129,9 +135,15 @@ export const documentReadinessResponseSchema = z.object({
   workersRepresentativeClash: z
     .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
     .nullable(),
-  // The positions behind `positions.equipment` and `positions.instructions`, so the form can
-  // send someone to each.
-  undecidedJobPositions: z.array(z.object({ id: z.uuid(), name: z.string() })),
+  // The positions behind `positions.equipment` and `positions.instructions`, each with what it
+  // has not decided yet, so the form can send someone to each section of each position.
+  undecidedJobPositions: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      undecided: z.array(jobPositionDecisionSchema).min(1),
+    })
+  ),
 });
 
 export type DocumentReadinessResponse = z.infer<typeof documentReadinessResponseSchema>;

@@ -2160,9 +2160,19 @@ export type DocumentReadinessResponseWorkersRepresentativeClash = {
   legalRepresentativeName: string;
 } | null;
 
+export type DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem =
+  (typeof DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem)[keyof typeof DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem];
+
+export const DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem = {
+  equipment: 'equipment',
+  instructions: 'instructions',
+} as const;
+
 export type DocumentReadinessResponseUndecidedJobPositionsItem = {
   id: string;
   name: string;
+  /** @minItems 1 */
+  undecided: DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem[];
 };
 
 export interface DocumentReadinessResponse {
