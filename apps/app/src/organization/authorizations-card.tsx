@@ -63,11 +63,6 @@ export function AuthorizationsCard({
 
   return (
     <div data-testid="authorizations-card" className="grid gap-5">
-      {canEdit && (
-        <Notice variant="info">
-          Poți salva abilitările pe rând. Îți vom cere datele necesare când generezi un contract.
-        </Notice>
-      )}
       {saved.isPending ? (
         <Skeleton className="h-72 w-full" />
       ) : saved.isError ? (
