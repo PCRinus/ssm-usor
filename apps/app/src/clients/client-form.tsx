@@ -25,10 +25,10 @@ const wording = {
   lead: { new: 'Client potențial nou', save: 'Salvează clientul potențial', testId: 'lead' },
 } as const;
 
-// With a client, the form corrects what was entered about it; without, it adds one, as a
+// With a lead, the form corrects what was entered about it; without, it adds a client, or a
 // lead when asked to.
-export function ClientForm({ client, newStage }: { client?: Client; newStage?: ClientStage }) {
-  const { form, onSubmit, lookup, lookupCui, stage, isSaving } = useClientForm(client, newStage);
+export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: ClientStage }) {
+  const { form, onSubmit, lookup, lookupCui, stage, isSaving } = useClientForm(lead, newStage);
   const formRef = useRevealErrors(form);
   const words = wording[stage];
   const {
@@ -57,13 +57,10 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
   );
 
   return (
-    <div
-      data-testid={client ? `edit-${words.testId}-page` : `new-${words.testId}-page`}
-      className="space-y-7"
-    >
+    <div data-testid={lead ? 'edit-lead-page' : `new-${words.testId}-page`} className="space-y-7">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          {client ? `Modifică: ${client.legalName}` : words.new}
+          {lead ? `Modifică: ${lead.legalName}` : words.new}
         </h1>
       </div>
       <form
@@ -98,7 +95,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
           </FormSection>
 
           <FormSection title="Alte informații">
-            {!client && (
+            {!lead && (
               <Field
                 id="legalRepresentativeName"
                 label="Reprezentant legal"
@@ -145,23 +142,15 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
         )}
         <div className="flex flex-wrap gap-3">
           <Button type="submit" className="h-11" data-testid="client-submit" disabled={busy}>
-            {isSaving ? 'Se salvează…' : client ? 'Salvează modificările' : words.save}
+            {isSaving ? 'Se salvează…' : lead ? 'Salvează modificările' : words.save}
           </Button>
           <Button asChild type="button" variant="ghost" className="h-11">
-            {stage === 'lead' ? (
-              client ? (
-                <Link to="/leads/$leadId" params={{ leadId: client.id }}>
-                  Renunță
-                </Link>
-              ) : (
-                <Link to="/leads">Renunță</Link>
-              )
-            ) : client ? (
-              <Link to="/clients/$clientId/details" params={{ clientId: client.id }}>
+            {lead ? (
+              <Link to="/leads/$leadId" params={{ leadId: lead.id }}>
                 Renunță
               </Link>
             ) : (
-              <Link to="/clients">Renunță</Link>
+              <Link to={stage === 'lead' ? '/leads' : '/clients'}>Renunță</Link>
             )}
           </Button>
         </div>

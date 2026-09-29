@@ -7,7 +7,6 @@ import { type ClientFormValues, type ClientStage, emptyClientForm } from './clie
 
 export const clientWording = {
   client: {
-    saved: 'Datele clientului au fost salvate.',
     added: (name: string) => `${name} a fost adăugat.`,
     archived: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
     gone: 'Clientul nu mai există în organizația ta.',
@@ -15,7 +14,6 @@ export const clientWording = {
     failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
   },
   lead: {
-    saved: 'Datele clientului potențial au fost salvate.',
     added: (name: string) => `${name} a fost adăugat printre clienții potențiali.`,
     archived: 'Clientul potențial este arhivat; datele lui nu mai pot fi modificate.',
     gone: 'Clientul potențial nu mai există în organizația ta.',

@@ -22,17 +22,17 @@ import {
 import { clientWording, reportClientSaveError } from './client-save-error';
 import { useCompanyLookup } from './use-company-lookup';
 
-// With a client, the form corrects what was entered about it; without, it adds one, in the
-// stage it is given.
-export function useClientForm(client?: Client, newStage: ClientStage = 'client') {
-  const stage = client?.stage ?? newStage;
+// With a lead, the form corrects what was entered about it; without, it adds a client or a
+// lead. A client is corrected card by card on its Detalii tab instead.
+export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
+  const stage = lead ? 'lead' : newStage;
   const words = clientWording[stage];
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const router = useRouter();
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
-    defaultValues: client ? toClientForm(client) : emptyClientForm,
+    defaultValues: lead ? toClientForm(lead) : emptyClientForm,
   });
   const create = useCreateClient({ request: apiRequest });
   const update = useUpdateClient({ request: apiRequest });
@@ -40,19 +40,17 @@ export function useClientForm(client?: Client, newStage: ClientStage = 'client')
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      if (client) {
+      if (lead) {
         const saved = await update.mutateAsync({
-          clientId: client.id,
-          data: toUpdateClientRequest(values, stage),
+          clientId: lead.id,
+          data: toUpdateClientRequest(values, 'lead'),
         });
-        // The client page reads the record through its loader, which keeps whatever is cached.
-        queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
+        // The lead page reads the record through its loader, which keeps whatever is cached.
+        queryClient.setQueriesData({ queryKey: getGetClientQueryKey(lead.id) }, saved);
         await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
         await router.invalidate();
-        toast.success(words.saved);
-        await (stage === 'lead'
-          ? navigate({ to: '/leads/$leadId', params: { leadId: client.id } })
-          : navigate({ to: '/clients/$clientId/details', params: { clientId: client.id } }));
+        toast.success('Datele clientului potențial au fost salvate.');
+        await navigate({ to: '/leads/$leadId', params: { leadId: lead.id } });
         return;
       }
       const created = await create.mutateAsync({ data: toCreateClientRequest(values, stage) });
