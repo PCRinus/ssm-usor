@@ -156,12 +156,14 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`        | `/clients/:id/employees/:employeeId`        | Employee record, the only page that can reveal the CNP.                                                                                                                                                     |
 | `routes/_authenticated/clients/$clientId/contract/index.tsx`               | `/clients/:id/contract`                     | "Contract", for owners: the client's service contract (ADR 007).                                                                                                                                            |
 | `routes/_authenticated/clients/$clientId/contract/edit.tsx`                | `/clients/:id/contract/edit`                | The client's contract in the editor; a full page.                                                                                                                                                           |
+| `routes/_authenticated/clients/$clientId/other-documents.tsx`              | `/clients/:id/other-documents`              | Layout of "Alte documente" carrying the breadcrumb title.                                                                                                                                                   |
+| `routes/_authenticated/clients/$clientId/other-documents/index.tsx`        | `/clients/:id/other-documents`              | "Alte documente", the client's files (ADR 013): uploading, opening, downloading, renaming, deleting.                                                                                                        |
 | `routes/_authenticated/leads/$leadId/contract.tsx`                         | `/leads/:id/contract`                       | A lead's contract in the editor.                                                                                                                                                                            |
 | `routes/_authenticated/leads.tsx`                                          | pathless                                    | Leads section layout carrying the breadcrumb title.                                                                                                                                                         |
 | `routes/_authenticated/leads/index.tsx`                                    | `/leads`                                    | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                                                                     |
 | `routes/_authenticated/leads/new.tsx`                                      | `/leads/new`                                | The client form, adding a lead.                                                                                                                                                                             |
 | `routes/_authenticated/leads/$leadId.tsx`                                  | pathless                                    | Loads the lead through `GET /clients/{clientId}`; a promoted one redirects to its client page.                                                                                                              |
-| `routes/_authenticated/leads/$leadId/index.tsx`                            | `/leads/:id`                                | The lead: its company, contact, contract and the owners' notes, with "Modifică", archive and "Transformă în client" in the header.                                                                          |
+| `routes/_authenticated/leads/$leadId/index.tsx`                            | `/leads/:id`                                | The lead: its company, contact, contract, files and the owners' notes, with "Modifică", archive and "Transformă în client" in the header.                                                                   |
 | `routes/_authenticated/leads/$leadId/edit.tsx`                             | `/leads/:id/edit`                           | The client form, filled from the lead.                                                                                                                                                                      |
 | `routes/__root.tsx`                                                        | other paths                                 | Not-found screen with a link back to the start; route error screen.                                                                                                                                         |
 
@@ -579,6 +581,33 @@ mobile navigation link closes the Sheet.
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
+- `/clients/:clientId/other-documents`: "Alte documente", the last tab of a client, for owners
+  and specialists alike, in `src/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
+  `ClientFilesCard` lists `GET /clients/{clientId}/files`: the kind as an icon and a word (PDF,
+  Imagine, Word, Excel), the name with the note under it, the size, the day of the upload and
+  who uploaded it, and "Doar administratori" on a file for owners only; on a phone each row
+  stacks. The row or the name opens a PDF or an image in a new tab and downloads anything
+  else; the download button always downloads. The tab is opened on the click, before the link
+  arrives, so that the browser does not take it for a popup, and then pointed at
+  `/files/download` with `inline`. For the uploader and for owners (`canChange`) the row menu
+  has "Redenumește", whose dialog edits the note too, an owner's "Doar pentru administratori"
+  switch, which changes the row at once and confirms with a toast, and "Șterge", behind a
+  confirmation that names the file and says it cannot be recovered. "Încarcă fișiere" and
+  dropping files on the card upload them; while the card is on screen a file dropped anywhere
+  else is refused rather than opened by the browser in place of the app. An owner has a "Doar
+  pentru administratori" checkbox that applies to the files uploaded after it is ticked. An
+  archived client gets the list and the downloads only. The same card is on a lead's page,
+  where it says that the files stay the owners' until promotion and has neither the checkbox
+  nor the switch.
+- Uploads (`src/client-files/use-client-file-uploads.ts`): each chosen file is first checked in
+  the browser against the contracts' extension list, the 20 MiB limit, emptiness and a
+  255-character name, and a refused one shows as a failed row without a request. The rest are
+  queued and sent three at a time, each its own `POST` through `apiUpload` in
+  `src/api/http.ts`, which sends the `File` with `XMLHttpRequest` because `fetch` reports no
+  upload progress. Each row reads "În așteptare", then the percentage, then "Se verifică…"
+  while the API checks and stores the file. A finished upload leaves the queue and refreshes
+  the list; a failed one stays, with the API's reason in Romanian, until dismissed. One toast
+  per batch says what was uploaded.
 - `/clients/:id/contact`: the "Contact" section of a client, with the same two cards. The
   notes card is rendered for an owner only, and the API refuses anyone else.
 

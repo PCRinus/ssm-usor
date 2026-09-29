@@ -75,6 +75,13 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                           |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
+| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the files the caller can see, newest first; not paginated                                           |
+| `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=`                                  |
+| `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                       |
+| `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                 |
+| `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                     |
+| `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                          |
+| `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                            |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                       |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                  |
 | `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization and the fire-safety technician                            |
@@ -340,6 +347,45 @@ another client. `PATCH …/instructions-decision` takes `needsInstructions: fals
 `true` answers `400` with the reason `instructions_decided_by_modules`, and `false` while
 modules are applied `409` with `instructions_applied`. Job positions carry
 `needsInstructions` and `instructionCount` in every response.
+
+A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
+keeps about a client or a lead without the app writing or reading them; a lead uses the same
+routes. `GET /clients/{clientId}/files` lists the files the caller can see: a specialist is
+not told that files for owners only exist. Each carries `name`, `note`, `ownersOnly`,
+`originalFileName`, `mimeType`, `sizeBytes`, `sha256`, `uploadedBy` (`{ id, fullName }`, null
+once the account is gone) and `canChange`, true for its uploader and for an owner.
+
+`POST` takes one file per request: its bytes as the body (`application/octet-stream`), and
+the rest in the query, since the body is the file. `fileName` is the name on the uploader's
+computer, whose extension decides the type; `name` defaults to it without the extension;
+`note` is optional; `ownersOnly` is `true` or `false`. A refused file answers `400` with a
+reason: `client_file_empty`; `client_file_too_large` over 20 MiB, by `Content-Length` before
+the body is read; `client_file_type_not_allowed` for any extension but `.pdf`, `.jpg`,
+`.jpeg`, `.png`, `.docx`, `.doc`, `.xlsx` and `.xls`; and `client_file_content_mismatch` when
+the content is not that type. The content check reads the first bytes of a PDF, a JPEG, a PNG
+or an old Office file, and looks for `word/document.xml` or `xl/workbook.xml` in a `.docx` or
+`.xlsx`, which also passes as an old Office file when it is password-protected. A specialist
+asking for `ownersOnly` gets `403`, and a lead's file is for owners only whatever is asked.
+The row is written first, then the file at the path the row names; a file that cannot be
+stored takes its row back.
+
+`PATCH` takes `name` and `note` (`null` or an empty string clears the note). `PUT
+…/owners-only` takes `{ ownersOnly }`, from an owner; for a lead's file it answers `409` with
+`client_file_lead_owners_only`, the database's `CFL01`. `PATCH` and `DELETE` by anyone but the
+uploader or an owner answer `403`, and a file the caller cannot see, or one under another
+client, `404`. `DELETE` removes the stored file and then the row; there is no recycle bin.
+Every write under an archived client answers `409` with `client_archived`, asked first by the
+upload and the delete, which touch files; the list and the download link still answer.
+
+`GET …/download` signs a one-minute link, with the name the file was uploaded under (cut to
+200 characters, keeping the extension) and `disposition`: `inline` for a PDF, a JPEG or a
+PNG, `attachment` for the rest. The SPA opens every Storage link through `GET
+/files/download`, which streams the object under `name`, because Storage names a file in a
+way browsers do not read correctly. It accepts only a signed read link of the configured
+Supabase project, so it is not an open proxy. With `disposition=inline` it shows a PDF, a
+JPEG or a PNG and downloads any other type, HTML and SVG among them, which would run script
+in the API's origin; responses carry `X-Content-Type-Options: nosniff`. An expired link
+answers `404`.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
