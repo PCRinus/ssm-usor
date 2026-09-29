@@ -14,7 +14,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Stage**: how far a company has come with the organization: **lead**, then **client**. One record moves from the first to the second by promotion and never back. The interface never shows the word, only _clienți potențiali_ and _clienți_. Separate from whether the company is active or **archived**, which applies to both stages: an archived lead is restored as a lead. Avoid: status, which is kept for where a record stands in its own life (an employee's, a revision's, a client's being active or archived), and type or kind, which hide that one becomes the other.
 
-**Service contract** (_contract de prestări servicii_): the agreement between the organization and a client for occupational safety services, and for fire safety where that is sold too. One of the client's other documents, which only owners see, drafted for a lead or for a client and signed outside the app. Not the employment contract behind a contract title.
+**Service contract** (_contract de prestări servicii_): the agreement between the organization and a client for occupational safety services, and for fire safety where that is sold too. It has a place of its own, the client's Contract tab, which only owners see; it is drafted for a lead or for a client and signed outside the app. Not the employment contract behind a contract title.
 
 **Certificate of authorization** (_certificat de abilitare_): what entitles an organization to act as an external prevention and protection service: a number, a date and the directorate that issued it. A service contract cites it and annexes a copy.
 
@@ -52,9 +52,9 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 ## Documents
 
-**Document**: one document type, once, for a client, with its revisions. Part of the client's **documentation set**, or one of its other documents. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+**Document**: one document type, once, for a client, with its revisions. Part of the client's **documentation set**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
 
-**Other documents** (_alte documente_): the documents about a client that are not part of its documentation set. The service contract is the first. Avoid: annex, which the contracts use for an annex to a contract.
+**Other documents** (_alte documente_): files about a client that are neither its documentation set nor its service contract, uploaded rather than generated. Not built yet. Avoid: annex, which the contracts use for an annex to a contract.
 
 **Revision** (_revizie_): a version of a document, with its Word file. A **draft** (_ciornă_) can be edited, regenerated, replaced by an upload, or deleted. An **issued** (_emis_) revision is locked with the hash of its file and of its PDF. The one issued before it is **superseded**.
 

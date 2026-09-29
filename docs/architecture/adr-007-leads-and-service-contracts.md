@@ -41,6 +41,8 @@ The **service contract** (_contract de prestări servicii_) is a document like t
 
 An owner can also draft a service contract for an existing client.
 
+(Amended 2026-09-29. The contract left "Alte documente" for a "Contract" tab of its own on the client's page, which only owners see, with its editor under it; on a lead's page it stays among the lead's cards. "Alte documente" is hidden until it has uploaded files to hold, and the documentation set's tab is now "Documente SSM". Who signs for the client is the client's legal representative, the same field the Detalii tab edits.)
+
 The built-in template is a starter in our own words, following the structure of the contract that was read, with diacritics. The user adapts it in the editor or issues it as it is, which is the position the app takes for the documentation set. The fire-safety chapter and the fire-safety obligations are printed only when that service is sold. A template of the organization's own is left to a later issue; until then a draft can be replaced by an uploaded file.
 
 ### The contract's details
