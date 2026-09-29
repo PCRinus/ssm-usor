@@ -161,6 +161,119 @@ describe("a client's job positions", () => {
     expect(within(breadcrumb).getByText('Barman preparator')).toBeTruthy();
   });
 
+  it("links each position's equipment and instructions to that section, in words for each state", async () => {
+    const cashier = {
+      ...barista,
+      id: '3f1d2c4b-5a6e-4f7a-8b9c-0d1e2f3a4b5c',
+      name: 'Casier',
+      needsProtectiveEquipment: false,
+      equipmentCount: 0,
+      needsInstructions: true,
+      instructionCount: 3,
+    };
+    const cook = {
+      ...barista,
+      id: '4a2e3d5c-6b7f-4a8b-9c0d-1e2f3a4b5c6d',
+      name: 'Bucătar',
+      equipmentCount: 20,
+      needsInstructions: true,
+      instructionCount: 1,
+    };
+    mockApi({ items: [barista, manager, cashier, cook] });
+    mount();
+
+    const rows = await screen.findAllByTestId('job-position-row');
+    const states = rows.map((row) => [
+      within(row).getByTestId('job-position-equipment').textContent,
+      within(row).getByTestId('job-position-instructions').textContent,
+    ]);
+    expect(states).toEqual([
+      ['2 articole', 'De stabilit'],
+      ['De stabilit', 'De stabilit'],
+      ['Nu necesită', '3 instrucțiuni'],
+      ['20 de articole', '1 instrucțiune'],
+    ]);
+    const [first] = rows;
+    expect(within(first!).getByTestId('job-position-equipment').getAttribute('href')).toBe(
+      `${listPath}/${barista.id}#protective-equipment`
+    );
+    expect(within(first!).getByTestId('job-position-instructions').getAttribute('href')).toBe(
+      `${listPath}/${barista.id}#instructions`
+    );
+  });
+
+  it('opens the section a state link names, not only the top of the page', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+    const [row] = await screen.findAllByTestId('job-position-row');
+    await user.click(within(row!).getByTestId('job-position-equipment'));
+    await screen.findByTestId('job-position-page');
+    expect(runtime.router.state.location.pathname).toBe(`${listPath}/${barista.id}`);
+    expect(runtime.router.state.location.hash).toBe('protective-equipment');
+  });
+
+  it("offers the position's equipment and instructions first in the row menu", async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await openRowMenu(user, 'Manager magazin');
+    const items = await screen.findAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Echipament de protecție',
+      'Instrucțiuni',
+      'Modifică',
+      'Șterge',
+    ]);
+    await user.click(screen.getByTestId('job-position-menu-instructions'));
+    await screen.findByTestId('job-position-page');
+    expect(runtime.router.state.location.pathname).toBe(`${listPath}/${manager.id}`);
+    expect(runtime.router.state.location.hash).toBe('instructions');
+  });
+
+  it('names the positions still undecided about equipment or instructions, with links', async () => {
+    mockApi();
+    mount();
+
+    const equipment = await screen.findByTestId('job-positions-undecided-equipment');
+    expect(equipment.textContent).toBe(
+      'Un post nu are echipamentul de protecție stabilit: Manager magazin – birou.'
+    );
+    expect(within(equipment).getByRole('link').getAttribute('href')).toBe(
+      `${listPath}/${manager.id}#protective-equipment`
+    );
+    const instructions = screen.getByTestId('job-positions-undecided-instructions');
+    expect(instructions.textContent).toBe(
+      '2 posturi nu au instrucțiunile stabilite: Barman preparator și Manager magazin – birou.'
+    );
+    expect(
+      within(instructions)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+    ).toEqual([`${listPath}/${barista.id}#instructions`, `${listPath}/${manager.id}#instructions`]);
+  });
+
+  it('names only the first undecided positions when there are many', async () => {
+    const many = Array.from({ length: 7 }, (_, index) => ({
+      ...manager,
+      id: `9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5${index}`,
+      name: `Post ${index + 1}`,
+    }));
+    mockApi({ items: many });
+    mount();
+    expect((await screen.findByTestId('job-positions-undecided-equipment')).textContent).toBe(
+      '7 posturi nu au echipamentul de protecție stabilit: Post 1, Post 2, Post 3, Post 4, Post 5 și încă 2.'
+    );
+  });
+
+  it('asks for nothing once every position has decided', async () => {
+    mockApi({ items: [{ ...barista, needsInstructions: false }] });
+    mount();
+    await screen.findAllByTestId('job-position-row');
+    expect(screen.queryByTestId('job-positions-undecided')).toBeNull();
+  });
+
   it('says how positions come to exist when there are none', async () => {
     mockApi({ items: [] });
     mount();
@@ -320,7 +433,14 @@ describe("a client's job positions", () => {
     mount();
     expect(await screen.findAllByTestId('job-position-row')).toHaveLength(2);
     expect(screen.queryByTestId('job-position-add')).toBeNull();
-    expect(screen.queryByTestId('job-position-actions')).toBeNull();
+    expect(screen.queryByTestId('job-positions-undecided')).toBeNull();
+
+    await openRowMenu(userEvent.setup(), 'Manager magazin');
+    const items = await screen.findAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Echipament de protecție',
+      'Instrucțiuni',
+    ]);
   });
 });
 

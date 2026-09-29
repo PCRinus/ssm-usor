@@ -56,6 +56,28 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   );
   await expect(accountant.getByTestId('job-position-employees')).toHaveText('Niciun angajat');
 
+  // Both posts still have to decide their equipment and instructions; the list says so, and
+  // each state leads to its section of the post's page, below the sticky header and tabs.
+  await expect(page.getByTestId('job-positions-undecided-equipment')).toContainText(
+    '2 posturi nu au echipamentul de protecție stabilit'
+  );
+  await expect(accountant.getByTestId('job-position-equipment')).toHaveText('De stabilit');
+  await accountant.getByTestId('job-position-instructions').click();
+  await expect(page).toHaveURL(/\/job-positions\/[0-9a-f-]+#instructions$/);
+  await expect(page.getByTestId('client-page')).toBeVisible();
+  const instructions = page.getByTestId('instructions-card');
+  await expect(instructions).toBeInViewport();
+  await expect(page.getByTestId('instructions-state')).toHaveText('De stabilit');
+  const tabs = await page.getByRole('navigation', { name: 'Secțiunile clientului' }).boundingBox();
+  const heading = await instructions.getByRole('heading', { level: 3 }).boundingBox();
+  expect(heading!.y).toBeGreaterThanOrEqual(tabs!.y + tabs!.height);
+  await page.getByTestId('job-position-back').click();
+  await accountant.getByTestId('job-position-actions').click();
+  await page.getByTestId('job-position-menu-equipment').click();
+  await expect(page).toHaveURL(/#protective-equipment$/);
+  await expect(page.getByTestId('equipment-card')).toBeInViewport();
+  await page.getByTestId('job-position-back').click();
+
   // The same name in another case is the same position.
   await page.getByTestId('job-position-add').click();
   await page.getByTestId('job-position-name').fill('SUDOR');
