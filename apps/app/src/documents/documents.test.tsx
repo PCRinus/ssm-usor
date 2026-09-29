@@ -1,4 +1,5 @@
 import { documentTypeKeys } from '@ssm-usor/contracts';
+import { toast } from '@ssm-usor/ui/lib/toast';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -407,7 +408,7 @@ describe('client documents', () => {
     );
   });
 
-  it('leads from a row to its field, and back to the form through the strip', async () => {
+  it('leads from a row to its field, and back to the form from the toast of the save', async () => {
     mockApi({
       role: 'specialist',
       readiness: { ready: false, missing: ['client.representativeRole'] },
@@ -422,48 +423,76 @@ describe('client documents', () => {
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
     expect(screen.queryByTestId('generate-documents-dialog')).toBeNull();
-    expect(screen.getByTestId('way-back').textContent).toContain(
-      'Completezi datele pentru documentație.'
-    );
 
-    await user.click(
-      screen
-        .getAllByTestId('client-section')
-        .find((tab) => tab.textContent === 'Instruire și responsabili')!
-    );
-    await screen.findByTestId('training-page');
-    expect(screen.getByTestId('way-back')).toBeTruthy();
-
+    await user.type(role, 'Administrator');
+    await user.click(screen.getByTestId('legal-representative-save'));
+    expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     const asked = requests('/documents/readiness', 'GET').length;
-    await user.click(screen.getByTestId('way-back-link'));
+    await user.click(screen.getByRole('button', { name: 'Înapoi la generare' }));
     expect(await screen.findByTestId('generate-documents-dialog')).toBeTruthy();
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/documents`)
+    );
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     await waitFor(() =>
       expect(requests('/documents/readiness', 'GET').length).toBeGreaterThan(asked)
     );
-    expect(screen.queryByTestId('way-back')).toBeNull();
+    expect(sessionStorage.getItem('ssm-usor:way-back')).toBeNull();
   });
 
-  it('keeps the strip to the pages of that client until it is dismissed', async () => {
-    mockApi({
-      role: 'specialist',
-      readiness: { ready: false, missing: ['client.representativeRole'] },
-    });
-    const runtime = mount();
+  const saveRepresentative = async (path: string) => {
+    const runtime = mountApp(authFixture(makeSession()).client, path);
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId('documents-generate'));
-    await user.click(await screen.findByTestId('generate-missing-row'));
-    await screen.findByTestId('way-back');
+    await user.click(await screen.findByTestId('legal-representative-edit'));
+    await user.type(await screen.findByTestId('details-representative-role'), 'Administrator');
+    await user.click(screen.getByTestId('legal-representative-save'));
+    await screen.findByText('Reprezentantul legal a fost salvat.');
+    return runtime;
+  };
 
-    await runtime.router.navigate({ to: '/clients/$clientId/documents', params: { clientId } });
-    await screen.findByTestId('documents-page');
-    expect(screen.queryByTestId('way-back')).toBeNull();
-    await runtime.router.navigate({ to: '/clients/$clientId/details', params: { clientId } });
-    await user.click(await screen.findByTestId('way-back-dismiss'));
-    expect(screen.queryByTestId('way-back')).toBeNull();
-    await runtime.router.navigate({ to: '/clients/$clientId/training', params: { clientId } });
-    await screen.findByTestId('training-page');
-    expect(screen.queryByTestId('way-back')).toBeNull();
+  const wayBackOf = (overrides: Record<string, unknown> = {}) =>
+    sessionStorage.setItem(
+      'ssm-usor:way-back',
+      JSON.stringify({
+        userId: 'user-one',
+        clientId,
+        to: 'documents',
+        startedAt: Date.now(),
+        ...overrides,
+      })
+    );
+
+  it('offers the way back only while the person came from the form', async () => {
+    mockApi({ role: 'specialist' });
+    await saveRepresentative(`/clients/${clientId}/details`);
+    expect(screen.queryByRole('button', { name: 'Înapoi la generare' })).toBeNull();
+  });
+
+  it('stops offering the way back an hour after the row was followed', async () => {
+    mockApi({ role: 'specialist' });
+    wayBackOf({ startedAt: Date.now() - 61 * 60 * 1000 });
+    await saveRepresentative(`/clients/${clientId}/details`);
+    expect(screen.queryByRole('button', { name: 'Înapoi la generare' })).toBeNull();
+  });
+
+  it("forgets the way back when another company's pages are opened", async () => {
+    mockApi({ role: 'specialist' });
+    wayBackOf({ clientId: '7c9e6679-7425-40de-944b-e07fc1f90ae7' });
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
+    await screen.findByTestId('client-details-page');
+    await waitFor(() => expect(sessionStorage.getItem('ssm-usor:way-back')).toBeNull());
+  });
+
+  it('offers the way back from a save while the trip is on, for longer than a plain toast', async () => {
+    mockApi({ role: 'specialist' });
+    wayBackOf();
+    const success = vi.spyOn(toast, 'success');
+    await saveRepresentative(`/clients/${clientId}/details`);
+    expect(screen.getByRole('button', { name: 'Înapoi la generare' })).toBeTruthy();
+    expect(success).toHaveBeenCalledWith(
+      'Reprezentantul legal a fost salvat.',
+      expect.objectContaining({ duration: 10_000 })
+    );
   });
 
   it('opens the form when the address asks for it, once', async () => {

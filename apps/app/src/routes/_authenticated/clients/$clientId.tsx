@@ -35,7 +35,7 @@ import {
 import { HeaderFact, RecordHeader } from '../../../clients/record-header';
 import { Notice } from '../../../components/notice';
 import { SectionNav } from '../../../components/section-nav';
-import { WayBackStrip } from '../../../missing-data/way-back-strip';
+import { useEndWayBackOutside } from '../../../missing-data/way-back';
 
 // The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [
@@ -99,7 +99,9 @@ export function ClientLayout() {
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
   });
-  const isOwner = useMe().data?.membership?.role === 'owner';
+  const me = useMe();
+  const isOwner = me.data?.membership?.role === 'owner';
+  useEndWayBackOutside(client.id, me.data?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   if (fullPage) return <Outlet />;
   return (
@@ -177,7 +179,6 @@ export function ClientLayout() {
             </li>
           ))}
       </SectionNav>
-      <WayBackStrip clientId={client.id} />
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
     </div>

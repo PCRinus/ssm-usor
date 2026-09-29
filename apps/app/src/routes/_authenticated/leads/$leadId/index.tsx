@@ -26,6 +26,7 @@ import {
   focusSearch,
   leadFocus,
 } from '../../../../missing-data/focus';
+import { useEndWayBackOutside } from '../../../../missing-data/way-back';
 import { ServiceContractCard } from '../../../../service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
@@ -40,6 +41,7 @@ export function LeadPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
   const { focus } = Route.useSearch();
+  useEndWayBackOutside(lead.id, session?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState(false);
   const { apiRequest } = useRouteContext({ from: '__root__' });

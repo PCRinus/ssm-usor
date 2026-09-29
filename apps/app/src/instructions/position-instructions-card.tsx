@@ -43,6 +43,7 @@ import { Notice } from '../components/notice';
 import { SectionCard } from '../components/section-card';
 import { DecisionBadge } from '../job-positions/decision-badge';
 import type { JobPosition } from '../job-positions/job-position-schema';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   type AppliedInstruction,
   byGroup,
@@ -83,6 +84,7 @@ export function PositionInstructionsCard({
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const instructions = useListPositionInstructions(clientId, position.id, {
     request: apiRequest,
     query: {
@@ -114,7 +116,7 @@ export function PositionInstructionsCard({
         jobPositionId: position.id,
         data: { needsInstructions },
       });
-      toast.success(
+      savedToast(
         needsInstructions === false
           ? 'Am notat că postul nu necesită instrucțiuni specifice.'
           : 'Decizia a fost reluată.'
@@ -358,6 +360,7 @@ function PickInstructionsDialog({
   onApplied: () => Promise<unknown>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const params = { archived: 'false' as const };
   const modules = useListInstructionModules(params, {
     request: apiRequest,
@@ -397,7 +400,7 @@ function PickInstructionsDialog({
         data: { moduleIds: [...selected] },
       });
       await onApplied();
-      toast.success(
+      savedToast(
         result.items.length === 0
           ? 'Postul nu mai aplică nicio instrucțiune și a rămas nedecis.'
           : `Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`
@@ -529,6 +532,7 @@ function CopyInstructionsDialog({
   onCopied: () => Promise<unknown>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
@@ -549,7 +553,7 @@ function CopyInstructionsDialog({
         data: { fromJobPositionId: source },
       });
       await onCopied();
-      toast.success(`Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`);
+      savedToast(`Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`);
       onClose();
     } catch (cause) {
       setError(

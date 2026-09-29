@@ -12,7 +12,6 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import type { ChangeEvent } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -27,6 +26,7 @@ import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   emptyJobPositionForm,
   intervalOptionsFor,
@@ -86,6 +86,7 @@ function JobPositionForm({
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const create = useCreateJobPosition({ request: apiRequest });
   const update = useUpdateJobPosition({ request: apiRequest });
   const form = useForm<JobPositionFormValues>({
@@ -113,9 +114,7 @@ function JobPositionForm({
             String(queryKey[0]).startsWith(`/clients/${clientId}/employees`),
         });
       }
-      toast.success(
-        position ? 'Postul de lucru a fost salvat.' : 'Postul de lucru a fost adăugat.'
-      );
+      savedToast(position ? 'Postul de lucru a fost salvat.' : 'Postul de lucru a fost adăugat.');
       onSaved?.(saved.jobPosition);
       onClose();
     } catch (cause) {

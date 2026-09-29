@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
@@ -27,6 +26,7 @@ import { ApiHttpError } from '../api/http';
 import { Field, FieldMessage } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { useSavedToast } from '../missing-data/saved-toast';
 import { EmployeeCombobox } from './employee-combobox';
 import {
   emptyResponsiblePersonForm,
@@ -87,6 +87,7 @@ function ResponsiblePersonForm({
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const create = useCreateResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
   // The page shows the legal representative from the same query, so it is already loaded.
@@ -121,7 +122,7 @@ function ResponsiblePersonForm({
       await queryClient.invalidateQueries({
         queryKey: getListResponsiblePersonsQueryKey(clientId),
       });
-      toast.success(person ? 'Persoana a fost salvată.' : 'Persoana a fost adăugată.');
+      savedToast(person ? 'Persoana a fost salvată.' : 'Persoana a fost adăugată.');
       onClose();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;

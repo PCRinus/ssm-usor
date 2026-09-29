@@ -5,7 +5,6 @@ import { Award, Building2, UsersRound } from 'lucide-react';
 import { useMe } from '../../account/use-me';
 import { Notice } from '../../components/notice';
 import { SectionNav } from '../../components/section-nav';
-import { WayBackStrip } from '../../missing-data/way-back-strip';
 import { roleLabels } from '../../organization/labels';
 
 export const Route = createFileRoute('/_authenticated/organization')({
@@ -70,7 +69,6 @@ export function OrganizationLayout() {
           </li>
         ))}
       </SectionNav>
-      <WayBackStrip />
       <Outlet />
     </div>
   );

@@ -295,12 +295,13 @@ describe('the service contract of a lead', () => {
     await waitFor(() =>
       expect(requests(`/clients/${leadId}/service-contract`, 'GET').length).toBeGreaterThan(asked)
     );
+    expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Înapoi la contract' })).toBeNull();
 
     await user.click(screen.getAllByTestId('contract-missing-row')[1]!);
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByTestId('contract-clientRepresentativeRole'))
     );
-    expect(screen.queryByTestId('way-back')).toBeNull();
   });
 
   it('asks again what is missing on coming back, without showing the old list meanwhile', async () => {
@@ -782,10 +783,9 @@ describe('the contract of a client', () => {
 
     await user.click(row);
     await waitFor(() => expect(document.activeElement?.id).toBe('tradeRegisterNumber'));
-    expect(screen.getByTestId('way-back').textContent).toContain(
-      'Completezi datele pentru contract.'
-    );
-    await user.click(screen.getByTestId('way-back-link'));
+    await user.type(screen.getByTestId('client-trade-register'), '1');
+    await user.click(screen.getByTestId('company-save'));
+    await user.click(await screen.findByRole('button', { name: 'Înapoi la contract' }));
     await screen.findByTestId('contract-page');
     expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract`);
   });

@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext, useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
@@ -10,6 +9,7 @@ import {
   type UpdateClientRequest,
   useUpdateClient,
 } from '../api/generated/api';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   type Client,
   clientFormSchema,
@@ -35,6 +35,7 @@ export function useClientFieldsForm({
   onSaved: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const router = useRouter();
   const update = useUpdateClient({ request: apiRequest });
   const form = useForm<ClientFormValues>({
@@ -61,7 +62,7 @@ export function useClientFieldsForm({
       // awaited: a contract that fails to load must not hold back the save.
       void queryClient.invalidateQueries({ queryKey: getGetServiceContractQueryKey(client.id) });
       await router.invalidate();
-      toast.success(successMessage);
+      savedToast(successMessage);
       onSaved();
     } catch (cause) {
       reportClientSaveError(form, cause, client.stage, new Set(fields));

@@ -11,7 +11,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -28,6 +27,7 @@ import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   allocationHints,
   allocationLabels,
@@ -105,6 +105,7 @@ function EquipmentEntryForm({
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const create = useCreateEquipmentEntry({ request: apiRequest });
   const update = useUpdateEquipmentEntry({ request: apiRequest });
   const form = useForm<EquipmentFormValues>({
@@ -134,7 +135,7 @@ function EquipmentEntryForm({
         // The first entry decides the position; the list shows the count.
         queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
       ]);
-      toast.success(entry ? 'Articolul a fost salvat.' : 'Articolul a fost adăugat.');
+      savedToast(entry ? 'Articolul a fost salvat.' : 'Articolul a fost adăugat.');
       onClose();
     } catch (cause) {
       form.setError('root.server', {

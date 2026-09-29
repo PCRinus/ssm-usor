@@ -6,7 +6,6 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -26,6 +25,7 @@ import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { type OrganizationCompanyFocus, useFocusRequest } from '../missing-data/focus';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   companyDetailsFormSchema,
   type CompanyDetailsFormValues,
@@ -124,6 +124,7 @@ function CompanyDetailsForm({
   canEdit: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const update = useUpdateOrganizationCompanyDetails({ request: apiRequest });
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   const form = useForm<CompanyDetailsFormValues>({
@@ -176,7 +177,7 @@ function CompanyDetailsForm({
       await queryClient.invalidateQueries({
         queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId],
       });
-      toast.success('Datele firmei au fost salvate.');
+      savedToast('Datele firmei au fost salvate.');
     } catch (cause) {
       form.setError('root.server', {
         message:

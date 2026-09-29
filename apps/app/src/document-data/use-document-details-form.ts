@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
@@ -11,6 +10,7 @@ import {
   useUpdateClientDocumentDetails,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   documentDetailsFormSchema,
   type DocumentDetailsFormValues,
@@ -54,6 +54,7 @@ export function useDocumentDetailsForm({
   onSaved?: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const update = useUpdateClientDocumentDetails({ request: apiRequest });
   const form = useForm<DocumentDetailsFormValues>({
     resolver: zodResolver(documentDetailsFormSchema),
@@ -73,7 +74,7 @@ export function useDocumentDetailsForm({
         }),
         queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) }),
       ]);
-      toast.success(successMessage);
+      savedToast(successMessage);
       onSaved?.();
     } catch (cause) {
       form.setError('root.server', {

@@ -3,7 +3,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -21,6 +20,7 @@ import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { todayIso } from '../employees/employee-format';
 import { type AuthorizationsFocus, useFocusRequest } from '../missing-data/focus';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   authorizationsFormSchema,
   type AuthorizationsFormValues,
@@ -110,6 +110,7 @@ function AuthorizationsForm({
   canEdit: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const update = useUpdateOrganizationAuthorizations({ request: apiRequest });
   const form = useForm<AuthorizationsFormValues>({
     resolver: zodResolver(authorizationsFormSchema),
@@ -126,7 +127,7 @@ function AuthorizationsForm({
       await queryClient.invalidateQueries({
         queryKey: [...getGetOrganizationAuthorizationsQueryKey(), userId],
       });
-      toast.success('Abilitările au fost salvate.');
+      savedToast('Abilitările au fost salvate.');
     } catch (cause) {
       form.setError('root.server', {
         message:

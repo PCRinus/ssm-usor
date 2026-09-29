@@ -47,6 +47,7 @@ import { Notice } from '../components/notice';
 import { SectionCard } from '../components/section-card';
 import { DecisionBadge } from '../job-positions/decision-badge';
 import type { JobPosition } from '../job-positions/job-position-schema';
+import { useSavedToast } from '../missing-data/saved-toast';
 import { type EquipmentEditing, EquipmentEntryDialog } from './equipment-entry-dialog';
 import {
   allocationLabels,
@@ -80,6 +81,7 @@ export function EquipmentCard({
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const equipment = useListEquipment(clientId, position.id, {
     request: apiRequest,
     query: { queryKey: [...getListEquipmentQueryKey(clientId, position.id), userId] },
@@ -105,7 +107,7 @@ export function EquipmentCard({
         jobPositionId: position.id,
         data: { needsProtectiveEquipment },
       });
-      toast.success(
+      savedToast(
         needsProtectiveEquipment === false
           ? 'Am notat că postul nu necesită echipament.'
           : 'Decizia a fost reluată.'
@@ -394,6 +396,7 @@ function CopyEquipmentDialog({
   onCopied: () => Promise<unknown>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
@@ -414,7 +417,7 @@ function CopyEquipmentDialog({
         data: { fromJobPositionId: source },
       });
       await onCopied();
-      toast.success(`Postul are acum ${entryCountLabel(result.items.length).toLowerCase()}.`);
+      savedToast(`Postul are acum ${entryCountLabel(result.items.length).toLowerCase()}.`);
       onClose();
     } catch (cause) {
       setError(
