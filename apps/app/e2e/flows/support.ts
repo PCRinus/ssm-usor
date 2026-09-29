@@ -314,6 +314,10 @@ export async function cleanUp() {
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);
+    const files = await admin.from('client_files').select('storage_path').eq('organization_id', id);
+    const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
+    if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
+    await admin.from('client_files').delete().eq('organization_id', id);
     await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
