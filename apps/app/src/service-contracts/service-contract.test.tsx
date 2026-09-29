@@ -289,6 +289,12 @@ describe('the service contract of a lead', () => {
     await waitFor(() => expect(document.activeElement?.id).toBe('countyCode'));
     expect(screen.getByTestId('company-form')).toBeTruthy();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    const asked = requests(`/clients/${leadId}/service-contract`, 'GET').length;
+    await user.type(screen.getByTestId('client-address'), ' bis');
+    await user.click(screen.getByTestId('company-save'));
+    await waitFor(() =>
+      expect(requests(`/clients/${leadId}/service-contract`, 'GET').length).toBeGreaterThan(asked)
+    );
 
     await user.click(screen.getAllByTestId('contract-missing-row')[1]!);
     await waitFor(() =>

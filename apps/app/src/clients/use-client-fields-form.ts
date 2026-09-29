@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 
 import {
   getGetClientQueryKey,
+  getGetServiceContractQueryKey,
   getListClientsQueryKey,
   type UpdateClientRequest,
   useUpdateClient,
@@ -56,6 +57,8 @@ export function useClientFieldsForm({
       // The client and lead pages read the record through loaders, which keep what is cached.
       queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      // The contract card on the lead page lists what it still misses from these fields.
+      await queryClient.invalidateQueries({ queryKey: getGetServiceContractQueryKey(client.id) });
       await router.invalidate();
       toast.success(successMessage);
       onSaved();
