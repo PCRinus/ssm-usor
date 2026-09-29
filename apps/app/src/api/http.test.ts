@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGetMeQueryOptions, getMe, printDocument } from './generated/api';
-import { apiFetch, ApiHttpError } from './http';
+import { apiFetch, ApiHttpError, apiUpload } from './http';
 
 const captured = vi.hoisted(() => vi.fn());
 vi.mock('../observability/posthog', () => ({ captureEvent: captured }));
@@ -157,5 +157,98 @@ describe('reporting failed requests', () => {
     });
     await expect(apiFetch('/me', { baseUrl, signal: controller.signal })).rejects.toThrow();
     expect(captured).not.toHaveBeenCalled();
+  });
+});
+
+describe('uploading a file', () => {
+  type Answer = { status: number; body: string; responseURL?: string };
+  const sent: { url: string; headers: Record<string, string>; body: unknown }[] = [];
+  let answer: Answer = { status: 201, body: '{"file":{"id":"f"}}' };
+
+  class FakeXhr {
+    upload: { onprogress: ((event: Partial<ProgressEvent>) => void) | null } = {
+      onprogress: null,
+    };
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onabort: (() => void) | null = null;
+    status = 0;
+    responseText = '';
+    responseURL = '';
+    private url = '';
+    private headers: Record<string, string> = {};
+    open(_method: string, url: URL | string) {
+      this.url = String(url);
+    }
+    setRequestHeader(name: string, value: string) {
+      this.headers[name] = value;
+    }
+    getResponseHeader() {
+      return null;
+    }
+    abort() {
+      this.onabort?.();
+    }
+    send(body: unknown) {
+      sent.push({ url: this.url, headers: this.headers, body });
+      this.upload.onprogress?.({ lengthComputable: true, loaded: 5, total: 10 });
+      this.status = answer.status;
+      this.responseText = answer.body;
+      this.responseURL = answer.responseURL ?? this.url;
+      this.onload?.();
+    }
+  }
+
+  beforeEach(() => {
+    sent.length = 0;
+    answer = { status: 201, body: '{"file":{"id":"f"}}' };
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+  });
+
+  it('sends the body with the current token, reports progress and returns the answer', async () => {
+    const progress: number[] = [];
+    const file = new Blob(['bytes']);
+    const result = await apiUpload('/clients/c/files?fileName=a.pdf', file, {
+      baseUrl,
+      getAccessToken: () => 'upload-token',
+      onProgress: (loaded, total) => progress.push(loaded / total),
+    });
+    expect(result).toEqual({ file: { id: 'f' } });
+    expect(sent).toEqual([
+      {
+        url: `${baseUrl}/clients/c/files?fileName=a.pdf`,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/octet-stream',
+          Authorization: 'Bearer upload-token',
+        },
+        body: file,
+      },
+    ]);
+    expect(progress).toEqual([0.5]);
+  });
+
+  it('throws a typed error with the reason the API gave', async () => {
+    answer = { status: 400, body: '{"error":"validation_error","reason":"client_file_empty"}' };
+    await expect(apiUpload('/clients/c/files', new Blob([]), { baseUrl })).rejects.toMatchObject({
+      name: 'ApiHttpError',
+      status: 400,
+      body: { reason: 'client_file_empty' },
+    });
+  });
+
+  it('refuses another origin before sending, and an answer that came through a redirect', async () => {
+    await expect(
+      apiUpload('https://attacker.example/files', new Blob(['x']), {
+        baseUrl,
+        getAccessToken: () => 'secret',
+      })
+    ).rejects.toThrow('configured origin');
+    expect(sent).toHaveLength(0);
+
+    answer = { status: 201, body: '{}', responseURL: 'https://elsewhere.example/files' };
+    await expect(apiUpload('/clients/c/files', new Blob(['x']), { baseUrl })).rejects.toThrow(
+      'redirected'
+    );
   });
 });
