@@ -54,7 +54,9 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Document**: one document type, once, for a client, with its revisions. Part of the client's **documentation set**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
 
-**Other documents** (_alte documente_): files about a client that are neither its documentation set nor its service contract, uploaded rather than generated. Not built yet. Avoid: annex, which the contracts use for an annex to a contract.
+**Client file** (_fișier_): a file about a client that the app did not write: uploaded, named, downloaded, deleted. Has no revisions and no type. An owner can keep one **for owners only**. A lead has them too. ADR 013. Avoid: document, which the app generates and issues, and attachment.
+
+**Other documents** (_alte documente_): a client's files together, and the tab that lists them. Neither its documentation set nor its service contract. Avoid: annex, which the contracts use for an annex to a contract.
 
 **Revision** (_revizie_): a version of a document, with its Word file. A **draft** (_ciornă_) can be edited, regenerated, replaced by an upload, or deleted. An **issued** (_emis_) revision is locked with the hash of its file and of its PDF. The one issued before it is **superseded**.
 
