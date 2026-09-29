@@ -14,15 +14,23 @@ import { ApiHttpError } from '../../api/http';
 import { Field } from '../../components/form-field';
 import { Notice } from '../../components/notice';
 import { useRevealErrors } from '../../components/use-reveal-errors';
+import { focusSearch, profileFocus, useFocusRequest } from '../../missing-data/focus';
+import { WayBackStrip } from '../../missing-data/way-back-strip';
 import { roleLabels } from '../../organization/labels';
 
 export const Route = createFileRoute('/_authenticated/profile')({
   staticData: { title: 'Profilul meu' },
+  validateSearch: focusSearch(profileFocus),
   component: ProfilePage,
 });
 
 export function ProfilePage() {
   const me = useMe();
+  const { focus } = Route.useSearch();
+  useFocusRequest(focus !== undefined, {
+    ready: !me.isPending,
+    field: focus === 'professional-title' ? 'profile-professional-title' : 'profile-full-name',
+  });
 
   if (me.isPending) {
     return (
@@ -85,6 +93,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
   return (
     <div data-testid="profile-page" className="grid max-w-2xl gap-6">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Profilul meu</h1>
+      <WayBackStrip />
       <Card>
         <CardHeader>
           <h2 className="text-lg font-semibold">Date personale</h2>

@@ -25,6 +25,7 @@ import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { type OrganizationCompanyFocus, useFocusRequest } from '../missing-data/focus';
 import {
   companyDetailsFormSchema,
   type CompanyDetailsFormValues,
@@ -34,12 +35,39 @@ import {
 
 type CompanyDetails = OrganizationCompanyDetailsResponse['companyDetails'];
 
+function fieldFor(focus: OrganizationCompanyFocus, saved: CompanyDetails) {
+  const fields: Record<Exclude<OrganizationCompanyFocus, 'address'>, string> = {
+    'legal-name': 'company-legalName',
+    cui: 'company-cui',
+    'trade-register': 'company-tradeRegisterNumber',
+    'representative-name': 'company-legalRepresentativeName',
+    'representative-role': 'company-legalRepresentativeRole',
+    phone: 'company-phone',
+    'bank-account': saved.iban ? 'company-bankName' : 'company-iban',
+  };
+  if (focus !== 'address') return fields[focus];
+  if (!saved.countyCode) return 'company-county';
+  return saved.locality ? 'company-addressLine' : 'company-locality';
+}
+
 // Hiding the owner's form controls is a courtesy; the API and the database enforce the rule.
-export function CompanyDetailsCard({ userId, canEdit }: { userId: string; canEdit: boolean }) {
+export function CompanyDetailsCard({
+  userId,
+  canEdit,
+  focus,
+}: {
+  userId: string;
+  canEdit: boolean;
+  focus?: OrganizationCompanyFocus;
+}) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const details = useGetOrganizationCompanyDetails({
     request: apiRequest,
     query: { queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId] },
+  });
+  useFocusRequest(focus !== undefined, {
+    ready: !details.isPending,
+    field: focus && details.data ? fieldFor(focus, details.data.companyDetails) : undefined,
   });
 
   return (

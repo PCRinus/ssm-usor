@@ -4,9 +4,11 @@ import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { useMe } from '../../../../../account/use-me';
 import { useAuth } from '../../../../../auth/auth-context';
 import { Notice } from '../../../../../components/notice';
+import { clientContractFocus, focusSearch } from '../../../../../missing-data/focus';
 import { ServiceContractCard } from '../../../../../service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/contract/')({
+  validateSearch: focusSearch(clientContractFocus),
   component: ContractPage,
 });
 
@@ -16,6 +18,7 @@ export function ContractPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const me = useMe();
+  const { focus } = Route.useSearch();
   // The shell renders this only for a signed-in user.
   if (!session || me.isPending) return null;
   if (me.data?.membership?.role !== 'owner') {
@@ -31,6 +34,7 @@ export function ContractPage() {
         client={client}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
+        focus={focus}
         editor={(children, testId) => (
           <Button asChild variant="outline" size="sm">
             <Link

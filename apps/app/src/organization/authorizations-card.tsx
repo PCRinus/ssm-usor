@@ -20,6 +20,7 @@ import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { todayIso } from '../employees/employee-format';
+import { type AuthorizationsFocus, useFocusRequest } from '../missing-data/focus';
 import {
   authorizationsFormSchema,
   type AuthorizationsFormValues,
@@ -29,12 +30,35 @@ import {
 
 type Authorizations = OrganizationAuthorizationsResponse['authorizations'];
 
+function fieldFor(focus: AuthorizationsFocus, saved: Authorizations) {
+  if (focus === 'fire-safety-technician') {
+    return saved.fireSafetyTechnicianName
+      ? 'authorizations-fireSafetyTechnicianCertificate'
+      : 'authorizations-fireSafetyTechnicianName';
+  }
+  if (!saved.authorizationCertificateNumber) return 'authorizations-authorizationCertificateNumber';
+  if (!saved.authorizationCertificateDate) return 'authorizations-authorizationCertificateDate';
+  return 'authorizations-authorizationCertificateIssuer';
+}
+
 // Hiding the owner's form controls is a courtesy; the API and the database enforce the rule.
-export function AuthorizationsCard({ userId, canEdit }: { userId: string; canEdit: boolean }) {
+export function AuthorizationsCard({
+  userId,
+  canEdit,
+  focus,
+}: {
+  userId: string;
+  canEdit: boolean;
+  focus?: AuthorizationsFocus;
+}) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const saved = useGetOrganizationAuthorizations({
     request: apiRequest,
     query: { queryKey: [...getGetOrganizationAuthorizationsQueryKey(), userId] },
+  });
+  useFocusRequest(focus !== undefined, {
+    ready: !saved.isPending,
+    field: focus && saved.data ? fieldFor(focus, saved.data.authorizations) : undefined,
   });
 
   return (

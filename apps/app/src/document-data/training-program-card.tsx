@@ -26,6 +26,7 @@ import { EditAction, SectionCard } from '../components/section-card';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { intervalLabel, staffCategoryLabels } from '../job-positions/job-position-schema';
 import { useJobPositionOptions } from '../job-positions/use-job-position-options';
+import { useFocusRequest } from '../missing-data/focus';
 import { intervalOptions, monthNames, notApplicable } from './document-details-schema';
 import {
   type ClientSummary,
@@ -85,9 +86,11 @@ const monthList = (firstMonth: number, interval: number) =>
 export function TrainingProgramSection({
   client,
   userId,
+  focus = false,
 }: {
   client: ClientSummary;
   userId: string;
+  focus?: boolean;
 }) {
   const details = useDocumentDetails(client.id, userId);
   if (details.isPending) return <Skeleton className="h-64 w-full rounded-xl" />;
@@ -114,18 +117,42 @@ export function TrainingProgramSection({
     );
   }
   return (
-    <TrainingProgramCard saved={details.data.documentDetails} client={client} userId={userId} />
+    <TrainingProgramCard
+      saved={details.data.documentDetails}
+      client={client}
+      userId={userId}
+      focus={focus}
+    />
   );
+}
+
+// A complete schedule still counts as missing when a category marked "Nu se aplică" has
+// employees, and that is fixed in the first field.
+function firstFieldToFill(saved: DocumentDetails) {
+  if (
+    saved.administrativeTrainingIntervalMonths === null &&
+    !saved.administrativeTrainingNotApplicable
+  )
+    return 'details-administrative-interval';
+  if (saved.workerTrainingIntervalMonths === null && !saved.workerTrainingNotApplicable)
+    return 'details-worker-interval';
+  if (saved.trainingFirstMonth === null) return 'details-first-month';
+  if (saved.periodicTrainingMinutes === null) return 'details-training-duration';
+  if (saved.trainingDayFrom === null) return 'details-day-from';
+  if (saved.trainingDayTo === null) return 'details-day-to';
+  return 'details-administrative-interval';
 }
 
 function TrainingProgramCard({
   saved,
   client,
   userId,
+  focus,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
   userId: string;
+  focus: boolean;
 }) {
   const savedKey = [
     ...fields.map((field) => saved[field]),
@@ -137,6 +164,10 @@ function TrainingProgramCard({
   // Editing belongs to what was saved when it began, so a save goes back to the summary.
   const [editedKey, setEditedKey] = useState<string | null>(null);
   const editing = !readOnly && (program === null || editedKey === savedKey);
+  useFocusRequest(focus, {
+    open: readOnly ? undefined : () => setEditedKey(savedKey),
+    field: readOnly ? undefined : firstFieldToFill(saved),
+  });
 
   return (
     <SectionCard

@@ -442,6 +442,16 @@ describe("a client's job positions", () => {
       'Instrucțiuni',
     ]);
   });
+
+  it('opens the new position dialog when a row asks for a first position', async () => {
+    mockApi({ items: [] });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/job-positions?focus=add-position`
+    );
+    expect(await screen.findByTestId('job-position-dialog')).toBeTruthy();
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
 });
 
 describe('employeeCountLabel', () => {

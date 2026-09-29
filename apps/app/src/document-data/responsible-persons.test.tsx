@@ -365,4 +365,40 @@ describe('client responsible persons', () => {
     expect(screen.queryByTestId('responsible-add')).toBeNull();
     expect(screen.queryByTestId('responsible-actions')).toBeNull();
   });
+
+  it('opens the new person dialog with the role a row asked for already ticked', async () => {
+    mockApi({ items: [] });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/training?focus=imminent-danger`
+    );
+    const dialog = await screen.findByTestId('responsible-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Adaugă o persoană responsabilă');
+    expect(
+      within(dialog)
+        .getAllByRole('checkbox')
+        .filter((box) => box.getAttribute('data-state') === 'checked')
+        .map((box) => box.id)
+    ).toEqual(['responsible-role-imminent_danger']);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it("opens the representative who has the legal representative's name, at the role", async () => {
+    mockApi({
+      items: [{ ...manager, roles: ['workplace_manager', 'workers_representative'] }],
+      details: { ...emptyDetails, legalRepresentativeName: 'LUCA Paolo Antonio' },
+    });
+    mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/training?focus=workers-representative-clash`
+    );
+    const dialog = await screen.findByTestId('responsible-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Modifică persoana responsabilă');
+    expect(within(dialog).getByTestId('responsible-clash').textContent).toContain(
+      'Paolo-Antonio Luca are același nume ca reprezentantul legal al clientului'
+    );
+    await waitFor(() =>
+      expect(document.activeElement?.id).toBe('responsible-role-workers_representative')
+    );
+  });
 });

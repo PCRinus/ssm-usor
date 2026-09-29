@@ -40,6 +40,19 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const documentDetails = {
+  legalRepresentativeName: 'Maria Popescu',
+  legalRepresentativeRole: null,
+  periodicTrainingMinutes: 120,
+  administrativeTrainingIntervalMonths: 6,
+  administrativeTrainingNotApplicable: false,
+  workerTrainingIntervalMonths: 3,
+  workerTrainingNotApplicable: false,
+  trainingFirstMonth: 2,
+  trainingDayFrom: 2,
+  trainingDayTo: 7,
+};
+
 const firstAidId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const firstAid = {
   id: firstAidId,
@@ -75,6 +88,7 @@ function mockApi({
     missing: string[];
     currentEmployeeCount?: number;
     workersRepresentativeClash?: { representativeName: string; legalRepresentativeName: string };
+    undecidedJobPositions?: { id: string; name: string; undecided: string[] }[];
   },
   currentEmployeeCount = 6,
   generate = (() =>
@@ -100,8 +114,20 @@ function mockApi({
       return Response.json({ items, lastGeneration, notApplicable, currentEmployeeCount });
     }
     if (pathname === `/clients/${clientId}/documents/readiness`) {
-      return Response.json({ currentEmployeeCount, ...readiness });
+      return Response.json({
+        currentEmployeeCount,
+        workersRepresentativeClash: null,
+        undecidedJobPositions: [],
+        ...readiness,
+      });
     }
+    if (pathname === `/clients/${clientId}/document-details`) {
+      return Response.json({ documentDetails });
+    }
+    if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+    if (pathname === `/clients/${clientId}/responsible-persons`)
+      return Response.json({ items: [] });
+    if (pathname === `/clients/${clientId}/job-positions`) return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
     if (pathname.endsWith('/upload')) return upload(init);
     if (pathname.endsWith('/download')) {
@@ -180,7 +206,7 @@ describe('client documents', () => {
     );
   });
 
-  it('says what is missing and where it is filled in, instead of the form', async () => {
+  it('lists what is missing as rows, by place, each leading to its field', async () => {
     mockApi({
       role: 'specialist',
       readiness: {
@@ -197,19 +223,30 @@ describe('client documents', () => {
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('documents-generate'));
-    const places = await screen.findAllByTestId('generate-missing-place');
-    expect(places.map((place) => place.textContent)).toEqual([
-      'Datele organizației: denumirea legală.Le completează proprietarul organizației.',
-      'Profilul tău: titlul profesional.',
-      'Detaliile clientului: funcția reprezentantului legal.',
-      'Instruire și responsabili: o persoană pentru „Prim ajutor”.',
+    expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
+      '4 date de completat'
+    );
+    const places = screen.getAllByTestId('generate-missing-place');
+    expect(places.map((place) => within(place).getByRole('heading').textContent)).toEqual([
+      'Datele organizației',
+      'Profilul tău',
+      'Detaliile clientului',
+      'Instruire și responsabili',
     ]);
-    expect(within(places[2]!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${clientId}/details`
-    );
-    expect(within(places[3]!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${clientId}/training`
-    );
+    const rows = screen.getAllByTestId('generate-missing-row');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Denumirea legală',
+      'Titlul profesionalApare lângă numele tău în documente.',
+      'Funcția reprezentantului legal',
+      'Prim ajutorNicio persoană responsabilă nu are încă acest rol.',
+    ]);
+    expect(rows.map((row) => row.getAttribute('href'))).toEqual([
+      null,
+      '/profile?focus=professional-title',
+      `/clients/${clientId}/details?focus=legal-representative-role`,
+      `/clients/${clientId}/training?focus=first-aid`,
+    ]);
+    expect(places[0]!.textContent).toContain('Le completează proprietarul organizației.');
     expect(screen.queryByTestId('generate-submit')).toBeNull();
   });
 
@@ -230,7 +267,13 @@ describe('client documents', () => {
         return answer(input, init);
       }
       await held;
-      return Response.json({ currentEmployeeCount: 6, ready: true, missing: [] });
+      return Response.json({
+        currentEmployeeCount: 6,
+        ready: true,
+        missing: [],
+        workersRepresentativeClash: null,
+        undecidedJobPositions: [],
+      });
     });
     await user.click(screen.getByTestId('documents-generate'));
     await screen.findByTestId('generate-documents-dialog');
@@ -247,7 +290,10 @@ describe('client documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     const [place] = await screen.findAllByTestId('generate-missing-place');
-    expect(place!.textContent).toBe('Datele organizației: denumirea legală.');
+    expect(place!.textContent).toBe('Datele organizațieiDenumirea legală');
+    expect(within(place!).getByRole('link').getAttribute('href')).toBe(
+      '/organization/company?focus=legal-name'
+    );
   });
 
   it('has nothing to generate once every document the client needs exists', async () => {
@@ -287,26 +333,30 @@ describe('client documents', () => {
     expect((await screen.findByTestId('generate-headcount')).textContent).toContain(rule);
   });
 
-  it('names the positions whose equipment is undecided, and links to the positions', async () => {
+  it('has a row per position and per section still undecided, each to that section', async () => {
     mockApi({
       readiness: {
         ready: false,
-        missing: ['positions.equipment'],
+        missing: ['positions.equipment', 'positions.instructions'],
         undecidedJobPositions: [
-          { id: 'p1', name: 'Zidar' },
-          { id: 'p2', name: 'Sudor' },
+          { id: 'p1', name: 'Zidar', undecided: ['equipment', 'instructions'] },
+          { id: 'p2', name: 'Sudor', undecided: ['equipment'] },
         ],
-      } as never,
+      },
     });
     mount();
     await userEvent.setup().click(await screen.findByTestId('documents-generate'));
     const place = await screen.findByTestId('generate-missing-place');
-    expect(place.textContent).toContain('pentru „Zidar”, „Sudor”');
+    expect(within(place).getByRole('heading').textContent).toBe('Posturile de lucru');
+    const rows = within(place).getAllByRole('link');
     expect(
-      within(place)
-        .getByRole('link', { name: 'Posturile de lucru ale clientului' })
-        .getAttribute('href')
-    ).toBe(`/clients/${clientId}/job-positions`);
+      rows.map((row) => row.textContent?.split('·')[0]!.trim() + ' · ' + row.getAttribute('href'))
+    ).toEqual([
+      `Zidar · /clients/${clientId}/job-positions/p1#protective-equipment`,
+      `Zidar · /clients/${clientId}/job-positions/p1#instructions`,
+      `Sudor · /clients/${clientId}/job-positions/p2#protective-equipment`,
+    ]);
+    expect(screen.getByTestId('generate-missing-count').textContent).toBe('3 date de completat');
   });
 
   it('shows the number of employees also while data is missing', async () => {
@@ -319,7 +369,7 @@ describe('client documents', () => {
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toContain('12 angajați');
     expect((await screen.findByTestId('generate-missing-place')).textContent).toContain(
-      'un reprezentant al lucrătorilor'
+      'Reprezentantul lucrătorilorAles dintre angajați.'
     );
   });
 
@@ -355,6 +405,75 @@ describe('client documents', () => {
     expect((await screen.findByTestId('generate-missing-place')).textContent).toContain(
       '„Talos Florin” are același nume ca reprezentantul legal al clientului, „Florin TALOȘ”'
     );
+  });
+
+  it('leads from a row to its field, and back to the form through the strip', async () => {
+    mockApi({
+      role: 'specialist',
+      readiness: { ready: false, missing: ['client.representativeRole'] },
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    await user.click(await screen.findByTestId('generate-missing-row'));
+    const role = await screen.findByTestId('details-representative-role');
+    await waitFor(() => expect(document.activeElement).toBe(role));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    expect(screen.queryByTestId('generate-documents-dialog')).toBeNull();
+    expect(screen.getByTestId('way-back').textContent).toContain(
+      'Completezi datele pentru documentație.'
+    );
+
+    await user.click(
+      screen
+        .getAllByTestId('client-section')
+        .find((tab) => tab.textContent === 'Instruire și responsabili')!
+    );
+    await screen.findByTestId('training-page');
+    expect(screen.getByTestId('way-back')).toBeTruthy();
+
+    const asked = requests('/documents/readiness', 'GET').length;
+    await user.click(screen.getByTestId('way-back-link'));
+    expect(await screen.findByTestId('generate-documents-dialog')).toBeTruthy();
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await waitFor(() =>
+      expect(requests('/documents/readiness', 'GET').length).toBeGreaterThan(asked)
+    );
+    expect(screen.queryByTestId('way-back')).toBeNull();
+  });
+
+  it('keeps the strip to the pages of that client until it is dismissed', async () => {
+    mockApi({
+      role: 'specialist',
+      readiness: { ready: false, missing: ['client.representativeRole'] },
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    await user.click(await screen.findByTestId('generate-missing-row'));
+    await screen.findByTestId('way-back');
+
+    await runtime.router.navigate({ to: '/clients/$clientId/documents', params: { clientId } });
+    await screen.findByTestId('documents-page');
+    expect(screen.queryByTestId('way-back')).toBeNull();
+    await runtime.router.navigate({ to: '/clients/$clientId/details', params: { clientId } });
+    await user.click(await screen.findByTestId('way-back-dismiss'));
+    expect(screen.queryByTestId('way-back')).toBeNull();
+    await runtime.router.navigate({ to: '/clients/$clientId/training', params: { clientId } });
+    await screen.findByTestId('training-page');
+    expect(screen.queryByTestId('way-back')).toBeNull();
+  });
+
+  it('opens the form when the address asks for it, once', async () => {
+    mockApi({ readiness: { ready: false, missing: ['responsible.first_aid'] } });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/documents?focus=generate`
+    );
+    expect(await screen.findByTestId('generate-documents-dialog')).toBeTruthy();
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
   it('generates with the date and the first number of the last generation', async () => {

@@ -7,6 +7,7 @@ import { Notice } from '../components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
 import { useInPlaceEdit } from '../components/use-in-place-edit';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { type LegalRepresentativeFocus, useFocusRequest } from '../missing-data/focus';
 import {
   type ClientSummary,
   describedBy,
@@ -20,15 +21,27 @@ const fields = ['legalRepresentativeName', 'legalRepresentativeRole'] as const;
 export function LegalRepresentativeCard({
   client,
   userId,
+  focus,
 }: {
   client: ClientSummary;
   userId: string;
+  focus?: LegalRepresentativeFocus;
 }) {
   const details = useDocumentDetails(client.id, userId);
   const { editing, editRef, open, close } = useInPlaceEdit();
   const readOnly = client.archivedAt !== null;
   const saved = details.data?.documentDetails;
   const empty = !saved?.legalRepresentativeName && !saved?.legalRepresentativeRole;
+  useFocusRequest(focus !== undefined, {
+    ready: !details.isPending,
+    open: readOnly ? undefined : open,
+    field:
+      readOnly || !saved
+        ? undefined
+        : focus === 'legal-representative-role'
+          ? 'details-representative-role'
+          : 'details-representative-name',
+  });
 
   return (
     <SectionCard

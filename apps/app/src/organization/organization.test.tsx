@@ -534,6 +534,17 @@ describe('company details', () => {
     );
     expect(locality.value).toBe('Lugoj');
   });
+
+  it.each([
+    ['representative-role', 'company-legalRepresentativeRole'],
+    ['bank-account', 'company-bankName'],
+  ])('puts the cursor in the field a row asks for with %s', async (focus, field) => {
+    mockApi();
+    const runtime = mount(`/organization/company?focus=${focus}`);
+    const input = await screen.findByTestId(field);
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
 });
 
 describe('authorizations', () => {
@@ -576,5 +587,13 @@ describe('authorizations', () => {
     );
     expect(number.disabled).toBe(true);
     expect(screen.queryByTestId('authorizations-save')).toBeNull();
+  });
+
+  it('puts the cursor in the certificate number when a row asks for the certificate', async () => {
+    mockApi();
+    const runtime = mount('/organization/authorizations?focus=certificate');
+    const input = await screen.findByTestId('authorizations-authorizationCertificateNumber');
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 });

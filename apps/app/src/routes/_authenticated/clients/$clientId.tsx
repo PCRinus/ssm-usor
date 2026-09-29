@@ -35,6 +35,7 @@ import {
 import { HeaderFact, RecordHeader } from '../../../clients/record-header';
 import { Notice } from '../../../components/notice';
 import { SectionNav } from '../../../components/section-nav';
+import { WayBackStrip } from '../../../missing-data/way-back-strip';
 
 // The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [
@@ -176,6 +177,7 @@ export function ClientLayout() {
             </li>
           ))}
       </SectionNav>
+      <WayBackStrip clientId={client.id} />
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
     </div>

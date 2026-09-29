@@ -1,3 +1,4 @@
+import { type ResponsiblePersonRole, samePersonName } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -40,6 +41,7 @@ import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { SectionCard } from '../components/section-card';
+import { type TrainingFocus, useFocusRequest } from '../missing-data/focus';
 import {
   ResponsiblePersonDialog,
   type ResponsiblePersonEditing,
@@ -50,16 +52,28 @@ import {
   responsibleRoleLabels,
   responsibleRoleOrder,
 } from './responsible-person-schema';
+import { useDocumentDetails } from './use-document-details-form';
+
+const focusRoles: Record<Exclude<TrainingFocus, 'training-schedule'>, ResponsiblePersonRole> = {
+  'workplace-manager': 'workplace_manager',
+  'first-aid': 'first_aid',
+  'risk-evaluation-team': 'risk_evaluation_team',
+  'imminent-danger': 'imminent_danger',
+  'workers-representative': 'workers_representative',
+  'workers-representative-clash': 'workers_representative',
+};
 
 // `readOnly` is an archived client.
 export function ResponsiblePersonsCard({
   clientId,
   userId,
   readOnly,
+  focus,
 }: {
   clientId: string;
   userId: string;
   readOnly: boolean;
+  focus?: Exclude<TrainingFocus, 'training-schedule'>;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const persons = useListResponsiblePersons(clientId, {
@@ -69,12 +83,35 @@ export function ResponsiblePersonsCard({
   const archive = useArchiveResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
   const [editing, setEditing] = useState<ResponsiblePersonEditing>(null);
+  const [pointedRole, setPointedRole] = useState<ResponsiblePersonRole | null>(null);
+  const details = useDocumentDetails(clientId, userId);
   const [archiving, setArchiving] = useState<ResponsiblePerson | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Each decision names someone, so a role nobody holds is what generating will ask for.
   const held = new Set(persons.data?.items.flatMap((person) => person.roles));
   const missing = alwaysRequiredRoles.filter((role) => !held.has(role));
+
+  function openFor(request: NonNullable<typeof focus>) {
+    const legalRepresentative = details.data?.documentDetails.legalRepresentativeName;
+    // Opening the representative who clashes lets the role be taken off them; adding someone
+    // else would leave the clash in place.
+    const clashing =
+      request === 'workers-representative-clash' && legalRepresentative
+        ? persons.data?.items.find(
+            (person) =>
+              person.roles.includes('workers_representative') &&
+              samePersonName(person.fullName, legalRepresentative)
+          )
+        : undefined;
+    setPointedRole(focusRoles[request]);
+    setEditing(clashing ?? 'new');
+  }
+
+  useFocusRequest(focus !== undefined, {
+    ready: !persons.isPending && !details.isPending,
+    open: readOnly || !focus ? undefined : () => openFor(focus),
+  });
 
   async function adoptContractTitle(person: ResponsiblePerson, jobTitle: string) {
     setError(null);
@@ -274,7 +311,11 @@ export function ResponsiblePersonsCard({
         clientId={clientId}
         userId={userId}
         editing={editing}
-        onClose={() => setEditing(null)}
+        pointedRole={pointedRole}
+        onClose={() => {
+          setEditing(null);
+          setPointedRole(null);
+        }}
       />
       <Dialog
         open={archiving !== null}

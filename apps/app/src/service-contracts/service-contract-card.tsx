@@ -22,7 +22,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { useRouteContext } from '@tanstack/react-router';
 import {
   Download,
   FilePen,
@@ -64,10 +64,17 @@ import { pdfOfRevision, usePrint } from '../documents/print';
 import { todayIso } from '../employees/employee-format';
 import { formatRoDate } from '../lib/dates';
 import { openDownload } from '../lib/save-file';
+import { type ContractFocus, useFocusRequest } from '../missing-data/focus';
+import { MissingDataList } from '../missing-data/missing-data-list';
+import {
+  contractMissingGroups,
+  countRows,
+  missingCountLabel,
+  type MissingRow,
+} from '../missing-data/missing-rows';
+import { startWayBack } from '../missing-data/way-back';
 import { SendContractDialog } from './send-contract-dialog';
 import {
-  groupMissing,
-  missingLabels,
   serviceContractFormSchema,
   type ServiceContractFormValues,
   toServiceContractForm,
@@ -267,11 +274,13 @@ export function ServiceContractCard({
   userId,
   readOnly,
   editor,
+  focus,
 }: {
   client: Client;
   userId: string;
   readOnly: boolean;
   editor: (children: ReactNode, testId: string) => ReactNode;
+  focus?: ContractFocus;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryKey = [...getGetServiceContractQueryKey(client.id), userId];
@@ -305,6 +314,8 @@ export function ServiceContractCard({
         <ServiceContractBody
           key={JSON.stringify([contract.data.contract, contract.data.clientRepresentative])}
           client={client}
+          userId={userId}
+          focus={focus}
           saved={contract.data}
           checking={contract.isFetching && !contract.isFetchedAfterMount}
           queryKey={queryKey}
@@ -316,8 +327,16 @@ export function ServiceContractCard({
   );
 }
 
+const contractFields: Record<ContractFocus, string> = {
+  'contract-details': 'contract-contractNumber',
+  'contract-representative-name': 'contract-clientRepresentativeName',
+  'contract-representative-role': 'contract-clientRepresentativeRole',
+};
+
 function ServiceContractBody({
   client,
+  userId,
+  focus,
   saved,
   checking,
   queryKey,
@@ -325,6 +344,8 @@ function ServiceContractBody({
   editor,
 }: {
   client: Client;
+  userId: string;
+  focus: ContractFocus | undefined;
   saved: ServiceContractResponse;
   checking: boolean;
   queryKey: readonly unknown[];
@@ -363,7 +384,17 @@ function ServiceContractBody({
   const { readiness } = saved;
   // The types allow a contract with neither revision, and one took the whole page down.
   const document = saved.document?.draft || saved.document?.issued ? saved.document : null;
-  const missing = groupMissing(readiness.missing);
+  const missing = contractMissingGroups(readiness.missing, client);
+  const here = client.stage === 'lead' ? '/leads/$leadId' : '/clients/$clientId/contract';
+  const followMissing = (row: MissingRow) => {
+    if (row.target && row.target.to !== here) {
+      startWayBack({
+        userId,
+        clientId: client.id,
+        to: client.stage === 'lead' ? 'lead-contract' : 'client-contract',
+      });
+    }
+  };
   // The details count as saved only once they are: a suggested number is still a suggestion.
   const unsaved = isDirty || saved.contract === null;
   const summarized = saved.contract !== null && !editing;
@@ -384,6 +415,11 @@ function ServiceContractBody({
     // The list of leads says where each contract stands.
     await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
   }
+
+  useFocusRequest(focus !== undefined, {
+    open: readOnly ? undefined : () => setEditing(true),
+    field: focus && !readOnly ? contractFields[focus] : undefined,
+  });
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
@@ -737,80 +773,12 @@ function ServiceContractBody({
         )}
 
         {!readOnly && !checking && readiness.missing.length > 0 && saved.contract !== null && (
-          <Notice
-            variant="warning"
-            data-testid="contract-missing"
-            title="Contractul nu poate fi generat încă"
-          >
-            <ul className="mt-1 grid gap-1">
-              {missing.providerCompany.length > 0 && (
-                <li data-testid="contract-missing-company">
-                  Despre organizația ta:{' '}
-                  {missing.providerCompany.map((name) => missingLabels[name]).join(', ')}. Le
-                  completezi în{' '}
-                  <Link
-                    to="/organization/company"
-                    className="font-medium underline underline-offset-4"
-                  >
-                    Organizație, Date firmă
-                  </Link>
-                  .
-                </li>
-              )}
-              {missing.providerAuthorizations.length > 0 && (
-                <li data-testid="contract-missing-authorizations">
-                  Despre abilitările organizației:{' '}
-                  {missing.providerAuthorizations.map((name) => missingLabels[name]).join(', ')}. Le
-                  completezi în{' '}
-                  <Link
-                    to="/organization/authorizations"
-                    className="font-medium underline underline-offset-4"
-                  >
-                    Organizație, Abilitări
-                  </Link>
-                  .
-                </li>
-              )}
-              {missing.company.length > 0 && (
-                <li>
-                  Despre {client.legalName}:{' '}
-                  {missing.company.map((name) => missingLabels[name]).join(', ')}. Le completezi
-                  {client.stage === 'lead' ? (
-                    <>
-                      {' '}
-                      cu{' '}
-                      <Link
-                        to="/leads/$leadId/edit"
-                        params={{ leadId: client.id }}
-                        className="font-medium underline underline-offset-4"
-                      >
-                        Modifică
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      {' '}
-                      în{' '}
-                      <Link
-                        to="/clients/$clientId/details"
-                        params={{ clientId: client.id }}
-                        className="font-medium underline underline-offset-4"
-                      >
-                        Detalii
-                      </Link>
-                    </>
-                  )}
-                  .
-                </li>
-              )}
-              {missing.form.length > 0 && (
-                <li>
-                  În formularul de mai sus:{' '}
-                  {missing.form.map((name) => missingLabels[name]).join(', ')}.
-                </li>
-              )}
-            </ul>
-          </Notice>
+          <div data-testid="contract-missing" className="grid gap-4">
+            <Notice variant="warning" title="Contractul nu poate fi generat încă">
+              {missingCountLabel(countRows(missing))}: contractul le tipărește pe toate.
+            </Notice>
+            <MissingDataList groups={missing} testId="contract-missing" onFollow={followMissing} />
+          </div>
         )}
         {error && (
           <Notice variant="destructive" data-testid="contract-error">

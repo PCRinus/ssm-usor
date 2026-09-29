@@ -252,19 +252,49 @@ describe('the service contract of a lead', () => {
     });
     mount();
     const missing = await screen.findByTestId('contract-missing');
-    expect(missing.textContent).toContain('Despre organizația ta: contul bancar și banca');
-    expect(missing.textContent).toContain('Despre VELOCITA URBANA SRL: adresa sediului');
-    expect(missing.textContent).toContain('În formularul de mai sus: funcția reprezentantului');
-    expect(missing.textContent).toContain(
-      'Despre abilitările organizației: certificatul de abilitare'
-    );
+    expect(missing.textContent).toContain('4 date de completat');
     expect(
-      within(missing).getByRole('link', { name: 'Organizație, Date firmă' }).getAttribute('href')
-    ).toBe('/organization/company');
+      within(missing)
+        .getAllByTestId('contract-missing-place')
+        .map((place) => within(place).getByRole('heading').textContent)
+    ).toEqual(['Datele organizației tale', 'Abilitările organizației', 'VELOCITA URBANA SRL']);
     expect(
-      within(missing).getByRole('link', { name: 'Organizație, Abilitări' }).getAttribute('href')
-    ).toBe('/organization/authorizations');
+      within(missing)
+        .getAllByTestId('contract-missing-row')
+        .map((row) => row.getAttribute('href'))
+    ).toEqual([
+      '/organization/company?focus=bank-account',
+      '/organization/authorizations?focus=certificate',
+      `/leads/${leadId}?focus=company-address`,
+      `/leads/${leadId}?focus=contract-representative-role`,
+    ]);
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
+  });
+
+  it("opens the lead's own cards from its rows, at the field", async () => {
+    mockApi({
+      get: () =>
+        Response.json(
+          state({
+            readiness: { ready: false, missing: ['client.address', 'client.representativeRole'] },
+          })
+        ),
+      client: { ...lead, countyCode: null },
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('contract-missing-row');
+
+    await user.click(rows[0]!);
+    await waitFor(() => expect(document.activeElement?.id).toBe('countyCode'));
+    expect(screen.getByTestId('company-form')).toBeTruthy();
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+
+    await user.click(screen.getAllByTestId('contract-missing-row')[1]!);
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('contract-clientRepresentativeRole'))
+    );
+    expect(screen.queryByTestId('way-back')).toBeNull();
   });
 
   it('asks again what is missing on coming back, without showing the old list meanwhile', async () => {
@@ -725,6 +755,33 @@ describe('the contract of a client', () => {
     expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`);
     expect(back.getAttribute('href')).toBe(`/clients/${leadId}/contract`);
     expect(back.getAttribute('aria-label')).toBe('Înapoi la contract');
+  });
+
+  it("leads from the missing data to the client's Detalii, and back to the contract", async () => {
+    mockApi({
+      client,
+      get: () =>
+        Response.json(
+          state({
+            readiness: { ready: false, missing: ['client.tradeRegisterNumber'] },
+          })
+        ),
+    });
+    const runtime = mount(`/clients/${leadId}/contract`);
+    const user = userEvent.setup();
+    const row = await screen.findByTestId('contract-missing-row');
+    expect(row.getAttribute('href')).toBe(
+      `/clients/${leadId}/details?focus=company-trade-register`
+    );
+
+    await user.click(row);
+    await waitFor(() => expect(document.activeElement?.id).toBe('tradeRegisterNumber'));
+    expect(screen.getByTestId('way-back').textContent).toContain(
+      'Completezi datele pentru contract.'
+    );
+    await user.click(screen.getByTestId('way-back-link'));
+    await screen.findByTestId('contract-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract`);
   });
 
   it('is not offered to a specialist, and asks the API for nothing on their behalf', async () => {

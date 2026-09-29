@@ -19,9 +19,17 @@ import { OwnerNotesCard } from '../../../../clients/owner-notes-card';
 import { HeaderFact, RecordHeader } from '../../../../clients/record-header';
 import { Notice } from '../../../../components/notice';
 import { PromoteLeadDialog } from '../../../../leads/promote-lead-dialog';
+import {
+  companyFocus,
+  contractFocus,
+  focusAmong,
+  focusSearch,
+  leadFocus,
+} from '../../../../missing-data/focus';
 import { ServiceContractCard } from '../../../../service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
+  validateSearch: focusSearch(leadFocus),
   component: LeadPage,
 });
 
@@ -31,6 +39,7 @@ const leadRoute = getRouteApi('/_authenticated/leads/$leadId');
 export function LeadPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
+  const { focus } = Route.useSearch();
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState(false);
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -115,12 +124,13 @@ export function LeadPage() {
         </Notice>
       )}
       <div className="grid gap-6">
-        <CompanyCard client={lead} readOnly={archived} />
+        <CompanyCard client={lead} readOnly={archived} focus={focusAmong(focus, companyFocus)} />
         <ContactCard client={lead} readOnly={archived} />
         <ServiceContractCard
           client={lead}
           userId={session.user.id}
           readOnly={archived}
+          focus={focusAmong(focus, contractFocus)}
           editor={(children, testId) => (
             <Button asChild variant="outline" size="sm">
               <Link

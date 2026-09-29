@@ -41,6 +41,7 @@ import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { SectionCard } from '../components/section-card';
 import { instructionStateLabel, positionCountLabel } from '../instructions/instruction-schema';
+import { useFocusRequest } from '../missing-data/focus';
 import { equipmentStateLabel } from '../protective-equipment/equipment-schema';
 import { DecisionBadge } from './decision-badge';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
@@ -58,10 +59,12 @@ export function JobPositionsCard({
   clientId,
   userId,
   readOnly,
+  focus,
 }: {
   clientId: string;
   userId: string;
   readOnly: boolean;
+  focus?: 'add-position';
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const positions = useListJobPositions(clientId, {
@@ -73,6 +76,9 @@ export function JobPositionsCard({
   const [editing, setEditing] = useState<JobPositionEditing>(null);
   const [removing, setRemoving] = useState<JobPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useFocusRequest(focus === 'add-position', {
+    open: readOnly ? undefined : () => setEditing('new'),
+  });
 
   async function removePosition(position: JobPosition) {
     setError(null);

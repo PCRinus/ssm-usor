@@ -351,4 +351,34 @@ describe('client document data', () => {
     expect(screen.queryByTestId('training-program-edit')).toBeNull();
     expect(screen.getByTestId('client-archived-banner')).toBeTruthy();
   });
+
+  it.each([
+    [
+      'a schedule missing a choice',
+      { workerTrainingIntervalMonths: null },
+      'details-worker-interval',
+    ],
+    ['a complete schedule', {}, 'details-administrative-interval'],
+  ])('opens %s at the first choice to make when a row asks for it', async (_, change, field) => {
+    mockApi({ details: { ...savedDetails, ...change } as Details });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/training?focus=training-schedule`
+    );
+    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
+    await waitFor(() => expect(document.activeElement?.id).toBe(field));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it("opens the legal representative's card at the field a row asks for", async () => {
+    mockApi({ details: savedDetails as Details });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/details?focus=legal-representative-name`
+    );
+    const name = await screen.findByTestId('details-representative-name');
+    await waitFor(() => expect(document.activeElement).toBe(name));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(runtime.router.history.length).toBe(1);
+  });
 });

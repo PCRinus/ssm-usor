@@ -5,6 +5,7 @@ import { Notice } from '../components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
 import { useInPlaceEdit } from '../components/use-in-place-edit';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { type CompanyFocus, useFocusRequest } from '../missing-data/focus';
 import { IdentificationFields, RegisteredOfficeFields, RegistrationFields } from './client-fields';
 import type { Client, ClientFormValues } from './client-form-schema';
 import { useClientFieldsForm } from './use-client-fields-form';
@@ -21,9 +22,30 @@ const fields: readonly (keyof ClientFormValues)[] = [
   'addressLine',
 ];
 
+function addressField(client: Client) {
+  if (!client.countyCode) return 'countyCode';
+  return client.locality ? 'addressLine' : 'locality';
+}
+
 // `readOnly` is an archived client, whose data is not edited.
-export function CompanyCard({ client, readOnly }: { client: Client; readOnly: boolean }) {
+export function CompanyCard({
+  client,
+  readOnly,
+  focus,
+}: {
+  client: Client;
+  readOnly: boolean;
+  focus?: CompanyFocus;
+}) {
   const { editing, editRef, open, close } = useInPlaceEdit();
+  useFocusRequest(focus !== undefined, {
+    open: readOnly ? undefined : open,
+    field: readOnly
+      ? undefined
+      : focus === 'company-trade-register'
+        ? 'tradeRegisterNumber'
+        : addressField(client),
+  });
   const caen = client.caenCode ? caenClassName(client.caenCode) : null;
 
   return (
