@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/documents')({
-  staticData: { title: 'Documente' },
+  staticData: { title: 'Documente SSM' },
   component: Outlet,
 });

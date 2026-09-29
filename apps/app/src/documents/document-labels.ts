@@ -21,7 +21,7 @@ export const missingPlaces: Record<MissingPlace, { label: string; hint?: string 
   },
   profile: { label: 'Profilul tău' },
   clientDetails: { label: 'Detaliile clientului' },
-  client: { label: 'Datele pentru documente ale clientului' },
+  client: { label: 'Instruire și responsabili' },
   jobPositions: { label: 'Posturile de lucru ale clientului' },
 };
 

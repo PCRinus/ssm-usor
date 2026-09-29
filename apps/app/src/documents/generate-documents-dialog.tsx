@@ -99,7 +99,7 @@ function PlaceLink({ place, clientId }: { place: MissingPlace; clientId: string 
       </Link>
     );
   return (
-    <Link to="/clients/$clientId/document-data" params={{ clientId }} className={className}>
+    <Link to="/clients/$clientId/training" params={{ clientId }} className={className}>
       {label}
     </Link>
   );

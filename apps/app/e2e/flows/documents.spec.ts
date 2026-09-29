@@ -47,7 +47,7 @@ test('generating waits for the data the documents print, and says where it is fi
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
   await places.nth(3).getByRole('link').click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/document-data$`));
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
 });
 
 test('a client gets its documentation, downloads a decision, issues it, and corrects it', async ({
@@ -355,7 +355,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-equipment')
   ).toHaveText('Nu necesită');
 
-  await page.goto(`/clients/${clientId}/document-data`);
+  await page.goto(`/clients/${clientId}/training`);
   await page.getByTestId('responsible-add').click();
   await page.getByTestId('responsible-employee').click();
   await page.getByTestId('responsible-employee-search').fill('vasile');

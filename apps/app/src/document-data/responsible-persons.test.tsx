@@ -112,8 +112,7 @@ const requests = (pathname: string, method: string) =>
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
-const mount = () =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/document-data`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
 
 beforeEach(() => {
   fetchMock.mockReset();

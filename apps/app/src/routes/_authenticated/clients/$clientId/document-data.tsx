@@ -1,31 +1,12 @@
-import { createFileRoute, getRouteApi } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { useAuth } from '../../../../auth/auth-context';
-import { ResponsiblePersonsCard } from '../../../../document-data/responsible-persons-card';
-import { TrainingProgramSection } from '../../../../document-data/training-program-card';
-
-// What a client's generated documentation prints beyond its registration data (ADR 005).
+// An old address, kept so that bookmarks and links already sent still arrive.
 export const Route = createFileRoute('/_authenticated/clients/$clientId/document-data')({
-  staticData: { title: 'Date pentru documente' },
-  component: DocumentDataPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/clients/$clientId/training',
+      params: { clientId: params.clientId },
+      replace: true,
+    });
+  },
 });
-
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
-
-export function DocumentDataPage() {
-  const { client } = clientRoute.useLoaderData();
-  const { session } = useAuth();
-  // The shell renders this only for a signed-in user.
-  if (!session) return null;
-
-  return (
-    <div data-testid="document-data-page" className="grid gap-6">
-      <TrainingProgramSection client={client} userId={session.user.id} />
-      <ResponsiblePersonsCard
-        clientId={client.id}
-        userId={session.user.id}
-        readOnly={client.archivedAt !== null}
-      />
-    </div>
-  );
-}

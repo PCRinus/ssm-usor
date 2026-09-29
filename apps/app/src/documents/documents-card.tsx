@@ -337,7 +337,7 @@ export function DocumentsCard({
           : body?.reason === 'missing_document_data' &&
               document.typeKey === 'decision_workers_representative'
             ? // Under 10 employees the generation form does not ask for a representative.
-              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Date pentru documente”.'
+              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Instruire și responsabili”.'
             : body?.reason === 'missing_document_data'
               ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
               : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)

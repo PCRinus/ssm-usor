@@ -685,26 +685,49 @@ describe('the copy received through the return link', () => {
   });
 });
 
-describe('the other documents of a client', () => {
+describe('the contract of a client', () => {
   const client = { ...lead, stage: 'client', promotedAt: '2026-09-21T09:00:00+00:00' };
 
   it('is a section of the client for an owner, with the contract and its own editor address', async () => {
     mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
-    mount(`/clients/${leadId}/other-documents`);
-    await screen.findByTestId('other-documents-page');
+    const runtime = mount(`/clients/${leadId}/contract`);
+    await screen.findByTestId('contract-page');
+    await waitFor(() => expect(document.title).toBe('Contract — VELOCITA URBANA SRL — SSM Ușor'));
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).toContain('Alte documente');
-    expect((await screen.findByTestId('contract-open')).getAttribute('href')).toBe(
-      `/clients/${leadId}/other-documents/contract`
-    );
+    expect(sections.at(-1)).toBe('Contract');
+    expect(sections).not.toContain('Alte documente');
+    const open = await screen.findByTestId('contract-open');
+    expect(open.getAttribute('href')).toBe(`/clients/${leadId}/contract/edit`);
+
+    await userEvent.setup().click(open);
+    const back = await screen.findByTestId('editor-back');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`);
+    expect(back.getAttribute('href')).toBe(`/clients/${leadId}/contract`);
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la contract');
   });
 
   it('is not offered to a specialist, and asks the API for nothing on their behalf', async () => {
     mockApi({ client, role: 'specialist' });
-    mount(`/clients/${leadId}/other-documents`);
-    expect(await screen.findByTestId('other-documents-owners-only')).toBeTruthy();
+    mount(`/clients/${leadId}/contract`);
+    expect((await screen.findByTestId('contract-owners-only')).textContent).toContain(
+      'Doar administratorii organizației pot vedea contractul'
+    );
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).not.toContain('Alte documente');
+    expect(sections).not.toContain('Contract');
     expect(requests(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
+  });
+
+  it.each([
+    ['other-documents', 'contract'],
+    ['other-documents/contract', 'contract/edit'],
+  ])('sends the old /%s address to /%s', async (old, now) => {
+    mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
+    const runtime = mount(`/clients/${leadId}/${old}`);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/${now}`)
+    );
+    expect(
+      await screen.findByTestId(now === 'contract' ? 'contract-page' : 'editor-back')
+    ).toBeTruthy();
   });
 });

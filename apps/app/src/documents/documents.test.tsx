@@ -171,8 +171,8 @@ describe('client documents', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Date pentru documente',
-      'Documente',
+      'Instruire și responsabili',
+      'Documente SSM',
     ]);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
@@ -202,13 +202,13 @@ describe('client documents', () => {
       'Datele organizației: denumirea legală.Le completează proprietarul organizației.',
       'Profilul tău: titlul profesional.',
       'Detaliile clientului: funcția reprezentantului legal.',
-      'Datele pentru documente ale clientului: o persoană pentru „Prim ajutor”.',
+      'Instruire și responsabili: o persoană pentru „Prim ajutor”.',
     ]);
     expect(within(places[2]!).getByRole('link').getAttribute('href')).toBe(
       `/clients/${clientId}/details`
     );
     expect(within(places[3]!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${clientId}/document-data`
+      `/clients/${clientId}/training`
     );
     expect(screen.queryByTestId('generate-submit')).toBeNull();
   });

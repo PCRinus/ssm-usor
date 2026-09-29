@@ -514,6 +514,16 @@ describe('client editing', () => {
     expect(runtime.router.state.location.pathname).toBe(`/clients/${sampleClient.id}/details`);
     expect(screen.getByTestId('company-edit')).toBeTruthy();
   });
+
+  it.each(['edit', 'contact'])('sends the old /%s address to the details', async (old) => {
+    mockApi();
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${sampleClient.id}/${old}`
+    );
+    await screen.findByTestId('client-details-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${sampleClient.id}/details`);
+  });
 });
 
 describe('client details', () => {
@@ -547,9 +557,9 @@ describe('client details', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Date pentru documente',
-      'Documente',
-      'Alte documente',
+      'Instruire și responsabili',
+      'Documente SSM',
+      'Contract',
     ]);
     const cards = Array.from(page.querySelectorAll(':scope > [data-testid]')).map((card) =>
       card.getAttribute('data-testid')

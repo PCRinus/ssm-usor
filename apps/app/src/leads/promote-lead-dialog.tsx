@@ -84,8 +84,8 @@ export function PromoteLeadDialog({
           {signed === false && (
             <Notice variant="warning" data-testid="promote-lead-unsigned">
               {received
-                ? 'Exemplarul semnat primit de la client nu este confirmat încă. Poți continua: îl vei putea confirma și după aceea, din „Alte documente”.'
-                : 'Nu ai atașat exemplarul semnat al contractului. Poți continua: îl vei putea atașa și după aceea, din „Alte documente”.'}
+                ? 'Exemplarul semnat primit de la client nu este confirmat încă. Poți continua: îl vei putea confirma și după aceea, din secțiunea „Contract” a clientului.'
+                : 'Nu ai atașat exemplarul semnat al contractului. Poți continua: îl vei putea atașa și după aceea, din secțiunea „Contract” a clientului.'}
             </Notice>
           )}
           {error && (

@@ -111,7 +111,7 @@ test("a specialist sets a client's representative role and training schedule", a
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
   await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
 
-  await page.getByRole('link', { name: 'Date pentru documente' }).click();
+  await page.getByRole('link', { name: 'Instruire și responsabili' }).click();
   await page.getByTestId('details-day-from').fill('12');
   await page.getByTestId('details-day-to').fill('7');
   await page.getByTestId('training-program-save').click();
@@ -210,7 +210,7 @@ test('an employee is designated once, and the administrator is added by hand', a
   });
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/document-data`);
+  await page.goto(`/clients/${clientId}/training`);
   await expect(page.getByTestId('responsible-persons-empty')).toBeVisible();
 
   const pickEmployee = async () => {
@@ -273,7 +273,7 @@ test("the workers' representative is an employee other than the legal representa
   });
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/document-data`);
+  await page.goto(`/clients/${clientId}/training`);
 
   const designate = async (search: string, name: RegExp) => {
     await page.getByTestId('responsible-add').click();
@@ -311,7 +311,7 @@ test('employee choices scroll with the wheel inside the responsible-person dialo
   }
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/document-data`);
+  await page.goto(`/clients/${clientId}/training`);
   await page.getByTestId('responsible-add').click();
   await page.getByTestId('responsible-employee').click();
 

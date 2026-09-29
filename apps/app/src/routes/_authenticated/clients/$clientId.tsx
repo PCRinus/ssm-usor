@@ -17,7 +17,7 @@ import {
   BriefcaseBusiness,
   Building2,
   ClipboardList,
-  Files,
+  FileSignature,
   FileText,
   IdCard,
   UsersRound,
@@ -35,8 +35,7 @@ import {
 import { Notice } from '../../../components/notice';
 import { SectionNav } from '../../../components/section-nav';
 
-// The documents follow the data they print.
-// `ownerOnly`: the other documents are, so far, the service contract, which is an owner's.
+// The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [
   { to: '/clients/$clientId/details', label: 'Detalii', icon: IdCard, ownerOnly: false },
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
@@ -47,16 +46,16 @@ const sections = [
     ownerOnly: false,
   },
   {
-    to: '/clients/$clientId/document-data',
-    label: 'Date pentru documente',
+    to: '/clients/$clientId/training',
+    label: 'Instruire și responsabili',
     icon: ClipboardList,
     ownerOnly: false,
   },
-  { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText, ownerOnly: false },
+  { to: '/clients/$clientId/documents', label: 'Documente SSM', icon: FileText, ownerOnly: false },
   {
-    to: '/clients/$clientId/other-documents',
-    label: 'Alte documente',
-    icon: Files,
+    to: '/clients/$clientId/contract',
+    label: 'Contract',
+    icon: FileSignature,
     ownerOnly: true,
   },
 ] as const;

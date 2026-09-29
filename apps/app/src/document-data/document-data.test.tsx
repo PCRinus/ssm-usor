@@ -106,8 +106,7 @@ const saves = () =>
     .filter(([input, init]) => String(input).endsWith(detailsPath) && init?.method === 'PUT')
     .map(([, init]) => JSON.parse(String(init?.body)) as unknown);
 
-const mount = () =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/document-data`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
 
 async function chooseOption(
   user: ReturnType<typeof userEvent.setup>,
@@ -133,18 +132,28 @@ describe('client document data', () => {
     mockApi();
     mount();
 
-    expect(await screen.findByTestId('document-data-page')).toBeTruthy();
+    expect(await screen.findByTestId('training-page')).toBeTruthy();
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).toEqual([
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Date pentru documente',
-      'Documente',
+      'Instruire și responsabili',
+      'Documente SSM',
     ]);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     expect(screen.queryByTestId('legal-representative-card')).toBeNull();
     expect(screen.queryByTestId('workplaces-card')).toBeNull();
+  });
+
+  it('is where the old document data address leads', async () => {
+    mockApi();
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/document-data`
+    );
+    expect(await screen.findByTestId('training-page')).toBeTruthy();
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/training`);
   });
 
   it('previews the training months as the first month and the intervals are chosen', async () => {
@@ -199,7 +208,7 @@ describe('client document data', () => {
     );
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
 
-    await user.click(screen.getByRole('link', { name: 'Date pentru documente' }));
+    await user.click(screen.getByRole('link', { name: 'Instruire și responsabili' }));
     await chooseOption(user, 'details-training-duration', '2 ore');
     await chooseOption(user, 'details-first-month', 'Februarie');
     await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
