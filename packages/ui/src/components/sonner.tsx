@@ -21,6 +21,8 @@ const actionButton = [
 const cancelButton =
   '!h-8 !rounded-md !border !border-current/30 !bg-transparent !px-3 !text-sm !font-medium !text-current';
 
+// Sonner names three of its border variables as the tokens are named, and a variable cannot
+// be set from itself, so those read the theme's alias.
 // shadcn's version reads the theme from next-themes; the app has a single light theme. The
 // variants use the tokens of the Notice variants, so a toast and a notice of one kind match.
 const Toaster = ({ ...props }: ToasterProps) => {
@@ -43,13 +45,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--border)',
           '--success-bg': 'var(--success)',
-          '--success-border': 'var(--success-border)',
+          '--success-border': 'var(--color-success-border)',
           '--success-text': 'var(--success-foreground)',
           '--info-bg': 'var(--info)',
-          '--info-border': 'var(--info-border)',
+          '--info-border': 'var(--color-info-border)',
           '--info-text': 'var(--info-foreground)',
           '--warning-bg': 'var(--warning)',
-          '--warning-border': 'var(--warning-border)',
+          '--warning-border': 'var(--color-warning-border)',
           '--warning-text': 'var(--warning-foreground)',
           '--error-bg': 'var(--destructive-soft)',
           '--error-border': 'var(--destructive-border)',
