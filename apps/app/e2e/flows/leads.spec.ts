@@ -312,7 +312,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await signOut(page);
   await signIn(page, specialist.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${leadId}/other-documents`);
+  await page.goto(`/clients/${leadId}/contract`);
   await expect(page).toHaveURL(new RegExp(`/clients/${leadId}/contract$`));
   await expect(page.getByTestId('contract-owners-only')).toBeVisible();
   await expect(page.getByTestId('client-section').filter({ hasText: 'Contract' })).toHaveCount(0);
