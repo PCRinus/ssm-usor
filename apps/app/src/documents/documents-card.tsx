@@ -1,4 +1,5 @@
 import {
+  type DocumentAnnex,
   type DocumentTypeKey,
   documentTypeKeys,
   isUploadedDocumentType,
@@ -43,11 +44,12 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { FileText, MoreHorizontal, Sparkles, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
   getDocumentDownload,
+  getInstructionModuleFileLink,
   getListClientDocumentsQueryKey,
   useDeleteDocumentDraft,
   useIssueDocument,
@@ -61,6 +63,7 @@ import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
 import { openDownload } from '../lib/save-file';
+import { AnnexRow } from './annex-row';
 import {
   type ClientDocument,
   notApplicableTitles,
@@ -253,6 +256,22 @@ export function DocumentsCard({
     } catch {
       setError(
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
+      );
+    }
+  }
+
+  async function downloadAnnex(annex: DocumentAnnex) {
+    setError(null);
+    try {
+      const link = await getInstructionModuleFileLink(
+        annex.moduleId,
+        { versionId: annex.version.id },
+        apiRequest
+      );
+      openDownload(apiRequest.baseUrl, link);
+    } catch {
+      setError(
+        `Nu am putut descărca anexa „${annex.title}”. Verifică conexiunea și încearcă din nou.`
       );
     }
   }
@@ -477,205 +496,217 @@ export function DocumentsCard({
                             const current = document.draft ?? document.issued;
                             const uploaded = isUploadedDocumentType(document.typeKey);
                             return (
-                              <TableRow
-                                key={document.id}
-                                data-testid="document-row"
-                                {...rowClickProps(
-                                  () =>
-                                    void navigate({
-                                      to: '/clients/$clientId/documents/$documentId',
-                                      params: { clientId, documentId: document.id },
-                                      state: { openedFromList: true },
-                                    })
-                                )}
-                              >
-                                <TableCell>
-                                  <Link
-                                    to="/clients/$clientId/documents/$documentId"
-                                    params={{ clientId, documentId: document.id }}
-                                    state={{ openedFromList: true }}
-                                    data-testid="document-title"
-                                    className="font-medium underline-offset-4 hover:underline"
-                                  >
-                                    {document.title}
-                                  </Link>
-                                  {document.decisionNumber !== null && (
-                                    <span className="block text-xs text-muted-foreground">
-                                      Decizia nr. {document.decisionNumber} SSM
-                                    </span>
+                              <Fragment key={document.id}>
+                                <TableRow
+                                  data-testid="document-row"
+                                  {...rowClickProps(
+                                    () =>
+                                      void navigate({
+                                        to: '/clients/$clientId/documents/$documentId',
+                                        params: { clientId, documentId: document.id },
+                                        state: { openedFromList: true },
+                                      })
                                   )}
-                                </TableCell>
-                                <TableCell>
-                                  <span className="flex flex-wrap gap-1.5">
-                                    {document.issued && (
-                                      <Badge data-testid="document-issued">
-                                        Emis · rev. {document.issued.revision}
-                                      </Badge>
+                                >
+                                  <TableCell>
+                                    <Link
+                                      to="/clients/$clientId/documents/$documentId"
+                                      params={{ clientId, documentId: document.id }}
+                                      state={{ openedFromList: true }}
+                                      data-testid="document-title"
+                                      className="font-medium underline-offset-4 hover:underline"
+                                    >
+                                      {document.title}
+                                    </Link>
+                                    {document.decisionNumber !== null && (
+                                      <span className="block text-xs text-muted-foreground">
+                                        Decizia nr. {document.decisionNumber} SSM
+                                      </span>
                                     )}
-                                    {document.draft && (
-                                      <Badge variant="secondary" data-testid="document-draft">
-                                        Ciornă · rev. {document.draft.revision}
-                                      </Badge>
-                                    )}
-                                    {document.draft?.editedAt && uploaded && (
-                                      <Badge variant="outline" data-testid="document-uploaded">
-                                        Încărcat
-                                      </Badge>
-                                    )}
-                                    {document.draft?.editedAt && !uploaded && (
-                                      <Badge
-                                        variant="outline"
-                                        data-testid="document-edited"
-                                        title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
-                                      >
-                                        Modificat
-                                      </Badge>
-                                    )}
-                                    {document.draft?.dataChanged && (
-                                      <Badge
-                                        variant="outline"
-                                        data-testid="document-data-changed"
-                                        title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
-                                      >
-                                        Date modificate
-                                      </Badge>
-                                    )}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground tabular-nums">
-                                  {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
-                                </TableCell>
-                                <TableCell>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        data-testid="document-actions"
-                                        aria-label={`Acțiuni pentru ${document.title}`}
-                                      >
-                                        <MoreHorizontal aria-hidden="true" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem asChild data-testid="document-open">
-                                        <Link
-                                          to="/clients/$clientId/documents/$documentId"
-                                          params={{ clientId, documentId: document.id }}
-                                        >
-                                          {document.draft && !readOnly
-                                            ? 'Deschide și modifică'
-                                            : 'Deschide'}
-                                        </Link>
-                                      </DropdownMenuItem>
-                                      {document.draft && (
-                                        <DropdownMenuItem
-                                          data-testid="document-download-draft"
-                                          onSelect={() => void download(document, document.draft!)}
-                                        >
-                                          Descarcă ciorna
-                                        </DropdownMenuItem>
-                                      )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="flex flex-wrap gap-1.5">
                                       {document.issued && (
-                                        <DropdownMenuItem
-                                          data-testid="document-download-issued"
-                                          onSelect={() => void download(document, document.issued!)}
-                                        >
-                                          Descarcă documentul emis
-                                        </DropdownMenuItem>
-                                      )}
-                                      {document.issued?.hasPdf && (
-                                        <DropdownMenuItem
-                                          data-testid="document-download-pdf"
-                                          onSelect={() =>
-                                            void download(document, document.issued!, 'pdf')
-                                          }
-                                        >
-                                          Descarcă PDF-ul documentului emis
-                                        </DropdownMenuItem>
+                                        <Badge data-testid="document-issued">
+                                          Emis · rev. {document.issued.revision}
+                                        </Badge>
                                       )}
                                       {document.draft && (
-                                        <DropdownMenuItem
-                                          data-testid="document-print-draft"
-                                          disabled={printing}
-                                          onSelect={() =>
-                                            void printRevision(document, document.draft!)
-                                          }
-                                        >
-                                          Tipărește ciorna
-                                        </DropdownMenuItem>
+                                        <Badge variant="secondary" data-testid="document-draft">
+                                          Ciornă · rev. {document.draft.revision}
+                                        </Badge>
                                       )}
-                                      {document.issued && (
-                                        <DropdownMenuItem
-                                          data-testid="document-print-issued"
-                                          disabled={printing}
-                                          onSelect={() =>
-                                            void printRevision(document, document.issued!)
-                                          }
-                                        >
-                                          Tipărește documentul emis
-                                        </DropdownMenuItem>
+                                      {document.draft?.editedAt && uploaded && (
+                                        <Badge variant="outline" data-testid="document-uploaded">
+                                          Încărcat
+                                        </Badge>
                                       )}
-                                      {!readOnly && (
-                                        <>
-                                          <DropdownMenuSeparator />
-                                          {document.issued && !document.draft && (
-                                            <DropdownMenuItem
-                                              data-testid="document-start-draft"
-                                              disabled={busy}
-                                              onSelect={() => void startDraftFromIssued(document)}
-                                            >
-                                              Modifică documentul emis
-                                            </DropdownMenuItem>
-                                          )}
-                                          {!uploaded && (
-                                            <DropdownMenuItem
-                                              data-testid="document-regenerate"
-                                              onSelect={() =>
-                                                setConfirming({ action: 'regenerate', document })
-                                              }
-                                            >
-                                              Generează din nou
-                                            </DropdownMenuItem>
-                                          )}
+                                      {document.draft?.editedAt && !uploaded && (
+                                        <Badge
+                                          variant="outline"
+                                          data-testid="document-edited"
+                                          title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
+                                        >
+                                          Modificat
+                                        </Badge>
+                                      )}
+                                      {document.draft?.dataChanged && (
+                                        <Badge
+                                          variant="outline"
+                                          data-testid="document-data-changed"
+                                          title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
+                                        >
+                                          Date modificate
+                                        </Badge>
+                                      )}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground tabular-nums">
+                                    {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          data-testid="document-actions"
+                                          aria-label={`Acțiuni pentru ${document.title}`}
+                                        >
+                                          <MoreHorizontal aria-hidden="true" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem asChild data-testid="document-open">
+                                          <Link
+                                            to="/clients/$clientId/documents/$documentId"
+                                            params={{ clientId, documentId: document.id }}
+                                          >
+                                            {document.draft && !readOnly
+                                              ? 'Deschide și modifică'
+                                              : 'Deschide'}
+                                          </Link>
+                                        </DropdownMenuItem>
+                                        {document.draft && (
                                           <DropdownMenuItem
-                                            data-testid="document-upload"
+                                            data-testid="document-download-draft"
                                             onSelect={() =>
-                                              document.draft
-                                                ? setConfirming({ action: 'upload', document })
-                                                : chooseFile(document.typeKey, document.title)
+                                              void download(document, document.draft!)
                                             }
                                           >
-                                            Încarcă un fișier
+                                            Descarcă ciorna
                                           </DropdownMenuItem>
-                                          {document.draft && (
-                                            <>
+                                        )}
+                                        {document.issued && (
+                                          <DropdownMenuItem
+                                            data-testid="document-download-issued"
+                                            onSelect={() =>
+                                              void download(document, document.issued!)
+                                            }
+                                          >
+                                            Descarcă documentul emis
+                                          </DropdownMenuItem>
+                                        )}
+                                        {document.issued?.hasPdf && (
+                                          <DropdownMenuItem
+                                            data-testid="document-download-pdf"
+                                            onSelect={() =>
+                                              void download(document, document.issued!, 'pdf')
+                                            }
+                                          >
+                                            Descarcă PDF-ul documentului emis
+                                          </DropdownMenuItem>
+                                        )}
+                                        {document.draft && (
+                                          <DropdownMenuItem
+                                            data-testid="document-print-draft"
+                                            disabled={printing}
+                                            onSelect={() =>
+                                              void printRevision(document, document.draft!)
+                                            }
+                                          >
+                                            Tipărește ciorna
+                                          </DropdownMenuItem>
+                                        )}
+                                        {document.issued && (
+                                          <DropdownMenuItem
+                                            data-testid="document-print-issued"
+                                            disabled={printing}
+                                            onSelect={() =>
+                                              void printRevision(document, document.issued!)
+                                            }
+                                          >
+                                            Tipărește documentul emis
+                                          </DropdownMenuItem>
+                                        )}
+                                        {!readOnly && (
+                                          <>
+                                            <DropdownMenuSeparator />
+                                            {document.issued && !document.draft && (
                                               <DropdownMenuItem
-                                                data-testid="document-issue"
+                                                data-testid="document-start-draft"
+                                                disabled={busy}
+                                                onSelect={() => void startDraftFromIssued(document)}
+                                              >
+                                                Modifică documentul emis
+                                              </DropdownMenuItem>
+                                            )}
+                                            {!uploaded && (
+                                              <DropdownMenuItem
+                                                data-testid="document-regenerate"
                                                 onSelect={() =>
-                                                  setConfirming({ action: 'issue', document })
+                                                  setConfirming({ action: 'regenerate', document })
                                                 }
                                               >
-                                                Emite
+                                                Generează din nou
                                               </DropdownMenuItem>
-                                              <DropdownMenuSeparator />
-                                              <DropdownMenuItem
-                                                data-testid="document-delete-draft"
-                                                variant="destructive"
-                                                onSelect={() =>
-                                                  setConfirming({ action: 'delete', document })
-                                                }
-                                              >
-                                                Șterge ciorna
-                                              </DropdownMenuItem>
-                                            </>
-                                          )}
-                                        </>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
+                                            )}
+                                            <DropdownMenuItem
+                                              data-testid="document-upload"
+                                              onSelect={() =>
+                                                document.draft
+                                                  ? setConfirming({ action: 'upload', document })
+                                                  : chooseFile(document.typeKey, document.title)
+                                              }
+                                            >
+                                              Încarcă un fișier
+                                            </DropdownMenuItem>
+                                            {document.draft && (
+                                              <>
+                                                <DropdownMenuItem
+                                                  data-testid="document-issue"
+                                                  onSelect={() =>
+                                                    setConfirming({ action: 'issue', document })
+                                                  }
+                                                >
+                                                  Emite
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                  data-testid="document-delete-draft"
+                                                  variant="destructive"
+                                                  onSelect={() =>
+                                                    setConfirming({ action: 'delete', document })
+                                                  }
+                                                >
+                                                  Șterge ciorna
+                                                </DropdownMenuItem>
+                                              </>
+                                            )}
+                                          </>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                                {current?.annexes.map((annex) => (
+                                  <AnnexRow
+                                    key={annex.version.id}
+                                    annex={annex}
+                                    onDownload={() => void downloadAnnex(annex)}
+                                  />
+                                ))}
+                              </Fragment>
                             );
                           }
                         )}

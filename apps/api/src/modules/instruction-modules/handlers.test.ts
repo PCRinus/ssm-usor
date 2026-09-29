@@ -408,6 +408,38 @@ describe('GET /instruction-modules/{moduleId}/file-link', () => {
     const link = instructionModuleFileLinkResponseSchema.parse(await response.json());
     expect(link.fileName).toBe('Scări metalice.docx');
     expect(link.url).toContain(`/instruction-modules/${organizationId}/${laddersId}/2.docx`);
+    expect(link.version).toEqual({
+      id: version.id,
+      number: 2,
+      createdAt: '2026-09-26T10:00:00+00:00',
+    });
+  });
+
+  it('signs a link to the version a document annexed, with its number in the name', async () => {
+    const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
+    mockUpstream({
+      versions: (init, url) =>
+        url.searchParams.get('id') === `eq.${annexed}` &&
+        url.searchParams.get('module_id') === `eq.${laddersId}`
+          ? Response.json([{ id: annexed, number: 1, created_at: '2026-09-26T09:00:00+00:00' }])
+          : undefined,
+    });
+    const response = await request(
+      `/instruction-modules/${laddersId}/file-link?versionId=${annexed}`
+    );
+    expect(response.status).toBe(200);
+    const link = instructionModuleFileLinkResponseSchema.parse(await response.json());
+    expect(link.fileName).toBe('Scări metalice - versiunea 1.docx');
+    expect(link.url).toContain(`/instruction-modules/${organizationId}/${laddersId}/1.docx`);
+    expect(link.version.number).toBe(1);
+  });
+
+  it('answers 404 for a version of another module', async () => {
+    mockUpstream({ versions: () => Response.json([]) });
+    const response = await request(
+      `/instruction-modules/${laddersId}/file-link?versionId=${version.id}`
+    );
+    expect(response.status).toBe(404);
   });
 });
 

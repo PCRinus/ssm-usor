@@ -3,6 +3,7 @@ import {
   applyInstructionsRequestSchema,
   copyInstructionsRequestSchema,
   createInstructionModuleRequestSchema,
+  instructionModuleFileLinkQuerySchema,
   instructionModuleFileLinkResponseSchema,
   instructionModuleListQuerySchema,
   instructionModuleListResponseSchema,
@@ -173,12 +174,12 @@ export const instructionModuleFileLinkRoute = createRoute({
   method: 'get',
   path: '/instruction-modules/{moduleId}/file-link',
   operationId: 'getInstructionModuleFileLink',
-  summary: 'A short-lived link to the current file',
+  summary: 'A short-lived link to the file of a version',
   description:
-    'A signed link to the Word file of the current version, valid for a minute, named after the module. The editor loads it; a download saves it.',
+    'A signed link to the Word file of the current version, or of `versionId`, valid for a minute, named after the module. The editor loads it; a download saves it. An earlier version is what a document annexed, and its file name carries its number.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: moduleParams },
+  request: { params: moduleParams, query: instructionModuleFileLinkQuerySchema },
   responses: {
     200: {
       description: 'The link',
@@ -191,7 +192,7 @@ export const instructionModuleFileLinkRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchModule,
+    404: { description: 'No such module, or no such version of it', content: errorContent },
     ...membershipErrors,
   },
 });

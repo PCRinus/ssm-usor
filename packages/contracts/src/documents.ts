@@ -143,6 +143,27 @@ export const documentRevisionStatusSchema = z.enum(documentRevisionStatuses);
 
 export type DocumentRevisionStatus = z.infer<typeof documentRevisionStatusSchema>;
 
+/**
+ * An instruction module the own instructions annex (ADR 012), as the revision printed it: the
+ * version it cites, not the library's current one.
+ */
+export const documentAnnexSchema = z.object({
+  number: z.int().min(1),
+  title: z.string(),
+  moduleId: z.uuid(),
+  version: z.object({
+    id: z.uuid(),
+    number: z.int().min(1),
+    createdAt: z.iso.datetime({ offset: true }),
+  }),
+  // The library's current version when it is not the annexed one; regenerating would take it.
+  newerVersion: z
+    .object({ number: z.int().min(1), createdAt: z.iso.datetime({ offset: true }) })
+    .nullable(),
+});
+
+export type DocumentAnnex = z.infer<typeof documentAnnexSchema>;
+
 export const documentRevisionSchema = z.object({
   id: z.uuid(),
   revision: z.int().min(1),
@@ -163,6 +184,8 @@ export const documentRevisionSchema = z.object({
   // A copy that came through the return link and that no owner has confirmed yet; the
   // contract is not signed by it. Null once confirmed, when `hasSignedCopy` takes over.
   receivedCopy: z.object({ uploadedAt: z.iso.datetime({ offset: true }) }).nullable(),
+  // Empty for every document but the own instructions.
+  annexes: z.array(documentAnnexSchema),
   createdAt: z.iso.datetime({ offset: true }),
 });
 

@@ -1,6 +1,7 @@
 import {
   type ClientDocument,
   confirmSignedCopyConflictReason,
+  type DocumentAnnex,
   type DocumentFileFormat,
   type DocumentRevision,
   documentTypeKeys,
@@ -101,10 +102,64 @@ function dataChanged(
   );
 }
 
+type ModuleVersion = { id: string; module_id: string; number: number; created_at: string };
+
+type AnnexLookup = { annexed: Map<string, ModuleVersion>; current: Map<string, ModuleVersion> };
+
+async function annexLookup(db: DataClient, documents: DocumentRow[]): Promise<AnnexLookup> {
+  const versionIds = [
+    ...new Set(
+      documents.flatMap((document) =>
+        document.document_revisions.flatMap((revision) => annexedVersionIds(revision.data_snapshot))
+      )
+    ),
+  ];
+  const lookup: AnnexLookup = { annexed: new Map(), current: new Map() };
+  if (versionIds.length === 0) return lookup;
+  const annexed = await db
+    .from('instruction_module_versions')
+    .select('id, module_id, number, created_at')
+    .in('id', versionIds);
+  if (annexed.error) throw fromDatabaseError(annexed.error, 'read annexed module versions');
+  for (const version of annexed.data) lookup.annexed.set(version.id, version);
+  const all = await db
+    .from('instruction_module_versions')
+    .select('id, module_id, number, created_at')
+    .in('module_id', [...new Set(annexed.data.map((version) => version.module_id))])
+    .order('number', { ascending: false });
+  if (all.error) throw fromDatabaseError(all.error, 'read current module versions');
+  for (const version of all.data) {
+    if (!lookup.current.has(version.module_id)) lookup.current.set(version.module_id, version);
+  }
+  return lookup;
+}
+
+function toAnnexes(revision: RevisionRow, lookup: AnnexLookup): DocumentAnnex[] {
+  return snapshotAnnexes(revision.data_snapshot).flatMap((annex) => {
+    const version = lookup.annexed.get(annex.versionId);
+    // Out of reach only for a snapshot naming another organization's module.
+    if (!version) return [];
+    const current = lookup.current.get(version.module_id);
+    return [
+      {
+        number: annex.number,
+        title: annex.title,
+        moduleId: version.module_id,
+        version: { id: version.id, number: version.number, createdAt: version.created_at },
+        newerVersion:
+          current && current.number > version.number
+            ? { number: current.number, createdAt: current.created_at }
+            : null,
+      },
+    ];
+  });
+}
+
 function toRevision(
   document: DocumentRow,
   revision: RevisionRow,
-  facts: StoredDocumentFacts | null
+  facts: StoredDocumentFacts | null,
+  lookup: AnnexLookup
 ): DocumentRevision {
   return {
     id: revision.id,
@@ -120,15 +175,20 @@ function toRevision(
       revision.document_signed_copies && !revision.document_signed_copies.confirmed_at
         ? { uploadedAt: revision.document_signed_copies.uploaded_at }
         : null,
+    annexes: toAnnexes(revision, lookup),
     createdAt: revision.created_at,
   };
 }
 
 // Without facts for a document that is not merged from them: the service contract.
-function toDocument(document: DocumentRow, facts: StoredDocumentFacts | null): ClientDocument {
+function toDocument(
+  document: DocumentRow,
+  facts: StoredDocumentFacts | null,
+  lookup: AnnexLookup
+): ClientDocument {
   const current = (status: RevisionRow['status']) => {
     const revision = document.document_revisions.find((item) => item.status === status);
-    return revision ? toRevision(document, revision, facts) : null;
+    return revision ? toRevision(document, revision, facts, lookup) : null;
   };
   return {
     id: document.id,
@@ -139,6 +199,24 @@ function toDocument(document: DocumentRow, facts: StoredDocumentFacts | null): C
     draft: current('draft'),
     issued: current('issued'),
   };
+}
+
+async function presentDocuments(
+  db: DataClient,
+  documents: DocumentRow[],
+  facts: StoredDocumentFacts | null
+) {
+  const lookup = await annexLookup(db, documents);
+  return documents.map((document) => toDocument(document, facts, lookup));
+}
+
+async function presentDocument(
+  db: DataClient,
+  document: DocumentRow,
+  facts: StoredDocumentFacts | null
+) {
+  const [presented] = await presentDocuments(db, [document], facts);
+  return presented!;
 }
 
 // The pack's own order first, then anything a provider added, by title.
@@ -177,7 +255,10 @@ export async function readOtherDocument(db: DataClient, clientId: string, typeKe
   // revision there is nothing to open, download or issue: the document is not generated.
   if (!row || row.document_revisions.length === 0) return { document: null, draftSnapshot: null };
   const draft = row.document_revisions.find((revision) => revision.status === 'draft');
-  return { document: toDocument(row, null), draftSnapshot: draft?.data_snapshot ?? null };
+  return {
+    document: await presentDocument(db, row, null),
+    draftSnapshot: draft?.data_snapshot ?? null,
+  };
 }
 
 export async function listClientDocuments(db: DataClient, actor: Actor, clientId: string) {
@@ -195,7 +276,7 @@ export async function listClientDocuments(db: DataClient, actor: Actor, clientId
   ]);
   if (generation.error) throw fromDatabaseError(generation.error, 'last document generation');
   return {
-    items: documents.map((document) => toDocument(document, facts)).sort(byPackOrder),
+    items: (await presentDocuments(db, documents, facts)).sort(byPackOrder),
     notApplicable: documentTypeKeys.filter(
       (typeKey) =>
         !documentApplies(facts, typeKey) &&
@@ -332,10 +413,13 @@ export async function generateClientDocuments(
 
   const documents = await readDocuments(db, clientId);
   return {
-    created: documents
-      .filter((document) => createdIds.includes(document.id))
-      .map((document) => toDocument(document, facts))
-      .sort(byPackOrder),
+    created: (
+      await presentDocuments(
+        db,
+        documents.filter((document) => createdIds.includes(document.id)),
+        facts
+      )
+    ).sort(byPackOrder),
     skipped: [...complete],
   };
 }
@@ -544,7 +628,7 @@ export async function generateOtherDocument(
     bytes,
     snapshot,
   });
-  return toDocument(await readDocument(db, document.id), null);
+  return presentDocument(db, await readDocument(db, document.id), null);
 }
 
 /**
@@ -628,7 +712,7 @@ export async function regenerateDocument(
     bytes,
     snapshot,
   });
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 // The PDF lives beside the Word file, under its name; the database holds them to that.
@@ -696,7 +780,7 @@ export async function issueDocument(
   if (error?.code === 'DOC02') throw new ApiError('conflict', 'This draft was already issued.');
   if (error) throw fromDatabaseError(error, 'issue document revision');
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 /**
@@ -730,6 +814,19 @@ export function annexedVersionIds(snapshot: Json | null): string[] {
     typeof (annex as { versionId?: unknown })?.versionId === 'string'
       ? [(annex as { versionId: string }).versionId]
       : []
+  );
+}
+
+type SnapshotAnnex = { number: number; title: string; versionId: string };
+
+function snapshotAnnexes(snapshot: Json | null): SnapshotAnnex[] {
+  const annexes = (snapshot as { annexes?: unknown } | null)?.annexes;
+  if (!Array.isArray(annexes)) return [];
+  return annexes.filter(
+    (annex): annex is SnapshotAnnex =>
+      typeof (annex as Partial<SnapshotAnnex> | null)?.versionId === 'string' &&
+      typeof (annex as Partial<SnapshotAnnex>).number === 'number' &&
+      typeof (annex as Partial<SnapshotAnnex>).title === 'string'
   );
 }
 
@@ -777,7 +874,7 @@ export async function saveDraftFile(
     .eq('id', draft.id);
   if (updated.error) throw fromDatabaseError(updated.error, 'mark document revision edited');
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 /**
@@ -861,7 +958,7 @@ export async function uploadDocumentFile(
     await db.from('document_revisions').delete().eq('id', revision.data.id);
     throw error;
   }
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 /**
@@ -919,7 +1016,7 @@ export async function startDraftFromIssued(
     throw error;
   }
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 /** What was issued before stays as it is. */
@@ -997,7 +1094,7 @@ export async function attachSignedCopy(
     throw error;
   }
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 /** The owner accepts what came through the return link as the signed copy. */
@@ -1019,7 +1116,7 @@ export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId
     .eq('revision_id', issued.id);
   if (error) throw fromDatabaseError(error, 'confirm signed copy');
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
-  return toDocument(await readDocument(db, documentId), facts);
+  return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
 export async function removeSignedCopy(db: DataClient, files: FileStore, documentId: string) {

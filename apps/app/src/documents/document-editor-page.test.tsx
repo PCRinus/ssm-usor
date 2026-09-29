@@ -93,6 +93,7 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   hasPdf: false,
   hasSignedCopy: false,
   receivedCopy: null,
+  annexes: [] as unknown[],
   createdAt: '2026-09-19T10:00:00+00:00',
   ...overrides,
 });

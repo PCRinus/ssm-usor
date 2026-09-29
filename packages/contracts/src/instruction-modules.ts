@@ -83,10 +83,22 @@ export const updateInstructionModuleRequestSchema = z.object({
 
 export type UpdateInstructionModuleRequest = z.infer<typeof updateInstructionModuleRequestSchema>;
 
+export const instructionModuleFileLinkQuerySchema = z.object({
+  // Left out, the current version: an earlier one is what a document annexed.
+  versionId: z.uuid().optional(),
+});
+
+export type InstructionModuleFileLinkQuery = z.infer<typeof instructionModuleFileLinkQuerySchema>;
+
 export const instructionModuleFileLinkResponseSchema = z.object({
   url: z.url(),
   fileName: z.string(),
   expiresAt: z.iso.datetime({ offset: true }),
+  version: z.object({
+    id: z.uuid(),
+    number: z.int().min(1),
+    createdAt: z.iso.datetime({ offset: true }),
+  }),
 });
 
 export type InstructionModuleFileLinkResponse = z.infer<

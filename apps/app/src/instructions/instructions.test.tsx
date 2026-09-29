@@ -184,10 +184,14 @@ function mockApi({
     if (moduleMatch) {
       const [, moduleId, part] = moduleMatch;
       if (part === 'file-link') {
+        const annexed = url.searchParams.get('versionId');
         return Response.json({
           url: 'http://localhost:8787/files/module.docx',
-          fileName: 'Scări metalice.docx',
+          fileName: annexed ? 'Scări metalice - versiunea 1.docx' : 'Scări metalice.docx',
           expiresAt: '2026-09-26T10:01:00.000Z',
+          version: annexed
+            ? { id: annexed, number: 1, createdAt: '2026-09-20T10:00:00.000Z' }
+            : { id: version.id, number: version.number, createdAt: version.createdAt },
         });
       }
       if (part === 'file') {
@@ -346,6 +350,29 @@ describe('the module editor', () => {
       expect(requests(`/instruction-modules/${ladders.id}/file`, 'PUT')).toHaveLength(1)
     );
     expect(screen.getByTestId('editor-saved-state').textContent).toBe('Salvat');
+  });
+
+  it('shows the version a document annexed, only to read, and leads to the current one', async () => {
+    mockApi();
+    const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
+    const runtime = mount(`/instructions/${ladders.id}?version=${annexed}`);
+    const user = userEvent.setup();
+    const editor = await screen.findByTestId('fake-editor');
+    expect(editor.getAttribute('data-editable')).toBe('false');
+    expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
+    expect(screen.queryByTestId('editor-save')).toBeNull();
+    expect(screen.getByTestId('editor-pinned-version').textContent).toContain(
+      'Biblioteca are acum versiunea 2, din 26.09.2026'
+    );
+    const link = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((address) => address.pathname === `/instruction-modules/${ladders.id}/file-link`)!;
+    expect(link.searchParams.get('versionId')).toBe(annexed);
+
+    await user.click(screen.getByTestId('editor-open-current'));
+    await waitFor(() => expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2'));
+    expect(runtime.router.history.location.search).toBe('');
+    expect(screen.getByTestId('fake-editor').getAttribute('data-editable')).toBe('true');
   });
 
   it('reads an archived module without editing it', async () => {

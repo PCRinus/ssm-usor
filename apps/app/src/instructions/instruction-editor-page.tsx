@@ -17,16 +17,26 @@ import { useBackToList } from '../components/use-back-to-list';
 import type { DocumentEditorHandle } from '../documents/document-editor';
 import { editorFrameClassName, saveAs } from '../documents/editor-frame';
 import { EditorPlaceholder } from '../documents/editor-placeholder';
+import { formatRoDate } from '../lib/dates';
 import { articleCountLabel, groupLabels, invalidateLibrary } from './instruction-schema';
 
 const DocumentEditor = lazy(() => import('../documents/document-editor'));
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-type Loaded = { versionId: string; bytes: Uint8Array; fileName: string };
+type Loaded = { versionId: string; number: number; bytes: Uint8Array; fileName: string };
 
 // One instruction module in the editor (ADR 012). Every save is the next version of the
-// file; the versions documents annexed before stay as they were.
-export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; userId: string }) {
+// file; the versions documents annexed before stay as they were. `pinnedVersionId` is one of
+// those, opened from a document: it is shown as the document annexed it, and only read.
+export function InstructionEditorPage({
+  moduleId,
+  userId,
+  pinnedVersionId,
+}: {
+  moduleId: string;
+  userId: string;
+  pinnedVersionId?: string;
+}) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const backToList = useBackToList();
   const query = useGetInstructionModule(moduleId, {
@@ -43,8 +53,9 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const module = query.data?.module;
-  const versionId = module?.version.id;
-  const editable = module != null && module.archivedAt === null;
+  const versionId = pinnedVersionId ?? module?.version.id;
+  const pinned = pinnedVersionId !== undefined;
+  const editable = !pinned && module != null && module.archivedAt === null;
   const ready = versionId !== undefined && readyVersionId === versionId;
   const failed = versionId !== undefined && failedEditorVersionId === versionId;
   const loadError = versionId !== undefined && failedVersionId === versionId;
@@ -55,11 +66,17 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
     let cancelled = false;
     void (async () => {
       try {
-        const link = await getInstructionModuleFileLink(moduleId, apiRequest);
+        const link = await getInstructionModuleFileLink(
+          moduleId,
+          pinnedVersionId ? { versionId: pinnedVersionId } : undefined,
+          apiRequest
+        );
         const response = await fetch(link.url);
         if (!response.ok) throw new Error(`Download failed (${response.status}).`);
         const bytes = new Uint8Array(await response.arrayBuffer());
-        if (!cancelled) setLoaded({ versionId, bytes, fileName: link.fileName });
+        if (!cancelled) {
+          setLoaded({ versionId, number: link.version.number, bytes, fileName: link.fileName });
+        }
       } catch {
         if (!cancelled) setFailedVersionId(versionId);
       }
@@ -67,7 +84,7 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
     return () => {
       cancelled = true;
     };
-  }, [apiRequest, moduleId, versionId, loaded?.versionId, failedVersionId]);
+  }, [apiRequest, moduleId, pinnedVersionId, versionId, loaded?.versionId, failedVersionId]);
 
   useBlocker({
     shouldBlockFn: () =>
@@ -87,7 +104,12 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
       });
       setDirty(false);
       // What the editor shows is the new version; nothing to fetch again.
-      setLoaded({ versionId: saved.version.id, bytes, fileName: loaded?.fileName ?? '' });
+      setLoaded({
+        versionId: saved.version.id,
+        number: saved.version.number,
+        bytes,
+        fileName: loaded?.fileName ?? '',
+      });
       setReadyVersionId(saved.version.id);
       toast.success(`Instrucțiunea a fost salvată ca versiunea ${saved.version.number}.`);
       await invalidateLibrary(queryClient);
@@ -114,10 +136,10 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
         to="/instructions"
         data-testid="editor-back"
         onClick={backToList}
-        aria-label="Înapoi la bibliotecă"
+        aria-label={pinned ? 'Înapoi' : 'Înapoi la bibliotecă'}
       >
         <ArrowLeft aria-hidden="true" />
-        <span className="hidden sm:inline">Instrucțiuni</span>
+        <span className="hidden sm:inline">{pinned ? 'Înapoi' : 'Instrucțiuni'}</span>
       </Link>
     </Button>
   );
@@ -157,7 +179,11 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
   const actions = (
     <div className="flex items-center gap-2">
       <Badge variant={editable ? 'secondary' : 'default'} data-testid="editor-state">
-        {module.archivedAt ? 'Arhivată' : `Versiunea ${module.version.number}`}
+        {pinned
+          ? `Versiunea ${loaded.number}`
+          : module.archivedAt
+            ? 'Arhivată'
+            : `Versiunea ${module.version.number}`}
       </Badge>
       <span className="hidden text-xs text-muted-foreground md:inline">
         {groupLabels[module.group]} · {articleCountLabel(module.version.articleCount).toLowerCase()}
@@ -192,11 +218,33 @@ export function InstructionEditorPage({ moduleId, userId }: { moduleId: string; 
 
   return (
     <div data-testid="instruction-editor-page" className="flex min-h-0 flex-1 flex-col gap-3">
-      {!editable && (
-        <p role="status" className="shrink-0 text-sm text-muted-foreground">
-          O instrucțiune arhivată poate fi doar citită. Restaureaz-o din bibliotecă pentru a o
-          modifica.
+      {pinned ? (
+        <p
+          role="status"
+          data-testid="editor-pinned-version"
+          className="shrink-0 text-sm text-muted-foreground"
+        >
+          {module.version.number > loaded.number
+            ? `Versiunea pe care o anexează documentul, care poate fi doar citită. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
+            : 'Versiunea pe care o anexează documentul, care poate fi doar citită. Este și versiunea curentă din bibliotecă. '}
+          <Link
+            to="/instructions/$moduleId"
+            params={{ moduleId }}
+            data-testid="editor-open-current"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            {module.version.number > loaded.number
+              ? 'Deschide versiunea curentă'
+              : 'Deschide în bibliotecă'}
+          </Link>
         </p>
+      ) : (
+        !editable && (
+          <p role="status" className="shrink-0 text-sm text-muted-foreground">
+            O instrucțiune arhivată poate fi doar citită. Restaureaz-o din bibliotecă pentru a o
+            modifica.
+          </p>
+        )
       )}
       {saveError && (
         <Notice variant="destructive" data-testid="editor-save-error">

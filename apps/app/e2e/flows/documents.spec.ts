@@ -14,9 +14,9 @@ import {
 test.afterAll(cleanUp);
 
 // Opens a document's menu and picks an action, once the menu used before has closed.
-async function act(page: Page, row: Locator, action: string) {
+async function act(page: Page, row: Locator, action: string, menu = 'document-actions') {
   await expect(page.getByRole('menu')).toHaveCount(0);
-  await row.getByTestId('document-actions').click();
+  await row.getByTestId(menu).click();
   await page.getByTestId(action).click();
 }
 
@@ -152,6 +152,26 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await instructions.getByTestId('document-actions').click();
   await expect(page.getByTestId('document-download-pdf')).toBeVisible();
   await page.keyboard.press('Escape');
+
+  const annex = page.getByTestId('document-annex');
+  await expect(annex).toHaveCount(1);
+  await expect(annex.getByTestId('document-annex-title')).toContainText(
+    /^Anexa 1: I\.P\.S\.S\.M\. /
+  );
+  await expect(annex.getByTestId('document-annex-newer')).toHaveCount(0);
+  const annexDownload = page.waitForEvent('download');
+  await act(page, annex, 'document-annex-download', 'document-annex-actions');
+  expect((await annexDownload).suggestedFilename()).toMatch(/ - versiunea \d+\.docx$/);
+  await annex.getByTestId('document-annex-title').click();
+  await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('editor-pinned-version')).toContainText(
+    'Este și versiunea curentă din bibliotecă'
+  );
+  await expect(page.getByTestId('editor-save')).toHaveCount(0);
+  await page.getByTestId('editor-back').click();
+  await expect(annex).toBeVisible();
 
   // The risk assessment is written elsewhere and uploaded; any Word file will do here. A file
   // uploaded again after issuing is the next draft, beside the issued revision.

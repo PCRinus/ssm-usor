@@ -35,6 +35,7 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   hasPdf: false,
   hasSignedCopy: false,
   receivedCopy: null,
+  annexes: [] as unknown[],
   createdAt: '2026-09-19T10:00:00+00:00',
   ...overrides,
 });
@@ -427,6 +428,69 @@ describe('client documents', () => {
     expect(within(form!).queryByTestId('document-data-changed')).toBeNull();
     expect(runtime.router.history.location.search).toBe('?section=control-report');
     expect(runtime.router.history.length).toBe(1);
+  });
+
+  it('lists the instruction modules the own instructions annex, at the version they cite', async () => {
+    const moduleId = 'c1c1c1c1-0000-4000-8000-000000000001';
+    const annexed = 'c1c1c1c1-0000-4000-8000-000000000011';
+    mockApi({
+      items: [
+        {
+          ...report,
+          typeKey: 'own_instructions',
+          title: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+          draft: revision({
+            annexes: [
+              {
+                number: 1,
+                title: 'Scări metalice',
+                moduleId,
+                version: { id: annexed, number: 1, createdAt: '2026-09-26T10:00:00+00:00' },
+                newerVersion: { number: 2, createdAt: '2026-10-02T10:00:00+00:00' },
+              },
+            ],
+          }),
+        },
+      ],
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const fallback = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === `/instruction-modules/${moduleId}/file-link`
+        ? Response.json({
+            url: 'https://files.example.test/signed',
+            fileName: 'Scări metalice - versiunea 1.docx',
+            expiresAt: '2026-10-02T10:01:00.000Z',
+            version: { id: annexed, number: 1, createdAt: '2026-09-26T10:00:00+00:00' },
+          })
+        : fallback(input, init)
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '3');
+    const [annex] = await screen.findAllByTestId('document-annex');
+    expect(within(annex!).getByTestId('document-annex-title').textContent).toBe(
+      'Anexa 1: I.P.S.S.M. Scări metalice'
+    );
+    expect(within(annex!).getByTestId('document-annex-title').getAttribute('href')).toBe(
+      `/instructions/${moduleId}?version=${annexed}`
+    );
+    expect(annex!.textContent).toContain('Versiunea 1');
+    expect(annex!.textContent).toContain('26.09.2026');
+    expect(within(annex!).getByTestId('document-annex-newer').textContent).toBe(
+      'Versiune nouă în bibliotecă · 02.10.2026'
+    );
+
+    await user.click(within(annex!).getByTestId('document-annex-actions'));
+    await user.click(await screen.findByTestId('document-annex-download'));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    const address = new URL((click.mock.contexts[0] as HTMLAnchorElement).href);
+    expect(address.searchParams.get('name')).toBe('Scări metalice - versiunea 1.docx');
+    const link = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.pathname === `/instruction-modules/${moduleId}/file-link`)!;
+    expect(link.searchParams.get('versionId')).toBe(annexed);
   });
 
   it('links every document to the editor and marks a draft edited by hand', async () => {
