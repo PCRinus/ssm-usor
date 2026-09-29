@@ -29,7 +29,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   getListResponsiblePersonsQueryKey,
@@ -63,6 +63,8 @@ const focusRoles: Record<Exclude<TrainingFocus, 'training-schedule'>, Responsibl
   'workers-representative-clash': 'workers_representative',
 };
 
+const personRowId = (id: string) => `responsible-person-${id}`;
+
 // `readOnly` is an archived client.
 export function ResponsiblePersonsCard({
   clientId,
@@ -92,25 +94,33 @@ export function ResponsiblePersonsCard({
   const held = new Set(persons.data?.items.flatMap((person) => person.roles));
   const missing = alwaysRequiredRoles.filter((role) => !held.has(role));
 
-  function openFor(request: NonNullable<typeof focus>) {
+  const addRef = useRef<HTMLButtonElement>(null);
+
+  // Opening the representative who clashes lets the role be taken off them; adding someone
+  // else would leave the clash in place.
+  function clashingPerson() {
     const legalRepresentative = details.data?.documentDetails.legalRepresentativeName;
-    // Opening the representative who clashes lets the role be taken off them; adding someone
-    // else would leave the clash in place.
-    const clashing =
-      request === 'workers-representative-clash' && legalRepresentative
-        ? persons.data?.items.find(
-            (person) =>
-              person.roles.includes('workers_representative') &&
-              samePersonName(person.fullName, legalRepresentative)
-          )
-        : undefined;
-    setPointedRole(focusRoles[request]);
-    setEditing(clashing ?? 'new');
+    if (focus !== 'workers-representative-clash' || !legalRepresentative) return undefined;
+    return persons.data?.items.find(
+      (person) =>
+        person.roles.includes('workers_representative') &&
+        samePersonName(person.fullName, legalRepresentative)
+    );
   }
 
   useFocusRequest(focus !== undefined, {
     ready: !persons.isPending && !details.isPending,
-    open: readOnly || !focus ? undefined : () => openFor(focus),
+    anchor: () => {
+      const clashing = clashingPerson();
+      return clashing ? document.getElementById(personRowId(clashing.id)) : addRef.current;
+    },
+    open:
+      readOnly || !focus
+        ? undefined
+        : () => {
+            setPointedRole(focusRoles[focus]);
+            setEditing(clashingPerson() ?? 'new');
+          },
   });
 
   async function adoptContractTitle(person: ResponsiblePerson, jobTitle: string) {
@@ -157,6 +167,7 @@ export function ResponsiblePersonsCard({
       action={
         !readOnly && (
           <Button
+            ref={addRef}
             variant="outline"
             size="sm"
             data-testid="responsible-add"
@@ -216,6 +227,7 @@ export function ResponsiblePersonsCard({
                 {persons.data.items.map((person) => (
                   <TableRow
                     key={person.id}
+                    id={personRowId(person.id)}
                     data-testid="responsible-row"
                     {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
                     className={cn(

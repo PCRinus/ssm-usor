@@ -28,7 +28,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -76,7 +76,9 @@ export function JobPositionsCard({
   const [editing, setEditing] = useState<JobPositionEditing>(null);
   const [removing, setRemoving] = useState<JobPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
   useFocusRequest(focus === 'add-position', {
+    anchor: () => addRef.current,
     open: readOnly ? undefined : () => setEditing('new'),
   });
 
@@ -111,6 +113,7 @@ export function JobPositionsCard({
       action={
         !readOnly && (
           <Button
+            ref={addRef}
             variant="outline"
             size="sm"
             data-testid="job-position-add"

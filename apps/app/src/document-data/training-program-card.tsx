@@ -17,7 +17,7 @@ import {
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link } from '@tanstack/react-router';
 import { FileText } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
 import { Field } from '../components/form-field';
@@ -164,7 +164,9 @@ function TrainingProgramCard({
   // Editing belongs to what was saved when it began, so a save goes back to the summary.
   const [editedKey, setEditedKey] = useState<string | null>(null);
   const editing = !readOnly && (program === null || editedKey === savedKey);
+  const editRef = useRef<HTMLButtonElement>(null);
   useFocusRequest(focus, {
+    anchor: () => editRef.current,
     open: readOnly ? undefined : () => setEditedKey(savedKey),
     field: readOnly ? undefined : firstFieldToFill(saved),
   });
@@ -176,7 +178,11 @@ function TrainingProgramCard({
       action={
         !readOnly &&
         !editing && (
-          <EditAction data-testid="training-program-edit" onClick={() => setEditedKey(savedKey)} />
+          <EditAction
+            ref={editRef}
+            data-testid="training-program-edit"
+            onClick={() => setEditedKey(savedKey)}
+          />
         )
       }
     >

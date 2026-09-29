@@ -206,8 +206,10 @@ export function DocumentsCard({
     setGenerating(true);
   }
 
+  const generateRef = useRef<HTMLButtonElement>(null);
   useFocusRequest(focus === 'generate', {
     ready: !documents.isPending,
+    anchor: () => generateRef.current,
     open: canGenerate ? openGenerate : undefined,
   });
   // The documents the app cannot write yet wait for a file, in their place in the pack.
@@ -370,7 +372,7 @@ export function DocumentsCard({
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Documentația SSM</h2>
         {canGenerate && (
-          <Button data-testid="documents-generate" onClick={openGenerate}>
+          <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
             <Sparkles aria-hidden="true" />
             {items.length === 0 ? 'Generează documentația' : 'Generează documentele lipsă'}
           </Button>

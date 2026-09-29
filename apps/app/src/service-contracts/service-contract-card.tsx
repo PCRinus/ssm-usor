@@ -416,7 +416,9 @@ function ServiceContractBody({
     await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
   }
 
+  const editRef = useRef<HTMLButtonElement>(null);
   useFocusRequest(focus !== undefined, {
+    anchor: () => editRef.current,
     open: readOnly ? undefined : () => setEditing(true),
     field: focus && !readOnly ? contractFields[focus] : undefined,
   });
@@ -619,6 +621,7 @@ function ServiceContractBody({
           summarized &&
           !readOnly && (
             <EditAction
+              ref={editRef}
               data-testid="contract-details-edit"
               disabled={busy}
               onClick={() => setEditing(true)}

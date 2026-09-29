@@ -39,6 +39,7 @@ export function CompanyCard({
 }) {
   const { editing, editRef, open, close } = useInPlaceEdit();
   useFocusRequest(focus !== undefined, {
+    anchor: () => editRef.current,
     open: readOnly ? undefined : open,
     field: readOnly
       ? undefined

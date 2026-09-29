@@ -23,10 +23,7 @@ function revealFirstError(form: HTMLFormElement | null) {
   const target =
     form?.querySelector<HTMLElement>('[aria-invalid="true"]') ??
     form?.querySelector<HTMLElement>('[role="alert"]');
-  if (target) revealField(target);
-}
-
-export function revealField(target: HTMLElement) {
+  if (!target) return;
   const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
   target.focus({ preventScroll: true });

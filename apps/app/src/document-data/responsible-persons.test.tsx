@@ -401,4 +401,31 @@ describe('client responsible persons', () => {
       expect(document.activeElement?.id).toBe('responsible-role-workers_representative')
     );
   });
+
+  it.each([
+    ['smoothly', false, 'smooth'],
+    ['at once for reduced motion', true, 'auto'],
+  ])('scrolls to the add button %s before the dialog opens', async (_, reduced, behavior) => {
+    const media = window.matchMedia;
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ ...media(query), matches: reduced && query.includes('reduce') }))
+    );
+    const scrolled: { testId: string | null; options: unknown; dialogOpen: boolean }[] = [];
+    Element.prototype.scrollIntoView = vi.fn(function (this: Element, options) {
+      scrolled.push({
+        testId: this.getAttribute('data-testid'),
+        options,
+        dialogOpen: document.querySelector('[data-testid="responsible-dialog"]') !== null,
+      });
+    });
+    mockApi({ items: [] });
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training?focus=first-aid`);
+    await screen.findByTestId('responsible-dialog');
+    expect(scrolled.find((call) => call.testId === 'responsible-add')).toEqual({
+      testId: 'responsible-add',
+      options: { block: 'center', behavior },
+      dialogOpen: false,
+    });
+  });
 });

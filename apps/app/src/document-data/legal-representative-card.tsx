@@ -34,6 +34,7 @@ export function LegalRepresentativeCard({
   const empty = !saved?.legalRepresentativeName && !saved?.legalRepresentativeRole;
   useFocusRequest(focus !== undefined, {
     ready: !details.isPending,
+    anchor: () => editRef.current,
     open: readOnly ? undefined : open,
     field:
       readOnly || !saved

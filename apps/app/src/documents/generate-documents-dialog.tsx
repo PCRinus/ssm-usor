@@ -4,7 +4,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -147,16 +146,16 @@ function GenerateDocumentsForm({
   });
 
   return (
-    <DialogContent data-testid="generate-documents-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="generate-documents-dialog"
+      className="sm:max-w-2xl"
+      aria-describedby={undefined}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Generează documentația</DialogTitle>
-          <DialogDescription>
-            Generăm doar documentele lipsă, ca fișiere Word completate cu datele clientului.
-            Documentele existente rămân neschimbate.
-          </DialogDescription>
         </DialogHeader>
-        <DialogBody className="mt-5 grid gap-5">
+        <DialogBody className="mt-4 grid gap-5">
           {checking ? (
             <Skeleton className="h-28 w-full" />
           ) : readiness.isError ? (

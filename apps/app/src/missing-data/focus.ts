@@ -2,8 +2,6 @@ import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useEffectEvent } from 'react';
 import { z } from 'zod';
 
-import { revealField } from '../components/use-reveal-errors';
-
 // Each page accepts only its own keys: a key names a card or a dialog, and is never used as a
 // selector, since anyone can put anything in an address.
 export const legalRepresentativeFocus = [
@@ -77,6 +75,16 @@ export function focusAmong<const Key extends string>(
 
 const lookFor = 10_000;
 
+// The sticky app header and a record's tab bar, as the cards' scroll-mt-32 clears them.
+const coveredTop = 128;
+
+const stillMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function inView(element: HTMLElement) {
+  const bounds = element.getBoundingClientRect();
+  return bounds.top >= coveredTop && bounds.bottom <= window.innerHeight;
+}
+
 function whenPresent(id: string, found: (element: HTMLElement) => void, gaveUp: () => void) {
   const started = performance.now();
   let frame = 0;
@@ -90,11 +98,76 @@ function whenPresent(id: string, found: (element: HTMLElement) => void, gaveUp: 
   return () => cancelAnimationFrame(frame);
 }
 
-// The key leaves the address with a replace once answered, so a reload or the back button does
-// not open the form again.
+// Waits for the smooth scroll to end before `then`. Safari has no `scrollend`, so a pause in
+// the scroll events counts as the end too; no scroll event in the first frames means there was
+// nothing to scroll, as in a test without layout.
+function scrollThen(element: HTMLElement, then: () => void) {
+  if (inView(element)) {
+    then();
+    return () => {};
+  }
+  if (stillMotion()) {
+    element.scrollIntoView({ block: 'center', behavior: 'auto' });
+    then();
+    return () => {};
+  }
+  let moved = false;
+  let finished = false;
+  let frame = 0;
+  let pause: ReturnType<typeof setTimeout> | undefined;
+  const stop = () => {
+    finished = true;
+    document.removeEventListener('scroll', onScroll, true);
+    document.removeEventListener('scrollend', finish, true);
+    cancelAnimationFrame(frame);
+    clearTimeout(pause);
+    clearTimeout(cap);
+  };
+  const finish = () => {
+    if (finished) return;
+    stop();
+    then();
+  };
+  const onScroll = () => {
+    moved = true;
+    clearTimeout(pause);
+    pause = setTimeout(finish, 150);
+  };
+  document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+  document.addEventListener('scrollend', finish, true);
+  const cap = setTimeout(finish, 1500);
+  frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(() => {
+      if (!moved) finish();
+    });
+  });
+  element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return stop;
+}
+
+function focusField(element: HTMLElement) {
+  if (!inView(element)) {
+    element.scrollIntoView({ block: 'center', behavior: stillMotion() ? 'auto' : 'smooth' });
+  }
+  element.focus({ preventScroll: true });
+}
+
+// The page first scrolls to `anchor`, the button that opens the dialog or the card's form, and
+// opens it only once still, so nothing changes size while the page moves. The key then leaves
+// the address with a replace, so a reload or the back button does not open it again.
 export function useFocusRequest(
   requested: boolean,
-  { ready = true, open, field }: { ready?: boolean; open?: () => void; field?: string }
+  {
+    ready = true,
+    anchor,
+    open,
+    field,
+  }: {
+    ready?: boolean;
+    anchor?: () => HTMLElement | null;
+    open?: () => void;
+    field?: string;
+  }
 ) {
   const navigate = useNavigate();
   const answer = useEffectEvent(() => {
@@ -109,19 +182,28 @@ export function useFocusRequest(
         replace: true,
         resetScroll: false,
       });
-    open?.();
-    if (!field) {
-      done();
-      return undefined;
-    }
-    return whenPresent(
-      field,
-      (element) => {
-        revealField(element);
+    let stopLooking = () => {};
+    const afterOpening = () => {
+      open?.();
+      if (!field) {
         done();
-      },
-      done
-    );
+        return;
+      }
+      stopLooking = whenPresent(
+        field,
+        (element) => {
+          focusField(element);
+          done();
+        },
+        done
+      );
+    };
+    const target = open ? anchor?.() : null;
+    const stopScrolling = target ? scrollThen(target, afterOpening) : (afterOpening(), () => {});
+    return () => {
+      stopScrolling();
+      stopLooking();
+    };
   });
 
   useEffect(() => {
