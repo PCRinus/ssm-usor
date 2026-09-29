@@ -143,7 +143,7 @@ export function JobPositionPage() {
           )
         }
       >
-        <FactList>
+        <FactList className="lg:grid-cols-4">
           <Fact label="Categorie de personal">{staffCategoryLabels[position.staffCategory]}</Fact>
           <Fact label="Zona de lucru">{position.workZone}</Fact>
           <Fact label="Interval de instruire">

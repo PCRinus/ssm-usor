@@ -11,8 +11,8 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   headingLevel?: 2 | 3;
 };
 
-// The action shares the title's row and the description runs the full width below both, so
-// a narrow screen wraps the title rather than squeezing the description beside a button.
+// The action shares the title's row while both fit, and takes its own row before the title is
+// squeezed under it. The description runs the full width below both.
 export function SectionCard({
   title,
   description,
@@ -27,13 +27,15 @@ export function SectionCard({
     // The scroll margin clears the sticky app header and a record's tab bar when a link scrolls
     // to the card by its id.
     <Card className={cn('scroll-mt-32 gap-5', className)} {...props}>
-      <CardHeader className="grid-cols-[minmax(0,1fr)_auto] grid-rows-none items-start gap-x-4 gap-y-1">
-        <Heading className="flex min-h-8 items-center text-lg leading-snug font-semibold">
+      <CardHeader className="flex flex-wrap items-start gap-x-4 gap-y-1">
+        <Heading className="flex min-h-8 min-w-[min(100%,8rem)] flex-1 items-center text-lg leading-snug font-semibold">
           {title}
         </Heading>
-        {action && <div className="flex flex-wrap justify-end gap-2">{action}</div>}
+        {action && <div className="flex flex-wrap gap-2">{action}</div>}
         {description && (
-          <p className="col-span-full max-w-2xl text-sm text-muted-foreground">{description}</p>
+          <div className="w-full">
+            <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+          </div>
         )}
       </CardHeader>
       <CardContent className="grid gap-4">{children}</CardContent>
