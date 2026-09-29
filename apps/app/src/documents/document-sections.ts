@@ -87,7 +87,7 @@ export const documentSections = [
 }[];
 
 // A document type the API knows before this build of the app does.
-export const otherSection = { id: 'other', title: 'Alte documente' } as const;
+export const otherSection = { id: 'other', title: 'Alte documente SSM' } as const;
 
 export type DocumentSectionId = (typeof documentSections)[number]['id'] | typeof otherSection.id;
 
