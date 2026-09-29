@@ -98,51 +98,45 @@ function whenPresent(id: string, found: (element: HTMLElement) => void, gaveUp: 
   return () => cancelAnimationFrame(frame);
 }
 
-// Waits for the smooth scroll to end before `then`. Safari has no `scrollend`, so a pause in
-// the scroll events counts as the end too; no scroll event in the first frames means there was
-// nothing to scroll, as in a test without layout.
+const settledAfter = 120;
+const startsWithin = 400;
+const movesAtMost = 1500;
+
+// Waits for the smooth scroll to end before `then`, by watching where the element is: a page
+// that has just rendered can start moving several frames late, and Safari has no `scrollend`.
+// An element without a box, as in a test without layout, has nowhere to move.
 function scrollThen(element: HTMLElement, then: () => void) {
   if (inView(element)) {
     then();
     return () => {};
   }
-  if (stillMotion()) {
-    element.scrollIntoView({ block: 'center', behavior: 'auto' });
+  const still = stillMotion();
+  element.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  if (still || element.getClientRects().length === 0) {
     then();
     return () => {};
   }
+  const started = performance.now();
+  let top = element.getBoundingClientRect().top;
+  let restingSince = started;
   let moved = false;
-  let finished = false;
   let frame = 0;
-  let pause: ReturnType<typeof setTimeout> | undefined;
-  const stop = () => {
-    finished = true;
-    document.removeEventListener('scroll', onScroll, true);
-    document.removeEventListener('scrollend', finish, true);
-    cancelAnimationFrame(frame);
-    clearTimeout(pause);
-    clearTimeout(cap);
+  const watch = () => {
+    const now = performance.now();
+    const current = element.getBoundingClientRect().top;
+    if (current !== top) {
+      top = current;
+      restingSince = now;
+      moved = true;
+    }
+    if (now - restingSince > (moved ? settledAfter : startsWithin) || now - started > movesAtMost) {
+      then();
+      return;
+    }
+    frame = requestAnimationFrame(watch);
   };
-  const finish = () => {
-    if (finished) return;
-    stop();
-    then();
-  };
-  const onScroll = () => {
-    moved = true;
-    clearTimeout(pause);
-    pause = setTimeout(finish, 150);
-  };
-  document.addEventListener('scroll', onScroll, { capture: true, passive: true });
-  document.addEventListener('scrollend', finish, true);
-  const cap = setTimeout(finish, 1500);
-  frame = requestAnimationFrame(() => {
-    frame = requestAnimationFrame(() => {
-      if (!moved) finish();
-    });
-  });
-  element.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  return stop;
+  frame = requestAnimationFrame(watch);
+  return () => cancelAnimationFrame(frame);
 }
 
 function focusField(element: HTMLElement) {
