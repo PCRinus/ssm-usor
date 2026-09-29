@@ -14,6 +14,7 @@
     "dev:app": "pnpm --filter @ssm-usor/app dev",
     "dev:api": "pnpm --filter @ssm-usor/api dev",
     "dev:mail": "pnpm --filter @ssm-usor/mail dev",
+    "dev:local": "node scripts/dev-local.mjs",
     "dev:emails": "pnpm --filter @ssm-usor/mail email:dev",
     "dev:pdf": "docker compose up --detach --wait gotenberg",
     "stop:pdf": "docker compose down",
