@@ -75,13 +75,30 @@ const state = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const details = (overrides: Record<string, unknown> = {}) => ({
+  legalRepresentativeName: 'Adnana POPA' as string | null,
+  legalRepresentativeRole: 'Administrator' as string | null,
+  periodicTrainingMinutes: null,
+  administrativeTrainingIntervalMonths: null,
+  administrativeTrainingNotApplicable: false,
+  workerTrainingIntervalMonths: null,
+  workerTrainingNotApplicable: false,
+  trainingFirstMonth: null,
+  trainingDayFrom: null,
+  trainingDayTo: null,
+  ...overrides,
+});
+
 type Route = (init: RequestInit | undefined) => Response;
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
   routes: Partial<
-    Record<'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'confirm' | 'promote', Route>
+    Record<
+      'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'confirm' | 'promote' | 'details',
+      Route
+    >
   > & {
     role?: 'owner' | 'specialist';
     client?: Record<string, unknown>;
@@ -142,6 +159,10 @@ function mockApi(
     }
     if (pathname === '/clients')
       return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+    if (pathname === `/clients/${leadId}/document-details`) {
+      return routes.details?.(init) ?? Response.json({ documentDetails: details() });
+    }
+    if (pathname === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
@@ -729,5 +750,126 @@ describe('the contract of a client', () => {
     expect(
       await screen.findByTestId(now === 'contract' ? 'contract-page' : 'editor-back')
     ).toBeTruthy();
+  });
+});
+
+describe('who signs the contract for the client', () => {
+  const client = { ...lead, stage: 'client', promotedAt: '2026-09-21T09:00:00+00:00' };
+  const unsaved = (clientRepresentative: { name: string | null; role: string | null }) =>
+    state({
+      contract: null,
+      suggestedNumber: 52,
+      clientRepresentative,
+      readiness: { ready: false, missing: ['contract.details'] },
+    });
+  const bodyOfSave = () =>
+    JSON.parse(
+      String(requests(`/clients/${leadId}/service-contract`, 'PUT')[0]![1]?.body)
+    ) as Record<string, unknown>;
+
+  it('starts from the legal representative of the client, and keeps it editable', async () => {
+    mockApi({
+      client,
+      get: () => Response.json(unsaved({ name: 'Maria Popescu', role: 'Administrator' })),
+    });
+    mount(`/clients/${leadId}/contract`);
+    const user = userEvent.setup();
+    const form = await screen.findByTestId('service-contract-form');
+    const name = within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeName');
+    const role = within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeRole');
+    expect(name.value).toBe('Maria Popescu');
+    expect(role.value).toBe('Administrator');
+    expect(name).toHaveProperty('disabled', false);
+    expect(screen.getByTestId('contract-signer-hint').textContent).toContain(
+      'Reprezentantul legal din Detalii'
+    );
+
+    await user.click(within(form).getByTestId('contract-save'));
+    await waitFor(() =>
+      expect(requests(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(1)
+    );
+    expect(bodyOfSave()).toMatchObject({
+      clientRepresentativeName: 'Maria Popescu',
+      clientRepresentativeRole: 'Administrator',
+    });
+  });
+
+  it('shows the signer already saved, and changing it here changes the legal representative in Detalii', async () => {
+    let representative = details();
+    mockApi({
+      client,
+      get: () =>
+        Response.json(
+          state({
+            clientRepresentative: {
+              name: representative.legalRepresentativeName,
+              role: representative.legalRepresentativeRole,
+            },
+          })
+        ),
+      save: (init) => {
+        const body = JSON.parse(String(init?.body)) as Record<string, string>;
+        representative = details({ legalRepresentativeName: body.clientRepresentativeName });
+        return Response.json(
+          state({
+            clientRepresentative: {
+              name: representative.legalRepresentativeName,
+              role: representative.legalRepresentativeRole,
+            },
+          })
+        );
+      },
+      details: () => Response.json({ documentDetails: representative }),
+    });
+    const runtime = mount(`/clients/${leadId}/details`);
+    const user = userEvent.setup();
+    expect((await screen.findByTestId('legal-representative-name')).textContent).toBe(
+      'Adnana POPA'
+    );
+
+    await runtime.router.navigate({
+      to: '/clients/$clientId/contract',
+      params: { clientId: leadId },
+    });
+    expect((await screen.findByTestId('contract-signer')).textContent).toBe(
+      'Adnana POPAAdministrator'
+    );
+    await user.click(screen.getByTestId('contract-details-edit'));
+    const name = screen.getByTestId<HTMLInputElement>('contract-clientRepresentativeName');
+    expect(name.value).toBe('Adnana POPA');
+    await user.clear(name);
+    await user.type(name, 'Ion Ionescu');
+    await user.click(screen.getByTestId('contract-save'));
+    expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();
+    expect(bodyOfSave()).toMatchObject({ clientRepresentativeName: 'Ion Ionescu' });
+
+    await runtime.router.navigate({
+      to: '/clients/$clientId/details',
+      params: { clientId: leadId },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('legal-representative-name').textContent).toBe('Ion Ionescu')
+    );
+  });
+
+  it('leaves the fields empty when there is no legal representative, and sends none', async () => {
+    mockApi({ get: () => Response.json(unsaved({ name: null, role: null })) });
+    mount();
+    const user = userEvent.setup();
+    const form = await screen.findByTestId('service-contract-form');
+    expect(
+      within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeName').value
+    ).toBe('');
+    expect(
+      within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeRole').value
+    ).toBe('');
+    expect(screen.getByTestId('contract-signer-hint').textContent).toContain(
+      'Rămâne salvat la firmă'
+    );
+    await user.click(within(form).getByTestId('contract-save'));
+    expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();
+    expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeName');
+    expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeRole');
+    expect(requests(`/clients/${leadId}/document-details`, 'GET')).toHaveLength(0);
   });
 });
