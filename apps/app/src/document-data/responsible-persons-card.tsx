@@ -1,6 +1,5 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -26,8 +25,9 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus, UsersRound } from 'lucide-react';
+import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -39,6 +39,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
+import { SectionCard } from '../components/section-card';
 import {
   ResponsiblePersonDialog,
   type ResponsiblePersonEditing,
@@ -113,158 +114,162 @@ export function ResponsiblePersonsCard({
   }
 
   return (
-    <Card data-testid="responsible-persons-card">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Persoane responsabile</h2>
-        {!readOnly && (
-          <Button variant="outline" data-testid="responsible-add" onClick={() => setEditing('new')}>
+    <SectionCard
+      data-testid="responsible-persons-card"
+      title="Persoane responsabile"
+      action={
+        !readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="responsible-add"
+            onClick={() => setEditing('new')}
+          >
             <Plus aria-hidden="true" />
             Adaugă
           </Button>
-        )}
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {error && (
-          <Notice variant="destructive" data-testid="responsible-persons-error">
-            {error}
-          </Notice>
-        )}
-        {persons.isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : persons.isError ? (
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={persons.isFetching}
-                onClick={() => void persons.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
-          >
-            Nu am putut încărca persoanele responsabile.
-          </Notice>
-        ) : (
-          <>
-            {persons.data.items.length === 0 ? (
-              <div
-                data-testid="responsible-persons-empty"
-                className="grid justify-items-center gap-2 py-10"
-              >
-                <UsersRound className="size-8 text-muted-foreground" aria-hidden="true" />
-                <p className="text-sm font-medium">Nicio persoană responsabilă încă</p>
-                <p className="max-w-md text-center text-sm text-muted-foreground">
-                  {readOnly
-                    ? 'Nu au fost desemnate persoane responsabile pentru acest client.'
-                    : 'Începe cu conducătorul locului de muncă. Poți atribui mai multe responsabilități aceleiași persoane.'}
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nume și prenume</TableHead>
-                    <TableHead>Funcția</TableHead>
-                    <TableHead>Responsabilități</TableHead>
+        )
+      }
+    >
+      {error && (
+        <Notice variant="destructive" data-testid="responsible-persons-error">
+          {error}
+        </Notice>
+      )}
+      {persons.isPending ? (
+        <Skeleton className="h-24 w-full" />
+      ) : persons.isError ? (
+        <Notice
+          variant="destructive"
+          action={
+            <Button
+              variant="outline"
+              disabled={persons.isFetching}
+              onClick={() => void persons.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca persoanele responsabile.
+        </Notice>
+      ) : (
+        <>
+          {persons.data.items.length === 0 ? (
+            <p data-testid="responsible-persons-empty" className="text-sm text-muted-foreground">
+              {readOnly
+                ? 'Nu au fost desemnate persoane responsabile pentru acest client.'
+                : 'Nicio persoană responsabilă încă. Începe cu conducătorul locului de muncă. Poți atribui mai multe responsabilități aceleiași persoane.'}
+            </p>
+          ) : (
+            <Table className="max-sm:block">
+              <TableHeader className="max-sm:sr-only">
+                <TableRow>
+                  <TableHead>Nume și prenume</TableHead>
+                  <TableHead>Funcția</TableHead>
+                  <TableHead>Responsabilități</TableHead>
+                  {!readOnly && (
+                    <TableHead className="w-12">
+                      <span className="sr-only">Acțiuni</span>
+                    </TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody className="max-sm:block">
+                {persons.data.items.map((person) => (
+                  <TableRow
+                    key={person.id}
+                    data-testid="responsible-row"
+                    {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
+                    className={cn(
+                      'max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:gap-y-1 max-sm:py-3',
+                      !readOnly && 'cursor-pointer'
+                    )}
+                  >
+                    <TableCell className="font-medium max-sm:p-0 max-sm:whitespace-normal">
+                      {person.fullName}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:p-0 max-sm:whitespace-normal">
+                      {person.jobTitle}
+                      {person.employeeJobTitle && person.employeeJobTitle !== person.jobTitle && (
+                        <span
+                          data-testid="responsible-title-drift"
+                          className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
+                        >
+                          În contractul angajatului: „{person.employeeJobTitle}”.
+                          {!readOnly && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              data-testid="responsible-title-adopt"
+                              className="h-auto p-0 text-xs"
+                              disabled={update.isPending}
+                              onClick={() =>
+                                void adoptContractTitle(person, person.employeeJobTitle!)
+                              }
+                            >
+                              Folosește această funcție
+                            </Button>
+                          )}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-sm:col-start-1 max-sm:p-0 max-sm:pt-1">
+                      <span className="flex flex-wrap gap-1.5">
+                        {responsibleRoleOrder
+                          .filter((role) => person.roles.includes(role))
+                          .map((role) => (
+                            <Badge key={role} variant="secondary">
+                              {responsibleRoleLabels[role].label}
+                            </Badge>
+                          ))}
+                      </span>
+                    </TableCell>
                     {!readOnly && (
-                      <TableHead className="w-12">
-                        <span className="sr-only">Acțiuni</span>
-                      </TableHead>
+                      <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              data-testid="responsible-actions"
+                              aria-label={`Acțiuni pentru ${person.fullName}`}
+                            >
+                              <MoreHorizontal aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              data-testid="responsible-edit"
+                              onSelect={() => setEditing(person)}
+                            >
+                              Modifică
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              data-testid="responsible-archive"
+                              variant="destructive"
+                              onSelect={() => setArchiving(person)}
+                            >
+                              Scoate din listă
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     )}
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {persons.data.items.map((person) => (
-                    <TableRow
-                      key={person.id}
-                      data-testid="responsible-row"
-                      {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
-                    >
-                      <TableCell className="font-medium">{person.fullName}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.jobTitle}
-                        {person.employeeJobTitle && person.employeeJobTitle !== person.jobTitle && (
-                          <span
-                            data-testid="responsible-title-drift"
-                            className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
-                          >
-                            În contractul angajatului: „{person.employeeJobTitle}”.
-                            {!readOnly && (
-                              <Button
-                                variant="link"
-                                size="sm"
-                                data-testid="responsible-title-adopt"
-                                className="h-auto p-0 text-xs"
-                                disabled={update.isPending}
-                                onClick={() =>
-                                  void adoptContractTitle(person, person.employeeJobTitle!)
-                                }
-                              >
-                                Folosește această funcție
-                              </Button>
-                            )}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex flex-wrap gap-1.5">
-                          {responsibleRoleOrder
-                            .filter((role) => person.roles.includes(role))
-                            .map((role) => (
-                              <Badge key={role} variant="secondary">
-                                {responsibleRoleLabels[role].label}
-                              </Badge>
-                            ))}
-                        </span>
-                      </TableCell>
-                      {!readOnly && (
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                data-testid="responsible-actions"
-                                aria-label={`Acțiuni pentru ${person.fullName}`}
-                              >
-                                <MoreHorizontal aria-hidden="true" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                data-testid="responsible-edit"
-                                onSelect={() => setEditing(person)}
-                              >
-                                Modifică
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                data-testid="responsible-archive"
-                                variant="destructive"
-                                onSelect={() => setArchiving(person)}
-                              >
-                                Scoate din listă
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-            {missing.length > 0 && persons.data.items.length > 0 && (
-              <p data-testid="responsible-missing" className="text-sm text-muted-foreground">
-                Fără persoană numită:{' '}
-                {missing.map((role) => responsibleRoleLabels[role].label).join(', ')}.
-              </p>
-            )}
-          </>
-        )}
-      </CardContent>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          {missing.length > 0 && persons.data.items.length > 0 && (
+            <p data-testid="responsible-missing" className="text-sm text-muted-foreground">
+              Fără persoană numită:{' '}
+              {missing.map((role) => responsibleRoleLabels[role].label).join(', ')}.
+            </p>
+          )}
+        </>
+      )}
       <ResponsiblePersonDialog
         clientId={clientId}
         userId={userId}
@@ -305,6 +310,6 @@ export function ResponsiblePersonsCard({
           </DialogContent>
         )}
       </Dialog>
-    </Card>
+    </SectionCard>
   );
 }

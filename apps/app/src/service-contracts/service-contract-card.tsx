@@ -568,7 +568,9 @@ function ServiceContractBody({
           />
         )}
       />
-      <Label htmlFor={`contract-${name}`}>{label}</Label>
+      <Label htmlFor={`contract-${name}`} className="leading-snug">
+        {label}
+      </Label>
     </div>
   );
 
