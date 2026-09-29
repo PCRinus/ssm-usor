@@ -35,19 +35,66 @@ test('generating waits for the data the documents print, and says where it is fi
 
   await expect(page.getByTestId('documents-empty')).toBeVisible();
   await page.getByTestId('documents-generate').click();
-  const places = page.getByTestId('generate-missing-place');
-  await expect(places).toHaveCount(5);
-  await expect(places.nth(0)).toContainText('Datele organizației: denumirea legală');
-  await expect(places.nth(1)).toContainText('Profilul tău: titlul profesional');
-  await expect(places.nth(2)).toContainText('Detaliile clientului: funcția reprezentantului legal');
-  await expect(places.nth(3)).toContainText('programul instruirilor periodice');
-  await expect(places.nth(4)).toContainText(
-    'Posturile de lucru ale clientului: cel puțin un post de lucru'
-  );
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('11 date de completat');
+  await expect(page.getByTestId('generate-missing-place').getByRole('heading')).toHaveText([
+    'Datele organizației',
+    'Profilul tău',
+    'Detaliile clientului',
+    'Instruire și responsabili',
+    'Posturile de lucru',
+  ]);
+  const rows = page.getByTestId('generate-missing-row');
+  await expect(rows).toHaveText([
+    'Denumirea legală',
+    'Numele reprezentantului legal',
+    'Funcția reprezentantului legal',
+    /^Titlul profesional/,
+    'Funcția reprezentantului legal',
+    /^Programul instruirii periodice/,
+    /^Conducător al locului de muncă/,
+    /^Prim ajutor/,
+    /^Echipa de evaluare a riscurilor/,
+    /^Pericol grav și iminent/,
+    /^Cel puțin un post de lucru/,
+  ]);
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
-  await places.nth(3).getByRole('link').click();
+  await rows.nth(5).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
+  await expect(page.getByTestId('details-administrative-interval')).toBeFocused();
+});
+
+test('a row leads to its field, and the strip leads back to generating', async ({ page }) => {
+  const owner = await createAccount('documents-row', 'Dana Documente');
+  const organizationId = await createOrganization('Documente rânduri E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. UN CÂMP LIPSĂ E2E S.R.L.');
+  await completeDocumentData(organizationId, owner.id, clientId, {
+    legal_representative_role: null,
+  });
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/documents`);
+
+  await page.getByTestId('documents-generate').click();
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
+  await page.getByTestId('generate-missing-row').click();
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/details$`));
+  const role = page.getByTestId('details-representative-role');
+  await expect(role).toBeFocused();
+  await role.fill('Administrator');
+  await page.getByTestId('legal-representative-save').click();
+  await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
+
+  await expect(page.getByTestId('way-back')).toContainText(
+    'Completezi datele pentru documentație.'
+  );
+  await page.getByTestId('way-back-link').click();
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents$`));
+  await page.getByTestId('generate-issue-date').fill('19.01.2026');
+  await page.getByTestId('generate-first-number').fill('3');
+  await page.getByTestId('generate-submit').click();
+  await expect(page.getByText('Au fost generate 20 documente.')).toBeVisible();
+  await expect(page.getByTestId('way-back')).toHaveCount(0);
 });
 
 test('a client gets its documentation, downloads a decision, issues it, and corrects it', async ({
@@ -312,23 +359,25 @@ test("from 10 employees the set includes the decision on the workers' representa
   await expect(page.getByTestId('generate-headcount')).toContainText(
     '10 angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor'
   );
-  const places = page.getByTestId('generate-missing-place');
-  await expect(places).toHaveCount(2);
-  await expect(places.nth(0)).toContainText('un reprezentant al lucrătorilor');
-  // The employees' titles became positions, undecided about their equipment (ADR 011).
-  await expect(places.nth(1)).toContainText(
-    'echipamentul individual de protecție, sau că nu necesită, pentru „Electrician”, „Vânzător”'
-  );
+  await expect(page.getByTestId('generate-missing-place')).toHaveCount(2);
+  const rows = page.getByTestId('generate-missing-row');
+  // The employees' titles became positions, undecided about their equipment and their
+  // instructions (ADR 011, ADR 012): one row for each post and section.
+  await expect(rows).toHaveText([
+    /^Reprezentantul lucrătorilor/,
+    /^Electrician · echipament de protecție/,
+    /^Electrician · instrucțiuni/,
+    /^Vânzător · echipament de protecție/,
+    /^Vânzător · instrucțiuni/,
+  ]);
 
   // One post gets an entry on its page, the other needs none; the list then shows both.
-  await places.nth(1).getByRole('link').click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/job-positions$`));
-  const positions = page.getByTestId('job-position-row');
-  await expect(
-    positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')
-  ).toHaveText('De stabilit');
-  await positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-open').click();
+  await rows.nth(1).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/clients/${clientId}/job-positions/[0-9a-f-]+#protective-equipment$`)
+  );
   await expect(page.getByTestId('job-position-page')).toBeVisible();
+  await expect(page.getByTestId('way-back')).toBeVisible();
   await page.getByTestId('equipment-add').click();
   await page.getByTestId('equipment-risk').fill('Electrocutare (mâini)');
   await page.getByTestId('equipment-item').fill('Mănuși electroizolante');
@@ -342,9 +391,13 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('instructions-pick-save').click();
   await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
   await page.getByTestId('job-position-back').click();
+  const positions = page.getByTestId('job-position-row');
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')
   ).toHaveText('1 articol');
+  await expect(
+    positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-equipment')
+  ).toHaveText('De stabilit');
   await positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-open').click();
   await page.getByTestId('equipment-decide-none').click();
   await expect(page.getByTestId('equipment-none')).toBeVisible();

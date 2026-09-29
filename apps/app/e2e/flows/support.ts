@@ -106,7 +106,8 @@ export async function completeProviderDetails(organizationId: string) {
 export async function completeDocumentData(
   organizationId: string,
   userId: string,
-  clientId: string
+  clientId: string,
+  clientOverrides: Record<string, unknown> = {}
 ) {
   const organization = await admin
     .from('organizations')
@@ -132,6 +133,7 @@ export async function completeDocumentData(
       training_first_month: 2,
       training_day_from: 2,
       training_day_to: 7,
+      ...clientOverrides,
     })
     .eq('id', clientId);
   if (client.error) throw client.error;
