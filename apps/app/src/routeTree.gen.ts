@@ -38,10 +38,9 @@ import { Route as AuthenticatedOrganizationAuthorizationsRouteImport } from './r
 import { Route as AuthenticatedOrganizationCompanyRouteImport } from './routes/_authenticated/organization/company';
 import { Route as AuthenticatedOrganizationTeamRouteImport } from './routes/_authenticated/organization/team';
 import { Route as AuthenticatedClientsClientIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/index';
-import { Route as AuthenticatedClientsClientIdContactRouteImport } from './routes/_authenticated/clients/$clientId/contact';
+import { Route as AuthenticatedClientsClientIdDetailsRouteImport } from './routes/_authenticated/clients/$clientId/details';
 import { Route as AuthenticatedClientsClientIdDocumentDataRouteImport } from './routes/_authenticated/clients/$clientId/document-data';
 import { Route as AuthenticatedClientsClientIdDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/documents';
-import { Route as AuthenticatedClientsClientIdEditRouteImport } from './routes/_authenticated/clients/$clientId/edit';
 import { Route as AuthenticatedClientsClientIdEmployeesRouteImport } from './routes/_authenticated/clients/$clientId/employees';
 import { Route as AuthenticatedClientsClientIdJobPositionsRouteImport } from './routes/_authenticated/clients/$clientId/job-positions';
 import { Route as AuthenticatedClientsClientIdOtherDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/other-documents';
@@ -215,10 +214,10 @@ const AuthenticatedClientsClientIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
-const AuthenticatedClientsClientIdContactRoute =
-  AuthenticatedClientsClientIdContactRouteImport.update({
-    id: '/contact',
-    path: '/contact',
+const AuthenticatedClientsClientIdDetailsRoute =
+  AuthenticatedClientsClientIdDetailsRouteImport.update({
+    id: '/details',
+    path: '/details',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
 const AuthenticatedClientsClientIdDocumentDataRoute =
@@ -231,12 +230,6 @@ const AuthenticatedClientsClientIdDocumentsRoute =
   AuthenticatedClientsClientIdDocumentsRouteImport.update({
     id: '/documents',
     path: '/documents',
-    getParentRoute: () => AuthenticatedClientsClientIdRoute,
-  } as any);
-const AuthenticatedClientsClientIdEditRoute =
-  AuthenticatedClientsClientIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
 const AuthenticatedClientsClientIdEmployeesRoute =
@@ -364,10 +357,9 @@ export interface FileRoutesByFullPath {
   '/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/leads/': typeof AuthenticatedLeadsIndexRoute;
   '/organization/': typeof AuthenticatedOrganizationIndexRoute;
-  '/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
+  '/clients/$clientId/details': typeof AuthenticatedClientsClientIdDetailsRoute;
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
-  '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
@@ -408,9 +400,8 @@ export interface FileRoutesByTo {
   '/instructions': typeof AuthenticatedInstructionsIndexRoute;
   '/leads': typeof AuthenticatedLeadsIndexRoute;
   '/organization': typeof AuthenticatedOrganizationIndexRoute;
-  '/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
+  '/clients/$clientId/details': typeof AuthenticatedClientsClientIdDetailsRoute;
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
-  '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
@@ -456,10 +447,9 @@ export interface FileRoutesById {
   '/_authenticated/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute;
   '/_authenticated/organization/': typeof AuthenticatedOrganizationIndexRoute;
-  '/_authenticated/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
+  '/_authenticated/clients/$clientId/details': typeof AuthenticatedClientsClientIdDetailsRoute;
   '/_authenticated/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/_authenticated/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
-  '/_authenticated/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/_authenticated/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/_authenticated/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/_authenticated/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
@@ -508,10 +498,9 @@ export interface FileRouteTypes {
     | '/instructions/'
     | '/leads/'
     | '/organization/'
-    | '/clients/$clientId/contact'
+    | '/clients/$clientId/details'
     | '/clients/$clientId/document-data'
     | '/clients/$clientId/documents'
-    | '/clients/$clientId/edit'
     | '/clients/$clientId/employees'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId/other-documents'
@@ -552,9 +541,8 @@ export interface FileRouteTypes {
     | '/instructions'
     | '/leads'
     | '/organization'
-    | '/clients/$clientId/contact'
+    | '/clients/$clientId/details'
     | '/clients/$clientId/document-data'
-    | '/clients/$clientId/edit'
     | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
     | '/clients/$clientId'
@@ -599,10 +587,9 @@ export interface FileRouteTypes {
     | '/_authenticated/instructions/'
     | '/_authenticated/leads/'
     | '/_authenticated/organization/'
-    | '/_authenticated/clients/$clientId/contact'
+    | '/_authenticated/clients/$clientId/details'
     | '/_authenticated/clients/$clientId/document-data'
     | '/_authenticated/clients/$clientId/documents'
-    | '/_authenticated/clients/$clientId/edit'
     | '/_authenticated/clients/$clientId/employees'
     | '/_authenticated/clients/$clientId/job-positions'
     | '/_authenticated/clients/$clientId/other-documents'
@@ -840,11 +827,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdIndexRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
-    '/_authenticated/clients/$clientId/contact': {
-      id: '/_authenticated/clients/$clientId/contact';
-      path: '/contact';
-      fullPath: '/clients/$clientId/contact';
-      preLoaderRoute: typeof AuthenticatedClientsClientIdContactRouteImport;
+    '/_authenticated/clients/$clientId/details': {
+      id: '/_authenticated/clients/$clientId/details';
+      path: '/details';
+      fullPath: '/clients/$clientId/details';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdDetailsRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
     '/_authenticated/clients/$clientId/document-data': {
@@ -859,13 +846,6 @@ declare module '@tanstack/react-router' {
       path: '/documents';
       fullPath: '/clients/$clientId/documents';
       preLoaderRoute: typeof AuthenticatedClientsClientIdDocumentsRouteImport;
-      parentRoute: typeof AuthenticatedClientsClientIdRoute;
-    };
-    '/_authenticated/clients/$clientId/edit': {
-      id: '/_authenticated/clients/$clientId/edit';
-      path: '/edit';
-      fullPath: '/clients/$clientId/edit';
-      preLoaderRoute: typeof AuthenticatedClientsClientIdEditRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
     '/_authenticated/clients/$clientId/employees': {
@@ -1062,10 +1042,9 @@ const AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren =
   );
 
 interface AuthenticatedClientsClientIdRouteChildren {
-  AuthenticatedClientsClientIdContactRoute: typeof AuthenticatedClientsClientIdContactRoute;
+  AuthenticatedClientsClientIdDetailsRoute: typeof AuthenticatedClientsClientIdDetailsRoute;
   AuthenticatedClientsClientIdDocumentDataRoute: typeof AuthenticatedClientsClientIdDocumentDataRoute;
   AuthenticatedClientsClientIdDocumentsRoute: typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
-  AuthenticatedClientsClientIdEditRoute: typeof AuthenticatedClientsClientIdEditRoute;
   AuthenticatedClientsClientIdEmployeesRoute: typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   AuthenticatedClientsClientIdJobPositionsRoute: typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   AuthenticatedClientsClientIdOtherDocumentsRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
@@ -1074,14 +1053,12 @@ interface AuthenticatedClientsClientIdRouteChildren {
 
 const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRouteChildren =
   {
-    AuthenticatedClientsClientIdContactRoute:
-      AuthenticatedClientsClientIdContactRoute,
+    AuthenticatedClientsClientIdDetailsRoute:
+      AuthenticatedClientsClientIdDetailsRoute,
     AuthenticatedClientsClientIdDocumentDataRoute:
       AuthenticatedClientsClientIdDocumentDataRoute,
     AuthenticatedClientsClientIdDocumentsRoute:
       AuthenticatedClientsClientIdDocumentsRouteWithChildren,
-    AuthenticatedClientsClientIdEditRoute:
-      AuthenticatedClientsClientIdEditRoute,
     AuthenticatedClientsClientIdEmployeesRoute:
       AuthenticatedClientsClientIdEmployeesRouteWithChildren,
     AuthenticatedClientsClientIdJobPositionsRoute:

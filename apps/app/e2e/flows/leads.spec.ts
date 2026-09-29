@@ -69,6 +69,11 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
 
   await expect(page.getByTestId('lead-page')).toBeVisible();
   await expect(page.getByTestId('contact-email')).toHaveText('andrei@viitor.example');
+  await page.getByTestId('contact-edit').click();
+  await page.getByTestId('client-contact-phone').fill('0722 000 111');
+  await page.getByTestId('contact-save').click();
+  await expect(page.getByTestId('contact-phone')).toHaveText('0722 000 111');
+  await expect(page).toHaveURL(/\/leads\/[0-9a-f-]+$/);
   await page.getByTestId('owner-notes-body').fill('A cerut ofertă pentru 12 angajați.');
   await page.getByTestId('owner-notes-save').click();
   await expect(page.getByText('Notițele au fost salvate.')).toBeVisible();
@@ -89,11 +94,8 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await page.getByTestId('lead-promote').click();
   await expect(page.getByTestId('promote-lead-dialog')).toContainText('nu poate fi anulată');
   await page.getByTestId('promote-lead-confirm').click();
-  await expect(page.getByTestId('client-page')).toBeVisible();
-  await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+\/employees$/);
-  await expect(page.getByTestId('employees-add')).toBeVisible();
-
-  await page.getByRole('link', { name: 'Contact' }).click();
+  await expect(page.getByTestId('client-details-page')).toBeVisible();
+  await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+\/details$/);
   await expect(page.getByTestId('owner-notes-body')).toHaveValue(
     'A cerut ofertă pentru 12 angajați.'
   );
@@ -106,7 +108,6 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await expect(page.getByTestId('nav-leads')).toHaveCount(0);
   await page.goto('/clients');
   await page.getByTestId('clients-open').click();
-  await page.getByRole('link', { name: 'Contact' }).click();
   await expect(page.getByTestId('contact-name')).toHaveText('Andrei Pop');
   await expect(page.getByTestId('owner-notes-card')).toHaveCount(0);
 });

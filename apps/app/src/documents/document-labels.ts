@@ -12,7 +12,7 @@ export type ClientDocument = ClientDocumentListResponse['items'][number];
 
 // Where a missing piece of data is filled in. The form groups what is missing by place, so a
 // person makes one trip to each page.
-export type MissingPlace = 'organization' | 'profile' | 'client' | 'jobPositions';
+export type MissingPlace = 'organization' | 'profile' | 'clientDetails' | 'client' | 'jobPositions';
 
 export const missingPlaces: Record<MissingPlace, { label: string; hint?: string }> = {
   organization: {
@@ -20,6 +20,7 @@ export const missingPlaces: Record<MissingPlace, { label: string; hint?: string 
     hint: 'Le completează proprietarul organizației.',
   },
   profile: { label: 'Profilul tău' },
+  clientDetails: { label: 'Detaliile clientului' },
   client: { label: 'Datele pentru documente ale clientului' },
   jobPositions: { label: 'Posturile de lucru ale clientului' },
 };
@@ -36,8 +37,8 @@ export const missingDataLabels: Record<
   },
   'specialist.name': { place: 'profile', label: 'numele tău' },
   'specialist.professionalTitle': { place: 'profile', label: 'titlul profesional' },
-  'client.representativeName': { place: 'client', label: 'numele reprezentantului legal' },
-  'client.representativeRole': { place: 'client', label: 'funcția reprezentantului legal' },
+  'client.representativeName': { place: 'clientDetails', label: 'numele reprezentantului legal' },
+  'client.representativeRole': { place: 'clientDetails', label: 'funcția reprezentantului legal' },
   'client.trainingSchedule': { place: 'client', label: 'programul instruirilor periodice' },
   'responsible.workplace_manager': {
     place: 'client',
@@ -103,7 +104,13 @@ export function groupMissing(
         : code === 'positions.instructions' && undecidedJobPositions.length > 0
           ? `instrucțiunile specifice, sau că nu necesită, pentru ${undecidedJobPositions.map((position) => `„${position.name}”`).join(', ')}`
           : missingDataLabels[code].label;
-  const places: MissingPlace[] = ['organization', 'profile', 'client', 'jobPositions'];
+  const places: MissingPlace[] = [
+    'organization',
+    'profile',
+    'clientDetails',
+    'client',
+    'jobPositions',
+  ];
   return places
     .map((place) => ({
       place,

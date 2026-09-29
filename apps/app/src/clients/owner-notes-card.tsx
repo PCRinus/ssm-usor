@@ -1,5 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -12,6 +11,7 @@ import {
   useSaveClientOwnerNotes,
 } from '../api/generated/api';
 import { Notice } from '../components/notice';
+import { SectionCard } from '../components/section-card';
 
 const maxLength = 5000;
 
@@ -49,71 +49,66 @@ export function OwnerNotesCard({
   }
 
   return (
-    <Card data-testid="owner-notes-card">
-      <CardHeader>
-        <h2 className="text-lg font-semibold">Notițe</h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Doar administratorii pot vedea aceste notițe. Păstrează aici discuțiile, prețurile și
-          pașii următori.
-        </p>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {notes.isPending ? (
-          <Skeleton className="h-32 w-full" />
-        ) : notes.isError ? (
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={notes.isFetching}
-                onClick={() => void notes.refetch()}
-              >
-                Încearcă din nou
-              </Button>
+    <SectionCard
+      data-testid="owner-notes-card"
+      title="Notițe"
+      description="Doar administratorii pot vedea aceste notițe. Păstrează aici discuțiile, prețurile și pașii următori."
+    >
+      {notes.isPending ? (
+        <Skeleton className="h-32 w-full" />
+      ) : notes.isError ? (
+        <Notice
+          variant="destructive"
+          action={
+            <Button
+              variant="outline"
+              disabled={notes.isFetching}
+              onClick={() => void notes.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca notițele.
+        </Notice>
+      ) : (
+        <>
+          <Textarea
+            data-testid="owner-notes-body"
+            aria-label="Notițe"
+            className="min-h-32"
+            maxLength={maxLength}
+            value={body}
+            readOnly={readOnly}
+            disabled={save.isPending}
+            placeholder={
+              readOnly
+                ? 'Nicio notiță.'
+                : 'De exemplu: sunat pe 12.09, vrea ofertă pentru 15 angajați.'
             }
-          >
-            Nu am putut încărca notițele.
-          </Notice>
-        ) : (
-          <>
-            <Textarea
-              data-testid="owner-notes-body"
-              aria-label="Notițe"
-              className="min-h-32"
-              maxLength={maxLength}
-              value={body}
-              readOnly={readOnly}
-              disabled={save.isPending}
-              placeholder={
-                readOnly
-                  ? 'Nicio notiță.'
-                  : 'De exemplu: sunat pe 12.09, vrea ofertă pentru 15 angajați.'
-              }
-              onChange={(event) => setTyped(event.target.value)}
-            />
-            {failed && (
-              <Notice variant="destructive" data-testid="owner-notes-error">
-                Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.
-              </Notice>
-            )}
-            {!readOnly && (
-              <div className="flex items-center gap-3">
-                <Button
-                  data-testid="owner-notes-save"
-                  disabled={!dirty || save.isPending}
-                  onClick={() => void submit()}
-                >
-                  {save.isPending ? 'Se salvează…' : 'Salvează notițele'}
-                </Button>
-                <span data-testid="owner-notes-state" className="text-xs text-muted-foreground">
-                  {dirty ? 'Modificări nesalvate' : notes.data.notes.updatedAt ? 'Salvat' : ''}
-                </span>
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+            onChange={(event) => setTyped(event.target.value)}
+          />
+          {failed && (
+            <Notice variant="destructive" data-testid="owner-notes-error">
+              Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.
+            </Notice>
+          )}
+          {!readOnly && (
+            <div className="flex items-center gap-3">
+              <Button
+                data-testid="owner-notes-save"
+                disabled={!dirty || save.isPending}
+                onClick={() => void submit()}
+              >
+                {save.isPending ? 'Se salvează…' : 'Salvează notițele'}
+              </Button>
+              <span data-testid="owner-notes-state" className="text-xs text-muted-foreground">
+                {dirty ? 'Modificări nesalvate' : notes.data.notes.updatedAt ? 'Salvat' : ''}
+              </span>
+            </div>
+          )}
+        </>
+      )}
+    </SectionCard>
   );
 }

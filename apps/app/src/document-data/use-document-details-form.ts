@@ -7,6 +7,7 @@ import {
   type ClientDocumentDetailsResponse,
   getGetClientDocumentDetailsQueryKey,
   getGetClientQueryKey,
+  useGetClientDocumentDetails,
   useUpdateClientDocumentDetails,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
@@ -26,6 +27,14 @@ export interface ClientSummary {
 
 export type DocumentDetailsField = keyof DocumentDetailsFormValues;
 
+export function useDocumentDetails(clientId: string, userId: string) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  return useGetClientDocumentDetails(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
+  });
+}
+
 // The route replaces every field, and two cards each edit their own. A card sends its fields
 // over what is saved now, not over what was saved when it mounted, so saving one card never
 // takes back what the other saved in the meantime.
@@ -35,12 +44,14 @@ export function useDocumentDetailsForm({
   userId,
   fields,
   successMessage,
+  onSaved,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
   userId: string;
   fields: readonly DocumentDetailsField[];
   successMessage: string;
+  onSaved?: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const update = useUpdateClientDocumentDetails({ request: apiRequest });
@@ -63,6 +74,7 @@ export function useDocumentDetailsForm({
         queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) }),
       ]);
       toast.success(successMessage);
+      onSaved?.();
     } catch (cause) {
       form.setError('root.server', {
         message:

@@ -35,7 +35,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId')({
     // A link kept from before the promotion still leads to the company.
     if (lead.stage === 'client') {
       throw redirect({
-        to: '/clients/$clientId/employees',
+        to: '/clients/$clientId/details',
         params: { clientId: lead.id },
         replace: true,
       });

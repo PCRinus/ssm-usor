@@ -102,19 +102,20 @@ test("a specialist sets a client's representative role and training schedule", a
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.goto(`/clients/${clientId}/employees`);
-  await page.getByRole('link', { name: 'Date pentru documente' }).click();
-  await expect(page.getByTestId('details-representative-name')).toHaveValue('Maria Popescu');
-
-  await page.getByTestId('details-day-from').fill('12');
-  await page.getByTestId('details-day-to').fill('7');
-  await page.getByTestId('training-program-save').click();
-  await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
-
+  await page.goto(`/clients/${clientId}`);
+  await expect(page.getByTestId('legal-representative-name')).toHaveText('Maria Popescu');
+  await page.getByTestId('legal-representative-edit').click();
   await page.getByTestId('details-representative-name').fill('Maria-Ioana Popescu');
   await page.getByTestId('details-representative-role').fill('Administrator');
   await page.getByTestId('legal-representative-save').click();
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
+  await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
+
+  await page.getByRole('link', { name: 'Date pentru documente' }).click();
+  await page.getByTestId('details-day-from').fill('12');
+  await page.getByTestId('details-day-to').fill('7');
+  await page.getByTestId('training-program-save').click();
+  await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
 
   await page.getByTestId('details-training-duration').click();
   await page.getByRole('option', { name: '1 oră și 30 de minute' }).click();
@@ -131,9 +132,6 @@ test("a specialist sets a client's representative role and training schedule", a
   await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();
 
   await page.reload();
-  await expect(page.getByTestId('details-representative-name')).toHaveValue('Maria-Ioana Popescu');
-  await expect(page.getByTestId('details-representative-role')).toHaveValue('Administrator');
-  await expect(page.getByTestId('legal-representative-save')).toBeDisabled();
   // A complete program reads as a summary; the form is one click away.
   await expect(page.getByTestId('training-program-execution')).toContainText('la 3 luni');
   await expect(page.getByTestId('training-program-execution')).toContainText(
@@ -142,6 +140,11 @@ test("a specialist sets a client's representative role and training schedule", a
   await expect(page.getByTestId('training-program-session')).toContainText('1 oră și 30 de minute');
   await page.getByTestId('training-program-edit').click();
   await expect(page.getByTestId('details-worker-interval')).toHaveText('Trimestrial (la 3 luni)');
+
+  // Saving the program sent the representative back as the other tab saved it.
+  await page.getByRole('link', { name: 'Detalii' }).click();
+  await expect(page.getByTestId('legal-representative-name')).toHaveText('Maria-Ioana Popescu');
+  await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
 });
 
 test('a client gets a registered office and a point of work, one of which is then archived', async ({
@@ -152,7 +155,7 @@ test('a client gets a registered office and a point of work, one of which is the
   const clientId = await createClientCompany(organizationId, 'CLIENT PUNCTE E2E SRL');
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/document-data`);
+  await page.goto(`/clients/${clientId}/details`);
   await expect(page.getByTestId('workplaces-empty')).toBeVisible();
 
   await page.getByTestId('workplace-add').click();
@@ -328,7 +331,7 @@ test('the county and locality lists scroll with the wheel inside the workplace d
   const clientId = await createClientCompany(organizationId, 'CLIENT LISTE E2E SRL');
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/document-data`);
+  await page.goto(`/clients/${clientId}/details`);
   await page.getByTestId('workplace-add').click();
 
   const list = page.locator('[data-slot="command-list"]');

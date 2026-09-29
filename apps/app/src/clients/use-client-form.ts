@@ -52,7 +52,7 @@ export function useClientForm(client?: Client, newStage: ClientStage = 'client')
         toast.success(words.saved);
         await (stage === 'lead'
           ? navigate({ to: '/leads/$leadId', params: { leadId: client.id } })
-          : navigate({ to: '/clients/$clientId/employees', params: { clientId: client.id } }));
+          : navigate({ to: '/clients/$clientId/details', params: { clientId: client.id } }));
         return;
       }
       const created = await create.mutateAsync({ data: toCreateClientRequest(values, stage) });

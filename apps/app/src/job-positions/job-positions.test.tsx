@@ -141,7 +141,7 @@ describe("a client's job positions", () => {
     expect(within(second!).getByTestId('job-position-equipment').textContent).toBe('Nedecis');
 
     const sections = screen.getAllByTestId('client-section').map((item) => item.textContent);
-    expect(sections.slice(0, 2)).toEqual(['Angajați', 'Posturi de lucru']);
+    expect(sections.slice(0, 3)).toEqual(['Detalii', 'Angajați', 'Posturi de lucru']);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText('Posturi de lucru')).toBeTruthy();
   });

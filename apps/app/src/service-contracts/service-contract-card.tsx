@@ -785,23 +785,30 @@ function ServiceContractBody({
                   <li>
                     Despre {client.legalName}:{' '}
                     {missing.company.map((name) => missingLabels[name]).join(', ')}. Le completezi
-                    cu{' '}
                     {client.stage === 'lead' ? (
-                      <Link
-                        to="/leads/$leadId/edit"
-                        params={{ leadId: client.id }}
-                        className="font-medium underline underline-offset-4"
-                      >
-                        Modifică
-                      </Link>
+                      <>
+                        {' '}
+                        cu{' '}
+                        <Link
+                          to="/leads/$leadId/edit"
+                          params={{ leadId: client.id }}
+                          className="font-medium underline underline-offset-4"
+                        >
+                          Modifică
+                        </Link>
+                      </>
                     ) : (
-                      <Link
-                        to="/clients/$clientId/edit"
-                        params={{ clientId: client.id }}
-                        className="font-medium underline underline-offset-4"
-                      >
-                        Modifică
-                      </Link>
+                      <>
+                        {' '}
+                        în{' '}
+                        <Link
+                          to="/clients/$clientId/details"
+                          params={{ clientId: client.id }}
+                          className="font-medium underline underline-offset-4"
+                        >
+                          Detalii
+                        </Link>
+                      </>
                     )}
                     .
                   </li>

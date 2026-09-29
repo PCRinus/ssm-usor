@@ -29,6 +29,19 @@ const lead = {
 };
 const promoted = { ...lead, stage: 'client', promotedAt: '2026-09-21T09:00:00+00:00' };
 
+const emptyDetails = {
+  legalRepresentativeName: null,
+  legalRepresentativeRole: null,
+  periodicTrainingMinutes: null,
+  administrativeTrainingIntervalMonths: null,
+  administrativeTrainingNotApplicable: false,
+  workerTrainingIntervalMonths: null,
+  workerTrainingNotApplicable: false,
+  trainingFirstMonth: null,
+  trainingDayFrom: null,
+  trainingDayTo: null,
+};
+
 const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items.length });
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
@@ -37,7 +50,10 @@ const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
   routes: Partial<
-    Record<'list' | 'get' | 'create' | 'promote' | 'archive' | 'notes' | 'saveNotes', Route>
+    Record<
+      'list' | 'get' | 'create' | 'update' | 'promote' | 'archive' | 'notes' | 'saveNotes',
+      Route
+    >
   > & { role?: 'owner' | 'specialist' } = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -83,7 +99,14 @@ function mockApi(
             }))
         : (routes.notes?.(init, url) ?? Response.json({ notes: { body: '', updatedAt: null } }));
     }
+    if (path === `/clients/${leadId}` && method === 'PUT') {
+      return routes.update?.(init, url) ?? Response.json({ client: lead });
+    }
     if (path === `/clients/${leadId}/employees`) return Response.json(page([]));
+    if (path === `/clients/${leadId}/document-details`) {
+      return Response.json({ documentDetails: emptyDetails });
+    }
+    if (path === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
     throw new Error(`Unexpected request: ${method} ${url}`);
   });
 }
@@ -190,6 +213,41 @@ describe('leads', () => {
     );
   });
 
+  it('edits the contact on the lead page, keeping what the lead declared', async () => {
+    let saved = lead;
+    mockApi({
+      get: () => Response.json({ client: saved }),
+      update: (init) => {
+        saved = { ...saved, ...JSON.parse(String(init?.body)) };
+        return Response.json({ client: saved });
+      },
+    });
+    const runtime = mount(`/leads/${leadId}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('contact-edit'));
+    await user.type(screen.getByTestId('client-contact-phone'), '0722 000 111');
+    await user.click(screen.getByTestId('contact-save'));
+
+    expect(await screen.findByText('Persoana de contact a fost salvată.')).toBeTruthy();
+    expect(JSON.parse(String(requests(`/clients/${leadId}`, 'PUT')[0]![1]?.body))).toEqual({
+      legalName: 'VELOCITA URBANA SRL',
+      cui: '41760933',
+      vatPayer: false,
+      caenCode: '5630',
+      tradeRegisterNumber: 'J40/13726/2019',
+      countyCode: 'B',
+      locality: 'București',
+      addressLine: 'Calea Victoriei 122A',
+      declaredEmployeeCount: 6,
+      contactName: 'Andrei Pop',
+      contactEmail: 'andrei@velocita.example',
+      contactPhone: '0722 000 111',
+    });
+    expect((await screen.findByTestId('contact-phone')).textContent).toBe('0722 000 111');
+    expect(runtime.router.state.location.pathname).toBe(`/leads/${leadId}`);
+    expect(screen.getByTestId('lead-edit')).toBeTruthy();
+  });
+
   it('promotes a lead after saying what that means, and lands on the client', async () => {
     let current: typeof lead | typeof promoted = lead;
     mockApi({
@@ -207,8 +265,8 @@ describe('leads', () => {
     expect(dialog.textContent).toContain('nu poate fi anulată');
     await user.click(screen.getByTestId('promote-lead-confirm'));
 
-    await screen.findByTestId('client-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/employees`);
+    await screen.findByTestId('client-details-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/details`);
     expect(await screen.findByText('VELOCITA URBANA SRL este acum client.')).toBeTruthy();
   });
 
@@ -252,6 +310,7 @@ describe('leads', () => {
     expect(screen.getByTestId('lead-restore')).toBeTruthy();
     expect(screen.queryByTestId('lead-promote')).toBeNull();
     expect(screen.queryByTestId('lead-edit')).toBeNull();
+    expect(screen.queryByTestId('contact-edit')).toBeNull();
     expect(await screen.findByTestId('owner-notes-body')).toHaveProperty('readOnly', true);
     expect(screen.queryByTestId('owner-notes-save')).toBeNull();
   });
@@ -266,8 +325,8 @@ describe('leads', () => {
   it('sends the address of a promoted lead to the client', async () => {
     mockApi({ get: () => Response.json({ client: promoted }) });
     const runtime = mount(`/leads/${leadId}`);
-    await screen.findByTestId('client-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/employees`);
+    await screen.findByTestId('client-details-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/details`);
   });
 
   it.each([
@@ -277,8 +336,8 @@ describe('leads', () => {
     'shows the contact of a client to the team, and the notes to an owner: %s',
     async (role, seesNotes) => {
       mockApi({ role, get: () => Response.json({ client: promoted }) });
-      mount(`/clients/${leadId}/contact`);
-      await screen.findByTestId('client-contact-page');
+      mount(`/clients/${leadId}/details`);
+      await screen.findByTestId('client-details-page');
       expect(screen.getByTestId('contact-name').textContent).toBe('Andrei Pop');
       if (seesNotes) {
         expect(await screen.findByTestId('owner-notes-card')).toBeTruthy();

@@ -168,11 +168,11 @@ describe('client documents', () => {
     expect(await screen.findByTestId('documents-page')).toBeTruthy();
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).toEqual([
+      'Detalii',
       'Angajați',
       'Posturi de lucru',
       'Date pentru documente',
       'Documente',
-      'Contact',
     ]);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
@@ -185,7 +185,12 @@ describe('client documents', () => {
       role: 'specialist',
       readiness: {
         ready: false,
-        missing: ['provider.legalName', 'specialist.professionalTitle', 'responsible.first_aid'],
+        missing: [
+          'provider.legalName',
+          'specialist.professionalTitle',
+          'client.representativeRole',
+          'responsible.first_aid',
+        ],
       },
     });
     mount();
@@ -196,9 +201,13 @@ describe('client documents', () => {
     expect(places.map((place) => place.textContent)).toEqual([
       'Datele organizației: denumirea legală.Le completează proprietarul organizației.',
       'Profilul tău: titlul profesional.',
+      'Detaliile clientului: funcția reprezentantului legal.',
       'Datele pentru documente ale clientului: o persoană pentru „Prim ajutor”.',
     ]);
     expect(within(places[2]!).getByRole('link').getAttribute('href')).toBe(
+      `/clients/${clientId}/details`
+    );
+    expect(within(places[3]!).getByRole('link').getAttribute('href')).toBe(
       `/clients/${clientId}/document-data`
     );
     expect(screen.queryByTestId('generate-submit')).toBeNull();

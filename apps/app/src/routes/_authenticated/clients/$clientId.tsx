@@ -1,4 +1,4 @@
-import { caenClassName, formatCui } from '@ssm-usor/contracts';
+import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -17,10 +17,9 @@ import {
   BriefcaseBusiness,
   Building2,
   ClipboardList,
-  Contact,
   Files,
   FileText,
-  Pencil,
+  IdCard,
   UsersRound,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -33,13 +32,13 @@ import {
   type ClientArchiveChange,
   ClientArchiveDialog,
 } from '../../../clients/client-archive-dialog';
-import { registeredOffice } from '../../../clients/client-columns';
 import { Notice } from '../../../components/notice';
 import { SectionNav } from '../../../components/section-nav';
 
 // The documents follow the data they print.
 // `ownerOnly`: the other documents are, so far, the service contract, which is an owner's.
 const sections = [
+  { to: '/clients/$clientId/details', label: 'Detalii', icon: IdCard, ownerOnly: false },
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
   {
     to: '/clients/$clientId/job-positions',
@@ -60,7 +59,6 @@ const sections = [
     icon: Files,
     ownerOnly: true,
   },
-  { to: '/clients/$clientId/contact', label: 'Contact', icon: Contact, ownerOnly: false },
 ] as const;
 
 // Row-level security hides other organizations' clients, so a 404 from the API is the
@@ -111,8 +109,6 @@ export function ClientLayout() {
   });
   const isOwner = useMe().data?.membership?.role === 'owner';
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
-  const office = registeredOffice(client);
-  const caen = client.caenCode ? caenClassName(client.caenCode) : null;
   if (fullPage) return <Outlet />;
   return (
     <div data-testid="client-page" className="space-y-5">
@@ -129,13 +125,6 @@ export function ClientLayout() {
             <Fact label="CUI">
               <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
             </Fact>
-            {client.caenCode && (
-              <Fact label="CAEN">
-                <span className="tabular-nums">{client.caenCode}</span>
-                {caen && <span className="text-muted-foreground"> · {caen}</span>}
-              </Fact>
-            )}
-            {office && <Fact label="Sediu">{office}</Fact>}
             <Fact label="Angajați">
               <span className="tabular-nums" data-testid="client-employee-count">
                 {client.currentEmployeeCount}
@@ -143,25 +132,17 @@ export function ClientLayout() {
             </Fact>
           </dl>
         </div>
-        {!client.archivedAt && (
-          <div className="flex min-w-0 shrink-0 flex-wrap gap-2 max-sm:w-full max-sm:pl-12">
-            <Button asChild variant="outline" size="sm" data-testid="client-edit">
-              <Link to="/clients/$clientId/edit" params={{ clientId: client.id }}>
-                <Pencil aria-hidden="true" />
-                Modifică
-              </Link>
+        {!client.archivedAt && isOwner && (
+          <div className="shrink-0 max-sm:w-full max-sm:pl-12">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="client-archive"
+              onClick={() => setArchiveChange({ client, action: 'archive' })}
+            >
+              <Archive aria-hidden="true" />
+              Arhivează…
             </Button>
-            {isOwner && (
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="client-archive"
-                onClick={() => setArchiveChange({ client, action: 'archive' })}
-              >
-                <Archive aria-hidden="true" />
-                Arhivează…
-              </Button>
-            )}
           </div>
         )}
       </header>

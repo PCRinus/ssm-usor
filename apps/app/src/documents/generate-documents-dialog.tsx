@@ -86,6 +86,12 @@ function PlaceLink({ place, clientId }: { place: MissingPlace; clientId: string 
         {label}
       </Link>
     );
+  if (place === 'clientDetails')
+    return (
+      <Link to="/clients/$clientId/details" params={{ clientId }} className={className}>
+        {label}
+      </Link>
+    );
   if (place === 'jobPositions')
     return (
       <Link to="/clients/$clientId/job-positions" params={{ clientId }} className={className}>

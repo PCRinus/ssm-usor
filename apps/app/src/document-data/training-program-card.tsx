@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ssm-usor/ui/components/select';
+import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link } from '@tanstack/react-router';
 import { FileText, Pencil } from 'lucide-react';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ import {
   type ClientSummary,
   describedBy,
   type DocumentDetails,
+  useDocumentDetails,
   useDocumentDetailsForm,
 } from './use-document-details-form';
 
@@ -79,7 +81,43 @@ const monthList = (firstMonth: number, interval: number) =>
     .map((month) => monthNames[month - 1])
     .join(', ');
 
-export function TrainingProgramCard({
+export function TrainingProgramSection({
+  client,
+  userId,
+}: {
+  client: ClientSummary;
+  userId: string;
+}) {
+  const details = useDocumentDetails(client.id, userId);
+  if (details.isPending) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (details.isError) {
+    return (
+      <Card data-testid="document-details-unavailable">
+        <CardContent>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={details.isFetching}
+                onClick={() => void details.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca programul de instruire.
+          </Notice>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <TrainingProgramCard saved={details.data.documentDetails} client={client} userId={userId} />
+  );
+}
+
+function TrainingProgramCard({
   saved,
   client,
   userId,

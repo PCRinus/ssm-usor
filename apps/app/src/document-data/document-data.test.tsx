@@ -136,13 +136,15 @@ describe('client document data', () => {
     expect(await screen.findByTestId('document-data-page')).toBeTruthy();
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).toEqual([
+      'Detalii',
       'Angajați',
       'Posturi de lucru',
       'Date pentru documente',
       'Documente',
-      'Contact',
     ]);
-    expect(await screen.findByTestId('details-representative-name')).toBeTruthy();
+    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
+    expect(screen.queryByTestId('legal-representative-card')).toBeNull();
+    expect(screen.queryByTestId('workplaces-card')).toBeNull();
   });
 
   it('previews the training months as the first month and the intervals are chosen', async () => {
@@ -178,13 +180,12 @@ describe('client document data', () => {
 
   it('saves the representative and the program apart, each over what the other saved', async () => {
     mockApi();
-    mount();
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
     const user = userEvent.setup();
 
-    // A client created without a representative gets one here.
-    const name = await screen.findByTestId<HTMLInputElement>('details-representative-name');
-    expect(name.value).toBe('');
-    await user.type(name, ' Maria Popescu ');
+    // A client created without a representative gets one on its details.
+    await user.click(await screen.findByTestId('legal-representative-edit'));
+    await user.type(screen.getByTestId('details-representative-name'), ' Maria Popescu ');
     await user.type(screen.getByTestId('details-representative-role'), ' Administrator ');
     await user.click(screen.getByTestId('legal-representative-save'));
     await waitFor(() =>
@@ -198,6 +199,7 @@ describe('client document data', () => {
     );
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
 
+    await user.click(screen.getByRole('link', { name: 'Date pentru documente' }));
     await chooseOption(user, 'details-training-duration', '2 ore');
     await chooseOption(user, 'details-first-month', 'Februarie');
     await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
@@ -280,10 +282,6 @@ describe('client document data', () => {
     mount();
     const user = userEvent.setup();
 
-    const role = await screen.findByTestId<HTMLInputElement>('details-representative-role');
-    expect(role.value).toBe('Administrator');
-    expect(screen.getByTestId<HTMLButtonElement>('legal-representative-save').disabled).toBe(true);
-
     await user.click(await screen.findByTestId('training-program-edit'));
     await chooseOption(user, 'details-training-duration', 'Șterge alegerea');
     await user.click(screen.getByTestId('training-program-save'));
@@ -317,18 +315,20 @@ describe('client document data', () => {
   });
 
   it('reports a failed save inline and keeps what was typed', async () => {
-    mockApi({ save: () => new Response(null, { status: 500 }) });
+    mockApi({ details: savedDetails, save: () => new Response(null, { status: 500 }) });
     mount();
     const user = userEvent.setup();
 
-    const role = await screen.findByTestId<HTMLInputElement>('details-representative-role');
-    await user.type(role, 'Administrator');
-    await user.click(screen.getByTestId('legal-representative-save'));
+    await user.click(await screen.findByTestId('training-program-edit'));
+    const dayTo = screen.getByTestId<HTMLInputElement>('details-day-to');
+    await user.clear(dayTo);
+    await user.type(dayTo, '9');
+    await user.click(screen.getByTestId('training-program-save'));
 
-    expect((await screen.findByTestId('legal-representative-error')).textContent).toContain(
+    expect((await screen.findByTestId('training-program-error')).textContent).toContain(
       'Nu am putut salva'
     );
-    expect(role.value).toBe('Administrator');
+    expect(dayTo.value).toBe('9');
   });
 
   it('shows an archived client read-only', async () => {
@@ -338,9 +338,6 @@ describe('client document data', () => {
     });
     mount();
 
-    const role = await screen.findByTestId<HTMLInputElement>('details-representative-role');
-    expect(role.disabled).toBe(true);
-    expect(screen.queryByTestId('legal-representative-save')).toBeNull();
     expect(await screen.findByTestId('training-program-execution')).toBeTruthy();
     expect(screen.queryByTestId('training-program-edit')).toBeNull();
     expect(screen.getByTestId('client-archived-banner')).toBeTruthy();

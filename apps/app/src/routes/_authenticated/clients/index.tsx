@@ -122,7 +122,7 @@ export function ClientsPage() {
           data={clients.data?.items}
           rowKey={rowKey}
           onRowClick={(client) =>
-            void navigate({ to: '/clients/$clientId/employees', params: { clientId: client.id } })
+            void navigate({ to: '/clients/$clientId/details', params: { clientId: client.id } })
           }
           meta={meta}
           noun={['client', 'clienți']}

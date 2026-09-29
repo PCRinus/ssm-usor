@@ -36,16 +36,17 @@ test('generating waits for the data the documents print, and says where it is fi
   await expect(page.getByTestId('documents-empty')).toBeVisible();
   await page.getByTestId('documents-generate').click();
   const places = page.getByTestId('generate-missing-place');
-  await expect(places).toHaveCount(4);
+  await expect(places).toHaveCount(5);
   await expect(places.nth(0)).toContainText('Datele organizației: denumirea legală');
   await expect(places.nth(1)).toContainText('Profilul tău: titlul profesional');
-  await expect(places.nth(2)).toContainText('programul instruirilor periodice');
-  await expect(places.nth(3)).toContainText(
+  await expect(places.nth(2)).toContainText('Detaliile clientului: funcția reprezentantului legal');
+  await expect(places.nth(3)).toContainText('programul instruirilor periodice');
+  await expect(places.nth(4)).toContainText(
     'Posturile de lucru ale clientului: cel puțin un post de lucru'
   );
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
-  await places.nth(2).getByRole('link').click();
+  await places.nth(3).getByRole('link').click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/document-data$`));
 });
 

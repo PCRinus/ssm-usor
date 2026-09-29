@@ -1,6 +1,5 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +26,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { Building2, MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -40,6 +39,7 @@ import {
 import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
+import { SectionCard } from '../components/section-card';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
 import { differingClientAddress, type Workplace, workplaceAddress } from './workplace-schema';
 
@@ -101,141 +101,142 @@ export function WorkplacesCard({
   }
 
   return (
-    <Card data-testid="workplaces-card">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Sediu și puncte de lucru</h2>
-        {!readOnly && (
-          <Button variant="outline" data-testid="workplace-add" onClick={() => setEditing('new')}>
+    <SectionCard
+      data-testid="workplaces-card"
+      title="Sediu și puncte de lucru"
+      action={
+        !readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="workplace-add"
+            onClick={() => setEditing('new')}
+          >
             <Plus aria-hidden="true" />
             Adaugă
           </Button>
-        )}
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {error && (
-          <Notice variant="destructive" data-testid="workplaces-error">
-            {error}
-          </Notice>
-        )}
-        {workplaces.isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : workplaces.isError ? (
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={workplaces.isFetching}
-                onClick={() => void workplaces.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
-          >
-            Nu am putut încărca punctele de lucru.
-          </Notice>
-        ) : workplaces.data.items.length === 0 ? (
-          <div data-testid="workplaces-empty" className="grid justify-items-center gap-2 py-10">
-            <Building2 className="size-8 text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm font-medium">Niciun punct de lucru încă</p>
-            <p className="max-w-md text-center text-sm text-muted-foreground">
-              {readOnly
-                ? 'Nu sunt puncte de lucru înregistrate pentru acest client.'
-                : 'Începe cu sediul social, apoi adaugă celelalte locuri în care lucrează clientul.'}
-            </p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Denumire</TableHead>
-                <TableHead>Adresă</TableHead>
-                {!readOnly && (
-                  <TableHead className="w-12">
-                    <span className="sr-only">Acțiuni</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {workplaces.data.items.map((workplace) => {
-                const clientAddress = differingClientAddress(workplace, client);
-                return (
-                  <TableRow
-                    key={workplace.id}
-                    data-testid="workplace-row"
-                    {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
-                  >
-                    <TableCell className="font-medium">
-                      <span className="flex flex-wrap items-center gap-2">
-                        {workplace.name}
-                        {workplace.isRegisteredOffice && (
-                          <Badge variant="secondary">Sediu social</Badge>
+        )
+      }
+    >
+      {error && (
+        <Notice variant="destructive" data-testid="workplaces-error">
+          {error}
+        </Notice>
+      )}
+      {workplaces.isPending ? (
+        <Skeleton className="h-24 w-full" />
+      ) : workplaces.isError ? (
+        <Notice
+          variant="destructive"
+          action={
+            <Button
+              variant="outline"
+              disabled={workplaces.isFetching}
+              onClick={() => void workplaces.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca punctele de lucru.
+        </Notice>
+      ) : workplaces.data.items.length === 0 ? (
+        <p data-testid="workplaces-empty" className="text-sm text-muted-foreground">
+          {readOnly
+            ? 'Nu sunt puncte de lucru înregistrate pentru acest client.'
+            : 'Niciun punct de lucru încă. Începe cu sediul social, apoi adaugă celelalte locuri în care lucrează clientul.'}
+        </p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Denumire</TableHead>
+              <TableHead>Adresă</TableHead>
+              {!readOnly && (
+                <TableHead className="w-12">
+                  <span className="sr-only">Acțiuni</span>
+                </TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {workplaces.data.items.map((workplace) => {
+              const clientAddress = differingClientAddress(workplace, client);
+              return (
+                <TableRow
+                  key={workplace.id}
+                  data-testid="workplace-row"
+                  {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
+                >
+                  <TableCell className="font-medium">
+                    <span className="flex flex-wrap items-center gap-2">
+                      {workplace.name}
+                      {workplace.isRegisteredOffice && (
+                        <Badge variant="secondary">Sediu social</Badge>
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {workplaceAddress(workplace) || '—'}
+                    {clientAddress && (
+                      <span
+                        data-testid="workplace-address-drift"
+                        className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
+                      >
+                        În datele clientului, sediul este: „{workplaceAddress(clientAddress)}”.
+                        {!readOnly && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            data-testid="workplace-address-adopt"
+                            className="h-auto p-0 text-xs"
+                            disabled={update.isPending}
+                            onClick={() => void adoptClientAddress(workplace, clientAddress)}
+                          >
+                            Folosește această adresă
+                          </Button>
                         )}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {workplaceAddress(workplace) || '—'}
-                      {clientAddress && (
-                        <span
-                          data-testid="workplace-address-drift"
-                          className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
-                        >
-                          În datele clientului, sediul este: „{workplaceAddress(clientAddress)}”.
-                          {!readOnly && (
-                            <Button
-                              variant="link"
-                              size="sm"
-                              data-testid="workplace-address-adopt"
-                              className="h-auto p-0 text-xs"
-                              disabled={update.isPending}
-                              onClick={() => void adoptClientAddress(workplace, clientAddress)}
-                            >
-                              Folosește această adresă
-                            </Button>
-                          )}
-                        </span>
-                      )}
-                    </TableCell>
-                    {!readOnly && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              data-testid="workplace-actions"
-                              aria-label={`Acțiuni pentru ${workplace.name}`}
-                            >
-                              <MoreHorizontal aria-hidden="true" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              data-testid="workplace-edit"
-                              onSelect={() => setEditing(workplace)}
-                            >
-                              Modifică
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              data-testid="workplace-archive"
-                              variant="destructive"
-                              onSelect={() => setArchiving(workplace)}
-                            >
-                              Arhivează
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
                     )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
+                  </TableCell>
+                  {!readOnly && (
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid="workplace-actions"
+                            aria-label={`Acțiuni pentru ${workplace.name}`}
+                          >
+                            <MoreHorizontal aria-hidden="true" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            data-testid="workplace-edit"
+                            onSelect={() => setEditing(workplace)}
+                          >
+                            Modifică
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            data-testid="workplace-archive"
+                            variant="destructive"
+                            onSelect={() => setArchiving(workplace)}
+                          >
+                            Arhivează
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
       <WorkplaceDialog clientId={clientId} editing={editing} onClose={() => setEditing(null)} />
       <Dialog
         open={archiving !== null}
@@ -271,6 +272,6 @@ export function WorkplacesCard({
           </DialogContent>
         )}
       </Dialog>
-    </Card>
+    </SectionCard>
   );
 }

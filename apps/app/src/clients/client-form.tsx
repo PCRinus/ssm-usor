@@ -157,7 +157,7 @@ export function ClientForm({ client, newStage }: { client?: Client; newStage?: C
                 <Link to="/leads">Renunță</Link>
               )
             ) : client ? (
-              <Link to="/clients/$clientId/employees" params={{ clientId: client.id }}>
+              <Link to="/clients/$clientId/details" params={{ clientId: client.id }}>
                 Renunță
               </Link>
             ) : (
