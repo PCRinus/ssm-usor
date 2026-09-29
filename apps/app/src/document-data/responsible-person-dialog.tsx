@@ -258,10 +258,16 @@ function ResponsiblePersonForm({
             />
           </Field>
           <fieldset
-            className="grid gap-3 sm:col-span-2"
+            className="mt-1 grid gap-3 sm:col-span-2"
             aria-describedby={errors.roles ? 'responsible-roles-error' : undefined}
           >
-            <legend className="mb-1 text-sm font-medium">Responsabilități</legend>
+            <legend className="mb-3 flex items-center gap-1 text-sm leading-none font-medium">
+              Responsabilități
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+              <span className="sr-only">(obligatoriu, cel puțin una)</span>
+            </legend>
             <Controller
               control={form.control}
               name="roles"
