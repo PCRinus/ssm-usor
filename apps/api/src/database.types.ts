@@ -64,6 +64,72 @@ export type Database = {
           },
         ];
       };
+      client_files: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          id: string;
+          mime_type: string;
+          name: string;
+          note: string | null;
+          organization_id: string;
+          original_file_name: string;
+          owners_only: boolean;
+          sha256: string;
+          size_bytes: number;
+          storage_path: string;
+          updated_at: string;
+          uploaded_by: string | null;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          mime_type: string;
+          name: string;
+          note?: string | null;
+          organization_id: string;
+          original_file_name: string;
+          owners_only?: boolean;
+          sha256: string;
+          size_bytes: number;
+          storage_path?: string;
+          updated_at?: string;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          mime_type?: string;
+          name?: string;
+          note?: string | null;
+          organization_id?: string;
+          original_file_name?: string;
+          owners_only?: boolean;
+          sha256?: string;
+          size_bytes?: number;
+          storage_path?: string;
+          updated_at?: string;
+          uploaded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_files_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_files_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       client_owner_notes: {
         Row: {
           body: string;
@@ -1521,8 +1587,16 @@ export type Database = {
       is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
+      is_readable_client_file_path: {
+        Args: { p_path: string };
+        Returns: boolean;
+      };
       is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
       is_signed_copy_path: { Args: { p_path: string }; Returns: boolean };
+      is_writable_client_file_path: {
+        Args: { p_path: string };
+        Returns: boolean;
+      };
       issue_document_revision: {
         Args: {
           p_docx_sha256: string;

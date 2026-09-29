@@ -6,6 +6,7 @@ import { allowedOrigins, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
+import { clientFilesRouter } from './modules/client-files';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
 import { contractReturnsRouter } from './modules/contract-returns';
@@ -62,6 +63,7 @@ export function createApp() {
   app.route('/', instructionModulesRouter);
   app.route('/', documentDataRouter);
   app.route('/', documentsRouter);
+  app.route('/', clientFilesRouter);
   app.route('/', filesRouter);
   app.route('/', serviceContractsRouter);
   app.route('/', contractReturnsRouter);

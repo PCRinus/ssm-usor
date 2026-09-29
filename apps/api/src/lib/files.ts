@@ -14,6 +14,7 @@ import { ApiError } from './errors';
 const templatesBucket = 'document-templates';
 const documentsBucket = 'documents';
 const modulesBucket = 'instruction-modules';
+const clientFilesBucket = 'client-files';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export function createFileStore(c: Context<ApiEnv>) {
@@ -99,6 +100,28 @@ function fileStore(c: Context<ApiEnv>, key: string, authorization: string) {
         .from(modulesBucket)
         .createSignedUrl(path, expiresInSeconds);
       if (error || !data) throw fileError('sign instruction module link', error);
+      return data.signedUrl;
+    },
+
+    /** The row must exist first, the policy checks it; a client file is never replaced. */
+    async writeClientFile(path: string, bytes: Uint8Array, contentType: string) {
+      const { error } = await storage
+        .from(clientFilesBucket)
+        .upload(path, bytes, { contentType, upsert: false });
+      if (error) throw fileError('write client file', error);
+    },
+
+    /** Before the row is deleted: the policy follows it. */
+    async removeClientFile(path: string) {
+      const { error } = await storage.from(clientFilesBucket).remove([path]);
+      if (error) throw fileError('remove client file', error);
+    },
+
+    async clientFileLink(path: string, expiresInSeconds = 60) {
+      const { data, error } = await storage
+        .from(clientFilesBucket)
+        .createSignedUrl(path, expiresInSeconds);
+      if (error || !data) throw fileError('sign client file link', error);
       return data.signedUrl;
     },
   };

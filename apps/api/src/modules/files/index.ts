@@ -12,7 +12,7 @@ export const fileDownloadRoute = createRoute({
   operationId: 'downloadFile',
   summary: 'Download or show a file from a signed Storage link, under its own name',
   description:
-    'Opened by the browser, not fetched. `attachment` downloads the file; `inline` shows a PDF in the browser, and any other type is still downloaded. The signed link authorizes the read and expires on its own.',
+    'Opened by the browser, not fetched. `attachment` downloads the file; `inline` shows a PDF, a JPEG or a PNG in the browser, and any other type is still downloaded. The signed link authorizes the read and expires on its own.',
   request: {
     query: z.object({
       source: z.url(),
@@ -30,6 +30,8 @@ export const fileDownloadRoute = createRoute({
     ...publicErrors,
   },
 });
+
+const shownTypes = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 // Storage names the file itself, but not in a way browsers read correctly, so the bytes come
 // through here under our own header.
@@ -49,8 +51,8 @@ export const filesRouter = createRouter().openapi(fileDownloadRoute, async (c) =
     throw new ApiError('not_found', 'The download link has expired. Try again.');
   }
   const type = upstream.headers.get('Content-Type') ?? 'application/octet-stream';
-  // Only a PDF is ever shown: any other type rendered from the API's origin could run there.
-  const shown = disposition === 'inline' && type.split(';')[0]!.trim() === 'application/pdf';
+  // Only types that cannot run script in the API's origin are ever shown, unlike HTML or SVG.
+  const shown = disposition === 'inline' && shownTypes.has(type.split(';')[0]!.trim());
   return new Response(upstream.body, {
     headers: {
       'Content-Type': type,

@@ -3,7 +3,6 @@ import { ApiError } from './errors';
 export const maxDocxBytes = 15 * 1024 * 1024;
 const bytesOf = (text: string) => new TextEncoder().encode(text);
 const zipSignature = [0x50, 0x4b, 0x03, 0x04];
-const documentPart = bytesOf('word/document.xml');
 
 function includes(haystack: Uint8Array, needle: Uint8Array) {
   outer: for (let start = 0; start <= haystack.length - needle.length; start += 1) {
@@ -15,10 +14,12 @@ function includes(haystack: Uint8Array, needle: Uint8Array) {
   return false;
 }
 
-// A zip that names the main part of a Word document. File names are stored as they are, so
-// this needs no unzipping; it keeps a PDF or a picture out, not a determined forger.
-export const looksLikeDocx = (bytes: Uint8Array) =>
-  zipSignature.every((byte, index) => bytes[index] === byte) && includes(bytes, documentPart);
+// A zip that names the part. File names are stored as they are, so this needs no unzipping;
+// it keeps a PDF or a picture out, not a determined forger.
+export const zipNamesPart = (bytes: Uint8Array, part: string) =>
+  zipSignature.every((byte, index) => bytes[index] === byte) && includes(bytes, bytesOf(part));
+
+export const looksLikeDocx = (bytes: Uint8Array) => zipNamesPart(bytes, 'word/document.xml');
 
 export function requireDocx(bytes: Uint8Array) {
   if (bytes.length === 0 || bytes.length > maxDocxBytes) {

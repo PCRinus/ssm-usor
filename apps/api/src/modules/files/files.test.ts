@@ -58,7 +58,13 @@ describe('saving a file from a signed Storage link', () => {
     );
   });
 
-  it('never shows anything but a PDF in the browser', async () => {
+  it('shows a photo in the browser when asked', async () => {
+    fetchMock.mockResolvedValue(new Response('png', { headers: { 'Content-Type': 'image/png' } }));
+    const response = await download(signed, 'Atelier.png', { disposition: 'inline' });
+    expect(response.headers.get('Content-Disposition')).toMatch(/^inline;/);
+  });
+
+  it('never shows a type that could run script in the browser', async () => {
     fetchMock.mockResolvedValue(
       new Response('<script>alert(1)</script>', { headers: { 'Content-Type': 'text/html' } })
     );
