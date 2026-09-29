@@ -5,7 +5,6 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -178,10 +177,6 @@ function ResponsiblePersonForm({
           <DialogTitle>
             {person ? 'Modifică persoana responsabilă' : 'Adaugă o persoană responsabilă'}
           </DialogTitle>
-          <DialogDescription>
-            Deciziile o numesc cu numele și funcția de mai jos. Aceeași persoană poate avea mai
-            multe responsabilități.
-          </DialogDescription>
         </DialogHeader>
         {person && pointedRole === 'workers_representative' && (
           <Notice variant="warning" data-testid="responsible-clash" className="mt-5">
