@@ -101,42 +101,68 @@ function whenPresent(id: string, found: (element: HTMLElement) => void, gaveUp: 
 const settledAfter = 120;
 const startsWithin = 400;
 const movesAtMost = 1500;
+const beat = 350;
+
+// The middle of the window: an anchor near an edge is brought to the centre too, so the eye
+// finds it before the dialog covers the page.
+function atEase(element: HTMLElement) {
+  const bounds = element.getBoundingClientRect();
+  return bounds.top >= coveredTop && bounds.bottom <= window.innerHeight * 0.7;
+}
 
 // Waits for the smooth scroll to end before `then`, by watching where the element is: a page
 // that has just rendered can start moving several frames late, and Safari has no `scrollend`.
-// An element without a box, as in a test without layout, has nowhere to move.
+// A beat follows even when nothing had to move: a dialog that opens with the page reads as
+// the page failing to load. An element without a box, as in a test without layout, has
+// nowhere to move and nobody to watch it.
 function scrollThen(element: HTMLElement, then: () => void) {
-  if (inView(element)) {
-    then();
-    return () => {};
-  }
+  const laidOut = element.getClientRects().length > 0;
   const still = stillMotion();
-  element.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
-  if (still || element.getClientRects().length === 0) {
+  const moving = !atEase(element);
+  if (moving || !laidOut) {
+    element.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  }
+  if (!laidOut) {
     then();
     return () => {};
   }
-  const started = performance.now();
-  let top = element.getBoundingClientRect().top;
-  let restingSince = started;
-  let moved = false;
   let frame = 0;
-  const watch = () => {
-    const now = performance.now();
-    const current = element.getBoundingClientRect().top;
-    if (current !== top) {
-      top = current;
-      restingSince = now;
-      moved = true;
-    }
-    if (now - restingSince > (moved ? settledAfter : startsWithin) || now - started > movesAtMost) {
-      then();
-      return;
-    }
-    frame = requestAnimationFrame(watch);
+  let pause: ReturnType<typeof setTimeout> | undefined;
+  const afterBeat = () => {
+    pause = setTimeout(then, beat);
   };
-  frame = requestAnimationFrame(watch);
-  return () => cancelAnimationFrame(frame);
+  if (moving && !still) {
+    const started = performance.now();
+    let top = element.getBoundingClientRect().top;
+    let restingSince = started;
+    let moved = false;
+    const watch = () => {
+      const now = performance.now();
+      const current = element.getBoundingClientRect().top;
+      if (current !== top) {
+        top = current;
+        restingSince = now;
+        moved = true;
+      }
+      if (moved ? now - restingSince > settledAfter : now - started > startsWithin) {
+        if (moved) afterBeat();
+        else then();
+        return;
+      }
+      if (now - started > movesAtMost) {
+        then();
+        return;
+      }
+      frame = requestAnimationFrame(watch);
+    };
+    frame = requestAnimationFrame(watch);
+  } else {
+    afterBeat();
+  }
+  return () => {
+    cancelAnimationFrame(frame);
+    clearTimeout(pause);
+  };
 }
 
 function focusField(element: HTMLElement) {
