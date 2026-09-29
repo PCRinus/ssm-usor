@@ -140,6 +140,7 @@ describe('client document data', () => {
       'Posturi de lucru',
       'Instruire și responsabili',
       'Documente SSM',
+      'Alte documente',
     ]);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     expect(screen.queryByTestId('legal-representative-card')).toBeNull();

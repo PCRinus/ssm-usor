@@ -560,6 +560,7 @@ describe('client details', () => {
       'Instruire și responsabili',
       'Documente SSM',
       'Contract',
+      'Alte documente',
     ]);
     const cards = Array.from(page.querySelectorAll(':scope > [data-testid]')).map((card) =>
       card.getAttribute('data-testid')

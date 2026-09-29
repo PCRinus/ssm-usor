@@ -163,6 +163,7 @@ function mockApi(
       return routes.details?.(init) ?? Response.json({ documentDetails: details() });
     }
     if (pathname === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
+    if (pathname === `/clients/${leadId}/files`) return Response.json({ items: [] });
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
@@ -752,8 +753,7 @@ describe('the contract of a client', () => {
     await screen.findByTestId('contract-page');
     await waitFor(() => expect(document.title).toBe('Contract — VELOCITA URBANA SRL — SSM Ușor'));
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections.at(-1)).toBe('Contract');
-    expect(sections).not.toContain('Alte documente');
+    expect(sections.slice(-2)).toEqual(['Contract', 'Alte documente']);
     const open = await screen.findByTestId('contract-open');
     expect(open.getAttribute('href')).toBe(`/clients/${leadId}/contract/edit`);
 
@@ -801,18 +801,13 @@ describe('the contract of a client', () => {
     expect(requests(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
   });
 
-  it.each([
-    ['other-documents', 'contract'],
-    ['other-documents/contract', 'contract/edit'],
-  ])('sends the old /%s address to /%s', async (old, now) => {
+  it('sends the old /other-documents/contract address to /contract/edit', async () => {
     mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
-    const runtime = mount(`/clients/${leadId}/${old}`);
+    const runtime = mount(`/clients/${leadId}/other-documents/contract`);
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/${now}`)
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`)
     );
-    expect(
-      await screen.findByTestId(now === 'contract' ? 'contract-page' : 'editor-back')
-    ).toBeTruthy();
+    expect(await screen.findByTestId('editor-back')).toBeTruthy();
   });
 });
 

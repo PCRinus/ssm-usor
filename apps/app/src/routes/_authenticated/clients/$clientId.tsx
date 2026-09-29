@@ -19,6 +19,7 @@ import {
   ClipboardList,
   FileSignature,
   FileText,
+  FolderOpen,
   IdCard,
   UsersRound,
 } from 'lucide-react';
@@ -59,6 +60,12 @@ const sections = [
     label: 'Contract',
     icon: FileSignature,
     ownerOnly: true,
+  },
+  {
+    to: '/clients/$clientId/other-documents',
+    label: 'Alte documente',
+    icon: FolderOpen,
+    ownerOnly: false,
   },
 ] as const;
 

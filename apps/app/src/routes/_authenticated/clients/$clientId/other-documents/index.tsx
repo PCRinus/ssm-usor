@@ -1,12 +1,27 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-// An old address, kept so that bookmarks and links already sent still arrive.
+import { useAuth } from '../../../../../auth/auth-context';
+import { ClientFilesCard } from '../../../../../client-files/client-files-card';
+
 export const Route = createFileRoute('/_authenticated/clients/$clientId/other-documents/')({
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: '/clients/$clientId/contract',
-      params: { clientId: params.clientId },
-      replace: true,
-    });
-  },
+  component: OtherDocumentsPage,
 });
+
+const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
+export function OtherDocumentsPage() {
+  const { client } = clientRoute.useLoaderData();
+  const { session } = useAuth();
+  // The shell renders this only for a signed-in user.
+  if (!session) return null;
+
+  return (
+    <div data-testid="other-documents-page" className="grid gap-6">
+      <ClientFilesCard
+        client={client}
+        userId={session.user.id}
+        readOnly={client.archivedAt !== null}
+      />
+    </div>
+  );
+}

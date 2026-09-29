@@ -9,6 +9,7 @@ import {
   useGetServiceContract,
 } from '../../../../api/generated/api';
 import { useAuth } from '../../../../auth/auth-context';
+import { ClientFilesCard } from '../../../../client-files/client-files-card';
 import {
   type ClientArchiveChange,
   ClientArchiveDialog,
@@ -146,6 +147,7 @@ export function LeadPage() {
             </Button>
           )}
         />
+        <ClientFilesCard client={lead} userId={session.user.id} readOnly={archived} />
         <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={archived} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />

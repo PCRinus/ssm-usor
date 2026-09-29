@@ -107,6 +107,7 @@ function mockApi(
       return Response.json({ documentDetails: emptyDetails });
     }
     if (path === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
+    if (path === `/clients/${leadId}/files`) return Response.json({ items: [] });
     throw new Error(`Unexpected request: ${method} ${url}`);
   });
 }
@@ -236,6 +237,7 @@ describe('leads', () => {
       'company-card',
       'contact-card',
       'service-contract-card',
+      'client-files-card',
       'owner-notes-card',
     ]);
     const company = screen.getByTestId('company-card');
