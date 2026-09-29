@@ -72,11 +72,6 @@ export function CompanyDetailsCard({
 
   return (
     <div data-testid="company-details-card" className="grid gap-5">
-      {canEdit && (
-        <Notice variant="info">
-          Poți completa datele pe rând. Când generezi un document, îți arătăm ce mai lipsește.
-        </Notice>
-      )}
       {details.isPending ? (
         <Skeleton className="h-96 w-full" />
       ) : details.isError ? (
