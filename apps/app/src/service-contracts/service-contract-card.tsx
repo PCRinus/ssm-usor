@@ -282,7 +282,6 @@ export function ServiceContractCard({
 
   return (
     <section data-testid="service-contract-card" className="grid gap-4">
-      <h2 className="text-lg font-semibold">Contract de prestări servicii</h2>
       {contract.isPending ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : contract.isError ? (
