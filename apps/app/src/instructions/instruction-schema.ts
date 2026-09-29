@@ -49,7 +49,7 @@ export function articleCountLabel(count: number) {
 export function instructionStateLabel(
   position: Pick<JobPosition, 'needsInstructions' | 'instructionCount'>
 ) {
-  if (position.needsInstructions === null) return 'Nedecis';
+  if (position.needsInstructions === null) return 'De stabilit';
   if (position.needsInstructions === false) return 'Nu necesită';
   return moduleCountLabel(position.instructionCount).toLowerCase().replace(/^o /, '1 ');
 }

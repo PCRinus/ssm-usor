@@ -29,7 +29,7 @@ export function entryCountLabel(count: number) {
 export function equipmentStateLabel(
   position: Pick<JobPosition, 'needsProtectiveEquipment' | 'equipmentCount'>
 ) {
-  if (position.needsProtectiveEquipment === null) return 'Nedecis';
+  if (position.needsProtectiveEquipment === null) return 'De stabilit';
   if (position.needsProtectiveEquipment === false) return 'Nu necesită';
   return entryCountLabel(position.equipmentCount).toLowerCase().replace(/^un /, '1 ');
 }

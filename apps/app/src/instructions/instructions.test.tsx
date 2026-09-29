@@ -393,7 +393,7 @@ describe("a job position's instructions", () => {
     const rows = await screen.findAllByTestId('job-position-row');
     expect(
       rows.map((row) => within(row).getByTestId('job-position-instructions').textContent)
-    ).toEqual(['1 instrucțiune', 'Nedecis']);
+    ).toEqual(['1 instrucțiune', 'De stabilit']);
   });
 
   it('records that a post needs none, and takes it back', async () => {
@@ -458,12 +458,17 @@ describe('labels', () => {
     expect(moduleCountLabel(1)).toBe('O instrucțiune');
     expect(moduleCountLabel(3)).toBe('3 instrucțiuni');
     expect(moduleCountLabel(21)).toBe('21 de instrucțiuni');
-    expect(instructionStateLabel({ needsInstructions: null, instructionCount: 0 })).toBe('Nedecis');
+    expect(instructionStateLabel({ needsInstructions: null, instructionCount: 0 })).toBe(
+      'De stabilit'
+    );
     expect(instructionStateLabel({ needsInstructions: false, instructionCount: 0 })).toBe(
       'Nu necesită'
     );
     expect(instructionStateLabel({ needsInstructions: true, instructionCount: 1 })).toBe(
       '1 instrucțiune'
+    );
+    expect(instructionStateLabel({ needsInstructions: true, instructionCount: 20 })).toBe(
+      '20 de instrucțiuni'
     );
   });
 });

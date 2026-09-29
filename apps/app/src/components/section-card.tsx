@@ -8,6 +8,7 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
+  headingLevel?: 2 | 3;
 };
 
 // The action shares the title's row and the description runs the full width below both, so
@@ -16,14 +17,20 @@ export function SectionCard({
   title,
   description,
   action,
+  headingLevel = 2,
   className,
   children,
   ...props
 }: SectionCardProps) {
+  const Heading = headingLevel === 3 ? 'h3' : 'h2';
   return (
-    <Card className={cn('gap-5', className)} {...props}>
+    // The scroll margin clears the sticky app header and a record's tab bar when a link scrolls
+    // to the card by its id.
+    <Card className={cn('scroll-mt-32 gap-5', className)} {...props}>
       <CardHeader className="grid-cols-[minmax(0,1fr)_auto] grid-rows-none items-start gap-x-4 gap-y-1">
-        <h2 className="flex min-h-8 items-center text-lg leading-snug font-semibold">{title}</h2>
+        <Heading className="flex min-h-8 items-center text-lg leading-snug font-semibold">
+          {title}
+        </Heading>
         {action && <div className="flex flex-wrap justify-end gap-2">{action}</div>}
         {description && (
           <p className="col-span-full max-w-2xl text-sm text-muted-foreground">{description}</p>

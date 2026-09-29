@@ -326,7 +326,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   const positions = page.getByTestId('job-position-row');
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')
-  ).toHaveText('Nedecis');
+  ).toHaveText('De stabilit');
   await positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-open').click();
   await expect(page.getByTestId('job-position-page')).toBeVisible();
   await page.getByTestId('equipment-add').click();
@@ -335,12 +335,12 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('equipment-duration').fill('12');
   await page.getByTestId('equipment-save').click();
   await expect(page.getByText('Articolul a fost adăugat.')).toBeVisible();
-  await expect(page.getByTestId('equipment-state')).toHaveText('Un articol');
+  await expect(page.getByTestId('equipment-state')).toHaveText('1 articol');
   // The same page decides the instruction modules the post applies (ADR 012).
   await page.getByTestId('instructions-pick').click();
   await page.getByTestId('instructions-pick-option').first().click();
   await page.getByTestId('instructions-pick-save').click();
-  await expect(page.getByTestId('instructions-state')).toHaveText('O instrucțiune');
+  await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
   await page.getByTestId('job-position-back').click();
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')

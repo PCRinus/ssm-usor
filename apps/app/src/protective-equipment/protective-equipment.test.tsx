@@ -158,7 +158,7 @@ describe("a job position's page", () => {
     mockApi();
     mount();
     await screen.findByTestId('job-position-page');
-    expect(screen.getByRole('heading', { level: 1, name: 'Sudor' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
     expect(screen.getByText('Personal de execuție')).toBeTruthy();
     expect(screen.getByText('la 2 luni')).toBeTruthy();
     expect(screen.getByTestId('job-position-employees-link').textContent).toBe('3 angajați');
@@ -175,6 +175,50 @@ describe("a job position's page", () => {
       '2 buc. / 3 luni'
     );
     expect(screen.getByTestId('equipment-state').textContent).toBe('2 articole');
+  });
+
+  it('stays under the client header, with Posturi de lucru as the current tab', async () => {
+    mockApi();
+    mount();
+    await screen.findByTestId('job-position-page');
+    expect(screen.getByRole('heading', { level: 1, name: 'VELOCE CAFE SRL' })).toBeTruthy();
+    const current = screen
+      .getAllByTestId('client-section')
+      .filter((link) => link.getAttribute('aria-current') === 'page');
+    expect(current.map((link) => link.textContent)).toEqual(['Posturi de lucru']);
+    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(within(breadcrumb).getByText('Sudor')).toBeTruthy();
+    expect(
+      screen.getAllByTestId('job-position-section-link').map((link) => link.getAttribute('href'))
+    ).toEqual([
+      `${welderPath}#details`,
+      `${welderPath}#protective-equipment`,
+      `${welderPath}#instructions`,
+    ]);
+    expect(
+      ['details', 'protective-equipment', 'instructions'].map(
+        (id) => document.getElementById(id)?.querySelector('h3')?.textContent
+      )
+    ).toEqual([
+      'Postul',
+      expect.stringMatching(/^Echipament de protecție/),
+      expect.stringMatching(/^Instrucțiuni/),
+    ]);
+  });
+
+  it('scrolls to the section in the address once the sections above it have loaded', async () => {
+    mockApi();
+    const equipmentRowsWhenScrolled: number[] = [];
+    vi.mocked(Element.prototype.scrollIntoView).mockImplementation(function (this: Element) {
+      if (this.id === 'instructions') {
+        equipmentRowsWhenScrolled.push(
+          document.querySelectorAll('[data-testid="equipment-row"]').length
+        );
+      }
+    });
+    mount(`${welderPath}#instructions`);
+    await screen.findAllByTestId('equipment-row');
+    await waitFor(() => expect(equipmentRowsWhenScrolled.at(-1)).toBe(2));
   });
 
   it('is not found for a position the client does not have', async () => {
@@ -200,7 +244,7 @@ describe("a job position's equipment", () => {
     expect((await screen.findByTestId('equipment-empty')).textContent).toContain(
       'nu se poate genera'
     );
-    expect(screen.getByTestId('equipment-state').textContent).toBe('Nedecis');
+    expect(screen.getByTestId('equipment-state').textContent).toBe('De stabilit');
 
     mockApi({
       equipment: {
@@ -361,13 +405,19 @@ describe('labels', () => {
     expect(entryCountLabel(3)).toBe('3 articole');
     expect(entryCountLabel(20)).toBe('20 de articole');
     expect(equipmentStateLabel({ needsProtectiveEquipment: null, equipmentCount: 0 })).toBe(
-      'Nedecis'
+      'De stabilit'
     );
     expect(equipmentStateLabel({ needsProtectiveEquipment: false, equipmentCount: 0 })).toBe(
       'Nu necesită'
     );
     expect(equipmentStateLabel({ needsProtectiveEquipment: true, equipmentCount: 1 })).toBe(
       '1 articol'
+    );
+    expect(equipmentStateLabel({ needsProtectiveEquipment: true, equipmentCount: 4 })).toBe(
+      '4 articole'
+    );
+    expect(equipmentStateLabel({ needsProtectiveEquipment: true, equipmentCount: 20 })).toBe(
+      '20 de articole'
     );
     expect(quantityLabel({ quantity: 2, durationMonths: 1 })).toBe('2 buc. / 1 lună');
     expect(quantityLabel({ quantity: 10, durationMonths: null })).toBe('10 buc. / consum');

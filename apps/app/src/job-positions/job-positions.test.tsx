@@ -138,7 +138,7 @@ describe("a client's job positions", () => {
       'Niciun angajat'
     );
     expect(within(first!).getByTestId('job-position-equipment').textContent).toBe('2 articole');
-    expect(within(second!).getByTestId('job-position-equipment').textContent).toBe('Nedecis');
+    expect(within(second!).getByTestId('job-position-equipment').textContent).toBe('De stabilit');
 
     const sections = screen.getAllByTestId('client-section').map((item) => item.textContent);
     expect(sections.slice(0, 3)).toEqual(['Detalii', 'Angajați', 'Posturi de lucru']);
@@ -154,7 +154,7 @@ describe("a client's job positions", () => {
     await user.click(within(row!).getByTestId('job-position-open'));
     await screen.findByTestId('job-position-page');
     expect(runtime.router.state.location.pathname).toBe(`${listPath}/${barista.id}`);
-    expect(screen.getByRole('heading', { level: 1, name: 'Barman preparator' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Barman preparator' })).toBeTruthy();
     expect(screen.getByText('Prepară și servește înghețată și cafea.')).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'Posturi de lucru' })).toBeTruthy();
