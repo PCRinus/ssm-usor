@@ -1,19 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { clientConflictReasons, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetClientQueryKey,
   getListClientsQueryKey,
-  lookupCompany,
   useCreateClient,
   useUpdateClient,
 } from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
 import {
   type Client,
   clientFormSchema,
@@ -24,43 +19,14 @@ import {
   toCreateClientRequest,
   toUpdateClientRequest,
 } from './client-form-schema';
-
-export type LookupState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'done'; message: string; inactive: boolean }
-  | { status: 'error'; message: string };
-
-const formFields = new Set<keyof ClientFormValues>(Object.keys(emptyClientForm) as never[]);
-
-function isFormField(path: string): path is keyof ClientFormValues {
-  return formFields.has(path as keyof ClientFormValues);
-}
-
-const wording = {
-  client: {
-    saved: 'Datele clientului au fost salvate.',
-    added: (name: string) => `${name} a fost adăugat.`,
-    archived: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
-    gone: 'Clientul nu mai există în organizația ta.',
-    forbidden: 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.',
-    failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
-  },
-  lead: {
-    saved: 'Datele clientului potențial au fost salvate.',
-    added: (name: string) => `${name} a fost adăugat printre clienții potențiali.`,
-    archived: 'Clientul potențial este arhivat; datele lui nu mai pot fi modificate.',
-    gone: 'Clientul potențial nu mai există în organizația ta.',
-    forbidden: 'Doar un administrator al organizației lucrează cu clienții potențiali.',
-    failed: 'Nu am putut salva clientul potențial. Verifică conexiunea și încearcă din nou.',
-  },
-} as const;
+import { clientWording, reportClientSaveError } from './client-save-error';
+import { useCompanyLookup } from './use-company-lookup';
 
 // With a client, the form corrects what was entered about it; without, it adds one, in the
 // stage it is given.
 export function useClientForm(client?: Client, newStage: ClientStage = 'client') {
   const stage = client?.stage ?? newStage;
-  const words = wording[stage];
+  const words = clientWording[stage];
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const router = useRouter();
@@ -70,44 +36,7 @@ export function useClientForm(client?: Client, newStage: ClientStage = 'client')
   });
   const create = useCreateClient({ request: apiRequest });
   const update = useUpdateClient({ request: apiRequest });
-  const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
-
-  async function lookupCui() {
-    const input = form.getValues('cui');
-    if (!isValidCuiInput(input)) {
-      form.setError('cui', { message: 'Introdu un CUI valid înainte de căutare.' });
-      return;
-    }
-    form.clearErrors('cui');
-    setLookup({ status: 'loading' });
-    try {
-      const { company } = await lookupCompany({ cui: normalizeCui(input)!.cui }, apiRequest);
-      const fill = { shouldDirty: true, shouldValidate: false };
-      form.setValue('legalName', company.legalName, fill);
-      form.setValue('vatPayer', company.vatPayer, fill);
-      form.setValue('caenCode', company.caenCode ?? '', fill);
-      form.setValue('tradeRegisterNumber', company.tradeRegisterNumber ?? '', fill);
-      form.setValue('countyCode', company.countyCode ?? '', fill);
-      form.setValue('locality', company.locality ?? '', fill);
-      form.setValue('addressLine', company.addressLine ?? '', fill);
-      form.clearErrors();
-      setLookup({
-        status: 'done',
-        inactive: company.inactive,
-        message: company.inactive
-          ? `Date preluate de la ANAF pentru ${company.legalName}. Atenție: compania figurează ca inactivă.`
-          : `Date preluate de la ANAF pentru ${company.legalName}. Verifică-le înainte de salvare.`,
-      });
-    } catch (cause) {
-      setLookup({
-        status: 'error',
-        message:
-          cause instanceof ApiHttpError && cause.status === 404
-            ? 'Nu am găsit nicio companie cu acest CUI la ANAF. Completează datele manual.'
-            : 'Serviciul ANAF nu este disponibil momentan. Completează datele manual.',
-      });
-    }
-  }
+  const { lookup, lookupCui } = useCompanyLookup(form);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -135,49 +64,7 @@ export function useClientForm(client?: Client, newStage: ClientStage = 'client')
         ? navigate({ to: '/leads/$leadId', params: { leadId: created.client.id } })
         : navigate({ to: '/clients' }));
     } catch (cause) {
-      if (cause instanceof ApiHttpError) {
-        const body = cause.body as Partial<ApiErrorResponse> | undefined;
-        if (cause.status === 409) {
-          if (body?.reason === clientConflictReasons.clientArchived) {
-            form.setError('root.server', { message: words.archived });
-          } else {
-            form.setError('cui', {
-              message:
-                body?.reason === clientConflictReasons.cuiTakenByArchived
-                  ? 'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.'
-                  : body?.reason === clientConflictReasons.cuiTakenByLead
-                    ? 'Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un administrator o poate transforma în client.'
-                    : 'Există deja un client cu acest CUI în organizația ta.',
-            });
-          }
-          return;
-        }
-        if (cause.status === 404) {
-          form.setError('root.server', { message: words.gone });
-          return;
-        }
-        if (cause.status === 400 && body?.issues?.length) {
-          let mapped = false;
-          for (const issue of body.issues) {
-            if (isFormField(issue.path)) {
-              form.setError(issue.path, { message: issue.message });
-              mapped = true;
-            }
-          }
-          if (mapped) return;
-        }
-        if (cause.status === 401) {
-          form.setError('root.server', {
-            message: 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.',
-          });
-          return;
-        }
-        if (cause.status === 403) {
-          form.setError('root.server', { message: words.forbidden });
-          return;
-        }
-      }
-      form.setError('root.server', { message: words.failed });
+      reportClientSaveError(form, cause, stage);
     }
   });
 
