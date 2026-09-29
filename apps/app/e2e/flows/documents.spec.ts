@@ -64,7 +64,9 @@ test('generating waits for the data the documents print, and says where it is fi
   await expect(page.getByTestId('details-administrative-interval')).toBeFocused();
 });
 
-test('a row leads to its field, and the strip leads back to generating', async ({ page }) => {
+test('a row leads to its field, and the toast of the save leads back to generating', async ({
+  page,
+}) => {
   const owner = await createAccount('documents-row', 'Dana Documente');
   const organizationId = await createOrganization('Documente rânduri E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. UN CÂMP LIPSĂ E2E S.R.L.');
@@ -85,16 +87,12 @@ test('a row leads to its field, and the strip leads back to generating', async (
   await page.getByTestId('legal-representative-save').click();
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
 
-  await expect(page.getByTestId('way-back')).toContainText(
-    'Completezi datele pentru documentație.'
-  );
-  await page.getByTestId('way-back-link').click();
+  await page.getByRole('button', { name: 'Înapoi la generare' }).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents$`));
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
   await expect(page.getByText('Au fost generate 20 documente.')).toBeVisible();
-  await expect(page.getByTestId('way-back')).toHaveCount(0);
 });
 
 test('a client gets its documentation, downloads a decision, issues it, and corrects it', async ({
@@ -377,13 +375,13 @@ test("from 10 employees the set includes the decision on the workers' representa
     new RegExp(`/clients/${clientId}/job-positions/[0-9a-f-]+#protective-equipment$`)
   );
   await expect(page.getByTestId('job-position-page')).toBeVisible();
-  await expect(page.getByTestId('way-back')).toBeVisible();
   await page.getByTestId('equipment-add').click();
   await page.getByTestId('equipment-risk').fill('Electrocutare (mâini)');
   await page.getByTestId('equipment-item').fill('Mănuși electroizolante');
   await page.getByTestId('equipment-duration').fill('12');
   await page.getByTestId('equipment-save').click();
   await expect(page.getByText('Articolul a fost adăugat.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Înapoi la generare' })).toBeVisible();
   await expect(page.getByTestId('equipment-state')).toHaveText('1 articol');
   // The same page decides the instruction modules the post applies (ADR 012).
   await page.getByTestId('instructions-pick').click();

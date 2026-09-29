@@ -151,8 +151,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await page.getByTestId('company-bankName').fill('Banca Transilvania');
   await page.getByTestId('company-details-save').click();
   await expect(page.getByText('Datele firmei au fost salvate.')).toBeVisible();
-  await expect(page.getByTestId('way-back')).toContainText('Completezi datele pentru contract.');
-  await page.getByTestId('way-back-link').click();
+  await page.getByRole('button', { name: 'Înapoi la contract' }).click();
   await expect(page).toHaveURL(new RegExp(`/leads/${leadId}$`));
 
   // The lead's own card opens on the same page, at the field.
