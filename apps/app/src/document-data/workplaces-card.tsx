@@ -25,6 +25,7 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -147,8 +148,8 @@ export function WorkplacesCard({
             : 'Niciun punct de lucru încă. Începe cu sediul social, apoi adaugă celelalte locuri în care lucrează clientul.'}
         </p>
       ) : (
-        <Table>
-          <TableHeader>
+        <Table className="max-sm:block">
+          <TableHeader className="max-sm:sr-only">
             <TableRow>
               <TableHead>Denumire</TableHead>
               <TableHead>Adresă</TableHead>
@@ -159,7 +160,7 @@ export function WorkplacesCard({
               )}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="max-sm:block">
             {workplaces.data.items.map((workplace) => {
               const clientAddress = differingClientAddress(workplace, client);
               return (
@@ -167,8 +168,12 @@ export function WorkplacesCard({
                   key={workplace.id}
                   data-testid="workplace-row"
                   {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
+                  className={cn(
+                    'max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:gap-y-1 max-sm:py-3',
+                    !readOnly && 'cursor-pointer'
+                  )}
                 >
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium max-sm:p-0 max-sm:whitespace-normal">
                     <span className="flex flex-wrap items-center gap-2">
                       {workplace.name}
                       {workplace.isRegisteredOffice && (
@@ -176,7 +181,7 @@ export function WorkplacesCard({
                       )}
                     </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:whitespace-normal">
                     {workplaceAddress(workplace) || '—'}
                     {clientAddress && (
                       <span
@@ -200,7 +205,7 @@ export function WorkplacesCard({
                     )}
                   </TableCell>
                   {!readOnly && (
-                    <TableCell>
+                    <TableCell className="max-sm:col-start-2 max-sm:row-span-2 max-sm:row-start-1 max-sm:p-0">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

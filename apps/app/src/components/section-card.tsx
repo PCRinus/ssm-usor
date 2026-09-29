@@ -23,7 +23,7 @@ export function SectionCard({
   return (
     <Card className={cn('gap-5', className)} {...props}>
       <CardHeader className="grid-cols-[minmax(0,1fr)_auto] grid-rows-none items-start gap-x-4 gap-y-1">
-        <h2 className="text-lg leading-8 font-semibold">{title}</h2>
+        <h2 className="flex min-h-8 items-center text-lg leading-snug font-semibold">{title}</h2>
         {action && <div className="flex flex-wrap justify-end gap-2">{action}</div>}
         {description && (
           <p className="col-span-full max-w-2xl text-sm text-muted-foreground">{description}</p>
