@@ -213,6 +213,62 @@ describe('leads', () => {
     );
   });
 
+  it('heads the page with the name, the CUI and the declared headcount, and the company below', async () => {
+    mockApi();
+    mount(`/leads/${leadId}`);
+    const page = await screen.findByTestId('lead-page');
+    const header = page.querySelector('header')!;
+    expect(within(header).getByRole('heading', { level: 1 }).textContent).toBe(
+      'VELOCITA URBANA SRL'
+    );
+    expect(header.textContent).toContain('41760933');
+    expect(within(header).getByTestId('lead-declared-employees').textContent).toBe('6');
+    expect(header.textContent).not.toContain('CAEN');
+    expect(header.textContent).not.toContain('Sediu');
+    expect(within(header).getByTestId('lead-edit').textContent).toBe('Modifică');
+    expect(within(header).getByTestId('lead-archive').textContent).toBe('Arhivează…');
+    expect(within(header).getByTestId('lead-promote').textContent).toBe('Transformă în client…');
+
+    const cards = Array.from(page.querySelectorAll('[data-testid$="-card"]'))
+      .map((card) => card.getAttribute('data-testid'))
+      .filter((id) => !id!.startsWith('contract-'));
+    expect(cards).toEqual([
+      'company-card',
+      'contact-card',
+      'service-contract-card',
+      'owner-notes-card',
+    ]);
+    const company = screen.getByTestId('company-card');
+    expect(within(company).getByTestId('company-caen').textContent).toBe(
+      '5630Baruri și alte activități de servire a băuturilor'
+    );
+    expect(within(company).getByTestId('company-locality').textContent).toBe('București');
+  });
+
+  it('corrects the company data of a lead in place, keeping its declared headcount', async () => {
+    let saved = lead;
+    mockApi({
+      get: () => Response.json({ client: saved }),
+      update: (init) => {
+        saved = { ...saved, ...JSON.parse(String(init?.body)) };
+        return Response.json({ client: saved });
+      },
+    });
+    mount(`/leads/${leadId}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('company-edit'));
+    const address = screen.getByTestId<HTMLInputElement>('client-address');
+    await user.clear(address);
+    await user.type(address, 'Str. Nouă 1');
+    await user.click(screen.getByTestId('company-save'));
+
+    expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
+    const body = JSON.parse(String(requests(`/clients/${leadId}`, 'PUT')[0]![1]?.body));
+    expect(body).toMatchObject({ addressLine: 'Str. Nouă 1', declaredEmployeeCount: 6 });
+    expect(body).not.toHaveProperty('contactName');
+    expect((await screen.findByTestId('company-address')).textContent).toBe('Str. Nouă 1');
+  });
+
   it('edits the contact on the lead page, keeping what the lead declared', async () => {
     let saved = lead;
     mockApi({

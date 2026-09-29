@@ -22,7 +22,7 @@ import {
   IdCard,
   UsersRound,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { z } from 'zod';
 
 import { useMe } from '../../../account/use-me';
@@ -32,6 +32,7 @@ import {
   type ClientArchiveChange,
   ClientArchiveDialog,
 } from '../../../clients/client-archive-dialog';
+import { HeaderFact, RecordHeader } from '../../../clients/record-header';
 import { Notice } from '../../../components/notice';
 import { SectionNav } from '../../../components/section-nav';
 
@@ -91,15 +92,6 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   errorComponent: ClientError,
 });
 
-function Fact({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex min-w-0 gap-1.5">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="truncate">{children}</dd>
-    </div>
-  );
-}
-
 export function ClientLayout() {
   const { client } = Route.useLoaderData();
   // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
@@ -111,28 +103,24 @@ export function ClientLayout() {
   if (fullPage) return <Outlet />;
   return (
     <div data-testid="client-page" className="space-y-5">
-      <header className="flex min-w-0 flex-wrap items-center gap-3">
-        <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-          aria-hidden="true"
-        >
-          <Building2 className="size-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-semibold tracking-tight">{client.legalName}</h1>
-          <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
-            <Fact label="CUI">
+      <RecordHeader
+        icon={Building2}
+        title={client.legalName}
+        facts={
+          <>
+            <HeaderFact label="CUI">
               <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
-            </Fact>
-            <Fact label="Angajați">
+            </HeaderFact>
+            <HeaderFact label="Angajați">
               <span className="tabular-nums" data-testid="client-employee-count">
                 {client.currentEmployeeCount}
               </span>
-            </Fact>
-          </dl>
-        </div>
-        {!client.archivedAt && isOwner && (
-          <div className="shrink-0 max-sm:w-full max-sm:pl-12">
+            </HeaderFact>
+          </>
+        }
+        actions={
+          !client.archivedAt &&
+          isOwner && (
             <Button
               variant="outline"
               size="sm"
@@ -142,9 +130,9 @@ export function ClientLayout() {
               <Archive aria-hidden="true" />
               Arhivează…
             </Button>
-          </div>
-        )}
-      </header>
+          )
+        }
+      />
       {client.archivedAt && (
         <Notice
           variant="warning"

@@ -18,7 +18,7 @@ export type ClientRow = ClientListResponse['items'][number];
 
 const helper = createDataTableColumns<ClientRow>();
 
-export function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'locality'>) {
+function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'locality'>) {
   const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
   return [client.locality, county].filter(Boolean).join(', ');
 }
