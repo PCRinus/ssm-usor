@@ -140,6 +140,18 @@ async function readModule(db: DataClient, moduleId: string) {
   return toModule(data, counts.get(moduleId) ?? 0);
 }
 
+async function readVersion(db: DataClient, moduleId: string, versionId: string) {
+  const { data, error } = await db
+    .from('instruction_module_versions')
+    .select('id, number, created_at')
+    .eq('id', versionId)
+    .eq('module_id', moduleId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'read instruction module version');
+  if (!data) throw new ApiError('not_found', 'This module has no such version.');
+  return { id: data.id, number: data.number, createdAt: data.created_at };
+}
+
 async function addVersion(
   db: DataClient,
   files: FileStore,
@@ -313,16 +325,21 @@ export const getInstructionModuleFileLink: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { moduleId } = c.req.valid('param');
+  const { versionId } = c.req.valid('query');
   const db = createDataClient(c);
   const module = await readModule(db, moduleId);
+  const version = versionId ? await readVersion(db, moduleId, versionId) : module.version;
   const expiresInSeconds = 60;
-  const path = `${c.get('membership').organizationId}/${moduleId}/${module.version.number}.docx`;
-  const fileName = fileNameOf(module.title);
+  const path = `${c.get('membership').organizationId}/${moduleId}/${version.number}.docx`;
+  const fileName = fileNameOf(
+    versionId ? `${module.title} - versiunea ${version.number}` : module.title
+  );
   return c.json(
     {
       url: await createFileStore(c).moduleLink(path, expiresInSeconds),
       fileName,
       expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
+      version: { id: version.id, number: version.number, createdAt: version.createdAt },
     },
     200
   );

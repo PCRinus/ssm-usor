@@ -482,6 +482,64 @@ describe('GET /clients/{clientId}/documents', () => {
     });
   });
 
+  it('names the module versions the own instructions annex, and a newer one in the library', async () => {
+    const moduleId = 'c1c1c1c1-0000-4000-8000-000000000001';
+    const annexed = {
+      id: 'c1c1c1c1-0000-4000-8000-000000000011',
+      module_id: moduleId,
+      number: 1,
+      created_at: '2026-09-26T10:00:00+00:00',
+    };
+    const current = {
+      ...annexed,
+      id: 'c1c1c1c1-0000-4000-8000-000000000012',
+      number: 2,
+      created_at: '2026-10-02T10:00:00+00:00',
+    };
+    const snapshot = {
+      annexes: [
+        { number: 1, title: 'Scări metalice', versionId: annexed.id, versionDate: '26.09.2026' },
+      ],
+    };
+    mockUpstream({
+      documents: () =>
+        Response.json([
+          {
+            ...documentRow,
+            type_key: 'own_instructions',
+            decision_number: null,
+            document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
+          },
+        ]),
+      moduleVersions: (_init, url) =>
+        Response.json(url?.searchParams.get('module_id') ? [current, annexed] : [annexed]),
+    });
+    const body = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(body.items[0]!.draft!.annexes).toEqual([
+      {
+        number: 1,
+        title: 'Scări metalice',
+        moduleId,
+        version: { id: annexed.id, number: 1, createdAt: annexed.created_at },
+        newerVersion: { number: 2, createdAt: current.created_at },
+      },
+    ]);
+    expect(
+      new URL(String(calls('/rest/v1/instruction_module_versions')[0]![0])).searchParams.get('id')
+    ).toBe(`in.(${annexed.id})`);
+  });
+
+  it('looks up no module versions when nothing is annexed', async () => {
+    mockUpstream();
+    const body = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(body.items[0]!.draft!.annexes).toEqual([]);
+    expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
+  });
+
   it('marks a draft whose printed data has changed since', async () => {
     mockUpstream({
       clients: () => Response.json({ ...clientRow, legal_representative_name: 'Alt NUME' }),

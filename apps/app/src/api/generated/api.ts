@@ -1430,10 +1430,18 @@ export interface UpdateInstructionModuleRequest {
   archived?: boolean;
 }
 
+export type InstructionModuleFileLinkResponseVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
 export interface InstructionModuleFileLinkResponse {
   url: string;
   fileName: string;
   expiresAt: string;
+  version: InstructionModuleFileLinkResponseVersion;
 }
 
 export type PositionInstructionsResponseItemsItemGroup =
@@ -2183,6 +2191,32 @@ export type ClientDocumentListResponseItemsItemDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type ClientDocumentListResponseItemsItemDraftAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemDraftAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentListResponseItemsItemDraftAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: ClientDocumentListResponseItemsItemDraftAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: ClientDocumentListResponseItemsItemDraftAnnexesItemNewerVersion;
+};
+
 /**
  * @nullable
  */
@@ -2202,6 +2236,7 @@ export type ClientDocumentListResponseItemsItemDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentListResponseItemsItemDraftReceivedCopy;
+  annexes: ClientDocumentListResponseItemsItemDraftAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2220,6 +2255,32 @@ export const ClientDocumentListResponseItemsItemIssuedStatus = {
 export type ClientDocumentListResponseItemsItemIssuedReceivedCopy = {
   uploadedAt: string;
 } | null;
+
+export type ClientDocumentListResponseItemsItemIssuedAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemIssuedAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentListResponseItemsItemIssuedAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: ClientDocumentListResponseItemsItemIssuedAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: ClientDocumentListResponseItemsItemIssuedAnnexesItemNewerVersion;
+};
 
 /**
  * @nullable
@@ -2240,6 +2301,7 @@ export type ClientDocumentListResponseItemsItemIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentListResponseItemsItemIssuedReceivedCopy;
+  annexes: ClientDocumentListResponseItemsItemIssuedAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2320,6 +2382,32 @@ export type GenerateDocumentsResponseCreatedItemDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type GenerateDocumentsResponseCreatedItemDraftAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemDraftAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type GenerateDocumentsResponseCreatedItemDraftAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: GenerateDocumentsResponseCreatedItemDraftAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: GenerateDocumentsResponseCreatedItemDraftAnnexesItemNewerVersion;
+};
+
 /**
  * @nullable
  */
@@ -2339,6 +2427,7 @@ export type GenerateDocumentsResponseCreatedItemDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: GenerateDocumentsResponseCreatedItemDraftReceivedCopy;
+  annexes: GenerateDocumentsResponseCreatedItemDraftAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2357,6 +2446,32 @@ export const GenerateDocumentsResponseCreatedItemIssuedStatus = {
 export type GenerateDocumentsResponseCreatedItemIssuedReceivedCopy = {
   uploadedAt: string;
 } | null;
+
+export type GenerateDocumentsResponseCreatedItemIssuedAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemIssuedAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type GenerateDocumentsResponseCreatedItemIssuedAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: GenerateDocumentsResponseCreatedItemIssuedAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: GenerateDocumentsResponseCreatedItemIssuedAnnexesItemNewerVersion;
+};
 
 /**
  * @nullable
@@ -2377,6 +2492,7 @@ export type GenerateDocumentsResponseCreatedItemIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: GenerateDocumentsResponseCreatedItemIssuedReceivedCopy;
+  annexes: GenerateDocumentsResponseCreatedItemIssuedAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2429,6 +2545,32 @@ export type ClientDocumentResponseDocumentDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type ClientDocumentResponseDocumentDraftAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentDraftAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentResponseDocumentDraftAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: ClientDocumentResponseDocumentDraftAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: ClientDocumentResponseDocumentDraftAnnexesItemNewerVersion;
+};
+
 /**
  * @nullable
  */
@@ -2448,6 +2590,7 @@ export type ClientDocumentResponseDocumentDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentResponseDocumentDraftReceivedCopy;
+  annexes: ClientDocumentResponseDocumentDraftAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2466,6 +2609,32 @@ export const ClientDocumentResponseDocumentIssuedStatus = {
 export type ClientDocumentResponseDocumentIssuedReceivedCopy = {
   uploadedAt: string;
 } | null;
+
+export type ClientDocumentResponseDocumentIssuedAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentIssuedAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type ClientDocumentResponseDocumentIssuedAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: ClientDocumentResponseDocumentIssuedAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: ClientDocumentResponseDocumentIssuedAnnexesItemNewerVersion;
+};
 
 /**
  * @nullable
@@ -2486,6 +2655,7 @@ export type ClientDocumentResponseDocumentIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentResponseDocumentIssuedReceivedCopy;
+  annexes: ClientDocumentResponseDocumentIssuedAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2585,6 +2755,32 @@ export type ServiceContractResponseDocumentDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type ServiceContractResponseDocumentDraftAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentDraftAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type ServiceContractResponseDocumentDraftAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: ServiceContractResponseDocumentDraftAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: ServiceContractResponseDocumentDraftAnnexesItemNewerVersion;
+};
+
 /**
  * @nullable
  */
@@ -2604,6 +2800,7 @@ export type ServiceContractResponseDocumentDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ServiceContractResponseDocumentDraftReceivedCopy;
+  annexes: ServiceContractResponseDocumentDraftAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -2622,6 +2819,32 @@ export const ServiceContractResponseDocumentIssuedStatus = {
 export type ServiceContractResponseDocumentIssuedReceivedCopy = {
   uploadedAt: string;
 } | null;
+
+export type ServiceContractResponseDocumentIssuedAnnexesItemVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentIssuedAnnexesItemNewerVersion = {
+  /** @minimum 1 */
+  number: number;
+  createdAt: string;
+} | null;
+
+export type ServiceContractResponseDocumentIssuedAnnexesItem = {
+  /** @minimum 1 */
+  number: number;
+  title: string;
+  moduleId: string;
+  version: ServiceContractResponseDocumentIssuedAnnexesItemVersion;
+  /** @nullable */
+  newerVersion: ServiceContractResponseDocumentIssuedAnnexesItemNewerVersion;
+};
 
 /**
  * @nullable
@@ -2642,6 +2865,7 @@ export type ServiceContractResponseDocumentIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ServiceContractResponseDocumentIssuedReceivedCopy;
+  annexes: ServiceContractResponseDocumentIssuedAnnexesItem[];
   createdAt: string;
 } | null;
 
@@ -3165,6 +3389,10 @@ export const UploadInstructionModuleGroup = {
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
 } as const;
+
+export type GetInstructionModuleFileLinkParams = {
+  versionId?: string;
+};
 
 export type GetDocumentDownloadParams = {
   format?: GetDocumentDownloadFormat;
@@ -7515,26 +7743,48 @@ export const useUpdateInstructionModule = <
   return useMutation(getUpdateInstructionModuleMutationOptions(options), queryClient);
 };
 
-export const getGetInstructionModuleFileLinkUrl = (moduleId: string) => {
-  return `/instruction-modules/${moduleId}/file-link`;
+export const getGetInstructionModuleFileLinkUrl = (
+  moduleId: string,
+  params?: GetInstructionModuleFileLinkParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/instruction-modules/${moduleId}/file-link?${stringifiedParams}`
+    : `/instruction-modules/${moduleId}/file-link`;
 };
 
 /**
- * A signed link to the Word file of the current version, valid for a minute, named after the module. The editor loads it; a download saves it.
- * @summary A short-lived link to the current file
+ * A signed link to the Word file of the current version, or of `versionId`, valid for a minute, named after the module. The editor loads it; a download saves it. An earlier version is what a document annexed, and its file name carries its number.
+ * @summary A short-lived link to the file of a version
  */
 export const getInstructionModuleFileLink = async (
   moduleId: string,
+  params?: GetInstructionModuleFileLinkParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<InstructionModuleFileLinkResponse> => {
-  return apiFetch<InstructionModuleFileLinkResponse>(getGetInstructionModuleFileLinkUrl(moduleId), {
-    ...options,
-    method: 'GET',
-  });
+  return apiFetch<InstructionModuleFileLinkResponse>(
+    getGetInstructionModuleFileLinkUrl(moduleId, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
 };
 
-export const getGetInstructionModuleFileLinkQueryKey = (moduleId: string) => {
-  return [`/instruction-modules/${moduleId}/file-link`] as const;
+export const getGetInstructionModuleFileLinkQueryKey = (
+  moduleId: string,
+  params?: GetInstructionModuleFileLinkParams
+) => {
+  return [`/instruction-modules/${moduleId}/file-link`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetInstructionModuleFileLinkQueryOptions = <
@@ -7542,6 +7792,7 @@ export const getGetInstructionModuleFileLinkQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   moduleId: string,
+  params?: GetInstructionModuleFileLinkParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
@@ -7551,11 +7802,12 @@ export const getGetInstructionModuleFileLinkQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetInstructionModuleFileLinkQueryKey(moduleId);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetInstructionModuleFileLinkQueryKey(moduleId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstructionModuleFileLink>>> = ({
     signal,
-  }) => getInstructionModuleFileLink(moduleId, { signal, ...requestOptions });
+  }) => getInstructionModuleFileLink(moduleId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -7577,6 +7829,7 @@ export function useGetInstructionModuleFileLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   moduleId: string,
+  params: undefined | GetInstructionModuleFileLinkParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
@@ -7598,6 +7851,7 @@ export function useGetInstructionModuleFileLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   moduleId: string,
+  params?: GetInstructionModuleFileLinkParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
@@ -7619,6 +7873,7 @@ export function useGetInstructionModuleFileLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   moduleId: string,
+  params?: GetInstructionModuleFileLinkParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
@@ -7628,7 +7883,7 @@ export function useGetInstructionModuleFileLink<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary A short-lived link to the current file
+ * @summary A short-lived link to the file of a version
  */
 
 export function useGetInstructionModuleFileLink<
@@ -7636,6 +7891,7 @@ export function useGetInstructionModuleFileLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   moduleId: string,
+  params?: GetInstructionModuleFileLinkParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
@@ -7644,7 +7900,7 @@ export function useGetInstructionModuleFileLink<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetInstructionModuleFileLinkQueryOptions(moduleId, options);
+  const queryOptions = getGetInstructionModuleFileLinkQueryOptions(moduleId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

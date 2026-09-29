@@ -6,6 +6,7 @@ import {
   createAccount,
   createClientCompany,
   createOrganization,
+  openDocumentSection,
   signIn,
 } from './support';
 
@@ -54,7 +55,7 @@ test('a document is printed as a PDF, from the list and from the editor', async 
   await page.goto(`/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByTestId('document-row')).toHaveCount(20);
+  await openDocumentSection(page, '1');
   const firstAid = page
     .getByTestId('document-row')
     .filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
