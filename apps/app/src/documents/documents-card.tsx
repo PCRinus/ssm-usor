@@ -7,6 +7,12 @@ import {
   unfilledMark,
   uploadedDocumentTypes,
 } from '@ssm-usor/contracts';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@ssm-usor/ui/components/accordion';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
@@ -60,6 +66,12 @@ import {
   notApplicableTitles,
   workersRepresentativesRule,
 } from './document-labels';
+import {
+  type DocumentSectionId,
+  documentSections,
+  otherSection,
+  sectionSummary,
+} from './document-sections';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { pdfOfRevision, usePrint } from './print';
 
@@ -140,10 +152,14 @@ export function DocumentsCard({
   clientId,
   userId,
   readOnly,
+  openSection,
+  onOpenSectionChange,
 }: {
   clientId: string;
   userId: string;
   readOnly: boolean;
+  openSection: DocumentSectionId | undefined;
+  onOpenSectionChange: (section: DocumentSectionId | undefined) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
@@ -189,11 +205,16 @@ export function DocumentsCard({
       : [];
   });
   const known = new Set<string>(packDocumentTypeKeys);
-  const rows = [
-    ...packRows,
-    ...items
-      .filter((item) => !known.has(item.typeKey))
-      .map((document): Row => ({ typeKey: document.typeKey, title: document.title, document })),
+  const otherRows = items
+    .filter((item) => !known.has(item.typeKey))
+    .map((document): Row => ({ typeKey: document.typeKey, title: document.title, document }));
+  const sections = [
+    ...documentSections.map((section) => ({
+      id: section.id as DocumentSectionId,
+      title: `${section.number}. ${section.title}`,
+      rows: packRows.filter((row) => (section.typeKeys as readonly string[]).includes(row.typeKey)),
+    })),
+    ...(otherRows.length > 0 ? [{ ...otherSection, rows: otherRows }] : []),
   ];
 
   function chooseFile(typeKey: string, title: string) {
@@ -355,261 +376,316 @@ export function DocumentsCard({
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Document</TableHead>
-                <TableHead>Stare</TableHead>
-                <TableHead>Data documentului</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">Acțiuni</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map(({ typeKey, title, document, notApplicable: skipped }) => {
-                if (skipped) {
-                  return (
-                    <TableRow key={typeKey} data-testid="document-not-applicable">
-                      <TableCell className="font-medium text-muted-foreground">{title}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          title={workersRepresentativesRule(
-                            documents.data?.currentEmployeeCount ?? 0,
-                            false
-                          )}
-                        >
-                          Nu se aplică
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">Sub 10 angajați</TableCell>
-                      <TableCell />
-                    </TableRow>
-                  );
-                }
-                if (!document) {
-                  return (
-                    <TableRow key={typeKey} data-testid="document-slot">
-                      <TableCell className="font-medium text-muted-foreground">{title}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          title="Aplicația nu scrie încă acest document. Încarcă fișierul Word scris în altă parte, ca documentația să fie completă."
-                        >
-                          Neîncărcat
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">—</TableCell>
-                      <TableCell>
-                        {!readOnly && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid="document-slot-upload"
-                            aria-label={`Încarcă ${title}`}
-                            disabled={busy}
-                            onClick={() => chooseFile(typeKey, title)}
-                          >
-                            <Upload aria-hidden="true" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-                const current = document.draft ?? document.issued;
-                const uploaded = isUploadedDocumentType(document.typeKey);
-                return (
-                  <TableRow
-                    key={document.id}
-                    data-testid="document-row"
-                    {...rowClickProps(
-                      () =>
-                        void navigate({
-                          to: '/clients/$clientId/documents/$documentId',
-                          params: { clientId, documentId: document.id },
-                          state: { openedFromList: true },
-                        })
-                    )}
-                  >
-                    <TableCell>
-                      <Link
-                        to="/clients/$clientId/documents/$documentId"
-                        params={{ clientId, documentId: document.id }}
-                        state={{ openedFromList: true }}
-                        data-testid="document-title"
-                        className="font-medium underline-offset-4 hover:underline"
-                      >
-                        {document.title}
-                      </Link>
-                      {document.decisionNumber !== null && (
-                        <span className="block text-xs text-muted-foreground">
-                          Decizia nr. {document.decisionNumber} SSM
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex flex-wrap gap-1.5">
-                        {document.issued && (
-                          <Badge data-testid="document-issued">
-                            Emis · rev. {document.issued.revision}
-                          </Badge>
-                        )}
-                        {document.draft && (
-                          <Badge variant="secondary" data-testid="document-draft">
-                            Ciornă · rev. {document.draft.revision}
-                          </Badge>
-                        )}
-                        {document.draft?.editedAt && uploaded && (
-                          <Badge variant="outline" data-testid="document-uploaded">
-                            Încărcat
-                          </Badge>
-                        )}
-                        {document.draft?.editedAt && !uploaded && (
-                          <Badge
-                            variant="outline"
-                            data-testid="document-edited"
-                            title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
-                          >
-                            Modificat
-                          </Badge>
-                        )}
-                        {document.draft?.dataChanged && (
-                          <Badge
-                            variant="outline"
-                            data-testid="document-data-changed"
-                            title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
-                          >
-                            Date modificate
-                          </Badge>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground tabular-nums">
-                      {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid="document-actions"
-                            aria-label={`Acțiuni pentru ${document.title}`}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild data-testid="document-open">
-                            <Link
-                              to="/clients/$clientId/documents/$documentId"
-                              params={{ clientId, documentId: document.id }}
-                            >
-                              {document.draft && !readOnly ? 'Deschide și modifică' : 'Deschide'}
-                            </Link>
-                          </DropdownMenuItem>
-                          {document.draft && (
-                            <DropdownMenuItem
-                              data-testid="document-download-draft"
-                              onSelect={() => void download(document, document.draft!)}
-                            >
-                              Descarcă ciorna
-                            </DropdownMenuItem>
-                          )}
-                          {document.issued && (
-                            <DropdownMenuItem
-                              data-testid="document-download-issued"
-                              onSelect={() => void download(document, document.issued!)}
-                            >
-                              Descarcă documentul emis
-                            </DropdownMenuItem>
-                          )}
-                          {document.issued?.hasPdf && (
-                            <DropdownMenuItem
-                              data-testid="document-download-pdf"
-                              onSelect={() => void download(document, document.issued!, 'pdf')}
-                            >
-                              Descarcă PDF-ul documentului emis
-                            </DropdownMenuItem>
-                          )}
-                          {document.draft && (
-                            <DropdownMenuItem
-                              data-testid="document-print-draft"
-                              disabled={printing}
-                              onSelect={() => void printRevision(document, document.draft!)}
-                            >
-                              Tipărește ciorna
-                            </DropdownMenuItem>
-                          )}
-                          {document.issued && (
-                            <DropdownMenuItem
-                              data-testid="document-print-issued"
-                              disabled={printing}
-                              onSelect={() => void printRevision(document, document.issued!)}
-                            >
-                              Tipărește documentul emis
-                            </DropdownMenuItem>
-                          )}
-                          {!readOnly && (
-                            <>
-                              <DropdownMenuSeparator />
-                              {document.issued && !document.draft && (
-                                <DropdownMenuItem
-                                  data-testid="document-start-draft"
-                                  disabled={busy}
-                                  onSelect={() => void startDraftFromIssued(document)}
-                                >
-                                  Modifică documentul emis
-                                </DropdownMenuItem>
-                              )}
-                              {!uploaded && (
-                                <DropdownMenuItem
-                                  data-testid="document-regenerate"
-                                  onSelect={() => setConfirming({ action: 'regenerate', document })}
-                                >
-                                  Generează din nou
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                data-testid="document-upload"
-                                onSelect={() =>
-                                  document.draft
-                                    ? setConfirming({ action: 'upload', document })
-                                    : chooseFile(document.typeKey, document.title)
-                                }
+          <Accordion
+            className="min-w-0"
+            type="single"
+            collapsible
+            value={openSection ?? ''}
+            onValueChange={(value) =>
+              onOpenSectionChange((value || undefined) as DocumentSectionId | undefined)
+            }
+          >
+            {sections.map((section) => (
+              <AccordionItem key={section.id} value={section.id} data-testid="document-section">
+                <AccordionTrigger data-testid="document-section-trigger">
+                  <span className="flex flex-1 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <span>{section.title}</span>
+                    <span
+                      data-testid="document-section-summary"
+                      className="font-normal text-muted-foreground"
+                    >
+                      {sectionSummary(section.rows)}
+                    </span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {section.rows.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      Documentele acestei secțiuni nu sunt generate încă.
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Document</TableHead>
+                          <TableHead>Stare</TableHead>
+                          <TableHead>Data documentului</TableHead>
+                          <TableHead className="w-12">
+                            <span className="sr-only">Acțiuni</span>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {section.rows.map(
+                          ({ typeKey, title, document, notApplicable: skipped }) => {
+                            if (skipped) {
+                              return (
+                                <TableRow key={typeKey} data-testid="document-not-applicable">
+                                  <TableCell className="font-medium text-muted-foreground">
+                                    {title}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="outline"
+                                      title={workersRepresentativesRule(
+                                        documents.data?.currentEmployeeCount ?? 0,
+                                        false
+                                      )}
+                                    >
+                                      Nu se aplică
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground">
+                                    Sub 10 angajați
+                                  </TableCell>
+                                  <TableCell />
+                                </TableRow>
+                              );
+                            }
+                            if (!document) {
+                              return (
+                                <TableRow key={typeKey} data-testid="document-slot">
+                                  <TableCell className="font-medium text-muted-foreground">
+                                    {title}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="outline"
+                                      title="Aplicația nu scrie încă acest document. Încarcă fișierul Word scris în altă parte, ca documentația să fie completă."
+                                    >
+                                      Neîncărcat
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground">—</TableCell>
+                                  <TableCell>
+                                    {!readOnly && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        data-testid="document-slot-upload"
+                                        aria-label={`Încarcă ${title}`}
+                                        disabled={busy}
+                                        onClick={() => chooseFile(typeKey, title)}
+                                      >
+                                        <Upload aria-hidden="true" />
+                                      </Button>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            }
+                            const current = document.draft ?? document.issued;
+                            const uploaded = isUploadedDocumentType(document.typeKey);
+                            return (
+                              <TableRow
+                                key={document.id}
+                                data-testid="document-row"
+                                {...rowClickProps(
+                                  () =>
+                                    void navigate({
+                                      to: '/clients/$clientId/documents/$documentId',
+                                      params: { clientId, documentId: document.id },
+                                      state: { openedFromList: true },
+                                    })
+                                )}
                               >
-                                Încarcă un fișier
-                              </DropdownMenuItem>
-                              {document.draft && (
-                                <>
-                                  <DropdownMenuItem
-                                    data-testid="document-issue"
-                                    onSelect={() => setConfirming({ action: 'issue', document })}
+                                <TableCell>
+                                  <Link
+                                    to="/clients/$clientId/documents/$documentId"
+                                    params={{ clientId, documentId: document.id }}
+                                    state={{ openedFromList: true }}
+                                    data-testid="document-title"
+                                    className="font-medium underline-offset-4 hover:underline"
                                   >
-                                    Emite
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    data-testid="document-delete-draft"
-                                    variant="destructive"
-                                    onSelect={() => setConfirming({ action: 'delete', document })}
-                                  >
-                                    Șterge ciorna
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                                    {document.title}
+                                  </Link>
+                                  {document.decisionNumber !== null && (
+                                    <span className="block text-xs text-muted-foreground">
+                                      Decizia nr. {document.decisionNumber} SSM
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <span className="flex flex-wrap gap-1.5">
+                                    {document.issued && (
+                                      <Badge data-testid="document-issued">
+                                        Emis · rev. {document.issued.revision}
+                                      </Badge>
+                                    )}
+                                    {document.draft && (
+                                      <Badge variant="secondary" data-testid="document-draft">
+                                        Ciornă · rev. {document.draft.revision}
+                                      </Badge>
+                                    )}
+                                    {document.draft?.editedAt && uploaded && (
+                                      <Badge variant="outline" data-testid="document-uploaded">
+                                        Încărcat
+                                      </Badge>
+                                    )}
+                                    {document.draft?.editedAt && !uploaded && (
+                                      <Badge
+                                        variant="outline"
+                                        data-testid="document-edited"
+                                        title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
+                                      >
+                                        Modificat
+                                      </Badge>
+                                    )}
+                                    {document.draft?.dataChanged && (
+                                      <Badge
+                                        variant="outline"
+                                        data-testid="document-data-changed"
+                                        title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
+                                      >
+                                        Date modificate
+                                      </Badge>
+                                    )}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground tabular-nums">
+                                  {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        data-testid="document-actions"
+                                        aria-label={`Acțiuni pentru ${document.title}`}
+                                      >
+                                        <MoreHorizontal aria-hidden="true" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem asChild data-testid="document-open">
+                                        <Link
+                                          to="/clients/$clientId/documents/$documentId"
+                                          params={{ clientId, documentId: document.id }}
+                                        >
+                                          {document.draft && !readOnly
+                                            ? 'Deschide și modifică'
+                                            : 'Deschide'}
+                                        </Link>
+                                      </DropdownMenuItem>
+                                      {document.draft && (
+                                        <DropdownMenuItem
+                                          data-testid="document-download-draft"
+                                          onSelect={() => void download(document, document.draft!)}
+                                        >
+                                          Descarcă ciorna
+                                        </DropdownMenuItem>
+                                      )}
+                                      {document.issued && (
+                                        <DropdownMenuItem
+                                          data-testid="document-download-issued"
+                                          onSelect={() => void download(document, document.issued!)}
+                                        >
+                                          Descarcă documentul emis
+                                        </DropdownMenuItem>
+                                      )}
+                                      {document.issued?.hasPdf && (
+                                        <DropdownMenuItem
+                                          data-testid="document-download-pdf"
+                                          onSelect={() =>
+                                            void download(document, document.issued!, 'pdf')
+                                          }
+                                        >
+                                          Descarcă PDF-ul documentului emis
+                                        </DropdownMenuItem>
+                                      )}
+                                      {document.draft && (
+                                        <DropdownMenuItem
+                                          data-testid="document-print-draft"
+                                          disabled={printing}
+                                          onSelect={() =>
+                                            void printRevision(document, document.draft!)
+                                          }
+                                        >
+                                          Tipărește ciorna
+                                        </DropdownMenuItem>
+                                      )}
+                                      {document.issued && (
+                                        <DropdownMenuItem
+                                          data-testid="document-print-issued"
+                                          disabled={printing}
+                                          onSelect={() =>
+                                            void printRevision(document, document.issued!)
+                                          }
+                                        >
+                                          Tipărește documentul emis
+                                        </DropdownMenuItem>
+                                      )}
+                                      {!readOnly && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          {document.issued && !document.draft && (
+                                            <DropdownMenuItem
+                                              data-testid="document-start-draft"
+                                              disabled={busy}
+                                              onSelect={() => void startDraftFromIssued(document)}
+                                            >
+                                              Modifică documentul emis
+                                            </DropdownMenuItem>
+                                          )}
+                                          {!uploaded && (
+                                            <DropdownMenuItem
+                                              data-testid="document-regenerate"
+                                              onSelect={() =>
+                                                setConfirming({ action: 'regenerate', document })
+                                              }
+                                            >
+                                              Generează din nou
+                                            </DropdownMenuItem>
+                                          )}
+                                          <DropdownMenuItem
+                                            data-testid="document-upload"
+                                            onSelect={() =>
+                                              document.draft
+                                                ? setConfirming({ action: 'upload', document })
+                                                : chooseFile(document.typeKey, document.title)
+                                            }
+                                          >
+                                            Încarcă un fișier
+                                          </DropdownMenuItem>
+                                          {document.draft && (
+                                            <>
+                                              <DropdownMenuItem
+                                                data-testid="document-issue"
+                                                onSelect={() =>
+                                                  setConfirming({ action: 'issue', document })
+                                                }
+                                              >
+                                                Emite
+                                              </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                              <DropdownMenuItem
+                                                data-testid="document-delete-draft"
+                                                variant="destructive"
+                                                onSelect={() =>
+                                                  setConfirming({ action: 'delete', document })
+                                                }
+                                              >
+                                                Șterge ciorna
+                                              </DropdownMenuItem>
+                                            </>
+                                          )}
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          }
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         )}
       </CardContent>
       <input

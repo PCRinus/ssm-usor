@@ -318,6 +318,15 @@ export async function cleanUp() {
   }
 }
 
+// A closed section of the client's documents renders no rows; `number` is the binder's.
+export async function openDocumentSection(page: Page, number: string) {
+  const trigger = page
+    .getByTestId('document-section-trigger')
+    .filter({ hasText: new RegExp(`^${number}\\. `) });
+  if ((await trigger.getAttribute('data-state')) !== 'open') await trigger.click();
+  await expect(trigger).toHaveAttribute('data-state', 'open');
+}
+
 export async function signIn(page: Page, email: string, withPassword = password) {
   await page.goto('/login');
   await page.getByTestId('login-email').fill(email);

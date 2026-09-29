@@ -17,6 +17,7 @@ import { Notice } from '../components/notice';
 import { useBackToList } from '../components/use-back-to-list';
 import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
+import { sectionOf } from './document-sections';
 import { editorFrameClassName, saveAs } from './editor-frame';
 import { EditorPlaceholder } from './editor-placeholder';
 import { pdfOf, pdfOfRevision, usePrint } from './print';
@@ -57,11 +58,12 @@ export function DocumentEditorPage({
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
   });
+  const document = documents.data?.items.find((item) => item.id === documentId);
   return (
     <DocumentEditorView
       readOnly={readOnly}
       source={{
-        document: documents.data?.items.find((item) => item.id === documentId),
+        document,
         isPending: documents.isPending,
         isError: documents.isError,
         isSuccess: documents.isSuccess,
@@ -73,6 +75,7 @@ export function DocumentEditorPage({
             <Link
               to="/clients/$clientId/documents"
               params={{ clientId }}
+              search={{ section: document && sectionOf(document.typeKey) }}
               data-testid="editor-back"
               onClick={backToList}
               aria-label="Înapoi la documente"

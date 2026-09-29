@@ -126,7 +126,21 @@ const requests = (suffix: string, method: string) =>
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/documents`);
 
-async function openMenu(user: ReturnType<typeof userEvent.setup>, title: string) {
+async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
+  const trigger = (await screen.findAllByTestId('document-section-trigger')).find((item) =>
+    item.textContent?.startsWith(`${number}. `)
+  )!;
+  if (trigger.getAttribute('data-state') !== 'open') await user.click(trigger);
+}
+
+const summaryOf = (number: string) =>
+  screen
+    .getAllByTestId('document-section')
+    .find((item) => item.textContent?.startsWith(`${number}. `))!
+    .querySelector('[data-testid="document-section-summary"]')!.textContent;
+
+async function openMenu(user: ReturnType<typeof userEvent.setup>, title: string, section = '1') {
+  await openSection(user, section);
   const row = (await screen.findAllByTestId('document-row')).find((item) =>
     item.textContent?.includes(title)
   )!;
@@ -234,6 +248,7 @@ describe('client documents', () => {
       notApplicable: ['decision_workers_representative'],
     });
     mount();
+    await openSection(userEvent.setup(), '1');
     await screen.findAllByTestId('document-row');
     expect(screen.queryByTestId('documents-generate')).toBeNull();
     const skipped = screen.getByTestId('document-not-applicable');
@@ -375,7 +390,7 @@ describe('client documents', () => {
     expect(requests('/documents/generate', 'POST')).toHaveLength(0);
   });
 
-  it('lists documents with their state, number and date', async () => {
+  it('lists documents in the sections of the binder, one section open at a time', async () => {
     mockApi({
       items: [
         {
@@ -386,15 +401,32 @@ describe('client documents', () => {
         report,
       ],
     });
-    mount();
+    const runtime = mount();
+    const user = userEvent.setup();
 
-    const [decision, form] = await screen.findAllByTestId('document-row');
+    await screen.findAllByTestId('document-section');
+    expect(screen.queryByTestId('document-row')).toBeNull();
+    expect(summaryOf('1')).toBe('1 emis · 1 ciornă · 1 cu date modificate');
+    expect(summaryOf('2')).toBe('negenerat');
+    expect(summaryOf('8')).toBe('1 ciornă');
+    expect(summaryOf('9')).toBe('1 neîncărcat');
+
+    await openSection(user, '1');
+    const [decision] = await screen.findAllByTestId('document-row');
     expect(decision!.textContent).toContain('Decizia nr. 5 SSM');
     expect(within(decision!).getByTestId('document-issued').textContent).toBe('Emis · rev. 1');
     expect(within(decision!).getByTestId('document-draft').textContent).toBe('Ciornă · rev. 2');
     expect(within(decision!).getByTestId('document-data-changed')).toBeTruthy();
     expect(decision!.textContent).toContain('19.01.2026');
+    expect(runtime.router.history.location.search).toBe('?section=decisions');
+
+    await openSection(user, '8');
+    await waitFor(() => expect(screen.getAllByTestId('document-row')).toHaveLength(1));
+    const [form] = screen.getAllByTestId('document-row');
+    expect(form!.textContent).toContain('Referat de control');
     expect(within(form!).queryByTestId('document-data-changed')).toBeNull();
+    expect(runtime.router.history.location.search).toBe('?section=control-report');
+    expect(runtime.router.history.length).toBe(1);
   });
 
   it('links every document to the editor and marks a draft edited by hand', async () => {
@@ -404,14 +436,12 @@ describe('client documents', () => {
     mount();
     const user = userEvent.setup();
 
-    const [decision, form] = await screen.findAllByTestId('document-row');
-    expect(within(decision!).getByTestId('document-title').getAttribute('href')).toBe(
+    const decision = await openMenu(user, 'primul ajutor');
+    expect(within(decision).getByTestId('document-title').getAttribute('href')).toBe(
       `/clients/${clientId}/documents/${firstAidId}`
     );
-    expect(within(decision!).getByTestId('document-edited').textContent).toBe('Modificat');
-    expect(within(form!).queryByTestId('document-edited')).toBeNull();
+    expect(within(decision).getByTestId('document-edited').textContent).toBe('Modificat');
 
-    await openMenu(user, 'primul ajutor');
     expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide și modifică');
     await user.click(screen.getByTestId('document-regenerate'));
     expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
@@ -464,7 +494,7 @@ describe('client documents', () => {
     expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
 
     // Issued before PDFs were made, or where no converter runs.
-    await openMenu(user, report.title);
+    await openMenu(user, report.title, '8');
     expect(await screen.findByTestId('document-download-issued')).toBeTruthy();
     expect(screen.queryByTestId('document-download-pdf')).toBeNull();
   });
@@ -614,15 +644,15 @@ describe('client documents', () => {
     mount();
     const user = userEvent.setup();
 
-    const slots = await screen.findAllByTestId('document-slot');
-    expect(slots.map((slot) => slot.textContent)).toEqual([
-      expect.stringContaining('Tematica'),
-      expect.stringContaining('Evaluarea riscurilor'),
-      expect.stringContaining('Planul de prevenire'),
-    ]);
-    expect(slots[1]!.textContent).toContain('Neîncărcat');
+    await screen.findAllByTestId('document-section');
+    expect(['4', '9', '10'].map(summaryOf)).toEqual(Array(3).fill('1 neîncărcat'));
 
-    await user.click(within(slots[1]!).getByTestId('document-slot-upload'));
+    await openSection(user, '9');
+    const [slot] = await screen.findAllByTestId('document-slot');
+    expect(slot!.textContent).toContain('Evaluarea riscurilor');
+    expect(slot!.textContent).toContain('Neîncărcat');
+
+    await user.click(within(slot!).getByTestId('document-slot-upload'));
     const file = new File([new Uint8Array([80, 75, 3, 4])], 'evaluare.docx');
     await user.upload(screen.getByTestId<HTMLInputElement>('document-file-input'), file);
 
@@ -651,7 +681,7 @@ describe('client documents', () => {
     mount();
     const user = userEvent.setup();
 
-    const row = await openMenu(user, 'Evaluarea riscurilor');
+    const row = await openMenu(user, 'Evaluarea riscurilor', '9');
     expect(within(row).getByTestId('document-uploaded').textContent).toBe('Încărcat');
     expect(within(row).queryByTestId('document-edited')).toBeNull();
     expect(screen.queryByTestId('document-regenerate')).toBeNull();
@@ -696,7 +726,8 @@ describe('client documents', () => {
     mount();
     const user = userEvent.setup();
 
-    await openMenu(user, 'Referat de control');
+    await openMenu(user, 'Referat de control', '8');
+    expect(screen.queryByTestId('document-edited')).toBeNull();
     expect(screen.queryByTestId('document-start-draft')).toBeNull();
     await user.keyboard('{Escape}');
 
@@ -718,16 +749,18 @@ describe('client documents', () => {
     mockApi({ items: [firstAid, report] });
     const runtime = mount();
     const user = userEvent.setup();
+    await openSection(user, '1');
     const [title] = await screen.findAllByTestId('document-title');
     await user.click(title!);
     await screen.findByText('Salvat');
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.history.location.search).toBe('?section=decisions');
     expect(runtime.router.history.length).toBe(2);
   });
 
-  it('follows the link to the list from an editor opened directly', async () => {
+  it("follows the link to the list from an editor opened directly, to the document's section", async () => {
     mockApi({ items: [firstAid, report] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
@@ -739,6 +772,7 @@ describe('client documents', () => {
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.history.location.search).toBe('?section=decisions');
     expect(runtime.router.history.length).toBe(2);
   });
 
