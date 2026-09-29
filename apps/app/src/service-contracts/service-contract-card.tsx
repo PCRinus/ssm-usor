@@ -591,7 +591,7 @@ function ServiceContractBody({
         }
       >
         {summarized && saved.contract ? (
-          <FactList data-testid="contract-details-summary">
+          <FactList data-testid="contract-details-summary" className="lg:grid-cols-4">
             <Fact label="Număr și dată">
               Nr. {saved.contract.contractNumber} din {formatRoDate(saved.contract.contractDate)}
             </Fact>
