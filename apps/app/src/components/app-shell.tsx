@@ -52,6 +52,7 @@ import { CommitVersion } from './commit-version';
 import { Notice } from './notice';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
+import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
@@ -244,6 +245,7 @@ export function AppShell() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportingByEmail, setReportingByEmail] = useState(false);
+  const [sidebarOpen] = useState(readSidebarOpen);
   const email = session?.user.email ?? 'Contul meu';
   // A failed load leaves the menu with the email alone; the pages report the failure.
   const me = useMe();
@@ -269,6 +271,8 @@ export function AppShell() {
 
   return (
     <SidebarProvider
+      defaultOpen={sidebarOpen}
+      onOpenChange={saveSidebarOpen}
       className={cn('flex-col', editorPage && 'fixed inset-0 h-dvh min-h-0 overflow-hidden')}
     >
       <a

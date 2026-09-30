@@ -191,6 +191,51 @@ describe('dashboard authentication and routing', () => {
     await user.click(within(drawer).getByTestId('nav-dashboard'));
     await screen.findByTestId('dashboard-page');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(localStorage.getItem('ssm-usor:sidebar-open')).toBeNull();
+  });
+
+  it('remembers collapsing and expanding the navigation, by the trigger and by the shortcut', async () => {
+    mount(authFixture(makeSession()).client);
+    const user = userEvent.setup();
+    await screen.findByTestId('dashboard-page');
+    await user.click(screen.getByTestId('sidebar-toggle'));
+    expect(localStorage.getItem('ssm-usor:sidebar-open')).toBe('false');
+    await user.keyboard('{Control>}b{/Control}');
+    expect(document.querySelector('[data-slot="sidebar"]')?.getAttribute('data-state')).toBe(
+      'expanded'
+    );
+    expect(localStorage.getItem('ssm-usor:sidebar-open')).toBe('true');
+  });
+
+  it('opens with the navigation collapsed when it was left collapsed', async () => {
+    localStorage.setItem('ssm-usor:sidebar-open', 'false');
+    mount(authFixture(makeSession()).client);
+    const sidebar = await waitFor(() => {
+      const element = document.querySelector('[data-slot="sidebar"]');
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    expect(sidebar.getAttribute('data-state')).toBe('collapsed');
+  });
+
+  it('keeps the navigation working when the browser blocks storage', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('Blocked', 'SecurityError');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Blocked', 'SecurityError');
+    });
+    try {
+      mount(authFixture(makeSession()).client);
+      const user = userEvent.setup();
+      await screen.findByTestId('dashboard-page');
+      const sidebar = document.querySelector('[data-slot="sidebar"]');
+      expect(sidebar?.getAttribute('data-state')).toBe('expanded');
+      await user.click(screen.getByTestId('sidebar-toggle'));
+      expect(sidebar?.getAttribute('data-state')).toBe('collapsed');
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it('protects a direct clients visit', async () => {
