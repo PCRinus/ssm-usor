@@ -17,6 +17,7 @@ export const documentTypeKeys = [
   'cover_own_instructions',
   'own_instructions',
   'cover_training_themes',
+  'training_themes',
   'cover_tests',
   'test_hiring',
   'test_periodic',
@@ -34,12 +35,10 @@ export const documentTypeKeySchema = z.enum(documentTypeKeys);
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
 /**
- * The documents of the pack the app cannot write yet, because their content follows the
- * client's job titles or is the risk assessment itself (ADR 005, stages 2 and 3). Until it
- * can, the provider writes them elsewhere and uploads the file, so the set is complete.
+ * The documents of the pack the app cannot write yet, because they are the risk assessment
+ * and the plan that follows from it (ADR 005, stage 3). Until it can, the provider writes them elsewhere and uploads the file, so the set is complete.
  */
 export const uploadedDocumentTypes = {
-  training_themes: 'Tematica și programul de instruire',
   risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
   prevention_plan: 'Planul de prevenire și protecție',
 } as const;

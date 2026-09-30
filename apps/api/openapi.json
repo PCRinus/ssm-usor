@@ -3392,6 +3392,7 @@
                 "cover_own_instructions",
                 "own_instructions",
                 "cover_training_themes",
+                "training_themes",
                 "cover_tests",
                 "test_hiring",
                 "test_periodic",

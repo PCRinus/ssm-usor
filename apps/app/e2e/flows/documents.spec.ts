@@ -92,7 +92,7 @@ test('a row leads to its field, and the toast of the save leads back to generati
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 20 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 21 documente.')).toBeVisible();
 });
 
 test('a client gets its documentation, downloads a decision, issues it, and corrects it', async ({
@@ -110,7 +110,7 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 20 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 21 documente.')).toBeVisible();
 
   const rows = page.getByTestId('document-row');
   await expect(page.getByTestId('document-section')).toHaveCount(12);
@@ -420,7 +420,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 21 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 22 documente.')).toBeVisible();
   await openDocumentSection(page, '1');
   const decision = page
     .getByTestId('document-row')
