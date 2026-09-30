@@ -35,6 +35,44 @@ ignores hosted environment settings, and refuses non-loopback Supabase URLs.
 
 ## Connect the SPA and API
 
+Build the packages the API imports once:
+
+```bash
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
+```
+
+### With `pnpm dev:local`
+
+```bash
+pnpm dev:local
+pnpm dev:local --app-port 5174 --api-port 8788
+```
+
+It starts the API (`wrangler dev`) and the SPA (Vite) against the local stack, without
+changing `apps/app/.env.local` or `apps/api/.dev.vars`, so those can keep the hosted settings.
+It reads the local address and keys from `supabase status`, refuses an address that is not
+on this machine, and stops with a message when the stack is not running
+(`pnpm supabase:start` first; it does not start Docker). Ctrl+C stops both servers.
+
+- The SPA gets the local Supabase URL, publishable key and API address as `VITE_*` process
+  variables, which take precedence over `.env.local`.
+- The API gets the local Supabase URL and keys, the local stack's Send Email hook secret, and
+  origins for the chosen ports as `--var` flags, which take precedence over `.dev.vars`. The
+  other settings (Gotenberg, Turnstile, PostHog, the marketing origin) come from `.dev.vars`
+  as usual. The local secret key is then visible in the process list; it only opens the local
+  stack.
+- `--app-port` and `--api-port` (defaults 5173 and 8787) let it run beside a `pnpm dev` that
+  points at hosted. A port already in use stops it with a message; nothing is killed.
+- The mail Worker: when port 8790 is free it starts one; when a `pnpm dev` already runs it,
+  the API uses that one through Wrangler's dev registry.
+- It does not seed. An empty database needs `pnpm seed:local` and
+  `pnpm templates:register:local`.
+- The local Auth still sends its emails (signup, password reset) to port 8797, where the flow
+  tests' API listens (see [Emails from the local Auth](#emails-from-the-local-auth)), not to
+  this API.
+
+### By editing the environment files
+
 Save your existing hosted settings before switching. Edit these ignored files; do not put
 the settings in a root `.env`. Replace `sb_publishable_LOCAL_KEY` below with the
 **Publishable** key from `pnpm supabase:status`.
@@ -62,12 +100,6 @@ run `pnpm dev:mail` next to `pnpm dev:api`. The mail Worker prints the confirmat
 link included, to its console.
 Existing hosted environment files are not automatically rewritten by these commands.
 Remove any exported `VITE_*` overrides that point to the hosted project.
-
-Build the packages the API imports once:
-
-```bash
-pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
-```
 
 Then use the existing commands in separate terminals:
 
