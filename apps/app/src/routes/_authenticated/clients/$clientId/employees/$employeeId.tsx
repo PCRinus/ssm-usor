@@ -21,13 +21,13 @@ import {
   useGetEmployee,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { useAuth } from '@/auth/auth-context';
-import { formatDate, formatTenure, todayIso } from '@/employees/employee-format';
-import { EmployeeJobPositionDialog } from '@/employees/employee-job-position-dialog';
+import { useAuth } from '@/features/auth/auth-context';
+import { formatDate, formatTenure, todayIso } from '@/features/employees/employee-format';
+import { EmployeeJobPositionDialog } from '@/features/employees/employee-job-position-dialog';
 import {
   type EmployeeStatusChange,
   EmployeeStatusDialog,
-} from '@/employees/employee-status-dialog';
+} from '@/features/employees/employee-status-dialog';
 
 // The only page that shows the CNP, and only on request. The loader warms the query and
 // names the breadcrumb; the page reads the same query so a status change refreshes it.

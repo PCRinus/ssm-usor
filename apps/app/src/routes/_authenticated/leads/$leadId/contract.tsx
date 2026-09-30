@@ -3,8 +3,8 @@ import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 
 import { useBackToList } from '@/app/use-back-to-list';
-import { useAuth } from '@/auth/auth-context';
-import { ServiceContractEditor } from '@/service-contracts/service-contract-editor';
+import { useAuth } from '@/features/auth/auth-context';
+import { ServiceContractEditor } from '@/features/service-contracts/service-contract-editor';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/contract')({
   staticData: { title: 'Contract', editorPage: true },

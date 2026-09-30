@@ -2,10 +2,10 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
 import { Award, Building2, UsersRound } from 'lucide-react';
 
-import { useMe } from '@/account/use-me';
 import { Notice } from '@/components/notice';
 import { SectionNav } from '@/components/section-nav';
-import { roleLabels } from '@/organization/labels';
+import { useMe } from '@/features/account/use-me';
+import { roleLabels } from '@/features/organization/labels';
 
 export const Route = createFileRoute('/_authenticated/organization')({
   staticData: { title: 'Organizație' },

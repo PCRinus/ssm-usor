@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { fullNameField } from '@/account/profile-schema';
+import { fullNameField } from '@/features/account/profile-schema';
 
 export const onboardingSchema = z.object({
   fullName: fullNameField,

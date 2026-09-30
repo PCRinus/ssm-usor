@@ -45,10 +45,10 @@ import {
 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
-import { useMe } from '@/account/use-me';
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
-import { useAuth } from '@/auth/auth-context';
 import { Notice } from '@/components/notice';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
 
 import { CommitVersion } from './commit-version';
 import { ReportProblemDialog } from './report-problem-dialog';

@@ -41,7 +41,7 @@ import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
-import { type TrainingFocus, useFocusRequest } from '@/missing-data/focus';
+import { type TrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
 
 import {
   ResponsiblePersonDialog,

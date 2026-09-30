@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { useMe } from '@/account/use-me';
-import { focusSearch, organizationCompanyFocus } from '@/missing-data/focus';
-import { CompanyDetailsCard } from '@/organization/company-details-card';
+import { useMe } from '@/features/account/use-me';
+import { focusSearch, organizationCompanyFocus } from '@/features/missing-data/focus';
+import { CompanyDetailsCard } from '@/features/organization/company-details-card';
 
 export const Route = createFileRoute('/_authenticated/organization/company')({
   staticData: { title: 'Date firmă' },

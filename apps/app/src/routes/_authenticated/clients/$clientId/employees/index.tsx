@@ -21,15 +21,15 @@ import { z } from 'zod';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { useAuth } from '@/auth/auth-context';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
-import { employeeColumns, type EmployeeRow } from '@/employees/employee-columns';
-import { employeeStatusLabels } from '@/employees/employee-format';
+import { useAuth } from '@/features/auth/auth-context';
+import { employeeColumns, type EmployeeRow } from '@/features/employees/employee-columns';
+import { employeeStatusLabels } from '@/features/employees/employee-format';
 import {
   type EmployeeStatusChange,
   EmployeeStatusDialog,
-} from '@/employees/employee-status-dialog';
+} from '@/features/employees/employee-status-dialog';
 
 // The table state lives in the URL: status filter, page, and one sort key, so refresh and
 // back keep the place in the list. Defaults are omitted to keep links short.

@@ -26,14 +26,17 @@ import {
 import { useState } from 'react';
 import { z } from 'zod';
 
-import { useMe } from '@/account/use-me';
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { type ClientArchiveChange, ClientArchiveDialog } from '@/clients/client-archive-dialog';
-import { HeaderFact, RecordHeader } from '@/clients/record-header';
 import { Notice } from '@/components/notice';
 import { SectionNav } from '@/components/section-nav';
-import { useEndWayBackOutside } from '@/missing-data/way-back';
+import { useMe } from '@/features/account/use-me';
+import {
+  type ClientArchiveChange,
+  ClientArchiveDialog,
+} from '@/features/clients/client-archive-dialog';
+import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
+import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 
 // The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [

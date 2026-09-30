@@ -7,7 +7,7 @@ import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { type LegalRepresentativeFocus, useFocusRequest } from '@/missing-data/focus';
+import { type LegalRepresentativeFocus, useFocusRequest } from '@/features/missing-data/focus';
 
 import {
   type ClientSummary,

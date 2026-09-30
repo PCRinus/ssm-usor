@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { MeResponse } from '@/api/generated/api';
 import { getSupportIdentity } from '@/api/generated/api';
-import { useAuth } from '@/auth/auth-context';
+import { useAuth } from '@/features/auth/auth-context';
 
 import { loadPostHog, openSupportChat, stopPostHog } from './posthog';
 

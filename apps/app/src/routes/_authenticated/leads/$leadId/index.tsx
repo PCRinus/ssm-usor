@@ -5,24 +5,27 @@ import { Archive, ArchiveRestore, Handshake, Pencil, UserCheck } from 'lucide-re
 import { useState } from 'react';
 
 import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
-import { useAuth } from '@/auth/auth-context';
-import { ClientFilesCard } from '@/client-files/client-files-card';
-import { type ClientArchiveChange, ClientArchiveDialog } from '@/clients/client-archive-dialog';
-import { CompanyCard } from '@/clients/company-card';
-import { ContactCard } from '@/clients/contact-card';
-import { OwnerNotesCard } from '@/clients/owner-notes-card';
-import { HeaderFact, RecordHeader } from '@/clients/record-header';
 import { Notice } from '@/components/notice';
-import { PromoteLeadDialog } from '@/leads/promote-lead-dialog';
+import { useAuth } from '@/features/auth/auth-context';
+import { ClientFilesCard } from '@/features/client-files/client-files-card';
+import {
+  type ClientArchiveChange,
+  ClientArchiveDialog,
+} from '@/features/clients/client-archive-dialog';
+import { CompanyCard } from '@/features/clients/company-card';
+import { ContactCard } from '@/features/clients/contact-card';
+import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
+import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import {
   companyFocus,
   contractFocus,
   focusAmong,
   focusSearch,
   leadFocus,
-} from '@/missing-data/focus';
-import { useEndWayBackOutside } from '@/missing-data/way-back';
-import { ServiceContractCard } from '@/service-contracts/service-contract-card';
+} from '@/features/missing-data/focus';
+import { useEndWayBackOutside } from '@/features/missing-data/way-back';
+import { ServiceContractCard } from '@/features/service-contracts/service-contract-card';
+import { PromoteLeadDialog } from '@/leads/promote-lead-dialog';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
   validateSearch: focusSearch(leadFocus),

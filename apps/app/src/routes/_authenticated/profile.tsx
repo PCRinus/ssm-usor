@@ -5,17 +5,17 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { createFileRoute, useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
-import { ChangePasswordCard } from '@/account/change-password-card';
-import { profileFormSchema, type ProfileFormValues } from '@/account/profile-schema';
-import { useMe } from '@/account/use-me';
 import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { focusSearch, profileFocus, useFocusRequest } from '@/missing-data/focus';
-import { useSavedToast } from '@/missing-data/saved-toast';
-import { roleLabels } from '@/organization/labels';
+import { ChangePasswordCard } from '@/features/account/change-password-card';
+import { profileFormSchema, type ProfileFormValues } from '@/features/account/profile-schema';
+import { useMe } from '@/features/account/use-me';
+import { focusSearch, profileFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { roleLabels } from '@/features/organization/labels';
 
 export const Route = createFileRoute('/_authenticated/profile')({
   staticData: { title: 'Profilul meu' },

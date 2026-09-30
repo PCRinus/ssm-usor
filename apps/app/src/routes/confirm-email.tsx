@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { z } from 'zod';
 
 import { PublicFrame } from '@/app/public-frame';
-import { useAuth } from '@/auth/auth-context';
-import { isSpentRecoveryLink } from '@/auth/auth-errors';
 import { Notice } from '@/components/notice';
+import { useAuth } from '@/features/auth/auth-context';
+import { isSpentRecoveryLink } from '@/features/auth/auth-errors';
 
 // Public: the link in a signup confirmation email lands here. Opening it does nothing; the
 // token is used when the button is pressed, because mail scanners open links.

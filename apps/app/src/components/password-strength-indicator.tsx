@@ -3,7 +3,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import type { ZxcvbnFactory } from '@zxcvbn-ts/core';
 import { useEffect, useMemo, useState } from 'react';
 
-import { newPasswordField } from '@/auth/password-schema';
+import { newPasswordField } from '@/features/auth/password-schema';
 
 const strengthLabels = ['Foarte slabă', 'Slabă', 'Acceptabilă', 'Bună', 'Puternică'] as const;
 

@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
 
-import { AuthContext } from '@/auth/auth-context';
+import { AuthContext } from '@/features/auth/auth-context';
 
 import type { AppRuntime } from './app-runtime';
 

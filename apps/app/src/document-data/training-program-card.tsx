@@ -24,9 +24,9 @@ import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { intervalLabel, staffCategoryLabels } from '@/job-positions/job-position-schema';
-import { useJobPositionOptions } from '@/job-positions/use-job-position-options';
-import { useFocusRequest } from '@/missing-data/focus';
+import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
+import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
+import { useFocusRequest } from '@/features/missing-data/focus';
 
 import { intervalOptions, monthNames, notApplicable } from './document-details-schema';
 import {

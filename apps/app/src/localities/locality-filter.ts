@@ -1,4 +1,4 @@
-import { normalizeSearch } from '@/clients/caen-filter';
+import { normalizeSearch } from '@/features/clients/caen-filter';
 
 // Item search text is "<name>|<parent>". A name that starts with the query ranks first, then
 // one whose words start with every word typed ("sector 3" finds "Sectorul 3"), then the

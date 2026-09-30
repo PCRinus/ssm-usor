@@ -8,7 +8,6 @@ import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { useMe } from '@/account/use-me';
 import {
   type ApiErrorResponse,
   getGetMeQueryKey,
@@ -19,19 +18,20 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { PublicFrame } from '@/app/public-frame';
-import { useAuth } from '@/auth/auth-context';
-import { newPasswordHint } from '@/auth/password-schema';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
+import { newPasswordHint } from '@/features/auth/password-schema';
+import { formatDay, roleLabels } from '@/features/organization/labels';
 import {
   createAccountSchema,
   type CreateAccountValues,
   joinSchema,
   type JoinValues,
 } from '@/invitations/accept-schema';
-import { formatDay, roleLabels } from '@/organization/labels';
 
 // Public: the link in an invitation email lands here, signed in or not. Opening it
 // changes nothing; only submitting a form accepts.

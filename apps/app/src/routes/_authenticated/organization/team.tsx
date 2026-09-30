@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { useMe } from '@/account/use-me';
-import { InvitationsCard } from '@/organization/invitations-card';
-import { InviteMemberDialog } from '@/organization/invite-member-dialog';
-import { MembersCard } from '@/organization/members-card';
+import { useMe } from '@/features/account/use-me';
+import { InvitationsCard } from '@/features/organization/invitations-card';
+import { InviteMemberDialog } from '@/features/organization/invite-member-dialog';
+import { MembersCard } from '@/features/organization/members-card';
 
 export const Route = createFileRoute('/_authenticated/organization/team')({
   staticData: { title: 'Echipă' },

@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { useMe } from '@/account/use-me';
-import { authorizationsFocus, focusSearch } from '@/missing-data/focus';
-import { AuthorizationsCard } from '@/organization/authorizations-card';
+import { useMe } from '@/features/account/use-me';
+import { authorizationsFocus, focusSearch } from '@/features/missing-data/focus';
+import { AuthorizationsCard } from '@/features/organization/authorizations-card';
 
 export const Route = createFileRoute('/_authenticated/organization/authorizations')({
   staticData: { title: 'Abilitări' },

@@ -1,9 +1,9 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { useAuth } from '@/auth/auth-context';
 import { ResponsiblePersonsCard } from '@/document-data/responsible-persons-card';
 import { TrainingProgramSection } from '@/document-data/training-program-card';
-import { focusSearch, trainingFocus } from '@/missing-data/focus';
+import { useAuth } from '@/features/auth/auth-context';
+import { focusSearch, trainingFocus } from '@/features/missing-data/focus';
 
 // What a client's generated documentation prints about training and responsible persons
 // (ADR 005).

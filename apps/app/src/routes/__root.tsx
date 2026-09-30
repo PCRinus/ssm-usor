@@ -4,8 +4,8 @@ import { lazy, Suspense } from 'react';
 
 import type { ApiRequestOptions } from '@/api/http';
 import { NotFoundPage, RouteErrorPage } from '@/app/route-states';
-import type { AuthStore } from '@/auth/auth-store';
 import { PageTitle } from '@/components/page-title';
+import type { AuthStore } from '@/features/auth/auth-store';
 
 export interface RouterContext {
   auth: AuthStore;

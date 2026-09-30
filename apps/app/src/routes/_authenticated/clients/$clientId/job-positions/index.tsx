@@ -1,8 +1,8 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { useAuth } from '@/auth/auth-context';
-import { JobPositionsCard } from '@/job-positions/job-positions-card';
-import { focusSearch, jobPositionsFocus } from '@/missing-data/focus';
+import { useAuth } from '@/features/auth/auth-context';
+import { JobPositionsCard } from '@/features/job-positions/job-positions-card';
+import { focusSearch, jobPositionsFocus } from '@/features/missing-data/focus';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/job-positions/')({
   validateSearch: focusSearch(jobPositionsFocus),

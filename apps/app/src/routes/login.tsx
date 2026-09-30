@@ -8,9 +8,9 @@ import { useState } from 'react';
 import { z } from 'zod';
 
 import { CommitVersion } from '@/app/commit-version';
-import { useLoginForm } from '@/auth/use-login-form';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useLoginForm } from '@/features/auth/use-login-form';
 
 export const Route = createFileRoute('/login')({
   staticData: { title: 'Autentificare' },

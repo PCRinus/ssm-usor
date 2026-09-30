@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthClient } from '@/auth/auth-store';
+import type { AuthClient } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 

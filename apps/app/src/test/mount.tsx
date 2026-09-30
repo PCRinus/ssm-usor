@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 
 import App from '@/app/App';
 import { type AppRuntime, createAppRuntime } from '@/app/app-runtime';
-import type { AuthClient } from '@/auth/auth-store';
+import type { AuthClient } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 
 const runtimes: AppRuntime[] = [];
