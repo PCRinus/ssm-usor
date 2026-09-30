@@ -64,13 +64,11 @@ export default defineConfig([
     },
   },
   {
-    // File-based route modules export the route definition next to their component.
+    // Route components stay unexported so the router plugin can split them into lazy
+    // chunks; the plugin adds its own Fast Refresh boundary to every route file.
     files: ['apps/app/src/routes/**/*.tsx'],
     rules: {
-      'react-refresh/only-export-components': [
-        'error',
-        { allowConstantExport: true, allowExportNames: ['Route'] },
-      ],
+      'react-refresh/only-export-components': 'off',
     },
   },
   {

@@ -25,7 +25,7 @@ widget for the app domain and set its greeting, button text, and new-ticket emai
 the dashboard. Configure replay sampling to 100% for the pilot, and review product retention and
 deletion settings before external users join. The floating PostHog launcher is hidden because the
 sidebar report button opens the widget. PostHog changes to the widget DOM may require updating
-the adapter in `src/observability/posthog.ts`.
+the adapter in `src/app/observability/posthog.ts`.
 
 Copy `apps/app/.env.example` to `apps/app/.env.local` and set the project's URL and
 publishable key:
@@ -68,10 +68,26 @@ with the **React Compiler** babel plugin. The compiler memoizes components and h
 automatically, so manual `useMemo`, `useCallback`, and `memo` are not needed for performance;
 the `react-hooks` lint rules enforce the constraints the compiler relies on.
 
+`@/` resolves to `src/` in `vite.config.ts`, `vitest.config.ts` and `tsconfig.json`. An import
+that leaves its folder uses it (`@/components/notice`); an import within a folder stays relative
+(`./client-form-schema`). There are no `index.ts` barrels: import the file. `vi.mock` takes the
+same specifier the code imports.
+
 The **TanStack devtools** (router and query panels) load lazily from the root route only when
 Vite runs in development mode. The check is a build-time constant, so production bundles and
 tests contain no devtools code. Open them from the floating trigger in the bottom-right corner of
 `pnpm dev:app`.
+
+## Source layout
+
+`src/app/` holds the wiring and the shell: `App.tsx`, the router and runtime, the authenticated
+shell, the public frame, route states and titles, and `observability/`. `src/features/` has one
+folder per concept of the [glossary](../CONTEXT.md): `clients/` (leads, the legal
+representative and workplaces included), `training/` (the program and the responsible persons),
+`auth/` (login, onboarding and invitations), and so on. `src/components/` is UI no feature owns,
+`src/lib/` holds helpers and the `localities/` dataset, `src/api/` the HTTP adapter and the
+generated client, and `src/routes/` the file routes. A route file declares the route and composes
+a page from `features/`.
 
 ## Cloudflare deployment
 
@@ -96,9 +112,9 @@ by `pnpm --filter @ssm-usor/app deploy:dry-run`.
 
 Use React Hook Form with `@hookform/resolvers/zod` for forms. Zod schemas define validation and
 inferred TypeScript values; React Hook Form owns registration, errors, focus, and submission state.
-The login schema lives in `src/auth/login-schema.ts`, and `use-login-form.ts` keeps submission
+The login schema lives in `src/features/auth/login-schema.ts`, and `use-login-form.ts` keeps submission
 behavior out of the page component. Validation errors are displayed next to their fields.
-The client form follows the same split: `src/clients/client-form-schema.ts` validates string
+The client form follows the same split: `src/features/clients/client-form-schema.ts` validates string
 form values in Romanian and converts them to the API request, and `use-client-form.ts` owns the
 ANAF lookup, the create mutation, list invalidation, and the mapping of API errors (409 to the
 CUI field, 400 issues to their fields, everything else to a form-level message).
@@ -114,7 +130,7 @@ for transport types, which come from the generated client.
 
 Routes are file-based under `src/routes`; the TanStack Router Vite plugin generates
 `src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
-API client). `src/router.ts` builds the router from that tree with the injected context.
+API client). `src/app/router.ts` builds the router from that tree with the injected context.
 
 | File                                                                       | Route                                       | Behavior                                                                                                                                                                                                    |
 | -------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -149,7 +165,7 @@ API client). `src/router.ts` builds the router from that tree with the injected 
 | `routes/_authenticated/instructions.tsx`                                   | `/instructions`                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
 | `routes/_authenticated/instructions/index.tsx`                             | `/instructions`                             | The library: the modules by group, uploading files, starting one from the skeleton, archiving.                                                                                                              |
 | `routes/_authenticated/instructions/$moduleId.tsx`                         | `/instructions/:moduleId`                   | One module in the in-app Word editor; a full page. Every save is the next version.                                                                                                                          |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`  | `/clients/:id/employees/:employeeId/edit`   | Corrects what was entered about an employee, in the form that adds one (`src/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                           |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`  | `/clients/:id/employees/:employeeId/edit`   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
 | `routes/_authenticated/clients/$clientId/training.tsx`                     | `/clients/:id/training`                     | "Instruire și responsabili": the training schedule and the responsible persons the generated documents print.                                                                                               |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`              | `/clients/:id/documents`                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`        | `/clients/:id/documents/:documentId`        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
@@ -171,14 +187,20 @@ A route whose breadcrumb label depends on data (the client name) returns `crumb`
 loader instead of `staticData.title`; the shell reads either, and prefers the crumb, so a
 route can keep a static title for when its loader has no name to give (the document page).
 
-Each route file exports `Route` with its guard, loader, and component. A route sets
+Each route file exports only `Route`: its params, search schema, guard, loader, and the
+components it renders. The larger pages live in their features and read the route through
+`getRouteApi('/route/id')`; importing `Route` into them would make a cycle. The router
+plugin moves `component`, `errorComponent` and `notFoundComponent` into lazy chunks, but only
+when the route file does not export them. `pendingComponent` is not split, so it lives in a file
+of its own (`client-pending.tsx`): imported from the page's module, it would pull the whole page
+into the first download. A route sets
 `staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
 as `clients.tsx` so the parent crumb links back. New protected pages go under
 `routes/_authenticated`; the guard there awaits initial session restoration, avoiding a
 premature redirect on browser refresh. The app also handles loading and session-initialization
 errors. Login always navigates to `/dashboard`; arbitrary redirect query parameters are not used.
 
-`src/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
+`src/app/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
 client is both a React provider and typed router context, available for generated Orval query options
 in route loaders. The dashboard uses the generated `useGetMe` hook with request configuration
 from the router context. See the [API client guide](api-client.md) for generation and error handling.
@@ -187,7 +209,7 @@ from the router context. See the [API client guide](api-client.md) for generatio
 
 - The browser Supabase SDK signs in, persists the session, and refreshes tokens. URL token
   detection is disabled because this pass supports email/password only.
-- `src/auth/auth-store.ts` subscribes to SDK auth events, including changes from other tabs.
+- `src/features/auth/auth-store.ts` subscribes to SDK auth events, including changes from other tabs.
   It avoids overwriting a newer event with an older initialization result.
 - Account changes and sign-out clear query and mutation caches. Clearing queries cancels
   in-flight requests when the eventual HTTP adapter consumes their abort signals.
@@ -261,9 +283,9 @@ and checks it with `signInWithPassword` before `updateUser`, so an unlocked scre
 enough to take over the account. There, a new password equal to the current one is reported
 on the field.
 
-The rules live in `src/auth/password-schema.ts` and mirror `newPasswordSchema` in the
+The rules live in `src/features/auth/password-schema.ts` and mirror `newPasswordSchema` in the
 contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same
-ones. `AuthClient` in `src/auth/auth-store.ts` lists the Supabase calls the app makes;
+ones. `AuthClient` in `src/features/auth/auth-store.ts` lists the Supabase calls the app makes;
 `PublicFrame` and `PasswordInput` are shared by the pages outside the shell.
 
 ## Verification
@@ -324,7 +346,7 @@ the separate live login, API, session-restoration, and logout checks.
 
 ## Workspace layout
 
-Authenticated routes share `src/components/app-shell.tsx`. A full-width sticky header
+Authenticated routes share `src/app/app-shell.tsx`. A full-width sticky header
 keeps the logo and sidebar toggle visible independently of sidebar collapse. The
 account menu sits at the bottom of the sidebar and remains accessible as an avatar
 when collapsed. Breadcrumbs sit above the page content, and a small footer follows the content.
@@ -390,7 +412,7 @@ mobile navigation link closes the Sheet.
   number is shown on its field and an archived client on the form.
 
 - `/clients/:clientId/job-positions`: the "Posturi de lucru" section of a client, second after
-  "Angajați", in `src/job-positions/` ([ADR 006](architecture/adr-006-job-positions.md)). The
+  "Angajați", in `src/features/job-positions/` ([ADR 006](architecture/adr-006-job-positions.md)). The
   card lists `GET /clients/{clientId}/job-positions`: the name with the activities under it,
   the staff category as a badge ("Execuție", "Tehnic-administrativ", the full wording in its
   title), the work zone, and the current employees counted the Romanian way ("2 angajați",
@@ -405,7 +427,7 @@ mobile navigation link closes the Sheet.
   "EIP" column says where each post stands with its equipment: "Nedecis" (in amber, since
   it blocks generating), "Nu necesită", or the number of entries.
 - `/clients/:clientId/job-positions/:jobPositionId`: a position's page, full page like an
-  employee's, in `src/protective-equipment/` ([ADR 011](architecture/adr-011-protective-equipment.md)).
+  employee's, in `src/features/protective-equipment/` ([ADR 011](architecture/adr-011-protective-equipment.md)).
   There is no request for one position: the page reads the client's list, which the section
   already cached, and is not found when the position is not in it. It shows the interval,
   the employee count linking to "Angajați", the activities, "Modifică" opening the same
@@ -422,7 +444,7 @@ mobile navigation link closes the Sheet.
   refreshes the positions list, whose count and state come from it. Read-only for an
   archived client.
 - Employees and their job position: the list's column is "Post de lucru" and sorts by it. The
-  new-employee form has a "Post de lucru" picker (`src/job-positions/job-position-combobox.tsx`)
+  new-employee form has a "Post de lucru" picker (`src/features/job-positions/job-position-combobox.tsx`)
   that lists the client's positions. Under the list, whatever is typed, stays the row "Adaugă
   un post nou…": it opens the dialog of the "Posturi de lucru" section with the typed text as
   the name, so a new post gets its category where it is created, and the position it saves
@@ -460,7 +482,7 @@ mobile navigation link closes the Sheet.
   on `employeeId` that they belong to another client; both are reported on the employee
   field.
 - `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
-  `src/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
+  `src/features/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
   pack: title, the decision's number, badges for the issued revision and the draft, the
   date the document carries, and "Date modificate" on a draft whose printed data has changed
   since. "Generează documentația" (or "Generează documentele lipsă" when some exist) shows
@@ -497,7 +519,7 @@ mobile navigation link closes the Sheet.
   takes the draft, or the issued revision when there is no draft, fetches its file through
   the signed link, and hands the bytes to `@docx-editor.dev/react`. A draft of an active
   client opens in `edit` mode; an issued revision and anything of an archived client open in
-  `view` mode. The editor lives in `src/documents/document-editor.tsx`, loaded with `lazy`,
+  `view` mode. The editor lives in `src/features/documents/document-editor.tsx`, loaded with `lazy`,
   so its 0.8 MB (gzipped) and its WebAssembly text shaper are fetched only when a document is
   opened; the menu bar, the rulers and the outline pane are off. The editor bundles no fonts
   and cannot read the machine's: without font bytes it measures text with whatever the
@@ -507,7 +529,7 @@ mobile navigation link closes the Sheet.
   style sets all text in Arial, so no other family is allowed to load. Its notice about
   unavailable fonts names the families a document's styles fall back to; the templates name
   none since their style defaults were cleaned. The editor ships ten interface languages and
-  Romanian is not one: `src/documents/editor-strings.ro.ts` is our catalogue, in Word's own
+  Romanian is not one: `src/features/documents/editor-strings.ro.ts` is our catalogue, in Word's own
   Romanian terms, passed as `i18n`; a key it leaves out shows in English, which is what to
   look for after upgrading the editor. Our own controls sit in its
   title bar: the revision badge, "Modificări nesalvate" or "Salvat", "Descarcă", and
@@ -546,7 +568,7 @@ mobile navigation link closes the Sheet.
   neither of the other two. The two addresses of one record lead to each other: the client
   layout redirects a lead to `/leads/:id`, and the lead loader redirects a client to
   `/clients/:id/details`, so a link kept from before the promotion still works.
-- The service contract (`src/service-contracts`): `ServiceContractCard` is on the lead's page
+- The service contract (`src/features/service-contracts`): `ServiceContractCard` is on the lead's page
   and, for a client, in "Contract", a section only an owner gets (a specialist who types
   the address is told what is there and whose it is, and nothing is asked of the API). It is
   two cards. "Detaliile contractului" keeps what the app reads about the contract: the number,
@@ -582,7 +604,7 @@ mobile navigation link closes the Sheet.
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
 - `/clients/:clientId/other-documents`: "Alte documente", the last tab of a client, for owners
-  and specialists alike, in `src/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
+  and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
   `ClientFilesCard` lists `GET /clients/{clientId}/files`: the kind as an icon and a word (PDF,
   Imagine, Word, Excel), the name with the note under it, the size, the day of the upload and
   who uploaded it, and "Doar administratori" on a file for owners only; on a phone each row
@@ -598,7 +620,7 @@ mobile navigation link closes the Sheet.
   is refused rather than opened by the browser in place of the app. An archived client gets
   the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
   where it says that the files stay the owners' until promotion and has no switch.
-- The upload dialog (`src/client-files/client-file-upload-dialog.tsx`) has a drop zone with
+- The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
   "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru
   administratori" checkbox that applies to every file in the list (a lead's dialog says
@@ -641,7 +663,7 @@ mobile navigation link closes the Sheet.
   `GET /organization/authorizations`, with the same rules. The contract card's notice of
   missing data links to whichever of the two sections holds what is missing.
 - `/instructions`: the organization's instruction library
-  ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/instructions/`, an entry of
+  ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by
   group and title, each module with its version and how many articles the file numbers, and
   how many current positions apply it; "Arată arhiva" lists the archived ones instead. "Încarcă
@@ -670,13 +692,13 @@ mobile navigation link closes the Sheet.
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
   account menu follows.
 
-`src/account/use-me.ts` is the one `/me` query the shell, the dashboard, and these pages
+`src/features/account/use-me.ts` is the one `/me` query the shell, the dashboard, and these pages
 share. The account menu shows the user's name and organization once it has loaded, and falls
 back to "Contul meu" and the email.
 
 Actions that leave the user on the same page (invitation sent, resent, revoked, profile
 saved, an employee marked as a leaver or reactivated) are confirmed with a Sonner toast,
-mounted once in `App.tsx`. So is a save that returns to a list, where the new row may be out
+mounted once in `src/app/App.tsx`. So is a save that returns to a list, where the new row may be out
 of sight on another page or under another sort: a client or an employee added, by name. Errors and field
 validation stay inline with `role="alert"`, next to their cause, so they persist.
 

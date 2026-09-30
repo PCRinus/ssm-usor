@@ -4,9 +4,9 @@ import { z } from 'zod';
 import {
   getListClientDocumentsQueryKey,
   getListClientDocumentsQueryOptions,
-} from '../../../../../api/generated/api';
-import { useAuth } from '../../../../../auth/auth-context';
-import { DocumentEditorPage } from '../../../../../documents/document-editor-page';
+} from '@/api/generated/api';
+import { useAuth } from '@/features/auth/auth-context';
+import { DocumentEditorPage } from '@/features/documents/document-editor-page';
 
 // The loader warms the list the page reads, under the same key, and names the document.
 // The editor uses the viewport layout instead of the normal page chrome.
@@ -32,7 +32,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/document
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function DocumentRoute() {
+function DocumentRoute() {
   const { client } = clientRoute.useLoaderData();
   const { documentId } = Route.useParams();
   const { session } = useAuth();

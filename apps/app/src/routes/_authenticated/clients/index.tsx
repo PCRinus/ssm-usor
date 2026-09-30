@@ -13,17 +13,17 @@ import { Archive, Plus, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
 
-import { useMe } from '../../../account/use-me';
-import { getListClientsQueryKey, useListClients } from '../../../api/generated/api';
-import { ApiHttpError } from '../../../api/http';
-import { useAuth } from '../../../auth/auth-context';
+import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import type { DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
 import {
   type ClientArchiveChange,
   ClientArchiveDialog,
-} from '../../../clients/client-archive-dialog';
-import { clientColumns, type ClientRow } from '../../../clients/client-columns';
-import type { DataTableSort } from '../../../components/data-table/columns';
-import { DataTable } from '../../../components/data-table/data-table';
+} from '@/features/clients/client-archive-dialog';
+import { clientColumns, type ClientRow } from '@/features/clients/client-columns';
 
 // Page, sort and the archived view live in the URL; defaults are omitted to keep links short.
 const defaultSort: DataTableSort & { sort: ClientSortKey } = { sort: 'legalName', order: 'asc' };
@@ -47,7 +47,7 @@ export const Route = createFileRoute('/_authenticated/clients/')({
 
 const rowKey = (row: ClientRow) => row.id;
 
-export function ClientsPage() {
+function ClientsPage() {
   const {
     page = 1,
     sort = defaultSort.sort,

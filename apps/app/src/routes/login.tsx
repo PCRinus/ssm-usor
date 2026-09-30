@@ -7,10 +7,10 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { z } from 'zod';
 
-import { useLoginForm } from '../auth/use-login-form';
-import { CommitVersion } from '../components/commit-version';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
+import { CommitVersion } from '@/app/commit-version';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useLoginForm } from '@/features/auth/use-login-form';
 
 export const Route = createFileRoute('/login')({
   staticData: { title: 'Autentificare' },
@@ -27,7 +27,7 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 });
 
-export function LoginPage() {
+function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { form, onSubmit } = useLoginForm(Route.useSearch().invitation);
   const formRef = useRevealErrors(form);

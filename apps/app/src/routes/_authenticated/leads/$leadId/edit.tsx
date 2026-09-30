@@ -1,6 +1,6 @@
 import { createFileRoute, getRouteApi, Navigate } from '@tanstack/react-router';
 
-import { ClientForm } from '../../../../clients/client-form';
+import { ClientForm } from '@/features/clients/client-form';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/edit')({
   staticData: { title: 'Modifică' },
@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId/edit')({
 
 const leadRoute = getRouteApi('/_authenticated/leads/$leadId');
 
-export function EditLeadPage() {
+function EditLeadPage() {
   const { lead } = leadRoute.useLoaderData();
   if (lead.archivedAt) {
     return <Navigate to="/leads/$leadId" params={{ leadId: lead.id }} replace />;

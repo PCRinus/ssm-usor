@@ -6,18 +6,18 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { useAuth } from '../auth/auth-context';
-import { isSpentRecoveryLink, newPasswordErrorMessage } from '../auth/auth-errors';
+import { PublicFrame } from '@/app/public-frame';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { PasswordInput } from '@/components/password-input';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useAuth } from '@/features/auth/auth-context';
+import { isSpentRecoveryLink, newPasswordErrorMessage } from '@/features/auth/auth-errors';
 import {
   newPasswordHint,
   resetPasswordSchema,
   type ResetPasswordValues,
-} from '../auth/password-schema';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { PasswordInput } from '../components/password-input';
-import { PublicFrame } from '../components/public-frame';
-import { useRevealErrors } from '../components/use-reveal-errors';
+} from '@/features/auth/password-schema';
 
 // Public: the link in a password reset email lands here. Opening it does nothing; the
 // token is used only when a new password is submitted, because mail scanners open links.
@@ -41,7 +41,7 @@ function SpentLink() {
   );
 }
 
-export function ResetPasswordPage() {
+function ResetPasswordPage() {
   const { token_hash: tokenHash } = Route.useSearch();
   const { auth } = useAuth();
   const navigate = useNavigate();

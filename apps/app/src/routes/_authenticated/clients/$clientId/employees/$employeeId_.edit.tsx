@@ -5,10 +5,10 @@ import {
   getGetEmployeeQueryKey,
   getGetEmployeeQueryOptions,
   useGetEmployee,
-} from '../../../../../api/generated/api';
-import { ApiHttpError } from '../../../../../api/http';
-import { useAuth } from '../../../../../auth/auth-context';
-import { EmployeeForm } from '../../../../../employees/employee-form';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useAuth } from '@/features/auth/auth-context';
+import { EmployeeForm } from '@/features/employees/employee-form';
 
 // Correcting what was entered about an employee. The trailing underscore keeps this page out of
 // the employee page's own layout; the loader warms the same query that page reads.
@@ -38,7 +38,7 @@ export const Route = createFileRoute(
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function EditEmployeePage() {
+function EditEmployeePage() {
   const { clientId, employeeId } = Route.useParams();
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();

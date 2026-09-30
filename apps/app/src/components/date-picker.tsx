@@ -6,7 +6,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { dateToIso, formatRoDate, isoToDate, parseRoDate } from '../lib/dates';
+import { dateToIso, formatRoDate, isoToDate, parseRoDate } from '@/lib/dates';
 
 export interface DatePickerProps {
   id: string;

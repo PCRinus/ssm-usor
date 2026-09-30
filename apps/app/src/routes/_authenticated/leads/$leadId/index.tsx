@@ -4,31 +4,28 @@ import { createFileRoute, getRouteApi, Link, useRouteContext } from '@tanstack/r
 import { Archive, ArchiveRestore, Handshake, Pencil, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 
-import {
-  getGetServiceContractQueryKey,
-  useGetServiceContract,
-} from '../../../../api/generated/api';
-import { useAuth } from '../../../../auth/auth-context';
-import { ClientFilesCard } from '../../../../client-files/client-files-card';
+import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
+import { Notice } from '@/components/notice';
+import { useAuth } from '@/features/auth/auth-context';
+import { ClientFilesCard } from '@/features/client-files/client-files-card';
 import {
   type ClientArchiveChange,
   ClientArchiveDialog,
-} from '../../../../clients/client-archive-dialog';
-import { CompanyCard } from '../../../../clients/company-card';
-import { ContactCard } from '../../../../clients/contact-card';
-import { OwnerNotesCard } from '../../../../clients/owner-notes-card';
-import { HeaderFact, RecordHeader } from '../../../../clients/record-header';
-import { Notice } from '../../../../components/notice';
-import { PromoteLeadDialog } from '../../../../leads/promote-lead-dialog';
+} from '@/features/clients/client-archive-dialog';
+import { CompanyCard } from '@/features/clients/company-card';
+import { ContactCard } from '@/features/clients/contact-card';
+import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
+import { PromoteLeadDialog } from '@/features/clients/promote-lead-dialog';
+import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import {
   companyFocus,
   contractFocus,
   focusAmong,
   focusSearch,
   leadFocus,
-} from '../../../../missing-data/focus';
-import { useEndWayBackOutside } from '../../../../missing-data/way-back';
-import { ServiceContractCard } from '../../../../service-contracts/service-contract-card';
+} from '@/features/missing-data/focus';
+import { useEndWayBackOutside } from '@/features/missing-data/way-back';
+import { ServiceContractCard } from '@/features/service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
   validateSearch: focusSearch(leadFocus),
@@ -38,7 +35,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
 const leadRoute = getRouteApi('/_authenticated/leads/$leadId');
 
 // Only an owner gets here: for anyone else the lead does not exist.
-export function LeadPage() {
+function LeadPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
   const { focus } = Route.useSearch();

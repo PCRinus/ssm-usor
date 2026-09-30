@@ -5,15 +5,19 @@ import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-ro
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { useAuth } from '../auth/auth-context';
-import { registerErrorMessage } from '../auth/auth-errors';
-import { newPasswordHint, registerSchema, type RegisterValues } from '../auth/password-schema';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { PasswordInput } from '../components/password-input';
-import { PasswordStrengthIndicator } from '../components/password-strength-indicator';
-import { PublicFrame } from '../components/public-frame';
-import { useRevealErrors } from '../components/use-reveal-errors';
+import { PublicFrame } from '@/app/public-frame';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { PasswordInput } from '@/components/password-input';
+import { PasswordStrengthIndicator } from '@/components/password-strength-indicator';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useAuth } from '@/features/auth/auth-context';
+import { registerErrorMessage } from '@/features/auth/auth-errors';
+import {
+  newPasswordHint,
+  registerSchema,
+  type RegisterValues,
+} from '@/features/auth/password-schema';
 
 // Registration is Supabase's own signup (ADR 004). The page creates an identity only; the
 // organization comes with onboarding, after the email is confirmed.
@@ -26,7 +30,7 @@ export const Route = createFileRoute('/register')({
   component: RegisterPage,
 });
 
-export function RegisterPage() {
+function RegisterPage() {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [sentTo, setSentTo] = useState<string | null>(null);

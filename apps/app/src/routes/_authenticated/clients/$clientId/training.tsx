@@ -1,9 +1,9 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { useAuth } from '../../../../auth/auth-context';
-import { ResponsiblePersonsCard } from '../../../../document-data/responsible-persons-card';
-import { TrainingProgramSection } from '../../../../document-data/training-program-card';
-import { focusSearch, trainingFocus } from '../../../../missing-data/focus';
+import { useAuth } from '@/features/auth/auth-context';
+import { focusSearch, trainingFocus } from '@/features/missing-data/focus';
+import { ResponsiblePersonsCard } from '@/features/training/responsible-persons-card';
+import { TrainingProgramSection } from '@/features/training/training-program-card';
 
 // What a client's generated documentation prints about training and responsible persons
 // (ADR 005).
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/training
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function TrainingPage() {
+function TrainingPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const { focus } = Route.useSearch();

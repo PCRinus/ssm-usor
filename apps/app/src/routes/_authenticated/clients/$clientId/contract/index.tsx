@@ -1,11 +1,11 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 
-import { useMe } from '../../../../../account/use-me';
-import { useAuth } from '../../../../../auth/auth-context';
-import { Notice } from '../../../../../components/notice';
-import { clientContractFocus, focusSearch } from '../../../../../missing-data/focus';
-import { ServiceContractCard } from '../../../../../service-contracts/service-contract-card';
+import { Notice } from '@/components/notice';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
+import { clientContractFocus, focusSearch } from '@/features/missing-data/focus';
+import { ServiceContractCard } from '@/features/service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/contract/')({
   validateSearch: focusSearch(clientContractFocus),
@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/contract
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function ContractPage() {
+function ContractPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const me = useMe();

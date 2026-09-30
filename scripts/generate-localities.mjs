@@ -1,7 +1,7 @@
 //   node scripts/generate-localities.mjs path/to/siruta_s1_2026.csv
 //
 // The input is the SIRUTA register of the National Institute of Statistics, from
-// https://data.gov.ro/dataset?q=siruta ("SIRUTA_s1 <year>", CC BY 4.0, credited in apps/app/src/localities/README.md).
+// https://data.gov.ro/dataset?q=siruta ("SIRUTA_s1 <year>", CC BY 4.0, credited in apps/app/src/lib/localities/README.md).
 // It changes a few times a year at most; download the newest file and run this again.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const outDir = join(root, 'apps/app/src/localities/data');
+const outDir = join(root, 'apps/app/src/lib/localities/data');
 const source = process.argv[2];
 if (!source) {
   console.error('Usage: node scripts/generate-localities.mjs <siruta.csv>');

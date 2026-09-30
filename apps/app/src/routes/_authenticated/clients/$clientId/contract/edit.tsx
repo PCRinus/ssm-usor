@@ -2,9 +2,9 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 
-import { useAuth } from '../../../../../auth/auth-context';
-import { useBackToList } from '../../../../../components/use-back-to-list';
-import { ServiceContractEditor } from '../../../../../service-contracts/service-contract-editor';
+import { useBackToList } from '@/app/use-back-to-list';
+import { useAuth } from '@/features/auth/auth-context';
+import { ServiceContractEditor } from '@/features/service-contracts/service-contract-editor';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/contract/edit')({
   staticData: { title: 'Contract', fullPage: true, editorPage: true },
@@ -13,7 +13,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/contract
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function ClientContractEditorPage() {
+function ClientContractEditorPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const backToList = useBackToList();

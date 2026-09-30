@@ -1,19 +1,19 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { useMe } from '../../../../account/use-me';
-import { useAuth } from '../../../../auth/auth-context';
-import { CompanyCard } from '../../../../clients/company-card';
-import { ContactCard } from '../../../../clients/contact-card';
-import { OwnerNotesCard } from '../../../../clients/owner-notes-card';
-import { LegalRepresentativeCard } from '../../../../document-data/legal-representative-card';
-import { WorkplacesCard } from '../../../../document-data/workplaces-card';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
+import { CompanyCard } from '@/features/clients/company-card';
+import { ContactCard } from '@/features/clients/contact-card';
+import { LegalRepresentativeCard } from '@/features/clients/legal-representative-card';
+import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
+import { WorkplacesCard } from '@/features/clients/workplaces-card';
 import {
   clientDetailsFocus,
   companyFocus,
   focusAmong,
   focusSearch,
   legalRepresentativeFocus,
-} from '../../../../missing-data/focus';
+} from '@/features/missing-data/focus';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/details')({
   staticData: { title: 'Detalii' },
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/details'
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function ClientDetailsPage() {
+function ClientDetailsPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const isOwner = useMe().data?.membership?.role === 'owner';

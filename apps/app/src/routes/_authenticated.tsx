@@ -1,8 +1,8 @@
 import { createFileRoute, Navigate, redirect } from '@tanstack/react-router';
 
-import { useMe } from '../account/use-me';
-import { useAuth } from '../auth/auth-context';
-import { AppShell } from '../components/app-shell';
+import { AppShell } from '@/app/app-shell';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context: { auth } }) => {
@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout,
 });
 
-export function AuthenticatedLayout() {
+function AuthenticatedLayout() {
   const { session } = useAuth();
   // Hide stale content immediately while the router rechecks a changed session.
   return session ? <MembershipGate /> : null;

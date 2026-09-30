@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { useMe } from '../../../account/use-me';
-import { authorizationsFocus, focusSearch } from '../../../missing-data/focus';
-import { AuthorizationsCard } from '../../../organization/authorizations-card';
+import { useMe } from '@/features/account/use-me';
+import { authorizationsFocus, focusSearch } from '@/features/missing-data/focus';
+import { AuthorizationsCard } from '@/features/organization/authorizations-card';
 
 export const Route = createFileRoute('/_authenticated/organization/authorizations')({
   staticData: { title: 'Abilitări' },
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_authenticated/organization/authorization
   component: OrganizationAuthorizationsPage,
 });
 
-export function OrganizationAuthorizationsPage() {
+function OrganizationAuthorizationsPage() {
   const me = useMe();
   const { focus } = Route.useSearch();
   // The layout renders this only once the account and its membership are loaded.

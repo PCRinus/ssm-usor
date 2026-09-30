@@ -1,4 +1,4 @@
-import { captureEvent } from '../observability/posthog';
+import { captureEvent } from '@/app/observability/posthog';
 
 export interface ApiRequestOptions extends RequestInit {
   baseUrl?: string;

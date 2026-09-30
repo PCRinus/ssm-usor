@@ -5,13 +5,13 @@ import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { useAuth } from '../auth/auth-context';
-import { forgotPasswordErrorMessage } from '../auth/auth-errors';
-import { forgotPasswordSchema, type ForgotPasswordValues } from '../auth/password-schema';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { PublicFrame } from '../components/public-frame';
-import { useRevealErrors } from '../components/use-reveal-errors';
+import { PublicFrame } from '@/app/public-frame';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useAuth } from '@/features/auth/auth-context';
+import { forgotPasswordErrorMessage } from '@/features/auth/auth-errors';
+import { forgotPasswordSchema, type ForgotPasswordValues } from '@/features/auth/password-schema';
 
 export const Route = createFileRoute('/forgot-password')({
   staticData: { title: 'Recuperare parolă' },
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/forgot-password')({
   component: ForgotPasswordPage,
 });
 
-export function ForgotPasswordPage() {
+function ForgotPasswordPage() {
   const { auth } = useAuth();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useForm<ForgotPasswordValues>({

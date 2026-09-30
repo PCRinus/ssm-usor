@@ -1,0 +1,145 @@
+import { periodicTrainingMinutesOptions } from '@ssm-usor/contracts';
+import { z } from 'zod';
+
+import type {
+  ClientDocumentDetailsResponse,
+  UpdateClientDocumentDetailsRequest,
+} from '@/api/generated/api';
+
+type DocumentDetails = ClientDocumentDetailsResponse['documentDetails'];
+
+// Form values are strings so inputs and selects stay controlled; the API request is derived
+// on submit. Everything is optional here: generating a document is what asks for it.
+const wholeNumber = (min: number, max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .refine((value) => {
+      if (value === '') return true;
+      const number = Number(value);
+      return /^[0-9]+$/.test(value) && number >= min && number <= max;
+    }, message);
+
+export const notApplicable = 'not_applicable';
+const categoryInterval = (max: number) =>
+  z
+    .string()
+    .refine(
+      (value) =>
+        value === notApplicable ||
+        value === '' ||
+        (/^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= max),
+      'Alege un interval din listă sau „Nu se aplică”.'
+    );
+
+const durations: readonly string[] = periodicTrainingMinutesOptions.map(String);
+
+export const documentDetailsFormSchema = z
+  .object({
+    legalRepresentativeName: z
+      .string()
+      .trim()
+      .max(160, 'Numele are cel mult 160 de caractere.')
+      .refine(
+        (value) => value.length === 0 || value.length >= 2,
+        'Numele are cel puțin 2 caractere.'
+      ),
+    legalRepresentativeRole: z
+      .string()
+      .trim()
+      .max(80, 'Funcția are cel mult 80 de caractere.')
+      .refine(
+        (value) => value.length === 0 || value.length >= 2,
+        'Funcția are cel puțin 2 caractere.'
+      ),
+    periodicTrainingMinutes: z
+      .string()
+      .refine((value) => value === '' || durations.includes(value), 'Alege o durată din listă.'),
+    administrativeTrainingIntervalMonths: categoryInterval(12),
+    workerTrainingIntervalMonths: categoryInterval(6),
+    trainingFirstMonth: wholeNumber(1, 12, 'Alege o lună din listă.'),
+    trainingDayFrom: wholeNumber(1, 31, 'Introdu o zi între 1 și 31.'),
+    trainingDayTo: wholeNumber(1, 31, 'Introdu o zi între 1 și 31.'),
+  })
+  .refine(
+    (values) =>
+      values.trainingDayFrom === '' ||
+      values.trainingDayTo === '' ||
+      Number(values.trainingDayFrom) <= Number(values.trainingDayTo),
+    { path: ['trainingDayTo'], message: 'Ultima zi nu poate fi înaintea primei zile.' }
+  );
+
+export type DocumentDetailsFormValues = z.infer<typeof documentDetailsFormSchema>;
+
+const text = (value: number | string | null) => (value === null ? '' : String(value));
+const categoryChoice = (interval: number | null, excluded: boolean) =>
+  excluded ? notApplicable : text(interval);
+
+export function toDocumentDetailsForm(details: DocumentDetails): DocumentDetailsFormValues {
+  return {
+    legalRepresentativeName: text(details.legalRepresentativeName),
+    legalRepresentativeRole: text(details.legalRepresentativeRole),
+    periodicTrainingMinutes: text(details.periodicTrainingMinutes),
+    administrativeTrainingIntervalMonths: categoryChoice(
+      details.administrativeTrainingIntervalMonths,
+      details.administrativeTrainingNotApplicable
+    ),
+    workerTrainingIntervalMonths: categoryChoice(
+      details.workerTrainingIntervalMonths,
+      details.workerTrainingNotApplicable
+    ),
+    trainingFirstMonth: text(details.trainingFirstMonth),
+    trainingDayFrom: text(details.trainingDayFrom),
+    trainingDayTo: text(details.trainingDayTo),
+  };
+}
+
+const numberOrNull = (value: string) => (value ? Number(value) : null);
+const categoryIntervalOrNull = (value: string) =>
+  value === notApplicable ? null : numberOrNull(value);
+
+// The route replaces every field, so an emptied input clears what was saved.
+export function toDocumentDetailsRequest(
+  values: DocumentDetailsFormValues
+): UpdateClientDocumentDetailsRequest {
+  return {
+    legalRepresentativeName: values.legalRepresentativeName || null,
+    legalRepresentativeRole: values.legalRepresentativeRole || null,
+    periodicTrainingMinutes: numberOrNull(values.periodicTrainingMinutes),
+    administrativeTrainingIntervalMonths: categoryIntervalOrNull(
+      values.administrativeTrainingIntervalMonths
+    ),
+    administrativeTrainingNotApplicable:
+      values.administrativeTrainingIntervalMonths === notApplicable,
+    workerTrainingIntervalMonths: categoryIntervalOrNull(values.workerTrainingIntervalMonths),
+    workerTrainingNotApplicable: values.workerTrainingIntervalMonths === notApplicable,
+    trainingFirstMonth: numberOrNull(values.trainingFirstMonth),
+    trainingDayFrom: numberOrNull(values.trainingDayFrom),
+    trainingDayTo: numberOrNull(values.trainingDayTo),
+  };
+}
+
+export const monthNames = [
+  'Ianuarie',
+  'Februarie',
+  'Martie',
+  'Aprilie',
+  'Mai',
+  'Iunie',
+  'Iulie',
+  'August',
+  'Septembrie',
+  'Octombrie',
+  'Noiembrie',
+  'Decembrie',
+] as const;
+
+// The intervals providers use, worded the way the decision prints them.
+export const intervalOptions = [
+  { months: 1, label: 'Lunar' },
+  { months: 2, label: 'La 2 luni' },
+  { months: 3, label: 'Trimestrial (la 3 luni)' },
+  { months: 4, label: 'La 4 luni' },
+  { months: 6, label: 'Semestrial (la 6 luni)' },
+  { months: 12, label: 'Anual (la 12 luni)' },
+] as const;

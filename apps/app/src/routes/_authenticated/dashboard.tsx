@@ -2,16 +2,16 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 
-import { useMe } from '../../account/use-me';
-import { ApiHttpError } from '../../api/http';
-import { useAuth } from '../../auth/auth-context';
+import { ApiHttpError } from '@/api/http';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
   staticData: { title: 'Prezentare generală' },
   component: DashboardPage,
 });
 
-export function DashboardPage() {
+function DashboardPage() {
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const me = useMe();
