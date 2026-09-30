@@ -378,6 +378,7 @@ describe('the training themes', () => {
     expect(themes!.ownInstructionsRevision).toEqual({
       id: 'd0d0d0d0-0000-4000-8000-000000000001',
       number: 2,
+      versionIds: ['b0b0b0b0-0000-4000-8000-000000000002', 'b0b0b0b0-0000-4000-8000-000000000001'],
     });
     expect(themes!.annexTitles).toBe(
       'I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică'
@@ -394,7 +395,13 @@ describe('the training themes', () => {
       {
         name: 'CONTABIL',
         trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
-        modules: [{ title: 'Activități de birou', articleCount: 12 }],
+        modules: [
+          {
+            title: 'Activități de birou',
+            articleCount: 12,
+            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+          },
+        ],
         intervalLabel: '6 LUNI',
         months: ['FEBRUARIE', 'AUGUST'],
       },
@@ -402,8 +409,16 @@ describe('the training themes', () => {
         name: 'SUDOR',
         trainer: 'Florin Cristian TALOȘ – conducător loc de muncă',
         modules: [
-          { title: 'Activități de birou', articleCount: 12 },
-          { title: 'Sudură oxiacetilenică', articleCount: 31 },
+          {
+            title: 'Activități de birou',
+            articleCount: 12,
+            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+          },
+          {
+            title: 'Sudură oxiacetilenică',
+            articleCount: 31,
+            citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
+          },
         ],
         intervalLabel: '2 LUNI',
         months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
@@ -433,7 +448,11 @@ describe('the training themes', () => {
     }).themes!;
     expect(behind.annexTitles).toBe('I.P.S.S.M. Activități de birou');
     expect(behind.positions[1]!.modules).toEqual([
-      { title: 'Activități de birou', articleCount: 12 },
+      {
+        title: 'Activități de birou',
+        articleCount: 12,
+        citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+      },
     ]);
   });
 

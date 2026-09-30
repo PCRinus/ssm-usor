@@ -51,7 +51,7 @@ export function dealChapters(sessions: number): ArticleRange[] {
 export type CitedModule = { title: string; articleCount: number };
 
 // A file without a numbered list counts no articles, and "Art. 1 – 0" would cite nothing.
-const citation = (module: CitedModule) =>
+export const citation = (module: CitedModule) =>
   module.articleCount > 0
     ? `I.P.S.S.M. ${module.title}, Art. 1 – ${module.articleCount}`
     : `I.P.S.S.M. ${module.title}`;
@@ -111,12 +111,12 @@ export type OwnInstructionsRevision = {
 
 export type ThemesContext = {
   /** Never printed: what makes the themes out of date when the own instructions change. */
-  ownInstructionsRevision: { id: string; number: number };
+  ownInstructionsRevision: { id: string; number: number; versionIds: string[] };
   annexTitles: string;
   positions: {
     name: string;
     trainer: string;
-    modules: CitedModule[];
+    modules: (CitedModule & { citation: string })[];
     intervalLabel: string;
     sessions: TrainingSession[];
   }[];
@@ -150,13 +150,19 @@ export function trainingThemes({
     ownInstructionsRevision: {
       id: ownInstructions.revisionId,
       number: ownInstructions.revisionNumber,
+      // A draft generated again keeps its id; new module versions still date the themes.
+      versionIds: ownInstructions.annexes.map((annex) => annex.versionId),
     },
     annexTitles:
       annexes.length === 0 ? '—' : annexes.map((annex) => `I.P.S.S.M. ${annex.title}`).join('; '),
     positions: positions.map((position) => {
       const modules = annexes
         .filter((annex) => position.moduleIds.includes(annex.moduleId))
-        .map((annex) => ({ title: annex.title, articleCount: annex.articleCount }));
+        .map((annex) => ({
+          title: annex.title,
+          articleCount: annex.articleCount,
+          citation: citation(annex),
+        }));
       return {
         name: position.name.trim().toLocaleUpperCase('ro'),
         trainer: trainerOf(position.staffCategory, names),

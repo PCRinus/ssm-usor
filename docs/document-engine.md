@@ -382,15 +382,15 @@ The API builds the data once per generation and merges every template with it
   throws; every other document merges as before. The template reads it by dotted paths, so the
   snapshot records the whole object and any change in it marks the themes "Date modificate":
 
-  | Name                             | Example                                                                                                                     |
-  | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-  | `themes.ownInstructionsRevision` | `{ id, number }` of the 3.2 revision cited; never printed                                                                   |
-  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                |
-  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                    |
-  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one |
-  | `…modules[]`                     | `{ title, articleCount }`, the post's modules the revision annexes, in its order                                            |
-  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                   |
-  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                      |
+  | Name                             | Example                                                                                                                                                                                              |
+  | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `themes.ownInstructionsRevision` | `{ id, number, versionIds }` of the 3.2 revision cited, the module versions in its annex order; never printed                                                                                        |
+  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                                                                                         |
+  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                                                                                             |
+  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one                                                                          |
+  | `…modules[]`                     | `{ title, articleCount, citation }`, the post's modules the revision annexes, in its order; `citation` is `I.P.S.S.M. Birou, Art. 1 – 12`, or the title alone for a module without numbered articles |
+  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                                                                                            |
+  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                                                                                               |
 
   A session's `content` is the slice of the common part dealt to it, then every module whole,
   then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The

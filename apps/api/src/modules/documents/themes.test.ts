@@ -162,7 +162,7 @@ describe('the themes', () => {
     revisionNumber: 1,
     annexes: [
       { moduleId: 'm-office', versionId: 'v-office', title: ' Birou ', articleCount: 12 },
-      { moduleId: 'm-ladder', versionId: 'v-ladder', title: 'Scări', articleCount: 9 },
+      { moduleId: 'm-ladder', versionId: 'v-ladder', title: 'Scări', articleCount: 0 },
     ],
   };
   const names = {
@@ -171,7 +171,7 @@ describe('the themes', () => {
     specialist: 'Dan MARIN',
   };
 
-  it("cite a post's modules in the revision's order, and none the revision does not annex", () => {
+  it("cite a post's modules in the revision's order, an uncounted one by title, and none the revision does not annex", () => {
     const themes = trainingThemes({
       ownInstructions,
       positions: [
@@ -187,11 +187,16 @@ describe('the themes', () => {
       names,
     });
     expect(themes.annexTitles).toBe('I.P.S.S.M. Birou; I.P.S.S.M. Scări');
+    expect(themes.ownInstructionsRevision).toEqual({
+      id: 'r1',
+      number: 1,
+      versionIds: ['v-office', 'v-ladder'],
+    });
     expect(themes.positions[0]).toMatchObject({
       name: 'ȘOFER',
       modules: [
-        { title: 'Birou', articleCount: 12 },
-        { title: 'Scări', articleCount: 9 },
+        { title: 'Birou', articleCount: 12, citation: 'I.P.S.S.M. Birou, Art. 1 – 12' },
+        { title: 'Scări', articleCount: 0, citation: 'I.P.S.S.M. Scări' },
       ],
       intervalLabel: '6 LUNI',
     });

@@ -1011,13 +1011,23 @@ describe('the training themes', () => {
       themes: Record<string, unknown>;
     };
     expect(themes).toEqual({
-      ownInstructionsRevision: { id: ownInstructionsRevision.id, number: 1 },
+      ownInstructionsRevision: {
+        id: ownInstructionsRevision.id,
+        number: 1,
+        versionIds: [annexedVersion.id],
+      },
       annexTitles: 'I.P.S.S.M. Scări metalice',
       positions: [
         {
           name: 'SUDOR',
           trainer: 'Florin TALOȘ – conducător loc de muncă',
-          modules: [{ title: 'Scări metalice', articleCount: 14 }],
+          modules: [
+            {
+              title: 'Scări metalice',
+              articleCount: 14,
+              citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 14',
+            },
+          ],
           intervalLabel: '3 LUNI',
           sessions: [
             ['FEBRUARIE', 'I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
@@ -1063,6 +1073,26 @@ describe('the training themes', () => {
       })
     ).toBe(true);
     expect(await dataChanged({ ownInstructions: () => Response.json([]) })).toBe(true);
+    const newerVersion = { ...annexedVersion, id: 'b0b0b0b0-0000-4000-8000-000000000002' };
+    expect(
+      await dataChanged({
+        ownInstructions: () =>
+          Response.json([
+            {
+              ...ownInstructionsRevision,
+              data_snapshot: {
+                annexes: [
+                  {
+                    ...ownInstructionsRevision.data_snapshot.annexes[0],
+                    versionId: newerVersion.id,
+                  },
+                ],
+              },
+            },
+          ]),
+        moduleVersions: () => Response.json([newerVersion]),
+      })
+    ).toBe(true);
     expect(
       await dataChanged({
         positions: () => Response.json([{ ...positionRow, name: 'Sudor autogen' }]),
