@@ -5,7 +5,7 @@ import { getGetMeQueryOptions, getMe, printDocument } from './generated/api';
 import { apiFetch, ApiHttpError, apiUpload } from './http';
 
 const captured = vi.hoisted(() => vi.fn());
-vi.mock('../observability/posthog', () => ({ captureEvent: captured }));
+vi.mock('../app/observability/posthog', () => ({ captureEvent: captured }));
 
 const fetchMock = vi.fn<typeof fetch>();
 const baseUrl = 'https://api.example.test';

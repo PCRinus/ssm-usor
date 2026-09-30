@@ -5,12 +5,12 @@ import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { PublicFrame } from '../app/public-frame';
 import { useAuth } from '../auth/auth-context';
 import { forgotPasswordErrorMessage } from '../auth/auth-errors';
 import { forgotPasswordSchema, type ForgotPasswordValues } from '../auth/password-schema';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
-import { PublicFrame } from '../components/public-frame';
 import { useRevealErrors } from '../components/use-reveal-errors';
 
 export const Route = createFileRoute('/forgot-password')({

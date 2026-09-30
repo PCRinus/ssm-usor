@@ -23,9 +23,9 @@ import {
   useListPositionInstructions,
 } from '../../../../../api/generated/api';
 import { ApiHttpError } from '../../../../../api/http';
+import { useScrollToHash } from '../../../../../app/use-scroll-to-hash';
 import { useAuth } from '../../../../../auth/auth-context';
 import { EditAction, Fact, FactList, SectionCard } from '../../../../../components/section-card';
-import { useScrollToHash } from '../../../../../components/use-scroll-to-hash';
 import { PositionInstructionsCard } from '../../../../../instructions/position-instructions-card';
 import { JobPositionDialog } from '../../../../../job-positions/job-position-dialog';
 import {

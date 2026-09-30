@@ -1,8 +1,8 @@
 import { createFileRoute, Navigate, redirect } from '@tanstack/react-router';
 
 import { useMe } from '../account/use-me';
+import { AppShell } from '../app/app-shell';
 import { useAuth } from '../auth/auth-context';
-import { AppShell } from '../components/app-shell';
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context: { auth } }) => {

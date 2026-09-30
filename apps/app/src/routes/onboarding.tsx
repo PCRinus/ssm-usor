@@ -22,10 +22,10 @@ import {
   useListMyInvitations,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { PublicFrame } from '../app/public-frame';
 import { useAuth } from '../auth/auth-context';
 import { Field, FieldMessage } from '../components/form-field';
 import { Notice } from '../components/notice';
-import { PublicFrame } from '../components/public-frame';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { onboardingSchema, type OnboardingValues } from '../onboarding/onboarding-schema';
 import { roleLabels } from '../organization/labels';

@@ -3,11 +3,11 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { AuthClient } from '../auth/auth-store';
+import { createQueryClient } from '../lib/query-client';
+import { authFixture, makeSession } from '../test/auth-fixture';
 import App from './App';
 import { type AppRuntime, createAppRuntime } from './app-runtime';
-import type { AuthClient } from './auth/auth-store';
-import { createQueryClient } from './lib/query-client';
-import { authFixture, makeSession } from './test/auth-fixture';
 
 const fetchMock = vi.fn<typeof fetch>();
 beforeEach(() => {

@@ -12,8 +12,8 @@ import {
   useSaveInstructionModuleFile,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { useBackToList } from '../app/use-back-to-list';
 import { Notice } from '../components/notice';
-import { useBackToList } from '../components/use-back-to-list';
 import type { DocumentEditorHandle } from '../documents/document-editor';
 import { editorFrameClassName, saveAs } from '../documents/editor-frame';
 import { EditorPlaceholder } from '../documents/editor-placeholder';

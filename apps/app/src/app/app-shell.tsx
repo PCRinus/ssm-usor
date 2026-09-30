@@ -47,9 +47,9 @@ import { Fragment, useState } from 'react';
 
 import { useMe } from '../account/use-me';
 import { useAuth } from '../auth/auth-context';
-import { usePostHogSession } from '../observability/use-posthog-session';
+import { Notice } from '../components/notice';
 import { CommitVersion } from './commit-version';
-import { Notice } from './notice';
+import { usePostHogSession } from './observability/use-posthog-session';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';

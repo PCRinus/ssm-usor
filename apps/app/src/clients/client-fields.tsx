@@ -4,9 +4,9 @@ import { Label } from '@ssm-usor/ui/components/label';
 import type { ComponentProps } from 'react';
 import { Controller, type FieldError, type UseFormReturn, useFormState } from 'react-hook-form';
 
-import { AnafLookupButton } from '../components/anaf-lookup-button';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { AnafLookupButton } from './anaf-lookup-button';
 import { CaenCombobox } from './caen-combobox';
 import type { ClientFormValues } from './client-form-schema';
 import { CountyCombobox } from './county-combobox';

@@ -18,12 +18,12 @@ import {
   useJoinWithInvitation,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { PublicFrame } from '../app/public-frame';
 import { useAuth } from '../auth/auth-context';
 import { newPasswordHint } from '../auth/password-schema';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { PasswordInput } from '../components/password-input';
-import { PublicFrame } from '../components/public-frame';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import {
   createAccountSchema,

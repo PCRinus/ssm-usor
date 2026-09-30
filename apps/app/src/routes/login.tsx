@@ -7,8 +7,8 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { z } from 'zod';
 
+import { CommitVersion } from '../app/commit-version';
 import { useLoginForm } from '../auth/use-login-form';
-import { CommitVersion } from '../components/commit-version';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
 

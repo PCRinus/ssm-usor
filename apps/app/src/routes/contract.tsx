@@ -12,8 +12,8 @@ import {
   useUploadContractReturn,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { PublicFrame } from '../app/public-frame';
 import { Notice } from '../components/notice';
-import { PublicFrame } from '../components/public-frame';
 import { formatRoDate } from '../lib/dates';
 import { fileAddress } from '../lib/save-file';
 

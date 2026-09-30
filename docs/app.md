@@ -25,7 +25,7 @@ widget for the app domain and set its greeting, button text, and new-ticket emai
 the dashboard. Configure replay sampling to 100% for the pilot, and review product retention and
 deletion settings before external users join. The floating PostHog launcher is hidden because the
 sidebar report button opens the widget. PostHog changes to the widget DOM may require updating
-the adapter in `src/observability/posthog.ts`.
+the adapter in `src/app/observability/posthog.ts`.
 
 Copy `apps/app/.env.example` to `apps/app/.env.local` and set the project's URL and
 publishable key:
@@ -114,7 +114,7 @@ for transport types, which come from the generated client.
 
 Routes are file-based under `src/routes`; the TanStack Router Vite plugin generates
 `src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
-API client). `src/router.ts` builds the router from that tree with the injected context.
+API client). `src/app/router.ts` builds the router from that tree with the injected context.
 
 | File                                                                       | Route                                       | Behavior                                                                                                                                                                                                    |
 | -------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -178,7 +178,7 @@ as `clients.tsx` so the parent crumb links back. New protected pages go under
 premature redirect on browser refresh. The app also handles loading and session-initialization
 errors. Login always navigates to `/dashboard`; arbitrary redirect query parameters are not used.
 
-`src/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
+`src/app/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
 client is both a React provider and typed router context, available for generated Orval query options
 in route loaders. The dashboard uses the generated `useGetMe` hook with request configuration
 from the router context. See the [API client guide](api-client.md) for generation and error handling.
@@ -324,7 +324,7 @@ the separate live login, API, session-restoration, and logout checks.
 
 ## Workspace layout
 
-Authenticated routes share `src/components/app-shell.tsx`. A full-width sticky header
+Authenticated routes share `src/app/app-shell.tsx`. A full-width sticky header
 keeps the logo and sidebar toggle visible independently of sidebar collapse. The
 account menu sits at the bottom of the sidebar and remains accessible as an avatar
 when collapsed. Breadcrumbs sit above the page content, and a small footer follows the content.
@@ -676,7 +676,7 @@ back to "Contul meu" and the email.
 
 Actions that leave the user on the same page (invitation sent, resent, revoked, profile
 saved, an employee marked as a leaver or reactivated) are confirmed with a Sonner toast,
-mounted once in `App.tsx`. So is a save that returns to a list, where the new row may be out
+mounted once in `src/app/App.tsx`. So is a save that returns to a list, where the new row may be out
 of sight on another page or under another sort: a client or an employee added, by name. Errors and field
 validation stay inline with `role="alert"`, next to their cause, so they persist.
 

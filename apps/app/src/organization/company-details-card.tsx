@@ -18,8 +18,8 @@ import {
   useUpdateOrganizationCompanyDetails,
 } from '../api/generated/api';
 import { ApiHttpError } from '../api/http';
+import { AnafLookupButton } from '../clients/anaf-lookup-button';
 import { CountyCombobox } from '../clients/county-combobox';
-import { AnafLookupButton } from '../components/anaf-lookup-button';
 import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';

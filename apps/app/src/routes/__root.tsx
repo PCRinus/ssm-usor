@@ -3,9 +3,9 @@ import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 import { lazy, Suspense } from 'react';
 
 import type { ApiRequestOptions } from '../api/http';
+import { NotFoundPage, RouteErrorPage } from '../app/route-states';
 import type { AuthStore } from '../auth/auth-store';
 import { PageTitle } from '../components/page-title';
-import { NotFoundPage, RouteErrorPage } from '../components/route-states';
 
 export interface RouterContext {
   auth: AuthStore;
@@ -15,7 +15,8 @@ export interface RouterContext {
 
 // Devtools ship only in the development server: the mode check is a build-time constant,
 // so production builds and tests drop the import entirely.
-const Devtools = import.meta.env.MODE === 'development' ? lazy(() => import('../devtools')) : null;
+const Devtools =
+  import.meta.env.MODE === 'development' ? lazy(() => import('../app/devtools')) : null;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
