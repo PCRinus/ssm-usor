@@ -32,7 +32,7 @@ function SpentLink() {
     <PublicFrame
       testId="reset-password-invalid"
       title="Linkul nu mai este valabil"
-      description="Linkul de resetare a expirat, a fost deja folosit sau a fost înlocuit de unul mai nou. Cere un link nou și folosește-l în cel mult o oră."
+      description="A expirat, a fost deja folosit sau a fost înlocuit de unul mai nou. Un link nou este valabil o oră."
     >
       <Button asChild data-testid="reset-request-new">
         <Link to="/forgot-password">Cere un link nou</Link>

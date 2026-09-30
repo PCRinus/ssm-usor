@@ -145,7 +145,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
             <Field
               id="profile-email"
               label="Adresa de email"
-              hint="Cu această adresă te autentifici. Deocamdată nu poate fi schimbată din aplicație."
+              hint="Deocamdată nu poate fi schimbată din aplicație."
             >
               <Input
                 id="profile-email"

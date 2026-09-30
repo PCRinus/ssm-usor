@@ -54,13 +54,10 @@ export function DashboardPage() {
         <CardHeader>
           <h2 className="text-lg font-semibold">Clienți</h2>
         </CardHeader>
-        <CardContent className="text-sm leading-relaxed text-muted-foreground">
-          Vezi clienții și documentele la care lucrezi.
-          <div className="mt-5">
-            <Button asChild>
-              <Link to="/clients">Vezi clienții</Link>
-            </Button>
-          </div>
+        <CardContent>
+          <Button asChild>
+            <Link to="/clients">Vezi clienții</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

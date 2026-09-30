@@ -70,7 +70,7 @@ export function ForgotPasswordPage() {
     <PublicFrame
       testId="forgot-password-page"
       title="Ai uitat parola?"
-      description="Scrie adresa de email a contului și îți trimitem un link pentru alegerea unei parole noi."
+      description="Îți trimitem pe email un link pentru o parolă nouă."
     >
       <form
         ref={formRef}

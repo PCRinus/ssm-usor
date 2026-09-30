@@ -60,7 +60,7 @@ export function RegisterPage() {
         description={
           <>
             Am trimis la <strong className="text-foreground">{sentTo}</strong> un link de
-            confirmare, valabil o oră. După confirmare îți configurezi organizația.
+            confirmare, valabil o oră.
           </>
         }
       >
@@ -79,7 +79,7 @@ export function RegisterPage() {
     <PublicFrame
       testId="register-page"
       title="Creează cont"
-      description="Pentru servicii externe de prevenire și protecție. După confirmarea adresei de email îți configurezi organizația."
+      description="Pentru servicii externe de prevenire și protecție."
     >
       <form
         ref={formRef}

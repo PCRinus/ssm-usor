@@ -37,7 +37,7 @@ export function ConfirmEmailPage() {
       <PublicFrame
         testId="confirm-email-invalid"
         title="Linkul nu mai este valabil"
-        description="Linkul de confirmare a expirat sau a fost deja folosit. Dacă ți-ai confirmat deja adresa, autentifică-te. Altfel, creează contul din nou ca să primești un link nou."
+        description="A expirat sau a fost deja folosit. Dacă ți-ai confirmat deja adresa, autentifică-te; altfel, creează contul din nou."
       >
         <Button asChild data-testid="confirm-go-login">
           <Link to="/login">Autentifică-te</Link>
@@ -53,7 +53,7 @@ export function ConfirmEmailPage() {
     <PublicFrame
       testId="confirm-email-page"
       title="Confirmă adresa de email"
-      description="Un clic și contul tău este gata. Urmează configurarea organizației."
+      description="Urmează configurarea organizației."
     >
       {state === 'failed' && (
         <Notice variant="destructive" data-testid="confirm-error">

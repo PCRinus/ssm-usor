@@ -29,8 +29,7 @@ export function ReportProblemDialog({ open, onClose }: { open: boolean; onClose:
         <DialogHeader>
           <DialogTitle>Raportează o problemă</DialogTitle>
           <DialogDescription>
-            Chatul de suport nu s-a putut deschide în acest browser. Scrie-ne pe e-mail și îți
-            răspundem cât mai curând.
+            Chatul de suport nu s-a putut deschide în acest browser. Scrie-ne pe e-mail.
           </DialogDescription>
         </DialogHeader>
         <p

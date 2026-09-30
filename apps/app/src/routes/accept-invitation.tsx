@@ -52,7 +52,7 @@ const closedMessages: Record<string, { title: string; text: string }> = {
   },
   expired: {
     title: 'Invitația a expirat',
-    text: 'Linkul a fost valabil 7 zile. Cere administratorului organizației să îți trimită o invitație nouă.',
+    text: 'Cere administratorului organizației să îți trimită o invitație nouă.',
   },
 };
 

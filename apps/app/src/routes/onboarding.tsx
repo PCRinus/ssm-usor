@@ -126,7 +126,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
     <PublicFrame
       testId="onboarding-page"
       title="Configurează-ți organizația"
-      description="Adaugă datele serviciului tău extern de prevenire și protecție. Vei putea invita echipa după configurare."
+      description="Vei putea invita echipa după configurare."
     >
       {pending.length > 0 && (
         <Notice
@@ -144,9 +144,8 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             ))}
           </ul>
           <p className="mt-2">
-            Ca să intri în acea organizație, folosește linkul din emailul de invitație sau cere să
-            îți fie retrimis. Un cont poate aparține unei singure organizații, deci nu crea una nouă
-            dacă vrei să o accepți.
+            Ca să intri în ea, folosește linkul din emailul de invitație. Un cont poate aparține
+            unei singure organizații, deci nu crea una nouă dacă vrei să o accepți.
           </p>
         </Notice>
       )}
