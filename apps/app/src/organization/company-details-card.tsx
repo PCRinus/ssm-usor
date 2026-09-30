@@ -223,10 +223,7 @@ function CompanyDetailsForm({
       className="grid gap-6"
     >
       <Card className="gap-0 divide-y py-0">
-        <FormSection
-          title="Identificare"
-          description="Introdu CUI-ul ca să preiei datele de la ANAF. Le poți corecta înainte să le salvezi."
-        >
+        <FormSection title="Identificare">
           <Field id="company-cui" label="CUI" error={errors.cui} className="sm:col-span-2">
             <div className="flex flex-wrap gap-2">
               <Input
@@ -294,10 +291,7 @@ function CompanyDetailsForm({
           </div>
         </FormSection>
 
-        <FormSection
-          title="Sediu și contact"
-          description="Adresa din registrul comerțului și telefonul firmei."
-        >
+        <FormSection title="Sediu și contact">
           <Field id="company-county" label="Județ" error={errors.countyCode}>
             <Controller
               control={form.control}
@@ -321,22 +315,16 @@ function CompanyDetailsForm({
           {text('phone', 'Telefon', { type: 'tel', autoComplete: 'tel' })}
         </FormSection>
 
-        <FormSection
-          title="Reprezentant legal"
-          description="Cine semnează documentele în numele firmei."
-        >
-          {text('legalRepresentativeName', 'Nume și prenume', {
-            autoComplete: 'name',
-            hint: 'Așa cum apare în actele firmei.',
-          })}
+        <FormSection title="Reprezentant legal">
+          {text('legalRepresentativeName', 'Nume și prenume', { autoComplete: 'name' })}
           {text('legalRepresentativeRole', 'Funcție', { hint: 'De exemplu „Administrator”.' })}
         </FormSection>
 
-        <FormSection title="Cont bancar" description="Apare în contractele cu clienții.">
+        <FormSection title="Cont bancar">
           {text('iban', 'IBAN', {
             hint: 'Cu sau fără spații, de exemplu RO49 AAAA 1B31 0075 9384 0000.',
           })}
-          {text('bankName', 'Banca', { hint: 'De exemplu „Banca Transilvania”.' })}
+          {text('bankName', 'Banca')}
         </FormSection>
       </Card>
 

@@ -93,10 +93,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Invită un membru</DialogTitle>
-          <DialogDescription>
-            Trimitem pe email un link valabil 7 zile. Persoana își creează contul sau, dacă are deja
-            unul, intră cu el în organizație.
-          </DialogDescription>
+          <DialogDescription>Primește pe email un link valabil 7 zile.</DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
           <Field id="invite-email" label="Adresa de email" mark="required" error={errors.email}>

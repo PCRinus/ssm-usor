@@ -172,10 +172,7 @@ function AuthorizationsForm({
       className="grid gap-6"
     >
       <Card className="gap-0 divide-y py-0">
-        <FormSection
-          title="Certificat de abilitare SSM"
-          description="Numărul și emitentul care vor apărea în contract."
-        >
+        <FormSection title="Certificat de abilitare SSM">
           {text('authorizationCertificateNumber', 'Număr')}
           <Field
             id="authorizations-authorizationCertificateDate"
@@ -207,11 +204,11 @@ function AuthorizationsForm({
 
         <FormSection
           title="Cadru tehnic PSI"
-          description="Completează doar dacă oferi și servicii de apărare împotriva incendiilor."
+          description="Doar dacă oferi și servicii de apărare împotriva incendiilor."
         >
           {text('fireSafetyTechnicianName', 'Nume și prenume')}
           {text('fireSafetyTechnicianCertificate', 'Certificat', {
-            hint: 'Seria și numărul certificatului de cadru tehnic.',
+            hint: 'Seria și numărul.',
           })}
         </FormSection>
       </Card>
