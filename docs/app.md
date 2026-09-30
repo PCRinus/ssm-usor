@@ -86,7 +86,8 @@ folder per concept of the [glossary](../CONTEXT.md): `clients/` (leads, the lega
 representative and workplaces included), `training/` (the program and the responsible persons),
 `auth/` (login, onboarding and invitations), and so on. `src/components/` is UI no feature owns,
 `src/lib/` holds helpers and the `localities/` dataset, `src/api/` the HTTP adapter and the
-generated client, and `src/routes/` the file routes, which compose the rest.
+generated client, and `src/routes/` the file routes. A route file declares the route and composes
+a page from `features/`.
 
 ## Cloudflare deployment
 
@@ -186,7 +187,11 @@ A route whose breadcrumb label depends on data (the client name) returns `crumb`
 loader instead of `staticData.title`; the shell reads either, and prefers the crumb, so a
 route can keep a static title for when its loader has no name to give (the document page).
 
-Each route file exports `Route` with its guard, loader, and component. A route sets
+Each route file exports only `Route`: its params, search schema, guard, loader, and the
+components it renders. The larger pages live in their features and read the route through
+`getRouteApi('/route/id')`; importing `Route` into them would make a cycle. The router
+plugin moves `component`, `pendingComponent`, `errorComponent` and `notFoundComponent` into a
+lazy chunk per route, but only when the route file does not export them. A route sets
 `staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
 as `clients.tsx` so the parent crumb links back. New protected pages go under
 `routes/_authenticated`; the guard there awaits initial session restoration, avoiding a
