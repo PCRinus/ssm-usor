@@ -106,10 +106,6 @@ export function JobPositionsCard({
     <SectionCard
       data-testid="job-positions-card"
       title="Posturi de lucru"
-      description={
-        !readOnly &&
-        'Deschide un post ca să îi stabilești echipamentul de protecție și instrucțiunile.'
-      }
       action={
         !readOnly && (
           <Button
@@ -153,8 +149,8 @@ export function JobPositionsCard({
       ) : positions.data.items.length === 0 ? (
         <p data-testid="job-positions-empty" className="text-sm text-muted-foreground">
           {readOnly
-            ? 'Clientul nu are posturi de lucru și, fiind arhivat, nu i se mai adaugă.'
-            : 'Niciun post de lucru încă. Adaugă posturile clientului sau începe cu angajații: fiecare funcție nouă devine un post.'}
+            ? 'Niciun post de lucru.'
+            : 'Niciun post de lucru încă. Începe cu angajații: fiecare funcție nouă devine un post.'}
         </p>
       ) : (
         <Table className="max-sm:block">
@@ -333,7 +329,7 @@ export function JobPositionsCard({
                 <span className="font-medium text-foreground">{removing.name}</span>
                 {removing.employeeCount > 0
                   ? ` este ocupat acum: ${employeeCountLabel(removing.employeeCount).toLowerCase()}. Un post se poate șterge doar după ce oamenii de pe el trec pe alt post sau pleacă.`
-                  : ' nu va mai apărea în listă și nu va mai putea fi ales pentru un angajat. Dacă l-au ocupat oameni care au plecat, istoricul lor îl păstrează.'}
+                  : ' nu va mai putea fi ales pentru un angajat. Istoricul foștilor angajați îl păstrează.'}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">

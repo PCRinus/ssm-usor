@@ -4,7 +4,6 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -112,15 +111,16 @@ function WorkplaceForm({
   });
 
   return (
-    <DialogContent data-testid="workplace-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="workplace-dialog"
+      className="sm:max-w-2xl"
+      aria-describedby={undefined}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {workplace ? 'Modifică punctul de lucru' : 'Adaugă un punct de lucru'}
           </DialogTitle>
-          <DialogDescription>
-            Sediul social și punctele de lucru apar în prezentarea unității din documente.
-          </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field

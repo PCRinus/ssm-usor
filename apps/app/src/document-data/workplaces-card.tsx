@@ -144,8 +144,8 @@ export function WorkplacesCard({
       ) : workplaces.data.items.length === 0 ? (
         <p data-testid="workplaces-empty" className="text-sm text-muted-foreground">
           {readOnly
-            ? 'Nu sunt puncte de lucru înregistrate pentru acest client.'
-            : 'Niciun punct de lucru încă. Începe cu sediul social, apoi adaugă celelalte locuri în care lucrează clientul.'}
+            ? 'Niciun punct de lucru.'
+            : 'Niciun punct de lucru încă. Începe cu sediul social.'}
         </p>
       ) : (
         <Table className="max-sm:block">

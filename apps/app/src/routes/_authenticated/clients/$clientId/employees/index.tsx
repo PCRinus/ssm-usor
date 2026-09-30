@@ -194,17 +194,9 @@ export function EmployeesPage() {
           empty={
             <>
               <UserRound className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-              <h3 className="text-base font-medium">
+              <h3 data-testid="employees-empty" className="text-base font-medium">
                 {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
               </h3>
-              <p
-                data-testid="employees-empty"
-                className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-              >
-                {status === 'terminated'
-                  ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
-                  : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
-              </p>
               {!status && !readOnly && (
                 <Button asChild variant="outline" className="mt-5">
                   <Link to="/clients/$clientId/employees/new" params={{ clientId }}>

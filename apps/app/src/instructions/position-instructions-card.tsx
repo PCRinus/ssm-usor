@@ -236,15 +236,14 @@ export function PositionInstructionsCard({
             )
           }
         >
-          Postul nu necesită instrucțiuni specifice dincolo de partea comună. Instrucțiunile proprii
-          nu anexează nimic pentru el.
+          Postul nu necesită instrucțiuni specifice dincolo de partea comună.
         </Notice>
       ) : items.length === 0 ? (
         <div data-testid="instructions-empty" className="grid gap-3">
           <p className="text-sm text-muted-foreground">
             {readOnly
-              ? 'Nu s-a stabilit ce instrucțiuni privesc postul. Clientul este arhivat, așa că instrucțiunile lui nu se mai completează.'
-              : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.'}
+              ? 'Nu s-a stabilit ce instrucțiuni privesc postul.'
+              : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni privesc postul.'}
           </p>
           {!readOnly && (
             <div className="flex flex-wrap gap-2">
@@ -422,8 +421,7 @@ function PickInstructionsDialog({
         <DialogHeader>
           <DialogTitle>Instrucțiunile postului „{position.name}”</DialogTitle>
           <DialogDescription>
-            Bifează instrucțiunile din bibliotecă care privesc postul. Instrucțiunile proprii ale
-            clientului le anexează, iar tematica de instruire le citează.
+            Instrucțiunile proprii ale clientului le anexează, iar tematica de instruire le citează.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 grid gap-4">
@@ -446,8 +444,7 @@ function PickInstructionsDialog({
                 </Button>
               }
             >
-              Biblioteca este goală. Încarcă sau scrie instrucțiunile organizației, apoi alege-le
-              aici.
+              Biblioteca este goală.
             </Notice>
           ) : (
             <>
@@ -571,7 +568,7 @@ function CopyInstructionsDialog({
         <DialogHeader>
           <DialogTitle>Copiază instrucțiunile de la alt post</DialogTitle>
           <DialogDescription>
-            Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.
+            Instrucțiunile celuilalt post se adaugă la cele deja aplicate.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 grid gap-4">

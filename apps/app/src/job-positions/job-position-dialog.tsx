@@ -138,7 +138,11 @@ function JobPositionForm({
   });
 
   return (
-    <DialogContent data-testid="job-position-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="job-position-dialog"
+      className="sm:max-w-2xl"
+      {...(position ? {} : { 'aria-describedby': undefined })}
+    >
       <form
         ref={formRef}
         onSubmit={(event) => {
@@ -155,11 +159,11 @@ function JobPositionForm({
           <DialogTitle>
             {position ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}
           </DialogTitle>
-          <DialogDescription>
-            Riscurile, echipamentul și instruirea sunt legate de post. Funcția din contract se
-            păstrează separat pentru fiecare angajat
-            {position ? ', chiar dacă redenumești postul.' : '.'}
-          </DialogDescription>
+          {position && (
+            <DialogDescription>
+              Funcția din contract a fiecărui angajat rămâne aceeași, chiar dacă redenumești postul.
+            </DialogDescription>
+          )}
         </DialogHeader>
         <div className="mt-5 grid gap-5">
           <Field id="job-position-name" label="Denumire" mark="required" error={errors.name}>
@@ -257,7 +261,7 @@ function JobPositionForm({
             label="Activități desfășurate"
             mark="optional"
             error={errors.activities}
-            hint="Ce face efectiv omul de pe acest post. Deosebește două posturi cu nume apropiate."
+            hint="Ce face efectiv omul de pe acest post."
           >
             <Textarea
               id="job-position-activities"

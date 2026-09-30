@@ -119,8 +119,8 @@ function ModuleForm({
           <DialogTitle>{module ? 'Modifică instrucțiunea' : 'Scrie o instrucțiune'}</DialogTitle>
           <DialogDescription>
             {module
-              ? 'Titlul și grupul apar în bibliotecă și în documentele care o anexează; textul se modifică din editor.'
-              : 'Instrucțiunea pornește de la un schelet cu capitolele cerute de Inspecția Muncii și se scrie în editor.'}
+              ? 'Textul se modifică din editor.'
+              : 'Pornește de la un schelet cu capitolele cerute de Inspecția Muncii.'}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">

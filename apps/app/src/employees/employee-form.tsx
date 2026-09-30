@@ -75,14 +75,7 @@ export function EmployeeForm({
         onSubmit={onSubmit}
       >
         <Card className="gap-0 divide-y py-0">
-          <FormSection
-            title="Angajator"
-            description={
-              employee
-                ? 'Angajatorul acestui angajat nu poate fi schimbat.'
-                : 'Pentru alt angajator, revino la lista de clienți.'
-            }
-          >
+          <FormSection title="Angajator">
             <Field id="client" label="Client" className="sm:col-span-2">
               <Input
                 id="client"
@@ -142,7 +135,7 @@ export function EmployeeForm({
               id="employeeNumber"
               label="Marca"
               mark="optional"
-              hint="Numărul intern al angajatului la client, dacă există."
+              hint="Numărul intern al angajatului la client."
               error={errors.employeeNumber}
             >
               <Input
@@ -156,15 +149,12 @@ export function EmployeeForm({
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Angajare"
-            description="Data angajării stabilește de când se calculează termenele de instruire."
-          >
+          <FormSection title="Angajare">
             <Field
               id="jobPosition"
               label="Post de lucru"
               mark="required"
-              hint="Munca pe care o face, cu riscurile și instruirea ei. Dacă postul lipsește din listă, adaugă-l de acolo."
+              hint="Munca pe care o face, cu riscurile și instruirea ei."
               error={errors.jobPosition}
             >
               <Controller
@@ -207,7 +197,7 @@ export function EmployeeForm({
               id="hiredAt"
               label="Data angajării"
               mark="required"
-              hint="Ziua din contract, în formatul zz.ll.aaaa."
+              hint="Ziua din contract."
               error={errors.hiredAt}
             >
               <Controller
@@ -228,10 +218,7 @@ export function EmployeeForm({
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Contact"
-            description="Pentru invitații la instruiri și semnarea documentelor online."
-          >
+          <FormSection title="Contact">
             <Field id="email" label="Email" mark="optional" error={errors.email}>
               <Input
                 id="email"
@@ -256,10 +243,7 @@ export function EmployeeForm({
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Fișa de instruire"
-            description="Aceste date sunt opționale și apar pe fișa de instruire."
-          >
+          <FormSection title="Fișa de instruire">
             <Field id="birthDate" label="Data nașterii" mark="optional" error={errors.birthDate}>
               <Controller
                 control={formControl}

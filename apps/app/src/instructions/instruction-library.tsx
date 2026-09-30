@@ -125,14 +125,7 @@ export function InstructionLibrary({ userId }: { userId: string }) {
   return (
     <div data-testid="instruction-library" className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          <h1 className="text-xl font-semibold tracking-tight">Biblioteca de instrucțiuni</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Instrucțiunile proprii ale organizației, câte un fișier Word pentru fiecare activitate,
-            echipament de muncă sau echipament de protecție. Un post de lucru aplică pe cele care îl
-            privesc, iar instrucțiunile proprii ale clientului le anexează.
-          </p>
-        </div>
+        <h1 className="text-xl font-semibold tracking-tight">Biblioteca de instrucțiuni</h1>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -160,8 +153,8 @@ export function InstructionLibrary({ userId }: { userId: string }) {
       )}
       {uploaded.length > 0 && (
         <Notice variant="info" data-testid="instruction-uploaded">
-          Titlul fiecărei instrucțiuni încărcate este primul rând al fișierului, iar grupul este
-          „Activități”. Corectează-le din meniul rândului unde este cazul.
+          Titlul vine din primul rând al fișierului, iar grupul este „Activități”. Le poți corecta
+          din meniul rândului.
         </Notice>
       )}
       <Card>
@@ -204,9 +197,8 @@ export function InstructionLibrary({ userId }: { userId: string }) {
               </p>
               {!showArchived && (
                 <p className="max-w-md text-center text-sm text-muted-foreground">
-                  Încarcă fișierele Word cu instrucțiunile pe care le folosești deja, câte unul
-                  pentru fiecare activitate sau echipament, sau scrie una nouă pornind de la
-                  schelet.
+                  Încarcă instrucțiunile pe care le folosești deja, câte un fișier Word pentru
+                  fiecare activitate sau echipament.
                 </p>
               )}
             </div>

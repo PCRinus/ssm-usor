@@ -4,7 +4,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -152,16 +151,16 @@ function EquipmentEntryForm({
   });
 
   return (
-    <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="equipment-dialog"
+      className="sm:max-w-2xl"
+      aria-describedby={undefined}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {entry ? 'Modifică articolul' : 'Adaugă un articol de echipament'}
           </DialogTitle>
-          <DialogDescription>
-            Ce primește oricine ocupă postul, împotriva cărui risc, și cum se acordă. Lista internă
-            de dotare se generează din aceste articole.
-          </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
           <Field

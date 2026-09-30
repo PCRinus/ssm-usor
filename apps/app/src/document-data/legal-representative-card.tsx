@@ -48,7 +48,6 @@ export function LegalRepresentativeCard({
     <SectionCard
       data-testid="legal-representative-card"
       title="Reprezentant legal"
-      description="Numele și funcția vor apărea în deciziile generate."
       action={
         saved &&
         !readOnly &&

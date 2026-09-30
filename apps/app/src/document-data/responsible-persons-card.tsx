@@ -206,8 +206,8 @@ export function ResponsiblePersonsCard({
           {persons.data.items.length === 0 ? (
             <p data-testid="responsible-persons-empty" className="text-sm text-muted-foreground">
               {readOnly
-                ? 'Nu au fost desemnate persoane responsabile pentru acest client.'
-                : 'Nicio persoană responsabilă încă. Începe cu conducătorul locului de muncă. Poți atribui mai multe responsabilități aceleiași persoane.'}
+                ? 'Nicio persoană responsabilă.'
+                : 'Nicio persoană responsabilă încă. Începe cu conducătorul locului de muncă.'}
             </p>
           ) : (
             <Table className="max-sm:block">

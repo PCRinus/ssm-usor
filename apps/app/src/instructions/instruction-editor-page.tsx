@@ -225,8 +225,8 @@ export function InstructionEditorPage({
           className="shrink-0 text-sm text-muted-foreground"
         >
           {module.version.number > loaded.number
-            ? `Versiunea pe care o anexează documentul, care poate fi doar citită. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
-            : 'Versiunea pe care o anexează documentul, care poate fi doar citită. Este și versiunea curentă din bibliotecă. '}
+            ? `Versiunea anexată documentului, doar pentru citire. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
+            : 'Versiunea anexată documentului, doar pentru citire. Este și versiunea curentă din bibliotecă. '}
           <Link
             to="/instructions/$moduleId"
             params={{ moduleId }}

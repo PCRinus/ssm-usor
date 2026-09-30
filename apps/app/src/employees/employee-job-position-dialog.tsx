@@ -3,7 +3,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -131,14 +130,14 @@ function Form({
   });
 
   return (
-    <DialogContent data-testid="employee-job-position-dialog" className="sm:max-w-xl">
+    <DialogContent
+      data-testid="employee-job-position-dialog"
+      className="sm:max-w-xl"
+      aria-describedby={undefined}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>
-          <DialogDescription>
-            Noul post schimbă riscurile și instruirea. Funcția din contract se actualizează doar
-            dacă avea aceeași denumire ca postul vechi. O poți schimba și separat.
-          </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
           <Field

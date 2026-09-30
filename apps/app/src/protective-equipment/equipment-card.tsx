@@ -225,15 +225,14 @@ export function EquipmentCard({
             )
           }
         >
-          Postul nu necesită echipament individual de protecție. Lista internă de dotare îl lasă
-          deoparte.
+          Postul nu necesită echipament individual de protecție.
         </Notice>
       ) : items.length === 0 ? (
         <div data-testid="equipment-empty" className="grid gap-3">
           <p className="text-sm text-muted-foreground">
             {readOnly
-              ? 'Nu s-a stabilit ce primește postul. Clientul este arhivat, așa că echipamentul lui nu se mai completează.'
-              : 'Documentația nu se poate genera până nu spui ce primește postul, sau că nu are nevoie de echipament.'}
+              ? 'Nu s-a stabilit ce primește postul.'
+              : 'Documentația nu se poate genera până nu stabilești ce primește postul.'}
           </p>
           {!readOnly && (
             <div className="flex flex-wrap gap-2">
