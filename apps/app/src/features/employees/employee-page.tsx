@@ -1,7 +1,6 @@
 import { formatEmployeeName, maskCnp } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   type ErrorComponentProps,
   getRouteApi,
@@ -18,6 +17,7 @@ import { useAuth } from '@/features/auth/auth-context';
 
 import { formatDate, formatTenure, todayIso } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
+import { EmployeePending } from './employee-pending';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 
 const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
@@ -206,19 +206,6 @@ export function EmployeePage() {
         employee={moving ? employee : null}
         onClose={() => setMoving(false)}
       />
-    </div>
-  );
-}
-
-export function EmployeePending() {
-  return (
-    <div className="space-y-7" aria-busy="true">
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-72" />
-        <Skeleton className="h-4 w-48" />
-      </div>
-      <Skeleton className="h-40 w-full rounded-lg" />
-      <Skeleton className="h-40 w-full rounded-lg" />
     </div>
   );
 }

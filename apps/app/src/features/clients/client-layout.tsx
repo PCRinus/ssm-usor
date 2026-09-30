@@ -1,6 +1,5 @@
 import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   type ErrorComponentProps,
   getRouteApi,
@@ -153,15 +152,6 @@ export function ClientLayout() {
       </SectionNav>
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
-    </div>
-  );
-}
-
-export function ClientPending() {
-  return (
-    <div className="space-y-5" aria-busy="true">
-      <Skeleton className="h-12 w-full rounded-lg" />
-      <Skeleton className="h-10 w-full" />
     </div>
   );
 }

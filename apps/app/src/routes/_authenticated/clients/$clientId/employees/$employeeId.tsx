@@ -4,12 +4,8 @@ import { z } from 'zod';
 
 import { getGetEmployeeQueryKey, getGetEmployeeQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import {
-  EmployeeError,
-  EmployeeNotFound,
-  EmployeePage,
-  EmployeePending,
-} from '@/features/employees/employee-page';
+import { EmployeeError, EmployeeNotFound, EmployeePage } from '@/features/employees/employee-page';
+import { EmployeePending } from '@/features/employees/employee-pending';
 
 // The only page that shows the CNP, and only on request. The loader warms the query and
 // names the breadcrumb; the page reads the same query so a status change refreshes it.

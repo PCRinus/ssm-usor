@@ -1,5 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   type ErrorComponentProps,
   getRouteApi,
@@ -26,6 +25,7 @@ import { PositionInstructionsCard } from '@/features/instructions/position-instr
 import { EquipmentCard } from '@/features/protective-equipment/equipment-card';
 
 import { JobPositionDialog } from './job-position-dialog';
+import { JobPositionPending } from './job-position-pending';
 import { employeeCountLabel, intervalLabel, staffCategoryLabels } from './job-position-schema';
 import { positionSections } from './position-sections';
 
@@ -158,20 +158,6 @@ export function JobPositionPage() {
         editing={editing ? position : null}
         onClose={() => setEditing(false)}
       />
-    </div>
-  );
-}
-
-export function JobPositionPending() {
-  return (
-    <div className="grid gap-5" aria-busy="true">
-      <div className="grid gap-3">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-7 w-72" />
-        <Skeleton className="h-8 w-80 max-w-full" />
-      </div>
-      <Skeleton className="h-40 w-full rounded-xl" />
-      <Skeleton className="h-40 w-full rounded-xl" />
     </div>
   );
 }

@@ -190,8 +190,10 @@ route can keep a static title for when its loader has no name to give (the docum
 Each route file exports only `Route`: its params, search schema, guard, loader, and the
 components it renders. The larger pages live in their features and read the route through
 `getRouteApi('/route/id')`; importing `Route` into them would make a cycle. The router
-plugin moves `component`, `pendingComponent`, `errorComponent` and `notFoundComponent` into a
-lazy chunk per route, but only when the route file does not export them. A route sets
+plugin moves `component`, `errorComponent` and `notFoundComponent` into lazy chunks, but only
+when the route file does not export them. `pendingComponent` is not split, so it lives in a file
+of its own (`client-pending.tsx`): imported from the page's module, it would pull the whole page
+into the first download. A route sets
 `staticData.title` to appear in the shell breadcrumb; nested sections add a layout file such
 as `clients.tsx` so the parent crumb links back. New protected pages go under
 `routes/_authenticated`; the guard there awaits initial session restoration, avoiding a

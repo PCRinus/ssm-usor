@@ -3,12 +3,8 @@ import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import {
-  ClientError,
-  ClientLayout,
-  ClientNotFound,
-  ClientPending,
-} from '@/features/clients/client-layout';
+import { ClientError, ClientLayout, ClientNotFound } from '@/features/clients/client-layout';
+import { ClientPending } from '@/features/clients/client-pending';
 
 // Row-level security hides other organizations' clients, so a 404 from the API is the
 // not-found screen whether the client belongs to someone else or does not exist.

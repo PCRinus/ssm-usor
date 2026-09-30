@@ -6,8 +6,8 @@ import {
   JobPositionError,
   JobPositionNotFound,
   JobPositionPage,
-  JobPositionPending,
 } from '@/features/job-positions/job-position-page';
+import { JobPositionPending } from '@/features/job-positions/job-position-pending';
 
 // A position is read from the client's list, which is a handful of rows and already cached
 // by the positions section; there is no request for one position. The loader warms it and
