@@ -358,7 +358,8 @@ The API builds the data once per generation and merges every template with it
   representative's name (`responsible.workers_representative_is_legal_representative`;
   readiness also returns the two names as `workersRepresentativeClash`).
   `missingDocumentData(facts, typeKey)` is what generating one document again needs: a 1.5
-  kept under 10 employees still needs one representative.
+  kept under 10 employees still needs one representative, and the training themes need an own
+  instructions revision to cite (`documents.own_instructions`).
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
@@ -374,6 +375,29 @@ The API builds the data once per generation and merges every template with it
   decision 1.5 only from 10 current employees. Generating leaves out the rest; a document
   that already exists stays, and cover 1.0 keeps listing a 1.5 that was generated.
 - `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
+- `themes` is what the training themes (4.2, [ADR 014](architecture/adr-014-training-themes.md))
+  print, built from the client's newest own instructions revision, draft or issued, and the
+  modules it annexes at the versions it annexed them. It is absent while there is no such
+  revision (none, or an uploaded file), and `documentData(context, 'training_themes')` then
+  throws; every other document merges as before. The template reads it by dotted paths, so the
+  snapshot records the whole object and any change in it marks the themes "Date modificate":
+
+  | Name                             | Example                                                                                                                     |
+  | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+  | `themes.ownInstructionsRevision` | `{ id, number }` of the 3.2 revision cited; never printed                                                                   |
+  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                |
+  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                    |
+  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one |
+  | `…modules[]`                     | `{ title, articleCount }`, the post's modules the revision annexes, in its order                                            |
+  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                   |
+  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                      |
+
+  A session's `content` is the slice of the common part dealt to it, then every module whole,
+  then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The
+  twelve chapters of 3.2 are dealt over the sessions in contiguous groups whose sizes differ by
+  at most one, the larger first. The chapter starts of 3.2 and 2.2 are constants of
+  `apps/api/src/modules/documents/themes.ts`, held to the templates by
+  `apps/api/scripts/lib/theme-chapters.test.ts`.
 
 A test merges every registered template with this context; the engine throws on a placeholder
 without a value, so a template that asks for a new name fails there first. The list of
