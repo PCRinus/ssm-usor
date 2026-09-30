@@ -46,6 +46,7 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'positions.any': `/clients/${clientId}/job-positions?focus=add-position`,
   'positions.equipment': `/clients/${clientId}/job-positions`,
   'positions.instructions': `/clients/${clientId}/job-positions`,
+  'documents.own_instructions': `/clients/${clientId}/documents?section=own-instructions`,
 };
 
 describe('the rows of the generation form', () => {

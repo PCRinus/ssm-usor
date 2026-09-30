@@ -3019,7 +3019,8 @@
                 "responsible.workers_representative_is_legal_representative",
                 "positions.any",
                 "positions.equipment",
-                "positions.instructions"
+                "positions.instructions",
+                "documents.own_instructions"
               ]
             }
           },

@@ -120,4 +120,22 @@ export const facts: DocumentFacts = {
   staffCategoriesInUse: ['technical_administrative', 'execution'],
   currentEmployeeCount: 6,
   workersRepresentativeDecisionGenerated: false,
+  ownInstructions: {
+    revisionId: 'd0d0d0d0-0000-4000-8000-000000000001',
+    revisionNumber: 2,
+    annexes: [
+      {
+        moduleId: 'a0a0a0a0-0000-4000-8000-000000000002',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000002',
+        title: 'Activități de birou',
+        articleCount: 12,
+      },
+      {
+        moduleId: 'a0a0a0a0-0000-4000-8000-000000000001',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000001',
+        title: 'Sudură oxiacetilenică',
+        articleCount: 31,
+      },
+    ],
+  },
 };

@@ -2150,6 +2150,7 @@ export const DocumentReadinessResponseMissingItem = {
   positionsany: 'positions.any',
   positionsequipment: 'positions.equipment',
   positionsinstructions: 'positions.instructions',
+  documentsown_instructions: 'documents.own_instructions',
 } as const;
 
 /**

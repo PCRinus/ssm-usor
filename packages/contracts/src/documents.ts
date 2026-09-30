@@ -114,6 +114,8 @@ export const missingDocumentData = [
   'positions.any',
   'positions.equipment',
   'positions.instructions',
+  // Only for generating the training themes again: they cite the own instructions (ADR 014).
+  'documents.own_instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);

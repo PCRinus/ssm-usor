@@ -14,6 +14,13 @@ import {
   unfilledMark,
 } from '@ssm-usor/contracts';
 
+import {
+  monthNames,
+  type OwnInstructionsRevision,
+  type ThemesContext,
+  trainingThemes,
+} from './themes';
+
 // Pure: reading the database and merging happen elsewhere. The result is also what a revision
 // keeps as its data snapshot.
 
@@ -84,6 +91,8 @@ export type DocumentFacts = {
   currentEmployeeCount: number;
   /** Whether decision 1.5 was generated for this client, whatever the headcount is now. */
   workersRepresentativeDecisionGenerated: boolean;
+  /** What the training themes cite; null until the own instructions are generated (ADR 014). */
+  ownInstructions: OwnInstructionsRevision | null;
 };
 
 type Person = { name: string; jobTitle: string };
@@ -154,6 +163,8 @@ export type DocumentContext = {
   annexes: AnnexContext[];
   /** One item when no position applies a module, which the chapter then says. */
   noAnnexes: Record<string, never>[];
+  /** Absent without an own instructions revision, which only the training themes need. */
+  themes?: ThemesContext;
 };
 
 const staffCategoryLabels: Record<StaffCategory, string> = {
@@ -258,6 +269,7 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     ['positions.any', facts.jobPositions.length > 0],
     ['positions.equipment', undecidedJobPositions(facts, 'equipment').length === 0],
     ['positions.instructions', undecidedJobPositions(facts, 'instructions').length === 0],
+    ['documents.own_instructions', typeKey !== 'training_themes' || facts.ownInstructions !== null],
   ];
   return checks.filter(([, present]) => !present).map(([code]) => code);
 }
@@ -280,21 +292,6 @@ export function workersRepresentativeClash(
     ? { representativeName: representative.fullName.trim(), legalRepresentativeName }
     : null;
 }
-
-const monthNames = [
-  'ianuarie',
-  'februarie',
-  'martie',
-  'aprilie',
-  'mai',
-  'iunie',
-  'iulie',
-  'august',
-  'septembrie',
-  'octombrie',
-  'noiembrie',
-  'decembrie',
-];
 
 // "va fi instruit TRIMESTRIAL, respectiv în lunile …": the provider's decisions print it in
 // capitals.
@@ -357,6 +354,15 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     })),
   }));
   const workplaceManagers = withRole('workplace_manager');
+  const provider = {
+    legalName: organization.legalName!.trim(),
+    representativeName: organization.representativeName!.trim(),
+    representativeRole: organization.representativeRole!.trim(),
+  };
+  const specialist = {
+    name: facts.specialist!.fullName!.trim(),
+    professionalTitle: facts.specialist!.professionalTitle!.trim(),
+  };
   const annexes = annexedModules(facts);
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
@@ -373,15 +379,8 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       representativeName: client.representativeName!.trim(),
       representativeRole: client.representativeRole!.trim(),
     },
-    provider: {
-      legalName: organization.legalName!.trim(),
-      representativeName: organization.representativeName!.trim(),
-      representativeRole: organization.representativeRole!.trim(),
-    },
-    specialist: {
-      name: facts.specialist!.fullName!.trim(),
-      professionalTitle: facts.specialist!.professionalTitle!.trim(),
-    },
+    provider,
+    specialist,
     workplaceManagers,
     workplaceManager: workplaceManagers[0]!,
     firstAiders,
@@ -434,6 +433,24 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     equippedPositions: positions.filter((position) => position.equipment.length > 0),
     annexes,
     noAnnexes: annexes.length === 0 ? [{}] : [],
+    ...(facts.ownInstructions && {
+      themes: trainingThemes({
+        ownInstructions: facts.ownInstructions,
+        positions: facts.jobPositions.map((position) => ({
+          name: position.name,
+          staffCategory: position.staffCategory,
+          intervalMonths: intervalOf(position),
+          moduleIds: position.instructions.map((module) => module.moduleId),
+        })),
+        firstMonth: client.trainingFirstMonth!,
+        periodicTrainingMinutes: client.periodicTrainingMinutes!,
+        names: {
+          workplaceManager: workplaceManagers[0]!.name,
+          provider: provider.legalName,
+          specialist: specialist.name,
+        },
+      }),
+    }),
   };
 }
 
@@ -489,6 +506,9 @@ export function documentData(
   typeKey: string,
   decisionNumber: number | null = decisionNumberOf(context, typeKey)
 ) {
+  if (typeKey === 'training_themes' && !context.themes) {
+    throw new Error('The training themes need an own instructions revision to cite.');
+  }
   const shared: Record<string, unknown> = { ...context };
   delete shared.decisionNumbers;
   return decisionNumber === null ? shared : { ...shared, decisionNumber };

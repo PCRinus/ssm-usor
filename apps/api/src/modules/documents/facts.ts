@@ -7,6 +7,7 @@ import type {
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { DocumentFacts } from './context';
+import { snapshotAnnexes } from './snapshot';
 
 // Row-level security scopes every query to the caller's organization.
 
@@ -32,6 +33,7 @@ export async function loadDocumentFacts(
     headcount,
     generatedDecision,
     positions,
+    ownInstructions,
     ...employeeCounts
   ] = await Promise.all([
     db
@@ -82,6 +84,7 @@ export async function loadDocumentFacts(
       // The current version of each applied module: the newest number, one row.
       .order('number', { referencedTable: moduleVersionsPath, ascending: false })
       .limit(1, { referencedTable: moduleVersionsPath }),
+    loadOwnInstructions(db, clientId),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -175,5 +178,57 @@ export async function loadDocumentFacts(
     staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
     currentEmployeeCount: headcount.count ?? 0,
     workersRepresentativeDecisionGenerated: (generatedDecision.count ?? 0) > 0,
+    ownInstructions,
+  };
+}
+
+/**
+ * The client's newest own instructions revision, draft or issued, with the modules it annexes
+ * at the versions it annexed them (ADR 014). Null while there is none, or when the newest is
+ * an uploaded file, which annexes nothing the themes could cite.
+ */
+export async function loadOwnInstructions(
+  db: DataClient,
+  clientId: string
+): Promise<DocumentFacts['ownInstructions']> {
+  const revision = await db
+    .from('document_revisions')
+    .select('id, revision, data_snapshot, client_documents!inner(client_id, type_key)')
+    .eq('client_documents.client_id', clientId)
+    .eq('client_documents.type_key', 'own_instructions')
+    .order('revision', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (revision.error) throw fromDatabaseError(revision.error, 'document facts: own instructions');
+  const annexes = revision.data ? snapshotAnnexes(revision.data.data_snapshot) : null;
+  if (!revision.data || !annexes) return null;
+  if (annexes.length === 0) {
+    return { revisionId: revision.data.id, revisionNumber: revision.data.revision, annexes: [] };
+  }
+  const versionIds = annexes.map((annex) => annex.versionId);
+  const versions = await db
+    .from('instruction_module_versions')
+    .select('id, module_id, article_count')
+    .in('id', versionIds);
+  if (versions.error) {
+    throw fromDatabaseError(versions.error, 'document facts: annexed module versions');
+  }
+  const byId = new Map(versions.data.map((version) => [version.id, version]));
+  return {
+    revisionId: revision.data.id,
+    revisionNumber: revision.data.revision,
+    annexes: annexes.flatMap((annex) => {
+      const version = byId.get(annex.versionId);
+      // Out of reach only for a snapshot naming another organization's module.
+      if (!version) return [];
+      return [
+        {
+          moduleId: version.module_id,
+          versionId: version.id,
+          title: annex.title,
+          articleCount: version.article_count,
+        },
+      ];
+    }),
   };
 }

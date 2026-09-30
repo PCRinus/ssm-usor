@@ -6,6 +6,7 @@ import type {
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
+import type { DocumentSectionId } from '@/features/documents/document-sections';
 import { positionSections } from '@/features/job-positions/position-sections';
 import { responsibleRoleLabels } from '@/features/training/responsible-person-schema';
 
@@ -32,6 +33,8 @@ const to = {
     }),
   positions: (clientId: string) =>
     linkOptions({ to: '/clients/$clientId/job-positions', params: { clientId } }),
+  documentSection: (clientId: string, section: DocumentSectionId) =>
+    linkOptions({ to: '/clients/$clientId/documents', params: { clientId }, search: { section } }),
   position: (clientId: string, jobPositionId: string, decision: JobPositionDecision) =>
     linkOptions({
       to: '/clients/$clientId/job-positions/$jobPositionId',
@@ -96,6 +99,7 @@ export const documentPlaces = {
   clientDetails: 'Detaliile clientului',
   training: 'Instruire și responsabili',
   jobPositions: 'Posturile de lucru',
+  documents: 'Documentația SSM',
 } as const;
 
 type DocumentPlace = keyof typeof documentPlaces;
@@ -203,6 +207,12 @@ export const documentMissingData: Record<
     place: 'jobPositions',
     label: 'Instrucțiunile specifice ale posturilor',
     target: ({ clientId }) => to.positions(clientId),
+  },
+  'documents.own_instructions': {
+    place: 'documents',
+    label: 'Instrucțiunile proprii, generate înaintea tematicii',
+    detail: 'Tematica citează modulele pe care le anexează instrucțiunile proprii.',
+    target: ({ clientId }) => to.documentSection(clientId, 'own-instructions'),
   },
 };
 

@@ -11,13 +11,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app';
 
 // The engine is tested in its own package, against the real templates. Here it prints the
-// client and, for a decision, its number, and a file's text is its bytes read as text.
+// client, a decision's number, and the training themes whenever there are any, and a file's
+// text is its bytes read as text.
 vi.mock('@ssm-usor/document-engine', () => ({
   TemplateError: class TemplateError extends Error {},
   documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
   renderTemplate: (_template: Uint8Array, data: Record<string, unknown>) => ({
     document: new Uint8Array([80, 75, 3, 4]),
-    usedNames: ['client', ...('decisionNumber' in data ? ['decisionNumber'] : [])],
+    usedNames: [
+      'client',
+      ...('decisionNumber' in data ? ['decisionNumber'] : []),
+      ...('themes' in data ? ['themes'] : []),
+    ],
   }),
 }));
 
@@ -178,7 +183,8 @@ type Upstream =
   | 'file'
   | 'upload'
   | 'signedCopies'
-  | 'moduleVersions';
+  | 'moduleVersions'
+  | 'ownInstructions';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -256,6 +262,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       case '/rest/v1/document_templates':
         return handlers.templates?.() ?? Response.json(templateRows);
       case '/rest/v1/document_revisions':
+        if (method === 'GET' && url.searchParams.has('client_documents.type_key')) {
+          return handlers.ownInstructions?.() ?? Response.json([]);
+        }
         return (
           handlers.revisions?.(init, url) ??
           (method === 'POST'
@@ -921,6 +930,216 @@ describe('POST /documents/{documentId}/regenerate', () => {
   it('answers 404 for a document of another organization', async () => {
     mockUpstream({ documents: () => Response.json(null) });
     expect((await regenerate()).status).toBe(404);
+  });
+});
+
+describe('the training themes', () => {
+  const themesDocumentId = 'f1f1f1f1-0000-4000-8000-000000000001';
+  const ownInstructionsRevision = {
+    id: 'e1e1e1e1-0000-4000-8000-000000000001',
+    revision: 1,
+    data_snapshot: {
+      annexes: [
+        {
+          number: 1,
+          title: 'Scări metalice',
+          versionId: 'b0b0b0b0-0000-4000-8000-000000000001',
+          versionDate: '26.09.2026',
+        },
+      ],
+    },
+    client_documents: { client_id: clientId, type_key: 'own_instructions' },
+  };
+  const annexedVersion = {
+    id: 'b0b0b0b0-0000-4000-8000-000000000001',
+    module_id: 'a0a0a0a0-0000-4000-8000-000000000001',
+    article_count: 14,
+  };
+  const themesTemplate = {
+    type_key: 'training_themes',
+    title: 'Tematica și programul de instruire',
+    document_template_versions: [
+      { id: 'v5', version: 1, storage_path: 'built-in/training_themes/one.docx' },
+    ],
+  };
+  const ownInstructionsTemplate = {
+    type_key: 'own_instructions',
+    title: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+    document_template_versions: [
+      { id: 'v6', version: 1, storage_path: 'built-in/own_instructions/one.docx' },
+    ],
+  };
+  const themesDocument = (snapshot: unknown) => ({
+    ...documentRow,
+    id: themesDocumentId,
+    type_key: 'training_themes',
+    title: themesTemplate.title,
+    decision_number: null,
+    document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
+  });
+  const withOwnInstructions = {
+    ownInstructions: () => Response.json([ownInstructionsRevision]),
+    moduleVersions: () => Response.json([annexedVersion]),
+    templates: () => Response.json([themesTemplate]),
+  };
+  const regenerate = () => request(`/documents/${themesDocumentId}/regenerate`, 'POST', {});
+
+  it('are not generated again while the client has no own instructions revision', async () => {
+    mockUpstream({ documents: () => Response.json(themesDocument(null)) });
+    const response = await regenerate();
+    expect(response.status).toBe(409);
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.reason).toBe('missing_document_data');
+    expect(body.message).toContain('documents.own_instructions');
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+  });
+
+  it("cite the newest own instructions revision, with the modules it annexes at their versions' counts", async () => {
+    mockUpstream({ ...withOwnInstructions, documents: () => Response.json(themesDocument(null)) });
+    expect((await regenerate()).status).toBe(200);
+
+    const [ownInstructionsCall] = calls('/rest/v1/document_revisions');
+    const query = new URL(String(ownInstructionsCall![0])).searchParams;
+    expect(query.get('client_documents.client_id')).toBe(`eq.${clientId}`);
+    expect(query.get('client_documents.type_key')).toBe('eq.own_instructions');
+    expect(query.get('order')).toBe('revision.desc');
+    expect(
+      new URL(String(calls('/rest/v1/instruction_module_versions')[0]![0])).searchParams.get('id')
+    ).toBe(`in.(${annexedVersion.id})`);
+
+    const { themes } = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot as {
+      themes: Record<string, unknown>;
+    };
+    expect(themes).toEqual({
+      ownInstructionsRevision: { id: ownInstructionsRevision.id, number: 1 },
+      annexTitles: 'I.P.S.S.M. Scări metalice',
+      positions: [
+        {
+          name: 'SUDOR',
+          trainer: 'Florin TALOȘ – conducător loc de muncă',
+          modules: [{ title: 'Scări metalice', articleCount: 14 }],
+          intervalLabel: '3 LUNI',
+          sessions: [
+            ['FEBRUARIE', 'I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
+            ['MAI', 'I.P.S.S.M. Art. 46 – 100; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
+            ['AUGUST', 'I.P.S.S.M. Art. 101 – 209; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
+            [
+              'NOIEMBRIE',
+              'I.P.S.S.M. Art. 210 – 294; I.P.S.S.M. Scări metalice, Art. 1 – 14; Testare.',
+            ],
+          ].map(([month, content]) => ({ month, content, duration: '120 min' })),
+        },
+      ],
+    });
+  });
+
+  it('are out of date once the own instructions, a position or the schedule change', async () => {
+    mockUpstream({ ...withOwnInstructions, documents: () => Response.json(themesDocument(null)) });
+    await regenerate();
+    const snapshot = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot;
+
+    const dataChanged = async (changes: Partial<Record<Upstream, Handler>>) => {
+      mockUpstream({
+        ...withOwnInstructions,
+        documents: () => Response.json([themesDocument(snapshot)]),
+        ...changes,
+      });
+      const body = clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents`)).json()
+      );
+      return body.items[0]!.draft!.dataChanged;
+    };
+    expect(await dataChanged({})).toBe(false);
+    expect(
+      await dataChanged({
+        ownInstructions: () =>
+          Response.json([
+            {
+              ...ownInstructionsRevision,
+              id: 'e1e1e1e1-0000-4000-8000-000000000002',
+              revision: 2,
+            },
+          ]),
+      })
+    ).toBe(true);
+    expect(await dataChanged({ ownInstructions: () => Response.json([]) })).toBe(true);
+    expect(
+      await dataChanged({
+        positions: () => Response.json([{ ...positionRow, name: 'Sudor autogen' }]),
+      })
+    ).toBe(true);
+    expect(
+      await dataChanged({
+        positions: () => Response.json([{ ...positionRow, job_position_instructions: [] }]),
+      })
+    ).toBe(true);
+    expect(
+      await dataChanged({
+        moduleVersions: () => Response.json([{ ...annexedVersion, article_count: 15 }]),
+      })
+    ).toBe(true);
+    expect(
+      await dataChanged({ clients: () => Response.json({ ...clientRow, training_first_month: 3 }) })
+    ).toBe(true);
+    expect(
+      await dataChanged({
+        clients: () => Response.json({ ...clientRow, periodic_training_minutes: 90 }),
+      })
+    ).toBe(true);
+  });
+
+  it('are generated last, citing the own instructions revision made in the same run', async () => {
+    let reads = 0;
+    mockUpstream({
+      templates: () => Response.json([themesTemplate, ownInstructionsTemplate, templateRows[1]]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+      ownInstructions: () => {
+        reads += 1;
+        return Response.json(reads === 1 ? [] : [ownInstructionsRevision]);
+      },
+      moduleVersions: () => Response.json([annexedVersion]),
+    });
+    expect(
+      (
+        await request(`/clients/${clientId}/documents/generate`, 'POST', {
+          issueDate: '2026-01-19',
+        })
+      ).status
+    ).toBe(201);
+    expect(reads).toBe(2);
+    const created = [0, 1, 2].map((index) => sentBody('/rest/v1/client_documents', index).type_key);
+    expect(created.slice(0, 2).sort()).toEqual(['control_report', 'own_instructions']);
+    expect(created[2]).toBe('training_themes');
+    const snapshots = [0, 1, 2].map(
+      (index) =>
+        sentBody('/rest/v1/document_revisions', index).data_snapshot as { themes?: unknown }
+    );
+    expect(snapshots.slice(0, 2).map((snapshot) => snapshot.themes)).toEqual([
+      undefined,
+      undefined,
+    ]);
+    expect(snapshots[2]!.themes).toMatchObject({
+      ownInstructionsRevision: { id: ownInstructionsRevision.id, number: 1 },
+    });
+  });
+
+  it('are left out of a generation when the own instructions are an uploaded file', async () => {
+    mockUpstream({
+      templates: () => Response.json([themesTemplate, templateRows[1]]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+      ownInstructions: () => Response.json([{ ...ownInstructionsRevision, data_snapshot: null }]),
+    });
+    expect(
+      (
+        await request(`/clients/${clientId}/documents/generate`, 'POST', {
+          issueDate: '2026-01-19',
+        })
+      ).status
+    ).toBe(201);
+    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(1);
+    expect(sentBody('/rest/v1/client_documents')).toMatchObject({ type_key: 'control_report' });
   });
 });
 
