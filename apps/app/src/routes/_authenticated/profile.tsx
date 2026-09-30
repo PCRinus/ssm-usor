@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { createFileRoute, useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
@@ -14,15 +13,23 @@ import { ApiHttpError } from '../../api/http';
 import { Field } from '../../components/form-field';
 import { Notice } from '../../components/notice';
 import { useRevealErrors } from '../../components/use-reveal-errors';
+import { focusSearch, profileFocus, useFocusRequest } from '../../missing-data/focus';
+import { useSavedToast } from '../../missing-data/saved-toast';
 import { roleLabels } from '../../organization/labels';
 
 export const Route = createFileRoute('/_authenticated/profile')({
   staticData: { title: 'Profilul meu' },
+  validateSearch: focusSearch(profileFocus),
   component: ProfilePage,
 });
 
 export function ProfilePage() {
   const me = useMe();
+  const { focus } = Route.useSearch();
+  useFocusRequest(focus !== undefined, {
+    ready: !me.isPending,
+    field: focus === 'professional-title' ? 'profile-professional-title' : 'profile-full-name',
+  });
 
   if (me.isPending) {
     return (
@@ -53,6 +60,7 @@ export function ProfilePage() {
 
 function ProfileForm({ me }: { me: MeResponse }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const update = useUpdateProfile({ request: apiRequest });
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -71,7 +79,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
         data: { fullName: values.fullName, professionalTitle: values.professionalTitle || null },
       });
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      toast.success('Profilul a fost salvat.');
+      savedToast('Profilul a fost salvat.');
     } catch (cause) {
       form.setError('root.server', {
         message:

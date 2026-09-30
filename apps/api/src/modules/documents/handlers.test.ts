@@ -375,7 +375,13 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       ready: false,
       missing: ['positions.equipment', 'positions.instructions'],
-      undecidedJobPositions: [{ id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Zidar' }],
+      undecidedJobPositions: [
+        {
+          id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+          name: 'Zidar',
+          undecided: ['equipment', 'instructions'],
+        },
+      ],
     });
     mockUpstream({ positions: () => Response.json([]) });
     const none = await request(`/clients/${clientId}/documents/readiness`);
@@ -470,7 +476,7 @@ describe('GET /clients/{clientId}/documents', () => {
     expect(body.items).toHaveLength(1);
     expect(body.currentEmployeeCount).toBe(1);
     expect(body.notApplicable).toEqual(['decision_workers_representative']);
-    // The documentation set only: the client's other documents have their own routes.
+    // The documentation set only: the service contract has its own routes.
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
     ).toBe('eq.documentation_set');

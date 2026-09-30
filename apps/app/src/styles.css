@@ -17,3 +17,28 @@
 #ph-conversations-widget-container:has(button[aria-label^='Open chat']) {
   display: none;
 }
+
+/* Where a missing-data row leads: the button or the field it was about (missing-data/focus.ts). */
+@keyframes pointed {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--ring) 70%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--ring) 35%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+[data-pointed] {
+  animation: pointed 0.9s ease-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-pointed] {
+    animation: none;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}

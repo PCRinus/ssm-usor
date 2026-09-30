@@ -18,7 +18,7 @@ export type ClientRow = ClientListResponse['items'][number];
 
 const helper = createDataTableColumns<ClientRow>();
 
-export function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'locality'>) {
+function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'locality'>) {
   const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
   return [client.locality, county].filter(Boolean).join(', ');
 }
@@ -38,7 +38,7 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
       cell: ({ row, getValue }) => (
         <>
           <Link
-            to="/clients/$clientId/employees"
+            to="/clients/$clientId/details"
             params={{ clientId: row.original.id }}
             data-testid="clients-open"
             className="hover:underline"
@@ -111,7 +111,7 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
               ) : (
                 <>
                   <DropdownMenuItem asChild data-testid="clients-edit">
-                    <Link to="/clients/$clientId/edit" params={{ clientId: client.id }}>
+                    <Link to="/clients/$clientId/details" params={{ clientId: client.id }}>
                       <Pencil aria-hidden="true" />
                       Modifică
                     </Link>

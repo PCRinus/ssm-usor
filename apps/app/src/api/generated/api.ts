@@ -2160,9 +2160,19 @@ export type DocumentReadinessResponseWorkersRepresentativeClash = {
   legalRepresentativeName: string;
 } | null;
 
+export type DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem =
+  (typeof DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem)[keyof typeof DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem];
+
+export const DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem = {
+  equipment: 'equipment',
+  instructions: 'instructions',
+} as const;
+
 export type DocumentReadinessResponseUndecidedJobPositionsItem = {
   id: string;
   name: string;
+  /** @minItems 1 */
+  undecided: DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem[];
 };
 
 export interface DocumentReadinessResponse {
@@ -2682,6 +2692,132 @@ export interface RegenerateDocumentRequest {
 
 export interface IssueDocumentRequest {
   acceptUnfilled?: boolean;
+}
+
+export type ClientFileListResponseItemsItemMimeType =
+  (typeof ClientFileListResponseItemsItemMimeType)[keyof typeof ClientFileListResponseItemsItemMimeType];
+
+export const ClientFileListResponseItemsItemMimeType = {
+  'application/pdf': 'application/pdf',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'application/vndopenxmlformats-officedocumentwordprocessingmldocument':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword': 'application/msword',
+  'application/vndopenxmlformats-officedocumentspreadsheetmlsheet':
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vndms-excel': 'application/vnd.ms-excel',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientFileListResponseItemsItemUploadedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+export type ClientFileListResponseItemsItem = {
+  id: string;
+  name: string;
+  /** @nullable */
+  note: string | null;
+  ownersOnly: boolean;
+  originalFileName: string;
+  mimeType: ClientFileListResponseItemsItemMimeType;
+  /** @minimum 1 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+  /** @nullable */
+  uploadedBy: ClientFileListResponseItemsItemUploadedBy;
+  canChange: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface ClientFileListResponse {
+  items: ClientFileListResponseItemsItem[];
+}
+
+export type ClientFileResponseFileMimeType =
+  (typeof ClientFileResponseFileMimeType)[keyof typeof ClientFileResponseFileMimeType];
+
+export const ClientFileResponseFileMimeType = {
+  'application/pdf': 'application/pdf',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'application/vndopenxmlformats-officedocumentwordprocessingmldocument':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword': 'application/msword',
+  'application/vndopenxmlformats-officedocumentspreadsheetmlsheet':
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vndms-excel': 'application/vnd.ms-excel',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientFileResponseFileUploadedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+export type ClientFileResponseFile = {
+  id: string;
+  name: string;
+  /** @nullable */
+  note: string | null;
+  ownersOnly: boolean;
+  originalFileName: string;
+  mimeType: ClientFileResponseFileMimeType;
+  /** @minimum 1 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+  /** @nullable */
+  uploadedBy: ClientFileResponseFileUploadedBy;
+  canChange: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface ClientFileResponse {
+  file: ClientFileResponseFile;
+}
+
+export interface UpdateClientFileRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  name?: string;
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
+  note?: string | null;
+}
+
+export interface SetClientFileOwnersOnlyRequest {
+  ownersOnly: boolean;
+}
+
+export type ClientFileDownloadResponseDisposition =
+  (typeof ClientFileDownloadResponseDisposition)[keyof typeof ClientFileDownloadResponseDisposition];
+
+export const ClientFileDownloadResponseDisposition = {
+  inline: 'inline',
+  attachment: 'attachment',
+} as const;
+
+export interface ClientFileDownloadResponse {
+  url: string;
+  fileName: string;
+  disposition: ClientFileDownloadResponseDisposition;
+  expiresInSeconds: number;
 }
 
 /**
@@ -3405,6 +3541,32 @@ export const GetDocumentDownloadFormat = {
   docx: 'docx',
   pdf: 'pdf',
   signed: 'signed',
+} as const;
+
+export type UploadClientFileParams = {
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
+  fileName: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  name?: string;
+  /**
+   * @maxLength 2000
+   */
+  note?: string;
+  ownersOnly?: UploadClientFileOwnersOnly;
+};
+
+export type UploadClientFileOwnersOnly =
+  (typeof UploadClientFileOwnersOnly)[keyof typeof UploadClientFileOwnersOnly];
+
+export const UploadClientFileOwnersOnly = {
+  true: 'true',
+  false: 'false',
 } as const;
 
 export type DownloadFileParams = {
@@ -11810,6 +11972,715 @@ export const useUploadClientDocument = <TError = ErrorType<ApiErrorResponse>, TC
   return useMutation(getUploadClientDocumentMutationOptions(options), queryClient);
 };
 
+export const getListClientFilesUrl = (clientId: string) => {
+  return `/clients/${clientId}/files`;
+};
+
+/**
+ * The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs.
+ * @summary List a client's files
+ */
+export const listClientFiles = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientFileListResponse> => {
+  return apiFetch<ClientFileListResponse>(getListClientFilesUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListClientFilesQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/files`] as const;
+};
+
+export const getListClientFilesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClientFiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClientFilesQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientFiles>>> = ({ signal }) =>
+    listClientFiles(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListClientFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listClientFiles>>>;
+export type ListClientFilesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListClientFiles<
+  TData = Awaited<ReturnType<typeof listClientFiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientFiles>>,
+          TError,
+          Awaited<ReturnType<typeof listClientFiles>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientFiles<
+  TData = Awaited<ReturnType<typeof listClientFiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientFiles>>,
+          TError,
+          Awaited<ReturnType<typeof listClientFiles>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientFiles<
+  TData = Awaited<ReturnType<typeof listClientFiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a client's files
+ */
+
+export function useListClientFiles<
+  TData = Awaited<ReturnType<typeof listClientFiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListClientFilesQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUploadClientFileUrl = (clientId: string, params: UploadClientFileParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/files?${stringifiedParams}`
+    : `/clients/${clientId}/files`;
+};
+
+/**
+ * Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only.
+ * @summary Upload one file about a client
+ */
+export const uploadClientFile = async (
+  clientId: string,
+  uploadClientFileBody: Blob,
+  params: UploadClientFileParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientFileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientFileResponse>(getUploadClientFileUrl(clientId, params), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...getHeaders(options?.headers) },
+    body: uploadClientFileBody,
+  });
+};
+
+export const getUploadClientFileMutationKey = () => ['uploadClientFile'] as const;
+
+export const getUploadClientFileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadClientFile>>,
+    TError,
+    UploadClientFileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadClientFile>>,
+  TError,
+  UploadClientFileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUploadClientFileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadClientFile>>,
+    UploadClientFileMutationVariables
+  > = (props) => {
+    const { clientId, data, params } = props ?? {};
+
+    return uploadClientFile(clientId, data, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadClientFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadClientFile>>
+>;
+export type UploadClientFileMutationBody = Blob;
+export type UploadClientFileMutationError = ErrorType<ApiErrorResponse>;
+export type UploadClientFileMutationVariables = {
+  clientId: string;
+  data: Blob;
+  params: UploadClientFileParams;
+};
+
+/**
+ * @summary Upload one file about a client
+ */
+export const useUploadClientFile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof uploadClientFile>>,
+      TError,
+      UploadClientFileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof uploadClientFile>>,
+  TError,
+  UploadClientFileMutationVariables,
+  TContext
+> => {
+  return useMutation(getUploadClientFileMutationOptions(options), queryClient);
+};
+
+export const getUpdateClientFileUrl = (clientId: string, fileId: string) => {
+  return `/clients/${clientId}/files/${fileId}`;
+};
+
+/**
+ * By the member who uploaded it or by an owner; anyone else's attempt is `403`.
+ * @summary Rename or annotate a file
+ */
+export const updateClientFile = async (
+  clientId: string,
+  fileId: string,
+  updateClientFileRequest: UpdateClientFileRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientFileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientFileResponse>(getUpdateClientFileUrl(clientId, fileId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateClientFileRequest),
+  });
+};
+
+export const getUpdateClientFileMutationKey = () => ['updateClientFile'] as const;
+
+export const getUpdateClientFileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClientFile>>,
+    TError,
+    UpdateClientFileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateClientFile>>,
+  TError,
+  UpdateClientFileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateClientFileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateClientFile>>,
+    UpdateClientFileMutationVariables
+  > = (props) => {
+    const { clientId, fileId, data } = props ?? {};
+
+    return updateClientFile(clientId, fileId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateClientFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateClientFile>>
+>;
+export type UpdateClientFileMutationBody = UpdateClientFileRequest;
+export type UpdateClientFileMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateClientFileMutationVariables = {
+  clientId: string;
+  fileId: string;
+  data: UpdateClientFileRequest;
+};
+
+/**
+ * @summary Rename or annotate a file
+ */
+export const useUpdateClientFile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateClientFile>>,
+      TError,
+      UpdateClientFileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateClientFile>>,
+  TError,
+  UpdateClientFileMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateClientFileMutationOptions(options), queryClient);
+};
+
+export const getDeleteClientFileUrl = (clientId: string, fileId: string) => {
+  return `/clients/${clientId}/files/${fileId}`;
+};
+
+/**
+ * The row and the stored file together, by the member who uploaded it or by an owner; anyone else's attempt is `403`. There is no recycle bin.
+ * @summary Delete a file for good
+ */
+export const deleteClientFile = async (
+  clientId: string,
+  fileId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteClientFileUrl(clientId, fileId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteClientFileMutationKey = () => ['deleteClientFile'] as const;
+
+export const getDeleteClientFileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteClientFile>>,
+    TError,
+    DeleteClientFileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteClientFile>>,
+  TError,
+  DeleteClientFileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteClientFileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteClientFile>>,
+    DeleteClientFileMutationVariables
+  > = (props) => {
+    const { clientId, fileId } = props ?? {};
+
+    return deleteClientFile(clientId, fileId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteClientFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteClientFile>>
+>;
+
+export type DeleteClientFileMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteClientFileMutationVariables = { clientId: string; fileId: string };
+
+/**
+ * @summary Delete a file for good
+ */
+export const useDeleteClientFile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteClientFile>>,
+      TError,
+      DeleteClientFileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteClientFile>>,
+  TError,
+  DeleteClientFileMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteClientFileMutationOptions(options), queryClient);
+};
+
+export const getSetClientFileOwnersOnlyUrl = (clientId: string, fileId: string) => {
+  return `/clients/${clientId}/files/${fileId}/owners-only`;
+};
+
+/**
+ * Owners only. A lead's files stay for owners only until the lead is promoted (reason `client_file_lead_owners_only`).
+ * @summary Keep a file for owners only, or open it to the team
+ */
+export const setClientFileOwnersOnly = async (
+  clientId: string,
+  fileId: string,
+  setClientFileOwnersOnlyRequest: SetClientFileOwnersOnlyRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientFileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ClientFileResponse>(getSetClientFileOwnersOnlyUrl(clientId, fileId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setClientFileOwnersOnlyRequest),
+  });
+};
+
+export const getSetClientFileOwnersOnlyMutationKey = () => ['setClientFileOwnersOnly'] as const;
+
+export const getSetClientFileOwnersOnlyMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setClientFileOwnersOnly>>,
+    TError,
+    SetClientFileOwnersOnlyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setClientFileOwnersOnly>>,
+  TError,
+  SetClientFileOwnersOnlyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSetClientFileOwnersOnlyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setClientFileOwnersOnly>>,
+    SetClientFileOwnersOnlyMutationVariables
+  > = (props) => {
+    const { clientId, fileId, data } = props ?? {};
+
+    return setClientFileOwnersOnly(clientId, fileId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetClientFileOwnersOnlyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setClientFileOwnersOnly>>
+>;
+export type SetClientFileOwnersOnlyMutationBody = SetClientFileOwnersOnlyRequest;
+export type SetClientFileOwnersOnlyMutationError = ErrorType<ApiErrorResponse>;
+export type SetClientFileOwnersOnlyMutationVariables = {
+  clientId: string;
+  fileId: string;
+  data: SetClientFileOwnersOnlyRequest;
+};
+
+/**
+ * @summary Keep a file for owners only, or open it to the team
+ */
+export const useSetClientFileOwnersOnly = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof setClientFileOwnersOnly>>,
+      TError,
+      SetClientFileOwnersOnlyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof setClientFileOwnersOnly>>,
+  TError,
+  SetClientFileOwnersOnlyMutationVariables,
+  TContext
+> => {
+  return useMutation(getSetClientFileOwnersOnlyMutationOptions(options), queryClient);
+};
+
+export const getGetClientFileDownloadUrl = (clientId: string, fileId: string) => {
+  return `/clients/${clientId}/files/${fileId}/download`;
+};
+
+/**
+ * A signed link valid for a minute, with the name the file was uploaded under. `disposition` says how to open it through `/files/download`: a PDF or an image in a tab, anything else as a download. Also for an archived client.
+ * @summary Get a short-lived link to a file
+ */
+export const getClientFileDownload = async (
+  clientId: string,
+  fileId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientFileDownloadResponse> => {
+  return apiFetch<ClientFileDownloadResponse>(getGetClientFileDownloadUrl(clientId, fileId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetClientFileDownloadQueryKey = (clientId: string, fileId: string) => {
+  return [`/clients/${clientId}/files/${fileId}/download`] as const;
+};
+
+export const getGetClientFileDownloadQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClientFileDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  fileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientFileDownload>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetClientFileDownloadQueryKey(clientId, fileId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClientFileDownload>>> = ({ signal }) =>
+    getClientFileDownload(clientId, fileId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined && fileId !== null && fileId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getClientFileDownload>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetClientFileDownloadQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClientFileDownload>>
+>;
+export type GetClientFileDownloadQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetClientFileDownload<
+  TData = Awaited<ReturnType<typeof getClientFileDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  fileId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientFileDownload>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientFileDownload>>,
+          TError,
+          Awaited<ReturnType<typeof getClientFileDownload>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClientFileDownload<
+  TData = Awaited<ReturnType<typeof getClientFileDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  fileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientFileDownload>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientFileDownload>>,
+          TError,
+          Awaited<ReturnType<typeof getClientFileDownload>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetClientFileDownload<
+  TData = Awaited<ReturnType<typeof getClientFileDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  fileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientFileDownload>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get a short-lived link to a file
+ */
+
+export function useGetClientFileDownload<
+  TData = Awaited<ReturnType<typeof getClientFileDownload>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  fileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getClientFileDownload>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetClientFileDownloadQueryOptions(clientId, fileId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getDownloadFileUrl = (params: DownloadFileParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -11825,7 +12696,7 @@ export const getDownloadFileUrl = (params: DownloadFileParams) => {
 };
 
 /**
- * Opened by the browser, not fetched. `attachment` downloads the file; `inline` shows a PDF in the browser, and any other type is still downloaded. The signed link authorizes the read and expires on its own.
+ * Opened by the browser, not fetched. `attachment` downloads the file; `inline` shows a PDF, a JPEG or a PNG in the browser, and any other type is still downloaded. The signed link authorizes the read and expires on its own.
  * @summary Download or show a file from a signed Storage link, under its own name
  */
 export const downloadFile = async (

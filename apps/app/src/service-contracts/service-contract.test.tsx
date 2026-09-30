@@ -75,13 +75,30 @@ const state = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const details = (overrides: Record<string, unknown> = {}) => ({
+  legalRepresentativeName: 'Adnana POPA' as string | null,
+  legalRepresentativeRole: 'Administrator' as string | null,
+  periodicTrainingMinutes: null,
+  administrativeTrainingIntervalMonths: null,
+  administrativeTrainingNotApplicable: false,
+  workerTrainingIntervalMonths: null,
+  workerTrainingNotApplicable: false,
+  trainingFirstMonth: null,
+  trainingDayFrom: null,
+  trainingDayTo: null,
+  ...overrides,
+});
+
 type Route = (init: RequestInit | undefined) => Response;
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi(
   routes: Partial<
-    Record<'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'confirm' | 'promote', Route>
+    Record<
+      'get' | 'save' | 'generate' | 'issue' | 'send' | 'attach' | 'confirm' | 'promote' | 'details',
+      Route
+    >
   > & {
     role?: 'owner' | 'specialist';
     client?: Record<string, unknown>;
@@ -142,6 +159,11 @@ function mockApi(
     }
     if (pathname === '/clients')
       return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+    if (pathname === `/clients/${leadId}/document-details`) {
+      return routes.details?.(init) ?? Response.json({ documentDetails: details() });
+    }
+    if (pathname === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
+    if (pathname === `/clients/${leadId}/files`) return Response.json({ items: [] });
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
@@ -231,19 +253,56 @@ describe('the service contract of a lead', () => {
     });
     mount();
     const missing = await screen.findByTestId('contract-missing');
-    expect(missing.textContent).toContain('Despre organizația ta: contul bancar și banca');
-    expect(missing.textContent).toContain('Despre VELOCITA URBANA SRL: adresa sediului');
-    expect(missing.textContent).toContain('În formularul de mai sus: funcția reprezentantului');
-    expect(missing.textContent).toContain(
-      'Despre abilitările organizației: certificatul de abilitare'
-    );
+    expect(missing.textContent).toContain('4 date de completat');
     expect(
-      within(missing).getByRole('link', { name: 'Organizație, Date firmă' }).getAttribute('href')
-    ).toBe('/organization/company');
+      within(missing)
+        .getAllByTestId('contract-missing-place')
+        .map((place) => within(place).getByRole('heading').textContent)
+    ).toEqual(['Datele organizației tale', 'Abilitările organizației', 'VELOCITA URBANA SRL']);
     expect(
-      within(missing).getByRole('link', { name: 'Organizație, Abilitări' }).getAttribute('href')
-    ).toBe('/organization/authorizations');
+      within(missing)
+        .getAllByTestId('contract-missing-row')
+        .map((row) => row.getAttribute('href'))
+    ).toEqual([
+      '/organization/company?focus=bank-account',
+      '/organization/authorizations?focus=certificate',
+      `/leads/${leadId}?focus=company-address`,
+      `/leads/${leadId}?focus=contract-representative-role`,
+    ]);
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
+  });
+
+  it("opens the lead's own cards from its rows, at the field", async () => {
+    mockApi({
+      get: () =>
+        Response.json(
+          state({
+            readiness: { ready: false, missing: ['client.address', 'client.representativeRole'] },
+          })
+        ),
+      client: { ...lead, countyCode: null },
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('contract-missing-row');
+
+    await user.click(rows[0]!);
+    await waitFor(() => expect(document.activeElement?.id).toBe('countyCode'));
+    expect(screen.getByTestId('company-form')).toBeTruthy();
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    const asked = requests(`/clients/${leadId}/service-contract`, 'GET').length;
+    await user.type(screen.getByTestId('client-address'), ' bis');
+    await user.click(screen.getByTestId('company-save'));
+    await waitFor(() =>
+      expect(requests(`/clients/${leadId}/service-contract`, 'GET').length).toBeGreaterThan(asked)
+    );
+    expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Înapoi la contract' })).toBeNull();
+
+    await user.click(screen.getAllByTestId('contract-missing-row')[1]!);
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('contract-clientRepresentativeRole'))
+    );
   });
 
   it('asks again what is missing on coming back, without showing the old list meanwhile', async () => {
@@ -685,26 +744,190 @@ describe('the copy received through the return link', () => {
   });
 });
 
-describe('the other documents of a client', () => {
+describe('the contract of a client', () => {
   const client = { ...lead, stage: 'client', promotedAt: '2026-09-21T09:00:00+00:00' };
 
   it('is a section of the client for an owner, with the contract and its own editor address', async () => {
     mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
-    mount(`/clients/${leadId}/other-documents`);
-    await screen.findByTestId('other-documents-page');
+    const runtime = mount(`/clients/${leadId}/contract`);
+    await screen.findByTestId('contract-page');
+    await waitFor(() => expect(document.title).toBe('Contract — VELOCITA URBANA SRL — SSM Ușor'));
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).toContain('Alte documente');
-    expect((await screen.findByTestId('contract-open')).getAttribute('href')).toBe(
-      `/clients/${leadId}/other-documents/contract`
+    expect(sections.slice(-2)).toEqual(['Contract', 'Alte documente']);
+    const open = await screen.findByTestId('contract-open');
+    expect(open.getAttribute('href')).toBe(`/clients/${leadId}/contract/edit`);
+
+    await userEvent.setup().click(open);
+    const back = await screen.findByTestId('editor-back');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`);
+    expect(back.getAttribute('href')).toBe(`/clients/${leadId}/contract`);
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la contract');
+  });
+
+  it("leads from the missing data to the client's Detalii, and back to the contract", async () => {
+    mockApi({
+      client,
+      get: () =>
+        Response.json(
+          state({
+            readiness: { ready: false, missing: ['client.tradeRegisterNumber'] },
+          })
+        ),
+    });
+    const runtime = mount(`/clients/${leadId}/contract`);
+    const user = userEvent.setup();
+    const row = await screen.findByTestId('contract-missing-row');
+    expect(row.getAttribute('href')).toBe(
+      `/clients/${leadId}/details?focus=company-trade-register`
     );
+
+    await user.click(row);
+    await waitFor(() => expect(document.activeElement?.id).toBe('tradeRegisterNumber'));
+    await user.type(screen.getByTestId('client-trade-register'), '1');
+    await user.click(screen.getByTestId('company-save'));
+    await user.click(await screen.findByRole('button', { name: 'Înapoi la contract' }));
+    await screen.findByTestId('contract-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract`);
   });
 
   it('is not offered to a specialist, and asks the API for nothing on their behalf', async () => {
     mockApi({ client, role: 'specialist' });
-    mount(`/clients/${leadId}/other-documents`);
-    expect(await screen.findByTestId('other-documents-owners-only')).toBeTruthy();
+    mount(`/clients/${leadId}/contract`);
+    expect((await screen.findByTestId('contract-owners-only')).textContent).toContain(
+      'Doar administratorii organizației pot vedea contractul'
+    );
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).not.toContain('Alte documente');
+    expect(sections).not.toContain('Contract');
     expect(requests(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
+  });
+
+  it('sends the old /other-documents/contract address to /contract/edit', async () => {
+    mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
+    const runtime = mount(`/clients/${leadId}/other-documents/contract`);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`)
+    );
+    expect(await screen.findByTestId('editor-back')).toBeTruthy();
+  });
+});
+
+describe('who signs the contract for the client', () => {
+  const client = { ...lead, stage: 'client', promotedAt: '2026-09-21T09:00:00+00:00' };
+  const unsaved = (clientRepresentative: { name: string | null; role: string | null }) =>
+    state({
+      contract: null,
+      suggestedNumber: 52,
+      clientRepresentative,
+      readiness: { ready: false, missing: ['contract.details'] },
+    });
+  const bodyOfSave = () =>
+    JSON.parse(
+      String(requests(`/clients/${leadId}/service-contract`, 'PUT')[0]![1]?.body)
+    ) as Record<string, unknown>;
+
+  it('starts from the legal representative of the client, and keeps it editable', async () => {
+    mockApi({
+      client,
+      get: () => Response.json(unsaved({ name: 'Maria Popescu', role: 'Administrator' })),
+    });
+    mount(`/clients/${leadId}/contract`);
+    const user = userEvent.setup();
+    const form = await screen.findByTestId('service-contract-form');
+    const name = within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeName');
+    const role = within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeRole');
+    expect(name.value).toBe('Maria Popescu');
+    expect(role.value).toBe('Administrator');
+    expect(name).toHaveProperty('disabled', false);
+    expect(screen.getByTestId('contract-signer-hint').textContent).toContain(
+      'Reprezentantul legal din Detalii'
+    );
+
+    await user.click(within(form).getByTestId('contract-save'));
+    await waitFor(() =>
+      expect(requests(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(1)
+    );
+    expect(bodyOfSave()).toMatchObject({
+      clientRepresentativeName: 'Maria Popescu',
+      clientRepresentativeRole: 'Administrator',
+    });
+  });
+
+  it('shows the signer already saved, and changing it here changes the legal representative in Detalii', async () => {
+    let representative = details();
+    mockApi({
+      client,
+      get: () =>
+        Response.json(
+          state({
+            clientRepresentative: {
+              name: representative.legalRepresentativeName,
+              role: representative.legalRepresentativeRole,
+            },
+          })
+        ),
+      save: (init) => {
+        const body = JSON.parse(String(init?.body)) as Record<string, string>;
+        representative = details({ legalRepresentativeName: body.clientRepresentativeName });
+        return Response.json(
+          state({
+            clientRepresentative: {
+              name: representative.legalRepresentativeName,
+              role: representative.legalRepresentativeRole,
+            },
+          })
+        );
+      },
+      details: () => Response.json({ documentDetails: representative }),
+    });
+    const runtime = mount(`/clients/${leadId}/details`);
+    const user = userEvent.setup();
+    expect((await screen.findByTestId('legal-representative-name')).textContent).toBe(
+      'Adnana POPA'
+    );
+
+    await runtime.router.navigate({
+      to: '/clients/$clientId/contract',
+      params: { clientId: leadId },
+    });
+    expect((await screen.findByTestId('contract-signer')).textContent).toBe(
+      'Adnana POPAAdministrator'
+    );
+    await user.click(screen.getByTestId('contract-details-edit'));
+    const name = screen.getByTestId<HTMLInputElement>('contract-clientRepresentativeName');
+    expect(name.value).toBe('Adnana POPA');
+    await user.clear(name);
+    await user.type(name, 'Ion Ionescu');
+    await user.click(screen.getByTestId('contract-save'));
+    expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();
+    expect(bodyOfSave()).toMatchObject({ clientRepresentativeName: 'Ion Ionescu' });
+
+    await runtime.router.navigate({
+      to: '/clients/$clientId/details',
+      params: { clientId: leadId },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('legal-representative-name').textContent).toBe('Ion Ionescu')
+    );
+  });
+
+  it('leaves the fields empty when there is no legal representative, and sends none', async () => {
+    mockApi({ get: () => Response.json(unsaved({ name: null, role: null })) });
+    mount();
+    const user = userEvent.setup();
+    const form = await screen.findByTestId('service-contract-form');
+    expect(
+      within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeName').value
+    ).toBe('');
+    expect(
+      within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeRole').value
+    ).toBe('');
+    expect(screen.getByTestId('contract-signer-hint').textContent).toContain(
+      'Rămâne salvat la firmă'
+    );
+    await user.click(within(form).getByTestId('contract-save'));
+    expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();
+    expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeName');
+    expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeRole');
+    expect(requests(`/clients/${leadId}/document-details`, 'GET')).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-import { caenClassName, formatCui } from '@ssm-usor/contracts';
+import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -17,13 +17,13 @@ import {
   BriefcaseBusiness,
   Building2,
   ClipboardList,
-  Contact,
-  Files,
+  FileSignature,
   FileText,
-  Pencil,
+  FolderOpen,
+  IdCard,
   UsersRound,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { z } from 'zod';
 
 import { useMe } from '../../../account/use-me';
@@ -33,13 +33,14 @@ import {
   type ClientArchiveChange,
   ClientArchiveDialog,
 } from '../../../clients/client-archive-dialog';
-import { registeredOffice } from '../../../clients/client-columns';
+import { HeaderFact, RecordHeader } from '../../../clients/record-header';
 import { Notice } from '../../../components/notice';
 import { SectionNav } from '../../../components/section-nav';
+import { useEndWayBackOutside } from '../../../missing-data/way-back';
 
-// The documents follow the data they print.
-// `ownerOnly`: the other documents are, so far, the service contract, which is an owner's.
+// The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [
+  { to: '/clients/$clientId/details', label: 'Detalii', icon: IdCard, ownerOnly: false },
   { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
   {
     to: '/clients/$clientId/job-positions',
@@ -48,19 +49,24 @@ const sections = [
     ownerOnly: false,
   },
   {
-    to: '/clients/$clientId/document-data',
-    label: 'Date pentru documente',
+    to: '/clients/$clientId/training',
+    label: 'Instruire și responsabili',
     icon: ClipboardList,
     ownerOnly: false,
   },
-  { to: '/clients/$clientId/documents', label: 'Documente', icon: FileText, ownerOnly: false },
+  { to: '/clients/$clientId/documents', label: 'Documente SSM', icon: FileText, ownerOnly: false },
+  {
+    to: '/clients/$clientId/contract',
+    label: 'Contract',
+    icon: FileSignature,
+    ownerOnly: true,
+  },
   {
     to: '/clients/$clientId/other-documents',
     label: 'Alte documente',
-    icon: Files,
-    ownerOnly: true,
+    icon: FolderOpen,
+    ownerOnly: false,
   },
-  { to: '/clients/$clientId/contact', label: 'Contact', icon: Contact, ownerOnly: false },
 ] as const;
 
 // Row-level security hides other organizations' clients, so a 404 from the API is the
@@ -94,77 +100,49 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   errorComponent: ClientError,
 });
 
-function Fact({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex min-w-0 gap-1.5">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="truncate">{children}</dd>
-    </div>
-  );
-}
-
 export function ClientLayout() {
   const { client } = Route.useLoaderData();
   // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
   });
-  const isOwner = useMe().data?.membership?.role === 'owner';
+  const me = useMe();
+  const isOwner = me.data?.membership?.role === 'owner';
+  useEndWayBackOutside(client.id, me.data?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
-  const office = registeredOffice(client);
-  const caen = client.caenCode ? caenClassName(client.caenCode) : null;
   if (fullPage) return <Outlet />;
   return (
     <div data-testid="client-page" className="space-y-5">
-      <header className="flex min-w-0 flex-wrap items-center gap-3">
-        <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-          aria-hidden="true"
-        >
-          <Building2 className="size-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-semibold tracking-tight">{client.legalName}</h1>
-          <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
-            <Fact label="CUI">
+      <RecordHeader
+        icon={Building2}
+        title={client.legalName}
+        facts={
+          <>
+            <HeaderFact label="CUI">
               <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
-            </Fact>
-            {client.caenCode && (
-              <Fact label="CAEN">
-                <span className="tabular-nums">{client.caenCode}</span>
-                {caen && <span className="text-muted-foreground"> · {caen}</span>}
-              </Fact>
-            )}
-            {office && <Fact label="Sediu">{office}</Fact>}
-            <Fact label="Angajați">
+            </HeaderFact>
+            <HeaderFact label="Angajați">
               <span className="tabular-nums" data-testid="client-employee-count">
                 {client.currentEmployeeCount}
               </span>
-            </Fact>
-          </dl>
-        </div>
-        {!client.archivedAt && (
-          <div className="flex min-w-0 shrink-0 flex-wrap gap-2 max-sm:w-full max-sm:pl-12">
-            <Button asChild variant="outline" size="sm" data-testid="client-edit">
-              <Link to="/clients/$clientId/edit" params={{ clientId: client.id }}>
-                <Pencil aria-hidden="true" />
-                Modifică
-              </Link>
+            </HeaderFact>
+          </>
+        }
+        actions={
+          !client.archivedAt &&
+          isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="client-archive"
+              onClick={() => setArchiveChange({ client, action: 'archive' })}
+            >
+              <Archive aria-hidden="true" />
+              Arhivează…
             </Button>
-            {isOwner && (
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="client-archive"
-                onClick={() => setArchiveChange({ client, action: 'archive' })}
-              >
-                <Archive aria-hidden="true" />
-                Arhivează…
-              </Button>
-            )}
-          </div>
-        )}
-      </header>
+          )
+        }
+      />
       {client.archivedAt && (
         <Notice
           variant="warning"

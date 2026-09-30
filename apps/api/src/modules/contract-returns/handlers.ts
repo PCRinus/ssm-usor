@@ -63,7 +63,7 @@ async function findSend(c: Context<ApiEnv>, token: string) {
   const [client, contract] = await Promise.all([
     admin
       .from('clients')
-      .select('id, legal_name, archived_at')
+      .select('id, legal_name, stage, archived_at')
       .eq('id', document.data.client_id)
       .single(),
     admin
@@ -211,7 +211,12 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
   // The owner hears of it; a copy that arrived is not lost when the email is.
   const to = await senderEmail(admin, send.sent_by);
   if (to && c.env.MAIL) {
-    const leadUrl = new URL(`/leads/${found.client.id}`, appOrigin(c.env)).href;
+    // A contract can be drafted for a client too, whose contract has a tab of its own.
+    const page =
+      found.client.stage === 'client'
+        ? `/clients/${found.client.id}/contract`
+        : `/leads/${found.client.id}`;
+    const leadUrl = new URL(page, appOrigin(c.env)).href;
     try {
       await c.env.MAIL.sendSignedCopyReceived({
         to,

@@ -4,7 +4,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
+import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import {
   Select,
@@ -14,21 +14,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ssm-usor/ui/components/select';
+import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link } from '@tanstack/react-router';
-import { FileText, Pencil } from 'lucide-react';
-import { useState } from 'react';
+import { FileText } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { EditAction, SectionCard } from '../components/section-card';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { intervalLabel, staffCategoryLabels } from '../job-positions/job-position-schema';
 import { useJobPositionOptions } from '../job-positions/use-job-position-options';
+import { useFocusRequest } from '../missing-data/focus';
 import { intervalOptions, monthNames, notApplicable } from './document-details-schema';
 import {
   type ClientSummary,
   describedBy,
   type DocumentDetails,
+  useDocumentDetails,
   useDocumentDetailsForm,
 } from './use-document-details-form';
 
@@ -79,83 +83,125 @@ const monthList = (firstMonth: number, interval: number) =>
     .map((month) => monthNames[month - 1])
     .join(', ');
 
-export function TrainingProgramCard({
-  saved,
+export function TrainingProgramSection({
   client,
   userId,
+  focus = false,
 }: {
-  saved: DocumentDetails;
   client: ClientSummary;
   userId: string;
+  focus?: boolean;
 }) {
+  const details = useDocumentDetails(client.id, userId);
+  if (details.isPending) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (details.isError) {
+    return (
+      <Card data-testid="document-details-unavailable">
+        <CardContent>
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={details.isFetching}
+                onClick={() => void details.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca programul de instruire.
+          </Notice>
+        </CardContent>
+      </Card>
+    );
+  }
   return (
-    <Card data-testid="training-program-card" className="gap-3">
-      <CardHeader>
-        <h2 className="text-lg font-semibold">Programul de instruire periodică</h2>
-      </CardHeader>
-      <CardContent>
-        {/* Keyed by what is saved, so the card goes back to the summary after a save. */}
-        <TrainingProgram
-          key={[
-            ...fields.map((field) => saved[field]),
-            saved.administrativeTrainingNotApplicable,
-            saved.workerTrainingNotApplicable,
-          ].join('|')}
-          saved={saved}
-          client={client}
-          userId={userId}
-        />
-      </CardContent>
-    </Card>
+    <TrainingProgramCard
+      saved={details.data.documentDetails}
+      client={client}
+      userId={userId}
+      focus={focus}
+    />
   );
 }
 
-function TrainingProgram({
+// A complete schedule still counts as missing when a category marked "Nu se aplică" has
+// employees, and that is fixed in the first field.
+function firstFieldToFill(saved: DocumentDetails) {
+  if (
+    saved.administrativeTrainingIntervalMonths === null &&
+    !saved.administrativeTrainingNotApplicable
+  )
+    return 'details-administrative-interval';
+  if (saved.workerTrainingIntervalMonths === null && !saved.workerTrainingNotApplicable)
+    return 'details-worker-interval';
+  if (saved.trainingFirstMonth === null) return 'details-first-month';
+  if (saved.periodicTrainingMinutes === null) return 'details-training-duration';
+  if (saved.trainingDayFrom === null) return 'details-day-from';
+  if (saved.trainingDayTo === null) return 'details-day-to';
+  return 'details-administrative-interval';
+}
+
+function TrainingProgramCard({
   saved,
   client,
   userId,
+  focus,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
   userId: string;
+  focus: boolean;
 }) {
+  const savedKey = [
+    ...fields.map((field) => saved[field]),
+    saved.administrativeTrainingNotApplicable,
+    saved.workerTrainingNotApplicable,
+  ].join('|');
   const program = completeProgram(saved);
   const readOnly = client.archivedAt !== null;
-  const [editing, setEditing] = useState(program === null && !readOnly);
+  // Editing belongs to what was saved when it began, so a save goes back to the summary.
+  const [editedKey, setEditedKey] = useState<string | null>(null);
+  const editing = !readOnly && (program === null || editedKey === savedKey);
+  const editRef = useRef<HTMLButtonElement>(null);
+  useFocusRequest(focus, {
+    anchor: () => editRef.current,
+    open: readOnly ? undefined : () => setEditedKey(savedKey),
+    field: readOnly ? undefined : firstFieldToFill(saved),
+  });
 
-  if (editing) {
-    return (
-      <TrainingProgramForm
-        saved={saved}
-        client={client}
-        userId={userId}
-        onCancel={program ? () => setEditing(false) : undefined}
-      />
-    );
-  }
-  if (!program) {
-    return (
-      <p data-testid="training-program-empty" className="text-sm text-muted-foreground">
-        Programul de instruire nu a fost completat.
-      </p>
-    );
-  }
   return (
-    <div className="grid gap-5">
-      <TrainingProgramSummary program={program} clientId={client.id} userId={userId} />
-      {!readOnly && (
-        <div>
-          <Button
-            variant="outline"
+    <SectionCard
+      data-testid="training-program-card"
+      title="Programul de instruire periodică"
+      action={
+        !readOnly &&
+        !editing && (
+          <EditAction
+            ref={editRef}
             data-testid="training-program-edit"
-            onClick={() => setEditing(true)}
-          >
-            <Pencil aria-hidden="true" />
-            Modifică programul
-          </Button>
-        </div>
+            onClick={() => setEditedKey(savedKey)}
+          />
+        )
+      }
+    >
+      {editing ? (
+        <TrainingProgramForm
+          key={savedKey}
+          saved={saved}
+          client={client}
+          userId={userId}
+          onCancel={program ? () => setEditedKey(null) : undefined}
+        />
+      ) : program ? (
+        <TrainingProgramSummary program={program} clientId={client.id} userId={userId} />
+      ) : (
+        <p data-testid="training-program-empty" className="text-sm text-muted-foreground">
+          Programul de instruire nu a fost completat.
+        </p>
       )}
-    </div>
+    </SectionCard>
   );
 }
 

@@ -1,19 +1,12 @@
-import { createFileRoute, getRouteApi, Navigate } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { ClientForm } from '../../../../clients/client-form';
-
+// An old address, kept so that bookmarks and links already sent still arrive.
 export const Route = createFileRoute('/_authenticated/clients/$clientId/edit')({
-  staticData: { title: 'Modifică clientul', fullPage: true },
-  component: EditClientPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/clients/$clientId/details',
+      params: { clientId: params.clientId },
+      replace: true,
+    });
+  },
 });
-
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
-
-export function EditClientPage() {
-  const { client } = clientRoute.useLoaderData();
-  if (client.archivedAt) {
-    return <Navigate to="/clients/$clientId/employees" params={{ clientId: client.id }} replace />;
-  }
-  // Keyed, so that the form starts again from the record if another one is opened.
-  return <ClientForm key={client.id} client={client} />;
-}

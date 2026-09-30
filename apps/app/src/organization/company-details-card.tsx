@@ -6,7 +6,6 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -25,6 +24,8 @@ import { Field } from '../components/form-field';
 import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { type OrganizationCompanyFocus, useFocusRequest } from '../missing-data/focus';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   companyDetailsFormSchema,
   type CompanyDetailsFormValues,
@@ -34,21 +35,43 @@ import {
 
 type CompanyDetails = OrganizationCompanyDetailsResponse['companyDetails'];
 
+function fieldFor(focus: OrganizationCompanyFocus, saved: CompanyDetails) {
+  const fields: Record<Exclude<OrganizationCompanyFocus, 'address'>, string> = {
+    'legal-name': 'company-legalName',
+    cui: 'company-cui',
+    'trade-register': 'company-tradeRegisterNumber',
+    'representative-name': 'company-legalRepresentativeName',
+    'representative-role': 'company-legalRepresentativeRole',
+    phone: 'company-phone',
+    'bank-account': saved.iban ? 'company-bankName' : 'company-iban',
+  };
+  if (focus !== 'address') return fields[focus];
+  if (!saved.countyCode) return 'company-county';
+  return saved.locality ? 'company-addressLine' : 'company-locality';
+}
+
 // Hiding the owner's form controls is a courtesy; the API and the database enforce the rule.
-export function CompanyDetailsCard({ userId, canEdit }: { userId: string; canEdit: boolean }) {
+export function CompanyDetailsCard({
+  userId,
+  canEdit,
+  focus,
+}: {
+  userId: string;
+  canEdit: boolean;
+  focus?: OrganizationCompanyFocus;
+}) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const details = useGetOrganizationCompanyDetails({
     request: apiRequest,
     query: { queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId] },
   });
+  useFocusRequest(focus !== undefined, {
+    ready: !details.isPending,
+    field: focus && details.data ? fieldFor(focus, details.data.companyDetails) : undefined,
+  });
 
   return (
     <div data-testid="company-details-card" className="grid gap-5">
-      {canEdit && (
-        <Notice variant="info">
-          Poți completa datele pe rând. Când generezi un document, îți arătăm ce mai lipsește.
-        </Notice>
-      )}
       {details.isPending ? (
         <Skeleton className="h-96 w-full" />
       ) : details.isError ? (
@@ -96,6 +119,7 @@ function CompanyDetailsForm({
   canEdit: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const update = useUpdateOrganizationCompanyDetails({ request: apiRequest });
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   const form = useForm<CompanyDetailsFormValues>({
@@ -148,7 +172,7 @@ function CompanyDetailsForm({
       await queryClient.invalidateQueries({
         queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId],
       });
-      toast.success('Datele firmei au fost salvate.');
+      savedToast('Datele firmei au fost salvate.');
     } catch (cause) {
       form.setError('root.server', {
         message:

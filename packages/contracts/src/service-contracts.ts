@@ -2,17 +2,9 @@ import { z } from 'zod';
 
 import { clientDocumentSchema } from './documents';
 
-/**
- * Documents about a client that are not part of its documentation set (ADR 007), with their
- * titles. The service contract is the first, and only owners see it.
- */
-export const otherDocumentTypes = {
-  service_contract: 'Contract de prestări servicii',
-} as const;
+export const serviceContractTypeKey = 'service_contract';
 
-export type OtherDocumentTypeKey = keyof typeof otherDocumentTypes;
-
-export const serviceContractTypeKey = 'service_contract' satisfies OtherDocumentTypeKey;
+export const serviceContractTitle = 'Contract de prestări servicii';
 
 /**
  * What the app reads about a contract. Prices are not here: they live in the file, where

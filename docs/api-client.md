@@ -70,6 +70,8 @@ The request adapter:
 - Sends bearer authentication without cookies, and refuses cross-origin endpoint URLs or redirects.
 - Throws `ApiHttpError` on non-2xx responses, with `status` and the parsed response `body`.
 - Preserves network/cancellation errors. The app does not automatically retry 4xx responses.
+- `apiUpload` posts a file as the request body with `XMLHttpRequest`, which reports upload
+  progress where `fetch` does not, under the same token, redirect and error rules.
 
 A `401` shows a session error with manual retry and the existing sign-out action; the adapter
 does not silently refresh or loop on failed requests. The browser Supabase SDK handles normal

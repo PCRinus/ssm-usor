@@ -2,8 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -11,7 +11,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
 import { useMe } from '../account/use-me';
@@ -29,12 +29,10 @@ import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { dateToIso } from '../lib/dates';
-import {
-  groupMissing,
-  type MissingPlace,
-  missingPlaces,
-  workersRepresentativesRule,
-} from './document-labels';
+import { MissingDataList } from '../missing-data/missing-data-list';
+import { countRows, documentMissingGroups, missingCountLabel } from '../missing-data/missing-rows';
+import { startWayBack } from '../missing-data/way-back';
+import { workersRepresentativesRule } from './document-labels';
 import {
   generateDocumentsFormSchema,
   type GenerateDocumentsFormValues,
@@ -71,34 +69,6 @@ export function GenerateDocumentsDialog({
   );
 }
 
-function PlaceLink({ place, clientId }: { place: MissingPlace; clientId: string }) {
-  const label = missingPlaces[place].label;
-  const className = 'font-medium text-foreground underline underline-offset-4';
-  if (place === 'organization')
-    return (
-      <Link to="/organization/company" className={className}>
-        {label}
-      </Link>
-    );
-  if (place === 'profile')
-    return (
-      <Link to="/profile" className={className}>
-        {label}
-      </Link>
-    );
-  if (place === 'jobPositions')
-    return (
-      <Link to="/clients/$clientId/job-positions" params={{ clientId }} className={className}>
-        {label}
-      </Link>
-    );
-  return (
-    <Link to="/clients/$clientId/document-data" params={{ clientId }} className={className}>
-      {label}
-    </Link>
-  );
-}
-
 function GenerateDocumentsForm({
   clientId,
   userId,
@@ -132,11 +102,13 @@ function GenerateDocumentsForm({
   const { errors } = form.formState;
   const busy = generate.isPending;
   const missing = readiness.data
-    ? groupMissing(
-        readiness.data.missing,
-        readiness.data.workersRepresentativeClash,
-        readiness.data.undecidedJobPositions
-      )
+    ? documentMissingGroups({
+        missing: readiness.data.missing,
+        clientId,
+        clash: readiness.data.workersRepresentativeClash,
+        undecidedJobPositions: readiness.data.undecidedJobPositions,
+        canEditOrganization: isOwner,
+      })
     : [];
   // The cached answer predates what was filled in since, so it waits for the one asked above.
   const checking = readiness.isPending || (readiness.isFetching && !readiness.isFetchedAfterMount);
@@ -174,123 +146,117 @@ function GenerateDocumentsForm({
   });
 
   return (
-    <DialogContent data-testid="generate-documents-dialog" className="sm:max-w-xl">
+    <DialogContent
+      data-testid="generate-documents-dialog"
+      className="sm:max-w-2xl"
+      aria-describedby={undefined}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Generează documentația</DialogTitle>
-          <DialogDescription>
-            Generăm doar documentele lipsă, ca fișiere Word completate cu datele clientului.
-            Documentele existente rămân neschimbate.
-          </DialogDescription>
         </DialogHeader>
-        {checking ? (
-          <Skeleton className="mt-5 h-28 w-full" />
-        ) : readiness.isError ? (
-          <Notice
-            variant="destructive"
-            className="mt-5"
-            action={
-              <Button
-                type="button"
-                variant="outline"
-                disabled={readiness.isFetching}
-                onClick={() => void readiness.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
-          >
-            Nu am putut verifica datele clientului.
-          </Notice>
-        ) : (
-          <Notice variant="info" data-testid="generate-headcount" className="mt-5">
-            {workersRepresentativesRule(
-              readiness.data.currentEmployeeCount,
-              workersRepresentativeDecisionGenerated
-            )}
-          </Notice>
-        )}
-        {checking || !readiness.data ? null : !ready ? (
-          <div data-testid="generate-missing" className="mt-5 grid gap-3 text-sm">
-            <p>
-              Documentele nu lasă niciun câmp gol, așa că mai întâi trebuie completate câteva date:
-            </p>
-            <ul className="grid gap-3">
-              {missing.map(({ place, labels }) => (
-                <li
-                  key={place}
-                  data-testid="generate-missing-place"
-                  className="rounded-md border p-3"
+        <DialogBody className="mt-4 grid gap-5">
+          {checking ? (
+            <Skeleton className="h-28 w-full" />
+          ) : readiness.isError ? (
+            <Notice
+              variant="destructive"
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={readiness.isFetching}
+                  onClick={() => void readiness.refetch()}
                 >
-                  <PlaceLink place={place} clientId={clientId} />
-                  <span className="text-muted-foreground">: {labels.join(', ')}.</span>
-                  {missingPlaces[place].hint && !(place === 'organization' && isOwner) && (
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {missingPlaces[place].hint}
-                    </span>
+                  Încearcă din nou
+                </Button>
+              }
+            >
+              Nu am putut verifica datele clientului.
+            </Notice>
+          ) : (
+            <Notice variant="info" data-testid="generate-headcount">
+              {workersRepresentativesRule(
+                readiness.data.currentEmployeeCount,
+                workersRepresentativeDecisionGenerated
+              )}
+            </Notice>
+          )}
+          {checking || !readiness.data ? null : !ready ? (
+            <div data-testid="generate-missing" className="grid gap-4">
+              <p className="text-sm">
+                <strong data-testid="generate-missing-count" className="font-semibold">
+                  {missingCountLabel(countRows(missing))}
+                </strong>{' '}
+                <span className="text-muted-foreground">
+                  înainte de generare: documentele nu lasă niciun câmp gol.
+                </span>
+              </p>
+              <MissingDataList
+                groups={missing}
+                testId="generate-missing"
+                onFollow={() => startWayBack({ userId, clientId, to: 'documents' })}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                id="generate-issue-date"
+                label="Data documentelor"
+                mark="required"
+                hint="De obicei data de început a contractului."
+                error={errors.issueDate}
+              >
+                <Controller
+                  control={form.control}
+                  name="issueDate"
+                  render={({ field }) => (
+                    <DatePicker
+                      id="generate-issue-date"
+                      testId="generate-issue-date"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      disabled={busy}
+                      required
+                      invalid={Boolean(errors.issueDate)}
+                      describedBy={
+                        errors.issueDate ? 'generate-issue-date-error' : 'generate-issue-date-hint'
+                      }
+                    />
                   )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            <Field
-              id="generate-issue-date"
-              label="Data documentelor"
-              mark="required"
-              hint="De obicei data de început a contractului."
-              error={errors.issueDate}
-            >
-              <Controller
-                control={form.control}
-                name="issueDate"
-                render={({ field }) => (
-                  <DatePicker
-                    id="generate-issue-date"
-                    testId="generate-issue-date"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    disabled={busy}
-                    required
-                    invalid={Boolean(errors.issueDate)}
-                    describedBy={
-                      errors.issueDate ? 'generate-issue-date-error' : 'generate-issue-date-hint'
-                    }
-                  />
-                )}
-              />
-            </Field>
-            <Field
-              id="generate-first-number"
-              label="Numărul primei decizii"
-              mark="required"
-              hint="Deciziile primesc numere consecutive."
-              error={errors.firstDecisionNumber}
-            >
-              <Input
+                />
+              </Field>
+              <Field
                 id="generate-first-number"
-                data-testid="generate-first-number"
-                inputMode="numeric"
-                autoComplete="off"
-                disabled={busy}
-                aria-invalid={Boolean(errors.firstDecisionNumber)}
-                aria-describedby={
-                  errors.firstDecisionNumber
-                    ? 'generate-first-number-error'
-                    : 'generate-first-number-hint'
-                }
-                {...form.register('firstDecisionNumber')}
-              />
-            </Field>
-          </div>
-        )}
-        {errors.root?.server && (
-          <Notice variant="destructive" data-testid="generate-error" className="mt-4">
-            {errors.root.server.message}
-          </Notice>
-        )}
+                label="Numărul primei decizii"
+                mark="required"
+                hint="Deciziile primesc numere consecutive."
+                error={errors.firstDecisionNumber}
+              >
+                <Input
+                  id="generate-first-number"
+                  data-testid="generate-first-number"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  disabled={busy}
+                  aria-invalid={Boolean(errors.firstDecisionNumber)}
+                  aria-describedby={
+                    errors.firstDecisionNumber
+                      ? 'generate-first-number-error'
+                      : 'generate-first-number-hint'
+                  }
+                  {...form.register('firstDecisionNumber')}
+                />
+              </Field>
+            </div>
+          )}
+          {errors.root?.server && (
+            <Notice variant="destructive" data-testid="generate-error">
+              {errors.root.server.message}
+            </Notice>
+          )}
+        </DialogBody>
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
             {ready ? 'Renunță' : 'Închide'}

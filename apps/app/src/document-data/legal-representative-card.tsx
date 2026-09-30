@@ -1,46 +1,107 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
+import { useInPlaceEdit } from '../components/use-in-place-edit';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { type LegalRepresentativeFocus, useFocusRequest } from '../missing-data/focus';
 import {
   type ClientSummary,
   describedBy,
   type DocumentDetails,
+  useDocumentDetails,
   useDocumentDetailsForm,
 } from './use-document-details-form';
 
 const fields = ['legalRepresentativeName', 'legalRepresentativeRole'] as const;
 
 export function LegalRepresentativeCard({
-  saved,
   client,
   userId,
+  focus,
 }: {
-  saved: DocumentDetails;
   client: ClientSummary;
   userId: string;
+  focus?: LegalRepresentativeFocus;
 }) {
+  const details = useDocumentDetails(client.id, userId);
+  const { editing, editRef, open, close } = useInPlaceEdit();
+  const readOnly = client.archivedAt !== null;
+  const saved = details.data?.documentDetails;
+  const empty = !saved?.legalRepresentativeName && !saved?.legalRepresentativeRole;
+  useFocusRequest(focus !== undefined, {
+    ready: !details.isPending,
+    anchor: () => editRef.current,
+    open: readOnly ? undefined : open,
+    field:
+      readOnly || !saved
+        ? undefined
+        : focus === 'legal-representative-role'
+          ? 'details-representative-role'
+          : 'details-representative-name',
+  });
+
   return (
-    <Card data-testid="legal-representative-card">
-      <CardHeader>
-        <h2 className="text-lg font-semibold">Reprezentant legal</h2>
-        <p className="text-sm text-muted-foreground">
-          Numele și funcția vor apărea în deciziile generate.
-        </p>
-      </CardHeader>
-      <CardContent>
-        {/* Keyed by what is saved, so the form starts again from what the server holds. */}
+    <SectionCard
+      data-testid="legal-representative-card"
+      title="Reprezentant legal"
+      description="Numele și funcția vor apărea în deciziile generate."
+      action={
+        saved &&
+        !readOnly &&
+        !editing && (
+          <EditAction
+            ref={editRef}
+            empty={empty}
+            data-testid="legal-representative-edit"
+            onClick={open}
+          />
+        )
+      }
+    >
+      {details.isPending ? (
+        <Skeleton className="h-12 w-full" />
+      ) : details.isError ? (
+        <Notice
+          variant="destructive"
+          data-testid="legal-representative-unavailable"
+          action={
+            <Button
+              variant="outline"
+              disabled={details.isFetching}
+              onClick={() => void details.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca reprezentantul legal.
+        </Notice>
+      ) : editing && !readOnly ? (
         <LegalRepresentativeForm
-          key={fields.map((field) => saved[field]).join('|')}
-          saved={saved}
+          saved={details.data.documentDetails}
           client={client}
           userId={userId}
+          onClose={close}
         />
-      </CardContent>
-    </Card>
+      ) : empty ? (
+        <p data-testid="legal-representative-empty" className="text-sm text-muted-foreground">
+          Niciun reprezentant legal încă.
+        </p>
+      ) : (
+        <FactList>
+          <Fact label="Nume și prenume" testId="legal-representative-name">
+            {details.data.documentDetails.legalRepresentativeName}
+          </Fact>
+          <Fact label="Funcția" testId="legal-representative-role">
+            {details.data.documentDetails.legalRepresentativeRole}
+          </Fact>
+        </FactList>
+      )}
+    </SectionCard>
   );
 }
 
@@ -48,10 +109,12 @@ function LegalRepresentativeForm({
   saved,
   client,
   userId,
+  onClose,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
   userId: string;
+  onClose: () => void;
 }) {
   const { form, onSubmit, busy, locked } = useDocumentDetailsForm({
     saved,
@@ -59,6 +122,7 @@ function LegalRepresentativeForm({
     userId,
     fields,
     successMessage: 'Reprezentantul legal a fost salvat.',
+    onSaved: onClose,
   });
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
@@ -81,7 +145,9 @@ function LegalRepresentativeForm({
         <Input
           id="details-representative-name"
           data-testid="details-representative-name"
+          className="h-11"
           autoComplete="off"
+          autoFocus
           disabled={locked}
           aria-invalid={Boolean(errors.legalRepresentativeName)}
           aria-describedby={describedBy(
@@ -101,6 +167,7 @@ function LegalRepresentativeForm({
         <Input
           id="details-representative-role"
           data-testid="details-representative-role"
+          className="h-11"
           autoComplete="off"
           disabled={locked}
           aria-invalid={Boolean(errors.legalRepresentativeRole)}
@@ -121,13 +188,20 @@ function LegalRepresentativeForm({
           {errors.root.server.message}
         </Notice>
       )}
-      {client.archivedAt === null && (
-        <div className="sm:col-span-2">
-          <Button type="submit" data-testid="legal-representative-save" disabled={busy || !isDirty}>
-            {busy ? 'Se salvează…' : 'Salvează'}
-          </Button>
-        </div>
-      )}
+      <FormActions>
+        <Button type="submit" data-testid="legal-representative-save" disabled={busy || !isDirty}>
+          {busy ? 'Se salvează…' : 'Salvează'}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          data-testid="legal-representative-cancel"
+          disabled={busy}
+          onClick={onClose}
+        >
+          Renunță
+        </Button>
+      </FormActions>
     </form>
   );
 }

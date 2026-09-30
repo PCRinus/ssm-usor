@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, the facts documents print, and generated documents  
+Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, the facts documents print, generated documents, and client files  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -81,12 +81,12 @@ positions and documents keep their own state, which is what makes restoring one 
 back to null. An archived client keeps its CUI, so the same company cannot be added twice.
 
 An archived client is read-only. Triggers on `employees`, `job_positions`,
-`client_workplaces`, `client_responsible_persons`, `client_documents` and `document_revisions`
-refuse every insert, update and delete under it with the code `CLA01`, and the client's own row
+`client_workplaces`, `client_responsible_persons`, `client_documents`, `document_revisions`
+and `client_files` refuse every insert, update and delete under it with the code `CLA01`, and the client's own row
 takes only the restore. They are triggers because an update policy that fails matches no row,
 which the API would report as "not found" for a row the caller can read; and because issuing
-a revision runs as its function's owner, past the policies. `is_draft_document_path` asks for
-an active client too, so the files follow. The secret key passes. Recording a leaver of an
+a revision runs as its function's owner, past the policies. `is_draft_document_path` and
+`is_writable_client_file_path` ask for an active client too, so the files follow. The secret key passes. Recording a leaver of an
 archived client used to be allowed; with restoring one click away it no longer is.
 
 ### Leads
@@ -107,7 +107,8 @@ an archived row takes only the restore.
 Nothing of the safety work starts under a lead, which the team could not see: insert triggers
 on `employees`, `job_positions`, `client_workplaces`, `client_responsible_persons` and
 `client_documents` refuse with `CLL01`. They do not let the secret key through. The documents
-trigger is where the service contract will be let in.
+trigger is where the service contract will be let in. A lead has client files, for owners only
+(below).
 
 `client_owner_notes` holds one free text per client, up to 5000 characters, with who last
 wrote it. It is its own table because a policy hides rows and not columns, and the whole team
@@ -359,12 +360,13 @@ well as its row, and tenancy and impersonation apply to files exactly as they do
 because the policies use `current_organization_id()`. Supabase's database backups cover these
 rows but not the files (issue #77).
 
-### Other documents, and documents for owners only
+### The service contract's group, and documents for owners only
 
-`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007):
-the documents about a client that are not part of its set, of which the service contract is
-the first. `owners_only` marks a document that only an owner reaches, and a check constraint
-keeps a `service_contract` from being anything else, whoever writes the row.
+`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007),
+which holds the service contract. The value predates client files, which are the "other
+documents" of the app (ADR 013) and live in a table of their own. `owners_only` marks a
+document that only an owner reaches, and a check constraint keeps a `service_contract` from
+being anything else, whoever writes the row.
 
 `can_access_document(id)` is the one answer for every way to a document: the select and
 insert policies of `client_documents` carry the same condition, the four policies of
@@ -418,6 +420,45 @@ contract's copy is its owners'. The
 archived-client trigger applies. Files follow the row as a draft's files do: the row first,
 then `is_signed_copy_path` lets the object in; `is_readable_document_path` reads the third
 file beside a revision. A superseded revision keeps the copy it had.
+
+## Client files
+
+`client_files` holds the files a provider keeps about a client or a lead that the app did not
+write and does not read ([ADR 013](architecture/adr-013-client-files.md)): one row per upload,
+with the same `client_id`, `organization_id` and composite foreign key as `employees`. They
+are not documents: no type, no revisions, and a file is replaced by uploading another and
+deleting the first.
+
+| Column                 | Notes                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------- |
+| `name`                 | 1 to 200 characters; the API starts it as the uploaded file's name without its extension.   |
+| `note`                 | Optional free text, up to 2000 characters.                                                  |
+| `owners_only`          | Hides the row and its file from specialists. False by default.                              |
+| `original_file_name`   | The name it was uploaded under, up to 255 characters; the download carries it.              |
+| `mime_type`            | PDF, JPEG, PNG, `.docx`, `.doc`, `.xlsx` or `.xls`, by a check constraint.                  |
+| `size_bytes`, `sha256` | 1 byte to 20 MiB, and the SHA-256 of the content in hex.                                    |
+| `storage_path`         | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.              |
+| `uploaded_by`          | The signed-in user, the platform admin during an impersonation; null once the account goes. |
+
+Members read their organization's files, except that a file for owners only is an owner's
+alone. A member inserts a row as its uploader, for an active client of their organization, or
+for a lead when they are an owner, and only an owner inserts one for owners only. The uploader
+and any owner update and delete the files they can see; column grants limit an update to
+`name`, `note` and `owners_only`.
+
+The archived-client trigger applies (`CLA01`). `protect_client_file_visibility` runs before
+every insert and update: a lead's file is for owners only (`CFL01`) until the lead is
+promoted, and only an owner changes `owners_only` (`42501`), since the update policy also lets
+the uploader in. It is a trigger rather than a policy so that the API can name the reason. The
+secret key passes the second check, not the first.
+
+The files live in the private `client-files` bucket, which accepts the same seven types up to
+20 MiB. No character of a user's file name reaches a path. The row comes first: the read
+policy asks `is_readable_client_file_path`, true for a path a row the caller can see names;
+the upload and delete policies ask `is_writable_client_file_path`, which also wants the caller
+to be the uploader or an owner and the client to be active. There is no update policy, so an
+object is never replaced. Supabase's database backups do not include these files, and unlike a
+generated document they exist nowhere else.
 
 ## Profiles
 

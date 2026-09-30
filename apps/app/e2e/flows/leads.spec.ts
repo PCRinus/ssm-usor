@@ -69,6 +69,11 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
 
   await expect(page.getByTestId('lead-page')).toBeVisible();
   await expect(page.getByTestId('contact-email')).toHaveText('andrei@viitor.example');
+  await page.getByTestId('contact-edit').click();
+  await page.getByTestId('client-contact-phone').fill('0722 000 111');
+  await page.getByTestId('contact-save').click();
+  await expect(page.getByTestId('contact-phone')).toHaveText('0722 000 111');
+  await expect(page).toHaveURL(/\/leads\/[0-9a-f-]+$/);
   await page.getByTestId('owner-notes-body').fill('A cerut ofertă pentru 12 angajați.');
   await page.getByTestId('owner-notes-save').click();
   await expect(page.getByText('Notițele au fost salvate.')).toBeVisible();
@@ -89,11 +94,8 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await page.getByTestId('lead-promote').click();
   await expect(page.getByTestId('promote-lead-dialog')).toContainText('nu poate fi anulată');
   await page.getByTestId('promote-lead-confirm').click();
-  await expect(page.getByTestId('client-page')).toBeVisible();
-  await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+\/employees$/);
-  await expect(page.getByTestId('employees-add')).toBeVisible();
-
-  await page.getByRole('link', { name: 'Contact' }).click();
+  await expect(page.getByTestId('client-details-page')).toBeVisible();
+  await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+\/details$/);
   await expect(page.getByTestId('owner-notes-body')).toHaveValue(
     'A cerut ofertă pentru 12 angajați.'
   );
@@ -106,7 +108,6 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await expect(page.getByTestId('nav-leads')).toHaveCount(0);
   await page.goto('/clients');
   await page.getByTestId('clients-open').click();
-  await page.getByRole('link', { name: 'Contact' }).click();
   await expect(page.getByTestId('contact-name')).toHaveText('Andrei Pop');
   await expect(page.getByTestId('owner-notes-card')).toHaveCount(0);
 });
@@ -138,24 +139,31 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page.getByText('Detaliile contractului au fost salvate.')).toBeVisible();
 
   const missing = page.getByTestId('contract-missing');
-  await expect(missing).toContainText('contul bancar și banca');
-  await expect(missing).toContainText('adresa sediului');
+  const rows = missing.getByTestId('contract-missing-row');
+  await expect(rows.filter({ hasText: 'Contul bancar și banca' })).toBeVisible();
+  await expect(rows.filter({ hasText: 'Adresa sediului' })).toBeVisible();
   await expect(page.getByTestId('contract-generate')).toBeDisabled();
 
-  await missing.getByRole('link', { name: 'Organizație, Date firmă' }).click();
+  await rows.filter({ hasText: 'Contul bancar și banca' }).click();
   await expect(page).toHaveURL(/\/organization\/company$/);
+  await expect(page.getByTestId('company-iban')).toBeFocused();
   await page.getByTestId('company-iban').fill('RO49 AAAA 1B31 0075 9384 0000');
   await page.getByTestId('company-bankName').fill('Banca Transilvania');
   await page.getByTestId('company-details-save').click();
   await expect(page.getByText('Datele firmei au fost salvate.')).toBeVisible();
+  await page.getByRole('button', { name: 'Înapoi la contract' }).click();
+  await expect(page).toHaveURL(new RegExp(`/leads/${leadId}$`));
 
-  await page.goto(`/leads/${leadId}/edit`);
+  // The lead's own card opens on the same page, at the field.
+  await rows.filter({ hasText: 'Numărul din Registrul Comerțului' }).click();
+  await expect(page.getByTestId('client-trade-register')).toBeFocused();
   await page.getByTestId('client-trade-register').fill('J12/1234/2021');
   await page.getByRole('combobox', { name: 'Județ' }).click();
   await page.getByRole('option', { name: 'Cluj' }).click();
   await page.getByTestId('client-locality').fill('Florești');
   await page.getByTestId('client-address').fill('Str. Eroilor 12');
-  await page.getByTestId('client-submit').click();
+  await page.getByTestId('company-save').click();
+  await expect(page.getByText('Datele firmei au fost salvate.')).toBeVisible();
 
   await expect(page.getByTestId('lead-page')).toBeVisible();
   await expect(page.getByTestId('contract-missing')).toHaveCount(0);
@@ -294,19 +302,18 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page.getByTestId('promote-lead-unsigned')).toHaveCount(0);
   await page.getByTestId('promote-lead-confirm').click();
   await expect(page.getByTestId('client-page')).toBeVisible();
-  await page.getByRole('link', { name: 'Alte documente' }).click();
+  await page.getByRole('link', { name: 'Contract', exact: true }).click();
   await expect(page.getByTestId('contract-issued')).toHaveText('Emis · rev. 1');
   await expect(page.getByTestId('contract-signed')).toBeVisible();
   // The documentation set does not list it.
-  await page.getByRole('link', { name: 'Documente', exact: true }).click();
+  await page.getByRole('link', { name: 'Documente SSM' }).click();
   await expect(page.getByTestId('documents-empty')).toBeVisible();
 
   await signOut(page);
   await signIn(page, specialist.email);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${leadId}/other-documents`);
-  await expect(page.getByTestId('other-documents-owners-only')).toBeVisible();
-  await expect(
-    page.getByTestId('client-section').filter({ hasText: 'Alte documente' })
-  ).toHaveCount(0);
+  await page.goto(`/clients/${leadId}/contract`);
+  await expect(page).toHaveURL(new RegExp(`/clients/${leadId}/contract$`));
+  await expect(page.getByTestId('contract-owners-only')).toBeVisible();
+  await expect(page.getByTestId('client-section').filter({ hasText: 'Contract' })).toHaveCount(0);
 });

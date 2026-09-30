@@ -15,5 +15,5 @@ export function EditLeadPage() {
     return <Navigate to="/leads/$leadId" params={{ leadId: lead.id }} replace />;
   }
   // Keyed, so that the form starts again from the record if another one is opened.
-  return <ClientForm key={lead.id} client={lead} />;
+  return <ClientForm key={lead.id} lead={lead} />;
 }

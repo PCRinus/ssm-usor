@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 
-import { otherDocumentTypes, type ServiceContract, unfilledMark } from '@ssm-usor/contracts';
+import {
+  type ServiceContract,
+  serviceContractTitle,
+  serviceContractTypeKey,
+  unfilledMark,
+} from '@ssm-usor/contracts';
 import { documentText, renderTemplate } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
@@ -91,9 +96,9 @@ describe('the months of a contract', () => {
 
 describe('the starter contract', () => {
   it('is the template of the type the contracts package names', () => {
-    expect(manifest.templates.map((entry) => [entry.typeKey, entry.title])).toEqual(
-      Object.entries(otherDocumentTypes)
-    );
+    expect(manifest.templates.map((entry) => [entry.typeKey, entry.title])).toEqual([
+      [serviceContractTypeKey, serviceContractTitle],
+    ]);
   });
 
   it('renders from the context with nothing missing, and prints what the app knows', () => {

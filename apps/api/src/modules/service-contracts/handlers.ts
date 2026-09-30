@@ -1,10 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import {
-  otherDocumentTypes,
-  serviceContractConflictReasons,
-  type ServiceContractResponse,
-  serviceContractTypeKey,
-} from '@ssm-usor/contracts';
+import { serviceContractConflictReasons, type ServiceContractResponse } from '@ssm-usor/contracts';
 
 import {
   archivedClientError,
@@ -17,7 +12,10 @@ import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
 import { createToken, hashToken } from '../../lib/tokens';
 import { stableJson } from '../documents/context';
-import { generateOtherDocument, readOtherDocument } from '../documents/documents';
+import {
+  generateServiceContractDocument,
+  readServiceContractDocument,
+} from '../documents/documents';
 import { buildServiceContractContext } from './context';
 import { loadServiceContractFacts, missingServiceContractData } from './facts';
 import type {
@@ -49,7 +47,7 @@ async function respond(db: DataClient, clientId: string): Promise<ServiceContrac
   const year = Number((facts.contract?.contractDate ?? new Date().toISOString()).slice(0, 4));
   const [suggested, { document, draftSnapshot }] = await Promise.all([
     facts.contract ? null : suggestedNumber(db, year),
-    readOtherDocument(db, clientId, serviceContractTypeKey),
+    readServiceContractDocument(db, clientId),
   ]);
   const missing = missingServiceContractData(facts);
   // What the draft printed against what it would print now. Only the names it printed count,
@@ -201,7 +199,7 @@ export const generateServiceContract: RouteHandler<
     );
   }
   const membership = c.get('membership');
-  await generateOtherDocument(
+  await generateServiceContractDocument(
     db,
     createFileStore(c),
     // During an impersonation the row records the platform admin, as elsewhere.
@@ -211,11 +209,6 @@ export const generateServiceContract: RouteHandler<
       createdBy: c.get('user').id,
     },
     clientId,
-    {
-      typeKey: serviceContractTypeKey,
-      title: otherDocumentTypes[serviceContractTypeKey],
-      ownersOnly: true,
-    },
     buildServiceContractContext({ ...facts, contract: facts.contract })
   );
   return c.json(await respond(db, clientId), 200);
@@ -235,7 +228,7 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
 
   const facts = await loadServiceContractFacts(db, clientId);
   if (facts.client.archived_at) throw archivedClientError();
-  const { document } = await readOtherDocument(db, clientId, serviceContractTypeKey);
+  const { document } = await readServiceContractDocument(db, clientId);
   if (!facts.contract || !document?.issued) {
     throw new ApiError(
       'conflict',

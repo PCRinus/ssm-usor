@@ -95,6 +95,19 @@ async function pickPosition(
 
 const fetchMock = vi.fn<typeof fetch>();
 
+const emptyDocumentDetails = {
+  legalRepresentativeName: null,
+  legalRepresentativeRole: null,
+  periodicTrainingMinutes: null,
+  administrativeTrainingIntervalMonths: null,
+  administrativeTrainingNotApplicable: false,
+  workerTrainingIntervalMonths: null,
+  workerTrainingNotApplicable: false,
+  trainingFirstMonth: null,
+  trainingDayFrom: null,
+  trainingDayTo: null,
+};
+
 function mockApi(
   routes: Partial<
     Record<
@@ -131,6 +144,10 @@ function mockApi(
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
     }
+    if (url.pathname === `/clients/${clientId}/document-details`) {
+      return Response.json({ documentDetails: emptyDocumentDetails });
+    }
+    if (url.pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'PUT') {
       return (
         routes.update?.(init, url) ??
@@ -203,8 +220,8 @@ describe('client employees list', () => {
     await screen.findByTestId('client-page');
     expect(screen.getByRole('heading', { level: 1, name: 'OMV PETROM SA' })).toBeTruthy();
     expect(screen.getByText('RO1590082')).toBeTruthy();
-    expect(screen.getByText('· Extracția petrolului brut')).toBeTruthy();
-    expect(screen.getByText('Sector 1 Mun. București, București')).toBeTruthy();
+    expect(screen.queryByText('· Extracția petrolului brut')).toBeNull();
+    expect(screen.queryByText('Sector 1 Mun. București, București')).toBeNull();
     const current = screen
       .getAllByTestId('client-section')
       .filter((link) => link.getAttribute('aria-current') === 'page');
@@ -232,20 +249,20 @@ describe('client employees list', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
-  it('opens a client from the clients list', async () => {
+  it('opens a client from the clients list on its details', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, '/clients');
     await userEvent.setup().click(await screen.findByTestId('clients-open'));
-    await screen.findByTestId('employees-page');
-    expect(runtime.router.state.location.pathname).toBe(employeesPath);
+    await screen.findByTestId('client-details-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
     expect(requests(`/clients/${clientId}`)).toHaveLength(1);
   });
 
-  it('redirects the bare client path to its employees', async () => {
+  it('redirects the bare client path to its details', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, `/clients/${clientId}`);
-    await screen.findByTestId('employees-page');
-    expect(runtime.router.state.location.pathname).toBe(employeesPath);
+    await screen.findByTestId('client-details-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
   });
 
   it('filters former employees through the status search parameter', async () => {
@@ -276,16 +293,18 @@ describe('client employees list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, '/clients');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-open'));
+    await screen.findByTestId('client-details-page');
+    await user.click(screen.getByRole('link', { name: 'Angajați' }));
     await screen.findByTestId('employees-page');
-    expect(runtime.router.history.length).toBe(2);
+    expect(runtime.router.history.length).toBe(3);
 
     await user.click(screen.getByTestId('employees-filter-terminated'));
     expect(runtime.router.state.location.search).toEqual({ status: 'terminated' });
-    expect(runtime.router.history.length).toBe(2);
+    expect(runtime.router.history.length).toBe(3);
 
     act(() => runtime.router.history.back());
-    await screen.findByTestId('clients-page');
-    expect(runtime.router.state.location.pathname).toBe('/clients');
+    await screen.findByTestId('client-details-page');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
   });
 
   it('pages through the list with the page in the URL', async () => {

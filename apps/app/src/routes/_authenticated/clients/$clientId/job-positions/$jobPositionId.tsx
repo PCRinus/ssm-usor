@@ -1,4 +1,3 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -10,17 +9,23 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft, Pencil } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 import { z } from 'zod';
 
 import {
+  getListEquipmentQueryKey,
   getListJobPositionsQueryKey,
   getListJobPositionsQueryOptions,
+  getListPositionInstructionsQueryKey,
+  useListEquipment,
   useListJobPositions,
+  useListPositionInstructions,
 } from '../../../../../api/generated/api';
 import { ApiHttpError } from '../../../../../api/http';
 import { useAuth } from '../../../../../auth/auth-context';
+import { EditAction, Fact, FactList, SectionCard } from '../../../../../components/section-card';
+import { useScrollToHash } from '../../../../../components/use-scroll-to-hash';
 import { PositionInstructionsCard } from '../../../../../instructions/position-instructions-card';
 import { JobPositionDialog } from '../../../../../job-positions/job-position-dialog';
 import {
@@ -28,6 +33,7 @@ import {
   intervalLabel,
   staffCategoryLabels,
 } from '../../../../../job-positions/job-position-schema';
+import { positionSections } from '../../../../../job-positions/position-sections';
 import { EquipmentCard } from '../../../../../protective-equipment/equipment-card';
 
 // A position is read from the client's list, which is a handful of rows and already cached
@@ -36,7 +42,6 @@ import { EquipmentCard } from '../../../../../protective-equipment/equipment-car
 export const Route = createFileRoute(
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId'
 )({
-  staticData: { fullPage: true },
   params: { parse: (params) => ({ jobPositionId: z.uuid().parse(params.jobPositionId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
@@ -56,19 +61,13 @@ export const Route = createFileRoute(
   errorComponent: JobPositionError,
 });
 
-function Fact({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
-  const empty = children === null || children === undefined || children === '';
-  return (
-    <div className={wide ? 'bg-card px-5 py-3.5 sm:col-span-2' : 'bg-card px-5 py-3.5'}>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-sm font-medium break-words whitespace-pre-line">
-        {empty ? <span className="font-normal text-muted-foreground">—</span> : children}
-      </dd>
-    </div>
-  );
-}
-
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
+const sectionLinks = [
+  { hash: positionSections.details, label: 'Postul' },
+  { hash: positionSections.equipment, label: 'Echipament de protecție' },
+  { hash: positionSections.instructions, label: 'Instrucțiuni' },
+] as const;
 
 export function JobPositionPage() {
   const { clientId, jobPositionId } = Route.useParams();
@@ -76,21 +75,33 @@ export function JobPositionPage() {
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const userId = session?.user.id ?? '';
+  const enabled = Boolean(session && apiRequest.baseUrl);
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
+    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled },
+  });
+  // The cards below load these themselves; they are read here only to know when the page has
+  // its final height, so a section named in the address is scrolled to where it ends up.
+  const equipment = useListEquipment(clientId, jobPositionId, {
+    request: apiRequest,
+    query: { queryKey: [...getListEquipmentQueryKey(clientId, jobPositionId), userId], enabled },
+  });
+  const instructions = useListPositionInstructions(clientId, jobPositionId, {
+    request: apiRequest,
     query: {
-      queryKey: [...getListJobPositionsQueryKey(clientId), userId],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: [...getListPositionInstructionsQueryKey(clientId, jobPositionId), userId],
+      enabled,
     },
   });
   const [editing, setEditing] = useState(false);
   const position = positions.data?.items.find((item) => item.id === jobPositionId);
+  useScrollToHash(Boolean(position) && !equipment.isPending && !instructions.isPending);
   if (!position) return positions.data ? <JobPositionNotFound /> : <JobPositionPending />;
 
   return (
-    <div data-testid="job-position-page" className="space-y-7">
-      <div>
-        <Button asChild variant="ghost" size="sm" className="-ml-3 text-muted-foreground">
+    <div data-testid="job-position-page" className="grid gap-5">
+      <div className="grid gap-3">
+        <Button asChild variant="ghost" size="sm" className="-ml-3 w-fit text-muted-foreground">
           <Link
             to="/clients/$clientId/job-positions"
             params={{ clientId }}
@@ -100,66 +111,77 @@ export function JobPositionPage() {
             Posturi de lucru
           </Link>
         </Button>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-semibold tracking-tight">{position.name}</h1>
-            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <Badge variant={position.staffCategory === 'execution' ? 'secondary' : 'outline'}>
-                {staffCategoryLabels[position.staffCategory]}
-              </Badge>
-              {position.workZone && <span>{position.workZone}</span>}
-            </p>
-          </div>
-          {!readOnly && (
-            <Button
-              variant="outline"
-              data-testid="job-position-edit"
-              onClick={() => setEditing(true)}
-            >
-              <Pencil aria-hidden="true" />
-              Modifică
-            </Button>
-          )}
-        </div>
+        <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{position.name}</h2>
+        <nav aria-label="Secțiunile postului">
+          <ul className="flex flex-wrap gap-2">
+            {sectionLinks.map(({ hash, label }) => (
+              <li key={hash}>
+                <Button asChild variant="secondary" size="sm">
+                  <Link
+                    to="/clients/$clientId/job-positions/$jobPositionId"
+                    params={{ clientId, jobPositionId }}
+                    hash={hash}
+                    data-testid="job-position-section-link"
+                  >
+                    {label}
+                  </Link>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
 
-      <div className="grid gap-6">
-        <section className="overflow-hidden rounded-lg border bg-card">
-          <h2 className="border-b px-5 py-3.5 text-sm font-semibold">Postul</h2>
-          <dl className="grid gap-px bg-border sm:grid-cols-2">
-            <Fact label="Interval de instruire">
-              {position.trainingIntervalMonths
-                ? intervalLabel(position.trainingIntervalMonths)
-                : 'Ca restul categoriei'}
-            </Fact>
-            <Fact label="Angajați pe post">
-              <Link
-                to="/clients/$clientId/employees"
-                params={{ clientId }}
-                className="hover:underline"
-                data-testid="job-position-employees-link"
-              >
-                {employeeCountLabel(position.employeeCount)}
-              </Link>
-            </Fact>
-            <Fact label="Activități desfășurate" wide>
-              {position.activities}
-            </Fact>
-          </dl>
-        </section>
-        <EquipmentCard
-          clientId={clientId}
-          position={position}
-          userId={userId}
-          readOnly={readOnly}
-        />
-        <PositionInstructionsCard
-          clientId={clientId}
-          position={position}
-          userId={userId}
-          readOnly={readOnly}
-        />
-      </div>
+      <SectionCard
+        id={positionSections.details}
+        headingLevel={3}
+        data-testid="job-position-details"
+        title="Postul"
+        action={
+          !readOnly && (
+            <EditAction data-testid="job-position-edit" onClick={() => setEditing(true)} />
+          )
+        }
+      >
+        <FactList className="lg:grid-cols-4">
+          <Fact label="Categorie de personal">{staffCategoryLabels[position.staffCategory]}</Fact>
+          <Fact label="Zona de lucru">{position.workZone}</Fact>
+          <Fact label="Interval de instruire">
+            {position.trainingIntervalMonths
+              ? intervalLabel(position.trainingIntervalMonths)
+              : 'Ca restul categoriei'}
+          </Fact>
+          <Fact label="Angajați pe post">
+            <Link
+              to="/clients/$clientId/employees"
+              params={{ clientId }}
+              className="hover:underline"
+              data-testid="job-position-employees-link"
+            >
+              {employeeCountLabel(position.employeeCount)}
+            </Link>
+          </Fact>
+          <Fact label="Activități desfășurate" wide>
+            {position.activities && (
+              <span className="whitespace-pre-line">{position.activities}</span>
+            )}
+          </Fact>
+        </FactList>
+      </SectionCard>
+      <EquipmentCard
+        id={positionSections.equipment}
+        clientId={clientId}
+        position={position}
+        userId={userId}
+        readOnly={readOnly}
+      />
+      <PositionInstructionsCard
+        id={positionSections.instructions}
+        clientId={clientId}
+        position={position}
+        userId={userId}
+        readOnly={readOnly}
+      />
       <JobPositionDialog
         clientId={clientId}
         editing={editing ? position : null}
@@ -171,13 +193,14 @@ export function JobPositionPage() {
 
 function JobPositionPending() {
   return (
-    <div className="space-y-7" aria-busy="true">
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-72" />
-        <Skeleton className="h-4 w-48" />
+    <div className="grid gap-5" aria-busy="true">
+      <div className="grid gap-3">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-7 w-72" />
+        <Skeleton className="h-8 w-80 max-w-full" />
       </div>
-      <Skeleton className="h-32 w-full rounded-lg" />
-      <Skeleton className="h-40 w-full rounded-lg" />
+      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-40 w-full rounded-xl" />
     </div>
   );
 }
@@ -186,7 +209,7 @@ function JobPositionNotFound() {
   const { clientId } = Route.useParams();
   return (
     <div data-testid="job-position-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Postul de lucru nu a fost găsit</h1>
+      <h2 className="text-xl font-semibold tracking-tight">Postul de lucru nu a fost găsit</h2>
       <p className="text-sm leading-relaxed text-muted-foreground">
         Nu există niciun post cu acest identificator la acest client, sau a fost arhivat.
       </p>
@@ -213,7 +236,7 @@ function JobPositionError({ error }: ErrorComponentProps) {
       role="alert"
       className="mx-auto grid max-w-lg gap-5 py-14"
     >
-      <h1 className="text-2xl font-semibold">Postul nu a putut fi încărcat</h1>
+      <h2 className="text-xl font-semibold tracking-tight">Postul nu a putut fi încărcat</h2>
       <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
       <Button
         data-testid="job-position-retry"

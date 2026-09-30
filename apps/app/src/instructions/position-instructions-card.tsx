@@ -1,6 +1,5 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
@@ -23,7 +22,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, Copy, ListChecks, X } from 'lucide-react';
+import { Copy, ListChecks, X } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -41,11 +40,15 @@ import {
 import { ApiHttpError } from '../api/http';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { SectionCard } from '../components/section-card';
+import { DecisionBadge } from '../job-positions/decision-badge';
 import type { JobPosition } from '../job-positions/job-position-schema';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   type AppliedInstruction,
   byGroup,
   groupLabels,
+  instructionStateLabel,
   moduleCountLabel,
 } from './instruction-schema';
 
@@ -68,17 +71,20 @@ const failureMessage = (cause: unknown, fallback: string) => {
 
 // The instruction modules one job position applies (ADR 012). `readOnly` is an archived client.
 export function PositionInstructionsCard({
+  id,
   clientId,
   position,
   userId,
   readOnly,
 }: {
+  id: string;
   clientId: string;
   position: JobPosition;
   userId: string;
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const instructions = useListPositionInstructions(clientId, position.id, {
     request: apiRequest,
     query: {
@@ -110,7 +116,7 @@ export function PositionInstructionsCard({
         jobPositionId: position.id,
         data: { needsInstructions },
       });
-      toast.success(
+      savedToast(
         needsInstructions === false
           ? 'Am notat că postul nu necesită instrucțiuni specifice.'
           : 'Decizia a fost reluată.'
@@ -145,107 +151,120 @@ export function PositionInstructionsCard({
   const decision = instructions.data?.needsInstructions ?? position.needsInstructions;
   const items = instructions.data?.items ?? [];
 
+  const copyAction = !readOnly && (
+    <Button
+      variant="outline"
+      size="sm"
+      data-testid="instructions-copy"
+      onClick={() => setCopying(true)}
+    >
+      <Copy aria-hidden="true" />
+      Copiază de la alt post
+    </Button>
+  );
+
   return (
-    <Card data-testid="instructions-card">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-semibold">Instrucțiuni specifice</h2>
+    <SectionCard
+      id={id}
+      headingLevel={3}
+      data-testid="instructions-card"
+      title={
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          Instrucțiuni
           {instructions.data && (
-            <Badge
-              variant={decision === null ? 'outline' : 'secondary'}
-              data-testid="instructions-state"
-            >
-              {decision === null
-                ? 'Nedecis'
-                : decision === false
-                  ? 'Nu necesită'
-                  : moduleCountLabel(items.length)}
-            </Badge>
+            <DecisionBadge decision={decision} data-testid="instructions-state">
+              {instructionStateLabel({
+                needsInstructions: decision,
+                instructionCount: items.length,
+              })}
+            </DecisionBadge>
           )}
-        </div>
-        {!readOnly && decision !== false && (
-          <div className="flex flex-wrap gap-2">
+        </span>
+      }
+      action={
+        !readOnly &&
+        decision !== false && (
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="instructions-pick"
+            onClick={() => setPicking(true)}
+          >
+            <ListChecks aria-hidden="true" />
+            Alege instrucțiunile
+          </Button>
+        )
+      }
+    >
+      {error && (
+        <Notice variant="destructive" data-testid="instructions-error">
+          {error}
+        </Notice>
+      )}
+      {instructions.isPending ? (
+        <Skeleton className="h-24 w-full" />
+      ) : instructions.isError ? (
+        <Notice
+          variant="destructive"
+          action={
             <Button
               variant="outline"
-              data-testid="instructions-copy"
-              onClick={() => setCopying(true)}
+              disabled={instructions.isFetching}
+              onClick={() => void instructions.refetch()}
             >
-              <Copy aria-hidden="true" />
-              Copiază de la alt post
+              Încearcă din nou
             </Button>
-            <Button data-testid="instructions-pick" onClick={() => setPicking(true)}>
-              <ListChecks aria-hidden="true" />
-              Alege instrucțiunile
-            </Button>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {error && (
-          <Notice variant="destructive" data-testid="instructions-error">
-            {error}
-          </Notice>
-        )}
-        {instructions.isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : instructions.isError ? (
-          <Notice
-            variant="destructive"
-            action={
+          }
+        >
+          Nu am putut încărca instrucțiunile postului.
+        </Notice>
+      ) : decision === false ? (
+        <Notice
+          variant="info"
+          data-testid="instructions-none"
+          action={
+            !readOnly && (
               <Button
                 variant="outline"
-                disabled={instructions.isFetching}
-                onClick={() => void instructions.refetch()}
+                size="sm"
+                data-testid="instructions-undecide"
+                disabled={decide.isPending}
+                onClick={() => void decideNone(null)}
               >
-                Încearcă din nou
+                Reia decizia
               </Button>
-            }
-          >
-            Nu am putut încărca instrucțiunile postului.
-          </Notice>
-        ) : decision === false ? (
-          <Notice
-            variant="info"
-            data-testid="instructions-none"
-            action={
-              !readOnly && (
-                <Button
-                  variant="outline"
-                  data-testid="instructions-undecide"
-                  disabled={decide.isPending}
-                  onClick={() => void decideNone(null)}
-                >
-                  Reia decizia
-                </Button>
-              )
-            }
-          >
-            Postul nu necesită instrucțiuni specifice dincolo de partea comună. Instrucțiunile
-            proprii nu anexează nimic pentru el.
-          </Notice>
-        ) : items.length === 0 ? (
-          <div data-testid="instructions-empty" className="grid justify-items-center gap-3 py-8">
-            <BookOpenText className="size-8 text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm font-medium">Nedecis încă</p>
-            <p className="max-w-md text-center text-sm text-muted-foreground">
-              {readOnly
-                ? 'Clientul este arhivat, așa că instrucțiunile lui nu se mai completează.'
-                : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.'}
-            </p>
-            {!readOnly && (
+            )
+          }
+        >
+          Postul nu necesită instrucțiuni specifice dincolo de partea comună. Instrucțiunile proprii
+          nu anexează nimic pentru el.
+        </Notice>
+      ) : items.length === 0 ? (
+        <div data-testid="instructions-empty" className="grid gap-3">
+          <p className="text-sm text-muted-foreground">
+            {readOnly
+              ? 'Nu s-a stabilit ce instrucțiuni privesc postul. Clientul este arhivat, așa că instrucțiunile lui nu se mai completează.'
+              : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.'}
+          </p>
+          {!readOnly && (
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 data-testid="instructions-decide-none"
                 disabled={decide.isPending}
                 onClick={() => void decideNone(false)}
               >
                 Postul nu necesită instrucțiuni specifice
               </Button>
-            )}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
+              {copyAction}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <Table className="max-sm:block">
+            <TableHeader className="max-sm:sr-only">
               <TableRow>
                 <TableHead>Instrucțiune</TableHead>
                 <TableHead>Grup</TableHead>
@@ -256,10 +275,14 @@ export function PositionInstructionsCard({
                 )}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="max-sm:block">
               {items.map((item) => (
-                <TableRow key={item.moduleId} data-testid="instructions-row">
-                  <TableCell className="font-medium whitespace-normal">
+                <TableRow
+                  key={item.moduleId}
+                  data-testid="instructions-row"
+                  className="max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3"
+                >
+                  <TableCell className="font-medium whitespace-normal max-sm:col-start-1 max-sm:row-start-1 max-sm:p-0">
                     <Link
                       to="/instructions/$moduleId"
                       params={{ moduleId: item.moduleId }}
@@ -274,9 +297,11 @@ export function PositionInstructionsCard({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{groupLabels[item.group]}</TableCell>
+                  <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:whitespace-normal">
+                    {groupLabels[item.group]}
+                  </TableCell>
                   {!readOnly && (
-                    <TableCell>
+                    <TableCell className="max-sm:col-start-2 max-sm:row-span-2 max-sm:row-start-1 max-sm:p-0">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -293,8 +318,9 @@ export function PositionInstructionsCard({
               ))}
             </TableBody>
           </Table>
-        )}
-      </CardContent>
+          {copyAction && <div>{copyAction}</div>}
+        </>
+      )}
       <PickInstructionsDialog
         clientId={clientId}
         position={position}
@@ -312,7 +338,7 @@ export function PositionInstructionsCard({
         onClose={() => setCopying(false)}
         onCopied={refresh}
       />
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -334,6 +360,7 @@ function PickInstructionsDialog({
   onApplied: () => Promise<unknown>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const params = { archived: 'false' as const };
   const modules = useListInstructionModules(params, {
     request: apiRequest,
@@ -373,7 +400,7 @@ function PickInstructionsDialog({
         data: { moduleIds: [...selected] },
       });
       await onApplied();
-      toast.success(
+      savedToast(
         result.items.length === 0
           ? 'Postul nu mai aplică nicio instrucțiune și a rămas nedecis.'
           : `Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`
@@ -505,6 +532,7 @@ function CopyInstructionsDialog({
   onCopied: () => Promise<unknown>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
@@ -525,7 +553,7 @@ function CopyInstructionsDialog({
         data: { fromJobPositionId: source },
       });
       await onCopied();
-      toast.success(`Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`);
+      savedToast(`Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`);
       onClose();
     } catch (cause) {
       setError(

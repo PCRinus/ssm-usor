@@ -63,6 +63,8 @@ import { rowClickProps } from '../components/data-table/row-click';
 import { Notice } from '../components/notice';
 import { formatRoDate } from '../lib/dates';
 import { openDownload } from '../lib/save-file';
+import { useFocusRequest } from '../missing-data/focus';
+import { endWayBack } from '../missing-data/way-back';
 import { AnnexRow } from './annex-row';
 import {
   type ClientDocument,
@@ -157,12 +159,14 @@ export function DocumentsCard({
   readOnly,
   openSection,
   onOpenSectionChange,
+  focus,
 }: {
   clientId: string;
   userId: string;
   readOnly: boolean;
   openSection: DocumentSectionId | undefined;
   onOpenSectionChange: (section: DocumentSectionId | undefined) => void;
+  focus?: 'generate';
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
@@ -195,6 +199,19 @@ export function DocumentsCard({
   const lacking = documentTypeKeys.filter(
     (key) => !existing.has(key) && !notApplicable.has(key)
   ).length;
+  const canGenerate = !readOnly && documents.isSuccess && lacking > 0;
+
+  function openGenerate() {
+    endWayBack();
+    setGenerating(true);
+  }
+
+  const generateRef = useRef<HTMLButtonElement>(null);
+  useFocusRequest(focus === 'generate', {
+    ready: !documents.isPending,
+    anchor: () => generateRef.current,
+    open: canGenerate ? openGenerate : undefined,
+  });
   // The documents the app cannot write yet wait for a file, in their place in the pack.
   const packRows = packDocumentTypeKeys.flatMap((typeKey): Row[] => {
     const document = items.find((item) => item.typeKey === typeKey);
@@ -337,7 +354,7 @@ export function DocumentsCard({
           : body?.reason === 'missing_document_data' &&
               document.typeKey === 'decision_workers_representative'
             ? // Under 10 employees the generation form does not ask for a representative.
-              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Date pentru documente”.'
+              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Instruire și responsabili”.'
             : body?.reason === 'missing_document_data'
               ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
               : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
@@ -354,8 +371,8 @@ export function DocumentsCard({
     <Card data-testid="documents-card">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Documentația SSM</h2>
-        {!readOnly && documents.isSuccess && lacking > 0 && (
-          <Button data-testid="documents-generate" onClick={() => setGenerating(true)}>
+        {canGenerate && (
+          <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
             <Sparkles aria-hidden="true" />
             {items.length === 0 ? 'Generează documentația' : 'Generează documentele lipsă'}
           </Button>

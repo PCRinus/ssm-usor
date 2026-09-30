@@ -4,9 +4,10 @@ import { z } from 'zod';
 import { useAuth } from '../../../../../auth/auth-context';
 import { documentSectionIds } from '../../../../../documents/document-sections';
 import { DocumentsCard } from '../../../../../documents/documents-card';
+import { documentsFocus, focusSearch } from '../../../../../missing-data/focus';
 
 // The open section lives in the URL, so going back from the editor returns to it.
-const searchSchema = z.object({
+const searchSchema = focusSearch(documentsFocus).extend({
   section: z.enum(documentSectionIds).optional().catch(undefined),
 });
 
@@ -19,7 +20,7 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 export function DocumentsPage() {
   const { client } = clientRoute.useLoaderData();
-  const { section } = Route.useSearch();
+  const { section, focus } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = useAuth();
   // The shell renders this only for a signed-in user.
@@ -32,6 +33,7 @@ export function DocumentsPage() {
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
         openSection={section}
+        focus={focus}
         onOpenSectionChange={(next) =>
           void navigate({ search: { section: next }, replace: true, resetScroll: false })
         }

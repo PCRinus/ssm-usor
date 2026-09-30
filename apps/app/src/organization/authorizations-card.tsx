@@ -3,7 +3,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -20,6 +19,8 @@ import { FormSection } from '../components/form-section';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
 import { todayIso } from '../employees/employee-format';
+import { type AuthorizationsFocus, useFocusRequest } from '../missing-data/focus';
+import { useSavedToast } from '../missing-data/saved-toast';
 import {
   authorizationsFormSchema,
   type AuthorizationsFormValues,
@@ -29,21 +30,39 @@ import {
 
 type Authorizations = OrganizationAuthorizationsResponse['authorizations'];
 
+function fieldFor(focus: AuthorizationsFocus, saved: Authorizations) {
+  if (focus === 'fire-safety-technician') {
+    return saved.fireSafetyTechnicianName
+      ? 'authorizations-fireSafetyTechnicianCertificate'
+      : 'authorizations-fireSafetyTechnicianName';
+  }
+  if (!saved.authorizationCertificateNumber) return 'authorizations-authorizationCertificateNumber';
+  if (!saved.authorizationCertificateDate) return 'authorizations-authorizationCertificateDate';
+  return 'authorizations-authorizationCertificateIssuer';
+}
+
 // Hiding the owner's form controls is a courtesy; the API and the database enforce the rule.
-export function AuthorizationsCard({ userId, canEdit }: { userId: string; canEdit: boolean }) {
+export function AuthorizationsCard({
+  userId,
+  canEdit,
+  focus,
+}: {
+  userId: string;
+  canEdit: boolean;
+  focus?: AuthorizationsFocus;
+}) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const saved = useGetOrganizationAuthorizations({
     request: apiRequest,
     query: { queryKey: [...getGetOrganizationAuthorizationsQueryKey(), userId] },
   });
+  useFocusRequest(focus !== undefined, {
+    ready: !saved.isPending,
+    field: focus && saved.data ? fieldFor(focus, saved.data.authorizations) : undefined,
+  });
 
   return (
     <div data-testid="authorizations-card" className="grid gap-5">
-      {canEdit && (
-        <Notice variant="info">
-          Poți salva abilitările pe rând. Îți vom cere datele necesare când generezi un contract.
-        </Notice>
-      )}
       {saved.isPending ? (
         <Skeleton className="h-72 w-full" />
       ) : saved.isError ? (
@@ -86,6 +105,7 @@ function AuthorizationsForm({
   canEdit: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const update = useUpdateOrganizationAuthorizations({ request: apiRequest });
   const form = useForm<AuthorizationsFormValues>({
     resolver: zodResolver(authorizationsFormSchema),
@@ -102,7 +122,7 @@ function AuthorizationsForm({
       await queryClient.invalidateQueries({
         queryKey: [...getGetOrganizationAuthorizationsQueryKey(), userId],
       });
-      toast.success('Abilitările au fost salvate.');
+      savedToast('Abilitările au fost salvate.');
     } catch (cause) {
       form.setError('root.server', {
         message:

@@ -78,10 +78,10 @@ export function DocumentEditorPage({
               search={{ section: document && sectionOf(document.typeKey) }}
               data-testid="editor-back"
               onClick={backToList}
-              aria-label="Înapoi la documente"
+              aria-label="Înapoi la documentele SSM"
             >
               <ArrowLeft aria-hidden="true" />
-              <span className="hidden sm:inline">Documente</span>
+              <span className="hidden sm:inline">Documente SSM</span>
             </Link>
           </Button>
         ),

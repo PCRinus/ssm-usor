@@ -30,8 +30,8 @@ export default function SignedCopyReceived({
         {`${clientName} a trimis exemplarul semnat al contractului nr. ${contractNumber} din ${printedDate(contractDate)}, prin linkul din emailul tău.`}
       </Paragraph>
       <Paragraph>
-        Deschide-l pe pagina clientului potențial și confirmă-l, ca să apară drept semnat. Până
-        atunci, contractul nu este socotit semnat.
+        Deschide-l în aplicație, la contractul clientului, și confirmă-l, ca să apară drept semnat.
+        Până atunci, contractul nu este socotit semnat.
       </Paragraph>
       <Action href={leadUrl}>Vezi exemplarul primit</Action>
       <FallbackLink href={leadUrl} />

@@ -1,6 +1,4 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +25,9 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { Copy, MoreHorizontal, Plus, ShieldCheck } from 'lucide-react';
+import { Copy, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -45,12 +44,16 @@ import { ApiHttpError } from '../api/http';
 import { rowClickProps } from '../components/data-table/row-click';
 import { Field } from '../components/form-field';
 import { Notice } from '../components/notice';
+import { SectionCard } from '../components/section-card';
+import { DecisionBadge } from '../job-positions/decision-badge';
 import type { JobPosition } from '../job-positions/job-position-schema';
+import { useSavedToast } from '../missing-data/saved-toast';
 import { type EquipmentEditing, EquipmentEntryDialog } from './equipment-entry-dialog';
 import {
   allocationLabels,
   entryCountLabel,
   type EquipmentEntry,
+  equipmentStateLabel,
   quantityLabel,
 } from './equipment-schema';
 
@@ -65,17 +68,20 @@ const failureMessage = (cause: unknown, fallback: string) =>
 
 // The protective equipment of one job position (ADR 011). `readOnly` is an archived client.
 export function EquipmentCard({
+  id,
   clientId,
   position,
   userId,
   readOnly,
 }: {
+  id: string;
   clientId: string;
   position: JobPosition;
   userId: string;
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const equipment = useListEquipment(clientId, position.id, {
     request: apiRequest,
     query: { queryKey: [...getListEquipmentQueryKey(clientId, position.id), userId] },
@@ -101,7 +107,7 @@ export function EquipmentCard({
         jobPositionId: position.id,
         data: { needsProtectiveEquipment },
       });
-      toast.success(
+      savedToast(
         needsProtectiveEquipment === false
           ? 'Am notat că postul nu necesită echipament.'
           : 'Decizia a fost reluată.'
@@ -134,111 +140,120 @@ export function EquipmentCard({
   const decision = equipment.data?.needsProtectiveEquipment ?? position.needsProtectiveEquipment;
   const items = equipment.data?.items ?? [];
 
+  const copyAction = !readOnly && (
+    <Button
+      variant="outline"
+      size="sm"
+      data-testid="equipment-copy"
+      onClick={() => setCopying(true)}
+    >
+      <Copy aria-hidden="true" />
+      Copiază de la alt post
+    </Button>
+  );
+
   return (
-    <Card data-testid="equipment-card">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-semibold">Echipament individual de protecție</h2>
+    <SectionCard
+      id={id}
+      headingLevel={3}
+      data-testid="equipment-card"
+      title={
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          Echipament de protecție
           {equipment.data && (
-            <Badge
-              variant={decision === null ? 'outline' : 'secondary'}
-              data-testid="equipment-state"
-            >
-              {decision === null
-                ? 'Nedecis'
-                : decision === false
-                  ? 'Nu necesită'
-                  : entryCountLabel(items.length)}
-            </Badge>
+            <DecisionBadge decision={decision} data-testid="equipment-state">
+              {equipmentStateLabel({
+                needsProtectiveEquipment: decision,
+                equipmentCount: items.length,
+              })}
+            </DecisionBadge>
           )}
-        </div>
-        {!readOnly && (
-          <div className="flex flex-wrap gap-2">
-            {decision !== false && (
-              <Button
-                variant="outline"
-                data-testid="equipment-copy"
-                onClick={() => setCopying(true)}
-              >
-                <Copy aria-hidden="true" />
-                Copiază de la alt post
-              </Button>
-            )}
-            {decision !== false && (
-              <Button data-testid="equipment-add" onClick={() => setEditing('new')}>
-                <Plus aria-hidden="true" />
-                Adaugă un articol
-              </Button>
-            )}
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {error && (
-          <Notice variant="destructive" data-testid="equipment-error">
-            {error}
-          </Notice>
-        )}
-        {equipment.isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : equipment.isError ? (
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={equipment.isFetching}
-                onClick={() => void equipment.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
+        </span>
+      }
+      action={
+        !readOnly &&
+        decision !== false && (
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="equipment-add"
+            onClick={() => setEditing('new')}
           >
-            Nu am putut încărca echipamentul postului.
-          </Notice>
-        ) : decision === false ? (
-          <Notice
-            variant="info"
-            data-testid="equipment-none"
-            action={
-              !readOnly && (
-                <Button
-                  variant="outline"
-                  data-testid="equipment-undecide"
-                  disabled={decide.isPending}
-                  onClick={() => void decideNone(null)}
-                >
-                  Reia decizia
-                </Button>
-              )
-            }
-          >
-            Postul nu necesită echipament individual de protecție. Lista internă de dotare îl lasă
-            deoparte.
-          </Notice>
-        ) : items.length === 0 ? (
-          <div data-testid="equipment-empty" className="grid justify-items-center gap-3 py-8">
-            <ShieldCheck className="size-8 text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm font-medium">Nedecis încă</p>
-            <p className="max-w-md text-center text-sm text-muted-foreground">
-              {readOnly
-                ? 'Clientul este arhivat, așa că echipamentul lui nu se mai completează.'
-                : 'Documentația nu se poate genera până nu spui ce primește postul, sau că nu are nevoie de echipament.'}
-            </p>
-            {!readOnly && (
+            <Plus aria-hidden="true" />
+            Adaugă
+          </Button>
+        )
+      }
+    >
+      {error && (
+        <Notice variant="destructive" data-testid="equipment-error">
+          {error}
+        </Notice>
+      )}
+      {equipment.isPending ? (
+        <Skeleton className="h-24 w-full" />
+      ) : equipment.isError ? (
+        <Notice
+          variant="destructive"
+          action={
+            <Button
+              variant="outline"
+              disabled={equipment.isFetching}
+              onClick={() => void equipment.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca echipamentul postului.
+        </Notice>
+      ) : decision === false ? (
+        <Notice
+          variant="info"
+          data-testid="equipment-none"
+          action={
+            !readOnly && (
               <Button
                 variant="outline"
+                size="sm"
+                data-testid="equipment-undecide"
+                disabled={decide.isPending}
+                onClick={() => void decideNone(null)}
+              >
+                Reia decizia
+              </Button>
+            )
+          }
+        >
+          Postul nu necesită echipament individual de protecție. Lista internă de dotare îl lasă
+          deoparte.
+        </Notice>
+      ) : items.length === 0 ? (
+        <div data-testid="equipment-empty" className="grid gap-3">
+          <p className="text-sm text-muted-foreground">
+            {readOnly
+              ? 'Nu s-a stabilit ce primește postul. Clientul este arhivat, așa că echipamentul lui nu se mai completează.'
+              : 'Documentația nu se poate genera până nu spui ce primește postul, sau că nu are nevoie de echipament.'}
+          </p>
+          {!readOnly && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
                 data-testid="equipment-decide-none"
                 disabled={decide.isPending}
                 onClick={() => void decideNone(false)}
               >
                 Postul nu necesită echipament
               </Button>
-            )}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
+              {copyAction}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <Table className="max-sm:block">
+            <TableHeader className="max-sm:sr-only">
               <TableRow>
                 <TableHead>Risc</TableHead>
                 <TableHead>Articol</TableHead>
@@ -251,23 +266,34 @@ export function EquipmentCard({
                 )}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="max-sm:block">
               {items.map((entry) => (
                 <TableRow
                   key={entry.id}
                   data-testid="equipment-row"
                   {...rowClickProps(readOnly ? undefined : () => setEditing(entry))}
+                  className={cn(
+                    'max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3',
+                    !readOnly && 'cursor-pointer'
+                  )}
                 >
-                  <TableCell className="whitespace-normal">{entry.risk}</TableCell>
-                  <TableCell className="font-medium whitespace-normal">{entry.item}</TableCell>
-                  <TableCell className="tabular-nums" data-testid="equipment-quantity-cell">
+                  <TableCell className="whitespace-normal max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:text-muted-foreground">
+                    {entry.risk}
+                  </TableCell>
+                  <TableCell className="font-medium whitespace-normal max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-1 max-sm:p-0">
+                    {entry.item}
+                  </TableCell>
+                  <TableCell
+                    className="tabular-nums max-sm:col-start-1 max-sm:row-start-3 max-sm:p-0"
+                    data-testid="equipment-quantity-cell"
+                  >
                     {quantityLabel(entry)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground max-sm:col-start-2 max-sm:row-start-3 max-sm:p-0 max-sm:whitespace-normal">
                     {allocationLabels[entry.allocation]}
                   </TableCell>
                   {!readOnly && (
-                    <TableCell>
+                    <TableCell className="max-sm:col-start-3 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -302,8 +328,9 @@ export function EquipmentCard({
               ))}
             </TableBody>
           </Table>
-        )}
-      </CardContent>
+          {copyAction && <div>{copyAction}</div>}
+        </>
+      )}
       <EquipmentEntryDialog
         clientId={clientId}
         jobPositionId={position.id}
@@ -349,7 +376,7 @@ export function EquipmentCard({
           </DialogContent>
         )}
       </Dialog>
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -369,6 +396,7 @@ function CopyEquipmentDialog({
   onCopied: () => Promise<unknown>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
@@ -389,7 +417,7 @@ function CopyEquipmentDialog({
         data: { fromJobPositionId: source },
       });
       await onCopied();
-      toast.success(`Postul are acum ${entryCountLabel(result.items.length).toLowerCase()}.`);
+      savedToast(`Postul are acum ${entryCountLabel(result.items.length).toLowerCase()}.`);
       onClose();
     } catch (cause) {
       setError(

@@ -4,6 +4,7 @@ import { membershipSchema } from './organizations';
 import { profileSchema } from './profile';
 
 export * from './caen';
+export * from './client-files';
 export * from './clients';
 export * from './cnp';
 export * from './counties';

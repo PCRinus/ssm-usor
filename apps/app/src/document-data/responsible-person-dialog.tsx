@@ -1,17 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { responsiblePersonConflictReasons } from '@ssm-usor/contracts';
+import { responsiblePersonConflictReasons, type ResponsiblePersonRole } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
@@ -27,6 +25,7 @@ import { ApiHttpError } from '../api/http';
 import { Field, FieldMessage } from '../components/form-field';
 import { Notice } from '../components/notice';
 import { useRevealErrors } from '../components/use-reveal-errors';
+import { useSavedToast } from '../missing-data/saved-toast';
 import { EmployeeCombobox } from './employee-combobox';
 import {
   emptyResponsiblePersonForm,
@@ -42,15 +41,19 @@ import {
 // `null` is closed, 'new' adds a person, and a person edits them.
 export type ResponsiblePersonEditing = ResponsiblePerson | 'new' | null;
 
+// `pointedRole` comes with a row of missing data: ticked for a new person, and for someone who
+// holds it, the checkbox to untick.
 export function ResponsiblePersonDialog({
   clientId,
   userId,
   editing,
+  pointedRole = null,
   onClose,
 }: {
   clientId: string;
   userId: string;
   editing: ResponsiblePersonEditing;
+  pointedRole?: ResponsiblePersonRole | null;
   onClose: () => void;
 }) {
   return (
@@ -61,6 +64,7 @@ export function ResponsiblePersonDialog({
           clientId={clientId}
           userId={userId}
           person={editing === 'new' ? null : editing}
+          pointedRole={pointedRole}
           onClose={onClose}
         />
       )}
@@ -72,14 +76,17 @@ function ResponsiblePersonForm({
   clientId,
   userId,
   person,
+  pointedRole,
   onClose,
 }: {
   clientId: string;
   userId: string;
   person: ResponsiblePerson | null;
+  pointedRole: ResponsiblePersonRole | null;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
   const create = useCreateResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
   // The page shows the legal representative from the same query, so it is already loaded.
@@ -89,7 +96,9 @@ function ResponsiblePersonForm({
   });
   const form = useForm<ResponsiblePersonFormValues>({
     resolver: zodResolver(responsiblePersonFormSchema),
-    defaultValues: person ? toResponsiblePersonForm(person) : emptyResponsiblePersonForm,
+    defaultValues: person
+      ? toResponsiblePersonForm(person)
+      : { ...emptyResponsiblePersonForm, roles: pointedRole ? [pointedRole] : [] },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
@@ -112,7 +121,7 @@ function ResponsiblePersonForm({
       await queryClient.invalidateQueries({
         queryKey: getListResponsiblePersonsQueryKey(clientId),
       });
-      toast.success(person ? 'Persoana a fost salvată.' : 'Persoana a fost adăugată.');
+      savedToast(person ? 'Persoana a fost salvată.' : 'Persoana a fost adăugată.');
       onClose();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
@@ -151,17 +160,30 @@ function ResponsiblePersonForm({
   });
 
   return (
-    <DialogContent data-testid="responsible-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="responsible-dialog"
+      className="sm:max-w-2xl"
+      onOpenAutoFocus={
+        person && pointedRole
+          ? (event) => {
+              event.preventDefault();
+              document.getElementById(`responsible-role-${pointedRole}`)?.focus();
+            }
+          : undefined
+      }
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {person ? 'Modifică persoana responsabilă' : 'Adaugă o persoană responsabilă'}
           </DialogTitle>
-          <DialogDescription>
-            Deciziile o numesc cu numele și funcția de mai jos. Aceeași persoană poate avea mai
-            multe responsabilități.
-          </DialogDescription>
         </DialogHeader>
+        {person && pointedRole === 'workers_representative' && (
+          <Notice variant="warning" data-testid="responsible-clash" className="mt-5">
+            {person.fullName} are același nume ca reprezentantul legal al clientului, așa că nu
+            poate fi și reprezentantul lucrătorilor. Debifează rolul aici și numește alt angajat.
+          </Notice>
+        )}
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
             id="responsible-employee"
@@ -236,10 +258,16 @@ function ResponsiblePersonForm({
             />
           </Field>
           <fieldset
-            className="grid gap-3 sm:col-span-2"
+            className="mt-1 grid gap-3 sm:col-span-2"
             aria-describedby={errors.roles ? 'responsible-roles-error' : undefined}
           >
-            <legend className="mb-1 text-sm font-medium">Responsabilități</legend>
+            <legend className="mb-3 flex items-center gap-1 text-sm leading-none font-medium">
+              Responsabilități
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+              <span className="sr-only">(obligatoriu, cel puțin una)</span>
+            </legend>
             <Controller
               control={form.control}
               name="roles"

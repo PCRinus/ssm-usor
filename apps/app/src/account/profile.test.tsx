@@ -184,4 +184,29 @@ describe('account menu', () => {
       '/organization'
     );
   });
+
+  it('puts the cursor in the field a row asks for, and offers the way back', async () => {
+    mockApi();
+    sessionStorage.setItem(
+      'ssm-usor:way-back',
+      JSON.stringify({
+        userId: 'user-one',
+        clientId: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        to: 'documents',
+        startedAt: Date.now(),
+      })
+    );
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      '/profile?focus=professional-title'
+    );
+    const input = await screen.findByTestId('profile-professional-title');
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    const user = userEvent.setup();
+    await user.type(input, 'Evaluator');
+    await user.click(screen.getByRole('button', { name: 'Salvează' }));
+    expect(await screen.findByText('Profilul a fost salvat.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Înapoi la generare' })).toBeTruthy();
+  });
 });

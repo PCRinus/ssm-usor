@@ -102,8 +102,7 @@ const requests = (pathname: string, method: string) =>
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
-const mount = () =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/document-data`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
 
 async function openRowMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
   const rows = await screen.findAllByTestId('workplace-row');

@@ -11,6 +11,8 @@ import {
   type PackDocumentTypeKey,
   packDocumentTypeKeys,
   type RegenerateDocumentRequest,
+  serviceContractTitle,
+  serviceContractTypeKey,
   unfilledMark,
   uploadedDocumentTypes,
 } from '@ssm-usor/contracts';
@@ -224,7 +226,7 @@ const byPackOrder = (a: ClientDocument, b: ClientDocument) =>
   (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
   a.title.localeCompare(b.title, 'ro');
 
-// The documentation set. The client's other documents have routes of their own (ADR 007).
+// The documentation set. The service contract has routes of its own (ADR 007).
 async function readDocuments(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('client_documents')
@@ -236,21 +238,21 @@ async function readDocuments(db: DataClient, clientId: string) {
   return data;
 }
 
-async function readOtherDocumentRow(db: DataClient, clientId: string, typeKey: string) {
+async function readServiceContractRow(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('client_documents')
     .select(documentColumns)
     .eq('client_id', clientId)
-    .eq('type_key', typeKey)
+    .eq('type_key', serviceContractTypeKey)
     .returns<DocumentRow[]>()
     .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find other client document');
+  if (error) throw fromDatabaseError(error, 'find service contract document');
   return data;
 }
 
 /** With what its draft was merged from, for a caller that knows how to compare it. */
-export async function readOtherDocument(db: DataClient, clientId: string, typeKey: string) {
-  const row = await readOtherDocumentRow(db, clientId, typeKey);
+export async function readServiceContractDocument(db: DataClient, clientId: string) {
+  const row = await readServiceContractRow(db, clientId);
   // Deleting its only draft leaves the row, for the next generation to write under. Without a
   // revision there is nothing to open, download or issue: the document is not generated.
   if (!row || row.document_revisions.length === 0) return { document: null, draftSnapshot: null };
@@ -578,19 +580,18 @@ async function writeGeneratedDraft(
 }
 
 /**
- * Generates one of a client's other documents (ADR 007) from its built-in template and the
- * data its own module builds, or generates it again. No generation record: what such a
- * document was asked with lives with its module.
+ * Generates the service contract (ADR 007) from its built-in template and the data its own
+ * module builds, or generates it again. No generation record: what the contract was asked
+ * with lives with its module.
  */
-export async function generateOtherDocument(
+export async function generateServiceContractDocument(
   db: DataClient,
   files: FileStore,
   actor: Actor,
   clientId: string,
-  type: { typeKey: string; title: string; ownersOnly: boolean },
   data: Record<string, unknown>
 ) {
-  const [template] = await builtInTemplates(db, [type.typeKey]);
+  const [template] = await builtInTemplates(db, [serviceContractTypeKey]);
   if (!template) {
     throw new ApiError(
       'conflict',
@@ -602,24 +603,24 @@ export async function generateOtherDocument(
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
     data,
-    type.typeKey
+    serviceContractTypeKey
   );
-  let document = await readOtherDocumentRow(db, clientId, type.typeKey);
+  let document = await readServiceContractRow(db, clientId);
   if (!document) {
     const created = await db
       .from('client_documents')
       .insert({
         organization_id: actor.organizationId,
         client_id: clientId,
-        type_key: type.typeKey,
-        title: type.title,
+        type_key: serviceContractTypeKey,
+        title: serviceContractTitle,
         document_group: 'other',
-        owners_only: type.ownersOnly,
+        owners_only: true,
         created_by: actor.createdBy,
       })
       .select('id')
       .single();
-    if (created.error) throw fromDatabaseError(created.error, 'create other client document');
+    if (created.error) throw fromDatabaseError(created.error, 'create service contract document');
     document = await readDocument(db, created.data.id);
   }
   await writeGeneratedDraft(db, files, actor, document, {
