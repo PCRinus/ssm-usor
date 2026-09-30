@@ -592,22 +592,29 @@ mobile navigation link closes the Sheet.
   `/files/download` with `inline`. For the uploader and for owners (`canChange`) the row menu
   has "Redenumește", whose dialog edits the note too, an owner's "Doar pentru administratori"
   switch, which changes the row at once and confirms with a toast, and "Șterge", behind a
-  confirmation that names the file and says it cannot be recovered. "Încarcă fișiere" and
-  dropping files on the card upload them; while the card is on screen a file dropped anywhere
-  else is refused rather than opened by the browser in place of the app. An owner has a "Doar
-  pentru administratori" checkbox that applies to the files uploaded after it is ticked. An
-  archived client gets the list and the downloads only. The same card is on a lead's page,
-  where it says that the files stay the owners' until promotion and has neither the checkbox
-  nor the switch.
-- Uploads (`src/client-files/use-client-file-uploads.ts`): each chosen file is first checked in
-  the browser against the contracts' extension list, the 20 MiB limit, emptiness and a
-  255-character name, and a refused one shows as a failed row without a request. The rest are
-  queued and sent three at a time, each its own `POST` through `apiUpload` in
-  `src/api/http.ts`, which sends the `File` with `XMLHttpRequest` because `fetch` reports no
-  upload progress. Each row reads "În așteptare", then the percentage, then "Se verifică…"
-  while the API checks and stores the file. A finished upload leaves the queue and refreshes
-  the list; a failed one stays, with the API's reason in Romanian, until dismissed. One toast
-  per batch says what was uploaded.
+  confirmation that names the file and says it cannot be recovered. "Încarcă fișiere", the
+  empty state's "Alege fișiere" and files dropped on the card all open the upload dialog, the
+  dropped files already in its list; while the card is on screen a file dropped anywhere else
+  is refused rather than opened by the browser in place of the app. An archived client gets
+  the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
+  where it says that the files stay the owners' until promotion and has no switch.
+- The upload dialog (`src/client-files/client-file-upload-dialog.tsx`) has a drop zone with
+  "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
+  files (name, kind, size, a button to take each out), an owner's "Doar pentru
+  administratori" checkbox that applies to every file in the list (a lead's dialog says
+  instead that its files are for owners until promotion), and "Renunță" beside "Încarcă
+  fișierul" or "Încarcă N fișiere". Each chosen file is first checked in the browser against
+  the contracts' extension list, the 20 MiB limit, emptiness and a 255-character name; a
+  refused one shows its reason in the list and is not sent. The rest are queued by
+  `use-client-file-uploads.ts` and sent three at a time, each its own `POST` through
+  `apiUpload` in `src/api/http.ts`, which sends the `File` with `XMLHttpRequest` because
+  `fetch` reports no upload progress. Each row then reads "În așteptare", the percentage, "Se
+  verifică…" while the API checks and stores the file, and "Încărcat" or the API's reason in
+  Romanian. Nothing can be cancelled once sending starts: "Renunță", the close button,
+  Escape and a click outside do nothing until every file has an answer, because a request cut
+  off late may still have stored its file. When all of them were stored the dialog closes and
+  one toast says what was uploaded; after any failure it stays open, says how many failed,
+  and offers only "Închide".
 - `/clients/:id/contact`: the "Contact" section of a client, with the same two cards. The
   notes card is rendered for an owner only, and the API refuses anyone else.
 
