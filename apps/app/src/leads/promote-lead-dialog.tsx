@@ -76,16 +76,15 @@ export function PromoteLeadDialog({
             <DialogTitle>Transformi în client?</DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{lead.legalName}</span> trece în lista
-              clienților, unde îl vede toată echipa, și i se pot adăuga angajați, posturi de lucru
-              și documente. Notițele rămân vizibile doar administratorilor. Transformarea nu poate
-              fi anulată.
+              clienților și îl vede toată echipa. Notițele rămân doar ale administratorilor.
+              Transformarea nu poate fi anulată.
             </DialogDescription>
           </DialogHeader>
           {signed === false && (
             <Notice variant="warning" data-testid="promote-lead-unsigned">
               {received
-                ? 'Exemplarul semnat primit de la client nu este confirmat încă. Poți continua: îl vei putea confirma și după aceea, din secțiunea „Contract” a clientului.'
-                : 'Nu ai atașat exemplarul semnat al contractului. Poți continua: îl vei putea atașa și după aceea, din secțiunea „Contract” a clientului.'}
+                ? 'Exemplarul semnat primit nu este confirmat încă. Îl poți confirma și după, din „Contract”.'
+                : 'Contractul nu are încă exemplarul semnat. Îl poți atașa și după, din „Contract”.'}
             </Notice>
           )}
           {error && (

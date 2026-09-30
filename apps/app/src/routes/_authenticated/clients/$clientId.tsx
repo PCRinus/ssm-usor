@@ -163,7 +163,7 @@ export function ClientLayout() {
             )
           }
         >
-          Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
+          Poate fi doar consultat.
           {!isOwner && ' Un administrator al organizației îl poate restaura.'}
         </Notice>
       )}

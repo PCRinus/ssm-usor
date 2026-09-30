@@ -122,8 +122,7 @@ export function LeadPage() {
             </Button>
           }
         >
-          Datele și notițele lui pot fi citite, dar nu modificate, și nu poate fi transformat în
-          client până nu este restaurat.
+          Poate fi doar consultat până îl restaurezi.
         </Notice>
       )}
       <div className="grid gap-6">

@@ -180,13 +180,9 @@ export function LeadsPage() {
             archived ? (
               <>
                 <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">Niciun client potențial arhivat</h3>
-                <p
-                  data-testid="leads-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Clienții potențiali arhivați vor apărea aici. Îi poți restaura oricând.
-                </p>
+                <h3 data-testid="leads-empty" className="text-base font-medium">
+                  Niciun client potențial arhivat
+                </h3>
               </>
             ) : (
               <>
@@ -199,8 +195,7 @@ export function LeadsPage() {
                   data-testid="leads-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
-                  Adaugă o companie cu care discuți. Când semnați contractul, o poți transforma în
-                  client împreună cu notițele și datele salvate.
+                  Când semnați contractul, transformi clientul potențial în client.
                 </p>
                 <Button asChild variant="outline" className="mt-5">
                   <Link to="/leads/new">

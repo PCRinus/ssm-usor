@@ -135,13 +135,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
   const { errors } = useFormState({ control: form.control });
   return (
     <>
-      <Field
-        id="caenCode"
-        label="Cod CAEN"
-        mark="optional"
-        hint="Caută după cod sau după cuvinte din denumirea activității."
-        error={errors.caenCode}
-      >
+      <Field id="caenCode" label="Cod CAEN" mark="optional" error={errors.caenCode}>
         <Controller
           control={form.control}
           name="caenCode"
@@ -153,7 +147,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
               onBlur={field.onBlur}
               disabled={busy}
               invalid={Boolean(errors.caenCode)}
-              describedBy={describedBy('caenCode', errors.caenCode, true)}
+              describedBy={describedBy('caenCode', errors.caenCode)}
             />
           )}
         />

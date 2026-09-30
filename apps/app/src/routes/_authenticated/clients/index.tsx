@@ -169,24 +169,16 @@ export function ClientsPage() {
             archived ? (
               <>
                 <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">Niciun client arhivat</h3>
-                <p
-                  data-testid="clients-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Clienții arhivați vor apărea aici. Îi poți restaura oricând.
-                </p>
+                <h3 data-testid="clients-empty" className="text-base font-medium">
+                  Niciun client arhivat
+                </h3>
               </>
             ) : (
               <>
                 <Users className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">Niciun client încă</h3>
-                <p
-                  data-testid="clients-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
-                </p>
+                <h3 data-testid="clients-empty" className="text-base font-medium">
+                  Niciun client încă
+                </h3>
                 <Button asChild variant="outline" className="mt-5">
                   <Link to="/clients/new">
                     <Plus aria-hidden="true" />

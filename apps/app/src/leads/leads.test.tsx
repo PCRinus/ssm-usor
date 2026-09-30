@@ -353,7 +353,7 @@ describe('leads', () => {
     await user.click(await screen.findByTestId('lead-archive'));
     const dialog = await screen.findByTestId('client-archive-dialog');
     expect(dialog.textContent).toContain('Arhivezi clientul potențial?');
-    expect(dialog.textContent).toContain('lista clienților potențiali activi');
+    expect(dialog.textContent).toContain('cu datele și notițele lui');
     await user.click(screen.getByTestId('client-archive-confirm'));
     expect(await screen.findByText('VELOCITA URBANA SRL a fost arhivat.')).toBeTruthy();
     expect(requests(`/clients/${leadId}/documents`, 'GET')).toHaveLength(0);

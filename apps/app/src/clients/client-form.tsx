@@ -44,14 +44,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
 
   // For a lead the contact is what there is to know first; for a client it comes last.
   const contactSection = (
-    <FormSection
-      title="Persoană de contact"
-      description={
-        stage === 'lead'
-          ? 'Poate fi altcineva decât reprezentantul legal. La această adresă vei putea trimite contractul.'
-          : 'Poate fi altcineva decât reprezentantul legal.'
-      }
-    >
+    <FormSection title="Persoană de contact">
       <ContactFields form={form} busy={busy} />
     </FormSection>
   );
@@ -72,10 +65,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
         onSubmit={onSubmit}
       >
         <Card className="gap-0 divide-y py-0">
-          <FormSection
-            title="Identificare"
-            description="Introdu CUI-ul ca să preiei datele publice. Le poți corecta înainte să le salvezi."
-          >
+          <FormSection title="Identificare">
             <IdentificationFields
               form={form}
               busy={busy}
@@ -118,7 +108,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
                 id="declaredEmployeeCount"
                 label="Număr de angajați"
                 mark="optional"
-                hint="Cât declară firma. Ca client, numărul vine din lista de angajați."
+                hint="Cât declară firma."
                 error={errors.declaredEmployeeCount}
               >
                 <Input
