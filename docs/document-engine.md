@@ -130,12 +130,15 @@ A `tables` entry with `loop` puts loop tags in paragraphs of their own around it
 the table, so the engine repeats both per item: the equipment list draws one section per job
 position this way, its heading printing the work zone only inside an inline loop, and `after`
 writes a paragraph once past the loop, for a note that would otherwise be left alone on a page
-as the table's last row. `keepWithNext` lists the rows whose paragraphs keep with the next row,
-so a heading row is never the last thing on a page. Do not mark every row to keep a table whole:
-LibreOffice, which makes the PDFs, drops a row at the page break of a keep chain longer than a
-page, and moves the table's start to a new page. One with `remove: true` takes the original's
-table out and draws nothing: the equipment list's grid of risks against body parts, copy-pasted
-unchanged between clients.
+as the table's last row. Repeated tables need a paragraph between them, or they are saved as
+one: the training themes print the position's name as the `heading` of each repetition. Where a
+looped table closes the document, a paragraph at 1 pt follows its closing tag, which leaves
+nothing behind once merged, as Word wants a paragraph after a table. `keepWithNext` lists the
+rows whose paragraphs keep with the next row, so a heading row is never the last thing on a
+page. Do not mark every row to keep a table whole: LibreOffice, which makes the PDFs, drops a
+row at the page break of a keep chain longer than a page, and moves the table's start to a new
+page. One with `remove: true` takes the original's table out and draws nothing: the equipment
+list's grid of risks against body parts, copy-pasted unchanged between clients.
 
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
@@ -219,11 +222,13 @@ stage 3 (ADR 005); until then a generated file of these five is a starting point
 a finished document.
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
-outside the body's flow; the import walks the frames too. And the risk assessment cannot be
-saved once its empty paragraphs are removed (LibreOffice fails to write the file and does not
-say why; removing any part of them works, removing all does not), so its spec sets
-`"emptyParagraphs": "shrink"` and they stay at 1 pt, where they take no room. `handover` may
-name other words for the client's side (`{"client": ["Am primit și aprobat", …]}`).
+outside the body's flow; the import walks the frames too, and a `tables` entry with
+`replaceFrame` instead of `replaceTable` removes the n-th frame and draws its table in the body
+where the frame was anchored, as the second plan of the training themes is. And the risk
+assessment cannot be saved once its empty paragraphs are removed (LibreOffice fails to write the
+file and does not say why; removing any part of them works, removing all does not), so its spec
+sets `"emptyParagraphs": "shrink"` and they stay at 1 pt, where they take no room. `handover`
+may name other words for the client's side (`{"client": ["Am primit și aprobat", …]}`).
 
 A spec's `cut` names a pattern; everything from the first paragraph matching it to the end of
 the body goes, tables included. The own instructions lose their chapter XIII this way, whose
@@ -419,7 +424,7 @@ same test.
 | `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages                                                                                      | None                                                                                                                                                             |
 | `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
-| `training_themes`                 | Themes and schedule of the three kinds of training. Content pending                                                                                        | `specialist`, `workplaceManager`                                                                                                                                 |
+| `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III. Content pending                                 | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
 | `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`                                                                                                                                                     |
 | `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | None yet                                                                                                                                                         |

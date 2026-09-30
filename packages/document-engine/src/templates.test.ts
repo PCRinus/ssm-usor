@@ -621,3 +621,63 @@ describe('branding', () => {
     expect(new Set(footerText(renderDocument(template, data)))).toEqual(new Set(['']));
   });
 });
+
+// ADR 014: the two plans are static text, and their article ranges fall on the chapters of the
+// 2.2 and 3.2 templates.
+describe('training_themes', () => {
+  const lines = documentText(read('4.2_training_themes.docx')).split('\n');
+
+  it('cites the general training material chapter by chapter, 2.2 as it is numbered', () => {
+    expect(lines.filter((line) => line.startsWith('MISSMIG Art.'))).toEqual([
+      ...[
+        [1, 6],
+        [7, 13],
+        [14, 15],
+        [16, 28],
+        [29, 81],
+        [82, 99],
+        [100, 110],
+        [111, 121],
+        [122, 152],
+        [153, 215],
+        [216, 238],
+        [239, 270],
+        [271, 278],
+        [279, 291],
+        [292, 300],
+        [301, 326],
+      ].map(([from, to]) => `MISSMIG Art. ${from} – ${to}`),
+      'MISSMIG Art. 327',
+    ]);
+  });
+
+  it('cites the common part of the own instructions chapter by chapter', () => {
+    expect(lines.filter((line) => line.startsWith('IPSSM Art.'))).toEqual(
+      [
+        [1, 9],
+        [10, 43],
+        [44, 45],
+        [46, 55],
+        [56, 62],
+        [63, 100],
+        [101, 171],
+        [172, 191],
+        [192, 209],
+        [210, 240],
+        [241, 260],
+        [261, 294],
+      ].map(([from, to]) => `IPSSM Art. ${from} – ${to}`)
+    );
+  });
+
+  it('repeats a block per position, a row per session and a citation per module', () => {
+    const placeholders = templatePlaceholders(read('4.2_training_themes.docx'));
+    expect(placeholders).toEqual(
+      expect.arrayContaining(['themes.positions', 'sessions', 'modules', 'themes.annexTitles'])
+    );
+    const text = lines.join('\n');
+    expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
+    expect(text).toContain('{{#sessions}}{{month}}');
+    expect(text).toContain('IPSSM Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
+  });
+});
