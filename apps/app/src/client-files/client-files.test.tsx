@@ -132,6 +132,8 @@ const stored = (sent: Sent) => ({
 
 let answerUpload: (sent: Sent) => { status: number; body: unknown } = stored;
 
+let holdUploads: Promise<void> = Promise.resolve();
+
 class FakeXhr {
   upload: { onprogress: ((event: ProgressEvent) => void) | null } = { onprogress: null };
   onload: (() => void) | null = null;
@@ -156,18 +158,20 @@ class FakeXhr {
   send(body: Blob) {
     const sent = { url: new URL(this.url), headers: this.headers, body };
     uploads.push(sent);
-    setTimeout(() => {
-      this.upload.onprogress?.({
-        lengthComputable: true,
-        loaded: body.size,
-        total: body.size,
-      } as ProgressEvent);
-      const answer = answerUpload(sent);
-      this.status = answer.status;
-      this.responseText = JSON.stringify(answer.body);
-      this.responseURL = this.url;
-      this.onload?.();
-    }, 0);
+    void holdUploads.then(() =>
+      setTimeout(() => {
+        this.upload.onprogress?.({
+          lengthComputable: true,
+          loaded: body.size,
+          total: body.size,
+        } as ProgressEvent);
+        const answer = answerUpload(sent);
+        this.status = answer.status;
+        this.responseText = JSON.stringify(answer.body);
+        this.responseURL = this.url;
+        this.onload?.();
+      }, 0)
+    );
   }
 }
 
@@ -180,6 +184,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   uploads.length = 0;
   answerUpload = stored;
+  holdUploads = Promise.resolve();
   vi.stubGlobal('fetch', fetchMock);
   vi.stubGlobal('XMLHttpRequest', FakeXhr);
 });
@@ -219,16 +224,22 @@ describe('the other documents of a client', () => {
     mockApi();
     mount();
 
+    const user = userEvent.setup();
+
     const [first, second] = await screen.findAllByTestId('client-file-row');
-    expect(screen.getByTestId('client-files-upload').textContent).toBe('Încarcă fișiere');
-    expect(screen.queryByTestId('client-files-owners-only')).toBeNull();
     expect(within(first!).getByTestId('client-file-actions')).toBeTruthy();
     expect(within(second!).queryByTestId('client-file-actions')).toBeNull();
     expect(within(second!).getByTestId('client-file-download')).toBeTruthy();
 
-    await userEvent.setup().click(within(first!).getByTestId('client-file-actions'));
+    await user.click(within(first!).getByTestId('client-file-actions'));
     expect(await screen.findByTestId('client-file-rename')).toBeTruthy();
     expect(screen.queryByTestId('client-file-owners-only-switch')).toBeNull();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByTestId('client-files-upload'));
+    const dialog = await screen.findByTestId('client-files-upload-dialog');
+    expect(within(dialog).getByTestId('client-files-choose')).toBeTruthy();
+    expect(within(dialog).queryByTestId('client-files-owners-only')).toBeNull();
   });
 
   it('marks the files for owners only, and lets an owner switch a file between the two', async () => {
@@ -241,7 +252,6 @@ describe('the other documents of a client', () => {
     expect(within(second!).getByTestId('client-file-owners-only').textContent).toBe(
       'Doar administratori'
     );
-    expect(await screen.findByTestId('client-files-owners-only')).toBeTruthy();
 
     await user.click(within(first!).getByTestId('client-file-actions'));
     await user.click(await screen.findByTestId('client-file-owners-only-switch'));
@@ -281,70 +291,122 @@ describe('the other documents of a client', () => {
 
     const [first] = await screen.findAllByTestId('client-file-row');
     expect(screen.queryByTestId('client-files-upload')).toBeNull();
-    expect(screen.queryByTestId('client-files-input')).toBeNull();
-    expect(screen.queryByTestId('client-files-owners-only')).toBeNull();
     expect(screen.queryByTestId('client-file-actions')).toBeNull();
     expect(within(first!).getByTestId('client-file-download')).toBeTruthy();
 
-    fireEvent.dragEnter(screen.getByTestId('client-files-card'), {
-      dataTransfer: { types: ['Files'], files: [] },
-    });
+    const card = screen.getByTestId('client-files-card');
+    fireEvent.dragEnter(card, { dataTransfer: { types: ['Files'], files: [] } });
     expect(screen.queryByTestId('client-files-drop')).toBeNull();
+    fireEvent.drop(card, { dataTransfer: { types: ['Files'], files: [pdf('aviz.pdf')] } });
+    expect(screen.queryByTestId('client-files-upload-dialog')).toBeNull();
   });
 
   it('invites the first upload when there are no files', async () => {
     mockApi({ items: [] });
     mount();
 
-    expect((await screen.findByTestId('client-files-empty')).textContent).toContain(
-      'Niciun fișier încă.'
-    );
+    const empty = await screen.findByTestId('client-files-empty');
+    expect(empty.textContent).toContain('Niciun fișier încă.');
+    await userEvent.setup().click(within(empty).getByRole('button', { name: 'Alege fișiere' }));
+    expect(await screen.findByTestId('client-files-upload-dialog')).toBeTruthy();
   });
 });
 
+const openUploadDialog = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(await screen.findByTestId('client-files-upload'));
+  return screen.findByTestId('client-files-upload-dialog');
+};
+
+const chosenRows = (dialog: HTMLElement) => within(dialog).queryAllByTestId('client-file-upload');
+
 describe('uploading client files', () => {
-  it('refuses a file of another type or over the limit before sending it, and lets the message go', async () => {
+  it('lists the chosen files in a dialog and refuses some before sending them', async () => {
     mockApi({ items: [] });
     mount();
     const user = userEvent.setup({ applyAccept: false });
     const large = pdf('scan.pdf');
     Object.defineProperty(large, 'size', { value: 21 * 1024 * 1024 });
+    const certificate = pdf('certificat.pdf');
 
-    await user.upload(await screen.findByTestId('client-files-input'), [
+    const dialog = await openUploadDialog(user);
+    expect(within(dialog).getByTestId('client-files-upload-submit')).toHaveProperty(
+      'disabled',
+      true
+    );
+    expect(dialog.textContent).toContain(
+      'PDF, imagini, Word sau Excel, de cel mult 20 MB fiecare.'
+    );
+    await user.upload(within(dialog).getByTestId('client-files-input'), [
       new File(['MZ'], 'setup.exe'),
       large,
+      certificate,
     ]);
+    await user.upload(within(dialog).getByTestId('client-files-input'), certificate);
 
-    const failed = await screen.findAllByTestId('client-file-upload');
+    const rows = chosenRows(dialog);
+    expect(rows.map((row) => row.dataset.state)).toEqual(['refused', 'refused', 'ready']);
     expect(
-      failed.map((row) => within(row).getByTestId('client-file-upload-error').textContent)
+      rows.slice(0, 2).map((row) => within(row).getByTestId('client-file-upload-error').textContent)
     ).toEqual([
       'Se pot încărca doar fișiere PDF, JPEG, PNG, Word și Excel.',
       'Fișierul depășește 20 MB.',
     ]);
+    expect(rows[2]!.textContent).toContain('PDF · 1 KB');
+    expect(within(dialog).getByTestId('client-files-upload-submit').textContent).toBe(
+      'Încarcă fișierul'
+    );
     expect(uploads).toHaveLength(0);
 
-    await user.click(within(failed[0]!).getByTestId('client-file-upload-dismiss'));
-    expect(screen.getAllByTestId('client-file-upload')).toHaveLength(1);
+    await user.click(within(rows[0]!).getByTestId('client-file-upload-remove'));
+    expect(chosenRows(dialog)).toHaveLength(2);
+
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
+
+    expect(await screen.findByText('„certificat” a fost încărcat.')).toBeTruthy();
+    expect(uploads.map((sent) => sent.url.searchParams.get('fileName'))).toEqual([
+      'certificat.pdf',
+    ]);
+    await waitFor(() => expect(screen.queryByTestId('client-files-upload-dialog')).toBeNull());
   });
 
-  it("words the API's refusal", async () => {
+  it("keeps the dialog open after a failure, with the API's refusal under the file", async () => {
     mockApi({ items: [] });
-    answerUpload = () => ({
-      status: 400,
-      body: {
-        error: 'validation_error',
-        message: 'The content is not of that type.',
-        reason: 'client_file_content_mismatch',
-      },
-    });
+    answerUpload = (sent) =>
+      sent.url.searchParams.get('fileName') === 'a.pdf'
+        ? {
+            status: 400,
+            body: {
+              error: 'validation_error',
+              message: 'The content is not of that type.',
+              reason: 'client_file_content_mismatch',
+            },
+          }
+        : stored(sent);
     mount();
+    const user = userEvent.setup();
 
-    await userEvent.setup().upload(await screen.findByTestId('client-files-input'), pdf('a.pdf'));
+    const dialog = await openUploadDialog(user);
+    await user.upload(within(dialog).getByTestId('client-files-input'), [
+      pdf('a.pdf'),
+      pdf('b.pdf'),
+    ]);
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
 
-    expect((await screen.findByTestId('client-file-upload-error')).textContent).toBe(
+    expect((await within(dialog).findByTestId('client-files-upload-failed')).textContent).toBe(
+      'Un fișier nu a fost încărcat. Motivul este scris sub numele lui.'
+    );
+    const [failed, uploaded] = chosenRows(dialog);
+    expect(failed!.dataset.state).toBe('failed');
+    expect(within(failed!).getByTestId('client-file-upload-error').textContent).toBe(
       'Conținutul nu corespunde tipului din numele fișierului. Salvează-l din nou din programul în care a fost creat.'
     );
+    expect(uploaded!.dataset.state).toBe('uploaded');
+    expect(within(dialog).queryByTestId('client-files-upload-submit')).toBeNull();
+    expect(within(dialog).queryByTestId('client-files-choose')).toBeNull();
+    expect(screen.queryByText('„b” a fost încărcat.')).toBeNull();
+
+    await user.click(within(dialog).getByTestId('client-files-upload-close'));
+    await waitFor(() => expect(screen.queryByTestId('client-files-upload-dialog')).toBeNull());
   });
 
   it('sends each file on its own, for owners only when asked, and reports the batch once', async () => {
@@ -352,11 +414,17 @@ describe('uploading client files', () => {
     mount();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByTestId('client-files-owners-only'));
-    await user.upload(screen.getByTestId('client-files-input'), [
+    const dialog = await openUploadDialog(user);
+    expect(within(dialog).getByTestId('client-files-owners-only')).toBeTruthy();
+    await user.upload(within(dialog).getByTestId('client-files-input'), [
       pdf('certificat.pdf'),
       pdf('proces-verbal ITM.pdf'),
     ]);
+    await user.click(within(dialog).getByTestId('client-files-owners-only'));
+    expect(within(dialog).getByTestId('client-files-upload-submit').textContent).toBe(
+      'Încarcă 2 fișiere'
+    );
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
 
     expect(await screen.findByText('Au fost încărcate 2 fișiere.')).toBeTruthy();
     expect(uploads.map((sent) => sent.url.pathname)).toEqual([filesPath, filesPath]);
@@ -368,13 +436,41 @@ describe('uploading client files', () => {
       Authorization: 'Bearer test-access-token',
       'Content-Type': 'application/octet-stream',
     });
-    await waitFor(() => expect(screen.queryByTestId('client-file-upload')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('client-files-upload-dialog')).toBeNull());
     expect(requests(filesPath, 'GET').length).toBeGreaterThan(1);
   });
 
-  it('takes files dropped on the card, and keeps a drop beside it from leaving the app', async () => {
+  it('cannot be cancelled while the files are being sent', async () => {
+    mockApi({ items: [] });
+    let release = () => {};
+    holdUploads = new Promise((resolve) => (release = resolve));
+    mount();
+    const user = userEvent.setup();
+
+    const dialog = await openUploadDialog(user);
+    await user.upload(within(dialog).getByTestId('client-files-input'), pdf('aviz.pdf'));
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
+
+    expect(within(dialog).getByTestId('client-files-upload-submit').textContent).toBe(
+      'Se încarcă…'
+    );
+    expect(within(dialog).getByRole('button', { name: 'Renunță' })).toHaveProperty(
+      'disabled',
+      true
+    );
+    expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull();
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('client-files-upload-dialog')).toBeTruthy();
+
+    release();
+    expect(await screen.findByText('„aviz” a fost încărcat.')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByTestId('client-files-upload-dialog')).toBeNull());
+  });
+
+  it('opens the dialog with the files dropped on the card, and keeps a drop beside it from leaving the app', async () => {
     mockApi({ items: [] });
     mount();
+    const user = userEvent.setup();
 
     const card = await screen.findByTestId('client-files-card');
     fireEvent.dragEnter(card, { dataTransfer: { types: ['Files'], files: [] } });
@@ -382,14 +478,27 @@ describe('uploading client files', () => {
     fireEvent.drop(card, { dataTransfer: { types: ['Files'], files: [pdf('aviz.pdf')] } });
 
     expect(screen.queryByTestId('client-files-drop')).toBeNull();
-    expect(await screen.findByText('„aviz” a fost încărcat.')).toBeTruthy();
-    expect(uploads.map((sent) => sent.url.searchParams.get('ownersOnly'))).toEqual(['false']);
+    const dialog = await screen.findByTestId('client-files-upload-dialog');
+    expect(chosenRows(dialog).map((row) => row.dataset.state)).toEqual(['ready']);
+    expect(uploads).toHaveLength(0);
+
+    fireEvent.drop(within(dialog).getByTestId('client-files-upload-drop'), {
+      dataTransfer: { types: ['Files'], files: [pdf('altul.pdf')] },
+    });
+    expect(chosenRows(dialog)).toHaveLength(2);
+
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
+    expect(await screen.findByText('Au fost încărcate 2 fișiere.')).toBeTruthy();
+    expect(uploads.map((sent) => sent.url.searchParams.get('ownersOnly'))).toEqual([
+      'false',
+      'false',
+    ]);
 
     const beside = fireEvent.drop(document.body, {
       dataTransfer: { types: ['Files'], files: [pdf('altul.pdf')] },
     });
     expect(beside).toBe(false);
-    expect(uploads).toHaveLength(1);
+    expect(uploads).toHaveLength(2);
   });
 });
 
@@ -485,10 +594,17 @@ describe('the files of a lead', () => {
     );
     const [row] = await within(card).findAllByTestId('client-file-row');
     expect(within(row!).queryByTestId('client-file-owners-only')).toBeNull();
-    expect(within(card).queryByTestId('client-files-owners-only')).toBeNull();
+    const user = userEvent.setup();
 
-    await userEvent.setup().click(within(row!).getByTestId('client-file-actions'));
+    await user.click(within(row!).getByTestId('client-file-actions'));
     expect(await screen.findByTestId('client-file-rename')).toBeTruthy();
     expect(screen.queryByTestId('client-file-owners-only-switch')).toBeNull();
+    await user.keyboard('{Escape}');
+
+    const dialog = await openUploadDialog(user);
+    expect(within(dialog).queryByTestId('client-files-owners-only')).toBeNull();
+    expect(within(dialog).getByTestId('client-files-upload-lead-hint').textContent).toBe(
+      'Până devine client, fișierele lui sunt vizibile doar administratorilor.'
+    );
   });
 });

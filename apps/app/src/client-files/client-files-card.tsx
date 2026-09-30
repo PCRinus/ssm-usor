@@ -1,6 +1,5 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -9,8 +8,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { Label } from '@ssm-usor/ui/components/label';
-import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -21,10 +18,9 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload, X } from 'lucide-react';
-import { type DragEvent, useEffect, useRef, useState } from 'react';
+import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { useMe } from '../account/use-me';
 import {
@@ -42,16 +38,13 @@ import { fileAddress, openDownload } from '../lib/save-file';
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
 import {
   type ClientFile,
-  clientFileAccept,
   fileKind,
   formatFileSize,
   formatUploadDate,
   opensInTab,
 } from './client-file-format';
-import { type PendingUpload, useClientFileUploads } from './use-client-file-uploads';
-
-const hasFiles = (event: { dataTransfer: DataTransfer | null }) =>
-  Boolean(event.dataTransfer?.types.includes('Files'));
+import { UploadClientFilesDialog } from './client-file-upload-dialog';
+import { hasFiles, useFileDrop } from './use-file-drop';
 
 // `readOnly` is an archived company.
 export function ClientFilesCard({
@@ -68,15 +61,14 @@ export function ClientFilesCard({
   const lead = client.stage === 'lead';
   const queryKey = [...getListClientFilesQueryKey(client.id), userId];
   const files = useListClientFiles(client.id, { request: apiRequest, query: { queryKey } });
-  const { uploads, add, dismiss } = useClientFileUploads(client.id);
-  const fileInput = useRef<HTMLInputElement>(null);
-  const [ownersOnlyNext, setOwnersOnlyNext] = useState(false);
+  const [uploading, setUploading] = useState<File[] | null>(null);
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
   const [deleting, setDeleting] = useState<ClientFile | null>(null);
   const [switching, setSwitching] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const dragDepth = useRef(0);
+  const drop = useFileDrop((dropped) => {
+    if (dropped.length > 0) setUploading(dropped);
+  });
 
   // Without this, a file dropped beside the card replaces the app with the file.
   useEffect(() => {
@@ -92,36 +84,6 @@ export function ClientFilesCard({
       window.removeEventListener('drop', refuse);
     };
   }, []);
-
-  const uploadFiles = (list: FileList | null) =>
-    add(Array.from(list ?? []), !lead && isOwner && ownersOnlyNext);
-
-  const dropHandlers = readOnly
-    ? {}
-    : {
-        onDragEnter: (event: DragEvent<HTMLDivElement>) => {
-          if (!hasFiles(event)) return;
-          dragDepth.current += 1;
-          setDragging(true);
-        },
-        onDragLeave: (event: DragEvent<HTMLDivElement>) => {
-          if (!hasFiles(event)) return;
-          dragDepth.current = Math.max(0, dragDepth.current - 1);
-          if (dragDepth.current === 0) setDragging(false);
-        },
-        onDragOver: (event: DragEvent<HTMLDivElement>) => {
-          if (!hasFiles(event)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = 'copy';
-        },
-        onDrop: (event: DragEvent<HTMLDivElement>) => {
-          if (!hasFiles(event)) return;
-          event.preventDefault();
-          dragDepth.current = 0;
-          setDragging(false);
-          uploadFiles(event.dataTransfer.files);
-        },
-      };
 
   // A tab opened after the link arrives would be taken for a popup and blocked, so it opens
   // on the click and is pointed at the file once the link is there.
@@ -174,81 +136,62 @@ export function ClientFilesCard({
   const canUpload = !readOnly;
 
   return (
-    <SectionCard
-      data-testid="client-files-card"
-      title="Alte documente"
-      className="relative"
-      description={
-        <>
-          Fișierele despre client pe care aplicația nu le generează: certificatul de înregistrare,
-          procese-verbale ITM, fișe de aptitudine, oferte. PDF, imagini, Word sau Excel, de cel mult
-          20 MB fiecare.
-          {lead && (
-            <span data-testid="client-files-lead-hint">
-              {' '}
-              Până devine client, fișierele lui sunt vizibile doar administratorilor.
-            </span>
-          )}
-        </>
-      }
-      action={
-        canUpload && (
-          <Button
-            variant="outline"
-            size="sm"
-            data-testid="client-files-upload"
-            onClick={() => fileInput.current?.click()}
-          >
-            <Upload aria-hidden="true" />
-            Încarcă fișiere
-          </Button>
-        )
-      }
-      {...dropHandlers}
-    >
-      {canUpload && isOwner && !lead && (
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id="client-files-owners-only"
-            data-testid="client-files-owners-only"
-            checked={ownersOnlyNext}
-            onCheckedChange={(checked) => setOwnersOnlyNext(checked === true)}
-            aria-describedby="client-files-owners-only-hint"
-          />
-          <div className="grid gap-1">
-            <Label htmlFor="client-files-owners-only">Doar pentru administratori</Label>
-            <p id="client-files-owners-only-hint" className="text-xs text-muted-foreground">
-              Se aplică fișierelor pe care le încarci de acum. Specialiștii nu le vor vedea.
-            </p>
-          </div>
-        </div>
-      )}
-      {uploads.length > 0 && <UploadList uploads={uploads} onDismiss={dismiss} />}
-      {error && (
-        <Notice variant="destructive" data-testid="client-files-error">
-          {error}
-        </Notice>
-      )}
-      {files.isPending ? (
-        <Skeleton className="h-24 w-full" />
-      ) : files.isError ? (
-        <Notice
-          variant="destructive"
-          action={
+    <>
+      <SectionCard
+        data-testid="client-files-card"
+        title="Alte documente"
+        className="relative"
+        description={
+          <>
+            Certificatul de înregistrare, procese-verbale ITM, fișe de aptitudine și alte fișiere
+            despre client.
+            {lead && (
+              <span data-testid="client-files-lead-hint">
+                {' '}
+                Până devine client, fișierele lui sunt vizibile doar administratorilor.
+              </span>
+            )}
+          </>
+        }
+        action={
+          canUpload && (
             <Button
               variant="outline"
-              disabled={files.isFetching}
-              onClick={() => void files.refetch()}
+              size="sm"
+              data-testid="client-files-upload"
+              onClick={() => setUploading([])}
             >
-              Încearcă din nou
+              <Upload aria-hidden="true" />
+              Încarcă fișiere
             </Button>
-          }
-        >
-          Nu am putut încărca fișierele.
-        </Notice>
-      ) : items.length === 0 ? (
-        canUpload ? (
-          uploads.length === 0 && (
+          )
+        }
+        {...(canUpload ? drop.handlers : {})}
+      >
+        {error && (
+          <Notice variant="destructive" data-testid="client-files-error">
+            {error}
+          </Notice>
+        )}
+        {files.isPending ? (
+          <Skeleton className="h-24 w-full" />
+        ) : files.isError ? (
+          <Notice
+            variant="destructive"
+            action={
+              <Button
+                variant="outline"
+                disabled={files.isFetching}
+                onClick={() => void files.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca fișierele.
+          </Notice>
+        ) : items.length === 0 ? (
+          canUpload ? (
             <div
               data-testid="client-files-empty"
               className="grid justify-items-center gap-3 rounded-lg border border-dashed p-6 text-center"
@@ -258,74 +201,67 @@ export function ClientFilesCard({
                 Niciun fișier încă. Trage fișierele aici sau alege-le de pe dispozitiv; poți încărca
                 mai multe deodată.
               </p>
-              <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
+              <Button variant="outline" size="sm" onClick={() => setUploading([])}>
                 <Upload aria-hidden="true" />
                 Alege fișiere
               </Button>
             </div>
+          ) : (
+            <p data-testid="client-files-empty" className="text-sm text-muted-foreground">
+              Nu a fost încărcat niciun fișier.
+            </p>
           )
         ) : (
-          <p data-testid="client-files-empty" className="text-sm text-muted-foreground">
-            Nu a fost încărcat niciun fișier.
-          </p>
-        )
-      ) : (
-        <Table className="max-sm:block">
-          <TableHeader className="max-sm:sr-only">
-            <TableRow>
-              <TableHead>Nume</TableHead>
-              <TableHead className="text-right">Mărime</TableHead>
-              <TableHead>Încărcat</TableHead>
-              <TableHead className="w-20">
-                <span className="sr-only">Acțiuni</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="max-sm:block">
-            {items.map((file) => (
-              <FileRow
-                key={file.id}
-                file={file}
-                changeable={file.canChange && !readOnly}
-                showOwnersOnly={!lead}
-                canSwitch={isOwner && !lead && !readOnly}
-                switching={switching.includes(file.id)}
-                onOpen={() => void openFile(file, 'open')}
-                onDownload={() => void openFile(file, 'download')}
-                onRename={() => setRenaming(file)}
-                onDelete={() => setDeleting(file)}
-                onOwnersOnly={(ownersOnly) => void setOwnersOnly(file, ownersOnly)}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      )}
-      {dragging && (
-        <div
-          aria-hidden="true"
-          data-testid="client-files-drop"
-          className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-background/90"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium">
-            <FileUp className="size-5 text-primary" aria-hidden="true" />
-            Lasă fișierele aici ca să le încarci.
-          </span>
-        </div>
-      )}
+          <Table className="max-sm:block">
+            <TableHeader className="max-sm:sr-only">
+              <TableRow>
+                <TableHead>Nume</TableHead>
+                <TableHead className="text-right">Mărime</TableHead>
+                <TableHead>Încărcat</TableHead>
+                <TableHead className="w-20">
+                  <span className="sr-only">Acțiuni</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="max-sm:block">
+              {items.map((file) => (
+                <FileRow
+                  key={file.id}
+                  file={file}
+                  changeable={file.canChange && !readOnly}
+                  showOwnersOnly={!lead}
+                  canSwitch={isOwner && !lead && !readOnly}
+                  switching={switching.includes(file.id)}
+                  onOpen={() => void openFile(file, 'open')}
+                  onDownload={() => void openFile(file, 'download')}
+                  onRename={() => setRenaming(file)}
+                  onDelete={() => setDeleting(file)}
+                  onOwnersOnly={(ownersOnly) => void setOwnersOnly(file, ownersOnly)}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        {drop.dragging && (
+          <div
+            aria-hidden="true"
+            data-testid="client-files-drop"
+            className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-background/90"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <FileUp className="size-5 text-primary" aria-hidden="true" />
+              Lasă fișierele aici ca să le încarci.
+            </span>
+          </div>
+        )}
+      </SectionCard>
       {canUpload && (
-        <input
-          ref={fileInput}
-          type="file"
-          multiple
-          data-testid="client-files-input"
-          className="hidden"
-          accept={clientFileAccept}
-          onChange={(event) => {
-            const list = event.target.files;
-            uploadFiles(list);
-            // Emptied, so that choosing the same file again is still a change.
-            event.target.value = '';
-          }}
+        <UploadClientFilesDialog
+          clientId={client.id}
+          lead={lead}
+          canChooseOwnersOnly={isOwner && !lead}
+          files={uploading}
+          onClose={() => setUploading(null)}
         />
       )}
       <RenameClientFileDialog
@@ -339,72 +275,7 @@ export function ClientFilesCard({
         onClose={() => setDeleting(null)}
         onError={setError}
       />
-    </SectionCard>
-  );
-}
-
-function UploadList({
-  uploads,
-  onDismiss,
-}: {
-  uploads: PendingUpload[];
-  onDismiss: (key: string) => void;
-}) {
-  return (
-    <ul className="grid gap-2" aria-label="Încărcări">
-      {uploads.map((upload) => (
-        <li
-          key={upload.key}
-          data-testid="client-file-upload"
-          data-state={upload.state}
-          className={cn(
-            'grid gap-2 rounded-lg border p-3',
-            upload.state === 'failed' && 'border-destructive/50'
-          )}
-        >
-          <div className="flex items-start gap-3">
-            <span className="min-w-0 flex-1 text-sm font-medium wrap-anywhere">
-              {upload.fileName}
-            </span>
-            {upload.state === 'failed' ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="-my-1.5 -mr-1.5"
-                data-testid="client-file-upload-dismiss"
-                aria-label={`Închide mesajul pentru ${upload.fileName}`}
-                onClick={() => onDismiss(upload.key)}
-              >
-                <X aria-hidden="true" />
-              </Button>
-            ) : (
-              <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-                {upload.state === 'waiting'
-                  ? 'În așteptare'
-                  : upload.percent < 100
-                    ? `${upload.percent}%`
-                    : 'Se verifică…'}
-              </span>
-            )}
-          </div>
-          {upload.state === 'failed' ? (
-            <p
-              data-testid="client-file-upload-error"
-              role="alert"
-              className="text-sm text-destructive"
-            >
-              {upload.error}
-            </p>
-          ) : (
-            <Progress
-              value={upload.percent}
-              className="h-1.5"
-              aria-label={`Se încarcă ${upload.fileName}`}
-            />
-          )}
-        </li>
-      ))}
-    </ul>
+    </>
   );
 }
 
