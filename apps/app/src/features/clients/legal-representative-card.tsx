@@ -8,14 +8,13 @@ import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/componen
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { type LegalRepresentativeFocus, useFocusRequest } from '@/features/missing-data/focus';
-
 import {
   type ClientSummary,
   describedBy,
   type DocumentDetails,
   useDocumentDetails,
   useDocumentDetailsForm,
-} from './use-document-details-form';
+} from '@/features/training/use-document-details-form';
 
 const fields = ['legalRepresentativeName', 'legalRepresentativeRole'] as const;
 

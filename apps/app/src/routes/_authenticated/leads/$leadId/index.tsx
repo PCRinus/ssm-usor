@@ -15,6 +15,7 @@ import {
 import { CompanyCard } from '@/features/clients/company-card';
 import { ContactCard } from '@/features/clients/contact-card';
 import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
+import { PromoteLeadDialog } from '@/features/clients/promote-lead-dialog';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import {
   companyFocus,
@@ -25,7 +26,6 @@ import {
 } from '@/features/missing-data/focus';
 import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 import { ServiceContractCard } from '@/features/service-contracts/service-contract-card';
-import { PromoteLeadDialog } from '@/leads/promote-lead-dialog';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
   validateSearch: focusSearch(leadFocus),

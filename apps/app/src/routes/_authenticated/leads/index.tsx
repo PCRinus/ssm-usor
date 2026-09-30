@@ -22,8 +22,8 @@ import {
   ClientArchiveDialog,
 } from '@/features/clients/client-archive-dialog';
 import type { ClientRow } from '@/features/clients/client-columns';
-import { leadColumns } from '@/leads/lead-columns';
-import { PromoteLeadDialog } from '@/leads/promote-lead-dialog';
+import { leadColumns } from '@/features/clients/lead-columns';
+import { PromoteLeadDialog } from '@/features/clients/promote-lead-dialog';
 
 const leadSortKeys = ['legalName', 'cui'] as const satisfies readonly ClientSortKey[];
 type LeadSortKey = (typeof leadSortKeys)[number];

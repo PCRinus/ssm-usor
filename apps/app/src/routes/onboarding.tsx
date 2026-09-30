@@ -27,8 +27,8 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { onboardingSchema, type OnboardingValues } from '@/features/auth/onboarding-schema';
 import { roleLabels } from '@/features/organization/labels';
-import { onboardingSchema, type OnboardingValues } from '@/onboarding/onboarding-schema';
 
 // Where a signed-in account without an organization lands (ADR 004): after registering,
 // after being removed from one, or before accepting an invitation. It sits outside the app

@@ -23,15 +23,15 @@ import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
-import { useAuth } from '@/features/auth/auth-context';
-import { newPasswordHint } from '@/features/auth/password-schema';
-import { formatDay, roleLabels } from '@/features/organization/labels';
 import {
   createAccountSchema,
   type CreateAccountValues,
   joinSchema,
   type JoinValues,
-} from '@/invitations/accept-schema';
+} from '@/features/auth/accept-schema';
+import { useAuth } from '@/features/auth/auth-context';
+import { newPasswordHint } from '@/features/auth/password-schema';
+import { formatDay, roleLabels } from '@/features/organization/labels';
 
 // Public: the link in an invitation email lands here, signed in or not. Opening it
 // changes nothing; only submitting a form accepts.

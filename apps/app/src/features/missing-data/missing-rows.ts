@@ -6,8 +6,8 @@ import type {
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
-import { responsibleRoleLabels } from '@/document-data/responsible-person-schema';
 import { positionSections } from '@/features/job-positions/position-sections';
+import { responsibleRoleLabels } from '@/features/training/responsible-person-schema';
 
 import type {
   AuthorizationsFocus,

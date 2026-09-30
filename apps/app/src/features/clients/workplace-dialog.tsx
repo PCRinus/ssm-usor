@@ -24,9 +24,9 @@ import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { CountyCombobox } from '@/features/clients/county-combobox';
 import { LocalityCombobox } from '@/localities/locality-combobox';
 
+import { CountyCombobox } from './county-combobox';
 import {
   emptyWorkplaceForm,
   toWorkplaceForm,

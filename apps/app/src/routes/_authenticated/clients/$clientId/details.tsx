@@ -1,12 +1,12 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { LegalRepresentativeCard } from '@/document-data/legal-representative-card';
-import { WorkplacesCard } from '@/document-data/workplaces-card';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { CompanyCard } from '@/features/clients/company-card';
 import { ContactCard } from '@/features/clients/contact-card';
+import { LegalRepresentativeCard } from '@/features/clients/legal-representative-card';
 import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
+import { WorkplacesCard } from '@/features/clients/workplaces-card';
 import {
   clientDetailsFocus,
   companyFocus,
