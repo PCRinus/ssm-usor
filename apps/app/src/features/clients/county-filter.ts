@@ -1,4 +1,4 @@
-import { normalizeSearch } from './caen-filter';
+import { normalizeSearch } from '@/lib/normalize-search';
 
 // Item search text is "<name>|<code>". Matches the name from its start or any word,
 // or the registration code exactly.

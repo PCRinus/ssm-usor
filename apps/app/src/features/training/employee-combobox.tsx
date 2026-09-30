@@ -7,7 +7,7 @@ import {
   useListEmployees,
 } from '@/api/generated/api';
 import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
-import { normalizeSearch } from '@/features/clients/caen-filter';
+import { normalizeSearch } from '@/lib/normalize-search';
 
 export type EmployeeOption = EmployeeListResponse['items'][number];
 

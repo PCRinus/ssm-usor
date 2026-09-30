@@ -1,6 +1,4 @@
-// Lowercase without diacritics, so "extractia" finds "Extracția".
-export const normalizeSearch = (value: string) =>
-  value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+import { normalizeSearch } from '@/lib/normalize-search';
 
 // cmdk filter over "<code> <name>" values: code prefixes rank first, then names that
 // contain every word of the query. Returns 0 to hide an entry.

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
-import { normalizeSearch } from '@/features/clients/caen-filter';
+import { normalizeSearch } from '@/lib/normalize-search';
 
 import { JobPositionDialog } from './job-position-dialog';
 import { employeeCountLabel, staffCategoryShortLabels } from './job-position-schema';

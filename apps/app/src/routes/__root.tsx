@@ -3,8 +3,8 @@ import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 import { lazy, Suspense } from 'react';
 
 import type { ApiRequestOptions } from '@/api/http';
+import { PageTitle } from '@/app/page-title';
 import { NotFoundPage, RouteErrorPage } from '@/app/route-states';
-import { PageTitle } from '@/components/page-title';
 import type { AuthStore } from '@/features/auth/auth-store';
 
 export interface RouterContext {
