@@ -34,6 +34,14 @@ const kinds: Record<ClientFileType, { label: string; icon: LucideIcon }> = {
 
 export const fileKind = (mimeType: ClientFileType) => kinds[mimeType];
 
+const extensionOf = (fileName: string) => /\.([^.]+)$/.exec(fileName)?.[1]?.toLowerCase();
+
+export function chosenFileKind(fileName: string) {
+  const extension = extensionOf(fileName);
+  if (!extension || !Object.hasOwn(clientFileExtensions, extension)) return null;
+  return kinds[clientFileExtensions[extension as keyof typeof clientFileExtensions]];
+}
+
 // The types `/files/download` shows in a tab; the rest download.
 export const opensInTab = (mimeType: ClientFileType) =>
   mimeType === 'application/pdf' || mimeType.startsWith('image/');
@@ -67,10 +75,7 @@ const refusals = {
 const maxFileNameLength = 255;
 
 export function refusalBeforeUpload(file: File) {
-  const extension = /\.([^.]+)$/.exec(file.name)?.[1]?.toLowerCase();
-  if (!extension || !Object.hasOwn(clientFileExtensions, extension)) {
-    return refusals[clientFileErrorReasons.typeNotAllowed];
-  }
+  if (!chosenFileKind(file.name)) return refusals[clientFileErrorReasons.typeNotAllowed];
   if (file.size === 0) return refusals[clientFileErrorReasons.empty];
   if (file.size > maxClientFileBytes) return refusals[clientFileErrorReasons.tooLarge];
   if (file.name.length > maxFileNameLength) {

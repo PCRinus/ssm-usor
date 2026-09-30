@@ -14,7 +14,9 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
   await page.getByRole('link', { name: 'Alte documente' }).click();
   await expect(page.getByTestId('client-files-empty')).toBeVisible();
 
-  await page.getByTestId('client-files-input').setInputFiles([
+  await page.getByTestId('client-files-upload').click();
+  const dialog = page.getByTestId('client-files-upload-dialog');
+  await dialog.getByTestId('client-files-input').setInputFiles([
     {
       name: 'certificat de inregistrare.pdf',
       mimeType: 'application/pdf',
@@ -22,15 +24,18 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
     },
     { name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('text') },
   ]);
-  await expect(page.getByTestId('client-file-upload-error')).toHaveText(
+  await expect(dialog.getByTestId('client-file-upload-error')).toHaveText(
     'Se pot încărca doar fișiere PDF, JPEG, PNG, Word și Excel.'
   );
+  await expect(dialog.getByTestId('client-file-upload')).toHaveCount(2);
+  await dialog.getByTestId('client-files-owners-only').check();
+  await dialog.getByTestId('client-files-upload-submit').click();
   await expect(page.getByText('„certificat de inregistrare” a fost încărcat.')).toBeVisible();
+  await expect(dialog).toBeHidden();
   const row = page.getByTestId('client-file-row');
   await expect(row).toHaveCount(1);
   await expect(row.getByTestId('client-file-kind')).toHaveText('PDF');
-  await page.getByTestId('client-file-upload-dismiss').click();
-  await expect(page.getByTestId('client-file-upload')).toHaveCount(0);
+  await expect(row.getByTestId('client-file-owners-only')).toHaveText('Doar administratori');
 
   await row.getByTestId('client-file-actions').click();
   await page.getByTestId('client-file-rename').click();
