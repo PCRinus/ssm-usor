@@ -4,7 +4,10 @@ import { afterEach, beforeEach, vi } from 'vitest';
 
 afterEach(cleanup);
 
-afterEach(() => sessionStorage.clear());
+afterEach(() => {
+  sessionStorage.clear();
+  localStorage.clear();
+});
 
 // Sonner keeps its toasts in a module-level store, so one test's toast would show up in the next.
 afterEach(() => {
