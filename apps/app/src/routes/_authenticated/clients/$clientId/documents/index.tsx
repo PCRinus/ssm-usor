@@ -18,7 +18,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/document
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function DocumentsPage() {
+function DocumentsPage() {
   const { client } = clientRoute.useLoaderData();
   const { section, focus } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });

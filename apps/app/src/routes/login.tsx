@@ -27,7 +27,7 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 });
 
-export function LoginPage() {
+function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { form, onSubmit } = useLoginForm(Route.useSearch().invitation);
   const formRef = useRevealErrors(form);

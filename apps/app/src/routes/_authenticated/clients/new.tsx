@@ -7,6 +7,6 @@ export const Route = createFileRoute('/_authenticated/clients/new')({
   component: NewClientPage,
 });
 
-export function NewClientPage() {
+function NewClientPage() {
   return <ClientForm />;
 }

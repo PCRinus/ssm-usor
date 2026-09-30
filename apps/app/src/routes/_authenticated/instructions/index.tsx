@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_authenticated/instructions/')({
   component: InstructionsPage,
 });
 
-export function InstructionsPage() {
+function InstructionsPage() {
   const { session } = useAuth();
   return <InstructionLibrary userId={session?.user.id ?? ''} />;
 }

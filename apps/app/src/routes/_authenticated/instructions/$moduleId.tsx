@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_authenticated/instructions/$moduleId')({
   component: InstructionModulePage,
 });
 
-export function InstructionModulePage() {
+function InstructionModulePage() {
   const { moduleId } = Route.useParams();
   const { version } = Route.useSearch();
   const { session } = useAuth();

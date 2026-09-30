@@ -112,7 +112,7 @@ function TermsNotice({ action }: { action: string }) {
   );
 }
 
-export function AcceptInvitationPage() {
+function AcceptInvitationPage() {
   const { token } = Route.useSearch();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const { auth, session } = useAuth();

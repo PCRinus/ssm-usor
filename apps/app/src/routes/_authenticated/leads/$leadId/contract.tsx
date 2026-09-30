@@ -13,7 +13,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId/contract')({
 
 const leadRoute = getRouteApi('/_authenticated/leads/$leadId');
 
-export function LeadContractPage() {
+function LeadContractPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
   const backToList = useBackToList();

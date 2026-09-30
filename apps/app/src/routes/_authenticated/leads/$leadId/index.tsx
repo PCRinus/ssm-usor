@@ -35,7 +35,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId/')({
 const leadRoute = getRouteApi('/_authenticated/leads/$leadId');
 
 // Only an owner gets here: for anyone else the lead does not exist.
-export function LeadPage() {
+function LeadPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
   const { focus } = Route.useSearch();

@@ -69,7 +69,7 @@ const sectionLinks = [
   { hash: positionSections.instructions, label: 'Instrucțiuni' },
 ] as const;
 
-export function JobPositionPage() {
+function JobPositionPage() {
   const { clientId, jobPositionId } = Route.useParams();
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const { session } = useAuth();

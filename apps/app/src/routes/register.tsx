@@ -30,7 +30,7 @@ export const Route = createFileRoute('/register')({
   component: RegisterPage,
 });
 
-export function RegisterPage() {
+function RegisterPage() {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [sentTo, setSentTo] = useState<string | null>(null);

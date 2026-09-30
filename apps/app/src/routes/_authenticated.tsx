@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout,
 });
 
-export function AuthenticatedLayout() {
+function AuthenticatedLayout() {
   const { session } = useAuth();
   // Hide stale content immediately while the router rechecks a changed session.
   return session ? <MembershipGate /> : null;

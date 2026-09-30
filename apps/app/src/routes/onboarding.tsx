@@ -42,7 +42,7 @@ export const Route = createFileRoute('/onboarding')({
   component: OnboardingPage,
 });
 
-export function OnboardingPage() {
+function OnboardingPage() {
   const me = useMe();
 
   if (me.isPending) {

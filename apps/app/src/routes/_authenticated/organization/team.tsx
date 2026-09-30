@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_authenticated/organization/team')({
   component: OrganizationTeamPage,
 });
 
-export function OrganizationTeamPage() {
+function OrganizationTeamPage() {
   const me = useMe();
   const [inviting, setInviting] = useState(false);
   // The layout renders this only once the account and its membership are loaded.

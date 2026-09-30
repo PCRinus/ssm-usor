@@ -7,6 +7,6 @@ export const Route = createFileRoute('/_authenticated/leads/new')({
   component: NewLeadPage,
 });
 
-export function NewLeadPage() {
+function NewLeadPage() {
   return <ClientForm newStage="lead" />;
 }

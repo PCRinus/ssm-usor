@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_authenticated/organization/company')({
   component: OrganizationCompanyPage,
 });
 
-export function OrganizationCompanyPage() {
+function OrganizationCompanyPage() {
   const me = useMe();
   const { focus } = Route.useSearch();
   // The layout renders this only once the account and its membership are loaded.

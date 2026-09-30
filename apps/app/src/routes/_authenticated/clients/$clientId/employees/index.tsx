@@ -60,7 +60,7 @@ const rowKey = (row: EmployeeRow) => row.id;
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function EmployeesPage() {
+function EmployeesPage() {
   const { clientId } = Route.useParams();
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const {

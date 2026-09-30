@@ -50,7 +50,7 @@ export const Route = createFileRoute('/_authenticated/leads/')({
 
 const rowKey = (row: ClientRow) => row.id;
 
-export function LeadsPage() {
+function LeadsPage() {
   const {
     page = 1,
     sort = defaultSort.sort,

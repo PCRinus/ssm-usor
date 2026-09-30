@@ -41,7 +41,7 @@ function SpentLink() {
   );
 }
 
-export function ResetPasswordPage() {
+function ResetPasswordPage() {
   const { token_hash: tokenHash } = Route.useSearch();
   const { auth } = useAuth();
   const navigate = useNavigate();

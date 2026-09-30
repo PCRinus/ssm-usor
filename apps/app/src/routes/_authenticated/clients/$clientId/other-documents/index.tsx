@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/other-do
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function OtherDocumentsPage() {
+function OtherDocumentsPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   // The shell renders this only for a signed-in user.

@@ -100,7 +100,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   errorComponent: ClientError,
 });
 
-export function ClientLayout() {
+function ClientLayout() {
   const { client } = Route.useLoaderData();
   // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
   const fullPage = useMatches({

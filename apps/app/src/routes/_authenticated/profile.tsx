@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_authenticated/profile')({
   component: ProfilePage,
 });
 
-export function ProfilePage() {
+function ProfilePage() {
   const me = useMe();
   const { focus } = Route.useSearch();
   useFocusRequest(focus !== undefined, {

@@ -38,7 +38,7 @@ export const Route = createFileRoute(
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function EditEmployeePage() {
+function EditEmployeePage() {
   const { clientId, employeeId } = Route.useParams();
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();

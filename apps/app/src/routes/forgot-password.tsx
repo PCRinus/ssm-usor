@@ -23,7 +23,7 @@ export const Route = createFileRoute('/forgot-password')({
   component: ForgotPasswordPage,
 });
 
-export function ForgotPasswordPage() {
+function ForgotPasswordPage() {
   const { auth } = useAuth();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useForm<ForgotPasswordValues>({

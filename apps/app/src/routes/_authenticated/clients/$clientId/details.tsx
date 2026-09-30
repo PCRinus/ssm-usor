@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/details'
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function ClientDetailsPage() {
+function ClientDetailsPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const isOwner = useMe().data?.membership?.role === 'owner';

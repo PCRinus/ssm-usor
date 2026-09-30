@@ -16,7 +16,7 @@ export const Route = createFileRoute('/confirm-email')({
   component: ConfirmEmailPage,
 });
 
-export function ConfirmEmailPage() {
+function ConfirmEmailPage() {
   const { token_hash: tokenHash } = Route.useSearch();
   const { auth } = useAuth();
   const navigate = useNavigate();

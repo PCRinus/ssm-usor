@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId/edit')({
 
 const leadRoute = getRouteApi('/_authenticated/leads/$leadId');
 
-export function EditLeadPage() {
+function EditLeadPage() {
   const { lead } = leadRoute.useLoaderData();
   if (lead.archivedAt) {
     return <Navigate to="/leads/$leadId" params={{ leadId: lead.id }} replace />;

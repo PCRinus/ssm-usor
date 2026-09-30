@@ -47,7 +47,7 @@ function WriteTo({ contract }: { contract: ContractReturnResponse }) {
   );
 }
 
-export function ContractReturnPage() {
+function ContractReturnPage() {
   const { token } = Route.useSearch();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const lookup = useQuery({

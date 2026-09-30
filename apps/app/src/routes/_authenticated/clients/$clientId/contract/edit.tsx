@@ -13,7 +13,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/contract
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function ClientContractEditorPage() {
+function ClientContractEditorPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const backToList = useBackToList();

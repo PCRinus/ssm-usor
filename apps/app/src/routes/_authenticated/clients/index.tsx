@@ -47,7 +47,7 @@ export const Route = createFileRoute('/_authenticated/clients/')({
 
 const rowKey = (row: ClientRow) => row.id;
 
-export function ClientsPage() {
+function ClientsPage() {
   const {
     page = 1,
     sort = defaultSort.sort,

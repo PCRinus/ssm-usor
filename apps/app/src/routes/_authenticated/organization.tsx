@@ -18,7 +18,7 @@ const sections = [
   { to: '/organization/authorizations', label: 'Abilitări', icon: Award },
 ] as const;
 
-export function OrganizationLayout() {
+function OrganizationLayout() {
   const me = useMe();
 
   if (me.isPending) {

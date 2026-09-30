@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/training
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function TrainingPage() {
+function TrainingPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const { focus } = Route.useSearch();

@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/job-posi
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function JobPositionsPage() {
+function JobPositionsPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const { focus } = Route.useSearch();

@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/contract
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function ContractPage() {
+function ContractPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const me = useMe();

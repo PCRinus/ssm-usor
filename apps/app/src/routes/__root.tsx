@@ -24,7 +24,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   errorComponent: RouteErrorPage,
 });
 
-export function RootLayout() {
+function RootLayout() {
   return (
     <>
       <PageTitle />

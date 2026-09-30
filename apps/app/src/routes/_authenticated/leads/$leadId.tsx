@@ -48,7 +48,7 @@ export const Route = createFileRoute('/_authenticated/leads/$leadId')({
   errorComponent: LeadError,
 });
 
-export function LeadLayout() {
+function LeadLayout() {
   return <Outlet />;
 }
 

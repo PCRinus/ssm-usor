@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_authenticated/dashboard')({
   component: DashboardPage,
 });
 
-export function DashboardPage() {
+function DashboardPage() {
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const me = useMe();

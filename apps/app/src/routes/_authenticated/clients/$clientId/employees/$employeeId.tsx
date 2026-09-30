@@ -104,7 +104,7 @@ function Cnp({ value }: { value: string }) {
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
-export function EmployeePage() {
+function EmployeePage() {
   const { clientId, employeeId } = Route.useParams();
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const { session } = useAuth();
