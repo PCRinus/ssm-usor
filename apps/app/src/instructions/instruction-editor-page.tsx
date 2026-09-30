@@ -10,17 +10,18 @@ import {
   getInstructionModuleFileLink,
   useGetInstructionModule,
   useSaveInstructionModuleFile,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { useBackToList } from '../app/use-back-to-list';
-import { Notice } from '../components/notice';
-import type { DocumentEditorHandle } from '../documents/document-editor';
-import { editorFrameClassName, saveAs } from '../documents/editor-frame';
-import { EditorPlaceholder } from '../documents/editor-placeholder';
-import { formatRoDate } from '../lib/dates';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useBackToList } from '@/app/use-back-to-list';
+import { Notice } from '@/components/notice';
+import type { DocumentEditorHandle } from '@/documents/document-editor';
+import { editorFrameClassName, saveAs } from '@/documents/editor-frame';
+import { EditorPlaceholder } from '@/documents/editor-placeholder';
+import { formatRoDate } from '@/lib/dates';
+
 import { articleCountLabel, groupLabels, invalidateLibrary } from './instruction-schema';
 
-const DocumentEditor = lazy(() => import('../documents/document-editor'));
+const DocumentEditor = lazy(() => import('@/documents/document-editor'));
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 type Loaded = { versionId: string; number: number; bytes: Uint8Array; fileName: string };

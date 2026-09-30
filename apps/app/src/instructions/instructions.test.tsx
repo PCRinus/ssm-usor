@@ -2,14 +2,15 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authFixture, makeSession } from '../test/auth-fixture';
-import { disposeRuntimes, mountApp } from '../test/mount';
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
+
 import { instructionStateLabel, moduleCountLabel } from './instruction-schema';
 
 // The real editor is three megabytes of layout engine and needs a browser; the flow tests
 // drive it. Here a stand-in reports ready and changes on demand.
 const editorMock = vi.hoisted(() => ({ saved: new Uint8Array([80, 75, 3, 4, 9]) }));
-vi.mock('../documents/document-editor', async () => {
+vi.mock('@/documents/document-editor', async () => {
   const { useEffect, useImperativeHandle } = await import('react');
   return {
     default: function FakeEditor(props: {

@@ -2,8 +2,8 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authFixture, makeSession } from '../test/auth-fixture';
-import { disposeRuntimes, mountApp } from '../test/mount';
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
 
 // The real editor is three megabytes of layout engine and needs a browser; the flow tests
 // drive it. Here a stand-in reports ready, changes, and failures on demand.

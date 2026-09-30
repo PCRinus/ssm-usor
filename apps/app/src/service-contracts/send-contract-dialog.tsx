@@ -19,11 +19,11 @@ import {
   type ApiErrorResponse,
   type ServiceContractResponse,
   useSendServiceContract,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
 
 const schema = z.object({
   to: z

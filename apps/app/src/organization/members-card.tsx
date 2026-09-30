@@ -17,8 +17,9 @@ import { useState } from 'react';
 import {
   getListOrganizationMembersQueryKey,
   useListOrganizationMembers,
-} from '../api/generated/api';
-import { Notice } from '../components/notice';
+} from '@/api/generated/api';
+import { Notice } from '@/components/notice';
+
 import { formatDay, roleLabels } from './labels';
 import { MemberActions } from './member-actions';
 

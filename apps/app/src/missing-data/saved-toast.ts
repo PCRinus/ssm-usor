@@ -1,7 +1,8 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 
-import { useAuth } from '../auth/auth-context';
+import { useAuth } from '@/auth/auth-context';
+
 import { currentWayBack, endWayBack, type WayBack } from './way-back';
 
 export const wayBackToastDuration = 10_000;

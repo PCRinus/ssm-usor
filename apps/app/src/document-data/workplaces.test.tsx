@@ -2,8 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authFixture, makeSession } from '../test/auth-fixture';
-import { disposeRuntimes, mountApp } from '../test/mount';
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {

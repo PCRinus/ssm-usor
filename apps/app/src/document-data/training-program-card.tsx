@@ -20,13 +20,14 @@ import { FileText } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { EditAction, SectionCard } from '../components/section-card';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { intervalLabel, staffCategoryLabels } from '../job-positions/job-position-schema';
-import { useJobPositionOptions } from '../job-positions/use-job-position-options';
-import { useFocusRequest } from '../missing-data/focus';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { EditAction, SectionCard } from '@/components/section-card';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { intervalLabel, staffCategoryLabels } from '@/job-positions/job-position-schema';
+import { useJobPositionOptions } from '@/job-positions/use-job-position-options';
+import { useFocusRequest } from '@/missing-data/focus';
+
 import { intervalOptions, monthNames, notApplicable } from './document-details-schema';
 import {
   type ClientSummary,

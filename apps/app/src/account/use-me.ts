@@ -1,7 +1,7 @@
 import { useRouteContext } from '@tanstack/react-router';
 
-import { getGetMeQueryKey, useGetMe } from '../api/generated/api';
-import { useAuth } from '../auth/auth-context';
+import { getGetMeQueryKey, useGetMe } from '@/api/generated/api';
+import { useAuth } from '@/auth/auth-context';
 
 // Private data is keyed by the user, so one account never reads another's cache.
 export const meQueryKey = (userId: string | undefined) => [...getGetMeQueryKey(), userId];

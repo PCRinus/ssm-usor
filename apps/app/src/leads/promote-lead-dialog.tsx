@@ -11,9 +11,9 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { getGetClientQueryKey, getListClientsQueryKey, usePromoteLead } from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Notice } from '../components/notice';
+import { getGetClientQueryKey, getListClientsQueryKey, usePromoteLead } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Notice } from '@/components/notice';
 
 function serverMessage(cause: unknown) {
   if (cause instanceof ApiHttpError) {

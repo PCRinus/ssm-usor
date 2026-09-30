@@ -21,12 +21,13 @@ import {
   getListJobPositionsQueryKey,
   useCreateJobPosition,
   useUpdateJobPosition,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { useSavedToast } from '../missing-data/saved-toast';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useSavedToast } from '@/missing-data/saved-toast';
+
 import {
   emptyJobPositionForm,
   intervalOptionsFor,

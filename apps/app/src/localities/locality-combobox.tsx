@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { SearchCombobox } from '../components/search-combobox';
+import { SearchCombobox } from '@/components/search-combobox';
+
 import { localityFilter } from './locality-filter';
 import { type Locality, localityItems } from './locality-items';
 

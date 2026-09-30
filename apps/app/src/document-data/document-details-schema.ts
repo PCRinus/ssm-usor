@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type {
   ClientDocumentDetailsResponse,
   UpdateClientDocumentDetailsRequest,
-} from '../api/generated/api';
+} from '@/api/generated/api';
 
 type DocumentDetails = ClientDocumentDetailsResponse['documentDetails'];
 

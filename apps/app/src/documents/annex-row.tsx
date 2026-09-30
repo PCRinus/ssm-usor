@@ -11,7 +11,7 @@ import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { Link } from '@tanstack/react-router';
 import { MoreHorizontal } from 'lucide-react';
 
-import { formatRoDate } from '../lib/dates';
+import { formatRoDate } from '@/lib/dates';
 
 const day = (timestamp: string) => formatRoDate(timestamp.slice(0, 10));
 

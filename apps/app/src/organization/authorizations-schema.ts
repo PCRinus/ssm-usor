@@ -3,7 +3,8 @@ import { z } from 'zod';
 import type {
   OrganizationAuthorizationsResponse,
   UpdateOrganizationAuthorizationsRequest,
-} from '../api/generated/api';
+} from '@/api/generated/api';
+
 import { optionalText, textOrNull } from './optional-text';
 
 type Authorizations = OrganizationAuthorizationsResponse['authorizations'];

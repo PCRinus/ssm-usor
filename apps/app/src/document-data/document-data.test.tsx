@@ -2,9 +2,9 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ClientDocumentDetailsResponse } from '../api/generated/api';
-import { authFixture, makeSession } from '../test/auth-fixture';
-import { disposeRuntimes, mountApp } from '../test/mount';
+import type { ClientDocumentDetailsResponse } from '@/api/generated/api';
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
 
 type Details = ClientDocumentDetailsResponse['documentDetails'];
 

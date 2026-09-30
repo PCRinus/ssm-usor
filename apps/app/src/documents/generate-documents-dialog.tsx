@@ -14,7 +14,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
-import { useMe } from '../account/use-me';
+import { useMe } from '@/account/use-me';
 import {
   type ApiErrorResponse,
   type ClientDocumentListResponse,
@@ -22,16 +22,17 @@ import {
   getListClientDocumentsQueryKey,
   useGenerateClientDocuments,
   useGetDocumentReadiness,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { DatePicker } from '../components/date-picker';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { dateToIso } from '../lib/dates';
-import { MissingDataList } from '../missing-data/missing-data-list';
-import { countRows, documentMissingGroups, missingCountLabel } from '../missing-data/missing-rows';
-import { startWayBack } from '../missing-data/way-back';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { DatePicker } from '@/components/date-picker';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { dateToIso } from '@/lib/dates';
+import { MissingDataList } from '@/missing-data/missing-data-list';
+import { countRows, documentMissingGroups, missingCountLabel } from '@/missing-data/missing-rows';
+import { startWayBack } from '@/missing-data/way-back';
+
 import { workersRepresentativesRule } from './document-labels';
 import {
   generateDocumentsFormSchema,

@@ -8,8 +8,9 @@ import {
   getListClientsQueryKey,
   type UpdateClientRequest,
   useUpdateClient,
-} from '../api/generated/api';
-import { useSavedToast } from '../missing-data/saved-toast';
+} from '@/api/generated/api';
+import { useSavedToast } from '@/missing-data/saved-toast';
+
 import {
   type Client,
   clientFormSchema,

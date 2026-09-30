@@ -8,9 +8,10 @@ import {
   getGetClientQueryKey,
   useGetClientDocumentDetails,
   useUpdateClientDocumentDetails,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { useSavedToast } from '../missing-data/saved-toast';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useSavedToast } from '@/missing-data/saved-toast';
+
 import {
   documentDetailsFormSchema,
   type DocumentDetailsFormValues,

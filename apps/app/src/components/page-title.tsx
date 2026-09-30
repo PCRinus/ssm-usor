@@ -1,7 +1,7 @@
 import { useMatches } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { loaderCrumb } from '../app/route-title';
+import { loaderCrumb } from '@/app/route-title';
 
 export function PageTitle() {
   const title = useMatches({

@@ -8,7 +8,8 @@ import {
   getListClientsQueryKey,
   useCreateClient,
   useUpdateClient,
-} from '../api/generated/api';
+} from '@/api/generated/api';
+
 import {
   type Client,
   clientFormSchema,

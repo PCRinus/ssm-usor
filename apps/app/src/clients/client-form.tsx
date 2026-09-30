@@ -4,10 +4,11 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Link } from '@tanstack/react-router';
 import type { ComponentProps } from 'react';
 
-import { Field } from '../components/form-field';
-import { FormSection } from '../components/form-section';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
+import { Field } from '@/components/form-field';
+import { FormSection } from '@/components/form-section';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+
 import {
   ContactFields,
   IdentificationFields,

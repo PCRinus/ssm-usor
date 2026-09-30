@@ -9,7 +9,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { CreateEmployeeRequest, EmployeeResponse } from '../api/generated/api';
+import type { CreateEmployeeRequest, EmployeeResponse } from '@/api/generated/api';
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);

@@ -1,6 +1,6 @@
 import { createFileRoute, getRouteApi, Navigate } from '@tanstack/react-router';
 
-import { ClientForm } from '../../../../clients/client-form';
+import { ClientForm } from '@/clients/client-form';
 
 export const Route = createFileRoute('/_authenticated/leads/$leadId/edit')({
   staticData: { title: 'Modifică' },

@@ -1,6 +1,7 @@
 import { caenClasses, caenClassName } from '@ssm-usor/contracts';
 
-import { type ComboboxItem, SearchCombobox } from '../components/search-combobox';
+import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
+
 import { caenFilter } from './caen-filter';
 
 const items: readonly ComboboxItem[] = caenClasses.map((entry) => ({

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { createQueryClient } from '../lib/query-client';
-import { authFixture, makeSession } from '../test/auth-fixture';
+import { createQueryClient } from '@/lib/query-client';
+import { authFixture, makeSession } from '@/test/auth-fixture';
+
 import { type AuthClient, createAuthStore } from './auth-store';
 
 describe('session transitions', () => {

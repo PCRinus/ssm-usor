@@ -7,13 +7,14 @@ import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { Link } from '@tanstack/react-router';
 import { Controller } from 'react-hook-form';
 
-import { useAuth } from '../auth/auth-context';
-import { DatePicker } from '../components/date-picker';
-import { Field } from '../components/form-field';
-import { FormSection } from '../components/form-section';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { JobPositionCombobox } from '../job-positions/job-position-combobox';
+import { useAuth } from '@/auth/auth-context';
+import { DatePicker } from '@/components/date-picker';
+import { Field } from '@/components/form-field';
+import { FormSection } from '@/components/form-section';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { JobPositionCombobox } from '@/job-positions/job-position-combobox';
+
 import type { Employee, EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
 import { useEmployeeForm } from './use-employee-form';

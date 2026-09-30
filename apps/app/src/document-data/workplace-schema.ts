@@ -1,7 +1,7 @@
 import { type CountyCode, countyCodes, romanianCounties } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { WorkplaceListResponse, WorkplaceRequest } from '../api/generated/api';
+import type { WorkplaceListResponse, WorkplaceRequest } from '@/api/generated/api';
 
 export type Workplace = WorkplaceListResponse['items'][number];
 

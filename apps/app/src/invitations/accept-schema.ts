@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { fullNameField } from '../account/profile-schema';
-import { newPasswordField } from '../auth/password-schema';
+import { fullNameField } from '@/account/profile-schema';
+import { newPasswordField } from '@/auth/password-schema';
 
 export const createAccountSchema = z.object({
   fullName: fullNameField,

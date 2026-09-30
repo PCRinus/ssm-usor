@@ -4,16 +4,16 @@ import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useForm } from 'react-hook-form';
 
-import { useAuth } from '../auth/auth-context';
-import { newPasswordErrorMessage } from '../auth/auth-errors';
+import { useAuth } from '@/auth/auth-context';
+import { newPasswordErrorMessage } from '@/auth/auth-errors';
 import {
   changePasswordSchema,
   type ChangePasswordValues,
   newPasswordHint,
-} from '../auth/password-schema';
-import { Field } from '../components/form-field';
-import { PasswordInput } from '../components/password-input';
-import { useRevealErrors } from '../components/use-reveal-errors';
+} from '@/auth/password-schema';
+import { Field } from '@/components/form-field';
+import { PasswordInput } from '@/components/password-input';
+import { useRevealErrors } from '@/components/use-reveal-errors';
 
 const codeOf = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error ? error.code : null;

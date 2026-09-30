@@ -21,9 +21,10 @@ import {
   useListInvitations,
   useResendInvitation,
   useRevokeInvitation,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Notice } from '../components/notice';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Notice } from '@/components/notice';
+
 import { formatDay, roleLabels } from './labels';
 
 function actionMessage(cause: unknown, email: string) {

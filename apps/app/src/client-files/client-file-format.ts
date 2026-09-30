@@ -6,9 +6,9 @@ import {
 } from '@ssm-usor/contracts';
 import { FileImage, FileSpreadsheet, FileText, FileType, type LucideIcon } from 'lucide-react';
 
-import type { ApiErrorResponse, ClientFileListResponse } from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { dateToIso, formatRoDate } from '../lib/dates';
+import type { ApiErrorResponse, ClientFileListResponse } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { dateToIso, formatRoDate } from '@/lib/dates';
 
 export type ClientFile = ClientFileListResponse['items'][number];
 

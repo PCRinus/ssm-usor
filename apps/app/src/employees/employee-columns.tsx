@@ -10,8 +10,9 @@ import {
 import { Link } from '@tanstack/react-router';
 import { MoreHorizontal, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
 
-import type { EmployeeListResponse } from '../api/generated/api';
-import { createDataTableColumns } from '../components/data-table/columns';
+import type { EmployeeListResponse } from '@/api/generated/api';
+import { createDataTableColumns } from '@/components/data-table/columns';
+
 import { formatDate } from './employee-format';
 import type { EmployeeStatusChange } from './employee-status-dialog';
 

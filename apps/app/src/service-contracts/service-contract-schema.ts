@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { SaveServiceContractRequest, ServiceContractResponse } from '../api/generated/api';
+import type { SaveServiceContractRequest, ServiceContractResponse } from '@/api/generated/api';
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 export const serviceContractFormSchema = z

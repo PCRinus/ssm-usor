@@ -4,9 +4,9 @@ import { z } from 'zod';
 import {
   getGetInstructionModuleQueryKey,
   getGetInstructionModuleQueryOptions,
-} from '../../../api/generated/api';
-import { useAuth } from '../../../auth/auth-context';
-import { InstructionEditorPage } from '../../../instructions/instruction-editor-page';
+} from '@/api/generated/api';
+import { useAuth } from '@/auth/auth-context';
+import { InstructionEditorPage } from '@/instructions/instruction-editor-page';
 
 export const Route = createFileRoute('/_authenticated/instructions/$moduleId')({
   staticData: { title: 'Instrucțiune', fullPage: true, editorPage: true },

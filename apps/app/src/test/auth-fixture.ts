@@ -1,7 +1,7 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { vi } from 'vitest';
 
-import type { AuthClient } from '../auth/auth-store';
+import type { AuthClient } from '@/auth/auth-store';
 
 export function makeSession(id = 'user-one', email = 'review@example.test'): Session {
   return {

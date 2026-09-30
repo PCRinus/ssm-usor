@@ -1,6 +1,6 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { EmployeeForm } from '../../../../../employees/employee-form';
+import { EmployeeForm } from '@/employees/employee-form';
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 

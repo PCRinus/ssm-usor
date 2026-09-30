@@ -1,8 +1,9 @@
 import { clientConflictReasons } from '@ssm-usor/contracts';
 import type { UseFormReturn } from 'react-hook-form';
 
-import type { ApiErrorResponse } from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
+import type { ApiErrorResponse } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+
 import { type ClientFormValues, type ClientStage, emptyClientForm } from './client-form-schema';
 
 export const clientWording = {

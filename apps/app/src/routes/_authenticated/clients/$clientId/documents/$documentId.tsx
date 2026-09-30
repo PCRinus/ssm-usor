@@ -4,9 +4,9 @@ import { z } from 'zod';
 import {
   getListClientDocumentsQueryKey,
   getListClientDocumentsQueryOptions,
-} from '../../../../../api/generated/api';
-import { useAuth } from '../../../../../auth/auth-context';
-import { DocumentEditorPage } from '../../../../../documents/document-editor-page';
+} from '@/api/generated/api';
+import { useAuth } from '@/auth/auth-context';
+import { DocumentEditorPage } from '@/documents/document-editor-page';
 
 // The loader warms the list the page reads, under the same key, and names the document.
 // The editor uses the viewport layout instead of the normal page chrome.

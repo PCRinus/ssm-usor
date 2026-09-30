@@ -10,7 +10,8 @@ import { z } from 'zod';
 import type {
   OrganizationCompanyDetailsResponse,
   UpdateOrganizationCompanyDetailsRequest,
-} from '../api/generated/api';
+} from '@/api/generated/api';
+
 import { optionalText, textOrNull } from './optional-text';
 
 type CompanyDetails = OrganizationCompanyDetailsResponse['companyDetails'];

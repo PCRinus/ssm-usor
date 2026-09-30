@@ -2,9 +2,10 @@ import { useLocation, useRouteContext } from '@tanstack/react-router';
 import type { PostHog } from 'posthog-js';
 import { useCallback, useEffect, useState } from 'react';
 
-import type { MeResponse } from '../../api/generated/api';
-import { getSupportIdentity } from '../../api/generated/api';
-import { useAuth } from '../../auth/auth-context';
+import type { MeResponse } from '@/api/generated/api';
+import { getSupportIdentity } from '@/api/generated/api';
+import { useAuth } from '@/auth/auth-context';
+
 import { loadPostHog, openSupportChat, stopPostHog } from './posthog';
 
 export function usePostHogSession(me: MeResponse | undefined) {

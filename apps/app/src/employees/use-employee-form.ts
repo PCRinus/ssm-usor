@@ -11,8 +11,9 @@ import {
   getListJobPositionsQueryKey,
   useCreateEmployee,
   useUpdateEmployee,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+
 import {
   birthDateFromCnp,
   type Employee,

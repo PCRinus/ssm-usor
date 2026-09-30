@@ -7,7 +7,8 @@ import {
 import { createMemoryHistory } from '@tanstack/react-router';
 import { describe, expect, it } from 'vitest';
 
-import { createAppRouter } from '../app/router';
+import { createAppRouter } from '@/app/router';
+
 import {
   contractMissingGroups,
   documentMissingGroups,

@@ -1,8 +1,8 @@
 import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
-import { getGetServiceContractQueryKey, useGetServiceContract } from '../api/generated/api';
-import { DocumentEditorView } from '../documents/document-editor-page';
+import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
+import { DocumentEditorView } from '@/documents/document-editor-page';
 
 // The contract in the editor the documentation set uses. It is found through its own route
 // of the API, because the list of a client's documents is the documentation set only.

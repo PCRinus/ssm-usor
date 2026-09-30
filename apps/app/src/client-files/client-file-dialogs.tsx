@@ -20,11 +20,12 @@ import {
   getListClientFilesQueryKey,
   useDeleteClientFile,
   useUpdateClientFile,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+
 import { archivedMessage, type ClientFile } from './client-file-format';
 
 const clientFileFormSchema = z.object({

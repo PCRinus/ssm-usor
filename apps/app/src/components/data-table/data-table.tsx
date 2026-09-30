@@ -14,7 +14,8 @@ import { type RowData, type SortingState, useTable } from '@tanstack/react-table
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { Pager } from '../pager';
+import { Pager } from '@/components/pager';
+
 import { type DataTableColumn, dataTableFeatures, type DataTableSort } from './columns';
 import { rowClickProps } from './row-click';
 

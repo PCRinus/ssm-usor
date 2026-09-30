@@ -3,8 +3,9 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
-import { lookupCompany } from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
+import { lookupCompany } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+
 import type { ClientFormValues } from './client-form-schema';
 
 export type LookupState =

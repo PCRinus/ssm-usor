@@ -22,19 +22,20 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useMe } from '../account/use-me';
+import { useMe } from '@/account/use-me';
 import {
   type ClientFileListResponse,
   getClientFileDownload,
   getListClientFilesQueryKey,
   setClientFileOwnersOnly,
   useListClientFiles,
-} from '../api/generated/api';
-import type { Client } from '../clients/client-form-schema';
-import { rowClickProps } from '../components/data-table/row-click';
-import { Notice } from '../components/notice';
-import { SectionCard } from '../components/section-card';
-import { fileAddress, openDownload } from '../lib/save-file';
+} from '@/api/generated/api';
+import type { Client } from '@/clients/client-form-schema';
+import { rowClickProps } from '@/components/data-table/row-click';
+import { Notice } from '@/components/notice';
+import { SectionCard } from '@/components/section-card';
+import { fileAddress, openDownload } from '@/lib/save-file';
+
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
 import {
   type ClientFile,

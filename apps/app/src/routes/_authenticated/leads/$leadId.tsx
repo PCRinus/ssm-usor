@@ -11,8 +11,8 @@ import {
 } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { getGetClientQueryKey, getGetClientQueryOptions } from '../../../api/generated/api';
-import { ApiHttpError } from '../../../api/http';
+import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
 // policies hide it from anyone who is not an owner, for whom the API answers 404.

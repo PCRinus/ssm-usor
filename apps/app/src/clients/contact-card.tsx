@@ -1,9 +1,10 @@
 import { Button } from '@ssm-usor/ui/components/button';
 
-import { Notice } from '../components/notice';
-import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
-import { useInPlaceEdit } from '../components/use-in-place-edit';
-import { useRevealErrors } from '../components/use-reveal-errors';
+import { Notice } from '@/components/notice';
+import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
+import { useInPlaceEdit } from '@/components/use-in-place-edit';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+
 import { ContactFields } from './client-fields';
 import type { Client, ClientFormValues } from './client-form-schema';
 import { useClientFieldsForm } from './use-client-fields-form';

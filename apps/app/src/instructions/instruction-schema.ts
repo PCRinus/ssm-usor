@@ -4,8 +4,8 @@ import { z } from 'zod';
 import type {
   InstructionModuleListResponse,
   PositionInstructionsResponse,
-} from '../api/generated/api';
-import type { JobPosition } from '../job-positions/job-position-schema';
+} from '@/api/generated/api';
+import type { JobPosition } from '@/job-positions/job-position-schema';
 
 export type InstructionModule = InstructionModuleListResponse['items'][number];
 export type AppliedInstruction = PositionInstructionsResponse['items'][number];

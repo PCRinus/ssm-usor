@@ -10,8 +10,9 @@ import {
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil } from 'lucide-react';
 
-import type { ClientListResponse } from '../api/generated/api';
-import { createDataTableColumns } from '../components/data-table/columns';
+import type { ClientListResponse } from '@/api/generated/api';
+import { createDataTableColumns } from '@/components/data-table/columns';
+
 import type { ClientArchiveChange } from './client-archive-dialog';
 
 export type ClientRow = ClientListResponse['items'][number];

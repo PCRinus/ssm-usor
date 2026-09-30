@@ -2,8 +2,8 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authFixture, makeSession } from '../test/auth-fixture';
-import { disposeRuntimes, mountApp } from '../test/mount';
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const invitation = {
   organizationName: 'Protect SSM',

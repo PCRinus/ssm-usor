@@ -24,8 +24,9 @@ import {
   type OrganizationMemberListResponse,
   useChangeMemberRole,
   useRemoveMember,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+
 import { roleLabels } from './labels';
 
 type Member = OrganizationMemberListResponse['items'][number];

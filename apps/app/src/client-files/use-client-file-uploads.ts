@@ -6,8 +6,9 @@ import {
   type ClientFileResponse,
   getListClientFilesQueryKey,
   getUploadClientFileUrl,
-} from '../api/generated/api';
-import { apiUpload } from '../api/http';
+} from '@/api/generated/api';
+import { apiUpload } from '@/api/http';
+
 import { fileCountLabel, refusalBeforeUpload, uploadFailureMessage } from './client-file-format';
 
 export type ChosenFile = {

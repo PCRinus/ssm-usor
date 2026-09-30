@@ -2,12 +2,13 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
-import { useInPlaceEdit } from '../components/use-in-place-edit';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { type LegalRepresentativeFocus, useFocusRequest } from '../missing-data/focus';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
+import { useInPlaceEdit } from '@/components/use-in-place-edit';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { type LegalRepresentativeFocus, useFocusRequest } from '@/missing-data/focus';
+
 import {
   type ClientSummary,
   describedBy,

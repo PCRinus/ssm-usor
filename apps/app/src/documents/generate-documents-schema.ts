@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import type { GenerateDocumentsRequest } from '../api/generated/api';
-import { isoToDate } from '../lib/dates';
+import type { GenerateDocumentsRequest } from '@/api/generated/api';
+import { isoToDate } from '@/lib/dates';
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 export const generateDocumentsFormSchema = z.object({

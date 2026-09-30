@@ -1,4 +1,4 @@
-import type { ComboboxItem } from '../components/search-combobox';
+import type { ComboboxItem } from '@/components/search-combobox';
 
 export type Locality = [name: string, parent: string];
 

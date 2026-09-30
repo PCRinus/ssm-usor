@@ -5,15 +5,15 @@ import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-ro
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { PublicFrame } from '../app/public-frame';
-import { useAuth } from '../auth/auth-context';
-import { registerErrorMessage } from '../auth/auth-errors';
-import { newPasswordHint, registerSchema, type RegisterValues } from '../auth/password-schema';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { PasswordInput } from '../components/password-input';
-import { PasswordStrengthIndicator } from '../components/password-strength-indicator';
-import { useRevealErrors } from '../components/use-reveal-errors';
+import { PublicFrame } from '@/app/public-frame';
+import { useAuth } from '@/auth/auth-context';
+import { registerErrorMessage } from '@/auth/auth-errors';
+import { newPasswordHint, registerSchema, type RegisterValues } from '@/auth/password-schema';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { PasswordInput } from '@/components/password-input';
+import { PasswordStrengthIndicator } from '@/components/password-strength-indicator';
+import { useRevealErrors } from '@/components/use-reveal-errors';
 
 // Registration is Supabase's own signup (ADR 004). The page creates an identity only; the
 // organization comes with onboarding, after the email is confirmed.

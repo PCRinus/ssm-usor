@@ -1,7 +1,7 @@
 import { type DocumentTypeKey, requiredWorkersRepresentatives } from '@ssm-usor/contracts';
 
-import type { ClientDocumentListResponse } from '../api/generated/api';
-import { employeeCountLabel } from '../job-positions/job-position-schema';
+import type { ClientDocumentListResponse } from '@/api/generated/api';
+import { employeeCountLabel } from '@/job-positions/job-position-schema';
 
 export type ClientDocument = ClientDocumentListResponse['items'][number];
 

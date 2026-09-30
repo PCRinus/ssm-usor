@@ -21,20 +21,20 @@ import {
   useListEquipment,
   useListJobPositions,
   useListPositionInstructions,
-} from '../../../../../api/generated/api';
-import { ApiHttpError } from '../../../../../api/http';
-import { useScrollToHash } from '../../../../../app/use-scroll-to-hash';
-import { useAuth } from '../../../../../auth/auth-context';
-import { EditAction, Fact, FactList, SectionCard } from '../../../../../components/section-card';
-import { PositionInstructionsCard } from '../../../../../instructions/position-instructions-card';
-import { JobPositionDialog } from '../../../../../job-positions/job-position-dialog';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useScrollToHash } from '@/app/use-scroll-to-hash';
+import { useAuth } from '@/auth/auth-context';
+import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
+import { PositionInstructionsCard } from '@/instructions/position-instructions-card';
+import { JobPositionDialog } from '@/job-positions/job-position-dialog';
 import {
   employeeCountLabel,
   intervalLabel,
   staffCategoryLabels,
-} from '../../../../../job-positions/job-position-schema';
-import { positionSections } from '../../../../../job-positions/position-sections';
-import { EquipmentCard } from '../../../../../protective-equipment/equipment-card';
+} from '@/job-positions/job-position-schema';
+import { positionSections } from '@/job-positions/position-sections';
+import { EquipmentCard } from '@/protective-equipment/equipment-card';
 
 // A position is read from the client's list, which is a handful of rows and already cached
 // by the positions section; there is no request for one position. The loader warms it and

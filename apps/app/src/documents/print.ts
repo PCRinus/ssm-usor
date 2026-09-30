@@ -1,9 +1,9 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useState } from 'react';
 
-import { type ApiErrorResponse, getDocumentDownload, printDocument } from '../api/generated/api';
-import { ApiHttpError, type ApiRequestOptions } from '../api/http';
-import { saveFile } from '../lib/save-file';
+import { type ApiErrorResponse, getDocumentDownload, printDocument } from '@/api/generated/api';
+import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
+import { saveFile } from '@/lib/save-file';
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 

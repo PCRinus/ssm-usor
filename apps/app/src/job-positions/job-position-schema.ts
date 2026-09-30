@@ -5,8 +5,8 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { JobPositionListResponse, JobPositionRequest } from '../api/generated/api';
-import { intervalOptions } from '../document-data/document-details-schema';
+import type { JobPositionListResponse, JobPositionRequest } from '@/api/generated/api';
+import { intervalOptions } from '@/document-data/document-details-schema';
 
 export type JobPosition = JobPositionListResponse['items'][number];
 

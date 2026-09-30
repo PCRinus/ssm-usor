@@ -5,9 +5,9 @@ import {
   type EmployeeListResponse,
   getListEmployeesQueryKey,
   useListEmployees,
-} from '../api/generated/api';
-import { normalizeSearch } from '../clients/caen-filter';
-import { type ComboboxItem, SearchCombobox } from '../components/search-combobox';
+} from '@/api/generated/api';
+import { normalizeSearch } from '@/clients/caen-filter';
+import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
 
 export type EmployeeOption = EmployeeListResponse['items'][number];
 

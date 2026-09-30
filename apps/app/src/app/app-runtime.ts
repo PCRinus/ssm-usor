@@ -1,9 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { RouterHistory } from '@tanstack/react-router';
 
-import type { ApiRequestOptions } from '../api/http';
-import { type AuthClient, createAuthStore } from '../auth/auth-store';
-import { createQueryClient } from '../lib/query-client';
+import type { ApiRequestOptions } from '@/api/http';
+import { type AuthClient, createAuthStore } from '@/auth/auth-store';
+import { createQueryClient } from '@/lib/query-client';
+
 import { createAppRouter } from './router';
 
 export function createAppRuntime(

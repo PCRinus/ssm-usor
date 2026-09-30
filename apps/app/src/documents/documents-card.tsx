@@ -57,14 +57,15 @@ import {
   useRegenerateDocument,
   useStartDocumentDraft,
   useUploadClientDocument,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { rowClickProps } from '../components/data-table/row-click';
-import { Notice } from '../components/notice';
-import { formatRoDate } from '../lib/dates';
-import { openDownload } from '../lib/save-file';
-import { useFocusRequest } from '../missing-data/focus';
-import { endWayBack } from '../missing-data/way-back';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { rowClickProps } from '@/components/data-table/row-click';
+import { Notice } from '@/components/notice';
+import { formatRoDate } from '@/lib/dates';
+import { openDownload } from '@/lib/save-file';
+import { useFocusRequest } from '@/missing-data/focus';
+import { endWayBack } from '@/missing-data/way-back';
+
 import { AnnexRow } from './annex-row';
 import {
   type ClientDocument,

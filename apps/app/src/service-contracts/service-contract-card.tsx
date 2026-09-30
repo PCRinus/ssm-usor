@@ -52,27 +52,28 @@ import {
   useIssueDocument,
   useRemoveDocumentSignedCopy,
   useSaveServiceContract,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import type { Client } from '../clients/client-form-schema';
-import { DatePicker } from '../components/date-picker';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { pdfOfRevision, usePrint } from '../documents/print';
-import { todayIso } from '../employees/employee-format';
-import { formatRoDate } from '../lib/dates';
-import { openDownload } from '../lib/save-file';
-import { type ContractFocus, useFocusRequest } from '../missing-data/focus';
-import { MissingDataList } from '../missing-data/missing-data-list';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import type { Client } from '@/clients/client-form-schema';
+import { DatePicker } from '@/components/date-picker';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { pdfOfRevision, usePrint } from '@/documents/print';
+import { todayIso } from '@/employees/employee-format';
+import { formatRoDate } from '@/lib/dates';
+import { openDownload } from '@/lib/save-file';
+import { type ContractFocus, useFocusRequest } from '@/missing-data/focus';
+import { MissingDataList } from '@/missing-data/missing-data-list';
 import {
   contractMissingGroups,
   countRows,
   missingCountLabel,
   type MissingRow,
-} from '../missing-data/missing-rows';
-import { startWayBack } from '../missing-data/way-back';
+} from '@/missing-data/missing-rows';
+import { startWayBack } from '@/missing-data/way-back';
+
 import { SendContractDialog } from './send-contract-dialog';
 import {
   serviceContractFormSchema,

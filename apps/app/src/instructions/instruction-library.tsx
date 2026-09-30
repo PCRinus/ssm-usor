@@ -28,10 +28,11 @@ import {
   useListInstructionModules,
   useUpdateInstructionModule,
   useUploadInstructionModule,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { rowClickProps } from '../components/data-table/row-click';
-import { Notice } from '../components/notice';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { rowClickProps } from '@/components/data-table/row-click';
+import { Notice } from '@/components/notice';
+
 import { InstructionModuleDialog, type ModuleEditing } from './instruction-module-dialog';
 import {
   articleCountLabel,

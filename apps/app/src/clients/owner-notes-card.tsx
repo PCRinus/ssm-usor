@@ -9,9 +9,9 @@ import {
   getGetClientOwnerNotesQueryKey,
   useGetClientOwnerNotes,
   useSaveClientOwnerNotes,
-} from '../api/generated/api';
-import { Notice } from '../components/notice';
-import { SectionCard } from '../components/section-card';
+} from '@/api/generated/api';
+import { Notice } from '@/components/notice';
+import { SectionCard } from '@/components/section-card';
 
 const maxLength = 5000;
 

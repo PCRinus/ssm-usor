@@ -68,6 +68,11 @@ with the **React Compiler** babel plugin. The compiler memoizes components and h
 automatically, so manual `useMemo`, `useCallback`, and `memo` are not needed for performance;
 the `react-hooks` lint rules enforce the constraints the compiler relies on.
 
+`@/` resolves to `src/` in `vite.config.ts`, `vitest.config.ts` and `tsconfig.json`. An import
+that leaves its folder uses it (`@/components/notice`); an import within a folder stays relative
+(`./client-form-schema`). There are no `index.ts` barrels: import the file. `vi.mock` takes the
+same specifier the code imports.
+
 The **TanStack devtools** (router and query panels) load lazily from the root route only when
 Vite runs in development mode. The check is a build-time constant, so production bundles and
 tests contain no devtools code. Open them from the floating trigger in the bottom-right corner of

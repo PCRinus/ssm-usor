@@ -1,8 +1,8 @@
 import { type EquipmentAllocation, equipmentAllocations } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { EquipmentEntryRequest, EquipmentListResponse } from '../api/generated/api';
-import type { JobPosition } from '../job-positions/job-position-schema';
+import type { EquipmentEntryRequest, EquipmentListResponse } from '@/api/generated/api';
+import type { JobPosition } from '@/job-positions/job-position-schema';
 
 export type EquipmentEntry = EquipmentListResponse['items'][number];
 

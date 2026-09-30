@@ -20,11 +20,12 @@ import {
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
   useUpdateEmployeeStatus,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { DatePicker } from '../components/date-picker';
-import { FieldMessage } from '../components/form-field';
-import { Notice } from '../components/notice';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { DatePicker } from '@/components/date-picker';
+import { FieldMessage } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+
 import { formatDate, todayIso } from './employee-format';
 
 type Employee = EmployeeListResponse['items'][number];

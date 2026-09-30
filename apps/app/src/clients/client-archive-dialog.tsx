@@ -18,10 +18,10 @@ import {
   useArchiveClient,
   useListClientDocuments,
   useRestoreClient,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { useAuth } from '../auth/auth-context';
-import { Notice } from '../components/notice';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useAuth } from '@/auth/auth-context';
+import { Notice } from '@/components/notice';
 
 export interface ClientArchiveChange {
   // The stage words the dialog; a lead has no documents to warn about.

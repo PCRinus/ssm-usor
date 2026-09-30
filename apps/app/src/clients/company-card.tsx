@@ -1,11 +1,12 @@
 import { caenClassName, type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 
-import { Notice } from '../components/notice';
-import { EditAction, Fact, FactList, FormActions, SectionCard } from '../components/section-card';
-import { useInPlaceEdit } from '../components/use-in-place-edit';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { type CompanyFocus, useFocusRequest } from '../missing-data/focus';
+import { Notice } from '@/components/notice';
+import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
+import { useInPlaceEdit } from '@/components/use-in-place-edit';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { type CompanyFocus, useFocusRequest } from '@/missing-data/focus';
+
 import { IdentificationFields, RegisteredOfficeFields, RegistrationFields } from './client-fields';
 import type { Client, ClientFormValues } from './client-form-schema';
 import { useClientFieldsForm } from './use-client-fields-form';

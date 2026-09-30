@@ -35,14 +35,15 @@ import {
   getListJobPositionsQueryKey,
   useListJobPositions,
   useRemoveJobPosition,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { rowClickProps } from '../components/data-table/row-click';
-import { Notice } from '../components/notice';
-import { SectionCard } from '../components/section-card';
-import { instructionStateLabel, positionCountLabel } from '../instructions/instruction-schema';
-import { useFocusRequest } from '../missing-data/focus';
-import { equipmentStateLabel } from '../protective-equipment/equipment-schema';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { rowClickProps } from '@/components/data-table/row-click';
+import { Notice } from '@/components/notice';
+import { SectionCard } from '@/components/section-card';
+import { instructionStateLabel, positionCountLabel } from '@/instructions/instruction-schema';
+import { useFocusRequest } from '@/missing-data/focus';
+import { equipmentStateLabel } from '@/protective-equipment/equipment-schema';
+
 import { DecisionBadge } from './decision-badge';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
 import {

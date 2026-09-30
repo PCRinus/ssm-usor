@@ -36,14 +36,15 @@ import {
   useListInstructionModules,
   useListJobPositions,
   useListPositionInstructions,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { SectionCard } from '../components/section-card';
-import { DecisionBadge } from '../job-positions/decision-badge';
-import type { JobPosition } from '../job-positions/job-position-schema';
-import { useSavedToast } from '../missing-data/saved-toast';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { SectionCard } from '@/components/section-card';
+import { DecisionBadge } from '@/job-positions/decision-badge';
+import type { JobPosition } from '@/job-positions/job-position-schema';
+import { useSavedToast } from '@/missing-data/saved-toast';
+
 import {
   type AppliedInstruction,
   byGroup,

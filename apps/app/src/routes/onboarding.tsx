@@ -12,7 +12,7 @@ import {
 } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
-import { useMe } from '../account/use-me';
+import { useMe } from '@/account/use-me';
 import {
   type ApiErrorResponse,
   getGetMeQueryKey,
@@ -20,15 +20,15 @@ import {
   type MeResponse,
   useCreateOrganization,
   useListMyInvitations,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { PublicFrame } from '../app/public-frame';
-import { useAuth } from '../auth/auth-context';
-import { Field, FieldMessage } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { onboardingSchema, type OnboardingValues } from '../onboarding/onboarding-schema';
-import { roleLabels } from '../organization/labels';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { PublicFrame } from '@/app/public-frame';
+import { useAuth } from '@/auth/auth-context';
+import { Field, FieldMessage } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { onboardingSchema, type OnboardingValues } from '@/onboarding/onboarding-schema';
+import { roleLabels } from '@/organization/labels';
 
 // Where a signed-in account without an organization lands (ADR 004): after registering,
 // after being removed from one, or before accepting an invitation. It sits outside the app

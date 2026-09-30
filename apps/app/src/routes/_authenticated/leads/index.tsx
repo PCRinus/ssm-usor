@@ -12,18 +12,15 @@ import { Archive, Handshake, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
 
-import { getListClientsQueryKey, useListClients } from '../../../api/generated/api';
-import { ApiHttpError } from '../../../api/http';
-import { useAuth } from '../../../auth/auth-context';
-import {
-  type ClientArchiveChange,
-  ClientArchiveDialog,
-} from '../../../clients/client-archive-dialog';
-import type { ClientRow } from '../../../clients/client-columns';
-import type { DataTableSort } from '../../../components/data-table/columns';
-import { DataTable } from '../../../components/data-table/data-table';
-import { leadColumns } from '../../../leads/lead-columns';
-import { PromoteLeadDialog } from '../../../leads/promote-lead-dialog';
+import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useAuth } from '@/auth/auth-context';
+import { type ClientArchiveChange, ClientArchiveDialog } from '@/clients/client-archive-dialog';
+import type { ClientRow } from '@/clients/client-columns';
+import type { DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { leadColumns } from '@/leads/lead-columns';
+import { PromoteLeadDialog } from '@/leads/promote-lead-dialog';
 
 const leadSortKeys = ['legalName', 'cui'] as const satisfies readonly ClientSortKey[];
 type LeadSortKey = (typeof leadSortKeys)[number];

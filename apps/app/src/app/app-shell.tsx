@@ -45,11 +45,12 @@ import {
 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
-import { useMe } from '../account/use-me';
-import { useAuth } from '../auth/auth-context';
-import { Notice } from '../components/notice';
+import { useMe } from '@/account/use-me';
+import { usePostHogSession } from '@/app/observability/use-posthog-session';
+import { useAuth } from '@/auth/auth-context';
+import { Notice } from '@/components/notice';
+
 import { CommitVersion } from './commit-version';
-import { usePostHogSession } from './observability/use-posthog-session';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';

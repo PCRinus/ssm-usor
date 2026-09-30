@@ -11,10 +11,10 @@ import {
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, UserCheck } from 'lucide-react';
 
-import type { ClientArchiveChange } from '../clients/client-archive-dialog';
-import type { ClientRow } from '../clients/client-columns';
-import { createDataTableColumns } from '../components/data-table/columns';
-import { formatRoDate } from '../lib/dates';
+import type { ClientArchiveChange } from '@/clients/client-archive-dialog';
+import type { ClientRow } from '@/clients/client-columns';
+import { createDataTableColumns } from '@/components/data-table/columns';
+import { formatRoDate } from '@/lib/dates';
 
 const helper = createDataTableColumns<ClientRow>();
 

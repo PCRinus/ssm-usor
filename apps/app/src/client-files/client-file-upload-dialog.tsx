@@ -13,7 +13,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, File as FileIcon, FileUp, Upload, X } from 'lucide-react';
 import { type FormEvent, useRef, useState } from 'react';
 
-import { Notice } from '../components/notice';
+import { Notice } from '@/components/notice';
+
 import {
   chosenFileKind,
   clientFileAccept,

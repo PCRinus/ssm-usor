@@ -1,7 +1,7 @@
 import { type ResponsiblePersonRole, responsiblePersonRoles } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { ResponsiblePersonListResponse, ResponsiblePersonRequest } from '../api/generated/api';
+import type { ResponsiblePersonListResponse, ResponsiblePersonRequest } from '@/api/generated/api';
 
 export type ResponsiblePerson = ResponsiblePersonListResponse['items'][number];
 

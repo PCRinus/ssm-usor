@@ -1,11 +1,7 @@
 import { type CountyCode, countyCodes, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type {
-  ClientResponse,
-  CreateClientRequest,
-  UpdateClientRequest,
-} from '../api/generated/api';
+import type { ClientResponse, CreateClientRequest, UpdateClientRequest } from '@/api/generated/api';
 
 export type Client = ClientResponse['client'];
 export type ClientStage = Client['stage'];

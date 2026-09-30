@@ -1,4 +1,4 @@
-import { saveFile } from '../lib/save-file';
+import { saveFile } from '@/lib/save-file';
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 

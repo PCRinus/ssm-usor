@@ -5,10 +5,10 @@ import {
   getGetEmployeeQueryKey,
   getGetEmployeeQueryOptions,
   useGetEmployee,
-} from '../../../../../api/generated/api';
-import { ApiHttpError } from '../../../../../api/http';
-import { useAuth } from '../../../../../auth/auth-context';
-import { EmployeeForm } from '../../../../../employees/employee-form';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { useAuth } from '@/auth/auth-context';
+import { EmployeeForm } from '@/employees/employee-form';
 
 // Correcting what was entered about an employee. The trailing underscore keeps this page out of
 // the employee page's own layout; the loader warms the same query that page reads.

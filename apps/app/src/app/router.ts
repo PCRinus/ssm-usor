@@ -1,7 +1,7 @@
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
 
-import type { RouterContext } from '../routes/__root';
-import { routeTree } from '../routeTree.gen';
+import type { RouterContext } from '@/routes/__root';
+import { routeTree } from '@/routeTree.gen';
 
 export function createAppRouter(context: RouterContext, history?: RouterHistory) {
   return createRouter({

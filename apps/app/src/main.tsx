@@ -3,9 +3,9 @@ import './styles.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import App from './app/App';
-import { createAppRuntime } from './app/app-runtime';
-import { supabase } from './lib/supabase';
+import App from '@/app/App';
+import { createAppRuntime } from '@/app/app-runtime';
+import { supabase } from '@/lib/supabase';
 
 const runtime = createAppRuntime(supabase?.auth ?? null);
 

@@ -21,12 +21,12 @@ import {
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
   useUpdateEmployeeJobPosition,
-} from '../api/generated/api';
-import { ApiHttpError } from '../api/http';
-import { Field } from '../components/form-field';
-import { Notice } from '../components/notice';
-import { useRevealErrors } from '../components/use-reveal-errors';
-import { JobPositionCombobox } from '../job-positions/job-position-combobox';
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { JobPositionCombobox } from '@/job-positions/job-position-combobox';
 
 type Employee = EmployeeResponse['employee'];
 
