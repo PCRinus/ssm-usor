@@ -414,7 +414,7 @@ describe('the service contract of a lead', () => {
     await user.click(screen.getByTestId('contract-draft-actions'));
     await user.click(await screen.findByTestId('contract-generate'));
     expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
-      'Prețurile și celelalte modificări făcute de mână în ea se pierd'
+      'Prețurile și celelalte modificări făcute de mână în ciornă se pierd'
     );
     expect(requests(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(0);
     await user.click(screen.getByTestId('contract-confirm'));
@@ -614,7 +614,7 @@ describe('the signed copy', () => {
     mount();
     const user = userEvent.setup();
     const row = await screen.findByTestId('contract-signed-copy');
-    expect(row.textContent).toContain('Când contractul se întoarce semnat');
+    expect(row.textContent).toContain('Un PDF scanat sau semnat electronic.');
     await user.upload(
       screen.getByTestId('contract-signed-input'),
       new File(['%PDF-1.7'], 'contract semnat.pdf', { type: 'application/pdf' })
@@ -720,7 +720,7 @@ describe('the copy received through the return link', () => {
     mount();
     const user = userEvent.setup();
     const tile = await screen.findByTestId('contract-signed-copy');
-    expect(tile.textContent).toContain('Primit de la client');
+    expect(tile.textContent).toContain('Primit prin linkul din email');
     expect(tile.textContent).toContain('22.09.2026');
     expect(screen.getByTestId('contract-received').textContent).toBe('De confirmat');
     expect(screen.queryByTestId('contract-signed')).toBeNull();

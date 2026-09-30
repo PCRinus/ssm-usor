@@ -86,31 +86,31 @@ type Confirming = 'regenerate' | 'issue' | 'issueUnfilled' | 'delete' | 'removeS
 const confirmations = {
   regenerate: {
     title: 'Generezi contractul din nou?',
-    text: 'Ciorna este completată din nou din șablon, cu datele de acum. Prețurile și celelalte modificări făcute de mână în ea se pierd.',
+    text: 'Prețurile și celelalte modificări făcute de mână în ciornă se pierd.',
     confirm: 'Generează din nou',
     destructive: false,
   },
   issue: {
     title: 'Emiți contractul?',
-    text: 'Un contract emis nu se mai modifică; o corectură este o ciornă nouă, care îl înlocuiește la emitere. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.',
+    text: 'Un contract emis nu se mai modifică. La emitere se face și PDF-ul.',
     confirm: 'Emite',
     destructive: false,
   },
   issueUnfilled: {
     title: 'Contractul mai are text de completat',
-    text: `În fișier scrie încă „${unfilledMark}”, de obicei acolo unde vin prețurile. Deschide contractul: butonul „locuri de completat” din bara editorului te duce la fiecare. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`,
+    text: `În fișier scrie încă „${unfilledMark}”, de obicei acolo unde vin prețurile. În editor, „locuri de completat” te duce la fiecare.`,
     confirm: 'Emite oricum',
     destructive: false,
   },
   removeSigned: {
     title: 'Elimini exemplarul semnat?',
-    text: 'Fișierul atașat se șterge definitiv. Contractul emis rămâne neschimbat și poți atașa alt exemplar oricând.',
+    text: 'Fișierul atașat se șterge definitiv. Contractul emis rămâne neschimbat.',
     confirm: 'Elimină exemplarul',
     destructive: true,
   },
   delete: {
     title: 'Ștergi ciorna?',
-    text: 'Ciorna și fișierul ei se șterg definitiv. Un contract emis rămâne neschimbat.',
+    text: 'Ciorna se șterge definitiv. Un contract emis rămâne neschimbat.',
     confirm: 'Șterge ciorna',
     destructive: true,
   },
@@ -679,8 +679,8 @@ function ServiceContractBody({
               inputMode: 'numeric',
               hint:
                 saved.contract === null && saved.suggestedNumber !== null
-                  ? 'Propus după ultimul contract din acest an; îl poți schimba.'
-                  : 'Din registrul tău de contracte. Un număr se folosește o singură dată pe an.',
+                  ? 'Propus după ultimul contract din acest an.'
+                  : 'Un număr se folosește o singură dată pe an.',
             })}
             {date('contractDate', 'Data contractului')}
             {date('startDate', 'Începe la')}
@@ -705,13 +705,11 @@ function ServiceContractBody({
               <h3 className="font-semibold">Cine semnează pentru client</h3>
               <p data-testid="contract-signer-hint" className="text-sm text-muted-foreground">
                 {client.stage === 'lead'
-                  ? 'Reprezentantul legal al firmei. Rămâne salvat la firmă și după ce devine client.'
+                  ? 'Rămâne salvat la firmă și după ce devine client.'
                   : 'Reprezentantul legal din Detalii: ce schimbi aici se schimbă și acolo.'}
               </p>
             </div>
-            {text('clientRepresentativeName', 'Reprezentant legal', {
-              hint: 'Numele și prenumele, așa cum apar în contract.',
-            })}
+            {text('clientRepresentativeName', 'Reprezentant legal')}
             {text('clientRepresentativeRole', 'Funcția', { hint: 'De exemplu „Administrator”.' })}
             {saved.contract && (
               <p data-testid="contract-end" className="text-sm text-muted-foreground sm:col-span-2">
@@ -752,15 +750,13 @@ function ServiceContractBody({
         data-testid="contract-document-card"
         title="Contractul"
         description={
-          <span data-testid={document ? 'contract-state' : 'contract-none'}>
-            {!document
-              ? 'Contractul nu a fost generat încă. Salvează detaliile, apoi generează-l: îl primești ca ciornă, pe care o adaptezi în editor.'
-              : document.draft
-                ? document.issued
-                  ? `Revizia ${document.issued.revision} este în vigoare. Ciorna o înlocuiește abia când o emiți.`
-                  : 'Ciorna este a ta: deschide-o, scrie prețurile și adapteaz-o, apoi emite contractul.'
-                : `Revizia ${document.issued!.revision} este emisă și nu se mai modifică; o corectură este o ciornă nouă.`}
-          </span>
+          !document ? (
+            <span data-testid="contract-none">Contractul nu a fost generat încă.</span>
+          ) : document.draft && document.issued ? (
+            <span data-testid="contract-state">
+              Revizia {document.issued.revision} rămâne în vigoare până emiți ciorna.
+            </span>
+          ) : undefined
         }
       >
         {!readOnly && (!document || document.draft) && (
@@ -769,16 +765,14 @@ function ServiceContractBody({
             data-testid="contract-prices-notice"
             title="Prețurile le scrii tu, în contract"
           >
-            Prețurile se completează direct în ciornă. Folosește „Locuri de completat” în editor ca
-            să găsești fiecare marcaj „{unfilledMark}”. Te avertizăm înainte de emitere dacă au
-            rămas marcaje.
+            În editor, „Locuri de completat” te duce la fiecare „{unfilledMark}”.
           </Notice>
         )}
 
         {!readOnly && !checking && readiness.missing.length > 0 && saved.contract !== null && (
           <div data-testid="contract-missing" className="grid gap-4">
             <Notice variant="warning" title="Contractul nu poate fi generat încă">
-              {missingCountLabel(countRows(missing))}: contractul le tipărește pe toate.
+              {missingCountLabel(countRows(missing))}.
             </Notice>
             <MissingDataList groups={missing} testId="contract-missing" onFollow={followMissing} />
           </div>
@@ -804,7 +798,7 @@ function ServiceContractBody({
             badge={
               <Badge data-testid="contract-issued">Emis · rev. {document.issued.revision}</Badge>
             }
-            meta={`Revizia ${document.issued.revision}, emisă pe ${formatRoDate(document.issued.issuedAt!.slice(0, 10))}${document.draft ? '. O ciornă nouă o înlocuiește la emitere.' : '.'}`}
+            meta={`Revizia ${document.issued.revision}, emisă pe ${formatRoDate(document.issued.issuedAt!.slice(0, 10))}.`}
           >
             {!document.draft && editor('Deschide', 'contract-open')}
             {!readOnly && (
@@ -995,8 +989,8 @@ function ServiceContractBody({
               document.issued.hasSignedCopy
                 ? `Exemplarul semnat este atașat reviziei ${document.issued.revision}.`
                 : document.issued.receivedCopy
-                  ? `Primit de la client prin linkul din email, pe ${formatRoDate(document.issued.receivedCopy.uploadedAt.slice(0, 10))}. Deschide-l și confirmă-l: până atunci contractul nu este socotit semnat.`
-                  : 'Când contractul se întoarce semnat, atașează aici exemplarul, scanat sau semnat electronic.'
+                  ? `Primit prin linkul din email pe ${formatRoDate(document.issued.receivedCopy.uploadedAt.slice(0, 10))}. Până îl confirmi, contractul nu este socotit semnat.`
+                  : 'Un PDF scanat sau semnat electronic.'
             }
           >
             {document.issued.hasSignedCopy || document.issued.receivedCopy ? (

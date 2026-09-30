@@ -298,7 +298,7 @@ export function DocumentEditorView({
         <p role="status" className="shrink-0 text-sm text-muted-foreground">
           {readOnly
             ? 'Clientul este arhivat: documentul poate fi doar citit.'
-            : 'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă, iar el rămâne în vigoare până o emiți.'}
+            : 'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă.'}
         </p>
       )}
       {startError && (

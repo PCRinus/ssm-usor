@@ -129,27 +129,27 @@ const confirmations = {
 
 function confirmationText({ action, document }: NonNullable<Confirming>) {
   if (action === 'issueUnfilled') {
-    return `În fișier scrie încă „${unfilledMark}”, acolo unde aplicația nu a avut ce completa. Deschide documentul: butonul „locuri de completat” din bara editorului te duce la fiecare. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`;
+    return `În fișier scrie încă „${unfilledMark}”. În editor, „locuri de completat” te duce la fiecare.`;
   }
   if (action === 'upload') {
-    return 'Fișierul Word pe care îl alegi ia locul ciornei. Ce conține ciorna acum se pierde; dacă vrei să o păstrezi, descarc-o înainte.';
+    return 'Fișierul Word ales ia locul ciornei. Descarc-o înainte dacă vrei să o păstrezi.';
   }
   if (action === 'issue') {
     return document.issued
-      ? `Ciorna devine revizia ${document.draft?.revision} și o înlocuiește pe cea emisă acum, care rămâne descărcabilă. Un document emis nu se mai modifică; o corectură este o ciornă nouă. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.`
-      : 'Un document emis nu se mai modifică; o corectură este o ciornă nouă, care îl înlocuiește la emitere. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.';
+      ? `Ciorna devine revizia ${document.draft?.revision} și o înlocuiește pe cea emisă acum. Un document emis nu se mai modifică. La emitere se face și PDF-ul.`
+      : 'Un document emis nu se mai modifică. La emitere se face și PDF-ul.';
   }
   if (action === 'delete') {
     return document.issued
-      ? 'Ciorna și fișierul ei se șterg definitiv. Revizia emisă rămâne neschimbată.'
-      : 'Ciorna și fișierul ei se șterg definitiv. Documentul poate fi generat din nou oricând.';
+      ? 'Ciorna se șterge definitiv. Revizia emisă rămâne neschimbată.'
+      : 'Ciorna se șterge definitiv.';
   }
   if (document.draft?.editedAt) {
-    return 'Ciorna a fost modificată de mână. Dacă o generezi din nou, este completată cu datele de acum ale clientului, iar modificările tale se pierd.';
+    return 'Modificările făcute de mână în ciornă se pierd.';
   }
   return document.draft
     ? 'Ciorna este completată din nou cu datele de acum ale clientului. Modificările făcute de mână în fișier se pierd.'
-    : 'Se creează o ciornă nouă din șablon, completată cu datele de acum ale clientului, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”. Revizia emisă rămâne în vigoare până când emiți ciorna.';
+    : 'Ciorna nouă pornește din șablon, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”.';
 }
 
 // `readOnly` is an archived client: what exists can still be downloaded.
@@ -405,11 +405,6 @@ export function DocumentsCard({
           <div data-testid="documents-empty" className="grid justify-items-center gap-2 py-10">
             <FileText className="size-8 text-muted-foreground" aria-hidden="true" />
             <p className="text-sm font-medium">Niciun document încă</p>
-            <p className="max-w-md text-center text-sm text-muted-foreground">
-              {readOnly
-                ? 'Clientul este arhivat, așa că nu i se mai generează documente.'
-                : 'Generează documentația ca să obții deciziile, materialele de instruire, testele, registrele și celelalte documente, completate cu datele clientului.'}
-            </p>
           </div>
         ) : (
           <Accordion
@@ -487,7 +482,7 @@ export function DocumentsCard({
                                   <TableCell>
                                     <Badge
                                       variant="outline"
-                                      title="Aplicația nu scrie încă acest document. Încarcă fișierul Word scris în altă parte, ca documentația să fie completă."
+                                      title="Aplicația nu scrie încă acest document. Încarcă-l ca fișier Word."
                                     >
                                       Neîncărcat
                                     </Badge>

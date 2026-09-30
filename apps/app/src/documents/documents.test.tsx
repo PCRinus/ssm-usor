@@ -667,7 +667,7 @@ describe('client documents', () => {
     expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide și modifică');
     await user.click(screen.getByTestId('document-regenerate'));
     expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
-      'modificările tale se pierd'
+      'Modificările făcute de mână în ciornă se pierd'
     );
   });
 

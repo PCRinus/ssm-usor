@@ -93,8 +93,8 @@ export function SendContractDialog({
         <DialogHeader>
           <DialogTitle>Trimiți contractul prin email?</DialogTitle>
           <DialogDescription>
-            PDF-ul reviziei {revision} pleacă atașat către {clientName}, în numele tău. Răspunsul
-            vine la adresa ta de email, unde primești și o copie a mesajului.
+            PDF-ul reviziei {revision} pleacă către {clientName}, în numele tău. Răspunsul și o
+            copie a mesajului vin la adresa ta de email.
           </DialogDescription>
         </DialogHeader>
         <form

@@ -188,9 +188,7 @@ function GenerateDocumentsForm({
                 <strong data-testid="generate-missing-count" className="font-semibold">
                   {missingCountLabel(countRows(missing))}
                 </strong>{' '}
-                <span className="text-muted-foreground">
-                  înainte de generare: documentele nu lasă niciun câmp gol.
-                </span>
+                <span className="text-muted-foreground">înainte de generare.</span>
               </p>
               <MissingDataList
                 groups={missing}
