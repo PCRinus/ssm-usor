@@ -500,8 +500,8 @@ mobile navigation link closes the Sheet.
   document says that the hand edits of the issued file are not carried over, and names that
   action as the way to keep them. When issuing is refused with the reason
   `unfilled_text`, the same dialog asks a second question, "Documentul mai are text de
-  completat", and "Emite oricum" sends `acceptUnfilled`. The five documents the app cannot
-  write yet (`uploadedDocumentTypes`) show in their place in the pack as "Neîncărcat" rows
+  completat", and "Emite oricum" sends `acceptUnfilled`. The two documents the app cannot
+  write yet (`uploadedDocumentTypes`, the risk assessment and the prevention plan) show in their place in the pack as "Neîncărcat" rows
   with an upload button, once the client has any document; every other row's menu has
   "Încarcă un fișier", which asks first when it would replace a draft. One hidden file input
   serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An issued

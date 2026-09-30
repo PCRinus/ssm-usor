@@ -213,13 +213,12 @@ across runs, and leaves an ellipsis alone.
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
-All 23 are templates. Five of them are marked `contentPending`: the own instructions (3.2),
-the training themes (4.2), the protective equipment list (6), the risk assessment (9), and
+All 23 are templates. Two of them are marked `contentPending`: the risk assessment (9) and
 the prevention plan (10). They have the house style, the wording pass, and placeholders for
 names and dates, and **their content is still the first client's**: job titles, equipment,
-risks. That content comes from the job-title data of stage 2 and the risk assessment of
-stage 3 (ADR 005); until then a generated file of these five is a starting point to edit, not
-a finished document.
+risks. That content comes from the risk assessment of stage 3 (ADR 005); until then they are
+uploaded. The own instructions (3.2), the training themes (4.2) and the protective equipment
+list (6), stage 2, are generated from the positions (ADR 011, ADR 012, ADR 014).
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
 outside the body's flow; the import walks the frames too, and a `tables` entry with
@@ -424,7 +423,7 @@ same test.
 | `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages                                                                                      | None                                                                                                                                                             |
 | `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
-| `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III. Content pending                                 | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
+| `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III                                                  | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
 | `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`                                                                                                                                                     |
 | `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | None yet                                                                                                                                                         |
