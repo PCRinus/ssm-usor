@@ -569,7 +569,6 @@ describe('client documents', () => {
     expect(summaryOf('2')).toBe('negenerat');
     expect(summaryOf('8')).toBe('1 ciornă');
     expect(summaryOf('9')).toBe('negenerat');
-    expect(summaryOf('10')).toBe('1 neîncărcat');
 
     await openSection(user, '1');
     const [decision] = await screen.findAllByTestId('document-row');
@@ -862,40 +861,38 @@ describe('client documents', () => {
     expect(requests(`/documents/${firstAidId}/issue`, 'POST')).toHaveLength(2);
   });
 
-  it('waits for a file where the app cannot write the document, and takes one', async () => {
+  it('leaves no document waiting for a file, and a file still takes the place of a draft', async () => {
     mockApi({ items: [firstAid] });
     mount();
     const user = userEvent.setup();
 
     await screen.findAllByTestId('document-section');
-    expect(summaryOf('10')).toBe('1 neîncărcat');
-    expect(['4', '9'].map(summaryOf)).toEqual(Array(2).fill('negenerat'));
-
+    expect(['4', '9', '10'].map(summaryOf)).toEqual(Array(3).fill('negenerat'));
     await openSection(user, '10');
-    const [slot] = await screen.findAllByTestId('document-slot');
-    expect(slot!.textContent).toContain('Planul de prevenire');
-    expect(slot!.textContent).toContain('Neîncărcat');
+    expect(screen.queryByTestId('document-slot')).toBeNull();
 
-    await user.click(within(slot!).getByTestId('document-slot-upload'));
-    const file = new File([new Uint8Array([80, 75, 3, 4])], 'plan.docx');
+    await openMenu(user, 'primul ajutor', '1');
+    await user.click(screen.getByTestId('document-upload'));
+    await user.click(await screen.findByTestId('document-confirm'));
+    const file = new File([new Uint8Array([80, 75, 3, 4])], 'decizie.docx');
     await user.upload(screen.getByTestId<HTMLInputElement>('document-file-input'), file);
 
-    expect(await screen.findByText(/Planul de prevenire.*a fost încărcat ca ciornă/)).toBeTruthy();
-    const [[url, init]] = requests('/documents/prevention_plan/upload', 'POST') as [
+    expect(await screen.findByText(/a fost încărcat ca ciornă/)).toBeTruthy();
+    const [[url, init]] = requests('/documents/decision_first_aid/upload', 'POST') as [
       [string, RequestInit],
     ];
-    expect(String(url)).toContain(`/clients/${clientId}/documents/prevention_plan/upload`);
+    expect(String(url)).toContain(`/clients/${clientId}/documents/decision_first_aid/upload`);
     expect(init.body).toBe(file);
   });
 
-  it('asks before a file replaces a draft, offers no regeneration for an uploaded document, and says what a refused file is', async () => {
+  it('asks before a file replaces the draft of the plan, which regenerates like any other, and says what a refused file is', async () => {
     const plan = {
       ...firstAid,
       id: 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f607',
       typeKey: 'prevention_plan',
       title: 'Planul de prevenire și protecție',
       decisionNumber: null,
-      draft: revision({ editedAt: '2026-09-19T12:00:00+00:00', issueDate: null }),
+      draft: revision({ editedAt: '2026-09-19T12:00:00+00:00' }),
     };
     mockApi({
       items: [firstAid, plan],
@@ -906,9 +903,9 @@ describe('client documents', () => {
     const user = userEvent.setup();
 
     const row = await openMenu(user, 'Planul de prevenire', '10');
-    expect(within(row).getByTestId('document-uploaded').textContent).toBe('Încărcat');
-    expect(within(row).queryByTestId('document-edited')).toBeNull();
-    expect(screen.queryByTestId('document-regenerate')).toBeNull();
+    expect(within(row).getByTestId('document-edited').textContent).toBe('Modificat');
+    expect(within(row).queryByTestId('document-uploaded')).toBeNull();
+    expect(screen.getByTestId('document-regenerate')).toBeTruthy();
     await user.click(screen.getByTestId('document-upload'));
     expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
       'ia locul ciornei'

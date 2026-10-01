@@ -2031,29 +2031,8 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       init?.method === 'POST'
         ? Response.json({ id: documentId })
         : url?.searchParams.has('id')
-          ? Response.json(rows[0] ?? { ...documentRow, type_key: 'prevention_plan' })
+          ? Response.json(rows[0] ?? documentRow)
           : Response.json(rows);
-
-  it('creates a document the app cannot generate, as revision 1 in draft', async () => {
-    mockUpstream({ documents: documents([]) });
-    const response = await upload('prevention_plan');
-    expect(response.status).toBe(200);
-
-    expect(sentBody('/rest/v1/client_documents')).toMatchObject({
-      client_id: clientId,
-      type_key: 'prevention_plan',
-      title: 'Planul de prevenire și protecție',
-    });
-    const revision = sentBody('/rest/v1/document_revisions');
-    expect(revision).toMatchObject({
-      revision: 1,
-      generation_id: null,
-      docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
-      edited_by: user.id,
-    });
-    expect(revision.template_version_id).toBeUndefined();
-    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(1);
-  });
 
   it("replaces the draft's file of a document that has one", async () => {
     mockUpstream({ documents: documents([documentRow]) });
@@ -2069,27 +2048,33 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     mockUpstream({ documents: documents([{ ...documentRow, document_revisions: [issued] }]) });
     expect((await upload('decision_first_aid')).status).toBe(200);
     expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
-    expect(sentBody('/rest/v1/document_revisions')).toMatchObject({
+    const revision = sentBody('/rest/v1/document_revisions');
+    expect(revision).toMatchObject({
       revision: 2,
       generation_id: generationId,
       docx_path: `${organizationId}/${clientId}/${documentId}/2.docx`,
+      edited_by: user.id,
     });
+    expect(revision.template_version_id).toBeUndefined();
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(1);
   });
 
   it('removes the revision again when the file cannot be stored', async () => {
     mockUpstream({
-      documents: documents([]),
+      documents: documents([{ ...documentRow, document_revisions: [issuedRevision] }]),
       upload: () => Response.json({ message: 'down' }, { status: 500 }),
     });
-    expect((await upload('prevention_plan')).status).toBeGreaterThanOrEqual(500);
+    expect((await upload('decision_first_aid')).status).toBeGreaterThanOrEqual(500);
     expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
   });
 
   it('refuses a generated type that does not exist yet, other files, and unknown types', async () => {
     mockUpstream({ documents: documents([]) });
-    const early = await upload('decision_first_aid');
-    expect(early.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await early.json()).reason).toBe('not_generated_yet');
+    for (const typeKey of ['decision_first_aid', 'risk_assessment', 'prevention_plan']) {
+      const early = await upload(typeKey);
+      expect(early.status).toBe(409);
+      expect(apiErrorResponseSchema.parse(await early.json()).reason).toBe('not_generated_yet');
+    }
     expect((await upload('prevention_plan', new Uint8Array([1, 2, 3]))).status).toBe(400);
     expect((await upload('anything_else')).status).toBe(400);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);

@@ -28,6 +28,7 @@ export const documentTypeKeys = [
   'event_registers',
   'control_report',
   'risk_assessment',
+  'prevention_plan',
   'cover_employer_briefing',
   'employer_briefing',
   'control_regulation',
@@ -38,13 +39,11 @@ export const documentTypeKeySchema = z.enum(documentTypeKeys);
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
 /**
- * The documents of the pack the app cannot write yet: the plan that follows from the risk
- * assessment (ADR 015). Until it can, the provider writes it elsewhere and uploads the file,
- * so the set is complete.
+ * The documents of the pack the app cannot write yet, which come to exist by uploading a file
+ * written elsewhere so that the set is complete. None since the risk assessment and the
+ * prevention plan are generated (ADR 015); a file still replaces the draft of any document.
  */
-export const uploadedDocumentTypes = {
-  prevention_plan: 'Planul de prevenire și protecție',
-} as const;
+export const uploadedDocumentTypes: Readonly<Record<never, string>> = {};
 
 export type UploadedDocumentTypeKey = keyof typeof uploadedDocumentTypes;
 

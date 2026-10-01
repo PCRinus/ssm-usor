@@ -87,6 +87,87 @@ describe('the general training material', () => {
       'Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.'
     );
     expect(text).toContain('Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).');
+    expect(text).not.toContain('nu a identificat în unitate factori de risc');
+  }, 30_000);
+
+  it('says so, instead of a table with only its head, where nothing is unacceptable', () => {
+    const entry = manifest.templates.find(
+      (template) => template.typeKey === 'general_training_material'
+    )!;
+    const acceptable = {
+      ...facts,
+      riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
+        ...evaluation,
+        factors: evaluation.factors.map((factor) => ({
+          ...factor,
+          gravityClass: 1,
+          probabilityClass: 1,
+        })),
+      })),
+    };
+    const text = documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(acceptable), 'general_training_material')
+      )
+    );
+    expect(text).toContain(
+      'Evaluarea riscurilor nu a identificat în unitate factori de risc în domeniul inacceptabil'
+    );
+    expect(text).not.toContain('Riscul existent / Forma de manifestare a factorului de risc');
+  }, 30_000);
+});
+
+describe('the prevention plan', () => {
+  it('prints a table per evaluation with a row per factor that has measures, or says there are none', () => {
+    const entry = manifest.templates.find((template) => template.typeKey === 'prevention_plan')!;
+    const variant = {
+      ...facts,
+      riskEvaluations: [
+        ...facts.riskEvaluations,
+        {
+          id: 'e0e0e0e0-0000-4000-8000-000000000009',
+          kind: 'other' as const,
+          jobPositionId: null,
+          name: 'Vizitatori',
+          meansOfProduction: null,
+          workEnvironment: null,
+          exposure: '1 h / zi',
+          workTask: 'Așteptare în spațiul de primire.',
+          exposedPersons: 'Variabil',
+          factors: [
+            {
+              component: 'work_environment' as const,
+              group: 'Factori de risc fizic',
+              description: 'Cădere la același nivel pe pardoseala umedă.',
+              gravityClass: 2,
+              probabilityClass: 2,
+              measures: [],
+              actions: null,
+              deadline: null,
+              responsiblePerson: null,
+              observations: null,
+            },
+          ],
+        },
+      ],
+    };
+    const context = buildDocumentContext(variant);
+    const text = documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(context, 'prevention_plan')
+      )
+    );
+    for (const evaluation of context.riskAssessment.evaluations) {
+      expect(text).toContain(evaluation.heading);
+      for (const row of evaluation.plan) {
+        expect(text).toContain(`${row.code}. ${row.description}`);
+        expect(text).toContain(row.responsiblePerson);
+      }
+    }
+    expect(text.match(/Riscuri evaluate/g)).toHaveLength(3);
+    expect(text).toContain('Nu au fost stabilite măsuri de prevenire și protecție');
   }, 30_000);
 });
 

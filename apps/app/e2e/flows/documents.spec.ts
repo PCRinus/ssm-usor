@@ -95,7 +95,7 @@ test('a row leads to its field, and the toast of the save leads back to generati
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
 });
 
 test('a client gets its documentation, downloads a decision, issues it, and corrects it', async ({
@@ -113,7 +113,7 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
 
   const rows = page.getByTestId('document-row');
   await expect(page.getByTestId('document-section')).toHaveCount(12);
@@ -229,25 +229,20 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
     timeout: 60_000,
   });
 
-  // The prevention plan is written elsewhere and uploaded; any Word file will do here. A file
-  // uploaded again after issuing is the next draft, beside the issued revision.
-  const planSection = page
-    .getByTestId('document-section')
-    .filter({ hasText: /^10\. / })
-    .getByTestId('document-section-summary');
-  await expect(planSection).toHaveText('1 neîncărcat');
+  // A file written elsewhere takes the place of the plan's draft; any Word file will do here.
+  // A file uploaded again after issuing is the next draft, beside the issued revision.
   await openDocumentSection(page, '10');
   const wordFile = await file.path();
-  const slot = page.getByTestId('document-slot').filter({ hasText: 'Planul de prevenire' });
-  await expect(slot).toContainText('Neîncărcat');
-  let chooser = page.waitForEvent('filechooser');
-  await slot.getByTestId('document-slot-upload').click();
-  await (await chooser).setFiles(wordFile);
   const plan = rows.filter({ hasText: 'Planul de prevenire' });
   await expect(plan.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
-  await expect(plan.getByTestId('document-uploaded')).toHaveText('Încărcat');
   await expect(page.getByTestId('document-slot')).toHaveCount(0);
-  await expect(planSection).toHaveText('1 ciornă');
+  let chooser = page.waitForEvent('filechooser');
+  await act(page, plan, 'document-upload');
+  await expect(page.getByTestId('document-confirm-dialog')).toContainText('ia locul ciornei');
+  await page.getByTestId('document-confirm').click();
+  await (await chooser).setFiles(wordFile);
+  await expect(plan.getByTestId('document-edited')).toHaveText('Modificat');
+  await expect(plan.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
 
   await act(page, plan, 'document-issue');
   await page.getByTestId('document-confirm').click();
@@ -431,7 +426,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 24 documente.')).toBeVisible();
   await openDocumentSection(page, '1');
   const decision = page
     .getByTestId('document-row')

@@ -2895,6 +2895,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   event_registers: 'event_registers',
   control_report: 'control_report',
   risk_assessment: 'risk_assessment',
+  prevention_plan: 'prevention_plan',
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
   control_regulation: 'control_regulation',
