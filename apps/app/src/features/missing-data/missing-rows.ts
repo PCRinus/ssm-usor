@@ -10,6 +10,10 @@ import { linkOptions } from '@tanstack/react-router';
 
 import type { DocumentSectionId } from '@/features/documents/document-sections';
 import { positionSections } from '@/features/job-positions/position-sections';
+import {
+  clientEvaluationsSection,
+  evaluationSections,
+} from '@/features/risk-evaluations/risk-evaluation-schema';
 import { responsibleRoleLabels } from '@/features/training/responsible-person-schema';
 
 import type {
@@ -31,7 +35,13 @@ const to = {
     linkOptions({
       to: '/clients/$clientId/job-positions',
       params: { clientId },
-      hash: 'client-risk-evaluations',
+      hash: clientEvaluationsSection,
+    }),
+  clientEvaluation: (clientId: string, evaluationId: string) =>
+    linkOptions({
+      to: '/clients/$clientId/job-positions/risk-evaluations/$evaluationId',
+      params: { clientId, evaluationId },
+      hash: evaluationSections.factors,
     }),
   addPosition: (clientId: string) =>
     linkOptions({
@@ -49,11 +59,12 @@ const to = {
       params: { clientId, jobPositionId },
       hash: positionSections[decision],
     }),
-  // The position's page, until its evaluation has a page of its own (ADR 015).
+  // Before the position is evaluated, the page offers to start.
   positionEvaluation: (clientId: string, jobPositionId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/$jobPositionId',
+      to: '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation',
       params: { clientId, jobPositionId },
+      hash: evaluationSections.factors,
     }),
   clientContract: (clientId: string) =>
     linkOptions({
@@ -355,7 +366,9 @@ export function documentMissingGroups({
           detail: evaluationGaps[gap].detail,
           target: evaluation.jobPositionId
             ? to.positionEvaluation(clientId, evaluation.jobPositionId)
-            : to.clientEvaluations(clientId),
+            : evaluation.evaluationId
+              ? to.clientEvaluation(clientId, evaluation.evaluationId)
+              : to.clientEvaluations(clientId),
         };
       })
   );

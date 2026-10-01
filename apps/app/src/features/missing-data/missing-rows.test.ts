@@ -141,11 +141,11 @@ describe('the rows of the generation form', () => {
       ['e-vizitatori:plan', 'Vizitatori · termene și responsabili'],
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clients/${clientId}/job-positions/p-contabil`,
-      `/clients/${clientId}/job-positions/p-sudor`,
-      `/clients/${clientId}/job-positions/p-sudor`,
+      `/clients/${clientId}/job-positions/p-contabil/risk-evaluation#factors`,
+      `/clients/${clientId}/job-positions/p-sudor/risk-evaluation#factors`,
+      `/clients/${clientId}/job-positions/p-sudor/risk-evaluation#factors`,
       `/clients/${clientId}/job-positions#client-risk-evaluations`,
-      `/clients/${clientId}/job-positions#client-risk-evaluations`,
+      `/clients/${clientId}/job-positions/risk-evaluations/e-vizitatori#factors`,
     ]);
   });
 

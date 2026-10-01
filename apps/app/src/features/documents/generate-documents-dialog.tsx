@@ -112,6 +112,7 @@ function GenerateDocumentsForm({
         clientId,
         clash: readiness.data.workersRepresentativeClash,
         undecidedJobPositions: readiness.data.undecidedJobPositions,
+        incompleteRiskEvaluations: readiness.data.incompleteRiskEvaluations,
         canEditOrganization: isOwner,
       })
     : [];
