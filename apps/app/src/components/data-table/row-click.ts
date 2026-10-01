@@ -8,7 +8,7 @@ export function rowClickProps(onActivate: (() => void) | undefined) {
   if (!onActivate) return {};
   return {
     className: 'cursor-pointer',
-    onClick: (event: MouseEvent<HTMLTableRowElement>) => {
+    onClick: (event: MouseEvent<HTMLElement>) => {
       const target = event.target as HTMLElement;
       // React bubbles events out of portals: a click in the row's menu or dialog lands here too.
       if (!event.currentTarget.contains(target)) return;
