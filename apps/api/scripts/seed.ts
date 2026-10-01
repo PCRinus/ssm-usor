@@ -13,6 +13,7 @@ import {
   seedProfessionalTitle,
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
+import { seedEvaluationProfiles } from './lib/seed-evaluation-profiles';
 import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
@@ -130,6 +131,8 @@ try {
     console.log(
       `Evaluated the risks of ${evaluations.positions} posts and the sensitive groups of ${evaluations.sensitiveGroups} clients, where they were not evaluated.`
     );
+    const profiles = await seedEvaluationProfiles(client, organization.id, user.id);
+    console.log(`Added ${profiles} evaluation profiles to the risk library, where missing.`);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'The seed failed.');
