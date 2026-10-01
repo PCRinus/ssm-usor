@@ -1,6 +1,6 @@
 # ADR 015: The risk assessment and the prevention plan
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-01
 
 ## Context
