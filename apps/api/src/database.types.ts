@@ -1319,6 +1319,71 @@ export type Database = {
         };
         Relationships: [];
       };
+      prevention_measures: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          factor_id: string;
+          id: string;
+          kind: Database['public']['Enums']['prevention_measure_kind'];
+          organization_id: string;
+          sort_order: number;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          description: string;
+          factor_id: string;
+          id?: string;
+          kind: Database['public']['Enums']['prevention_measure_kind'];
+          organization_id: string;
+          sort_order: number;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          factor_id?: string;
+          id?: string;
+          kind?: Database['public']['Enums']['prevention_measure_kind'];
+          organization_id?: string;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'prevention_measures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'prevention_measures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'prevention_measures_factor_in_client';
+            columns: ['factor_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'risk_factors';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'prevention_measures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       profiles: {
         Row: {
           created_at: string;
@@ -1348,6 +1413,169 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      risk_evaluations: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          exposure: string;
+          id: string;
+          job_position_id: string | null;
+          kind: Database['public']['Enums']['risk_evaluation_kind'];
+          means_of_production: string | null;
+          name: string | null;
+          organization_id: string;
+          updated_at: string;
+          work_environment: string | null;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          exposure?: string;
+          id?: string;
+          job_position_id?: string | null;
+          kind: Database['public']['Enums']['risk_evaluation_kind'];
+          means_of_production?: string | null;
+          name?: string | null;
+          organization_id: string;
+          updated_at?: string;
+          work_environment?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          exposure?: string;
+          id?: string;
+          job_position_id?: string | null;
+          kind?: Database['public']['Enums']['risk_evaluation_kind'];
+          means_of_production?: string | null;
+          name?: string | null;
+          organization_id?: string;
+          updated_at?: string;
+          work_environment?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'risk_evaluations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_position_in_client';
+            columns: ['job_position_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_positions';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
+      risk_factors: {
+        Row: {
+          actions: string | null;
+          client_id: string;
+          component: Database['public']['Enums']['work_system_component'];
+          created_at: string;
+          created_by: string | null;
+          deadline: string | null;
+          description: string;
+          evaluation_id: string;
+          factor_group: string;
+          gravity_class: number;
+          id: string;
+          observations: string | null;
+          organization_id: string;
+          probability_class: number;
+          responsible_person: string | null;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          actions?: string | null;
+          client_id: string;
+          component: Database['public']['Enums']['work_system_component'];
+          created_at?: string;
+          created_by?: string | null;
+          deadline?: string | null;
+          description: string;
+          evaluation_id: string;
+          factor_group: string;
+          gravity_class: number;
+          id?: string;
+          observations?: string | null;
+          organization_id: string;
+          probability_class: number;
+          responsible_person?: string | null;
+          sort_order: number;
+          updated_at?: string;
+        };
+        Update: {
+          actions?: string | null;
+          client_id?: string;
+          component?: Database['public']['Enums']['work_system_component'];
+          created_at?: string;
+          created_by?: string | null;
+          deadline?: string | null;
+          description?: string;
+          evaluation_id?: string;
+          factor_group?: string;
+          gravity_class?: number;
+          id?: string;
+          observations?: string | null;
+          organization_id?: string;
+          probability_class?: number;
+          responsible_person?: string | null;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'risk_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_factors_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_factors_evaluation_in_client';
+            columns: ['evaluation_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'risk_evaluations';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'risk_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       service_contract_sends: {
         Row: {
@@ -1545,6 +1773,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      copy_risk_factors: {
+        Args: { p_evaluation_id: string; p_from_evaluation_id: string };
+        Returns: number;
+      };
       create_organization: {
         Args: {
           accepted_terms_version: string;
@@ -1660,9 +1892,30 @@ export type Database = {
         Args: { member_user_id: string };
         Returns: boolean;
       };
+      reorder_risk_factors: {
+        Args: { p_evaluation_id: string; p_factor_ids: string[] };
+        Returns: boolean;
+      };
       revoke_organization_invitation: {
         Args: { invitation_id: string };
         Returns: boolean;
+      };
+      save_risk_factor: {
+        Args: {
+          p_actions?: string;
+          p_component: Database['public']['Enums']['work_system_component'];
+          p_deadline?: string;
+          p_description: string;
+          p_evaluation_id: string;
+          p_factor_group: string;
+          p_factor_id?: string;
+          p_gravity_class: number;
+          p_measures: Json;
+          p_observations?: string;
+          p_probability_class: number;
+          p_responsible_person?: string;
+        };
+        Returns: string;
       };
     };
     Enums: {
@@ -1673,13 +1926,16 @@ export type Database = {
       equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       organization_role: 'owner' | 'specialist';
+      prevention_measure_kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
       responsible_person_role:
         | 'workplace_manager'
         | 'first_aid'
         | 'risk_evaluation_team'
         | 'imminent_danger'
         | 'workers_representative';
+      risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       staff_category: 'technical_administrative' | 'execution';
+      work_system_component: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1808,6 +2064,7 @@ export const Constants = {
       equipment_allocation: ['personal_inventory', 'section_inventory', 'consumable'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       organization_role: ['owner', 'specialist'],
+      prevention_measure_kind: ['technical', 'organizational', 'hygienic_sanitary', 'other'],
       responsible_person_role: [
         'workplace_manager',
         'first_aid',
@@ -1815,7 +2072,9 @@ export const Constants = {
         'imminent_danger',
         'workers_representative',
       ],
+      risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       staff_category: ['technical_administrative', 'execution'],
+      work_system_component: ['executant', 'work_task', 'means_of_production', 'work_environment'],
     },
   },
 } as const;
