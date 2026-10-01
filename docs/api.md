@@ -364,10 +364,13 @@ Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)) belong to 
 `POST …/risk-evaluations` takes a `kind`: `job_position` with a `jobPositionId` (a current
 position of the client, or `400` on `jobPositionId`), `sensitive_groups`, or `other` with a
 `name`; and optionally `meansOfProduction`, `workEnvironment` and `exposure`, which defaults
-to "8 h / schimb". A second evaluation of a position or of the sensitive groups answers `409`
-with `risk_evaluation_exists`, a name the client already uses `409` with
-`risk_evaluation_name_taken`. `PATCH` changes the fields sent, `null` clearing the two texts;
-a `name` for an evaluation that is not `other` answers `400`. `GET …/risk-evaluations` lists
+to "8 h / schimb". An evaluation that is not of a position also takes `workTask` and
+`exposedPersons` ("Min. 3 persoane"), which a position's evaluation reads from the position;
+sent for one, they answer `400` on the field. A second evaluation of a position or of the
+sensitive groups answers `409` with `risk_evaluation_exists`, a name the client already uses
+`409` with `risk_evaluation_name_taken`. `PATCH` changes the fields sent, `null` clearing an
+optional text; a `name` for an evaluation that is not `other`, or a `workTask` or
+`exposedPersons` for a position's, answers `400`. `GET …/risk-evaluations` lists
 the evaluations of current positions in name order, then the sensitive groups, then the
 others by name, each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
 `GET …/job-positions/{jobPositionId}/risk-evaluation` reads a position's evaluation by the

@@ -317,7 +317,10 @@ evaluation per position, and it goes with a position deleted as a mistake), `sen
 (at most one per client), or `other`, with a `name` unique within the client ignoring case
 and the spaces around it; a check constraint ties `job_position_id` and `name` to the kind. The
 evaluation records `means_of_production` and `work_environment` as free text and `exposure`,
-"8 h / schimb" by default. It carries the same `client_id`, `organization_id` and composite foreign keys as the
+"8 h / schimb" by default. An evaluation that is not of a position also records `work_task`
+and `exposed_persons` ("Min. 3 persoane") as free text; a position's evaluation reads them
+from the position's activities and current employees, and a check constraint keeps them null
+there. It carries the same `client_id`, `organization_id` and composite foreign keys as the
 equipment entries, and an insert under a lead is refused (`CLL01`).
 
 `risk_factors` hangs off the evaluation, with the same `client_id` and `organization_id`, and
@@ -352,7 +355,7 @@ otherwise), and returns how many it copied.
 
 Members read, create, update and delete the evaluations and factors of their organization
 under active clients, and create and delete measures. Updates are granted on the evaluation's
-`name` and three texts, and on the factor's descriptive columns and `sort_order`, so neither
+`name` and five texts, and on the factor's descriptive columns and `sort_order`, so neither
 moves to another position, evaluation or client.
 
 ## Generated documents

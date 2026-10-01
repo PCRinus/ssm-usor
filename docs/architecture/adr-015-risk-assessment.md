@@ -31,6 +31,8 @@ About the work system, beside what the position already says (its name, its acti
 - the **work environment**, free text;
 - the **exposure**, free text, "8 h / schimb" unless said otherwise.
 
+A client-level evaluation also records its **work task** and the **persons exposed**, as texts, since it has no position to read them from.
+
 And its **risk factors**. Each records:
 
 - the **component** of the work system it belongs to: executant, work task, means of production, or work environment;
