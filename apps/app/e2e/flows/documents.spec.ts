@@ -229,8 +229,7 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
     timeout: 60_000,
   });
 
-  // A file written elsewhere takes the place of the plan's draft; any Word file will do here.
-  // A file uploaded again after issuing is the next draft, beside the issued revision.
+  // Any Word file will do here.
   await openDocumentSection(page, '10');
   const wordFile = await file.path();
   const plan = rows.filter({ hasText: 'Planul de prevenire' });
