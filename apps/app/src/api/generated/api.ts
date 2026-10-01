@@ -4078,6 +4078,7 @@ export const ListRiskFactorSuggestionsField = {
   actions: 'actions',
   deadline: 'deadline',
   responsiblePerson: 'responsiblePerson',
+  observations: 'observations',
 } as const;
 
 export type GetDocumentDownloadParams = {
@@ -10563,7 +10564,7 @@ export const getListRiskFactorSuggestionsUrl = (params: ListRiskFactorSuggestion
 
 /**
  * The distinct values of `field` across the organization’s risk factors that contain `query`, most recently used first, at most twenty.
- * @summary Groups or plan fields typed before, for autocomplete
+ * @summary Groups, plan fields or observations typed before, for autocomplete
  */
 export const listRiskFactorSuggestions = async (
   params: ListRiskFactorSuggestionsParams,
@@ -10667,7 +10668,7 @@ export function useListRiskFactorSuggestions<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Groups or plan fields typed before, for autocomplete
+ * @summary Groups, plan fields or observations typed before, for autocomplete
  */
 
 export function useListRiskFactorSuggestions<
