@@ -27,9 +27,12 @@ const to = {
     linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
     linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
-  // The client-level evaluations sit on the client's document data (ADR 015).
   clientEvaluations: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/training', params: { clientId } }),
+    linkOptions({
+      to: '/clients/$clientId/job-positions',
+      params: { clientId },
+      hash: 'client-risk-evaluations',
+    }),
   addPosition: (clientId: string) =>
     linkOptions({
       to: '/clients/$clientId/job-positions',

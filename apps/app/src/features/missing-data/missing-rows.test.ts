@@ -47,7 +47,7 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'positions.equipment': `/clients/${clientId}/job-positions`,
   'positions.instructions': `/clients/${clientId}/job-positions`,
   'positions.risk_evaluation': `/clients/${clientId}/job-positions`,
-  'risk_evaluations.sensitive_groups': `/clients/${clientId}/training`,
+  'risk_evaluations.sensitive_groups': `/clients/${clientId}/job-positions#client-risk-evaluations`,
   'risk_evaluations.measures': `/clients/${clientId}/job-positions`,
   'risk_evaluations.plan': `/clients/${clientId}/job-positions`,
   'documents.own_instructions': `/clients/${clientId}/documents?section=own-instructions`,
@@ -144,8 +144,8 @@ describe('the rows of the generation form', () => {
       `/clients/${clientId}/job-positions/p-contabil`,
       `/clients/${clientId}/job-positions/p-sudor`,
       `/clients/${clientId}/job-positions/p-sudor`,
-      `/clients/${clientId}/training`,
-      `/clients/${clientId}/training`,
+      `/clients/${clientId}/job-positions#client-risk-evaluations`,
+      `/clients/${clientId}/job-positions#client-risk-evaluations`,
     ]);
   });
 
