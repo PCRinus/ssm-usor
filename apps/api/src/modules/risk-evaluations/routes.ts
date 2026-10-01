@@ -80,7 +80,7 @@ export const createRiskEvaluationRoute = createRoute({
   operationId: 'createRiskEvaluation',
   summary: 'Start a risk evaluation',
   description:
-    'For one of the client’s positions (`kind: job_position`), for its sensitive groups, or for another named work system (`kind: other`). A position and the sensitive groups have one evaluation at most (reason `risk_evaluation_exists`); two other evaluations of a client differ in name (reason `risk_evaluation_name_taken`). `exposure` defaults to "8 h / schimb".',
+    'For one of the client’s positions (`kind: job_position`), for its sensitive groups, or for another named work system (`kind: other`). A position and the sensitive groups have one evaluation at most (reason `risk_evaluation_exists`); two other evaluations of a client differ in name (reason `risk_evaluation_name_taken`). `exposure` defaults to "8 h / schimb". `workTask` and `exposedPersons` are for an evaluation that is not of a position, which reads them from the position; sent for one, they answer `400`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -164,7 +164,7 @@ export const updateRiskEvaluationRoute = createRoute({
   operationId: 'updateRiskEvaluation',
   summary: 'Change what a risk evaluation says about its work system',
   description:
-    'A field left out stays as it is; `null` clears `meansOfProduction` or `workEnvironment`. Only an evaluation of kind `other` takes a `name`.',
+    'A field left out stays as it is; `null` clears `meansOfProduction` or `workEnvironment`. Only an evaluation of kind `other` takes a `name`, and only one that is not of a position a `workTask` or `exposedPersons`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

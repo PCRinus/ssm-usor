@@ -96,6 +96,8 @@ const managerEvaluation = {
   means_of_production: 'Calculator, imprimantă',
   work_environment: 'Birou',
   exposure: '8 h / schimb',
+  work_task: null,
+  exposed_persons: null,
   created_at: stamp,
   updated_at: stamp,
   job_positions: { id: managerId, name: 'Manager magazin' },
@@ -304,6 +306,8 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
       means_of_production: null,
       work_environment: null,
       exposure: '8 h / schimb',
+      work_task: null,
+      exposed_persons: null,
       created_by: user.id,
     });
   });
@@ -319,6 +323,31 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
       'jobPositionId'
     );
     expect(calls('risk_evaluations', 'POST')).toHaveLength(0);
+  });
+
+  it('records the work task and the persons exposed of a client-level evaluation only', async () => {
+    mockUpstream();
+    const other = await request(base, 'POST', {
+      kind: 'other',
+      name: 'Vizitatori',
+      workTask: 'Cumpără înghețată',
+      exposedPersons: 'Min. 3 persoane',
+    });
+    expect(other.status).toBe(201);
+    expect(sent('risk_evaluations', 'POST')).toMatchObject({
+      work_task: 'Cumpără înghețată',
+      exposed_persons: 'Min. 3 persoane',
+    });
+    const position = await request(base, 'POST', {
+      kind: 'job_position',
+      jobPositionId: managerId,
+      exposedPersons: '2 persoane',
+    });
+    expect(position.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await position.json()).issues?.[0]?.path).toBe(
+      'exposedPersons'
+    );
+    expect(calls('risk_evaluations', 'POST')).toHaveLength(1);
   });
 
   it('requires a name for another evaluation, and none for the sensitive groups', async () => {
@@ -445,6 +474,32 @@ describe('PATCH and DELETE …/risk-evaluations/{evaluationId}', () => {
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('name');
     expect(calls('risk_evaluations', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses a work task or exposed persons for the evaluation of a position', async () => {
+    mockUpstream();
+    const response = await request(evaluationPath, 'PATCH', { workTask: 'Vânzare' });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('workTask');
+    expect(calls('risk_evaluations', 'PATCH')).toHaveLength(0);
+  });
+
+  it('changes the work task and the persons exposed of a client-level evaluation', async () => {
+    mockUpstream({
+      evaluations: (init, url) =>
+        isGet(init) && url.searchParams.get('select') === 'id,kind'
+          ? Response.json([{ id: evaluationId, kind: 'sensitive_groups' }])
+          : undefined,
+    });
+    const response = await request(evaluationPath, 'PATCH', {
+      workTask: 'Lucrători sub 18 ani',
+      exposedPersons: null,
+    });
+    expect(response.status).toBe(200);
+    expect(sent('risk_evaluations', 'PATCH')).toEqual({
+      work_task: 'Lucrători sub 18 ani',
+      exposed_persons: null,
+    });
   });
 
   it('deletes an evaluation, and answers 404 for one not under the client', async () => {

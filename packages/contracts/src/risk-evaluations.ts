@@ -43,23 +43,43 @@ const workSystem = {
   meansOfProduction: optionalText(2000),
   workEnvironment: optionalText(2000),
   exposure: text(120).default(defaultExposure),
+  workTask: optionalText(2000),
+  exposedPersons: optionalText(120),
 };
 
-export const createRiskEvaluationRequestSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('job_position'), jobPositionId: z.uuid(), ...workSystem }),
-  z.object({ kind: z.literal('sensitive_groups'), ...workSystem }),
-  z.object({ kind: z.literal('other'), name: evaluationName, ...workSystem }),
-]);
+/** The fields a position evaluation reads from its position: its activities and its current employees. */
+export const clientLevelEvaluationFields = ['workTask', 'exposedPersons'] as const;
+
+export const createRiskEvaluationRequestSchema = z
+  .discriminatedUnion('kind', [
+    z.object({ kind: z.literal('job_position'), jobPositionId: z.uuid(), ...workSystem }),
+    z.object({ kind: z.literal('sensitive_groups'), ...workSystem }),
+    z.object({ kind: z.literal('other'), name: evaluationName, ...workSystem }),
+  ])
+  .superRefine((body, context) => {
+    if (body.kind !== 'job_position') return;
+    for (const field of clientLevelEvaluationFields) {
+      if (body[field] != null) {
+        context.addIssue({
+          code: 'custom',
+          path: [field],
+          message: 'A position evaluation reads this from its position.',
+        });
+      }
+    }
+  });
 
 export type CreateRiskEvaluationRequest = z.infer<typeof createRiskEvaluationRequestSchema>;
 
 // Left out, a field stays as it is; null clears it. Only an evaluation of kind `other` has a
-// name to change.
+// name to change, and only one that is not of a position a work task or exposed persons.
 export const updateRiskEvaluationRequestSchema = z.object({
   name: evaluationName.optional(),
   meansOfProduction: optionalText(2000),
   workEnvironment: optionalText(2000),
   exposure: text(120).optional(),
+  workTask: optionalText(2000),
+  exposedPersons: optionalText(120),
 });
 
 export type UpdateRiskEvaluationRequest = z.infer<typeof updateRiskEvaluationRequestSchema>;
@@ -135,6 +155,9 @@ export const riskEvaluationSchema = z.object({
   meansOfProduction: z.string().nullable(),
   workEnvironment: z.string().nullable(),
   exposure: z.string(),
+  // Null for kind `job_position`, which reads them from the position.
+  workTask: z.string().nullable(),
+  exposedPersons: z.string().nullable(),
   factors: z.array(riskFactorSchema),
 });
 

@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  clientLevelEvaluationFields,
   evaluationGlobalRiskLevel,
   isUnacceptableRiskLevel,
   type RiskEvaluation,
@@ -38,6 +39,8 @@ type EvaluationRow = Pick<
   | 'kind'
   | 'name'
   | 'means_of_production'
+  | 'work_task'
+  | 'exposed_persons'
   | 'work_environment'
   | 'exposure'
   | 'created_at'
@@ -76,7 +79,7 @@ type SummaryRow = Pick<
 };
 
 const evaluationColumns =
-  'id, client_id, kind, name, means_of_production, work_environment, exposure, created_at, updated_at, job_positions(id, name), risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, created_at, updated_at, prevention_measures(id, kind, description, sort_order))';
+  'id, client_id, kind, name, means_of_production, work_environment, exposure, work_task, exposed_persons, created_at, updated_at, job_positions(id, name), risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, created_at, updated_at, prevention_measures(id, kind, description, sort_order))';
 
 const summaryColumns =
   'id, client_id, kind, name, created_at, updated_at, job_positions(id, name, archived_at), risk_factors(gravity_class, probability_class)';
@@ -114,6 +117,8 @@ function toEvaluation(row: EvaluationRow): RiskEvaluation {
     jobPosition: row.job_positions,
     name: row.name,
     meansOfProduction: row.means_of_production,
+    workTask: row.work_task,
+    exposedPersons: row.exposed_persons,
     workEnvironment: row.work_environment,
     exposure: row.exposure,
     factors,
@@ -260,6 +265,8 @@ export const createRiskEvaluation: RouteHandler<typeof createRiskEvaluationRoute
       job_position_id: body.kind === 'job_position' ? body.jobPositionId : null,
       name: body.kind === 'other' ? body.name : null,
       means_of_production: body.meansOfProduction ?? null,
+      work_task: body.workTask ?? null,
+      exposed_persons: body.exposedPersons ?? null,
       work_environment: body.workEnvironment ?? null,
       exposure: body.exposure,
       created_by: c.get('user').id,
@@ -308,11 +315,28 @@ export const updateRiskEvaluation: RouteHandler<typeof updateRiskEvaluationRoute
       { path: 'name', message: 'This evaluation is named by its position or by the law.' },
     ]);
   }
+  if (evaluation.kind === 'job_position') {
+    const issues = clientLevelEvaluationFields
+      .filter((field) => body[field] != null)
+      .map((field) => ({
+        path: field,
+        message: 'A position evaluation reads this from its position.',
+      }));
+    if (issues.length > 0) {
+      throw new ApiError(
+        'validation_error',
+        'A position evaluation reads its work task and exposed persons from the position.',
+        issues
+      );
+    }
+  }
   const changes: Tables['risk_evaluations']['Update'] = {};
   if (body.name !== undefined) changes.name = body.name;
   if (body.meansOfProduction !== undefined) changes.means_of_production = body.meansOfProduction;
   if (body.workEnvironment !== undefined) changes.work_environment = body.workEnvironment;
   if (body.exposure !== undefined) changes.exposure = body.exposure;
+  if (body.workTask !== undefined) changes.work_task = body.workTask;
+  if (body.exposedPersons !== undefined) changes.exposed_persons = body.exposedPersons;
   if (Object.keys(changes).length > 0) {
     const { error } = await db
       .from('risk_evaluations')
