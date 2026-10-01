@@ -7,6 +7,7 @@ import {
   createClientCompany,
   createEmployee,
   createOrganization,
+  evaluateRisks,
   openDocumentSection,
   signIn,
 } from './support';
@@ -35,13 +36,14 @@ test('generating waits for the data the documents print, and says where it is fi
 
   await expect(page.getByTestId('documents-empty')).toBeVisible();
   await page.getByTestId('documents-generate').click();
-  await expect(page.getByTestId('generate-missing-count')).toHaveText('11 date de completat');
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('12 date de completat');
   await expect(page.getByTestId('generate-missing-place').getByRole('heading')).toHaveText([
     'Datele organizației',
     'Profilul tău',
     'Detaliile clientului',
     'Instruire și responsabili',
     'Posturile de lucru',
+    'Evaluarea riscurilor',
   ]);
   const rows = page.getByTestId('generate-missing-row');
   await expect(rows).toHaveText([
@@ -56,6 +58,7 @@ test('generating waits for the data the documents print, and says where it is fi
     /^Echipa de evaluare a riscurilor/,
     /^Pericol grav și iminent/,
     /^Cel puțin un post de lucru/,
+    /^Evaluarea grupurilor sensibile/,
   ]);
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
@@ -173,17 +176,14 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
   await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
 
-  // The training material's chapter of the unit's own risks is left for a person to write,
-  // so issuing it asks a second time.
+  // The training material's chapter of the unit's own risks prints the unacceptable factors
+  // of the evaluations (ADR 015), so nothing is left to fill in by hand.
   await openDocumentSection(page, '2');
   const material = page
     .getByTestId('document-row')
     .filter({ hasText: /^Material de instruire introductiv-generală/ });
   await act(page, material, 'document-issue');
   await page.getByTestId('document-confirm').click();
-  await expect(page.getByTestId('document-confirm-dialog')).toContainText('„DE COMPLETAT”');
-  await expect(material.getByTestId('document-issued')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Emite oricum' }).click();
   await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
 
   // The own instructions annex the module the position applies (ADR 012): issuing converts
@@ -348,6 +348,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     lastName: 'Vasile',
     jobTitle: 'Vânzător',
   });
+  await evaluateRisks(organizationId, clientId);
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
 
