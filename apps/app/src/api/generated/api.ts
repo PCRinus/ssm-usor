@@ -1621,6 +1621,10 @@ export type RiskEvaluationResponseEvaluation = {
   /** @nullable */
   workEnvironment: string | null;
   exposure: string;
+  /** @nullable */
+  workTask: string | null;
+  /** @nullable */
+  exposedPersons: string | null;
   factors: RiskEvaluationResponseEvaluationFactorsItem[];
 };
 
@@ -1649,6 +1653,18 @@ export type CreateRiskEvaluationRequest =
        * @maxLength 120
        */
       exposure?: string;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      workTask?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 120
+       * @nullable
+       */
+      exposedPersons?: string | null;
     }
   | {
       kind: 'sensitive_groups';
@@ -1669,6 +1685,18 @@ export type CreateRiskEvaluationRequest =
        * @maxLength 120
        */
       exposure?: string;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      workTask?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 120
+       * @nullable
+       */
+      exposedPersons?: string | null;
     }
   | {
       kind: 'other';
@@ -1694,6 +1722,18 @@ export type CreateRiskEvaluationRequest =
        * @maxLength 120
        */
       exposure?: string;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      workTask?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 120
+       * @nullable
+       */
+      exposedPersons?: string | null;
     };
 
 export interface UpdateRiskEvaluationRequest {
@@ -1719,6 +1759,18 @@ export interface UpdateRiskEvaluationRequest {
    * @maxLength 120
    */
   exposure?: string;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  workTask?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  exposedPersons?: string | null;
 }
 
 export type RiskFactorRequestComponent =
@@ -1909,6 +1961,10 @@ export type JobPositionRiskEvaluationResponseEvaluation = {
   /** @nullable */
   workEnvironment: string | null;
   exposure: string;
+  /** @nullable */
+  workTask: string | null;
+  /** @nullable */
+  exposedPersons: string | null;
   factors: JobPositionRiskEvaluationResponseEvaluationFactorsItem[];
 } | null;
 
@@ -9294,7 +9350,7 @@ export const getCreateRiskEvaluationUrl = (clientId: string) => {
 };
 
 /**
- * For one of the client’s positions (`kind: job_position`), for its sensitive groups, or for another named work system (`kind: other`). A position and the sensitive groups have one evaluation at most (reason `risk_evaluation_exists`); two other evaluations of a client differ in name (reason `risk_evaluation_name_taken`). `exposure` defaults to "8 h / schimb".
+ * For one of the client’s positions (`kind: job_position`), for its sensitive groups, or for another named work system (`kind: other`). A position and the sensitive groups have one evaluation at most (reason `risk_evaluation_exists`); two other evaluations of a client differ in name (reason `risk_evaluation_name_taken`). `exposure` defaults to "8 h / schimb". `workTask` and `exposedPersons` are for an evaluation that is not of a position, which reads them from the position; sent for one, they answer `400`.
  * @summary Start a risk evaluation
  */
 export const createRiskEvaluation = async (
@@ -9542,7 +9598,7 @@ export const getUpdateRiskEvaluationUrl = (clientId: string, evaluationId: strin
 };
 
 /**
- * A field left out stays as it is; `null` clears `meansOfProduction` or `workEnvironment`. Only an evaluation of kind `other` takes a `name`.
+ * A field left out stays as it is; `null` clears `meansOfProduction` or `workEnvironment`. Only an evaluation of kind `other` takes a `name`, and only one that is not of a position a `workTask` or `exposedPersons`.
  * @summary Change what a risk evaluation says about its work system
  */
 export const updateRiskEvaluation = async (
