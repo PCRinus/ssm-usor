@@ -1,5 +1,5 @@
 begin;
-select plan(34);
+select plan(37);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -110,9 +110,29 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$ insert into public.risk_evaluations (organization_id, client_id, kind, name)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'other', 'Vizitatori') $$,
-  'a member adds another named evaluation'
+  $$ insert into public.risk_evaluations (organization_id, client_id, kind, name, work_task, exposed_persons)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'other', 'Vizitatori', 'Cumpără înghețată', 'Min. 3 persoane') $$,
+  'a member adds another named evaluation, with its work task and the persons exposed'
+);
+
+select throws_ok(
+  $$ insert into public.risk_evaluations (organization_id, client_id, kind, job_position_id, work_task)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'job_position', 'f1f1f1f1-0000-4000-8000-000000000002', 'Contabilitate') $$,
+  '23514',
+  null,
+  'a position evaluation takes its work task from the position'
+);
+
+select throws_ok(
+  $$ update public.risk_evaluations set exposed_persons = '2 persoane' where id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'a position evaluation takes its exposed persons from the employees'
+);
+
+select lives_ok(
+  $$ update public.risk_evaluations set work_task = 'Persoane cu dizabilități', exposed_persons = '1 persoană' where id = 'e1e1e1e1-0000-4000-8000-000000000002' $$,
+  'a member records the work task and the persons exposed of the sensitive groups'
 );
 
 select throws_ok(

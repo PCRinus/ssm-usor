@@ -1419,6 +1419,7 @@ export type Database = {
           client_id: string;
           created_at: string;
           created_by: string | null;
+          exposed_persons: string | null;
           exposure: string;
           id: string;
           job_position_id: string | null;
@@ -1428,11 +1429,13 @@ export type Database = {
           organization_id: string;
           updated_at: string;
           work_environment: string | null;
+          work_task: string | null;
         };
         Insert: {
           client_id: string;
           created_at?: string;
           created_by?: string | null;
+          exposed_persons?: string | null;
           exposure?: string;
           id?: string;
           job_position_id?: string | null;
@@ -1442,11 +1445,13 @@ export type Database = {
           organization_id: string;
           updated_at?: string;
           work_environment?: string | null;
+          work_task?: string | null;
         };
         Update: {
           client_id?: string;
           created_at?: string;
           created_by?: string | null;
+          exposed_persons?: string | null;
           exposure?: string;
           id?: string;
           job_position_id?: string | null;
@@ -1456,6 +1461,7 @@ export type Database = {
           organization_id?: string;
           updated_at?: string;
           work_environment?: string | null;
+          work_task?: string | null;
         };
         Relationships: [
           {

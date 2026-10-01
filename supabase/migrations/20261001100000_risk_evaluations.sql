@@ -32,6 +32,8 @@ create table public.risk_evaluations (
   means_of_production text constraint risk_evaluations_means_of_production_length check (char_length(btrim(means_of_production)) between 1 and 2000),
   work_environment text constraint risk_evaluations_work_environment_length check (char_length(btrim(work_environment)) between 1 and 2000),
   exposure text not null default '8 h / schimb' constraint risk_evaluations_exposure_length check (char_length(btrim(exposure)) between 1 and 120),
+  work_task text constraint risk_evaluations_work_task_length check (char_length(btrim(work_task)) between 1 and 2000),
+  exposed_persons text constraint risk_evaluations_exposed_persons_length check (char_length(btrim(exposed_persons)) between 1 and 120),
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -48,6 +50,10 @@ create table public.risk_evaluations (
   constraint risk_evaluations_subject check (
     (kind = 'job_position') = (job_position_id is not null)
     and (kind = 'other') = (name is not null)
+  ),
+  -- A position's work task is its activities and its exposed persons its current employees.
+  constraint risk_evaluations_client_level_texts check (
+    kind <> 'job_position' or (work_task is null and exposed_persons is null)
   )
 );
 
@@ -340,7 +346,7 @@ create policy "members delete their risk evaluations"
   using (organization_id = public.current_organization_id());
 
 revoke update on table public.risk_evaluations from authenticated;
-grant update (name, means_of_production, work_environment, exposure)
+grant update (name, means_of_production, work_environment, exposure, work_task, exposed_persons)
   on table public.risk_evaluations to authenticated;
 
 create policy "members read their risk factors"
