@@ -19,7 +19,7 @@ Tools were read too. ssm.ro's documentation says posts group the functions with 
 
 ### One evaluation feeds both documents
 
-A **risk evaluation** is recorded once and both documents are generated from it. The method is the I.N.C.D.P.M. one and is not a choice: the template's static chapters describe it, and its grid and formula are code. A provider who works by another method keeps uploading.
+A **risk evaluation** is recorded once and both documents are generated from it. The method is the I.N.C.D.P.M. one and is not a choice: the template's static chapters describe it, and its grid and formula are code. A provider who works by another method uploads the two documents instead, as below.
 
 An evaluation belongs to a **job position**, one per position. A client can also hold evaluations that are not posts, each with a name: one for the **sensitive groups**, which the law asks for and readiness requires, and any others the provider wants, such as visitors. Modelling these as job positions was rejected, since they would appear in the positions table, the training themes and the equipment list; a fixed chapter of text on sensitive groups was rejected as weaker than the evaluation art. 12 names.
 
@@ -46,9 +46,22 @@ The maximum foreseeable consequence is not a field: the sheet prints the wording
 
 The organization keeps **evaluation profiles**: a name and a set of risk factors with their classes, measures and plan fields. The library starts empty, as the instruction library does ([ADR 012](adr-012-own-instructions.md)); the app ships no risk text, and the two sample packs are not imported as a seed, which would put one provider's judgement into every tenant. Any evaluation can be saved as a profile. Applying a profile to an evaluation copies its factors in beside those already there, so an office profile and a driving profile can be combined; an evaluation can also copy another evaluation of the same client. Nothing flows back: a copy is the client's, and the evaluator adjusts its classes to the client. A library of single factors was rejected as the wrong unit, since picking forty factors one by one is the work the profile exists to save; copying without a library was rejected because reuse across clients would mean finding the right client first.
 
+### Generated or uploaded
+
+A client's assessment and plan come to exist in one of two ways, and the provider chooses per client:
+
+- **Generated** from the client's risk evaluations, as above.
+- **Uploaded** as a `.docx` written elsewhere, as today: by another method, per point of work, or simply the file the provider already has for that client.
+
+Both documents stay uploadable before they exist, which no other generated document is. An uploaded revision has no data behind it, as any upload: it is never marked as changed and cannot be regenerated, and the two documents are independent, so an uploaded assessment can sit beside a generated plan.
+
+The library takes no uploads. An instruction module is a text to print, so a Word file is the module ([ADR 012](adr-012-own-instructions.md)); a profile is classes to compute with and rows to lay out in two documents, which a Word file cannot give. A provider's existing assessments enter the library by being typed once as an evaluation and saved as a profile. Reading factors out of an uploaded file is not attempted.
+
 ### Readiness
 
-Generation requires: every current position evaluated, with at least one factor; the sensitive groups evaluated; every unacceptable factor with at least one measure; every factor that has measures with a deadline and a person responsible. The generation form names what is missing with a link, as it does for equipment and instructions. A position cannot declare that it needs no evaluation.
+The evaluations are complete when: every current position is evaluated, with at least one factor; the sensitive groups are evaluated; every unacceptable factor has at least one prevention measure; every factor that has prevention measures has a deadline and a person responsible. A position cannot declare that it needs no evaluation.
+
+Incomplete evaluations do not block the set, unlike every other missing fact under ADR 005: a provider who uploads these two documents would otherwise have to evaluate every post to generate a decision. A set run generates the assessment and the plan when the evaluations are complete and leaves them out when they are not, as it leaves the training themes out when the own instructions are an uploaded file ([ADR 014](adr-014-training-themes.md)). The two rows then say what is missing, with a link, beside the upload button. The unit risks of the general training material print the "DE COMPLETAT" row until the evaluations are complete.
 
 ### What the assessment prints
 
@@ -78,12 +91,13 @@ A document belongs to the client, not to a workplace, and that stays. The Inspec
 
 ## Consequences
 
-- No document of the provider's pack is left that the app cannot write; the two leave the uploaded document types, and a file uploaded before this stays as it is until regenerated.
+- No document of the provider's pack is left that the app cannot write. The two are the only ones with two ways in, generated or uploaded before they exist, and a file uploaded before this stays as it is.
 - A client's first generation now needs every post evaluated, which is the largest amount of data entry in the product. Profiles make the second client of a kind cheap; the first is typed.
 - The evaluation is the evaluator's professional judgement. The app computes levels and copies profiles; it never proposes a class on its own.
 - The snapshot grows by the evaluations, so a changed factor marks the assessment, the plan and the general training material as changed.
 - An equipment entry's risk and a risk factor are separate texts. Linking them was left out; the equipment list is not derived from the assessment.
-- A provider who evaluates by another method, or per point of work, uploads or edits the generated file.
+- A provider who uploads the two documents gets nothing from the app for them: no computed levels, no plan from the measures, and the unit risks of the general training material left to fill in by hand. Other methods are issue #259.
+- A set can be issued without an assessment, as it can today; the app does not insist on the two documents.
 
 ## Order of work
 
