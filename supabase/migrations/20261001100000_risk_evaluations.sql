@@ -1,7 +1,5 @@
--- Risk evaluations (ADR 015): one evaluated work system by the I.N.C.D.P.M. method, with its
--- risk factors and their prevention measures. The risk assessment and the prevention plan
--- are generated from them. A factor's risk level and an evaluation's global level are read
--- from the method's grid in code, never stored: a stored level could disagree with its classes.
+-- Risk evaluations (ADR 015). A factor's risk level and an evaluation's global level are never
+-- stored: code reads them from the method's grid, so they cannot disagree with the classes.
 
 create type public.risk_evaluation_kind as enum (
   'job_position',
@@ -308,8 +306,6 @@ revoke all on function public.copy_risk_factors(uuid, uuid) from public, anon;
 grant execute on function public.save_risk_factor(uuid, public.work_system_component, text, text, smallint, smallint, jsonb, uuid, text, text, text, text) to authenticated;
 grant execute on function public.reorder_risk_factors(uuid, uuid[]) to authenticated;
 grant execute on function public.copy_risk_factors(uuid, uuid) to authenticated;
-
--- Row-level security ------------------------------------------------------------------------
 
 alter table public.risk_evaluations enable row level security;
 alter table public.risk_factors enable row level security;
