@@ -1209,9 +1209,9 @@ def typeset(document, kind, shrink_empty=False, subheadings=()):
         last.ParaTopMargin = 0
         last.ParaBottomMargin = 0
     closing = list(_elements(document.Text))
-    if len(closing) > 1 and closing[-2].supportsService('com.sun.star.text.TextTable') \
-            and closing[-1].getString().strip().startswith('{{/'):
-        # Merged, the loop's closing tag leaves nothing behind, and its table would end the file.
+    if len(closing) > 1 and closing[-1].getString().strip().startswith('{{/'):
+        # Merged, loop tags leave nothing behind, and a table inside or before them would end
+        # the file.
         cursor = document.Text.createTextCursorByRange(closing[-1].getEnd())
         document.Text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
         end = list(_elements(document.Text))[-1]
@@ -1313,10 +1313,11 @@ def append_paragraphs(document, items):
 
 
 def clear_section(document, section, marker):
-    """Removes the body from the paragraph matching `from` up to the one matching `to`, or to
-    the end without one, and leaves `marker` in a paragraph where it was, for `fill_section`.
-    The risk assessment's chapters about the unit and its evaluations are rewritten this way
-    around the merge context's loops (ADR 015)."""
+    """Removes the body from the paragraph matching `from`, the first after the one matching
+    `after` where there is one, up to the one matching `to`, or to the end without one, and
+    leaves `marker` in a paragraph where it was, for `fill_section`. The risk assessment's
+    chapters about the unit and its evaluations, and the prevention plan's tables, are
+    rewritten this way around the merge context's loops (ADR 015)."""
     text = document.Text
     elements = list(_elements(text))
 
@@ -1325,7 +1326,10 @@ def clear_section(document, section, marker):
                      if elements[index].supportsService('com.sun.star.text.Paragraph')
                      and re.search(pattern, elements[index].getString())), None)
 
-    start = find(section['from'], 0)
+    after = find(section['after'], 0) if section.get('after') else -1
+    if after is None:
+        raise RuntimeError(f'section: no paragraph matches {section["after"]!r}')
+    start = find(section['from'], after + 1)
     if start is None:
         raise RuntimeError(f'section: no paragraph matches {section["from"]!r}')
     end = find(section['to'], start + 1) if section.get('to') else len(elements)
@@ -1350,7 +1354,7 @@ def clear_section(document, section, marker):
         if element.supportsService('com.sun.star.text.TextTable'):
             element.dispose()
     elements = list(_elements(text))
-    start = find(section['from'], 0)
+    start = find(section['from'], after + 1)
     end = find(section['to'], start + 1) if section.get('to') else len(elements)
     cursor = text.createTextCursorByRange(elements[start].getStart())
     cursor.gotoRange(elements[end - 1].getEnd(), True)
