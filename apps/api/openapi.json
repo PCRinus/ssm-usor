@@ -3755,6 +3755,10 @@
                 "positions.any",
                 "positions.equipment",
                 "positions.instructions",
+                "positions.risk_evaluation",
+                "risk_evaluations.sensitive_groups",
+                "risk_evaluations.measures",
+                "risk_evaluations.plan",
                 "documents.own_instructions"
               ]
             }
@@ -3799,6 +3803,40 @@
               },
               "required": ["id", "name", "undecided"]
             }
+          },
+          "incompleteRiskEvaluations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "evaluationId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["job_position", "sensitive_groups", "other"]
+                },
+                "jobPositionId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["factors", "measures", "plan"]
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["evaluationId", "kind", "jobPositionId", "name", "missing"]
+            }
           }
         },
         "required": [
@@ -3806,7 +3844,8 @@
           "missing",
           "currentEmployeeCount",
           "workersRepresentativeClash",
-          "undecidedJobPositions"
+          "undecidedJobPositions",
+          "incompleteRiskEvaluations"
         ]
       },
       "ClientDocumentListResponse": {

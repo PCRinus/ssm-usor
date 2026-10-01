@@ -2646,6 +2646,10 @@ export const DocumentReadinessResponseMissingItem = {
   positionsany: 'positions.any',
   positionsequipment: 'positions.equipment',
   positionsinstructions: 'positions.instructions',
+  positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
+  risk_evaluationsmeasures: 'risk_evaluations.measures',
+  risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
 } as const;
 
@@ -2672,6 +2676,35 @@ export type DocumentReadinessResponseUndecidedJobPositionsItem = {
   undecided: DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem[];
 };
 
+export type DocumentReadinessResponseIncompleteRiskEvaluationsItemKind =
+  (typeof DocumentReadinessResponseIncompleteRiskEvaluationsItemKind)[keyof typeof DocumentReadinessResponseIncompleteRiskEvaluationsItemKind];
+
+export const DocumentReadinessResponseIncompleteRiskEvaluationsItemKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+export type DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem =
+  (typeof DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem)[keyof typeof DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem];
+
+export const DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem = {
+  factors: 'factors',
+  measures: 'measures',
+  plan: 'plan',
+} as const;
+
+export type DocumentReadinessResponseIncompleteRiskEvaluationsItem = {
+  /** @nullable */
+  evaluationId: string | null;
+  kind: DocumentReadinessResponseIncompleteRiskEvaluationsItemKind;
+  /** @nullable */
+  jobPositionId: string | null;
+  name: string;
+  /** @minItems 1 */
+  missing: DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem[];
+};
+
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
@@ -2680,6 +2713,7 @@ export interface DocumentReadinessResponse {
   /** @nullable */
   workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
   undecidedJobPositions: DocumentReadinessResponseUndecidedJobPositionsItem[];
+  incompleteRiskEvaluations: DocumentReadinessResponseIncompleteRiskEvaluationsItem[];
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
