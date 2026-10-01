@@ -25,16 +25,14 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import {
   getListRiskFactorSuggestionsQueryKey,
   type ListRiskFactorSuggestionsField,
-  useCreateRiskFactor,
   useListRiskFactorSuggestions,
-  useUpdateRiskFactor,
 } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
-import { evaluationFailure } from './evaluation-failure';
+import type { FactorStore } from './factor-store';
 import {
   componentLabels,
   emptyFactorForm,
@@ -45,23 +43,23 @@ import {
   measureKindLabels,
   probabilityClasses,
   probabilityOptionLabel,
-  type RiskEvaluation,
   type RiskFactor,
   toFactorForm,
   toFactorRequest,
 } from './risk-evaluation-schema';
 import { RiskLevelBadge } from './risk-level-badge';
-import { useEvaluationCache } from './use-evaluation-cache';
 
 // `null` is closed, 'new' adds a factor, and a factor edits it.
 export type FactorEditing = RiskFactor | 'new' | null;
 
 export function RiskFactorDialog({
-  evaluation,
+  factors,
+  store,
   editing,
   onClose,
 }: {
-  evaluation: RiskEvaluation;
+  factors: RiskFactor[];
+  store: FactorStore;
   editing: FactorEditing;
   onClose: () => void;
 }) {
@@ -70,7 +68,8 @@ export function RiskFactorDialog({
       {editing && (
         <RiskFactorForm
           key={editing === 'new' ? 'new' : editing.id}
-          evaluation={evaluation}
+          after={factors.at(-1)}
+          store={store}
           factor={editing === 'new' ? null : editing}
           onClose={onClose}
         />
@@ -104,27 +103,24 @@ function Suggestions({
 }
 
 function RiskFactorForm({
-  evaluation,
+  after,
+  store,
   factor,
   onClose,
 }: {
-  evaluation: RiskEvaluation;
+  after: RiskFactor | undefined;
+  store: FactorStore;
   factor: RiskFactor | null;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
-  const cache = useEvaluationCache(evaluation.clientId);
-  const create = useCreateRiskFactor({ request: apiRequest });
-  const update = useUpdateRiskFactor({ request: apiRequest });
   const form = useForm<FactorFormValues>({
     resolver: zodResolver(factorFormSchema),
-    defaultValues: factor ? toFactorForm(factor) : emptyFactorForm(evaluation.factors.at(-1)),
+    defaultValues: factor ? toFactorForm(factor) : emptyFactorForm(after),
   });
   const measures = useFieldArray({ control: form.control, name: 'measures' });
   const formRef = useRevealErrors(form);
-  const { errors } = form.formState;
-  const busy = create.isPending || update.isPending;
+  const { errors, isSubmitting: busy } = form.formState;
   const [group, actions, deadline, responsiblePerson, observations, gravity, probability] =
     useWatch({
       control: form.control,
@@ -141,26 +137,13 @@ function RiskFactorForm({
   const level = gravity && probability ? riskLevel(Number(gravity), Number(probability)) : null;
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const data = toFactorRequest(values);
     try {
-      const { evaluation: saved } = factor
-        ? await update.mutateAsync({
-            clientId: evaluation.clientId,
-            evaluationId: evaluation.id,
-            factorId: factor.id,
-            data,
-          })
-        : await create.mutateAsync({
-            clientId: evaluation.clientId,
-            evaluationId: evaluation.id,
-            data,
-          });
-      await cache.saved(saved);
+      await store.save(factor?.id ?? null, toFactorRequest(values));
       savedToast(factor ? 'Factorul a fost salvat.' : 'Factorul a fost adăugat.');
       onClose();
     } catch (cause) {
       form.setError('root.server', {
-        message: evaluationFailure(
+        message: store.failure(
           cause,
           'Nu am putut salva factorul. Verifică conexiunea și încearcă din nou.'
         ),

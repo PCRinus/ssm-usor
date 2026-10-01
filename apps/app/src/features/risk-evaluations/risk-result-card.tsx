@@ -19,7 +19,13 @@ import {
   unacceptableCountLabel,
 } from './risk-evaluation-schema';
 
-export function RiskResultCard({ id, evaluation }: { id: string; evaluation: RiskEvaluation }) {
+export function RiskResultCard({
+  id,
+  evaluation,
+}: {
+  id: string;
+  evaluation: Pick<RiskEvaluation, 'factors' | 'globalRiskLevel'>;
+}) {
   const { factors, globalRiskLevel } = evaluation;
   const unacceptable = factors.filter((factor) => isUnacceptableRiskLevel(factor.riskLevel));
   const shares = componentShares(factors);

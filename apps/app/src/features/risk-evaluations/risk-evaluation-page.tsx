@@ -16,7 +16,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, LibraryBig, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -31,10 +31,16 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
+import { ApplyProfileDialog } from '@/features/evaluation-profiles/apply-profile-dialog';
+import { ProfileNameDialog } from '@/features/evaluation-profiles/profile-name-dialog';
+import type { ProfileNaming } from '@/features/evaluation-profiles/profile-naming';
+import { useSaveAsProfile } from '@/features/evaluation-profiles/use-save-as-profile';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { positionSections } from '@/features/job-positions/position-sections';
 
+import { CopyRiskFactorsDialog } from './copy-risk-factors-dialog';
 import { evaluationFailure } from './evaluation-failure';
+import { useEvaluationFactorStore } from './factor-store';
 import { RiskEvaluationPending } from './risk-evaluation-pending';
 import {
   clientEvaluationsSection,
@@ -258,23 +264,39 @@ function RiskEvaluationView({
   afterRemove: AfterRemove;
 }) {
   const [removing, setRemoving] = useState(false);
+  const [naming, setNaming] = useState<ProfileNaming | null>(null);
+  const saveAsProfile = useSaveAsProfile();
+  const store = useEvaluationFactorStore(evaluation);
   return (
     <div data-testid="risk-evaluation-page" className="grid gap-5">
       <Header
         back={back}
         title={evaluationTitle(evaluation)}
         action={
-          !readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="risk-evaluation-remove"
-              onClick={() => setRemoving(true)}
-            >
-              <Trash2 aria-hidden="true" />
-              Șterge evaluarea…
-            </Button>
-          )
+          <div className="flex flex-wrap gap-2">
+            {evaluation.factors.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="risk-evaluation-save-as-profile"
+                onClick={() => setNaming(saveAsProfile(evaluation))}
+              >
+                <LibraryBig aria-hidden="true" />
+                Salvează ca profil…
+              </Button>
+            )}
+            {!readOnly && (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="risk-evaluation-remove"
+                onClick={() => setRemoving(true)}
+              >
+                <Trash2 aria-hidden="true" />
+                Șterge evaluarea…
+              </Button>
+            )}
+          </div>
         }
       />
       <RiskResultCard id={sections.result} evaluation={evaluation} />
@@ -286,10 +308,18 @@ function RiskEvaluationView({
       />
       <RiskFactorsCard
         id={sections.factors}
-        evaluation={evaluation}
-        userId={userId}
+        factors={evaluation.factors}
+        store={store}
         readOnly={readOnly}
+        tools={<FactorSources evaluation={evaluation} userId={userId} />}
+        empty={
+          readOnly
+            ? 'Evaluarea nu are factori de risc. Clientul este arhivat, așa că nu i se mai adaugă.'
+            : 'Niciun factor de risc încă. Adaugă-i pe rând, pe componentele sistemului de muncă, aplică un profil din biblioteca de riscuri sau copiază-i de la o evaluare asemănătoare a clientului.'
+        }
+        removalConsequence="nu vor mai apărea în evaluare și în planul de prevenire."
       />
+      <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveEvaluationDialog
         evaluation={evaluation}
         open={removing}
@@ -297,6 +327,44 @@ function RiskEvaluationView({
         afterRemove={afterRemove}
       />
     </div>
+  );
+}
+
+function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; userId: string }) {
+  const [source, setSource] = useState<'profile' | 'evaluation' | null>(null);
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        data-testid="risk-factors-apply-profile"
+        onClick={() => setSource('profile')}
+      >
+        <LibraryBig aria-hidden="true" />
+        Aplică un profil
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        data-testid="risk-factors-copy"
+        onClick={() => setSource('evaluation')}
+      >
+        <Copy aria-hidden="true" />
+        Copiază de la altă evaluare
+      </Button>
+      <ApplyProfileDialog
+        evaluation={evaluation}
+        userId={userId}
+        open={source === 'profile'}
+        onClose={() => setSource(null)}
+      />
+      <CopyRiskFactorsDialog
+        evaluation={evaluation}
+        userId={userId}
+        open={source === 'evaluation'}
+        onClose={() => setSource(null)}
+      />
+    </>
   );
 }
 

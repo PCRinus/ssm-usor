@@ -17,69 +17,65 @@ import {
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
-import { Copy, MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 
-import { useRemoveRiskFactor } from '@/api/generated/api';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 
-import { CopyRiskFactorsDialog } from './copy-risk-factors-dialog';
-import { evaluationFailure } from './evaluation-failure';
+import type { FactorStore } from './factor-store';
 import {
   componentLabels,
   factorCountLabel,
   factorGap,
   measureKindLabels,
-  type RiskEvaluation,
   type RiskFactor,
   sectionsOf,
 } from './risk-evaluation-schema';
 import { type FactorEditing, RiskFactorDialog } from './risk-factor-dialog';
 import { RiskLevelBadge } from './risk-level-badge';
-import { useEvaluationCache } from './use-evaluation-cache';
 
 export function RiskFactorsCard({
   id,
-  evaluation,
-  userId,
+  factors,
+  store,
   readOnly,
+  tools,
+  empty,
+  removalConsequence,
 }: {
   id: string;
-  evaluation: RiskEvaluation;
-  userId: string;
+  factors: RiskFactor[];
+  store: FactorStore;
   readOnly: boolean;
+  tools?: ReactNode;
+  empty: ReactNode;
+  /** Continues "<factor> și măsurile lui …" in the removal dialog. */
+  removalConsequence: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const cache = useEvaluationCache(evaluation.clientId);
-  const remove = useRemoveRiskFactor({ request: apiRequest });
   const [editing, setEditing] = useState<FactorEditing>(null);
   const [removing, setRemoving] = useState<RiskFactor | null>(null);
-  const [copying, setCopying] = useState(false);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sections = sectionsOf(evaluation.factors);
+  const sections = sectionsOf(factors);
 
   async function removeFactor(factor: RiskFactor) {
     setError(null);
+    setPending(true);
     try {
-      const result = await remove.mutateAsync({
-        clientId: evaluation.clientId,
-        evaluationId: evaluation.id,
-        factorId: factor.id,
-      });
-      await cache.saved(result.evaluation);
+      await store.remove(factor.id);
       toast.success('Factorul a fost șters.');
     } catch (cause) {
       setError(
-        evaluationFailure(
+        store.failure(
           cause,
           'Nu am putut șterge factorul. Verifică conexiunea și încearcă din nou.'
         )
       );
-      await cache.refresh(evaluation);
+      await store.refresh();
     }
+    setPending(false);
     setRemoving(null);
   }
 
@@ -95,22 +91,14 @@ export function RiskFactorsCard({
             data-testid="risk-factors-count"
             className="text-sm font-normal text-muted-foreground"
           >
-            {factorCountLabel(evaluation.factors.length)}
+            {factorCountLabel(factors.length)}
           </span>
         </span>
       }
       action={
         !readOnly && (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="risk-factors-copy"
-              onClick={() => setCopying(true)}
-            >
-              <Copy aria-hidden="true" />
-              Copiază de la altă evaluare
-            </Button>
+            {tools}
             <Button
               variant="outline"
               size="sm"
@@ -131,9 +119,7 @@ export function RiskFactorsCard({
       )}
       {sections.length === 0 ? (
         <p data-testid="risk-factors-empty" className="text-sm text-muted-foreground">
-          {readOnly
-            ? 'Evaluarea nu are factori de risc. Clientul este arhivat, așa că nu i se mai adaugă.'
-            : 'Niciun factor de risc încă. Adaugă-i pe rând, pe componentele sistemului de muncă, sau copiază-i de la o evaluare asemănătoare a clientului.'}
+          {empty}
         </p>
       ) : (
         <div className="grid gap-6">
@@ -176,19 +162,14 @@ export function RiskFactorsCard({
         </div>
       )}
       <RiskFactorDialog
-        evaluation={evaluation}
+        factors={factors}
+        store={store}
         editing={editing}
         onClose={() => setEditing(null)}
       />
-      <CopyRiskFactorsDialog
-        evaluation={evaluation}
-        userId={userId}
-        open={copying}
-        onClose={() => setCopying(false)}
-      />
       <Dialog
         open={removing !== null}
-        onOpenChange={(open) => !open && !remove.isPending && setRemoving(null)}
+        onOpenChange={(open) => !open && !pending && setRemoving(null)}
       >
         {removing && (
           <DialogContent data-testid="risk-factor-remove-dialog" className="sm:max-w-md">
@@ -196,20 +177,20 @@ export function RiskFactorsCard({
               <DialogTitle>Ștergi factorul de risc?</DialogTitle>
               <DialogDescription>
                 <span className="font-medium text-foreground">{removing.description}</span> și
-                măsurile lui nu vor mai apărea în evaluare și în planul de prevenire.
+                măsurile lui {removalConsequence}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={remove.isPending} onClick={() => setRemoving(null)}>
+              <Button variant="ghost" disabled={pending} onClick={() => setRemoving(null)}>
                 Renunță
               </Button>
               <Button
                 variant="destructive"
                 data-testid="risk-factor-remove-confirm"
-                disabled={remove.isPending}
+                disabled={pending}
                 onClick={() => void removeFactor(removing)}
               >
-                {remove.isPending ? 'Se șterge…' : 'Șterge'}
+                {pending ? 'Se șterge…' : 'Șterge'}
               </Button>
             </DialogFooter>
           </DialogContent>
