@@ -22,6 +22,8 @@ export * from './organizations';
 export * from './pdf';
 export * from './profile';
 export * from './protective-equipment';
+export * from './risk-evaluations';
+export * from './risk-levels';
 export * from './service-contracts';
 export * from './waitlist';
 
