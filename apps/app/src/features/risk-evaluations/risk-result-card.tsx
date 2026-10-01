@@ -2,6 +2,7 @@ import {
   componentShares,
   isOverAcceptableLimit,
   isUnacceptableRiskLevel,
+  sheetComponents,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -15,7 +16,6 @@ import {
   formatGlobalLevel,
   formatShare,
   type RiskEvaluation,
-  sheetComponentOrder,
   unacceptableCountLabel,
 } from './risk-evaluation-schema';
 
@@ -72,7 +72,7 @@ export function RiskResultCard({ id, evaluation }: { id: string; evaluation: Ris
           <div className="grid content-start gap-2">
             <p className="text-sm text-muted-foreground">Ponderea factorilor pe componente</p>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
-              {sheetComponentOrder.map((component) => (
+              {sheetComponents.map((component) => (
                 <div key={component} className="grid min-w-0 content-start gap-1">
                   <dt className="text-muted-foreground">{componentLabels[component]}</dt>
                   <dd data-testid="risk-share" className="font-medium tabular-nums">

@@ -12,6 +12,7 @@ import {
   type RiskEvaluationGap,
   type RiskEvaluationKind,
   riskLevel,
+  sheetComponents,
   unacceptableFactors,
   type WorkSystemComponent,
 } from '@ssm-usor/contracts';
@@ -94,15 +95,6 @@ export function countOf(count: number, one: string, many: string) {
 export const printedLevel = (level: number) => level.toFixed(2).replace('.', ',');
 
 export const printedShare = (percent: number) => `${printedLevel(percent)} %`;
-
-// The evaluation sheet's order, the provider's: the means of production and the environment
-// first, then the executant and the task.
-export const sheetComponents = [
-  'means_of_production',
-  'work_environment',
-  'executant',
-  'work_task',
-] as const satisfies readonly WorkSystemComponent[];
 
 const componentWords: Record<WorkSystemComponent, { label: string; of: string }> = {
   means_of_production: { label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție' },

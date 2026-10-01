@@ -1,4 +1,4 @@
-import { gravityConsequence } from '@ssm-usor/contracts';
+import { gravityConsequence, probabilityFrequency } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -33,7 +33,6 @@ import {
   factorCountLabel,
   factorGap,
   measureKindLabels,
-  probabilityNames,
   type RiskEvaluation,
   type RiskFactor,
   sectionsOf,
@@ -280,7 +279,8 @@ function FactorRow({
       <p data-testid="risk-factor-classes" className="text-xs text-muted-foreground">
         Gravitate {factor.gravityClass}: {gravityConsequence(factor.gravityClass)}
         <span aria-hidden="true"> · </span>
-        Probabilitate {factor.probabilityClass}: {probabilityNames[factor.probabilityClass]}
+        Probabilitate {factor.probabilityClass}:{' '}
+        {probabilityFrequency(factor.probabilityClass).period}
       </p>
       {factor.measures.length > 0 && (
         <ul data-testid="risk-factor-measures" className="col-span-2 grid gap-0.5 sm:col-span-1">

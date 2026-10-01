@@ -19,6 +19,15 @@ export const workSystemComponentSchema = z.enum(workSystemComponents);
 
 export type WorkSystemComponent = z.infer<typeof workSystemComponentSchema>;
 
+// The order of the provider's evaluation sheet, which the documents print and the app shows;
+// `workSystemComponents` follows the method's chapter order instead.
+export const sheetComponents = [
+  'means_of_production',
+  'work_environment',
+  'executant',
+  'work_task',
+] as const satisfies readonly WorkSystemComponent[];
+
 export const preventionMeasureKinds = [
   'technical',
   'organizational',

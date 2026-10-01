@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { isUnacceptableRiskLevel, preventionMeasureKinds, riskLevel } from '@ssm-usor/contracts';
+import {
+  isUnacceptableRiskLevel,
+  preventionMeasureKinds,
+  riskLevel,
+  sheetComponents,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -42,7 +47,6 @@ import {
   probabilityOptionLabel,
   type RiskEvaluation,
   type RiskFactor,
-  sheetComponentOrder,
   toFactorForm,
   toFactorRequest,
 } from './risk-evaluation-schema';
@@ -121,10 +125,19 @@ function RiskFactorForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
-  const [group, actions, deadline, responsiblePerson, gravity, probability] = useWatch({
-    control: form.control,
-    name: ['group', 'actions', 'deadline', 'responsiblePerson', 'gravityClass', 'probabilityClass'],
-  });
+  const [group, actions, deadline, responsiblePerson, observations, gravity, probability] =
+    useWatch({
+      control: form.control,
+      name: [
+        'group',
+        'actions',
+        'deadline',
+        'responsiblePerson',
+        'observations',
+        'gravityClass',
+        'probabilityClass',
+      ],
+    });
   const level = gravity && probability ? riskLevel(Number(gravity), Number(probability)) : null;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -183,7 +196,7 @@ function RiskFactorForm({
                 disabled={busy}
                 {...form.register('component')}
               >
-                {sheetComponentOrder.map((component) => (
+                {sheetComponents.map((component) => (
                   <NativeSelectOption key={component} value={component}>
                     {componentLabels[component]}
                   </NativeSelectOption>
@@ -460,6 +473,7 @@ function RiskFactorForm({
               <Input
                 id="risk-factor-observations"
                 data-testid="risk-factor-observations"
+                list="risk-factor-observations-suggestions"
                 autoComplete="off"
                 disabled={busy}
                 aria-invalid={Boolean(errors.observations)}
@@ -469,6 +483,11 @@ function RiskFactorForm({
                   false
                 )}
                 {...form.register('observations')}
+              />
+              <Suggestions
+                id="risk-factor-observations-suggestions"
+                field="observations"
+                query={observations}
               />
             </Field>
           </fieldset>

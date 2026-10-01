@@ -5,6 +5,8 @@ import {
   maxAcceptableGlobalRiskLevel,
   type PreventionMeasureKind,
   preventionMeasureKinds,
+  probabilityFrequency,
+  sheetComponents,
   type WorkSystemComponent,
   workSystemComponents,
 } from '@ssm-usor/contracts';
@@ -21,8 +23,15 @@ export type RiskEvaluation = RiskEvaluationResponse['evaluation'];
 export type RiskFactor = RiskEvaluation['factors'][number];
 export type RiskEvaluationSummary = RiskEvaluationListResponse['items'][number];
 
-// Other pages link to this card by hash, so renaming it breaks their links.
+// Other pages link to this card and to these sections by hash, so renaming one breaks their
+// links.
 export const clientEvaluationsSection = 'client-risk-evaluations';
+
+export const evaluationSections = {
+  result: 'result',
+  workSystem: 'work-system',
+  factors: 'factors',
+} as const;
 
 export const componentLabels: Record<WorkSystemComponent, string> = {
   means_of_production: 'Mijloace de producție',
@@ -31,39 +40,11 @@ export const componentLabels: Record<WorkSystemComponent, string> = {
   executant: 'Executant',
 };
 
-// The order of the provider's evaluation sheet, which differs from the method's chapter order
-// that `workSystemComponents` follows.
-export const sheetComponentOrder: readonly WorkSystemComponent[] = [
-  'means_of_production',
-  'work_environment',
-  'work_task',
-  'executant',
-];
-
 export const measureKindLabels: Record<PreventionMeasureKind, string> = {
   technical: 'Tehnică',
   organizational: 'Organizatorică',
   hygienic_sanitary: 'Igienico-sanitară',
   other: 'Altă măsură',
-};
-
-// The method's probability classes; the contracts carry only the gravity wordings.
-export const probabilityNames: Record<number, string> = {
-  1: 'Extrem de rară',
-  2: 'Foarte rară',
-  3: 'Rară',
-  4: 'Puțin frecventă',
-  5: 'Frecventă',
-  6: 'Foarte frecventă',
-};
-
-const probabilityPeriods: Record<number, string> = {
-  1: 'P > 10 ani',
-  2: '5 < P ≤ 10 ani',
-  3: '2 < P ≤ 5 ani',
-  4: '1 < P ≤ 2 ani',
-  5: '1 lună < P ≤ 1 an',
-  6: 'P ≤ 1 lună',
 };
 
 export const gravityClasses = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -72,8 +53,10 @@ export const probabilityClasses = [1, 2, 3, 4, 5, 6] as const;
 export const gravityOptionLabel = (gravityClass: number) =>
   `${gravityClass} – ${gravityConsequence(gravityClass)}`;
 
-export const probabilityOptionLabel = (probabilityClass: number) =>
-  `${probabilityClass} – ${probabilityNames[probabilityClass]} (${probabilityPeriods[probabilityClass]})`;
+export const probabilityOptionLabel = (probabilityClass: number) => {
+  const { label, period } = probabilityFrequency(probabilityClass);
+  return `${probabilityClass} – ${label}, ${period}`;
+};
 
 const twoDecimals = new Intl.NumberFormat('ro-RO', {
   minimumFractionDigits: 2,
@@ -133,7 +116,7 @@ export interface ComponentSection {
 // Factors keep the evaluation's own order inside a group, and a group comes where its first
 // factor does; only the components are put in the sheet's order.
 export function sectionsOf(factors: readonly RiskFactor[]): ComponentSection[] {
-  return sheetComponentOrder.flatMap((component) => {
+  return sheetComponents.flatMap((component) => {
     const groups: FactorGroup[] = [];
     for (const factor of factors) {
       if (factor.component !== component) continue;

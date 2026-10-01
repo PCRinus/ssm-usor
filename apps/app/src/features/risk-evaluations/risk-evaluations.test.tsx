@@ -3,9 +3,11 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiHttpError } from '@/api/http';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+import { evaluationFailure } from './evaluation-failure';
 import {
   evaluationStateLabel,
   factorCountLabel,
@@ -377,7 +379,7 @@ describe("a position's risk evaluation page", () => {
     const rows = await screen.findAllByTestId('risk-factor-row');
     const [moving, , electricRow, carelessRow] = rows;
     expect(within(moving!).getByTestId('risk-factor-classes').textContent).toBe(
-      'Gravitate 4: Invaliditate gradul III · Probabilitate 5: Frecventă'
+      'Gravitate 4: Invaliditate gradul III · Probabilitate 5: o dată la 1 lună – 1 an'
     );
     expect(within(moving!).getByTestId('risk-level').textContent).toBe('Nivel 5, inacceptabil');
     expect(within(moving!).getByTestId('risk-factor-measures').textContent).toBe(
@@ -404,8 +406,8 @@ describe("a position's risk evaluation page", () => {
     expect(screen.getAllByTestId('risk-share').map((share) => share.textContent)).toEqual([
       '75%',
       '0%',
-      '0%',
       '25%',
+      '0%',
     ]);
   });
 
@@ -460,7 +462,7 @@ describe("a position's risk evaluation page", () => {
       [...screen.getByTestId<HTMLSelectElement>('risk-factor-probability').options].map(
         (option) => option.textContent
       )
-    ).toContain('1 – Extrem de rară (P > 10 ani)');
+    ).toContain('1 – Extrem de rare, o dată la peste 10 ani');
 
     await user.selectOptions(screen.getByTestId('risk-factor-component'), 'work_environment');
     const group = screen.getByTestId('risk-factor-group');
@@ -705,10 +707,12 @@ describe("a client's evaluations outside its positions", () => {
 
 describe('the factor list', () => {
   it('puts the components in the order of the sheet and keeps the order inside them', () => {
-    const sections = sectionsOf([careless, movingParts, electric, cuts]);
+    const overtime = { ...careless, id: 'f-overtime', component: 'work_task' as const };
+    const sections = sectionsOf([overtime, careless, movingParts, electric, cuts]);
     expect(sections.map((section) => [section.component, section.count])).toEqual([
       ['means_of_production', 3],
       ['executant', 1],
+      ['work_task', 1],
     ]);
     expect(sections[0]!.groups.map((group) => group.factors.map((factor) => factor.id))).toEqual([
       [movingParts.id, cuts.id],
@@ -729,5 +733,16 @@ describe('the factor list', () => {
     expect(evaluationStateLabel(null)).toBe('Neevaluat');
     expect(evaluationStateLabel({ factorCount: 0, globalRiskLevel: null })).toBe('Fără factori');
     expect(evaluationStateLabel({ factorCount: 1, globalRiskLevel: 2 })).toBe('1 factor · 2,00');
+  });
+});
+
+describe('a failed change', () => {
+  it('is put down to an archived client only when the API says so', () => {
+    expect(evaluationFailure(new ApiHttpError(409, { reason: 'client_archived' }), 'Eroare.')).toBe(
+      'Clientul este arhivat; evaluările lui nu se mai schimbă.'
+    );
+    expect(evaluationFailure(new ApiHttpError(409, { reason: 'other' }), 'Eroare.')).toBe(
+      'Eroare.'
+    );
   });
 });

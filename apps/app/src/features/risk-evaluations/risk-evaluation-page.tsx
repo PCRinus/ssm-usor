@@ -38,6 +38,7 @@ import { evaluationFailure } from './evaluation-failure';
 import { RiskEvaluationPending } from './risk-evaluation-pending';
 import {
   clientEvaluationsSection,
+  evaluationSections as sections,
   evaluationTitle,
   factorCountLabel,
   type RiskEvaluation,
@@ -240,12 +241,6 @@ type AfterRemove =
       hash: string;
     }
   | { to: '/clients/$clientId/job-positions'; params: { clientId: string }; hash: string };
-
-const sections = {
-  result: 'result',
-  workSystem: 'work-system',
-  factors: 'factors',
-} as const;
 
 function RiskEvaluationView({
   evaluation,
