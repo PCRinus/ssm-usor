@@ -141,6 +141,18 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set with `moduleIds`                                                                        |
 | `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules                                                                         |
 | `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
+| `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                             |
+| `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                   |
+| `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                             |
+| `PATCH …/risk-evaluations/{evaluationId}`                              | Verified user with a membership       | `{ "evaluation": { … } }` after changing its work system texts or name                                                    |
+| `DELETE …/risk-evaluations/{evaluationId}`                             | Verified user with a membership       | `204`, with its factors                                                                                                   |
+| `POST …/risk-evaluations/{evaluationId}/factors`                       | Verified user with a membership       | `201 { "evaluation": { … } }` after adding a factor with its measures                                                     |
+| `PUT …/risk-evaluations/{evaluationId}/factors/{factorId}`             | Verified user with a membership       | `{ "evaluation": { … } }` after replacing a factor and its measures                                                       |
+| `DELETE …/risk-evaluations/{evaluationId}/factors/{factorId}`          | Verified user with a membership       | `{ "evaluation": { … } }` after removing a factor                                                                         |
+| `PUT …/risk-evaluations/{evaluationId}/factor-order`                   | Verified user with a membership       | `{ "evaluation": { … } }` after reordering the factors by `factorIds`                                                     |
+| `POST …/risk-evaluations/{evaluationId}/factors/copy`                  | Verified user with a membership       | `{ "evaluation": { … } }` after adding another evaluation's factors                                                       |
+| `GET …/job-positions/{jobPositionId}/risk-evaluation`                  | Verified user with a membership       | `{ "evaluation": { … } }`, the position's evaluation, or `null`                                                           |
+| `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups or plan fields typed before; `?field=&query=`                                                |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -347,6 +359,37 @@ another client. `PATCH …/instructions-decision` takes `needsInstructions: fals
 `true` answers `400` with the reason `instructions_decided_by_modules`, and `false` while
 modules are applied `409` with `instructions_applied`. Job positions carry
 `needsInstructions` and `instructionCount` in every response.
+
+Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)) belong to the client.
+`POST …/risk-evaluations` takes a `kind`: `job_position` with a `jobPositionId` (a current
+position of the client, or `400` on `jobPositionId`), `sensitive_groups`, or `other` with a
+`name`; and optionally `meansOfProduction`, `workEnvironment` and `exposure`, which defaults
+to "8 h / schimb". A second evaluation of a position or of the sensitive groups answers `409`
+with `risk_evaluation_exists`, a name the client already uses `409` with
+`risk_evaluation_name_taken`. `PATCH` changes the fields sent, `null` clearing the two texts;
+a `name` for an evaluation that is not `other` answers `400`. `GET …/risk-evaluations` lists
+the evaluations of current positions in name order, then the sensitive groups, then the
+others by name, each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
+`GET …/job-positions/{jobPositionId}/risk-evaluation` reads a position's evaluation by the
+position, `null` until one is started.
+
+An evaluation is read whole: its factors in their order, each with `component`, `group`,
+`description`, `gravityClass` (1–7), `probabilityClass` (1–6), the plan fields `actions`,
+`deadline`, `responsiblePerson` and `observations`, its `measures` (`kind`: `technical`,
+`organizational`, `hygienic_sanitary` or `other`, and a `description`) in their order, and
+`riskLevel` from the method's grid; and the evaluation's `globalRiskLevel`, Σ R² / Σ R to two
+decimals, null without factors. Levels are computed, never stored or sent; the SPA computes
+the rest (unacceptable factors, shares per component, the consequence of a gravity class)
+with the same module, `@ssm-usor/contracts`' `risk-levels`. Every change to the factors
+answers with the whole evaluation, since the global level moves with each. `POST …/factors`
+adds a factor after the others and `PUT …/factors/{factorId}` replaces one; both carry the
+factor's `measures`, which replace its old ones in one transaction. `PUT …/factor-order`
+takes `factorIds`, every factor of the evaluation once, or `400` on `factorIds`. `POST
+…/factors/copy` adds copies of the factors of `fromEvaluationId`, another evaluation of the
+same client, after the factors already there, with `400` on `fromEvaluationId` for the
+evaluation itself or one of another client. `GET /risk-factor-suggestions` returns, for
+`field` `group`, `actions`, `deadline` or `responsiblePerson`, what the organization typed
+before, as the equipment suggestions do.
 
 A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
 keeps about a client or a lead without the app writing or reading them; a lead uses the same
