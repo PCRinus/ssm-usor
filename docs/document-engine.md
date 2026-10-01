@@ -131,8 +131,8 @@ the table, so the engine repeats both per item: the equipment list draws one sec
 position this way, its heading printing the work zone only inside an inline loop, and `after`
 writes a paragraph once past the loop, for a note that would otherwise be left alone on a page
 as the table's last row. Repeated tables need a paragraph between them, or they are saved as
-one: the training themes print the position's name as the `heading` of each repetition. Where a
-looped table closes the document, a paragraph at 1 pt follows its closing tag, which leaves
+one: the training themes print the position's name as the `heading` of each repetition. Where loop
+tags close the document, a table perhaps inside or before them, a paragraph at 1 pt follows the last tag, which leaves
 nothing behind once merged, as Word wants a paragraph after a table. `keepWithNext` lists the
 rows whose paragraphs keep with the next row, so a heading row is never the last thing on a
 page. Do not mark every row to keep a table whole: LibreOffice, which makes the PDFs, drops a
@@ -215,12 +215,11 @@ across runs, and leaves an ellipsis alone.
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
-All 23 are templates. One of them is marked `contentPending`: the prevention plan (10). It
-has the house style, the wording pass, and placeholders for names and dates, and **its
-content is still the first client's**: job titles and risks. Until it prints the risk
-evaluations it is uploaded. The own instructions (3.2), the training themes (4.2) and the
-protective equipment list (6), stage 2, are generated from the positions (ADR 011, ADR 012,
-ADR 014), and the risk assessment (9) from the risk evaluations (ADR 015).
+All 23 are templates, and none is marked `contentPending` any more: the own instructions
+(3.2), the training themes (4.2) and the protective equipment list (6), stage 2, are
+generated from the positions (ADR 011, ADR 012, ADR 014), and the risk assessment (9) and the
+prevention plan (10), stage 3, from the risk evaluations (ADR 015). The key stays for a
+template whose content is still the first client's, which registering leaves out.
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
 outside the body's flow; the import walks the frames too, and a `tables` entry with
@@ -244,8 +243,9 @@ rebuilt from their text alone, the picture column dropped: a picture anchored in
 cell stops LibreOffice's PDF export at that table, and every page after it is lost.
 
 `sections` rewrites a part in the middle of the body. Each `{ from, to, content }` removes
-everything from the first paragraph matching `from` up to the one matching `to` (to the end
-without `to`), tables and frames included, and writes `content` there: paragraphs as `append`
+everything from the first paragraph matching `from` (the first after the one matching
+`after`, where a section names it) up to the one matching `to` (to the end without `to`),
+tables and frames included, and writes `content` there: paragraphs as `append`
 writes them, with `indent` (1/100 mm), `pageBefore` and `pageAfter`, and `{ "table": … }`, a
 table drawn from a definition with `rows` like a `tables` entry, a paragraph left after it
 only where the next thing is a table too. Between removing and writing the document goes
@@ -271,6 +271,13 @@ general, then a table of the evaluations' levels and the unit's `Nrg`, and a sub
 on consulting the workers (art. 18 of Legea 319/2006, naming `workersRepresentatives` when
 there are any) and on when the assessment is reviewed (art. 46 (1) of H.G. 1425/2006). The
 contents table loses its page numbers and gains a row per evaluation.
+
+The prevention plan keeps its title and the hand-over block, signed by the employer, and
+from there repeats per evaluation its `heading` and a table with the columns of annex 7 to
+H.G. 1425/2006, a row per entry of `plan`, the place of work said once above it rather than in
+a column; an evaluation without measures (`noPlan`) prints a sentence in place of the table.
+The general training material's closing table of the unit's own risks is looped on
+`hasUnitRisks` the same way, with a sentence after it for `noUnitRisks`.
 
 ## Covers
 
@@ -419,7 +426,8 @@ The API builds the data once per generation and merges every template with it
   assessment prints, each description once (compared without case, spacing or a closing full
   stop), the highest level first and then in the order met, with `risk` the description and
   `measure` every prevention measure taken against it, one per line, those of a repeated
-  factor merged. `noUnitRisks` is one item when there are none, for a sentence to say so.
+  factor merged. `hasUnitRisks` is one item when there are some, for the table, and
+  `noUnitRisks` one when there are none, for a sentence to say so.
 - `riskAssessment` is what the risk assessment (9) and the prevention plan (10) print
   ([ADR 015](architecture/adr-015-risk-assessment.md)). It is built whole and recorded whole
   in a snapshot that prints any of it, so a changed factor marks those documents "Date
@@ -440,26 +448,26 @@ The API builds the data once per generation and merges every template with it
   sensitive groups, then the client's other evaluations by name. An archived position's
   evaluation stays out, and so does another evaluation without a factor. Each has:
 
-  | Name                                   | Example                                                                                                                                                                   |
-  | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `roman`, `name`                        | `II`, `Sudor`; `Grupuri sensibile la riscuri specifice`; another's own name                                                                                               |
-  | `heading`                              | `LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL`, `POSTUL DE LUCRU: SUDOR` without a work zone, `VIZITATORI`, `GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI …)`        |
-  | `workZoneOrDash`                       | `Birou`, or `—`                                                                                                                                                           |
-  | `workSystem`                           | `{ executant, workTask, meansOfProduction, workEnvironment }`: a position's name and activities, or the client-level evaluation's own texts                               |
-  | `exposedPersons`, `exposure`           | `3 persoane`, `25 de persoane`, `nicio persoană` (a position's current employees) or the evaluation's text; `8 h / schimb`                                                |
-  | `factorCount`                          | `37`                                                                                                                                                                      |
-  | `components[]`                         | The four components, always, in the sheet's order: `{ label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție', count, share: '24,32 %', noFactors, groups }`       |
-  | `…groups[]`                            | `{ letter: 'a', name: 'Factori de risc mecanic', factors: [{ code, description, level }] }`, in the order the evaluator first used them                                   |
-  | `sheet[]`                              | A row of the evaluation sheet per factor: `{ component, group, code: 'F1', description, consequence, gravityClass, probabilityClass, frequency, frequencyPeriod, level }` |
-  | `ranked[]`                             | `{ code, description, level }`, every factor, the highest level first                                                                                                     |
-  | `globalLevel`                          | `2,49`                                                                                                                                                                    |
-  | `withinLimit`, `overLimit`, `verdict`  | One item in the flag that holds; `valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5`    |
-  | `unacceptableCount`, `unacceptable[]`  | `2`; `{ code, description, level, measures, technical, organizational, hygienicSanitary, other }`, the highest level first                                                |
-  | `hasUnacceptable`, `noUnacceptable`    | One item in the flag that holds                                                                                                                                           |
-  | `findings`                             | `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 37 de factori de risc identificați, 2 dintre ei depășesc, …`                       |
-  | `unacceptableLead`, `measuresSentence` | `Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:`, `Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare …`; empty without        |
-  | `irreversible`                         | `Din analiza „Fișei de evaluare” se constată că 7 dintre factorii de risc identificați, reprezentând 18,92 %, pot avea consecințe ireversibile …`                         |
-  | `plan[]`, `noPlan`                     | The plan's rows: every factor with a measure, the highest level first, as `unacceptable[]` plus `actions`, `deadline`, `responsiblePerson`, `observations`                |
+  | Name                                   | Example                                                                                                                                                                                     |
+  | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `roman`, `name`                        | `II`, `Sudor`; `Grupuri sensibile la riscuri specifice`; another's own name                                                                                                                 |
+  | `heading`                              | `LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL`, `POSTUL DE LUCRU: SUDOR` without a work zone, `VIZITATORI`, `GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI …)`                          |
+  | `workZoneOrDash`                       | `Birou`, or `—`                                                                                                                                                                             |
+  | `workSystem`                           | `{ executant, workTask, meansOfProduction, workEnvironment }`: a position's name and activities, or the client-level evaluation's own texts                                                 |
+  | `exposedPersons`, `exposure`           | `3 persoane`, `25 de persoane`, `nicio persoană` (a position's current employees) or the evaluation's text; `8 h / schimb`                                                                  |
+  | `factorCount`                          | `37`                                                                                                                                                                                        |
+  | `components[]`                         | The four components, always, in the sheet's order: `{ label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție', count, share: '24,32 %', noFactors, groups }`                         |
+  | `…groups[]`                            | `{ letter: 'a', name: 'Factori de risc mecanic', factors: [{ code, description, level }] }`, in the order the evaluator first used them                                                     |
+  | `sheet[]`                              | A row of the evaluation sheet per factor: `{ component, group, code: 'F1', description, consequence, gravityClass, probabilityClass, frequency, frequencyPeriod, level }`                   |
+  | `ranked[]`                             | `{ code, description, level }`, every factor, the highest level first                                                                                                                       |
+  | `globalLevel`                          | `2,49`                                                                                                                                                                                      |
+  | `withinLimit`, `overLimit`, `verdict`  | One item in the flag that holds; `valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5`                      |
+  | `unacceptableCount`, `unacceptable[]`  | `2`; `{ code, description, level, measures, technical, organizational, hygienicSanitary, other }`, the highest level first                                                                  |
+  | `hasUnacceptable`, `noUnacceptable`    | One item in the flag that holds                                                                                                                                                             |
+  | `findings`                             | `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 37 de factori de risc identificați, 2 dintre ei depășesc, …`                                         |
+  | `unacceptableLead`, `measuresSentence` | `Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:`, `Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare …`; empty without                          |
+  | `irreversible`                         | `Din analiza „Fișei de evaluare” se constată că 7 dintre factorii de risc identificați, reprezentând 18,92 %, pot avea consecințe ireversibile …`                                           |
+  | `plan[]`, `hasPlan`, `noPlan`          | The plan's rows: every factor with a measure, the highest level first, as `unacceptable[]` plus `actions`, `deadline`, `responsiblePerson`, `observations`; one item in the flag that holds |
 
   The factors are numbered F1…Fn down the sheet: by component in the provider's order (means of
   production, work environment, executant, work task), then by group in the order the
@@ -513,12 +521,12 @@ same test.
 | `event_registers`                 | The four registers of accidents and dangerous incidents, A4 landscape                                                                                      | None                                                                                                                                                             |
 | `control_report`                  | The report form filled in by hand at each control visit                                                                                                    | None                                                                                                                                                             |
 | `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages                                                                                      | None                                                                                                                                                             |
-| `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) and `noUnitRisks` for the closing chapter on the unit's own risks                                                              |
+| `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`), `hasUnitRisks` and `noUnitRisks` for the closing chapter on the unit's own risks                                              |
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
 | `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III                                                  | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
 | `risk_assessment`                 | The risk assessment (ADR 015): the method's chapters and annexes, then the unit, the team, a subchapter per evaluation, and the conclusions                | `specialist`, `workplaceManager`, `evaluationTeam`, `workersRepresentatives`, `positions`, `riskAssessment`                                                      |
-| `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | `riskAssessment.evaluations[].plan` once reauthored                                                                                                              |
+| `prevention_plan`                 | The prevention and protection plan (ADR 015), A4 landscape: a table per evaluation with the columns of annex 7 to H.G. 1425/2006                           | `riskAssessment.evaluations[]` (`heading`, `plan[]`, `hasPlan`, `noPlan`)                                                                                        |
 | `decision_imminent_danger`        | Decision no. 4: who acts in serious and imminent danger                                                                                                    | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 | `decision_workers_representative` | Decision no. 5: the workers' representatives, from 10 employees                                                                                            | `workersRepresentatives[]`, `workersRepresentativesLead`                                                                                                         |
 

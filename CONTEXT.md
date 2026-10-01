@@ -82,7 +82,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Template**: the Word file a document is merged from. Built-in templates live in the repository and are registered in versions.
 
-**Uploaded document type**: a document of the pack the app cannot write yet, which comes to exist by uploading a `.docx` written elsewhere.
+**Uploaded document type**: a document of the pack the app cannot write yet, which comes to exist by uploading a `.docx` written elsewhere. None is left since the risk assessment and the prevention plan are generated (ADR 015); a file can still replace the draft of any document.
 
 ## Product feedback
 

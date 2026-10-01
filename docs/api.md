@@ -639,12 +639,10 @@ document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
 the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. One of them is in `uploadedDocumentTypes`, which the app cannot write until stage 3
-is done (the prevention plan; the protective equipment list, the own instructions, the
-training themes and the risk assessment are generated since ADR 011, ADR 012, ADR 014 and
-ADR 015): for it the upload is how the document comes to exist, as
-revision 1 in draft under the title its template will carry, so a client's set can be
-complete today. For a document that exists, the file replaces the draft, or starts the next
+its order. A type in `uploadedDocumentTypes`, one the app cannot write, would come to exist
+by its upload, as revision 1 in draft under the title its template will carry; there is none
+left since the risk assessment and the prevention plan are generated (ADR 015), the last of
+the pack. For a document that exists, the file replaces the draft, or starts the next
 draft beside the issued revision, keeping the generation and so the date. An uploaded
 revision has no template and no data snapshot, so it never reports `dataChanged`, and it
 cannot be regenerated. A generated type that does not exist yet answers `409` with the reason
