@@ -136,7 +136,6 @@ export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
 
 export type JobPositionDecision = z.infer<typeof jobPositionDecisionSchema>;
 
-/** What one risk evaluation lacks for the documents, behind the `risk_evaluations.*` codes. */
 export const riskEvaluationGaps = ['factors', 'measures', 'plan'] as const;
 
 export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);

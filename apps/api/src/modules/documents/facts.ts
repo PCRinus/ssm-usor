@@ -215,7 +215,6 @@ const bySortOrder = (
   b: { sort_order: number; id: string }
 ) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
 
-/** Every evaluation of the client with its factors and measures, each in the evaluator's order. */
 export async function loadRiskEvaluations(
   db: DataClient,
   clientId: string

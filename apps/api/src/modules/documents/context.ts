@@ -168,7 +168,6 @@ export type DocumentContext = {
     dayFrom: number;
     dayTo: number;
   };
-  /** The unacceptable factors of every evaluation, for the general training material. */
   unitRisks: { risk: string; measure: string }[];
   noUnitRisks: Record<string, never>[];
   riskAssessment: RiskAssessmentContext;
