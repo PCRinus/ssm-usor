@@ -721,3 +721,32 @@ describe('risk_assessment', () => {
     );
   });
 });
+
+describe('prevention_plan', () => {
+  const text = documentText(read('10_prevention_plan.docx'));
+
+  it("prints nothing of the first client's posts or measures", () => {
+    expect(text).not.toMatch(
+      /MANAGER MAGAZIN|GELATERIE|BARMAN|VIZITATOR|P\.R\.A\.M\.|Cond\. loc muncă|Periodic/
+    );
+  });
+
+  it('repeats a table of the columns of annex 7 per evaluation, or a sentence without measures', () => {
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(1);
+    expect(text).toContain('{{#plan}}{{$index}}.');
+    expect(text).toContain('{{#noPlan}}');
+    for (const column of [
+      'Riscuri evaluate',
+      'Măsuri tehnice',
+      'Măsuri organizatorice',
+      'Măsuri igienico-sanitare',
+      'Măsuri de altă natură',
+      'Acțiuni în scopul realizării măsurii',
+      'Termen de realizare',
+      'Persoana care răspunde de realizarea măsurii',
+      'Observații',
+    ]) {
+      expect(text).toContain(column);
+    }
+  });
+});

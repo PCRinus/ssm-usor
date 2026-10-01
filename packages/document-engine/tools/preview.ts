@@ -104,6 +104,7 @@ function evaluation(roman: string, name: string, heading: string, count: number)
       responsiblePerson: 'Conducătorul locului de muncă',
       observations: '—',
     })),
+    hasPlan: flag(measured.length > 0),
     noPlan: flag(measured.length === 0),
   };
 }
@@ -121,6 +122,8 @@ function sample(
       decisionNumber: 1,
       issueDate: '19.01.2026',
       issueYear: '2026',
+      hasUnitRisks: [{}],
+      noUnitRisks: [],
       unitRisks: [
         {
           risk: 'Cădere de la același nivel pe pardoseală alunecoasă.',
