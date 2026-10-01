@@ -16,6 +16,7 @@ import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
+import { seedRiskEvaluations } from './lib/seed-risk-evaluations';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
@@ -124,6 +125,10 @@ try {
     const instructions = await seedInstructionModules(client, organization.id, user.id);
     console.log(
       `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} to posts and decided ${instructions.decided} need none, where undecided.`
+    );
+    const evaluations = await seedRiskEvaluations(client, organization.id, user.id);
+    console.log(
+      `Evaluated the risks of ${evaluations.positions} posts and the sensitive groups of ${evaluations.sensitiveGroups} clients, where they were not evaluated.`
     );
   }
 } catch (error) {
