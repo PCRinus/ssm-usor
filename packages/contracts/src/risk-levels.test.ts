@@ -8,6 +8,7 @@ import {
   gravityConsequence,
   isOverAcceptableLimit,
   isUnacceptableRiskLevel,
+  probabilityFrequency,
   riskLevel,
   unacceptableFactors,
 } from './risk-levels';
@@ -224,5 +225,20 @@ describe('gravityConsequence', () => {
       'Deces',
     ]);
     expect(() => gravityConsequence(8)).toThrow(RangeError);
+  });
+});
+
+describe('probabilityFrequency', () => {
+  it('words each probability class as annex 3 of the method does, with its period', () => {
+    expect([1, 2, 3, 4, 5, 6].map(probabilityFrequency)).toEqual([
+      { label: 'Extrem de rare', period: 'o dată la peste 10 ani' },
+      { label: 'Foarte rare', period: 'o dată la 5–10 ani' },
+      { label: 'Rare', period: 'o dată la 2–5 ani' },
+      { label: 'Puțin frecvente', period: 'o dată la 1–2 ani' },
+      { label: 'Frecvente', period: 'o dată la 1 lună – 1 an' },
+      { label: 'Foarte frecvente', period: 'mai des de o dată pe lună' },
+    ]);
+    expect(() => probabilityFrequency(0)).toThrow(RangeError);
+    expect(() => probabilityFrequency(7)).toThrow(RangeError);
   });
 });

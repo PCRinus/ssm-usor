@@ -8,6 +8,7 @@ import {
   isUnacceptableRiskLevel,
   maxAcceptableGlobalRiskLevel,
   type PreventionMeasureKind,
+  probabilityFrequency,
   type RiskEvaluationGap,
   type RiskEvaluationKind,
   riskLevel,
@@ -313,6 +314,9 @@ export type RiskAssessmentEvaluation = {
     consequence: string;
     gravityClass: number;
     probabilityClass: number;
+    /** "Rare", as annex 3 words the class, and "o dată la 2–5 ani", the period it stands for. */
+    frequency: string;
+    frequencyPeriod: string;
   })[];
   /** Every factor, the highest level first; equal levels in the sheet's order. */
   ranked: SheetFactor[];
@@ -536,6 +540,8 @@ function evaluationContext(
         consequence: gravityConsequence(entry.factor.gravityClass),
         gravityClass: entry.factor.gravityClass,
         probabilityClass: entry.factor.probabilityClass,
+        frequency: probabilityFrequency(entry.factor.probabilityClass).label,
+        frequencyPeriod: probabilityFrequency(entry.factor.probabilityClass).period,
       };
     }),
     ranked: [...facts].sort(byLevel).map(sheetFactor),

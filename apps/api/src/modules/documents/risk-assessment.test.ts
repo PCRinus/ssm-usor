@@ -283,6 +283,8 @@ describe('an evaluation of the risk assessment', () => {
       consequence: 'Invaliditate gradul II',
       gravityClass: 5,
       probabilityClass: 3,
+      frequency: 'Rare',
+      frequencyPeriod: 'o dată la 2–5 ani',
       level: 4,
     });
   });

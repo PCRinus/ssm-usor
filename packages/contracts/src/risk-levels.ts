@@ -37,6 +37,16 @@ export const gravityConsequences = {
   7: 'Deces',
 } as const satisfies Record<GravityClass, string>;
 
+/** The probability classes as annex 3 of the method words them, with the period each stands for. */
+export const probabilityFrequencies = {
+  1: { label: 'Extrem de rare', period: 'o dată la peste 10 ani' },
+  2: { label: 'Foarte rare', period: 'o dată la 5–10 ani' },
+  3: { label: 'Rare', period: 'o dată la 2–5 ani' },
+  4: { label: 'Puțin frecvente', period: 'o dată la 1–2 ani' },
+  5: { label: 'Frecvente', period: 'o dată la 1 lună – 1 an' },
+  6: { label: 'Foarte frecvente', period: 'mai des de o dată pe lună' },
+} as const satisfies Record<ProbabilityClass, { label: string; period: string }>;
+
 function isClass(value: number, max: number) {
   return Number.isInteger(value) && value >= 1 && value <= max;
 }
@@ -53,6 +63,16 @@ export function riskLevel(gravityClass: number, probabilityClass: number): RiskL
 export function gravityConsequence(gravityClass: number): string {
   if (!isClass(gravityClass, 7)) throw new RangeError(`No gravity class ${gravityClass}.`);
   return gravityConsequences[gravityClass as GravityClass];
+}
+
+export function probabilityFrequency(probabilityClass: number): {
+  label: string;
+  period: string;
+} {
+  if (!isClass(probabilityClass, 6)) {
+    throw new RangeError(`No probability class ${probabilityClass}.`);
+  }
+  return probabilityFrequencies[probabilityClass as ProbabilityClass];
 }
 
 export function isUnacceptableRiskLevel(level: number): boolean {
