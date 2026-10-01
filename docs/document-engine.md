@@ -363,7 +363,13 @@ The API builds the data once per generation and merges every template with it
   readiness also returns the two names as `workersRepresentativeClash`).
   `missingDocumentData(facts, typeKey)` is what generating one document again needs: a 1.5
   kept under 10 employees still needs one representative, and the training themes need an own
-  instructions revision to cite (`documents.own_instructions`).
+  instructions revision to cite (`documents.own_instructions`). The risk evaluations
+  ([ADR 015](architecture/adr-015-risk-assessment.md)) need every current position evaluated
+  with at least one factor (`positions.risk_evaluation`), the sensitive groups too
+  (`risk_evaluations.sensitive_groups`), a prevention measure on every factor above level 3
+  (`risk_evaluations.measures`), and a deadline and a person responsible on every factor with
+  measures (`risk_evaluations.plan`); readiness names the evaluations behind those codes as
+  `incompleteRiskEvaluations`.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
@@ -378,7 +384,62 @@ The API builds the data once per generation and merges every template with it
 - `documentApplies(facts, typeKey)` says whether a document belongs in the client's set:
   decision 1.5 only from 10 current employees. Generating leaves out the rest; a document
   that already exists stays, and cover 1.0 keeps listing a 1.5 that was generated.
-- `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
+- `unitRisks` are the unacceptable factors (level above 3) of every evaluation the risk
+  assessment prints, each description once (compared without case, spacing or a closing full
+  stop), the highest level first and then in the order met, with `risk` the description and
+  `measure` every prevention measure taken against it, one per line, those of a repeated
+  factor merged. `noUnitRisks` is one item when there are none, for a sentence to say so.
+- `riskAssessment` is what the risk assessment (9) and the prevention plan (10) print
+  ([ADR 015](architecture/adr-015-risk-assessment.md)). It is built whole and recorded whole
+  in a snapshot that prints any of it, so a changed factor marks those documents "Date
+  modificate". Every text is ready to print: a dash (`—`) stands where there is nothing,
+  levels and shares have a comma and two decimals, and a value that holds several lines
+  (`measures`, the four kinds) breaks them with line breaks.
+
+  | Name                                      | Example                                                                                                                |
+  | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+  | `riskAssessment.unit.activity`            | `5630 – Baruri și alte activități de servire a băuturilor`, the CAEN class by name; `—` without a code                 |
+  | `….unit.employeeCount`                    | `6`, the current employees                                                                                             |
+  | `….unit.workplaces[]`                     | `{ name, kind: 'Sediu social' \| 'Punct de lucru', address }`, the registered office first; `noWorkplaces` without any |
+  | `riskAssessment.evaluationCount`, `…Text` | `5`, `5 posturi de lucru`: every evaluation printed, the sensitive groups included                                     |
+  | `riskAssessment.globalLevel`              | `2,50`, the unit's: the evaluations' levels, each weighted by itself (Σ Nr² / Σ Nr)                                    |
+  | `riskAssessment.evaluations[]`            | One per subchapter of chapter V and per table of the plan, in the order below                                          |
+
+  The evaluations are the current positions in the order of the positions table, then the
+  sensitive groups, then the client's other evaluations by name. An archived position's
+  evaluation stays out, and so does another evaluation without a factor. Each has:
+
+  | Name                                   | Example                                                                                                                                                                   |
+  | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `roman`, `name`                        | `II`, `Sudor`; `Grupuri sensibile la riscuri specifice`; another's own name                                                                                               |
+  | `heading`                              | `LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL`, `POSTUL DE LUCRU: SUDOR` without a work zone, `VIZITATORI`, `GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI …)`        |
+  | `workZoneOrDash`                       | `Birou`, or `—`                                                                                                                                                           |
+  | `workSystem`                           | `{ executant, workTask, meansOfProduction, workEnvironment }`: a position's name and activities, or the client-level evaluation's own texts                               |
+  | `exposedPersons`, `exposure`           | `3 persoane`, `25 de persoane`, `nicio persoană` (a position's current employees) or the evaluation's text; `8 h / schimb`                                                |
+  | `factorCount`                          | `37`                                                                                                                                                                      |
+  | `components[]`                         | The four components, always, in the sheet's order: `{ label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție', count, share: '24,32 %', noFactors, groups }`       |
+  | `…groups[]`                            | `{ letter: 'a', name: 'Factori de risc mecanic', factors: [{ code, description, level }] }`, in the order the evaluator first used them                                   |
+  | `sheet[]`                              | A row of the evaluation sheet per factor: `{ component, group, code: 'F1', description, consequence, gravityClass, probabilityClass, frequency, frequencyPeriod, level }` |
+  | `ranked[]`                             | `{ code, description, level }`, every factor, the highest level first                                                                                                     |
+  | `globalLevel`                          | `2,49`                                                                                                                                                                    |
+  | `withinLimit`, `overLimit`, `verdict`  | One item in the flag that holds; `valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5`    |
+  | `unacceptableCount`, `unacceptable[]`  | `2`; `{ code, description, level, measures, technical, organizational, hygienicSanitary, other }`, the highest level first                                                |
+  | `hasUnacceptable`, `noUnacceptable`    | One item in the flag that holds                                                                                                                                           |
+  | `findings`                             | `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 37 de factori de risc identificați, 2 dintre ei depășesc, …`                       |
+  | `unacceptableLead`, `measuresSentence` | `Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:`, `Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare …`; empty without        |
+  | `irreversible`                         | `Din analiza „Fișei de evaluare” se constată că 7 dintre factorii de risc identificați, reprezentând 18,92 %, pot avea consecințe ireversibile …`                         |
+  | `plan[]`, `noPlan`                     | The plan's rows: every factor with a measure, the highest level first, as `unacceptable[]` plus `actions`, `deadline`, `responsiblePerson`, `observations`                |
+
+  The factors are numbered F1…Fn down the sheet: by component in the provider's order (means of
+  production, work environment, executant, work task), then by group in the order the
+  evaluator first used it, then in the evaluator's order. On a `sheet` row `component` and
+  `group` are empty after their first row, as the merged cells of the sheet print them.
+  `consequence` is the gravity class's wording and `frequency` the probability class's, with
+  `frequencyPeriod` the period it stands for (`Rare`, `o dată la 2–5 ani`). The sentences are
+  worded for any count: `singurul factor`, `niciunul dintre cei 12 factori`, `unul singur`,
+  `toți cei`, and `de` from 20 on (`21 de factori`). `irreversible` counts the factors whose
+  consequence is invalidity or death, gravity classes 4 to 7.
+
 - `themes` is what the training themes (4.2, [ADR 014](architecture/adr-014-training-themes.md))
   print, built from the client's newest own instructions revision, draft or issued, and the
   modules it annexes at the versions it annexed them. It is absent while there is no such
@@ -421,12 +482,12 @@ same test.
 | `event_registers`                 | The four registers of accidents and dangerous incidents, A4 landscape                                                                                      | None                                                                                                                                                             |
 | `control_report`                  | The report form filled in by hand at each control visit                                                                                                    | None                                                                                                                                                             |
 | `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages                                                                                      | None                                                                                                                                                             |
-| `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
+| `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) and `noUnitRisks` for the closing chapter on the unit's own risks                                                              |
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
 | `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III                                                  | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
-| `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`                                                                                                                                                     |
-| `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | None yet                                                                                                                                                         |
+| `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`, `evaluationTeam`, `positions`, `riskAssessment` once reauthored                                                                                    |
+| `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | `riskAssessment.evaluations[].plan` once reauthored                                                                                                              |
 | `decision_imminent_danger`        | Decision no. 4: who acts in serious and imminent danger                                                                                                    | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 | `decision_workers_representative` | Decision no. 5: the workers' representatives, from 10 employees                                                                                            | `workersRepresentatives[]`, `workersRepresentativesLead`                                                                                                         |
 

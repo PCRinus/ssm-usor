@@ -152,7 +152,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT …/risk-evaluations/{evaluationId}/factor-order`                   | Verified user with a membership       | `{ "evaluation": { … } }` after reordering the factors by `factorIds`                                                     |
 | `POST …/risk-evaluations/{evaluationId}/factors/copy`                  | Verified user with a membership       | `{ "evaluation": { … } }` after adding another evaluation's factors                                                       |
 | `GET …/job-positions/{jobPositionId}/risk-evaluation`                  | Verified user with a membership       | `{ "evaluation": { … } }`, the position's evaluation, or `null`                                                           |
-| `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups or plan fields typed before; `?field=&query=`                                                |
+| `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                  |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -391,8 +391,9 @@ takes `factorIds`, every factor of the evaluation once, or `400` on `factorIds`.
 …/factors/copy` adds copies of the factors of `fromEvaluationId`, another evaluation of the
 same client, after the factors already there, with `400` on `fromEvaluationId` for the
 evaluation itself or one of another client. `GET /risk-factor-suggestions` returns, for
-`field` `group`, `actions`, `deadline` or `responsiblePerson`, what the organization typed
-before, as the equipment suggestions do.
+`field` `group`, `actions`, `deadline`, `responsiblePerson` or `observations`, what the
+organization typed before, as the equipment suggestions do. A write under an archived client
+answers `409` with `client_archived`.
 
 A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
 keeps about a client or a lead without the app writing or reading them; a lead uses the same
@@ -571,7 +572,15 @@ role nobody holds, `positions.any` for a client without a current position,
 ([ADR 011](architecture/adr-011-protective-equipment.md)), and `positions.instructions` while
 one is undecided about the instruction modules it applies
 ([ADR 012](architecture/adr-012-own-instructions.md)); `undecidedJobPositions` names those,
-so the form can send someone to each. Generating the training themes again also needs an own
+so the form can send someone to each. The risk evaluations
+([ADR 015](architecture/adr-015-risk-assessment.md)) add four: `positions.risk_evaluation`
+while a current position has no evaluation or one without a factor,
+`risk_evaluations.sensitive_groups` likewise for the sensitive groups,
+`risk_evaluations.measures` while an unacceptable factor (level above 3) has no prevention
+measure, and `risk_evaluations.plan` while a factor with measures lacks its deadline or its
+person responsible. `incompleteRiskEvaluations` names the evaluations behind them, each with
+`evaluationId` (null for one not started), `kind`, `jobPositionId`, `name` and `missing`, a
+list of `factors`, `measures` and `plan`. Generating the training themes again also needs an own
 instructions revision to cite, `documents.own_instructions`
 ([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
 the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
