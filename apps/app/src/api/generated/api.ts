@@ -1481,6 +1481,446 @@ export interface InstructionsDecision {
   needsInstructions: boolean | null;
 }
 
+export type RiskEvaluationListResponseItemsItemKind =
+  (typeof RiskEvaluationListResponseItemsItemKind)[keyof typeof RiskEvaluationListResponseItemsItemKind];
+
+export const RiskEvaluationListResponseItemsItemKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RiskEvaluationListResponseItemsItemJobPosition = {
+  id: string;
+  name: string;
+} | null;
+
+export type RiskEvaluationListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  kind: RiskEvaluationListResponseItemsItemKind;
+  /** @nullable */
+  jobPosition: RiskEvaluationListResponseItemsItemJobPosition;
+  /** @nullable */
+  name: string | null;
+  /**
+   * @minimum 1
+   * @maximum 7
+   * @nullable
+   */
+  globalRiskLevel: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @minimum 0 */
+  factorCount: number;
+  /** @minimum 0 */
+  unacceptableFactorCount: number;
+};
+
+export interface RiskEvaluationListResponse {
+  items: RiskEvaluationListResponseItemsItem[];
+}
+
+export type RiskEvaluationResponseEvaluationKind =
+  (typeof RiskEvaluationResponseEvaluationKind)[keyof typeof RiskEvaluationResponseEvaluationKind];
+
+export const RiskEvaluationResponseEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RiskEvaluationResponseEvaluationJobPosition = {
+  id: string;
+  name: string;
+} | null;
+
+export type RiskEvaluationResponseEvaluationFactorsItemComponent =
+  (typeof RiskEvaluationResponseEvaluationFactorsItemComponent)[keyof typeof RiskEvaluationResponseEvaluationFactorsItemComponent];
+
+export const RiskEvaluationResponseEvaluationFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind =
+  (typeof RiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind)[keyof typeof RiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind];
+
+export const RiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskEvaluationResponseEvaluationFactorsItemMeasuresItem = {
+  id: string;
+  kind: RiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RiskEvaluationResponseEvaluationFactorsItem = {
+  id: string;
+  component: RiskEvaluationResponseEvaluationFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  gravityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  probabilityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  measures: RiskEvaluationResponseEvaluationFactorsItemMeasuresItem[];
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RiskEvaluationResponseEvaluation = {
+  id: string;
+  clientId: string;
+  kind: RiskEvaluationResponseEvaluationKind;
+  /** @nullable */
+  jobPosition: RiskEvaluationResponseEvaluationJobPosition;
+  /** @nullable */
+  name: string | null;
+  /**
+   * @minimum 1
+   * @maximum 7
+   * @nullable
+   */
+  globalRiskLevel: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  exposure: string;
+  factors: RiskEvaluationResponseEvaluationFactorsItem[];
+};
+
+export interface RiskEvaluationResponse {
+  evaluation: RiskEvaluationResponseEvaluation;
+}
+
+export type CreateRiskEvaluationRequest =
+  | {
+      kind: 'job_position';
+      jobPositionId: string;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      meansOfProduction?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      workEnvironment?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 120
+       */
+      exposure?: string;
+    }
+  | {
+      kind: 'sensitive_groups';
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      meansOfProduction?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      workEnvironment?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 120
+       */
+      exposure?: string;
+    }
+  | {
+      kind: 'other';
+      /**
+       * @minLength 2
+       * @maxLength 160
+       */
+      name: string;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      meansOfProduction?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 2000
+       * @nullable
+       */
+      workEnvironment?: string | null;
+      /**
+       * @minLength 1
+       * @maxLength 120
+       */
+      exposure?: string;
+    };
+
+export interface UpdateRiskEvaluationRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name?: string;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  meansOfProduction?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  workEnvironment?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  exposure?: string;
+}
+
+export type RiskFactorRequestComponent =
+  (typeof RiskFactorRequestComponent)[keyof typeof RiskFactorRequestComponent];
+
+export const RiskFactorRequestComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskFactorRequestMeasuresItemKind =
+  (typeof RiskFactorRequestMeasuresItemKind)[keyof typeof RiskFactorRequestMeasuresItemKind];
+
+export const RiskFactorRequestMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskFactorRequestMeasuresItem = {
+  kind: RiskFactorRequestMeasuresItemKind;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  description: string;
+};
+
+export interface RiskFactorRequest {
+  component: RiskFactorRequestComponent;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  group: string;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   */
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  gravityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  probabilityClass: number;
+  /** @maxItems 30 */
+  measures?: RiskFactorRequestMeasuresItem[];
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  actions?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   * @nullable
+   */
+  deadline?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   * @nullable
+   */
+  responsiblePerson?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   * @nullable
+   */
+  observations?: string | null;
+}
+
+export interface CopyRiskFactorsRequest {
+  fromEvaluationId: string;
+}
+
+export interface RiskFactorOrderRequest {
+  /** @maxItems 500 */
+  factorIds: string[];
+}
+
+export type JobPositionRiskEvaluationResponseEvaluationKind =
+  (typeof JobPositionRiskEvaluationResponseEvaluationKind)[keyof typeof JobPositionRiskEvaluationResponseEvaluationKind];
+
+export const JobPositionRiskEvaluationResponseEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type JobPositionRiskEvaluationResponseEvaluationJobPosition = {
+  id: string;
+  name: string;
+} | null;
+
+export type JobPositionRiskEvaluationResponseEvaluationFactorsItemComponent =
+  (typeof JobPositionRiskEvaluationResponseEvaluationFactorsItemComponent)[keyof typeof JobPositionRiskEvaluationResponseEvaluationFactorsItemComponent];
+
+export const JobPositionRiskEvaluationResponseEvaluationFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind =
+  (typeof JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind)[keyof typeof JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind];
+
+export const JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItem = {
+  id: string;
+  kind: JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type JobPositionRiskEvaluationResponseEvaluationFactorsItem = {
+  id: string;
+  component: JobPositionRiskEvaluationResponseEvaluationFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  gravityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  probabilityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  measures: JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItem[];
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type JobPositionRiskEvaluationResponseEvaluation = {
+  id: string;
+  clientId: string;
+  kind: JobPositionRiskEvaluationResponseEvaluationKind;
+  /** @nullable */
+  jobPosition: JobPositionRiskEvaluationResponseEvaluationJobPosition;
+  /** @nullable */
+  name: string | null;
+  /**
+   * @minimum 1
+   * @maximum 7
+   * @nullable
+   */
+  globalRiskLevel: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  exposure: string;
+  factors: JobPositionRiskEvaluationResponseEvaluationFactorsItem[];
+} | null;
+
+export interface JobPositionRiskEvaluationResponse {
+  /** @nullable */
+  evaluation: JobPositionRiskEvaluationResponseEvaluation;
+}
+
+export interface RiskFactorSuggestionsResponse {
+  items: string[];
+}
+
 /**
  * @nullable
  */
@@ -3531,6 +3971,24 @@ export const UploadInstructionModuleGroup = {
 export type GetInstructionModuleFileLinkParams = {
   versionId?: string;
 };
+
+export type ListRiskFactorSuggestionsParams = {
+  field: ListRiskFactorSuggestionsField;
+  /**
+   * @maxLength 240
+   */
+  query?: string;
+};
+
+export type ListRiskFactorSuggestionsField =
+  (typeof ListRiskFactorSuggestionsField)[keyof typeof ListRiskFactorSuggestionsField];
+
+export const ListRiskFactorSuggestionsField = {
+  group: 'group',
+  actions: 'actions',
+  deadline: 'deadline',
+  responsiblePerson: 'responsiblePerson',
+} as const;
 
 export type GetDocumentDownloadParams = {
   format?: GetDocumentDownloadFormat;
@@ -8693,6 +9151,1456 @@ export const useDecidePositionInstructions = <
 > => {
   return useMutation(getDecidePositionInstructionsMutationOptions(options), queryClient);
 };
+
+export const getListRiskEvaluationsUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-evaluations`;
+};
+
+/**
+ * Every evaluation of the client without its factors: those of its positions in the order of the positions, then the sensitive groups, then the other ones by name. Evaluations of archived positions are left out. Each carries `factorCount`, `unacceptableFactorCount` and `globalRiskLevel` (ADR 015).
+ * @summary List a client's risk evaluations
+ */
+export const listRiskEvaluations = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationListResponse> => {
+  return apiFetch<RiskEvaluationListResponse>(getListRiskEvaluationsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListRiskEvaluationsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/risk-evaluations`] as const;
+};
+
+export const getListRiskEvaluationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRiskEvaluations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskEvaluations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRiskEvaluationsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRiskEvaluations>>> = ({ signal }) =>
+    listRiskEvaluations(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listRiskEvaluations>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListRiskEvaluationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRiskEvaluations>>
+>;
+export type ListRiskEvaluationsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListRiskEvaluations<
+  TData = Awaited<ReturnType<typeof listRiskEvaluations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskEvaluations>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskEvaluations>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskEvaluations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskEvaluations<
+  TData = Awaited<ReturnType<typeof listRiskEvaluations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskEvaluations>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskEvaluations>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskEvaluations>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskEvaluations<
+  TData = Awaited<ReturnType<typeof listRiskEvaluations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskEvaluations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a client's risk evaluations
+ */
+
+export function useListRiskEvaluations<
+  TData = Awaited<ReturnType<typeof listRiskEvaluations>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskEvaluations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListRiskEvaluationsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateRiskEvaluationUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-evaluations`;
+};
+
+/**
+ * For one of the client’s positions (`kind: job_position`), for its sensitive groups, or for another named work system (`kind: other`). A position and the sensitive groups have one evaluation at most (reason `risk_evaluation_exists`); two other evaluations of a client differ in name (reason `risk_evaluation_name_taken`). `exposure` defaults to "8 h / schimb".
+ * @summary Start a risk evaluation
+ */
+export const createRiskEvaluation = async (
+  clientId: string,
+  createRiskEvaluationRequest: CreateRiskEvaluationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskEvaluationResponse>(getCreateRiskEvaluationUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createRiskEvaluationRequest),
+  });
+};
+
+export const getCreateRiskEvaluationMutationKey = () => ['createRiskEvaluation'] as const;
+
+export const getCreateRiskEvaluationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRiskEvaluation>>,
+    TError,
+    CreateRiskEvaluationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRiskEvaluation>>,
+  TError,
+  CreateRiskEvaluationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateRiskEvaluationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRiskEvaluation>>,
+    CreateRiskEvaluationMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createRiskEvaluation(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRiskEvaluationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRiskEvaluation>>
+>;
+export type CreateRiskEvaluationMutationBody = CreateRiskEvaluationRequest;
+export type CreateRiskEvaluationMutationError = ErrorType<ApiErrorResponse>;
+export type CreateRiskEvaluationMutationVariables = {
+  clientId: string;
+  data: CreateRiskEvaluationRequest;
+};
+
+/**
+ * @summary Start a risk evaluation
+ */
+export const useCreateRiskEvaluation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createRiskEvaluation>>,
+      TError,
+      CreateRiskEvaluationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createRiskEvaluation>>,
+  TError,
+  CreateRiskEvaluationMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateRiskEvaluationMutationOptions(options), queryClient);
+};
+
+export const getGetRiskEvaluationUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}`;
+};
+
+/**
+ * The factors in their order, each with its `riskLevel` from the method’s grid and its prevention measures in their order, and the evaluation’s `globalRiskLevel`, null without factors.
+ * @summary Read a risk evaluation with its factors
+ */
+export const getRiskEvaluation = async (
+  clientId: string,
+  evaluationId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  return apiFetch<RiskEvaluationResponse>(getGetRiskEvaluationUrl(clientId, evaluationId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetRiskEvaluationQueryKey = (clientId: string, evaluationId: string) => {
+  return [`/clients/${clientId}/risk-evaluations/${evaluationId}`] as const;
+};
+
+export const getGetRiskEvaluationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  evaluationId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRiskEvaluation>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRiskEvaluationQueryKey(clientId, evaluationId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRiskEvaluation>>> = ({ signal }) =>
+    getRiskEvaluation(clientId, evaluationId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      evaluationId !== null &&
+      evaluationId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getRiskEvaluation>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetRiskEvaluationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRiskEvaluation>>
+>;
+export type GetRiskEvaluationQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  evaluationId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRiskEvaluation>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRiskEvaluation>>,
+          TError,
+          Awaited<ReturnType<typeof getRiskEvaluation>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  evaluationId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRiskEvaluation>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRiskEvaluation>>,
+          TError,
+          Awaited<ReturnType<typeof getRiskEvaluation>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  evaluationId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRiskEvaluation>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read a risk evaluation with its factors
+ */
+
+export function useGetRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  evaluationId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRiskEvaluation>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetRiskEvaluationQueryOptions(clientId, evaluationId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateRiskEvaluationUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}`;
+};
+
+/**
+ * A field left out stays as it is; `null` clears `meansOfProduction` or `workEnvironment`. Only an evaluation of kind `other` takes a `name`.
+ * @summary Change what a risk evaluation says about its work system
+ */
+export const updateRiskEvaluation = async (
+  clientId: string,
+  evaluationId: string,
+  updateRiskEvaluationRequest: UpdateRiskEvaluationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskEvaluationResponse>(getUpdateRiskEvaluationUrl(clientId, evaluationId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateRiskEvaluationRequest),
+  });
+};
+
+export const getUpdateRiskEvaluationMutationKey = () => ['updateRiskEvaluation'] as const;
+
+export const getUpdateRiskEvaluationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRiskEvaluation>>,
+    TError,
+    UpdateRiskEvaluationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateRiskEvaluation>>,
+  TError,
+  UpdateRiskEvaluationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateRiskEvaluationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateRiskEvaluation>>,
+    UpdateRiskEvaluationMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, data } = props ?? {};
+
+    return updateRiskEvaluation(clientId, evaluationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateRiskEvaluationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateRiskEvaluation>>
+>;
+export type UpdateRiskEvaluationMutationBody = UpdateRiskEvaluationRequest;
+export type UpdateRiskEvaluationMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateRiskEvaluationMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  data: UpdateRiskEvaluationRequest;
+};
+
+/**
+ * @summary Change what a risk evaluation says about its work system
+ */
+export const useUpdateRiskEvaluation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateRiskEvaluation>>,
+      TError,
+      UpdateRiskEvaluationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateRiskEvaluation>>,
+  TError,
+  UpdateRiskEvaluationMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateRiskEvaluationMutationOptions(options), queryClient);
+};
+
+export const getRemoveRiskEvaluationUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}`;
+};
+
+/**
+ * @summary Delete a risk evaluation with its factors
+ */
+export const removeRiskEvaluation = async (
+  clientId: string,
+  evaluationId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRemoveRiskEvaluationUrl(clientId, evaluationId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveRiskEvaluationMutationKey = () => ['removeRiskEvaluation'] as const;
+
+export const getRemoveRiskEvaluationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeRiskEvaluation>>,
+    TError,
+    RemoveRiskEvaluationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeRiskEvaluation>>,
+  TError,
+  RemoveRiskEvaluationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveRiskEvaluationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeRiskEvaluation>>,
+    RemoveRiskEvaluationMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId } = props ?? {};
+
+    return removeRiskEvaluation(clientId, evaluationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveRiskEvaluationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeRiskEvaluation>>
+>;
+
+export type RemoveRiskEvaluationMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveRiskEvaluationMutationVariables = { clientId: string; evaluationId: string };
+
+/**
+ * @summary Delete a risk evaluation with its factors
+ */
+export const useRemoveRiskEvaluation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeRiskEvaluation>>,
+      TError,
+      RemoveRiskEvaluationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeRiskEvaluation>>,
+  TError,
+  RemoveRiskEvaluationMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveRiskEvaluationMutationOptions(options), queryClient);
+};
+
+export const getCreateRiskFactorUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/factors`;
+};
+
+/**
+ * The factor goes after the others, with its prevention measures in the order sent. Answers with the whole evaluation, since the global level changes with every factor.
+ * @summary Add a risk factor to an evaluation
+ */
+export const createRiskFactor = async (
+  clientId: string,
+  evaluationId: string,
+  riskFactorRequest: RiskFactorRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskEvaluationResponse>(getCreateRiskFactorUrl(clientId, evaluationId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskFactorRequest),
+  });
+};
+
+export const getCreateRiskFactorMutationKey = () => ['createRiskFactor'] as const;
+
+export const getCreateRiskFactorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRiskFactor>>,
+    TError,
+    CreateRiskFactorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRiskFactor>>,
+  TError,
+  CreateRiskFactorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateRiskFactorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRiskFactor>>,
+    CreateRiskFactorMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, data } = props ?? {};
+
+    return createRiskFactor(clientId, evaluationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRiskFactorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRiskFactor>>
+>;
+export type CreateRiskFactorMutationBody = RiskFactorRequest;
+export type CreateRiskFactorMutationError = ErrorType<ApiErrorResponse>;
+export type CreateRiskFactorMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  data: RiskFactorRequest;
+};
+
+/**
+ * @summary Add a risk factor to an evaluation
+ */
+export const useCreateRiskFactor = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createRiskFactor>>,
+      TError,
+      CreateRiskFactorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createRiskFactor>>,
+  TError,
+  CreateRiskFactorMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateRiskFactorMutationOptions(options), queryClient);
+};
+
+export const getCopyRiskFactorsUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/factors/copy`;
+};
+
+/**
+ * Adds copies of the factors of `fromEvaluationId`, with their classes, measures and plan fields, after the factors the evaluation already has.
+ * @summary Copy the factors of another evaluation of the client
+ */
+export const copyRiskFactors = async (
+  clientId: string,
+  evaluationId: string,
+  copyRiskFactorsRequest: CopyRiskFactorsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskEvaluationResponse>(getCopyRiskFactorsUrl(clientId, evaluationId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(copyRiskFactorsRequest),
+  });
+};
+
+export const getCopyRiskFactorsMutationKey = () => ['copyRiskFactors'] as const;
+
+export const getCopyRiskFactorsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof copyRiskFactors>>,
+    TError,
+    CopyRiskFactorsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof copyRiskFactors>>,
+  TError,
+  CopyRiskFactorsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCopyRiskFactorsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof copyRiskFactors>>,
+    CopyRiskFactorsMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, data } = props ?? {};
+
+    return copyRiskFactors(clientId, evaluationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CopyRiskFactorsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof copyRiskFactors>>
+>;
+export type CopyRiskFactorsMutationBody = CopyRiskFactorsRequest;
+export type CopyRiskFactorsMutationError = ErrorType<ApiErrorResponse>;
+export type CopyRiskFactorsMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  data: CopyRiskFactorsRequest;
+};
+
+/**
+ * @summary Copy the factors of another evaluation of the client
+ */
+export const useCopyRiskFactors = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof copyRiskFactors>>,
+      TError,
+      CopyRiskFactorsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof copyRiskFactors>>,
+  TError,
+  CopyRiskFactorsMutationVariables,
+  TContext
+> => {
+  return useMutation(getCopyRiskFactorsMutationOptions(options), queryClient);
+};
+
+export const getUpdateRiskFactorUrl = (
+  clientId: string,
+  evaluationId: string,
+  factorId: string
+) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/factors/${factorId}`;
+};
+
+/**
+ * The factor keeps its place. Answers with the whole evaluation.
+ * @summary Replace a risk factor and its prevention measures
+ */
+export const updateRiskFactor = async (
+  clientId: string,
+  evaluationId: string,
+  factorId: string,
+  riskFactorRequest: RiskFactorRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskEvaluationResponse>(
+    getUpdateRiskFactorUrl(clientId, evaluationId, factorId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(riskFactorRequest),
+    }
+  );
+};
+
+export const getUpdateRiskFactorMutationKey = () => ['updateRiskFactor'] as const;
+
+export const getUpdateRiskFactorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRiskFactor>>,
+    TError,
+    UpdateRiskFactorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateRiskFactor>>,
+  TError,
+  UpdateRiskFactorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateRiskFactorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateRiskFactor>>,
+    UpdateRiskFactorMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, factorId, data } = props ?? {};
+
+    return updateRiskFactor(clientId, evaluationId, factorId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateRiskFactorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateRiskFactor>>
+>;
+export type UpdateRiskFactorMutationBody = RiskFactorRequest;
+export type UpdateRiskFactorMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateRiskFactorMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  factorId: string;
+  data: RiskFactorRequest;
+};
+
+/**
+ * @summary Replace a risk factor and its prevention measures
+ */
+export const useUpdateRiskFactor = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateRiskFactor>>,
+      TError,
+      UpdateRiskFactorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateRiskFactor>>,
+  TError,
+  UpdateRiskFactorMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateRiskFactorMutationOptions(options), queryClient);
+};
+
+export const getRemoveRiskFactorUrl = (
+  clientId: string,
+  evaluationId: string,
+  factorId: string
+) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/factors/${factorId}`;
+};
+
+/**
+ * Answers with the whole evaluation.
+ * @summary Remove a risk factor
+ */
+export const removeRiskFactor = async (
+  clientId: string,
+  evaluationId: string,
+  factorId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  return apiFetch<RiskEvaluationResponse>(
+    getRemoveRiskFactorUrl(clientId, evaluationId, factorId),
+    {
+      ...options,
+      method: 'DELETE',
+    }
+  );
+};
+
+export const getRemoveRiskFactorMutationKey = () => ['removeRiskFactor'] as const;
+
+export const getRemoveRiskFactorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeRiskFactor>>,
+    TError,
+    RemoveRiskFactorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeRiskFactor>>,
+  TError,
+  RemoveRiskFactorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveRiskFactorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeRiskFactor>>,
+    RemoveRiskFactorMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, factorId } = props ?? {};
+
+    return removeRiskFactor(clientId, evaluationId, factorId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveRiskFactorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeRiskFactor>>
+>;
+
+export type RemoveRiskFactorMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveRiskFactorMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  factorId: string;
+};
+
+/**
+ * @summary Remove a risk factor
+ */
+export const useRemoveRiskFactor = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeRiskFactor>>,
+      TError,
+      RemoveRiskFactorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeRiskFactor>>,
+  TError,
+  RemoveRiskFactorMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveRiskFactorMutationOptions(options), queryClient);
+};
+
+export const getReorderRiskFactorsUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/factor-order`;
+};
+
+/**
+ * `factorIds` names every factor of the evaluation once, in the new order; anything else answers `400` on `factorIds`.
+ * @summary Reorder an evaluation's risk factors
+ */
+export const reorderRiskFactors = async (
+  clientId: string,
+  evaluationId: string,
+  riskFactorOrderRequest: RiskFactorOrderRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskEvaluationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskEvaluationResponse>(getReorderRiskFactorsUrl(clientId, evaluationId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskFactorOrderRequest),
+  });
+};
+
+export const getReorderRiskFactorsMutationKey = () => ['reorderRiskFactors'] as const;
+
+export const getReorderRiskFactorsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderRiskFactors>>,
+    TError,
+    ReorderRiskFactorsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderRiskFactors>>,
+  TError,
+  ReorderRiskFactorsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReorderRiskFactorsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderRiskFactors>>,
+    ReorderRiskFactorsMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, data } = props ?? {};
+
+    return reorderRiskFactors(clientId, evaluationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderRiskFactorsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderRiskFactors>>
+>;
+export type ReorderRiskFactorsMutationBody = RiskFactorOrderRequest;
+export type ReorderRiskFactorsMutationError = ErrorType<ApiErrorResponse>;
+export type ReorderRiskFactorsMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  data: RiskFactorOrderRequest;
+};
+
+/**
+ * @summary Reorder an evaluation's risk factors
+ */
+export const useReorderRiskFactors = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof reorderRiskFactors>>,
+      TError,
+      ReorderRiskFactorsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof reorderRiskFactors>>,
+  TError,
+  ReorderRiskFactorsMutationVariables,
+  TContext
+> => {
+  return useMutation(getReorderRiskFactorsMutationOptions(options), queryClient);
+};
+
+export const getGetJobPositionRiskEvaluationUrl = (clientId: string, jobPositionId: string) => {
+  return `/clients/${clientId}/job-positions/${jobPositionId}/risk-evaluation`;
+};
+
+/**
+ * The same as reading the evaluation by its id; `evaluation` is null until one is started.
+ * @summary Read a job position's risk evaluation
+ */
+export const getJobPositionRiskEvaluation = async (
+  clientId: string,
+  jobPositionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<JobPositionRiskEvaluationResponse> => {
+  return apiFetch<JobPositionRiskEvaluationResponse>(
+    getGetJobPositionRiskEvaluationUrl(clientId, jobPositionId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getGetJobPositionRiskEvaluationQueryKey = (
+  clientId: string,
+  jobPositionId: string
+) => {
+  return [`/clients/${clientId}/job-positions/${jobPositionId}/risk-evaluation`] as const;
+};
+
+export const getGetJobPositionRiskEvaluationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetJobPositionRiskEvaluationQueryKey(clientId, jobPositionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>> = ({
+    signal,
+  }) => getJobPositionRiskEvaluation(clientId, jobPositionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      jobPositionId !== null &&
+      jobPositionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetJobPositionRiskEvaluationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>
+>;
+export type GetJobPositionRiskEvaluationQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetJobPositionRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+          TError,
+          Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetJobPositionRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+          TError,
+          Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetJobPositionRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read a job position's risk evaluation
+ */
+
+export function useGetJobPositionRiskEvaluation<
+  TData = Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  jobPositionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getJobPositionRiskEvaluation>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetJobPositionRiskEvaluationQueryOptions(
+    clientId,
+    jobPositionId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListRiskFactorSuggestionsUrl = (params: ListRiskFactorSuggestionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/risk-factor-suggestions?${stringifiedParams}`
+    : `/risk-factor-suggestions`;
+};
+
+/**
+ * The distinct values of `field` across the organization’s risk factors that contain `query`, most recently used first, at most twenty.
+ * @summary Groups or plan fields typed before, for autocomplete
+ */
+export const listRiskFactorSuggestions = async (
+  params: ListRiskFactorSuggestionsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskFactorSuggestionsResponse> => {
+  return apiFetch<RiskFactorSuggestionsResponse>(getListRiskFactorSuggestionsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListRiskFactorSuggestionsQueryKey = (params?: ListRiskFactorSuggestionsParams) => {
+  return [`/risk-factor-suggestions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListRiskFactorSuggestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListRiskFactorSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskFactorSuggestions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRiskFactorSuggestionsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRiskFactorSuggestions>>> = ({
+    signal,
+  }) => listRiskFactorSuggestions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListRiskFactorSuggestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRiskFactorSuggestions>>
+>;
+export type ListRiskFactorSuggestionsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListRiskFactorSuggestions<
+  TData = Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListRiskFactorSuggestionsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskFactorSuggestions>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskFactorSuggestions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskFactorSuggestions<
+  TData = Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListRiskFactorSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskFactorSuggestions>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskFactorSuggestions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskFactorSuggestions<
+  TData = Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListRiskFactorSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskFactorSuggestions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Groups or plan fields typed before, for autocomplete
+ */
+
+export function useListRiskFactorSuggestions<
+  TData = Awaited<ReturnType<typeof listRiskFactorSuggestions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListRiskFactorSuggestionsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listRiskFactorSuggestions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListRiskFactorSuggestionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetOrganizationCompanyDetailsUrl = () => {
   return `/organization/company-details`;
