@@ -1977,6 +1977,226 @@ export interface RiskFactorSuggestionsResponse {
   items: string[];
 }
 
+export type EvaluationProfileListResponseItemsItem = {
+  id: string;
+  name: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   * @nullable
+   */
+  globalRiskLevel: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @minimum 0 */
+  factorCount: number;
+  /** @minimum 0 */
+  unacceptableFactorCount: number;
+};
+
+export interface EvaluationProfileListResponse {
+  items: EvaluationProfileListResponseItemsItem[];
+}
+
+export type EvaluationProfileResponseProfileFactorsItemComponent =
+  (typeof EvaluationProfileResponseProfileFactorsItemComponent)[keyof typeof EvaluationProfileResponseProfileFactorsItemComponent];
+
+export const EvaluationProfileResponseProfileFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type EvaluationProfileResponseProfileFactorsItemMeasuresItemKind =
+  (typeof EvaluationProfileResponseProfileFactorsItemMeasuresItemKind)[keyof typeof EvaluationProfileResponseProfileFactorsItemMeasuresItemKind];
+
+export const EvaluationProfileResponseProfileFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type EvaluationProfileResponseProfileFactorsItemMeasuresItem = {
+  id: string;
+  kind: EvaluationProfileResponseProfileFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type EvaluationProfileResponseProfileFactorsItem = {
+  id: string;
+  component: EvaluationProfileResponseProfileFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  gravityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  probabilityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  measures: EvaluationProfileResponseProfileFactorsItemMeasuresItem[];
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EvaluationProfileResponseProfile = {
+  id: string;
+  name: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   * @nullable
+   */
+  globalRiskLevel: number | null;
+  createdAt: string;
+  updatedAt: string;
+  factors: EvaluationProfileResponseProfileFactorsItem[];
+};
+
+export interface EvaluationProfileResponse {
+  profile: EvaluationProfileResponseProfile;
+}
+
+export interface EvaluationProfileNameRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name: string;
+}
+
+export type ApplyEvaluationProfileResponseEvaluationKind =
+  (typeof ApplyEvaluationProfileResponseEvaluationKind)[keyof typeof ApplyEvaluationProfileResponseEvaluationKind];
+
+export const ApplyEvaluationProfileResponseEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ApplyEvaluationProfileResponseEvaluationJobPosition = {
+  id: string;
+  name: string;
+} | null;
+
+export type ApplyEvaluationProfileResponseEvaluationFactorsItemComponent =
+  (typeof ApplyEvaluationProfileResponseEvaluationFactorsItemComponent)[keyof typeof ApplyEvaluationProfileResponseEvaluationFactorsItemComponent];
+
+export const ApplyEvaluationProfileResponseEvaluationFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItemKind =
+  (typeof ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItemKind)[keyof typeof ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItemKind];
+
+export const ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItem = {
+  id: string;
+  kind: ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type ApplyEvaluationProfileResponseEvaluationFactorsItem = {
+  id: string;
+  component: ApplyEvaluationProfileResponseEvaluationFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  gravityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  probabilityClass: number;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  measures: ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItem[];
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplyEvaluationProfileResponseEvaluation = {
+  id: string;
+  clientId: string;
+  kind: ApplyEvaluationProfileResponseEvaluationKind;
+  /** @nullable */
+  jobPosition: ApplyEvaluationProfileResponseEvaluationJobPosition;
+  /** @nullable */
+  name: string | null;
+  /**
+   * @minimum 1
+   * @maximum 7
+   * @nullable
+   */
+  globalRiskLevel: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  exposure: string;
+  /** @nullable */
+  workTask: string | null;
+  /** @nullable */
+  exposedPersons: string | null;
+  factors: ApplyEvaluationProfileResponseEvaluationFactorsItem[];
+};
+
+export interface ApplyEvaluationProfileResponse {
+  evaluation: ApplyEvaluationProfileResponseEvaluation;
+  /** @minimum 0 */
+  addedFactorCount: number;
+}
+
+export interface ApplyEvaluationProfileRequest {
+  profileId: string;
+}
+
 /**
  * @nullable
  */
@@ -10694,6 +10914,1149 @@ export function useListRiskFactorSuggestions<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getListEvaluationProfilesUrl = () => {
+  return `/evaluation-profiles`;
+};
+
+/**
+ * The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
+ * @summary List the organization's evaluation profiles
+ */
+export const listEvaluationProfiles = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileListResponse> => {
+  return apiFetch<EvaluationProfileListResponse>(getListEvaluationProfilesUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListEvaluationProfilesQueryKey = () => {
+  return [`/evaluation-profiles`] as const;
+};
+
+export const getListEvaluationProfilesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListEvaluationProfilesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listEvaluationProfiles>>> = ({ signal }) =>
+    listEvaluationProfiles({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEvaluationProfiles>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListEvaluationProfilesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEvaluationProfiles>>
+>;
+export type ListEvaluationProfilesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListEvaluationProfiles<
+  TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEvaluationProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof listEvaluationProfiles>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEvaluationProfiles<
+  TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEvaluationProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof listEvaluationProfiles>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEvaluationProfiles<
+  TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's evaluation profiles
+ */
+
+export function useListEvaluationProfiles<
+  TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListEvaluationProfilesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateEvaluationProfileUrl = () => {
+  return `/evaluation-profiles`;
+};
+
+/**
+ * Two profiles of the organization differ in more than case and the spaces around the name.
+ * @summary Start an empty evaluation profile
+ */
+export const createEvaluationProfile = async (
+  evaluationProfileNameRequest: EvaluationProfileNameRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EvaluationProfileResponse>(getCreateEvaluationProfileUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(evaluationProfileNameRequest),
+  });
+};
+
+export const getCreateEvaluationProfileMutationKey = () => ['createEvaluationProfile'] as const;
+
+export const getCreateEvaluationProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEvaluationProfile>>,
+    TError,
+    CreateEvaluationProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEvaluationProfile>>,
+  TError,
+  CreateEvaluationProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateEvaluationProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEvaluationProfile>>,
+    CreateEvaluationProfileMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createEvaluationProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEvaluationProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEvaluationProfile>>
+>;
+export type CreateEvaluationProfileMutationBody = EvaluationProfileNameRequest;
+export type CreateEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
+export type CreateEvaluationProfileMutationVariables = { data: EvaluationProfileNameRequest };
+
+/**
+ * @summary Start an empty evaluation profile
+ */
+export const useCreateEvaluationProfile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createEvaluationProfile>>,
+      TError,
+      CreateEvaluationProfileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createEvaluationProfile>>,
+  TError,
+  CreateEvaluationProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateEvaluationProfileMutationOptions(options), queryClient);
+};
+
+export const getGetEvaluationProfileUrl = (profileId: string) => {
+  return `/evaluation-profiles/${profileId}`;
+};
+
+/**
+ * The factors in their order, each with its `riskLevel` from the method’s grid and its prevention measures, and the profile’s `globalRiskLevel`, null without factors.
+ * @summary Read an evaluation profile with its factors
+ */
+export const getEvaluationProfile = async (
+  profileId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  return apiFetch<EvaluationProfileResponse>(getGetEvaluationProfileUrl(profileId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetEvaluationProfileQueryKey = (profileId: string) => {
+  return [`/evaluation-profiles/${profileId}`] as const;
+};
+
+export const getGetEvaluationProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEvaluationProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfile>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetEvaluationProfileQueryKey(profileId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEvaluationProfile>>> = ({ signal }) =>
+    getEvaluationProfile(profileId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: profileId !== null && profileId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfile>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetEvaluationProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEvaluationProfile>>
+>;
+export type GetEvaluationProfileQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetEvaluationProfile<
+  TData = Awaited<ReturnType<typeof getEvaluationProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfile>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEvaluationProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getEvaluationProfile>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEvaluationProfile<
+  TData = Awaited<ReturnType<typeof getEvaluationProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfile>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEvaluationProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getEvaluationProfile>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEvaluationProfile<
+  TData = Awaited<ReturnType<typeof getEvaluationProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfile>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read an evaluation profile with its factors
+ */
+
+export function useGetEvaluationProfile<
+  TData = Awaited<ReturnType<typeof getEvaluationProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfile>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetEvaluationProfileQueryOptions(profileId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getRenameEvaluationProfileUrl = (profileId: string) => {
+  return `/evaluation-profiles/${profileId}`;
+};
+
+/**
+ * @summary Rename an evaluation profile
+ */
+export const renameEvaluationProfile = async (
+  profileId: string,
+  evaluationProfileNameRequest: EvaluationProfileNameRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EvaluationProfileResponse>(getRenameEvaluationProfileUrl(profileId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(evaluationProfileNameRequest),
+  });
+};
+
+export const getRenameEvaluationProfileMutationKey = () => ['renameEvaluationProfile'] as const;
+
+export const getRenameEvaluationProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof renameEvaluationProfile>>,
+    TError,
+    RenameEvaluationProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof renameEvaluationProfile>>,
+  TError,
+  RenameEvaluationProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRenameEvaluationProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof renameEvaluationProfile>>,
+    RenameEvaluationProfileMutationVariables
+  > = (props) => {
+    const { profileId, data } = props ?? {};
+
+    return renameEvaluationProfile(profileId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RenameEvaluationProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof renameEvaluationProfile>>
+>;
+export type RenameEvaluationProfileMutationBody = EvaluationProfileNameRequest;
+export type RenameEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
+export type RenameEvaluationProfileMutationVariables = {
+  profileId: string;
+  data: EvaluationProfileNameRequest;
+};
+
+/**
+ * @summary Rename an evaluation profile
+ */
+export const useRenameEvaluationProfile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof renameEvaluationProfile>>,
+      TError,
+      RenameEvaluationProfileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof renameEvaluationProfile>>,
+  TError,
+  RenameEvaluationProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getRenameEvaluationProfileMutationOptions(options), queryClient);
+};
+
+export const getRemoveEvaluationProfileUrl = (profileId: string) => {
+  return `/evaluation-profiles/${profileId}`;
+};
+
+/**
+ * The factors it gave evaluations stay in them: a copy is the client’s and never refers back to the profile.
+ * @summary Delete an evaluation profile with its factors
+ */
+export const removeEvaluationProfile = async (
+  profileId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRemoveEvaluationProfileUrl(profileId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveEvaluationProfileMutationKey = () => ['removeEvaluationProfile'] as const;
+
+export const getRemoveEvaluationProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeEvaluationProfile>>,
+    TError,
+    RemoveEvaluationProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeEvaluationProfile>>,
+  TError,
+  RemoveEvaluationProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveEvaluationProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeEvaluationProfile>>,
+    RemoveEvaluationProfileMutationVariables
+  > = (props) => {
+    const { profileId } = props ?? {};
+
+    return removeEvaluationProfile(profileId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveEvaluationProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeEvaluationProfile>>
+>;
+
+export type RemoveEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveEvaluationProfileMutationVariables = { profileId: string };
+
+/**
+ * @summary Delete an evaluation profile with its factors
+ */
+export const useRemoveEvaluationProfile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeEvaluationProfile>>,
+      TError,
+      RemoveEvaluationProfileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeEvaluationProfile>>,
+  TError,
+  RemoveEvaluationProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveEvaluationProfileMutationOptions(options), queryClient);
+};
+
+export const getCreateEvaluationProfileFactorUrl = (profileId: string) => {
+  return `/evaluation-profiles/${profileId}/factors`;
+};
+
+/**
+ * The same body as a factor of an evaluation. The factor goes after the others, with its prevention measures in the order sent. Answers with the whole profile.
+ * @summary Add a risk factor to a profile
+ */
+export const createEvaluationProfileFactor = async (
+  profileId: string,
+  riskFactorRequest: RiskFactorRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EvaluationProfileResponse>(getCreateEvaluationProfileFactorUrl(profileId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskFactorRequest),
+  });
+};
+
+export const getCreateEvaluationProfileFactorMutationKey = () =>
+  ['createEvaluationProfileFactor'] as const;
+
+export const getCreateEvaluationProfileFactorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEvaluationProfileFactor>>,
+    TError,
+    CreateEvaluationProfileFactorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEvaluationProfileFactor>>,
+  TError,
+  CreateEvaluationProfileFactorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateEvaluationProfileFactorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEvaluationProfileFactor>>,
+    CreateEvaluationProfileFactorMutationVariables
+  > = (props) => {
+    const { profileId, data } = props ?? {};
+
+    return createEvaluationProfileFactor(profileId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEvaluationProfileFactorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEvaluationProfileFactor>>
+>;
+export type CreateEvaluationProfileFactorMutationBody = RiskFactorRequest;
+export type CreateEvaluationProfileFactorMutationError = ErrorType<ApiErrorResponse>;
+export type CreateEvaluationProfileFactorMutationVariables = {
+  profileId: string;
+  data: RiskFactorRequest;
+};
+
+/**
+ * @summary Add a risk factor to a profile
+ */
+export const useCreateEvaluationProfileFactor = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createEvaluationProfileFactor>>,
+      TError,
+      CreateEvaluationProfileFactorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createEvaluationProfileFactor>>,
+  TError,
+  CreateEvaluationProfileFactorMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateEvaluationProfileFactorMutationOptions(options), queryClient);
+};
+
+export const getUpdateEvaluationProfileFactorUrl = (profileId: string, factorId: string) => {
+  return `/evaluation-profiles/${profileId}/factors/${factorId}`;
+};
+
+/**
+ * The factor keeps its place. Copies already made in evaluations stay as they are. Answers with the whole profile.
+ * @summary Replace a profile's risk factor and its prevention measures
+ */
+export const updateEvaluationProfileFactor = async (
+  profileId: string,
+  factorId: string,
+  riskFactorRequest: RiskFactorRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EvaluationProfileResponse>(
+    getUpdateEvaluationProfileFactorUrl(profileId, factorId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(riskFactorRequest),
+    }
+  );
+};
+
+export const getUpdateEvaluationProfileFactorMutationKey = () =>
+  ['updateEvaluationProfileFactor'] as const;
+
+export const getUpdateEvaluationProfileFactorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEvaluationProfileFactor>>,
+    TError,
+    UpdateEvaluationProfileFactorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEvaluationProfileFactor>>,
+  TError,
+  UpdateEvaluationProfileFactorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateEvaluationProfileFactorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEvaluationProfileFactor>>,
+    UpdateEvaluationProfileFactorMutationVariables
+  > = (props) => {
+    const { profileId, factorId, data } = props ?? {};
+
+    return updateEvaluationProfileFactor(profileId, factorId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEvaluationProfileFactorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEvaluationProfileFactor>>
+>;
+export type UpdateEvaluationProfileFactorMutationBody = RiskFactorRequest;
+export type UpdateEvaluationProfileFactorMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEvaluationProfileFactorMutationVariables = {
+  profileId: string;
+  factorId: string;
+  data: RiskFactorRequest;
+};
+
+/**
+ * @summary Replace a profile's risk factor and its prevention measures
+ */
+export const useUpdateEvaluationProfileFactor = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateEvaluationProfileFactor>>,
+      TError,
+      UpdateEvaluationProfileFactorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateEvaluationProfileFactor>>,
+  TError,
+  UpdateEvaluationProfileFactorMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateEvaluationProfileFactorMutationOptions(options), queryClient);
+};
+
+export const getRemoveEvaluationProfileFactorUrl = (profileId: string, factorId: string) => {
+  return `/evaluation-profiles/${profileId}/factors/${factorId}`;
+};
+
+/**
+ * Answers with the whole profile.
+ * @summary Remove a profile's risk factor
+ */
+export const removeEvaluationProfileFactor = async (
+  profileId: string,
+  factorId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  return apiFetch<EvaluationProfileResponse>(
+    getRemoveEvaluationProfileFactorUrl(profileId, factorId),
+    {
+      ...options,
+      method: 'DELETE',
+    }
+  );
+};
+
+export const getRemoveEvaluationProfileFactorMutationKey = () =>
+  ['removeEvaluationProfileFactor'] as const;
+
+export const getRemoveEvaluationProfileFactorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeEvaluationProfileFactor>>,
+    TError,
+    RemoveEvaluationProfileFactorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeEvaluationProfileFactor>>,
+  TError,
+  RemoveEvaluationProfileFactorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveEvaluationProfileFactorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeEvaluationProfileFactor>>,
+    RemoveEvaluationProfileFactorMutationVariables
+  > = (props) => {
+    const { profileId, factorId } = props ?? {};
+
+    return removeEvaluationProfileFactor(profileId, factorId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveEvaluationProfileFactorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeEvaluationProfileFactor>>
+>;
+
+export type RemoveEvaluationProfileFactorMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveEvaluationProfileFactorMutationVariables = {
+  profileId: string;
+  factorId: string;
+};
+
+/**
+ * @summary Remove a profile's risk factor
+ */
+export const useRemoveEvaluationProfileFactor = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeEvaluationProfileFactor>>,
+      TError,
+      RemoveEvaluationProfileFactorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeEvaluationProfileFactor>>,
+  TError,
+  RemoveEvaluationProfileFactorMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveEvaluationProfileFactorMutationOptions(options), queryClient);
+};
+
+export const getSaveRiskEvaluationAsProfileUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/save-as-profile`;
+};
+
+/**
+ * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. An archived client’s evaluation can be saved too.
+ * @summary Save a risk evaluation as a profile of the library
+ */
+export const saveRiskEvaluationAsProfile = async (
+  clientId: string,
+  evaluationId: string,
+  evaluationProfileNameRequest: EvaluationProfileNameRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<EvaluationProfileResponse>(
+    getSaveRiskEvaluationAsProfileUrl(clientId, evaluationId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(evaluationProfileNameRequest),
+    }
+  );
+};
+
+export const getSaveRiskEvaluationAsProfileMutationKey = () =>
+  ['saveRiskEvaluationAsProfile'] as const;
+
+export const getSaveRiskEvaluationAsProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveRiskEvaluationAsProfile>>,
+    TError,
+    SaveRiskEvaluationAsProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveRiskEvaluationAsProfile>>,
+  TError,
+  SaveRiskEvaluationAsProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveRiskEvaluationAsProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveRiskEvaluationAsProfile>>,
+    SaveRiskEvaluationAsProfileMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, data } = props ?? {};
+
+    return saveRiskEvaluationAsProfile(clientId, evaluationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveRiskEvaluationAsProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveRiskEvaluationAsProfile>>
+>;
+export type SaveRiskEvaluationAsProfileMutationBody = EvaluationProfileNameRequest;
+export type SaveRiskEvaluationAsProfileMutationError = ErrorType<ApiErrorResponse>;
+export type SaveRiskEvaluationAsProfileMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  data: EvaluationProfileNameRequest;
+};
+
+/**
+ * @summary Save a risk evaluation as a profile of the library
+ */
+export const useSaveRiskEvaluationAsProfile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveRiskEvaluationAsProfile>>,
+      TError,
+      SaveRiskEvaluationAsProfileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveRiskEvaluationAsProfile>>,
+  TError,
+  SaveRiskEvaluationAsProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveRiskEvaluationAsProfileMutationOptions(options), queryClient);
+};
+
+export const getApplyEvaluationProfileUrl = (clientId: string, evaluationId: string) => {
+  return `/clients/${clientId}/risk-evaluations/${evaluationId}/factors/apply-profile`;
+};
+
+/**
+ * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.
+ * @summary Copy the factors of a profile into a risk evaluation
+ */
+export const applyEvaluationProfile = async (
+  clientId: string,
+  evaluationId: string,
+  applyEvaluationProfileRequest: ApplyEvaluationProfileRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ApplyEvaluationProfileResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ApplyEvaluationProfileResponse>(
+    getApplyEvaluationProfileUrl(clientId, evaluationId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(applyEvaluationProfileRequest),
+    }
+  );
+};
+
+export const getApplyEvaluationProfileMutationKey = () => ['applyEvaluationProfile'] as const;
+
+export const getApplyEvaluationProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyEvaluationProfile>>,
+    TError,
+    ApplyEvaluationProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyEvaluationProfile>>,
+  TError,
+  ApplyEvaluationProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getApplyEvaluationProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyEvaluationProfile>>,
+    ApplyEvaluationProfileMutationVariables
+  > = (props) => {
+    const { clientId, evaluationId, data } = props ?? {};
+
+    return applyEvaluationProfile(clientId, evaluationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyEvaluationProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyEvaluationProfile>>
+>;
+export type ApplyEvaluationProfileMutationBody = ApplyEvaluationProfileRequest;
+export type ApplyEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
+export type ApplyEvaluationProfileMutationVariables = {
+  clientId: string;
+  evaluationId: string;
+  data: ApplyEvaluationProfileRequest;
+};
+
+/**
+ * @summary Copy the factors of a profile into a risk evaluation
+ */
+export const useApplyEvaluationProfile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof applyEvaluationProfile>>,
+      TError,
+      ApplyEvaluationProfileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof applyEvaluationProfile>>,
+  TError,
+  ApplyEvaluationProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getApplyEvaluationProfileMutationOptions(options), queryClient);
+};
 
 export const getGetOrganizationCompanyDetailsUrl = () => {
   return `/organization/company-details`;
