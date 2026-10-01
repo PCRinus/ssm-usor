@@ -213,12 +213,12 @@ across runs, and leaves an ellipsis alone.
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
-All 23 are templates. Two of them are marked `contentPending`: the risk assessment (9) and
-the prevention plan (10). They have the house style, the wording pass, and placeholders for
-names and dates, and **their content is still the first client's**: job titles, equipment,
-risks. That content comes from the risk assessment of stage 3 (ADR 005); until then they are
-uploaded. The own instructions (3.2), the training themes (4.2) and the protective equipment
-list (6), stage 2, are generated from the positions (ADR 011, ADR 012, ADR 014).
+All 23 are templates. One of them is marked `contentPending`: the prevention plan (10). It
+has the house style, the wording pass, and placeholders for names and dates, and **its
+content is still the first client's**: job titles and risks. Until it prints the risk
+evaluations it is uploaded. The own instructions (3.2), the training themes (4.2) and the
+protective equipment list (6), stage 2, are generated from the positions (ADR 011, ADR 012,
+ADR 014), and the risk assessment (9) from the risk evaluations (ADR 015).
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
 outside the body's flow; the import walks the frames too, and a `tables` entry with
@@ -240,6 +240,35 @@ original's chapter titles, loses its page numbers, and gains the annex rows.
 The five tables of chapter XI that showed the steps of lifting a load beside a picture are
 rebuilt from their text alone, the picture column dropped: a picture anchored inside a table
 cell stops LibreOffice's PDF export at that table, and every page after it is lost.
+
+`sections` rewrites a part in the middle of the body. Each `{ from, to, content }` removes
+everything from the first paragraph matching `from` up to the one matching `to` (to the end
+without `to`), tables and frames included, and writes `content` there: paragraphs as `append`
+writes them, with `indent` (1/100 mm), `pageBefore` and `pageAfter`, and `{ "table": … }`, a
+table drawn from a definition with `rows` like a `tables` entry, a paragraph left after it
+only where the next thing is a table too. Between removing and writing the document goes
+through a file and back: after the long chapter V of the risk assessment is removed,
+LibreOffice fails to save the file once the new content grows past where that chapter was,
+saying nothing more, and a reloaded document saves. `subheadings` are patterns for headings
+of a spec's own that stay left-aligned: bold, 12 pt above, kept with what follows.
+
+The risk assessment (ADR 015) is rewritten this way around the `riskAssessment` context.
+Chapters I and II, the annexes and the bibliography are the provider's. Chapter III lists
+the client, its representative, the workplace manager, the CAEN class, the employee count,
+the workplaces, and the positions table; the questionnaire about the premises, the accident
+counts and the inventory tables are gone. Chapter IV names the evaluation team from
+`evaluationTeam` and the specialist, without the decision's number, which a document other
+than a decision does not get. Chapter V repeats a subchapter per evaluation: the work system
+table, the factors by component and group, an identity table and the evaluation sheet (two
+tables, so that the sheet's column heads repeat on every page), the measures sheet or the
+sentence that there is nothing unacceptable, and the interpretation as a ranking table,
+sentences and a table of shares. The charts and the per-post formula objects are dropped; the
+formula is written once in words. Every evaluation ends with a page break. Chapter VI keeps
+its text with the count of posts from `evaluationCountText` and the recommendations made
+general, then a table of the evaluations' levels and the unit's `Nrg`, and a subchapter VI.III
+on consulting the workers (art. 18 of Legea 319/2006, naming `workersRepresentatives` when
+there are any) and on when the assessment is reviewed (art. 46 (1) of H.G. 1425/2006). The
+contents table loses its page numbers and gains a row per evaluation.
 
 ## Covers
 
@@ -486,7 +515,7 @@ same test.
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
 | `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III                                                  | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
-| `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`, `evaluationTeam`, `positions`, `riskAssessment` once reauthored                                                                                    |
+| `risk_assessment`                 | The risk assessment (ADR 015): the method's chapters and annexes, then the unit, the team, a subchapter per evaluation, and the conclusions                | `specialist`, `workplaceManager`, `evaluationTeam`, `workersRepresentatives`, `positions`, `riskAssessment`                                                      |
 | `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | `riskAssessment.evaluations[].plan` once reauthored                                                                                                              |
 | `decision_imminent_danger`        | Decision no. 4: who acts in serious and imminent danger                                                                                                    | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 | `decision_workers_representative` | Decision no. 5: the workers' representatives, from 10 employees                                                                                            | `workersRepresentatives[]`, `workersRepresentativesLead`                                                                                                         |

@@ -639,9 +639,10 @@ document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
 the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. Two of them are `uploadedDocumentTypes`, which the app cannot write until stage 3
-is done (the risk assessment and the prevention plan; the protective equipment list, the own
-instructions and the training themes are generated since ADR 011, ADR 012 and ADR 014): for those the upload is how the document comes to exist, as
+its order. One of them is in `uploadedDocumentTypes`, which the app cannot write until stage 3
+is done (the prevention plan; the protective equipment list, the own instructions, the
+training themes and the risk assessment are generated since ADR 011, ADR 012, ADR 014 and
+ADR 015): for it the upload is how the document comes to exist, as
 revision 1 in draft under the title its template will carry, so a client's set can be
 complete today. For a document that exists, the file replaces the draft, or starts the next
 draft beside the issued revision, keeping the generation and so the date. An uploaded
