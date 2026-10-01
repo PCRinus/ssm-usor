@@ -333,6 +333,7 @@ export type RiskAssessmentEvaluation = {
     responsiblePerson: string;
     observations: string;
   })[];
+  hasPlan: Flag;
   noPlan: Flag;
 };
 
@@ -559,6 +560,7 @@ function evaluationContext(
         responsiblePerson: orDash(entry.factor.responsiblePerson),
         observations: orDash(entry.factor.observations),
       })),
+    hasPlan: flag(facts.some((entry) => entry.factor.measures.length > 0)),
     noPlan: flag(!facts.some((entry) => entry.factor.measures.length > 0)),
   };
 }

@@ -402,7 +402,7 @@ describe('the merge context', () => {
       measure:
         'Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\nAnunțarea imediată a conducătorului locului de muncă la orice defect electric.',
     });
-    expect(context.noUnitRisks).toEqual([]);
+    expect([context.hasUnitRisks, context.noUnitRisks]).toEqual([[{}], []]);
     const acceptable = buildDocumentContext({
       ...facts,
       riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
@@ -412,7 +412,11 @@ describe('the merge context', () => {
         ),
       })),
     });
-    expect([acceptable.unitRisks, acceptable.noUnitRisks]).toEqual([[], [{}]]);
+    expect([acceptable.unitRisks, acceptable.hasUnitRisks, acceptable.noUnitRisks]).toEqual([
+      [],
+      [],
+      [{}],
+    ]);
   });
 
   it('presents the unit and its evaluations for the risk assessment and the prevention plan', () => {

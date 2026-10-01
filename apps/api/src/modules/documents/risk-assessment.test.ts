@@ -504,8 +504,8 @@ describe('an evaluation of the risk assessment', () => {
       responsiblePerson: 'Administratorul',
       observations: '—',
     });
-    expect(sudor!.noPlan).toEqual([]);
-    expect(only([factor(2, 2)])).toMatchObject({ plan: [], noPlan: [{}] });
+    expect([sudor!.hasPlan, sudor!.noPlan]).toEqual([[{}], []]);
+    expect(only([factor(2, 2)])).toMatchObject({ plan: [], hasPlan: [], noPlan: [{}] });
   });
 });
 

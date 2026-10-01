@@ -169,6 +169,7 @@ export type DocumentContext = {
     dayTo: number;
   };
   unitRisks: { risk: string; measure: string }[];
+  hasUnitRisks: Record<string, never>[];
   noUnitRisks: Record<string, never>[];
   riskAssessment: RiskAssessmentContext;
   /** Every current position, for the table of posts; then only the ones with equipment. */
@@ -453,6 +454,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       dayTo: client.trainingDayTo!,
     },
     unitRisks: risks,
+    hasUnitRisks: risks.length > 0 ? [{}] : [],
     noUnitRisks: risks.length === 0 ? [{}] : [],
     riskAssessment: riskAssessment({
       evaluations: facts.riskEvaluations,
