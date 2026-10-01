@@ -457,6 +457,13 @@ def rebuild_table(document, definition):
                 for index, row in enumerate(definition['rows'][definition.get('headerRows', 1):]):
                     row[0] = f'{index + 1}.'
         old.dispose()
+    elif 'replaceFrame' in definition:
+        frame = frame_texts(document)[definition['replaceFrame']]
+        anchor = frame.getAnchor()
+        following = next(item for item in body if item.supportsService('com.sun.star.text.Paragraph')
+                         and document.Text.compareRegionStarts(item.getStart(), anchor.getStart()) >= 0
+                         and document.Text.compareRegionEnds(item.getEnd(), anchor.getEnd()) <= 0)
+        frame.dispose()
     else:
         # A table of its own, at the end.
         following = body[-1]
@@ -1194,6 +1201,17 @@ def typeset(document, kind, shrink_empty=False):
         last.CharHeight = 1.0
         last.ParaTopMargin = 0
         last.ParaBottomMargin = 0
+    closing = list(_elements(document.Text))
+    if len(closing) > 1 and closing[-2].supportsService('com.sun.star.text.TextTable') \
+            and closing[-1].getString().strip().startswith('{{/'):
+        # Merged, the loop's closing tag leaves nothing behind, and its table would end the file.
+        cursor = document.Text.createTextCursorByRange(closing[-1].getEnd())
+        document.Text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
+        end = list(_elements(document.Text))[-1]
+        end.CharHeight = 1.0
+        end.ParaTopMargin = 0
+        end.ParaBottomMargin = 0
+        end.ParaKeepTogether = False
     return removed
 
 

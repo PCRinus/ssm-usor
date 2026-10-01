@@ -130,12 +130,15 @@ A `tables` entry with `loop` puts loop tags in paragraphs of their own around it
 the table, so the engine repeats both per item: the equipment list draws one section per job
 position this way, its heading printing the work zone only inside an inline loop, and `after`
 writes a paragraph once past the loop, for a note that would otherwise be left alone on a page
-as the table's last row. `keepWithNext` lists the rows whose paragraphs keep with the next row,
-so a heading row is never the last thing on a page. Do not mark every row to keep a table whole:
-LibreOffice, which makes the PDFs, drops a row at the page break of a keep chain longer than a
-page, and moves the table's start to a new page. One with `remove: true` takes the original's
-table out and draws nothing: the equipment list's grid of risks against body parts, copy-pasted
-unchanged between clients.
+as the table's last row. Repeated tables need a paragraph between them, or they are saved as
+one: the training themes print the position's name as the `heading` of each repetition. Where a
+looped table closes the document, a paragraph at 1 pt follows its closing tag, which leaves
+nothing behind once merged, as Word wants a paragraph after a table. `keepWithNext` lists the
+rows whose paragraphs keep with the next row, so a heading row is never the last thing on a
+page. Do not mark every row to keep a table whole: LibreOffice, which makes the PDFs, drops a
+row at the page break of a keep chain longer than a page, and moves the table's start to a new
+page. One with `remove: true` takes the original's table out and draws nothing: the equipment
+list's grid of risks against body parts, copy-pasted unchanged between clients.
 
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
@@ -210,20 +213,21 @@ across runs, and leaves an ellipsis alone.
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
-All 23 are templates. Five of them are marked `contentPending`: the own instructions (3.2),
-the training themes (4.2), the protective equipment list (6), the risk assessment (9), and
+All 23 are templates. Two of them are marked `contentPending`: the risk assessment (9) and
 the prevention plan (10). They have the house style, the wording pass, and placeholders for
 names and dates, and **their content is still the first client's**: job titles, equipment,
-risks. That content comes from the job-title data of stage 2 and the risk assessment of
-stage 3 (ADR 005); until then a generated file of these five is a starting point to edit, not
-a finished document.
+risks. That content comes from the risk assessment of stage 3 (ADR 005); until then they are
+uploaded. The own instructions (3.2), the training themes (4.2) and the protective equipment
+list (6), stage 2, are generated from the positions (ADR 011, ADR 012, ADR 014).
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
-outside the body's flow; the import walks the frames too. And the risk assessment cannot be
-saved once its empty paragraphs are removed (LibreOffice fails to write the file and does not
-say why; removing any part of them works, removing all does not), so its spec sets
-`"emptyParagraphs": "shrink"` and they stay at 1 pt, where they take no room. `handover` may
-name other words for the client's side (`{"client": ["Am primit și aprobat", …]}`).
+outside the body's flow; the import walks the frames too, and a `tables` entry with
+`replaceFrame` instead of `replaceTable` removes the n-th frame and draws its table in the body
+where the frame was anchored, as the second plan of the training themes is. And the risk
+assessment cannot be saved once its empty paragraphs are removed (LibreOffice fails to write the
+file and does not say why; removing any part of them works, removing all does not), so its spec
+sets `"emptyParagraphs": "shrink"` and they stay at 1 pt, where they take no room. `handover`
+may name other words for the client's side (`{"client": ["Am primit și aprobat", …]}`).
 
 A spec's `cut` names a pattern; everything from the first paragraph matching it to the end of
 the body goes, tables included. The own instructions lose their chapter XIII this way, whose
@@ -358,7 +362,8 @@ The API builds the data once per generation and merges every template with it
   representative's name (`responsible.workers_representative_is_legal_representative`;
   readiness also returns the two names as `workersRepresentativeClash`).
   `missingDocumentData(facts, typeKey)` is what generating one document again needs: a 1.5
-  kept under 10 employees still needs one representative.
+  kept under 10 employees still needs one representative, and the training themes need an own
+  instructions revision to cite (`documents.own_instructions`).
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
@@ -374,6 +379,29 @@ The API builds the data once per generation and merges every template with it
   decision 1.5 only from 10 current employees. Generating leaves out the rest; a document
   that already exists stays, and cover 1.0 keeps listing a 1.5 that was generated.
 - `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
+- `themes` is what the training themes (4.2, [ADR 014](architecture/adr-014-training-themes.md))
+  print, built from the client's newest own instructions revision, draft or issued, and the
+  modules it annexes at the versions it annexed them. It is absent while there is no such
+  revision (none, or an uploaded file), and `documentData(context, 'training_themes')` then
+  throws; every other document merges as before. The template reads it by dotted paths, so the
+  snapshot records the whole object and any change in it marks the themes "Date modificate":
+
+  | Name                             | Example                                                                                                                                                                                              |
+  | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `themes.ownInstructionsRevision` | `{ id, number, versionIds }` of the 3.2 revision cited, the module versions in its annex order; never printed                                                                                        |
+  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                                                                                         |
+  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                                                                                             |
+  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one                                                                          |
+  | `…modules[]`                     | `{ title, articleCount, citation }`, the post's modules the revision annexes, in its order; `citation` is `I.P.S.S.M. Birou, Art. 1 – 12`, or the title alone for a module without numbered articles |
+  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                                                                                            |
+  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                                                                                               |
+
+  A session's `content` is the slice of the common part dealt to it, then every module whole,
+  then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The
+  twelve chapters of 3.2 are dealt over the sessions in contiguous groups whose sizes differ by
+  at most one, the larger first. The chapter starts of 3.2 and 2.2 are constants of
+  `apps/api/src/modules/documents/themes.ts`, held to the templates by
+  `apps/api/scripts/lib/theme-chapters.test.ts`.
 
 A test merges every registered template with this context; the engine throws on a placeholder
 without a value, so a template that asks for a new name fails there first. The list of
@@ -395,7 +423,7 @@ same test.
 | `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages                                                                                      | None                                                                                                                                                             |
 | `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
-| `training_themes`                 | Themes and schedule of the three kinds of training. Content pending                                                                                        | `specialist`, `workplaceManager`                                                                                                                                 |
+| `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III                                                  | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
 | `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`                                                                                                                                                     |
 | `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | None yet                                                                                                                                                         |

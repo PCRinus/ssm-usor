@@ -3019,7 +3019,8 @@
                 "responsible.workers_representative_is_legal_representative",
                 "positions.any",
                 "positions.equipment",
-                "positions.instructions"
+                "positions.instructions",
+                "documents.own_instructions"
               ]
             }
           },
@@ -3391,6 +3392,7 @@
                 "cover_own_instructions",
                 "own_instructions",
                 "cover_training_themes",
+                "training_themes",
                 "cover_tests",
                 "test_hiring",
                 "test_periodic",

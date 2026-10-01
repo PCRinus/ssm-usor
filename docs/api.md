@@ -525,7 +525,10 @@ role nobody holds, `positions.any` for a client without a current position,
 ([ADR 011](architecture/adr-011-protective-equipment.md)), and `positions.instructions` while
 one is undecided about the instruction modules it applies
 ([ADR 012](architecture/adr-012-own-instructions.md)); `undecidedJobPositions` names those,
-so the form can send someone to each. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
+so the form can send someone to each. Generating the training themes again also needs an own
+instructions revision to cite, `documents.own_instructions`
+([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
+the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (default 1) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template is registered
 (`pnpm templates:register`).
@@ -537,6 +540,10 @@ the file cannot be stored the revision is taken back, so a second call finishes 
 Documents that exist are left alone and returned under `skipped`; generating one document
 again is its own action, since it discards what was edited by hand. Decisions are numbered
 from the first number in the order training, evaluation team, first aid, imminent danger.
+The training themes are made last, after every other document of the run, and cite the own
+instructions revision the run just made; when the client's own instructions are an uploaded
+file there is nothing to cite, and the themes are left out until the own instructions are
+generated.
 
 Each revision keeps the part of the data its template printed. The list compares it with the
 stored facts and sets `dataChanged` on a draft that would now print differently: a new
@@ -577,9 +584,9 @@ document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
 the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. Four of them are `uploadedDocumentTypes`, which the app cannot write until stages
-2 and 3 are done (the own instructions, the training themes, the risk assessment, the
-prevention plan; the protective equipment list is generated since ADR 011): for those the upload is how the document comes to exist, as
+its order. Two of them are `uploadedDocumentTypes`, which the app cannot write until stage 3
+is done (the risk assessment and the prevention plan; the protective equipment list, the own
+instructions and the training themes are generated since ADR 011, ADR 012 and ADR 014): for those the upload is how the document comes to exist, as
 revision 1 in draft under the title its template will carry, so a client's set can be
 complete today. For a document that exists, the file replaces the draft, or starts the next
 draft beside the issued revision, keeping the generation and so the date. An uploaded

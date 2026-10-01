@@ -123,6 +123,73 @@ function sample(
         },
       ],
       noAnnexes: [],
+      themes: {
+        ownInstructionsRevision: { id: 'r-1', number: 1 },
+        annexTitles:
+          'I.P.S.S.M. Activități de birou; I.P.S.S.M. Scări metalice; I.P.S.S.M. Aparat de sudură oxiacetilenică',
+        positions: [
+          {
+            name: 'MANAGER MAGAZIN',
+            trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Ana IONESCU',
+            modules: [
+              {
+                title: 'Activități de birou',
+                articleCount: 15,
+                citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 15',
+              },
+            ],
+            intervalLabel: '6 LUNI',
+            sessions: [
+              {
+                month: 'FEBRUARIE',
+                content: 'I.P.S.S.M. Art. 1 – 171; I.P.S.S.M. Activități de birou, Art. 1 – 15;',
+                duration: '120 min',
+              },
+              {
+                month: 'AUGUST',
+                content:
+                  'I.P.S.S.M. Art. 172 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
+                duration: '120 min',
+              },
+            ],
+          },
+          ...people.map(({ name, jobTitle }) => ({
+            name: jobTitle.toUpperCase(),
+            trainer: `${name} – conducător loc de muncă`,
+            modules: [
+              {
+                title: 'Scări metalice',
+                articleCount: 12,
+                citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12',
+              },
+              {
+                title: 'Aparat de sudură oxiacetilenică',
+                articleCount: 0,
+                citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică',
+              },
+            ],
+            intervalLabel: '1 LUNĂ',
+            sessions: [
+              'IANUARIE',
+              'FEBRUARIE',
+              'MARTIE',
+              'APRILIE',
+              'MAI',
+              'IUNIE',
+              'IULIE',
+              'AUGUST',
+              'SEPTEMBRIE',
+              'OCTOMBRIE',
+              'NOIEMBRIE',
+              'DECEMBRIE',
+            ].map((month, index, months) => ({
+              month,
+              content: `I.P.S.S.M. Art. ${index * 24 + 1} – ${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art. 1 – 12; I.P.S.S.M. Aparat de sudură oxiacetilenică;${index === months.length - 1 ? ' Testare.' : ''}`,
+              duration: '120 min',
+            })),
+          })),
+        ],
+      },
       client: { legalName, representativeName, representativeRole: 'Administrator' },
       provider: {
         legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',

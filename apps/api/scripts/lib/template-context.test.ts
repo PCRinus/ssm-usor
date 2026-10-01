@@ -50,3 +50,23 @@ describe('the built-in templates', () => {
     30_000
   );
 });
+
+describe('the training themes', () => {
+  it('print a block per position, with its trainer, its modules and a row per session', () => {
+    const entry = manifest.templates.find((template) => template.typeKey === 'training_themes')!;
+    const text = documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(facts), 'training_themes')
+      )
+    );
+    expect(text).toContain('Florin Cristian TALOȘ – conducător loc de muncă');
+    expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
+    expect(text).toContain(
+      'IPSSM Art. 1 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31;'
+    );
+    expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
+    expect(text.match(/Testare\.$/gm)).toHaveLength(2);
+    expect(text).toContain('I.P.S.S.M. Art. 241 – 294;');
+  }, 30_000);
+});

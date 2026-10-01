@@ -867,7 +867,8 @@ describe('client documents', () => {
     const user = userEvent.setup();
 
     await screen.findAllByTestId('document-section');
-    expect(['4', '9', '10'].map(summaryOf)).toEqual(Array(3).fill('1 neîncărcat'));
+    expect(['9', '10'].map(summaryOf)).toEqual(Array(2).fill('1 neîncărcat'));
+    expect(summaryOf('4')).toBe('negenerat');
 
     await openSection(user, '9');
     const [slot] = await screen.findAllByTestId('document-slot');

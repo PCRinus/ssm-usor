@@ -371,6 +371,104 @@ describe('the merge context', () => {
   });
 });
 
+describe('the training themes', () => {
+  const { themes } = buildDocumentContext(facts);
+
+  it('cite the own instructions revision and the titles it annexes', () => {
+    expect(themes!.ownInstructionsRevision).toEqual({
+      id: 'd0d0d0d0-0000-4000-8000-000000000001',
+      number: 2,
+      versionIds: ['b0b0b0b0-0000-4000-8000-000000000002', 'b0b0b0b0-0000-4000-8000-000000000001'],
+    });
+    expect(themes!.annexTitles).toBe(
+      'I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică'
+    );
+  });
+
+  it('give every position its trainer, its modules, its interval and its sessions', () => {
+    expect(
+      themes!.positions.map(({ sessions, ...position }) => ({
+        ...position,
+        months: sessions.map((session) => session.month),
+      }))
+    ).toEqual([
+      {
+        name: 'CONTABIL',
+        trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
+        modules: [
+          {
+            title: 'Activități de birou',
+            articleCount: 12,
+            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+          },
+        ],
+        intervalLabel: '6 LUNI',
+        months: ['FEBRUARIE', 'AUGUST'],
+      },
+      {
+        name: 'SUDOR',
+        trainer: 'Florin Cristian TALOȘ – conducător loc de muncă',
+        modules: [
+          {
+            title: 'Activități de birou',
+            articleCount: 12,
+            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+          },
+          {
+            title: 'Sudură oxiacetilenică',
+            articleCount: 31,
+            citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
+          },
+        ],
+        intervalLabel: '2 LUNI',
+        months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
+      },
+    ]);
+    expect(themes!.positions[0]!.sessions).toEqual([
+      {
+        month: 'FEBRUARIE',
+        content: 'I.P.S.S.M. Art. 1 – 100; I.P.S.S.M. Activități de birou, Art. 1 – 12',
+        duration: '120 min',
+      },
+      {
+        month: 'AUGUST',
+        content: 'I.P.S.S.M. Art. 101 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
+        duration: '120 min',
+      },
+    ]);
+  });
+
+  it('leave out a module the own instructions revision does not annex', () => {
+    const behind = buildDocumentContext({
+      ...facts,
+      ownInstructions: {
+        ...facts.ownInstructions!,
+        annexes: facts.ownInstructions!.annexes.slice(0, 1),
+      },
+    }).themes!;
+    expect(behind.annexTitles).toBe('I.P.S.S.M. Activități de birou');
+    expect(behind.positions[1]!.modules).toEqual([
+      {
+        title: 'Activități de birou',
+        articleCount: 12,
+        citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+      },
+    ]);
+  });
+
+  it('are absent without an own instructions revision, and the themes alone then refuse', () => {
+    const without = { ...facts, ownInstructions: null };
+    expect(missingDocumentData(without)).toEqual([]);
+    expect(missingDocumentData(without, 'own_instructions')).toEqual([]);
+    expect(missingDocumentData(without, 'training_themes')).toEqual(['documents.own_instructions']);
+    expect(missingDocumentData(facts, 'training_themes')).toEqual([]);
+    const context = buildDocumentContext(without);
+    expect(context).not.toHaveProperty('themes');
+    expect(() => documentData(context, 'training_themes')).toThrow();
+    expect(documentData(context, 'own_instructions')).not.toHaveProperty('themes');
+  });
+});
+
 describe('decision 1.5', () => {
   const withRepresentatives = {
     ...facts,
