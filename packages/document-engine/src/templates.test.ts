@@ -140,6 +140,10 @@ describe('typesetting', () => {
     expect(codes.filter((code) => /PAGE/.test(code) && /\\\*/.test(code))).toEqual([]);
   });
 
+  it.each(templateFiles)('%s numbers its pages through, without a restart', (name) => {
+    expect(bodyOf(name)).not.toMatch(/<w:pgNumType\b[^>]*w:start=/);
+  });
+
   it.each(templateFiles)(
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {

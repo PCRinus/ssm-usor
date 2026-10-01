@@ -1268,6 +1268,10 @@ def sweep(path):
                 # the bare keyword; with the switch it paints the result cached in the file, the
                 # last page's number, on every page.
                 xml = re.sub(r'(<w:instrText[^>]*>\s*(?:PAGE|NUMPAGES|SECTIONPAGES))\s+\\\* ARABIC\s*(?=<)', r'\1 ', xml)
+                # A section that restarts its page numbers keeps the number the original had
+                # there, and "Pag. X din Y" then counts wrong once the pages before it change.
+                # The API's PageNumberOffset does not let go of it.
+                xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')

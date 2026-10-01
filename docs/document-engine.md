@@ -183,8 +183,10 @@ numbered rows of the acknowledgement tables, where newly appointed people sign l
 LibreOffice's API reaches in most places and not in all, or not at all: a dead link that
 survives clearing, an empty paragraph written as justified, a picture that floats at the left
 between two lines (made a character, which looks the same and lets the in-app editor lay the
-page out), and LibreOffice's own fonts as the defaults of the styles (replaced with the house
-font, so no viewer warns about substitutes). `import-templates --sweep [name…]` runs only this
+page out), a section that restarts the page numbers (the risk assessment's landscape annex
+did, so "Pag. X din Y" counted wrong after it), and LibreOffice's own fonts as the defaults
+of the styles (replaced with the house font, so no viewer warns about substitutes).
+`import-templates --sweep [name…]` runs only this
 pass over the templates that exist, covers included, without originals or an office:
 
 |                  |                                                                                                                                                                                                                                                                                                                             |
