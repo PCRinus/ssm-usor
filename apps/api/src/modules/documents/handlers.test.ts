@@ -2031,18 +2031,18 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       init?.method === 'POST'
         ? Response.json({ id: documentId })
         : url?.searchParams.has('id')
-          ? Response.json(rows[0] ?? { ...documentRow, type_key: 'risk_assessment' })
+          ? Response.json(rows[0] ?? { ...documentRow, type_key: 'prevention_plan' })
           : Response.json(rows);
 
   it('creates a document the app cannot generate, as revision 1 in draft', async () => {
     mockUpstream({ documents: documents([]) });
-    const response = await upload('risk_assessment');
+    const response = await upload('prevention_plan');
     expect(response.status).toBe(200);
 
     expect(sentBody('/rest/v1/client_documents')).toMatchObject({
       client_id: clientId,
-      type_key: 'risk_assessment',
-      title: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+      type_key: 'prevention_plan',
+      title: 'Planul de prevenire și protecție',
     });
     const revision = sentBody('/rest/v1/document_revisions');
     expect(revision).toMatchObject({
@@ -2081,7 +2081,7 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       documents: documents([]),
       upload: () => Response.json({ message: 'down' }, { status: 500 }),
     });
-    expect((await upload('risk_assessment')).status).toBeGreaterThanOrEqual(500);
+    expect((await upload('prevention_plan')).status).toBeGreaterThanOrEqual(500);
     expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
   });
 
@@ -2090,7 +2090,7 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     const early = await upload('decision_first_aid');
     expect(early.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await early.json()).reason).toBe('not_generated_yet');
-    expect((await upload('risk_assessment', new Uint8Array([1, 2, 3]))).status).toBe(400);
+    expect((await upload('prevention_plan', new Uint8Array([1, 2, 3]))).status).toBe(400);
     expect((await upload('anything_else')).status).toBe(400);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
   });
@@ -2100,6 +2100,6 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       documents: documents([]),
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
-    expect((await upload('risk_assessment')).status).toBe(409);
+    expect((await upload('prevention_plan')).status).toBe(409);
   });
 });

@@ -89,3 +89,90 @@ describe('the general training material', () => {
     expect(text).toContain('Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).');
   }, 30_000);
 });
+
+describe('the risk assessment', () => {
+  const render = (variant: typeof facts) => {
+    const entry = manifest.templates.find((template) => template.typeKey === 'risk_assessment')!;
+    const context = buildDocumentContext(variant);
+    return {
+      context,
+      text: documentText(
+        renderDocument(
+          readFileSync(new URL(entry.file, templatesUrl)),
+          documentData(context, 'risk_assessment')
+        )
+      ),
+    };
+  };
+
+  it("prints the unit, a subchapter per evaluation with its sheet and measures, and the unit's level", () => {
+    const { context, text } = render(facts);
+    expect(text).toContain(
+      'Activitatea principală (clasa CAEN): 2562 – Fabricarea articolelor de feronerie'
+    );
+    expect(text).toContain(
+      'Punct de lucru „Atelier Ghiroda”: Ghiroda, județul Timiș, Str. Industriilor 4'
+    );
+    for (const evaluation of context.riskAssessment.evaluations) {
+      expect(text).toContain(
+        `SUBCAPITOLUL V.${evaluation.roman}. EVALUAREA RISCURILOR DE ACCIDENTARE ȘI ÎMBOLNĂVIRE PROFESIONALĂ PENTRU ${evaluation.heading}`
+      );
+      expect(text).toContain(`este egal cu ${evaluation.globalLevel}, ${evaluation.verdict}.`);
+      for (const row of evaluation.sheet) expect(text).toContain(`${row.code}. ${row.description}`);
+    }
+    expect(text).toContain(`Nrg = ${context.riskAssessment.globalLevel}`);
+    expect(text).toContain('pentru 3 posturi de lucru din cadrul S.C. PIPETECH S.R.L.');
+    expect(text).not.toContain('Niciunul dintre factorii de risc identificați nu depășește');
+  }, 30_000);
+
+  it("says so where an evaluation has nothing unacceptable, and names the workers' representatives", () => {
+    const { text } = render({
+      ...facts,
+      responsiblePersons: [
+        ...facts.responsiblePersons,
+        {
+          fullName: 'Mihai POPESCU',
+          jobTitle: 'Sudor',
+          roles: ['workers_representative'],
+          currentEmployee: true,
+        },
+      ],
+      riskEvaluations: [
+        ...facts.riskEvaluations,
+        {
+          id: 'e0e0e0e0-0000-4000-8000-000000000009',
+          kind: 'other',
+          jobPositionId: null,
+          name: 'Vizitatori',
+          meansOfProduction: null,
+          workEnvironment: 'Spațiul de primire a clienților.',
+          exposure: '1 h / zi',
+          workTask: 'Așteptare în spațiul de primire.',
+          exposedPersons: 'Variabil',
+          factors: [
+            {
+              component: 'work_environment',
+              group: 'Factori de risc fizic',
+              description: 'Cădere la același nivel pe pardoseala umedă.',
+              gravityClass: 2,
+              probabilityClass: 2,
+              measures: [],
+              actions: null,
+              deadline: null,
+              responsiblePerson: null,
+              observations: null,
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).toContain('PENTRU VIZITATORI');
+    expect(text).toContain(
+      'Niciunul dintre factorii de risc identificați nu depășește nivelul de risc 3'
+    );
+    expect(text).toContain('Nu au fost identificați factori de risc proprii executantului.');
+    expect(text).toContain(
+      'Reprezentant al lucrătorilor cu răspunderi specifice în domeniul securității și sănătății lucrătorilor: Mihai POPESCU, Sudor.'
+    );
+  }, 30_000);
+});
