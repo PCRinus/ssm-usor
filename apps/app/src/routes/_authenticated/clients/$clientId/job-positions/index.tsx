@@ -3,6 +3,7 @@ import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { useAuth } from '@/features/auth/auth-context';
 import { JobPositionsCard } from '@/features/job-positions/job-positions-card';
 import { focusSearch, jobPositionsFocus } from '@/features/missing-data/focus';
+import { ClientRiskEvaluationsCard } from '@/features/risk-evaluations/client-risk-evaluations-card';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/job-positions/')({
   validateSearch: focusSearch(jobPositionsFocus),
@@ -25,6 +26,11 @@ function JobPositionsPage() {
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
         focus={focus}
+      />
+      <ClientRiskEvaluationsCard
+        clientId={client.id}
+        userId={session.user.id}
+        readOnly={client.archivedAt !== null}
       />
     </div>
   );
