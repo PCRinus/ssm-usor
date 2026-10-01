@@ -358,6 +358,32 @@ under active clients, and create and delete measures. Updates are granted on the
 `name` and five texts, and on the factor's descriptive columns and `sort_order`, so neither
 moves to another position, evaluation or client.
 
+### Evaluation profiles
+
+`evaluation_profiles` is the organization's risk library: a `name`, unique within the
+organization ignoring case and the spaces around it, and nothing else; the library starts
+empty. `evaluation_profile_factors` and `evaluation_profile_measures` hold a profile's factors
+and their measures with the same columns, checks and enums as `risk_factors` and
+`prevention_measures`, tied to the profile and its organization by composite foreign keys
+and deleted with it. They are tables of their own rather than evaluations without a client:
+every key, trigger and policy on the evaluation tables is the client's (the archived-client
+and lead triggers, the client's foreign keys, the policies that ask for an active client).
+Nothing refers to a profile, so a profile is deleted, not archived.
+
+Three functions run as the caller and are one transaction each.
+`save_evaluation_profile_factor` is `save_risk_factor` for a profile. `save_risk_evaluation_as_profile`
+creates a profile by name with copies of an evaluation's factors and measures in their order,
+and returns its id, or null when the evaluation is not the caller's; a taken name fails on the
+unique index (`23505`). It works for an archived client's evaluation, since only the library
+is written. `apply_evaluation_profile` appends copies of a profile's factors and measures after
+an evaluation's own and returns how many; a profile of another organization is refused
+(`RSK02`), and an archived client by its trigger (`CLA01`). A copy keeps no link to where it
+came from, so later changes on either side stay there.
+
+Members read, create, update and delete their organization's profiles and profile factors,
+and create and delete profile measures. Updates are granted on the profile's `name` and on the
+factor's descriptive columns and `sort_order`.
+
 ## Generated documents
 
 A document is generated from a versioned Word template and from then on its `.docx` file is

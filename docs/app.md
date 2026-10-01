@@ -168,6 +168,9 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
 | `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | The library: the modules by group, uploading files, starting one from the skeleton, archiving.                                                                                                              |
 | `routes/_authenticated/instructions/$moduleId.tsx`                                         | `/instructions/:moduleId`                                   | One module in the in-app Word editor; a full page. Every save is the next version.                                                                                                                          |
+| `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni".                                                                                                                     |
+| `routes/_authenticated/risks/index.tsx`                                                    | `/risks`                                                    | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                          |
+| `routes/_authenticated/risks/$profileId.tsx`                                               | `/risks/:profileId`                                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                          |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the training schedule and the responsible persons the generated documents print.                                                                                               |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
@@ -733,9 +736,36 @@ mobile navigation link closes the Sheet.
   the measures as a list of kind and text rows; then the actions, the deadline and the
   person responsible and the observations, each with suggestions. A new factor starts in the
   component and group of the last one. "Copiază de la altă evaluare" lists the client's
-  other evaluations that have factors and calls `POST …/factors/copy`. Every change answers
-  with the whole evaluation, which is written into both ways of reading it and refreshes the
-  list. An archived client gets the page without any action.
+  other evaluations that have factors and calls `POST …/factors/copy`; "Aplică un profil"
+  lists the library's profiles that have factors, with their counts and global level, as a
+  radio list, calls `POST …/factors/apply-profile`, and the toast says how many factors were
+  added. "Salvează ca profil…" in the header, shown while the evaluation has factors, asks
+  for a name (the evaluation's title by default; a `409` with `evaluation_profile_name_taken`
+  goes on the field) and calls `POST …/save-as-profile`; its toast opens the new profile.
+  Every change answers with the whole evaluation, which is written into both ways of reading
+  it and refreshes the list. An archived client gets the page with "Salvează ca profil…" as
+  its only action, since the library is the organization's.
+- The factors card (`risk-factors-card.tsx`) and the factor dialog serve both an evaluation
+  and a profile. They take the factors and a `FactorStore` (`factor-store.ts`): saving a
+  factor (new or replaced), removing one, refreshing after a failure, and wording a failure.
+  `useEvaluationFactorStore` writes through the evaluation's endpoints and cache, and
+  `useProfileFactorStore` (`src/features/evaluation-profiles/use-profile-cache.ts`) through the
+  profile's. The page passes the extra ways of adding factors ("Aplică un profil", "Copiază de
+  la altă evaluare") as the card's `tools`, the empty text, and how the removal dialog ends.
+  "Rezultatul evaluării" takes anything with factors and a global level.
+- `/risks`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
+  in `src/features/evaluation-profiles/`, an entry of the sidebar for owners and specialists
+  alike. The list shows `GET /evaluation-profiles` by name, each with "12 factori, 2
+  inacceptabili" and "Nivel global 2,79", red above 3,50; empty, it says that a profile comes
+  from "Salvează ca profil" on an evaluation or from "Profil nou". "Profil nou" asks for a
+  name, creates an empty profile and opens it; the row menu renames and deletes, after asking
+  and saying that the evaluations it was applied to keep their copies. The name dialog
+  (`profile-name-dialog.tsx`) is one component for starting, renaming and saving an
+  evaluation as a profile.
+- `/risks/:profileId`: the profile's name with "Redenumește…" and "Șterge profilul…", a line
+  saying that changes do not reach the evaluations it was applied to, "Rezultatul evaluării"
+  and "Factori de risc" as on the evaluation page, without a work system: a profile holds
+  factors only.
 - `/profile`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the

@@ -153,6 +153,16 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST …/risk-evaluations/{evaluationId}/factors/copy`                  | Verified user with a membership       | `{ "evaluation": { … } }` after adding another evaluation's factors                                                       |
 | `GET …/job-positions/{jobPositionId}/risk-evaluation`                  | Verified user with a membership       | `{ "evaluation": { … } }`, the position's evaluation, or `null`                                                           |
 | `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                  |
+| `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                          |
+| `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                  |
+| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts and global levels                                             |
+| `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                    |
+| `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its factors, measures, levels and global level                                                |
+| `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming it                                                                                  |
+| `DELETE /evaluation-profiles/{profileId}`                              | Verified user with a membership       | `204`, with its factors; the copies in evaluations stay                                                                   |
+| `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                        |
+| `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                          |
+| `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                            |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -392,8 +402,27 @@ takes `factorIds`, every factor of the evaluation once, or `400` on `factorIds`.
 same client, after the factors already there, with `400` on `fromEvaluationId` for the
 evaluation itself or one of another client. `GET /risk-factor-suggestions` returns, for
 `field` `group`, `actions`, `deadline`, `responsiblePerson` or `observations`, what the
-organization typed before, as the equipment suggestions do. A write under an archived client
-answers `409` with `client_archived`.
+organization typed before, in its evaluations and in its risk library alike, as the equipment
+suggestions do. A write under an archived client answers `409` with `client_archived`.
+
+The risk library is the organization's evaluation profiles, each a `name` and factors exactly
+like an evaluation's. `GET /evaluation-profiles` lists them by name without their factors,
+each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`; `GET
+/evaluation-profiles/{profileId}` reads one whole, as an evaluation is read. `POST
+/evaluation-profiles` starts an empty one by `name` and `PATCH` renames it; a name the
+library already holds, ignoring case and the spaces around it, answers `409` with
+`evaluation_profile_name_taken` on `name`. `DELETE` removes a profile with its factors;
+nothing refers to a profile, so there is no archive. `POST …/factors`, `PUT
+…/factors/{factorId}` and `DELETE …/factors/{factorId}` take the bodies an evaluation's
+factor routes take (`RiskFactorRequest`) and answer with the whole profile. Two routes join
+an evaluation and the library, and nothing links what they copy: `POST
+/clients/{clientId}/risk-evaluations/{evaluationId}/save-as-profile` takes a `name` and
+answers `201` with a new profile holding copies of the evaluation's factors (its work system
+texts stay behind), also for an archived client's evaluation; `POST
+…/risk-evaluations/{evaluationId}/factors/apply-profile` takes a `profileId` and answers with
+the evaluation, the profile's factors copied after its own, and `addedFactorCount`. A profile
+outside the library answers `400` on `profileId`, an archived client `409` with
+`client_archived`.
 
 A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
 keeps about a client or a lead without the app writing or reading them; a lead uses the same
