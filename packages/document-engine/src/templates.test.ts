@@ -681,3 +681,39 @@ describe('training_themes', () => {
     expect(text).toContain('IPSSM Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
   });
 });
+
+describe('risk_assessment', () => {
+  const text = documentText(read('9_risk_assessment.docx'));
+
+  it("prints nothing of the first client's posts, levels or premises", () => {
+    expect(text).not.toMatch(
+      /MANAGER MAGAZIN|Manager magazin|GELATERIE|BARMAN|VIZITATOR|5630|Calea Victoriei|Vestiarele|Stingător P6|2,40|2,55/
+    );
+  });
+
+  it('repeats a subchapter per evaluation, and a contents row for each', () => {
+    expect(templatePlaceholders(read('9_risk_assessment.docx'))).toEqual(
+      expect.arrayContaining([
+        'riskAssessment.evaluations',
+        'components',
+        'groups',
+        'factors',
+        'sheet',
+        'unacceptable',
+        'ranked',
+        'riskAssessment.globalLevel',
+        'workersRepresentatives',
+      ])
+    );
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(3);
+    expect(text).toContain('{{#sheet}}{{component}}');
+    expect(text).toContain('SUBCAPITOLUL V.{{roman}}.');
+    expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
+  });
+
+  it('says when the assessment is reviewed, in the words of H.G. 1425/2006', () => {
+    expect(text).toContain(
+      'ori de câte ori intervin modificări ale condițiilor de muncă, respectiv la apariția unor riscuri noi și în urma producerii unui eveniment'
+    );
+  });
+});

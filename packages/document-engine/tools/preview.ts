@@ -18,6 +18,96 @@ const person = (name: string, jobTitle: string) => ({ name, jobTitle });
 const described = (people: { name: string; jobTitle: string }[]) =>
   people.map(({ name, jobTitle }) => `${name} având funcția de ${jobTitle}`).join(', ');
 
+const flag = (on: boolean) => (on ? [{}] : []);
+
+function evaluation(roman: string, name: string, heading: string, count: number) {
+  const labels = [
+    ['MIJLOACE DE PRODUCȚIE', 'mijloacelor de producție'],
+    ['MEDIUL DE MUNCĂ', 'mediului de muncă'],
+    ['EXECUTANT', 'executantului'],
+    ['SARCINA DE MUNCĂ', 'sarcinii de muncă'],
+  ] as const;
+  const factors = Array.from({ length: count }, (_, index) => ({
+    code: `F${index + 1}`,
+    description: `Factor de risc ${index + 1}: lovire, tăiere sau cădere la utilizarea echipamentelor de muncă din dotare.`,
+    level: index % 4 === 0 ? 4 : 1 + (index % 3),
+    component: index % 4,
+  }));
+  const measured = factors
+    .filter((factor) => factor.level > 3 || factor.code === 'F2')
+    .map((factor) => ({
+      code: factor.code,
+      description: factor.description,
+      level: factor.level,
+      measures:
+        'Verificarea periodică a echipamentelor.\nInstruirea lucrătorilor la locul de muncă.',
+      technical: 'Verificarea periodică a echipamentelor.',
+      organizational: 'Instruirea lucrătorilor la locul de muncă.',
+      hygienicSanitary: '—',
+      other: '—',
+    }));
+  const unacceptable = measured.filter((factor) => factor.level > 3);
+  return {
+    roman,
+    name,
+    heading,
+    workZoneOrDash: 'Atelier',
+    workSystem: {
+      executant: name,
+      workTask: 'Montaj și întreținere de instalații pe șantier.',
+      meansOfProduction: 'Scule de mână, polizor unghiular, bormașină.',
+      workEnvironment: 'Hală de producție cu iluminat mixt.',
+    },
+    exposedPersons: '3 persoane',
+    exposure: '8 h / schimb',
+    factorCount: count,
+    components: labels.map(([label, of], component) => {
+      const own = factors.filter((factor) => factor.component === component);
+      return {
+        label,
+        of,
+        count: own.length,
+        share: count ? `${((own.length * 100) / count).toFixed(2).replace('.', ',')} %` : '0,00 %',
+        noFactors: flag(own.length === 0),
+        groups: own.length ? [{ letter: 'a', name: 'Factori de risc mecanic', factors: own }] : [],
+      };
+    }),
+    sheet: factors.map((factor, index) => ({
+      ...factor,
+      component: index < 4 ? labels[factor.component]![0] : '',
+      group: index < 4 ? 'Factori de risc mecanic' : '',
+      consequence: factor.level > 3 ? 'Invaliditate gradul II' : 'ITM 3–45 zile',
+      gravityClass: factor.level > 3 ? 5 : 2,
+      probabilityClass: 3,
+      frequency: 'Rare',
+      frequencyPeriod: 'o dată la 2–5 ani',
+    })),
+    ranked: [...factors].sort((a, b) => b.level - a.level),
+    globalLevel: '2,75',
+    verdict:
+      'valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5',
+    unacceptableCount: unacceptable.length,
+    unacceptable,
+    hasUnacceptable: flag(unacceptable.length > 0),
+    noUnacceptable: flag(unacceptable.length === 0),
+    findings: `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de ${count} factori de risc identificați, ${unacceptable.length} dintre ei depășesc valoarea 3.`,
+    unacceptableLead: unacceptable.length ? 'Factorii de risc din domeniul inacceptabil sunt:' : '',
+    measuresSentence: unacceptable.length
+      ? 'Măsurile sunt prezentate în „Fișa de măsuri propuse”.'
+      : '',
+    irreversible:
+      'Niciunul dintre factorii de risc identificați nu poate avea consecințe ireversibile.',
+    plan: measured.map((factor) => ({
+      ...factor,
+      actions: 'Verificare la începutul fiecărui schimb.',
+      deadline: 'Permanent',
+      responsiblePerson: 'Conducătorul locului de muncă',
+      observations: '—',
+    })),
+    noPlan: flag(measured.length === 0),
+  };
+}
+
 function sample(
   label: string,
   legalName: string,
@@ -123,6 +213,39 @@ function sample(
         },
       ],
       noAnnexes: [],
+      riskAssessment: {
+        unit: {
+          activity: '2562 – Fabricarea articolelor de feronerie',
+          employeeCount: 6,
+          workplaces: [
+            { name: 'Sediul social', kind: 'Sediu social', address: 'București, Sector 1' },
+            {
+              name: 'Atelier',
+              kind: 'Punct de lucru',
+              address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
+            },
+          ],
+          noWorkplaces: [],
+        },
+        evaluationCount: 3,
+        evaluationCountText: '3 posturi de lucru',
+        globalLevel: '2,80',
+        evaluations: [
+          evaluation(
+            'I',
+            'Manager magazin',
+            'LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: MANAGER MAGAZIN',
+            9
+          ),
+          evaluation('II', 'Sudor', 'POSTUL DE LUCRU: SUDOR', 40),
+          evaluation(
+            'III',
+            'Grupuri sensibile la riscuri specifice',
+            'GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)',
+            3
+          ),
+        ],
+      },
       themes: {
         ownInstructionsRevision: { id: 'r-1', number: 1 },
         annexTitles:
