@@ -54,6 +54,16 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Allocation mode** (_mod de acordare_): how an item reaches the worker: **personal inventory** (_inventar personal_), issued and replaced when its duration runs out; **section inventory** (_inventar de secție_), kept at the workplace and shared; or **consumable** (_consum_), used up and restocked, with no duration. Avoid: type of issue, ownership.
 
+**Risk evaluation** (_evaluarea postului_): the record of one evaluated work system by the I.N.C.D.P.M. method: its risk factors with their classes and measures. One per job position; a client also holds evaluations that are not posts, the **sensitive groups** always and others by name. Both the risk assessment and the prevention plan are generated from it. ADR 015. Avoid: risk assessment for the record, which is the document.
+
+**Risk factor** (_factor de risc_): one way the work can harm, recorded on a risk evaluation: the component of the work system it belongs to, its description, a gravity class (1–7) and a probability class (1–6). Its **risk level** (1–7) is read from the method's grid, never typed; above 3 it is **unacceptable**. Avoid: hazard, risk on its own.
+
+**Measure** (_măsură de prevenire_): what is done against a risk factor, of one of four kinds: technical, organizational, hygienic-sanitary, other. A factor's measures, with its actions, deadline and person responsible, are its row in the prevention plan.
+
+**Global risk level** (_nivel de risc global_): the weighted mean of an evaluation's risk levels, each weighted by itself. Acceptable up to 3.5.
+
+**Evaluation profile** (_profil de evaluare_): a named set of risk factors with classes and measures, kept by the organization and copied into evaluations. The profiles are the **risk library** (_biblioteca de riscuri_), which starts empty; the app ships no risk text. Avoid: template, catalogue.
+
 ## Documents
 
 **Document**: one document type, once, for a client, with its revisions. Part of the client's **documentation set**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
