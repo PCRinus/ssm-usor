@@ -116,6 +116,7 @@ function mockUpstream(
     positions?: Handler;
     evaluations?: Handler;
     factors?: Handler;
+    profileFactors?: Handler;
     rpc?: Handler;
   } = {}
 ) {
@@ -157,6 +158,9 @@ function mockUpstream(
       if (custom) return custom;
       if (init?.method === 'DELETE') return Response.json([{ id: electrocutionId }]);
       return Response.json([]);
+    }
+    if (url.pathname === '/rest/v1/evaluation_profile_factors') {
+      return handlers.profileFactors?.(init, url) ?? Response.json([]);
     }
     throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
   });
@@ -670,6 +674,23 @@ describe('GET /risk-factor-suggestions', () => {
       ([input]) => new URL(String(input)).searchParams
     );
     expect(list!.get('select')).toBe('observations,updated_at');
+  });
+
+  it("suggests what the library's profiles hold too, by recency across both", async () => {
+    mockUpstream({
+      factors: () =>
+        Response.json([{ deadline: 'Trimestrial', updated_at: '2026-10-01T10:00:00Z' }]),
+      profileFactors: () =>
+        Response.json([
+          { deadline: 'Permanent', updated_at: '2026-10-01T12:00:00Z' },
+          { deadline: 'trimestrial', updated_at: '2026-10-01T09:00:00Z' },
+        ]),
+    });
+    const response = await request('/risk-factor-suggestions?field=deadline');
+    expect(riskFactorSuggestionsResponseSchema.parse(await response.json()).items).toEqual([
+      'Permanent',
+      'Trimestrial',
+    ]);
   });
 
   it('refuses a field it does not suggest', async () => {

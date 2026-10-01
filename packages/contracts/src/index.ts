@@ -12,6 +12,7 @@ export * from './cui';
 export * from './document-data';
 export * from './documents';
 export * from './employees';
+export * from './evaluation-profiles';
 export * from './iban';
 export * from './instruction-modules';
 export * from './invitations';

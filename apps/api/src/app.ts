@@ -13,6 +13,7 @@ import { contractReturnsRouter } from './modules/contract-returns';
 import { documentDataRouter } from './modules/document-data';
 import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
+import { evaluationProfilesRouter } from './modules/evaluation-profiles';
 import { filesRouter } from './modules/files';
 import { healthRouter } from './modules/health';
 import { instructionModulesRouter } from './modules/instruction-modules';
@@ -63,6 +64,7 @@ export function createApp() {
   app.route('/', protectiveEquipmentRouter);
   app.route('/', instructionModulesRouter);
   app.route('/', riskEvaluationsRouter);
+  app.route('/', evaluationProfilesRouter);
   app.route('/', documentDataRouter);
   app.route('/', documentsRouter);
   app.route('/', clientFilesRouter);

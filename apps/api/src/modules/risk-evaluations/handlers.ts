@@ -6,6 +6,7 @@ import {
   type RiskEvaluation,
   type RiskEvaluationKind,
   type RiskEvaluationSummary,
+  type RiskFactor,
   type RiskFactorRequest,
   type RiskFactorSuggestionField,
   riskLevel,
@@ -32,6 +33,34 @@ import type {
 } from './routes';
 
 type Tables = Database['public']['Tables'];
+
+export type RiskFactorFields = Pick<
+  Tables['risk_factors']['Row'],
+  | 'id'
+  | 'component'
+  | 'factor_group'
+  | 'description'
+  | 'gravity_class'
+  | 'probability_class'
+  | 'actions'
+  | 'deadline'
+  | 'responsible_person'
+  | 'observations'
+  | 'sort_order'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+export type PreventionMeasureFields = Pick<
+  Tables['prevention_measures']['Row'],
+  'id' | 'kind' | 'description' | 'sort_order'
+>;
+
+export const riskFactorFieldColumns =
+  'id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, created_at, updated_at';
+
+export const preventionMeasureFieldColumns = 'id, kind, description, sort_order';
+
 type EvaluationRow = Pick<
   Tables['risk_evaluations']['Row'],
   | 'id'
@@ -47,27 +76,7 @@ type EvaluationRow = Pick<
   | 'updated_at'
 > & {
   job_positions: { id: string; name: string } | null;
-  risk_factors: (Pick<
-    Tables['risk_factors']['Row'],
-    | 'id'
-    | 'component'
-    | 'factor_group'
-    | 'description'
-    | 'gravity_class'
-    | 'probability_class'
-    | 'actions'
-    | 'deadline'
-    | 'responsible_person'
-    | 'observations'
-    | 'sort_order'
-    | 'created_at'
-    | 'updated_at'
-  > & {
-    prevention_measures: Pick<
-      Tables['prevention_measures']['Row'],
-      'id' | 'kind' | 'description' | 'sort_order'
-    >[];
-  })[];
+  risk_factors: (RiskFactorFields & { prevention_measures: PreventionMeasureFields[] })[];
 };
 
 type SummaryRow = Pick<
@@ -78,19 +87,21 @@ type SummaryRow = Pick<
   risk_factors: Pick<Tables['risk_factors']['Row'], 'gravity_class' | 'probability_class'>[];
 };
 
-const evaluationColumns =
-  'id, client_id, kind, name, means_of_production, work_environment, exposure, work_task, exposed_persons, created_at, updated_at, job_positions(id, name), risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, created_at, updated_at, prevention_measures(id, kind, description, sort_order))';
+const evaluationColumns = `id, client_id, kind, name, means_of_production, work_environment, exposure, work_task, exposed_persons, created_at, updated_at, job_positions(id, name), risk_factors(${riskFactorFieldColumns}, prevention_measures(${preventionMeasureFieldColumns}))`;
 
 const summaryColumns =
   'id, client_id, kind, name, created_at, updated_at, job_positions(id, name, archived_at), risk_factors(gravity_class, probability_class)';
 
-const bySortOrder = (
+export const bySortOrder = (
   a: { sort_order: number; id: string },
   b: { sort_order: number; id: string }
 ) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
 
-function toEvaluation(row: EvaluationRow): RiskEvaluation {
-  const factors = [...row.risk_factors].sort(bySortOrder).map((factor) => ({
+export function toRiskFactor(
+  factor: RiskFactorFields,
+  measures: PreventionMeasureFields[]
+): RiskFactor {
+  return {
     id: factor.id,
     component: factor.component,
     group: factor.factor_group,
@@ -98,7 +109,7 @@ function toEvaluation(row: EvaluationRow): RiskEvaluation {
     gravityClass: factor.gravity_class,
     probabilityClass: factor.probability_class,
     riskLevel: riskLevel(factor.gravity_class, factor.probability_class),
-    measures: [...factor.prevention_measures].sort(bySortOrder).map((measure) => ({
+    measures: [...measures].sort(bySortOrder).map((measure) => ({
       id: measure.id,
       kind: measure.kind,
       description: measure.description,
@@ -109,7 +120,29 @@ function toEvaluation(row: EvaluationRow): RiskEvaluation {
     observations: factor.observations,
     createdAt: factor.created_at,
     updatedAt: factor.updated_at,
+  };
+}
+
+export function factorTotals(
+  factors: Pick<RiskFactorFields, 'gravity_class' | 'probability_class'>[]
+) {
+  const classed = factors.map((f) => ({
+    gravityClass: f.gravity_class,
+    probabilityClass: f.probability_class,
   }));
+  return {
+    globalRiskLevel: evaluationGlobalRiskLevel(classed),
+    factorCount: classed.length,
+    unacceptableFactorCount: classed.filter((f) =>
+      isUnacceptableRiskLevel(riskLevel(f.gravityClass, f.probabilityClass))
+    ).length,
+  };
+}
+
+function toEvaluation(row: EvaluationRow): RiskEvaluation {
+  const factors = [...row.risk_factors]
+    .sort(bySortOrder)
+    .map((factor) => toRiskFactor(factor, factor.prevention_measures));
   return {
     id: row.id,
     clientId: row.client_id,
@@ -129,21 +162,13 @@ function toEvaluation(row: EvaluationRow): RiskEvaluation {
 }
 
 function toSummary(row: SummaryRow): RiskEvaluationSummary {
-  const factors = row.risk_factors.map((f) => ({
-    gravityClass: f.gravity_class,
-    probabilityClass: f.probability_class,
-  }));
   return {
     id: row.id,
     clientId: row.client_id,
     kind: row.kind,
     jobPosition: row.job_positions && { id: row.job_positions.id, name: row.job_positions.name },
     name: row.name,
-    globalRiskLevel: evaluationGlobalRiskLevel(factors),
-    factorCount: factors.length,
-    unacceptableFactorCount: factors.filter((f) =>
-      isUnacceptableRiskLevel(riskLevel(f.gravityClass, f.probabilityClass))
-    ).length,
+    ...factorTotals(row.risk_factors),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -189,7 +214,7 @@ async function findClient(db: DataClient, clientId: string) {
   if (!data) throw noSuchClient();
 }
 
-async function findEvaluation(db: DataClient, clientId: string, evaluationId: string) {
+export async function findEvaluation(db: DataClient, clientId: string, evaluationId: string) {
   const { data, error } = await db
     .from('risk_evaluations')
     .select('id, kind')
@@ -201,7 +226,7 @@ async function findEvaluation(db: DataClient, clientId: string, evaluationId: st
   return data;
 }
 
-async function loadEvaluation(db: DataClient, evaluationId: string) {
+export async function loadEvaluation(db: DataClient, evaluationId: string) {
   const { data, error } = await db
     .from('risk_evaluations')
     .select(evaluationColumns)
@@ -364,15 +389,8 @@ export const removeRiskEvaluation: RouteHandler<typeof removeRiskEvaluationRoute
   return c.body(null, 204);
 };
 
-async function saveFactor(
-  db: DataClient,
-  evaluationId: string,
-  factorId: string | undefined,
-  body: RiskFactorRequest
-) {
-  const { data, error } = await db.rpc('save_risk_factor', {
-    p_evaluation_id: evaluationId,
-    p_factor_id: factorId,
+export function riskFactorArgs(body: RiskFactorRequest) {
+  return {
     p_component: body.component,
     p_factor_group: body.group,
     p_description: body.description,
@@ -384,6 +402,19 @@ async function saveFactor(
     p_deadline: body.deadline ?? undefined,
     p_responsible_person: body.responsiblePerson ?? undefined,
     p_observations: body.observations ?? undefined,
+  };
+}
+
+async function saveFactor(
+  db: DataClient,
+  evaluationId: string,
+  factorId: string | undefined,
+  body: RiskFactorRequest
+) {
+  const { data, error } = await db.rpc('save_risk_factor', {
+    p_evaluation_id: evaluationId,
+    p_factor_id: factorId,
+    ...riskFactorArgs(body),
   });
   if (error) throw fromDatabaseError(error, 'save risk factor');
   return data;
@@ -471,25 +502,44 @@ const suggestionColumns = {
 
 const suggestionLimit = 20;
 
+async function typedValues(
+  db: DataClient,
+  table: 'risk_factors' | 'evaluation_profile_factors',
+  column: (typeof suggestionColumns)[RiskFactorSuggestionField]
+) {
+  // Filtered by the caller, not in the query: a typed `%` or `,` would otherwise become part
+  // of the PostgREST filter, and an organization's factors are a few thousand rows at most.
+  const { data, error } = await db
+    .from(table)
+    .select(`${column}, updated_at`)
+    .not(column, 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(2000);
+  if (error) throw fromDatabaseError(error, 'list risk factor suggestions');
+  return data as unknown as Record<string, string>[];
+}
+
 export const listRiskFactorSuggestions: RouteHandler<
   typeof riskFactorSuggestionsRoute,
   ApiEnv
 > = async (c) => {
   const { field, query } = c.req.valid('query');
   const column = suggestionColumns[field];
-  // Filtered here, not in the query: a typed `%` or `,` would otherwise become part of the
-  // PostgREST filter, and an organization's factors are a few thousand rows at most.
-  const { data, error } = await createDataClient(c)
-    .from('risk_factors')
-    .select(`${column}, updated_at`)
-    .not(column, 'is', null)
-    .order('updated_at', { ascending: false })
-    .limit(2000);
-  if (error) throw fromDatabaseError(error, 'list risk factor suggestions');
+  const db = createDataClient(c);
+  // The library's factors were typed by the organization too.
+  const data = (
+    await Promise.all(
+      (['risk_factors', 'evaluation_profile_factors'] as const).map((table) =>
+        typedValues(db, table, column)
+      )
+    )
+  )
+    .flat()
+    .sort((a, b) => b.updated_at!.localeCompare(a.updated_at!));
   const needle = query.toLocaleLowerCase('ro');
   const seen = new Set<string>();
   const items: string[] = [];
-  for (const row of data as unknown as Record<string, string>[]) {
+  for (const row of data) {
     const value = row[column]!;
     const key = value.toLocaleLowerCase('ro');
     if (seen.has(key) || !key.includes(needle)) continue;
