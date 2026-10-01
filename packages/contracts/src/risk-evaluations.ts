@@ -206,6 +206,7 @@ export const riskFactorSuggestionFields = [
   'actions',
   'deadline',
   'responsiblePerson',
+  'observations',
 ] as const;
 
 export type RiskFactorSuggestionField = (typeof riskFactorSuggestionFields)[number];
@@ -225,6 +226,7 @@ export type RiskFactorSuggestionsResponse = z.infer<typeof riskFactorSuggestions
 export const riskEvaluationErrorReasons = [
   'risk_evaluation_exists',
   'risk_evaluation_name_taken',
+  'client_archived',
 ] as const;
 
 export type RiskEvaluationErrorReason = (typeof riskEvaluationErrorReasons)[number];

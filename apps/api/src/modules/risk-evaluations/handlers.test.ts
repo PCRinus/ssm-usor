@@ -655,6 +655,23 @@ describe('GET /risk-factor-suggestions', () => {
     expect(list!.get('factor_group')).toBe('not.is.null');
   });
 
+  it('suggests observations typed before', async () => {
+    mockUpstream({
+      factors: () =>
+        Response.json([
+          { observations: 'Se reia la instruirea periodică.', updated_at: '2026-10-01T12:00:00Z' },
+        ]),
+    });
+    const response = await request('/risk-factor-suggestions?field=observations&query=instruirea');
+    expect(riskFactorSuggestionsResponseSchema.parse(await response.json()).items).toEqual([
+      'Se reia la instruirea periodică.',
+    ]);
+    const [list] = calls('risk_factors', 'GET').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(list!.get('select')).toBe('observations,updated_at');
+  });
+
   it('refuses a field it does not suggest', async () => {
     mockUpstream();
     expect((await request('/risk-factor-suggestions?field=description')).status).toBe(400);

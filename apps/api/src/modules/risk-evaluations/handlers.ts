@@ -466,6 +466,7 @@ const suggestionColumns = {
   actions: 'actions',
   deadline: 'deadline',
   responsiblePerson: 'responsible_person',
+  observations: 'observations',
 } as const satisfies Record<RiskFactorSuggestionField, keyof Tables['risk_factors']['Row']>;
 
 const suggestionLimit = 20;

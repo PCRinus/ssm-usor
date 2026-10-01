@@ -329,7 +329,7 @@ export const riskFactorSuggestionsRoute = createRoute({
   method: 'get',
   path: '/risk-factor-suggestions',
   operationId: 'listRiskFactorSuggestions',
-  summary: 'Groups or plan fields typed before, for autocomplete',
+  summary: 'Groups, plan fields or observations typed before, for autocomplete',
   description:
     'The distinct values of `field` across the organization’s risk factors that contain `query`, most recently used first, at most twenty.',
   security: bearerSecurity,
