@@ -37,7 +37,7 @@ And its **risk factors**. Each records:
 - a **group** under the component, free text with suggestions: "Factori de risc mecanic", "Acțiuni greșite";
 - its **description**, the concrete form it takes: "Electrocutare prin atingere indirectă – deteriorarea sau inexistența instalațiilor de împământare";
 - a **gravity class**, 1 to 7, and a **probability class**, 1 to 6, chosen by the evaluator;
-- its **measures**, each a text of one of four kinds: technical, organizational, hygienic-sanitary, other;
+- its **prevention measures**, each a text of one of four kinds: technical, organizational, hygienic-sanitary, other;
 - for the plan: the **actions**, the **deadline**, the **person responsible**, and **observations**, all free text with suggestions from what the organization typed before.
 
 The maximum foreseeable consequence is not a field: the sheet prints the wording of the gravity class, from "Minore reversibile" to "Deces". The risk level is not stored: it is read from the method's grid of gravity against probability. The global risk level of an evaluation is the method's weighted mean, each factor's level weighted by itself, Σ R² / Σ R, to two decimals; the published sample's 2.79 was recomputed this way. A factor above level 3 is unacceptable, and an evaluation above 3.5 is over the acceptable limit. The grid, the mean, the shares per component and the list of unacceptable factors live in one pure module with the method's own figures as its tests.
