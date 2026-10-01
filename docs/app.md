@@ -493,8 +493,10 @@ mobile navigation link closes the Sheet.
   `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
   what is missing, grouped by the page it is filled in on with a link to each (the
   organization, the profile, the client's document data, the client's job positions, whose
-  entry names every position still undecided about its equipment; a specialist is told that
-  the owner fills in the organization's details). When ready it asks for the date and the first
+  entry names every position still undecided about its equipment, and "Evaluarea riscurilor",
+  a row per evaluation and per thing it lacks, to the factors of its page, or to the
+  positions page's client-level evaluations while the sensitive groups are not started; a
+  specialist is told that the owner fills in the organization's details). When ready it asks for the date and the first
   decision number, filled in from the last generation. A row's menu downloads the draft or
   the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
   confirmation that says what is lost or locked. An issued document without a draft also has
@@ -712,22 +714,24 @@ mobile navigation link closes the Sheet.
   exposure, plus the name, the work task and the persons exposed for an evaluation that is
   not of a position (a position's comes from its activities and employee count, shown
   read-only); and "Factori de risc". Factors are grouped by component in the order of the
-  provider's sheet (means of production, work environment, work task, executant), then by
+  provider's sheet (means of production, work environment, executant, work task), the
+  contracts' `sheetComponents` that the documents print in too, then by
   group in the order of each group's first factor, keeping the evaluation's own order
   inside a group. There is no reordering: the API's `PUT …/factor-order` is unused, since
   no list in the app reorders and the grouping already fixes what the sheet prints. A factor
   is a row rather than a table line, so a list of forty stays readable at 360 px: the
   description, the classes in words ("Gravitate 4: Invaliditate gradul III · Probabilitate
-  5: Frecventă"), the level as a badge, red above 3, the measures with their kind, the
+  5: o dată la 1 lună – 1 an"), the level as a badge, red above 3, the measures with their kind, the
   deadline and the person responsible, and, in amber, what generating will still ask of it
   (a measure for an unacceptable factor; a deadline and a person for one with measures).
   The row or its menu opens the factor dialog; the menu deletes after asking. The dialog has
   the component, the group with `<datalist>` suggestions from `GET /risk-factor-suggestions`,
   the description, the two classes as selects that name each class (gravity from the
-  contracts' `gravityConsequence`, probability from the method's wording kept in the app),
+  contracts' `gravityConsequence`, probability from its `probabilityFrequency`: "5 –
+  Frecvente, o dată la 1 lună – 1 an"),
   with no class chosen for a new factor, and the level they give as soon as both are chosen;
   the measures as a list of kind and text rows; then the actions, the deadline and the
-  person responsible, with suggestions, and the observations. A new factor starts in the
+  person responsible and the observations, each with suggestions. A new factor starts in the
   component and group of the last one. "Copiază de la altă evaluare" lists the client's
   other evaluations that have factors and calls `POST …/factors/copy`. Every change answers
   with the whole evaluation, which is written into both ways of reading it and refreshes the
