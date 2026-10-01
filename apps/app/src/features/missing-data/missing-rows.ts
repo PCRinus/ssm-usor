@@ -3,6 +3,8 @@ import type {
   MissingDocumentData,
   MissingServiceContractData,
   ResponsiblePersonRole,
+  RiskEvaluationGap,
+  RiskEvaluationKind,
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
@@ -25,6 +27,9 @@ const to = {
     linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
     linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
+  // The client-level evaluations sit on the client's document data (ADR 015).
+  clientEvaluations: (clientId: string) =>
+    linkOptions({ to: '/clients/$clientId/training', params: { clientId } }),
   addPosition: (clientId: string) =>
     linkOptions({
       to: '/clients/$clientId/job-positions',
@@ -40,6 +45,12 @@ const to = {
       to: '/clients/$clientId/job-positions/$jobPositionId',
       params: { clientId, jobPositionId },
       hash: positionSections[decision],
+    }),
+  // The position's page, until its evaluation has a page of its own (ADR 015).
+  positionEvaluation: (clientId: string, jobPositionId: string) =>
+    linkOptions({
+      to: '/clients/$clientId/job-positions/$jobPositionId',
+      params: { clientId, jobPositionId },
     }),
   clientContract: (clientId: string) =>
     linkOptions({
@@ -99,6 +110,7 @@ export const documentPlaces = {
   clientDetails: 'Detaliile clientului',
   training: 'Instruire și responsabili',
   jobPositions: 'Posturile de lucru',
+  riskEvaluations: 'Evaluarea riscurilor',
   documents: 'Documentația SSM',
 } as const;
 
@@ -208,6 +220,31 @@ export const documentMissingData: Record<
     label: 'Instrucțiunile specifice ale posturilor',
     target: ({ clientId }) => to.positions(clientId),
   },
+  // One row per evaluation replaces these whenever readiness names the evaluations.
+  'positions.risk_evaluation': {
+    place: 'riskEvaluations',
+    label: 'Evaluarea riscurilor pe posturi',
+    detail: 'Fiecare post are nevoie de o evaluare cu cel puțin un factor de risc.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
+  'risk_evaluations.sensitive_groups': {
+    place: 'riskEvaluations',
+    label: 'Evaluarea grupurilor sensibile',
+    detail: 'Legea o cere pentru fiecare client, cu cel puțin un factor de risc.',
+    target: ({ clientId }) => to.clientEvaluations(clientId),
+  },
+  'risk_evaluations.measures': {
+    place: 'riskEvaluations',
+    label: 'Măsurile pentru riscurile inacceptabile',
+    detail: 'Fiecare factor peste nivelul 3 are nevoie de cel puțin o măsură de prevenire.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
+  'risk_evaluations.plan': {
+    place: 'riskEvaluations',
+    label: 'Termenele și responsabilii din planul de prevenire',
+    detail: 'Fiecare factor cu măsuri are nevoie de un termen și de o persoană care răspunde.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
   'documents.own_instructions': {
     place: 'documents',
     label: 'Instrucțiunile proprii, generate înaintea tematicii',
@@ -234,17 +271,51 @@ const decisionRows: Record<
 
 type UndecidedJobPosition = { id: string; name: string; undecided: JobPositionDecision[] };
 
+type IncompleteRiskEvaluation = {
+  evaluationId: string | null;
+  kind: RiskEvaluationKind;
+  jobPositionId: string | null;
+  name: string;
+  missing: RiskEvaluationGap[];
+};
+
+const evaluationGaps: Record<RiskEvaluationGap, { section: string; detail: string }> = {
+  factors: {
+    section: 'evaluarea riscurilor',
+    detail: 'Cel puțin un factor de risc, cu clasele lui.',
+  },
+  measures: {
+    section: 'măsuri de prevenire',
+    detail: 'Fiecare factor peste nivelul 3 are nevoie de cel puțin o măsură.',
+  },
+  plan: {
+    section: 'termene și responsabili',
+    detail: 'Fiecare factor cu măsuri are nevoie de un termen și de o persoană care răspunde.',
+  },
+};
+
+const gapCode = (kind: RiskEvaluationKind, gap: RiskEvaluationGap): MissingDocumentData =>
+  gap === 'measures'
+    ? 'risk_evaluations.measures'
+    : gap === 'plan'
+      ? 'risk_evaluations.plan'
+      : kind === 'job_position'
+        ? 'positions.risk_evaluation'
+        : 'risk_evaluations.sensitive_groups';
+
 export function documentMissingGroups({
   missing,
   clientId,
   clash,
   undecidedJobPositions,
+  incompleteRiskEvaluations = [],
   canEditOrganization,
 }: {
   missing: readonly MissingDocumentData[];
   clientId: string;
   clash: Clash;
   undecidedJobPositions: readonly UndecidedJobPosition[];
+  incompleteRiskEvaluations?: readonly IncompleteRiskEvaluation[];
   canEditOrganization: boolean;
 }): MissingGroup[] {
   const context = { clientId, clash };
@@ -267,11 +338,32 @@ export function documentMissingGroups({
         target: to.position(clientId, position.id, decision),
       }))
   );
-  const listed = new Set(
-    undecidedJobPositions.flatMap((position) =>
-      position.undecided.map((decision) => decisionRows[decision].code)
-    )
+  const evaluationRows = incompleteRiskEvaluations.flatMap((evaluation) =>
+    evaluation.missing
+      .filter((gap) => missing.includes(gapCode(evaluation.kind, gap)))
+      .map((gap): MissingRow => {
+        const code = gapCode(evaluation.kind, gap);
+        return {
+          key: `${evaluation.evaluationId ?? evaluation.jobPositionId ?? evaluation.kind}:${gap}`,
+          label:
+            code === 'risk_evaluations.sensitive_groups'
+              ? documentMissingData[code].label
+              : `${evaluation.name} · ${evaluationGaps[gap].section}`,
+          detail: evaluationGaps[gap].detail,
+          target: evaluation.jobPositionId
+            ? to.positionEvaluation(clientId, evaluation.jobPositionId)
+            : to.clientEvaluations(clientId),
+        };
+      })
   );
+  const listed = new Set([
+    ...undecidedJobPositions.flatMap((position) =>
+      position.undecided.map((decision) => decisionRows[decision].code)
+    ),
+    ...incompleteRiskEvaluations.flatMap((evaluation) =>
+      evaluation.missing.map((gap) => gapCode(evaluation.kind, gap))
+    ),
+  ]);
   return (Object.keys(documentPlaces) as DocumentPlace[])
     .map((place) => ({
       place,
@@ -285,6 +377,7 @@ export function documentMissingGroups({
           .filter((code) => documentMissingData[code].place === place && !listed.has(code))
           .map(rowOf),
         ...(place === 'jobPositions' ? positionRows : []),
+        ...(place === 'riskEvaluations' ? evaluationRows : []),
       ],
     }))
     .filter((group) => group.rows.length > 0);
