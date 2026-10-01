@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { riskEvaluationKindSchema } from './risk-evaluations';
+
 /**
  * The built-in documents that can be generated, in the order of the provider's pack. Mirrors
  * the manifest of `packages/document-engine/templates`, without the templates whose content
@@ -113,6 +115,13 @@ export const missingDocumentData = [
   'positions.any',
   'positions.equipment',
   'positions.instructions',
+  // A current position without an evaluation, or with one that has no factor (ADR 015).
+  'positions.risk_evaluation',
+  'risk_evaluations.sensitive_groups',
+  // An unacceptable factor without a prevention measure.
+  'risk_evaluations.measures',
+  // A factor with prevention measures but without a deadline or a person responsible.
+  'risk_evaluations.plan',
   // Only for generating the training themes again: they cite the own instructions (ADR 014).
   'documents.own_instructions',
 ] as const;
@@ -126,6 +135,13 @@ export const jobPositionDecisions = ['equipment', 'instructions'] as const;
 export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
 
 export type JobPositionDecision = z.infer<typeof jobPositionDecisionSchema>;
+
+/** What one risk evaluation lacks for the documents, behind the `risk_evaluations.*` codes. */
+export const riskEvaluationGaps = ['factors', 'measures', 'plan'] as const;
+
+export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
+
+export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
@@ -143,6 +159,18 @@ export const documentReadinessResponseSchema = z.object({
       id: z.uuid(),
       name: z.string(),
       undecided: z.array(jobPositionDecisionSchema).min(1),
+    })
+  ),
+  // The evaluations behind `positions.risk_evaluation` and `risk_evaluations.*`, each with
+  // what it lacks. `evaluationId` is null for a position or the sensitive groups not evaluated
+  // yet; `jobPositionId` is null for an evaluation that is not a position's.
+  incompleteRiskEvaluations: z.array(
+    z.object({
+      evaluationId: z.uuid().nullable(),
+      kind: riskEvaluationKindSchema,
+      jobPositionId: z.uuid().nullable(),
+      name: z.string(),
+      missing: z.array(riskEvaluationGapSchema).min(1),
     })
   ),
 });

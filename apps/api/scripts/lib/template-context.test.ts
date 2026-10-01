@@ -70,3 +70,22 @@ describe('the training themes', () => {
     expect(text).toContain('I.P.S.S.M. Art. 241 – 294;');
   }, 30_000);
 });
+
+describe('the general training material', () => {
+  it("prints the evaluations' unacceptable factors as the unit's own risks", () => {
+    const entry = manifest.templates.find(
+      (template) => template.typeKey === 'general_training_material'
+    )!;
+    const text = documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(facts), 'general_training_material')
+      )
+    );
+    expect(text).not.toContain('DE COMPLETAT');
+    expect(text).toContain(
+      'Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.'
+    );
+    expect(text).toContain('Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).');
+  }, 30_000);
+});
