@@ -273,6 +273,20 @@ describe('typesetting', () => {
     }
   );
 
+  // A heading, the paragraph that introduces a table, and a loop tag between them. A longer run
+  // moves to the next page whole and leaves most of a page empty before it.
+  it.each(templateFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
+    const blocks = bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    let run = 0;
+    let longest = 0;
+    for (const block of blocks) {
+      const properties = /^<w:p[ >][^]*?<\/w:pPr>/.exec(block)?.[0] ?? '';
+      run = /<w:keepNext(\/| w:val="true"\/)>/.test(properties) ? run + 1 : 0;
+      longest = Math.max(longest, run);
+    }
+    expect(longest).toBeLessThanOrEqual(3);
+  });
+
   it.each(decisionFiles)(
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
@@ -623,6 +637,27 @@ describe('branding', () => {
       new Set([''])
     );
     expect(new Set(footerText(renderDocument(template, data)))).toEqual(new Set(['']));
+  });
+
+  it.each(templateFiles)('%s sets the line in 7.5 pt grey', (name) => {
+    const zip = new PizZip(read(name));
+    const runs = Object.keys(zip.files)
+      .filter((part) => /word\/footer\d*\.xml/.test(part))
+      .flatMap(
+        (part) =>
+          zip
+            .file(part)!
+            .asText()
+            .match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []
+      )
+      .filter((paragraph) => documentTextOf(paragraph).includes('{{#branding}}'))
+      .flatMap((paragraph) => paragraph.match(/<w:r[ >][\s\S]*?<\/w:r>/g) ?? [])
+      .filter((run) => run.includes('<w:t'));
+    expect(runs.length).toBeGreaterThan(0);
+    for (const run of runs) {
+      expect(run).toContain('<w:sz w:val="15"/>');
+      expect(run).toContain('<w:color w:val="7A7A7A"/>');
+    }
   });
 });
 

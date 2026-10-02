@@ -840,6 +840,7 @@ def add_branding(page_style):
     cursor.gotoStartOfParagraph(True)
     cursor.CharFontName = FONT
     cursor.CharHeight = BRANDING_SIZE
+    cursor.CharHeightComplex = BRANDING_SIZE
     cursor.CharColor = BRANDING_COLOR
     cursor.CharWeight = 100
     cursor.CharLocale = ROMANIAN
@@ -1249,11 +1250,121 @@ def inline_drawing(match):
     return f'<wp:inline distT="0" distB="0" distL="0" distR="0">{extent}<wp:effectExtent l="0" t="0" r="0" b="0"/>{rest}'
 
 
+# A heading, the paragraph that introduces a table, and a loop tag between them that disappears
+# once merged. A longer run kept together moves to the next page whole: the import kept
+# everything from a heading to its table, and left pages two thirds empty before a long one.
+KEEP_CHAIN = 3
+
+BLOCK_TAG = re.compile(r'<(/?)w:(p|tbl)\b[^>]*?(/?)>')
+KEEP_NEXT = re.compile(r'<w:keepNext(?: w:val="(?:true|1|on)")?/>')
+
+
+def body_blocks(xml):
+    """The top-level paragraphs and tables of a part, as (kind, start, end). A paragraph inside
+    a table or a text box belongs to the block around it."""
+    depth, start, kind = 0, 0, None
+    for match in BLOCK_TAG.finditer(xml):
+        closing, name, empty = match.groups()
+        if empty:
+            if depth == 0:
+                yield name, match.start(), match.end()
+        elif closing:
+            depth -= 1
+            if depth == 0:
+                yield kind, start, match.end()
+        else:
+            if depth == 0:
+                start, kind = match.start(), name
+            depth += 1
+
+
+def properties_end(paragraph):
+    """Where a paragraph's own `w:pPr` ends, not one of a text box inside it; 0 without one."""
+    match = re.match(r'<w:p\b[^>]*>\s*<w:pPr>.*?</w:pPr>', paragraph, flags=re.S)
+    return match.end() if match else 0
+
+
+def cap_keep_chains(xml):
+    run, cuts = [], []
+
+    def close():
+        cuts.extend(run[:-KEEP_CHAIN])
+        run.clear()
+
+    for kind, start, end in body_blocks(xml):
+        limit = start + properties_end(xml[start:end]) if kind == 'p' else start
+        if KEEP_NEXT.search(xml[start:limit]):
+            run.append((start, limit))
+        else:
+            close()
+    close()
+    for start, end in reversed(cuts):
+        xml = xml[:start] + KEEP_NEXT.sub('', xml[start:end], count=1) + xml[end:]
+    return xml
+
+
+RUN_PROPERTIES = ['rStyle', 'rFonts', 'b', 'bCs', 'i', 'iCs', 'caps', 'smallCaps', 'strike',
+                  'dstrike', 'outline', 'shadow', 'emboss', 'imprint', 'noProof', 'snapToGrid',
+                  'vanish', 'webHidden', 'color', 'spacing', 'w', 'kern', 'position', 'sz', 'szCs',
+                  'highlight', 'u', 'effect', 'bdr', 'shd', 'fitText', 'vertAlign', 'rtl', 'cs',
+                  'em', 'lang', 'eastAsianLayout', 'specVanish', 'oMath']
+BRANDING_RUN = {
+    'color': f'<w:color w:val="{BRANDING_COLOR:06X}"/>',
+    'sz': f'<w:sz w:val="{round(BRANDING_SIZE * 2)}"/>',
+    'szCs': f'<w:szCs w:val="{round(BRANDING_SIZE * 2)}"/>',
+}
+
+
+def set_run_property(properties, name, element):
+    """Writes one child of a `w:rPr`, where the schema orders it: Word refuses a file whose
+    run properties are out of order."""
+    existing = re.compile(rf'<w:{name}\b[^>]*/>')
+    if existing.search(properties):
+        return existing.sub(element, properties, count=1)
+    rank = RUN_PROPERTIES.index(name)
+    for child in re.finditer(r'<w:(\w+)\b', properties):
+        if child.group(1) in RUN_PROPERTIES and RUN_PROPERTIES.index(child.group(1)) > rank:
+            return properties[:child.start()] + element + properties[child.start():]
+    return properties + element
+
+
+def style_branding_properties(match):
+    inner = match.group(1)
+    for name, element in BRANDING_RUN.items():
+        inner = set_run_property(inner, name, element)
+    return f'<w:rPr>{inner}</w:rPr>'
+
+
+def style_branding_run(match):
+    run = match.group(0)
+    if '<w:rPr>' in run:
+        return re.sub(r'<w:rPr>(.*?)</w:rPr>', style_branding_properties, run, count=1, flags=re.S)
+    opening = re.match(r'<w:r\b[^>]*>', run).group(0)
+    return f'{opening}<w:rPr>{"".join(BRANDING_RUN.values())}</w:rPr>{run[len(opening):]}'
+
+
+def style_branding(xml):
+    """The branding line is set small and grey; the import's pass over every character of a
+    footer sets it back to the footer's size and to no colour."""
+    def paragraph(match):
+        text = ''.join(re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>', match.group(0)))
+        if '{{#branding}}' not in text:
+            return match.group(0)
+        styled = re.sub(r'<w:pPr>.*?</w:pPr>',
+                        lambda mark: re.sub(r'<w:rPr>(.*?)</w:rPr>', style_branding_properties,
+                                            mark.group(0), flags=re.S),
+                        match.group(0), count=1, flags=re.S)
+        return re.sub(r'<w:r\b[^>]*>(?:(?!</w:r>).)*</w:r>', style_branding_run, styled, flags=re.S)
+    return re.sub(r'<w:p(?:\s[^>]*)?(?<!/)>(?:(?!</w:p>).)*</w:p>', paragraph, xml, flags=re.S)
+
+
 def sweep(path):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
-    and its own fonts as the defaults of the styles. Safe to run again."""
+    and its own fonts as the defaults of the styles. Then two rules every template keeps: no
+    run of paragraphs kept with the next longer than `KEEP_CHAIN`, and the branding line small
+    and grey. Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
@@ -1272,6 +1383,10 @@ def sweep(path):
                 # there, and "Pag. X din Y" then counts wrong once the pages before it change.
                 # The API's PageNumberOffset does not let go of it.
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
+                if item.filename == 'word/document.xml':
+                    xml = cap_keep_chains(xml)
+                elif item.filename.startswith('word/footer'):
+                    xml = style_branding(xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
