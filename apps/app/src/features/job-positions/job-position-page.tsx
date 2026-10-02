@@ -6,7 +6,6 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -88,16 +87,6 @@ export function JobPositionPage() {
   return (
     <div data-testid="job-position-page" className="grid gap-5">
       <div className="grid gap-3">
-        <Button asChild variant="ghost" size="sm" className="-ml-3 w-fit text-muted-foreground">
-          <Link
-            to="/clients/$clientId/job-positions"
-            params={{ clientId }}
-            data-testid="job-position-back"
-          >
-            <ArrowLeft aria-hidden="true" />
-            Posturi de lucru
-          </Link>
-        </Button>
         <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{position.name}</h2>
         <nav aria-label="Secțiunile postului">
           <ul className="flex flex-wrap gap-2">

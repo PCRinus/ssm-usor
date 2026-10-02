@@ -157,7 +157,7 @@ export function ClientFilesCard({
         action={
           canUpload && (
             <Button
-              variant="outline"
+              variant="tonal"
               size="sm"
               data-testid="client-files-upload"
               onClick={() => setUploading([])}

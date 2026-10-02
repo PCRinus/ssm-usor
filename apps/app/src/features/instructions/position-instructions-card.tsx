@@ -186,7 +186,7 @@ export function PositionInstructionsCard({
         !readOnly &&
         decision !== false && (
           <Button
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="instructions-pick"
             onClick={() => setPicking(true)}

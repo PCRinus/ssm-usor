@@ -109,7 +109,7 @@ export function WorkplacesCard({
       action={
         !readOnly && (
           <Button
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="workplace-add"
             onClick={() => setEditing('new')}
@@ -267,7 +267,6 @@ export function WorkplacesCard({
                 Renunță
               </Button>
               <Button
-                variant="destructive"
                 data-testid="workplace-archive-confirm"
                 disabled={archive.isPending}
                 onClick={() => void archiveWorkplace(archiving)}

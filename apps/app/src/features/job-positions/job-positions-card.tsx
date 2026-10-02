@@ -133,7 +133,7 @@ export function JobPositionsCard({
         !readOnly && (
           <Button
             ref={addRef}
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="job-position-add"
             onClick={() => setEditing('new')}
