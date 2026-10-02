@@ -12,22 +12,31 @@ import { createApp } from '../../app';
 import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluations.fixture';
 
 // The engine is tested in its own package, against the real templates. Here it prints the
-// client, a decision's number, and the training themes whenever there are any; the template
-// whose file starts with 7 also prints the risk evaluations. A file's text is its bytes read
-// as text.
-vi.mock('@ssm-usor/document-engine', () => ({
-  TemplateError: class TemplateError extends Error {},
-  documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
-  renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => ({
-    document: new Uint8Array([80, 75, 3, 4]),
-    usedNames: [
-      'client',
-      ...('decisionNumber' in data ? ['decisionNumber'] : []),
-      ...('themes' in data ? ['themes'] : []),
-      ...(template[0] === 7 ? ['riskAssessment', 'unitRisks'] : []),
-    ],
-  }),
-}));
+// client, a decision's number, and the training themes whenever there are any; a template's
+// file is its type key, and some types print more, as their real templates do. A file's text
+// is its bytes read as text.
+vi.mock('@ssm-usor/document-engine', () => {
+  const printedBy: Record<string, string[]> = {
+    general_training_material: ['riskAssessment', 'unitRisks'],
+    own_instructions: ['positions'],
+    protective_equipment_list: ['positions', 'equippedPositions'],
+    risk_assessment: ['positions', 'riskAssessment'],
+    prevention_plan: ['riskAssessment'],
+  };
+  return {
+    TemplateError: class TemplateError extends Error {},
+    documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
+    renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => ({
+      document: new Uint8Array([80, 75, 3, 4]),
+      usedNames: [
+        'client',
+        ...('decisionNumber' in data ? ['decisionNumber'] : []),
+        ...('themes' in data ? ['themes'] : []),
+        ...(printedBy[new TextDecoder().decode(template)] ?? []),
+      ],
+    }),
+  };
+});
 
 import type { ApiEnv } from '../../lib/env';
 
@@ -270,9 +279,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       }
       // Files are read through the link just signed.
       if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
-        return new Response(
-          new Uint8Array(url.pathname.includes('/general_training_material/') ? [7, 7] : [1, 2, 3])
-        );
+        const typeKey = url.pathname.split('/').at(-2)!;
+        return new Response(new TextEncoder().encode(typeKey));
       }
       if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
         return new Response(new Uint8Array([9, 9]));
@@ -1130,6 +1138,100 @@ describe('the risk evaluations', () => {
       })
     ).toBe(true);
     expect(await dataChanged({ workplaces: () => Response.json([]) })).toBe(true);
+  });
+});
+
+describe('"Date modificate"', () => {
+  const draftOf = (typeKey: string, snapshot: unknown, index = 0) => ({
+    ...documentRow,
+    id: `d0d0d0d0-0000-4000-8000-00000000000${index}`,
+    type_key: typeKey,
+    title: typeKey,
+    decision_number: null,
+    document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
+  });
+  const snapshotOf = async (typeKey: string) => {
+    mockUpstream({
+      templates: () =>
+        Response.json([
+          {
+            type_key: typeKey,
+            title: typeKey,
+            document_template_versions: [
+              { id: 'v1', version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+            ],
+          },
+        ]),
+      documents: () => Response.json(draftOf(typeKey, null)),
+    });
+    expect((await request(`/documents/${documentId}/regenerate`, 'POST', {})).status).toBe(200);
+    return sentBody(
+      '/rest/v1/document_revisions',
+      calls('/rest/v1/document_revisions', 'PATCH').length - 1,
+      'PATCH'
+    ).data_snapshot;
+  };
+  const dataChanged = async (
+    typeKeys: string[],
+    changes: Partial<Record<Upstream, Handler>>
+  ): Promise<Record<string, boolean>> => {
+    const snapshots: unknown[] = [];
+    for (const typeKey of typeKeys) snapshots.push(await snapshotOf(typeKey));
+    mockUpstream({
+      documents: () =>
+        Response.json(typeKeys.map((typeKey, index) => draftOf(typeKey, snapshots[index], index))),
+      ...changes,
+    });
+    const body = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    return Object.fromEntries(body.items.map((item) => [item.typeKey, item.draft!.dataChanged]));
+  };
+
+  it('marks the equipment list for an equipment item, and not the documents that print the posts', async () => {
+    const renamed = {
+      ...positionRow,
+      job_position_equipment: [{ ...positionRow.job_position_equipment[0]!, item: 'Cască nouă' }],
+    };
+    expect(
+      await dataChanged(['own_instructions', 'protective_equipment_list', 'risk_assessment'], {
+        positions: () => Response.json([renamed]),
+      })
+    ).toEqual({
+      own_instructions: false,
+      protective_equipment_list: true,
+      risk_assessment: false,
+    });
+  });
+
+  it('marks what a missing evaluation concerns, and not the covers', async () => {
+    const [groups] = evaluationRows;
+    expect(
+      await dataChanged(
+        [
+          'cover_decisions',
+          'general_training_material',
+          'own_instructions',
+          'risk_assessment',
+          'prevention_plan',
+        ],
+        { riskEvaluations: () => Response.json([groups]) }
+      )
+    ).toEqual({
+      cover_decisions: false,
+      general_training_material: true,
+      own_instructions: false,
+      risk_assessment: true,
+      prevention_plan: true,
+    });
+  });
+
+  it('marks every draft for a gap in what the whole set prints', async () => {
+    expect(
+      await dataChanged(['cover_decisions', 'risk_assessment'], {
+        organizations: () => Response.json({ ...organizationRow, legal_name: null }),
+      })
+    ).toEqual({ cover_decisions: true, risk_assessment: true });
   });
 });
 

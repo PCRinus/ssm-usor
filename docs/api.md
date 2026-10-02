@@ -631,7 +631,11 @@ generated.
 
 Each revision keeps the part of the data its template printed. The list compares it with the
 stored facts and sets `dataChanged` on a draft that would now print differently: a new
-first-aider marks the first aid decision, not the whole set. All files go through
+first-aider marks the first aid decision, not the whole set. While data is missing there is
+nothing to compare with: a draft is marked when the gap is in what it prints (a position
+without an evaluation marks the risk assessment, the prevention plan and the training
+material; a gap in the provider's or the client's details marks every draft), and otherwise
+waits until the data is complete. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
 document's title as the file name.
 

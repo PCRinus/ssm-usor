@@ -327,7 +327,6 @@ describe('the merge context', () => {
         workZoneOrDash: 'Birou',
         intervalLabel: 'la 6 luni',
         trainingDuration: '2 ore',
-        equipment: [],
       },
       {
         name: 'Sudor',
@@ -338,6 +337,11 @@ describe('the merge context', () => {
         workZoneOrDash: '—',
         intervalLabel: 'la 2 luni',
         trainingDuration: '2 ore',
+      },
+    ]);
+    expect(context.equippedPositions).toEqual([
+      {
+        ...context.positions[1],
         equipment: [
           {
             risk: 'Radiații, împroșcare (față, ochi)',
@@ -360,7 +364,6 @@ describe('the merge context', () => {
         ],
       },
     ]);
-    expect(context.equippedPositions.map((position) => position.name)).toEqual(['Sudor']);
   });
 
   it('annexes the modules the positions apply, each once, by group and title, with their versions', () => {

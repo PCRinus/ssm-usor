@@ -27,6 +27,7 @@ import {
   documentApplies,
   type DocumentContext,
   documentData,
+  missingDataConcerns,
   missingDocumentData,
   stableJson,
 } from './context';
@@ -70,7 +71,8 @@ export type Actor = { userId: string; organizationId: string; createdBy: string 
 
 /**
  * Whether the stored facts would print differently from what the draft was generated from.
- * Nothing to compare for an uploaded file, and nothing to say while data is missing.
+ * Nothing to compare for an uploaded file. Data missing that this document prints changes it;
+ * data missing elsewhere leaves no context to compare with, so nothing to say until it is in.
  */
 function dataChanged(
   document: DocumentRow,
@@ -90,7 +92,10 @@ function dataChanged(
     issueDate: revision.document_generations.issue_date,
     firstDecisionNumber: 1,
   };
-  if (missingDocumentData(input, document.type_key).length > 0) return true;
+  const missing = missingDocumentData(input, document.type_key);
+  if (missing.length > 0) {
+    return missing.some((code) => missingDataConcerns(code, document.type_key));
+  }
   const current: Record<string, unknown> = documentData(
     buildDocumentContext(input),
     document.type_key,
