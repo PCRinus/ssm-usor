@@ -80,8 +80,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
           </div>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Aplicat unei evaluări, profilul își copiază factorii lângă cei pe care evaluarea îi are
-          deja. Ce schimbi aici nu ajunge în evaluările în care l-ai aplicat.
+          Ce schimbi aici nu ajunge în evaluările în care ai aplicat deja profilul.
         </p>
       </div>
       <RiskResultCard id="result" evaluation={profile} />
@@ -90,7 +89,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
         factors={profile.factors}
         store={store}
         readOnly={false}
-        empty="Niciun factor de risc încă. Adaugă-i pe rând, pe componentele sistemului de muncă, cu clasele, măsurile și câmpurile planului care se potrivesc oricărui client."
+        empty="Profilul nu are încă factori de risc."
         removalConsequence="nu vor mai fi în profil. Evaluările în care l-ai aplicat își păstrează copiile."
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />

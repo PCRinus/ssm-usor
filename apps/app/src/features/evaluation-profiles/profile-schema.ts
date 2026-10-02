@@ -41,6 +41,13 @@ export function profileTotalsLabel(
   return `${factorCountLabel(profile.factorCount)}, ${unacceptableCountLabel(profile.unacceptableFactorCount)}`;
 }
 
+export function profileCountLabel(count: number) {
+  if (count === 0) return 'Niciun profil';
+  if (count === 1) return '1 profil';
+  const tens = count % 100;
+  return tens === 0 || tens >= 20 ? `${count} de profiluri` : `${count} profiluri`;
+}
+
 export function profileFailure(cause: unknown, fallback: string) {
   if (!(cause instanceof ApiHttpError)) return fallback;
   if (isProfileNameTaken(cause)) return profileNameTaken;

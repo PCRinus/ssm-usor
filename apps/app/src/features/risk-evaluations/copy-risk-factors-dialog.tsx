@@ -113,7 +113,6 @@ export function CopyRiskFactorsDialog({
               <NativeSelect
                 id="risk-factors-copy-source"
                 data-testid="risk-factors-copy-source"
-                className="w-full"
                 value={source}
                 disabled={copy.isPending || evaluations.isPending}
                 onChange={(event) => setSource(event.target.value)}

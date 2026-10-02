@@ -357,12 +357,12 @@ describe("a position's risk evaluation page", () => {
 
     const components = screen.getAllByTestId('risk-component');
     expect(
-      components.map((section) => section.querySelector('h4')?.firstChild?.textContent)
+      components.map((section) => section.querySelector('th')?.firstChild?.textContent)
     ).toEqual(['Mijloace de producție', 'Executant']);
     expect(
       within(components[0]!)
         .getAllByTestId('risk-group')
-        .map((group) => group.querySelector('h5')?.textContent)
+        .map((group) => group.textContent)
     ).toEqual(['Factori de risc mecanic', 'Factori de risc electric']);
     const rows = screen.getAllByTestId('risk-factor-row');
     expect(rows.map((row) => row.querySelector('p')?.textContent)).toEqual([
@@ -378,14 +378,18 @@ describe("a position's risk evaluation page", () => {
     mount(welderEvaluationPath);
     const rows = await screen.findAllByTestId('risk-factor-row');
     const [moving, , electricRow, carelessRow] = rows;
-    expect(within(moving!).getByTestId('risk-factor-classes').textContent).toBe(
-      'Gravitate 4: Invaliditate gradul III · Probabilitate 5: o dată la 1 lună – 1 an'
+    expect(within(moving!).getByTestId('risk-factor-gravity-class').textContent).toBe(
+      '4Invaliditate gradul III'
+    );
+    expect(within(moving!).getByTestId('risk-factor-probability-class').textContent).toBe(
+      '5o dată la 1 lună – 1 an'
     );
     expect(within(moving!).getByTestId('risk-level').textContent).toBe('Nivel 5, inacceptabil');
     expect(within(moving!).getByTestId('risk-factor-measures').textContent).toBe(
       'Tehnică: Apărători la piesele în mișcare'
     );
-    expect(moving!.textContent).toContain('Termen: Permanent · Răspunde: Șef atelier');
+    expect(moving!.textContent).toContain('Termen: Permanent');
+    expect(moving!.textContent).toContain('Răspunde: Șef atelier');
     expect(within(moving!).queryByTestId('risk-factor-gap')).toBeNull();
     expect(within(electricRow!).getByTestId('risk-factor-gap').textContent).toContain(
       'cel puțin o măsură'
@@ -401,7 +405,7 @@ describe("a position's risk evaluation page", () => {
     expect(screen.getByTestId('risk-global-level').textContent).toBe('3,86');
     expect(screen.getByTestId('risk-global-verdict').textContent).toBe('Peste limita acceptabilă');
     expect(screen.getByTestId('risk-result-counts').textContent).toBe(
-      '4 factori, 2 inacceptabili.'
+      '2 din 4 factori sunt inacceptabili.'
     );
     expect(screen.getAllByTestId('risk-share').map((share) => share.textContent)).toEqual([
       '75%',
@@ -472,7 +476,7 @@ describe("a position's risk evaluation page", () => {
     await user.selectOptions(screen.getByTestId('risk-factor-gravity'), '3');
     await user.selectOptions(screen.getByTestId('risk-factor-probability'), '6');
     expect(screen.getByTestId('risk-factor-level').textContent).toContain('Nivel 4');
-    expect(screen.getByTestId('risk-factor-level').textContent).toContain('Inacceptabil');
+    expect(screen.getByTestId('risk-factor-level').dataset.unacceptable).toBe('true');
 
     await user.click(screen.getByTestId('risk-factor-measure-add'));
     await user.click(screen.getByTestId('risk-factor-measure-add'));
@@ -524,7 +528,7 @@ describe("a position's risk evaluation page", () => {
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('risk-factor-row');
 
-    await user.click(within(rows[0]!).getByTestId('risk-factor-classes'));
+    await user.click(within(rows[0]!).getByTestId('risk-factor-gravity-class'));
     await screen.findByTestId('risk-factor-dialog');
     expect(screen.getByTestId<HTMLSelectElement>('risk-factor-gravity').value).toBe('4');
     expect(

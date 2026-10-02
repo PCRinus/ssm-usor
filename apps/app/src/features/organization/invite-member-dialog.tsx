@@ -125,7 +125,6 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               data-testid="invite-role"
               disabled={busy}
               aria-describedby="invite-role-hint"
-              className="w-full"
               {...form.register('role')}
             >
               <NativeSelectOption value="specialist">{roleLabels.specialist}</NativeSelectOption>
