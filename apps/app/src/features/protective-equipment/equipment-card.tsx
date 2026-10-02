@@ -175,7 +175,7 @@ export function EquipmentCard({
         !readOnly &&
         decision !== false && (
           <Button
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="equipment-add"
             onClick={() => setEditing('new')}
@@ -453,7 +453,6 @@ function CopyEquipmentDialog({
               <NativeSelect
                 id="equipment-copy-source"
                 data-testid="equipment-copy-source"
-                className="w-full"
                 value={source}
                 disabled={copy.isPending || positions.isPending}
                 onChange={(event) => setSource(event.target.value)}

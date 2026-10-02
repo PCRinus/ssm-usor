@@ -1,17 +1,13 @@
-import { createFileRoute, notFound } from '@tanstack/react-router';
+import { createFileRoute, notFound, Outlet } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { getListJobPositionsQueryKey, getListJobPositionsQueryOptions } from '@/api/generated/api';
-import {
-  JobPositionError,
-  JobPositionNotFound,
-  JobPositionPage,
-} from '@/features/job-positions/job-position-page';
+import { JobPositionError, JobPositionNotFound } from '@/features/job-positions/job-position-page';
 import { JobPositionPending } from '@/features/job-positions/job-position-pending';
 
 // A position is read from the client's list, which is a handful of rows and already cached
 // by the positions section; there is no request for one position. The loader warms it and
-// names the breadcrumb.
+// names the breadcrumb, for the position's page and the pages under it.
 export const Route = createFileRoute(
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId'
 )({
@@ -28,7 +24,7 @@ export const Route = createFileRoute(
     if (!position) throw notFound();
     return { crumb: position.name };
   },
-  component: JobPositionPage,
+  component: Outlet,
   pendingComponent: JobPositionPending,
   notFoundComponent: JobPositionNotFound,
   errorComponent: JobPositionError,

@@ -304,17 +304,10 @@ export function EmployeeForm({
                 {...control('homeAddress')}
               />
             </Field>
-            <Field
-              id="bloodGroup"
-              label="Grupa sanguină"
-              mark="optional"
-              error={errors.bloodGroup}
-              className="*:data-[slot=native-select-wrapper]:w-full"
-            >
+            <Field id="bloodGroup" label="Grupa sanguină" mark="optional" error={errors.bloodGroup}>
               <NativeSelect
                 id="bloodGroup"
                 data-testid="employee-blood-group"
-                className="h-11"
                 {...register('bloodGroup')}
                 {...control('bloodGroup')}
               >
@@ -326,17 +319,10 @@ export function EmployeeForm({
                 ))}
               </NativeSelect>
             </Field>
-            <Field
-              id="rhFactor"
-              label="Rh"
-              mark="optional"
-              error={errors.rhFactor}
-              className="*:data-[slot=native-select-wrapper]:w-full"
-            >
+            <Field id="rhFactor" label="Rh" mark="optional" error={errors.rhFactor}>
               <NativeSelect
                 id="rhFactor"
                 data-testid="employee-rh-factor"
-                className="h-11"
                 {...register('rhFactor')}
                 {...control('rhFactor')}
               >

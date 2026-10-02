@@ -130,12 +130,15 @@ A `tables` entry with `loop` puts loop tags in paragraphs of their own around it
 the table, so the engine repeats both per item: the equipment list draws one section per job
 position this way, its heading printing the work zone only inside an inline loop, and `after`
 writes a paragraph once past the loop, for a note that would otherwise be left alone on a page
-as the table's last row. `keepWithNext` lists the rows whose paragraphs keep with the next row,
-so a heading row is never the last thing on a page. Do not mark every row to keep a table whole:
-LibreOffice, which makes the PDFs, drops a row at the page break of a keep chain longer than a
-page, and moves the table's start to a new page. One with `remove: true` takes the original's
-table out and draws nothing: the equipment list's grid of risks against body parts, copy-pasted
-unchanged between clients.
+as the table's last row. Repeated tables need a paragraph between them, or they are saved as
+one: the training themes print the position's name as the `heading` of each repetition. Where loop
+tags close the document, a table perhaps inside or before them, a paragraph at 1 pt follows the last tag, which leaves
+nothing behind once merged, as Word wants a paragraph after a table. `keepWithNext` lists the
+rows whose paragraphs keep with the next row, so a heading row is never the last thing on a
+page. Do not mark every row to keep a table whole: LibreOffice, which makes the PDFs, drops a
+row at the page break of a keep chain longer than a page, and moves the table's start to a new
+page. One with `remove: true` takes the original's table out and draws nothing: the equipment
+list's grid of risks against body parts, copy-pasted unchanged between clients.
 
 A spec with `"source": null` starts from an empty document and draws all of it (`kind:
 "form"`, a `tables` entry without `replaceTable`). The control report form is made this way:
@@ -180,8 +183,10 @@ numbered rows of the acknowledgement tables, where newly appointed people sign l
 LibreOffice's API reaches in most places and not in all, or not at all: a dead link that
 survives clearing, an empty paragraph written as justified, a picture that floats at the left
 between two lines (made a character, which looks the same and lets the in-app editor lay the
-page out), and LibreOffice's own fonts as the defaults of the styles (replaced with the house
-font, so no viewer warns about substitutes). `import-templates --sweep [name…]` runs only this
+page out), a section that restarts the page numbers (the risk assessment's landscape annex
+did, so "Pag. X din Y" counted wrong after it), and LibreOffice's own fonts as the defaults
+of the styles (replaced with the house font, so no viewer warns about substitutes).
+`import-templates --sweep [name…]` runs only this
 pass over the templates that exist, covers included, without originals or an office:
 
 |                  |                                                                                                                                                                                                                                                                                                                             |
@@ -210,20 +215,20 @@ across runs, and leaves an ellipsis alone.
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
-All 23 are templates. Five of them are marked `contentPending`: the own instructions (3.2),
-the training themes (4.2), the protective equipment list (6), the risk assessment (9), and
-the prevention plan (10). They have the house style, the wording pass, and placeholders for
-names and dates, and **their content is still the first client's**: job titles, equipment,
-risks. That content comes from the job-title data of stage 2 and the risk assessment of
-stage 3 (ADR 005); until then a generated file of these five is a starting point to edit, not
-a finished document.
+All 23 are templates, and none is marked `contentPending` any more: the own instructions
+(3.2), the training themes (4.2) and the protective equipment list (6), stage 2, are
+generated from the positions (ADR 011, ADR 012, ADR 014), and the risk assessment (9) and the
+prevention plan (10), stage 3, from the risk evaluations (ADR 015). The key stays for a
+template whose content is still the first client's, which registering leaves out.
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
-outside the body's flow; the import walks the frames too. And the risk assessment cannot be
-saved once its empty paragraphs are removed (LibreOffice fails to write the file and does not
-say why; removing any part of them works, removing all does not), so its spec sets
-`"emptyParagraphs": "shrink"` and they stay at 1 pt, where they take no room. `handover` may
-name other words for the client's side (`{"client": ["Am primit și aprobat", …]}`).
+outside the body's flow; the import walks the frames too, and a `tables` entry with
+`replaceFrame` instead of `replaceTable` removes the n-th frame and draws its table in the body
+where the frame was anchored, as the second plan of the training themes is. And the risk
+assessment cannot be saved once its empty paragraphs are removed (LibreOffice fails to write the
+file and does not say why; removing any part of them works, removing all does not), so its spec
+sets `"emptyParagraphs": "shrink"` and they stay at 1 pt, where they take no room. `handover`
+may name other words for the client's side (`{"client": ["Am primit și aprobat", …]}`).
 
 A spec's `cut` names a pattern; everything from the first paragraph matching it to the end of
 the body goes, tables included. The own instructions lose their chapter XIII this way, whose
@@ -236,6 +241,43 @@ original's chapter titles, loses its page numbers, and gains the annex rows.
 The five tables of chapter XI that showed the steps of lifting a load beside a picture are
 rebuilt from their text alone, the picture column dropped: a picture anchored inside a table
 cell stops LibreOffice's PDF export at that table, and every page after it is lost.
+
+`sections` rewrites a part in the middle of the body. Each `{ from, to, content }` removes
+everything from the first paragraph matching `from` (the first after the one matching
+`after`, where a section names it) up to the one matching `to` (to the end without `to`),
+tables and frames included, and writes `content` there: paragraphs as `append`
+writes them, with `indent` (1/100 mm), `pageBefore` and `pageAfter`, and `{ "table": … }`, a
+table drawn from a definition with `rows` like a `tables` entry, a paragraph left after it
+only where the next thing is a table too. Between removing and writing the document goes
+through a file and back: after the long chapter V of the risk assessment is removed,
+LibreOffice fails to save the file once the new content grows past where that chapter was,
+saying nothing more, and a reloaded document saves. `subheadings` are patterns for headings
+of a spec's own that stay left-aligned: bold, 12 pt above, kept with what follows.
+
+The risk assessment (ADR 015) is rewritten this way around the `riskAssessment` context.
+Chapters I and II, the annexes and the bibliography are the provider's. Chapter III lists
+the client, its representative, the workplace manager, the CAEN class, the employee count,
+the workplaces, and the positions table; the questionnaire about the premises, the accident
+counts and the inventory tables are gone. Chapter IV names the evaluation team from
+`evaluationTeam` and the specialist, without the decision's number, which a document other
+than a decision does not get. Chapter V repeats a subchapter per evaluation: the work system
+table, the factors by component and group, an identity table and the evaluation sheet (two
+tables, so that the sheet's column heads repeat on every page), the measures sheet or the
+sentence that there is nothing unacceptable, and the interpretation as a ranking table,
+sentences and a table of shares. The charts and the per-post formula objects are dropped; the
+formula is written once in words. Every evaluation ends with a page break. Chapter VI keeps
+its text with the count of posts from `evaluationCountText` and the recommendations made
+general, then a table of the evaluations' levels and the unit's `Nrg`, and a subchapter VI.III
+on consulting the workers (art. 18 of Legea 319/2006, naming `workersRepresentatives` when
+there are any) and on when the assessment is reviewed (art. 46 (1) of H.G. 1425/2006). The
+contents table loses its page numbers and gains a row per evaluation.
+
+The prevention plan keeps its title and the hand-over block, signed by the employer, and
+from there repeats per evaluation its `heading` and a table with the columns of annex 7 to
+H.G. 1425/2006, a row per entry of `plan`, the place of work said once above it rather than in
+a column; an evaluation without measures (`noPlan`) prints a sentence in place of the table.
+The general training material's closing table of the unit's own risks is looped on
+`hasUnitRisks` the same way, with a sentence after it for `noUnitRisks`.
 
 ## Covers
 
@@ -358,7 +400,14 @@ The API builds the data once per generation and merges every template with it
   representative's name (`responsible.workers_representative_is_legal_representative`;
   readiness also returns the two names as `workersRepresentativeClash`).
   `missingDocumentData(facts, typeKey)` is what generating one document again needs: a 1.5
-  kept under 10 employees still needs one representative.
+  kept under 10 employees still needs one representative, and the training themes need an own
+  instructions revision to cite (`documents.own_instructions`). The risk evaluations
+  ([ADR 015](architecture/adr-015-risk-assessment.md)) need every current position evaluated
+  with at least one factor (`positions.risk_evaluation`), the sensitive groups too
+  (`risk_evaluations.sensitive_groups`), a prevention measure on every factor above level 3
+  (`risk_evaluations.measures`), and a deadline and a person responsible on every factor with
+  measures (`risk_evaluations.plan`); readiness names the evaluations behind those codes as
+  `incompleteRiskEvaluations`.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
@@ -373,7 +422,86 @@ The API builds the data once per generation and merges every template with it
 - `documentApplies(facts, typeKey)` says whether a document belongs in the client's set:
   decision 1.5 only from 10 current employees. Generating leaves out the rest; a document
   that already exists stays, and cover 1.0 keeps listing a 1.5 that was generated.
-- `unitRisks` is one row reading "DE COMPLETAT" until the risk assessment lives in the app.
+- `unitRisks` are the unacceptable factors (level above 3) of every evaluation the risk
+  assessment prints, each description once (compared without case, spacing or a closing full
+  stop), the highest level first and then in the order met, with `risk` the description and
+  `measure` every prevention measure taken against it, one per line, those of a repeated
+  factor merged. `hasUnitRisks` is one item when there are some, for the table, and
+  `noUnitRisks` one when there are none, for a sentence to say so.
+- `riskAssessment` is what the risk assessment (9) and the prevention plan (10) print
+  ([ADR 015](architecture/adr-015-risk-assessment.md)). It is built whole and recorded whole
+  in a snapshot that prints any of it, so a changed factor marks those documents "Date
+  modificate". Every text is ready to print: a dash (`—`) stands where there is nothing,
+  levels and shares have a comma and two decimals, and a value that holds several lines
+  (`measures`, the four kinds) breaks them with line breaks.
+
+  | Name                                      | Example                                                                                                                |
+  | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+  | `riskAssessment.unit.activity`            | `5630 – Baruri și alte activități de servire a băuturilor`, the CAEN class by name; `—` without a code                 |
+  | `….unit.employeeCount`                    | `6`, the current employees                                                                                             |
+  | `….unit.workplaces[]`                     | `{ name, kind: 'Sediu social' \| 'Punct de lucru', address }`, the registered office first; `noWorkplaces` without any |
+  | `riskAssessment.evaluationCount`, `…Text` | `5`, `5 posturi de lucru`: every evaluation printed, the sensitive groups included                                     |
+  | `riskAssessment.globalLevel`              | `2,50`, the unit's: the evaluations' levels, each weighted by itself (Σ Nr² / Σ Nr)                                    |
+  | `riskAssessment.evaluations[]`            | One per subchapter of chapter V and per table of the plan, in the order below                                          |
+
+  The evaluations are the current positions in the order of the positions table, then the
+  sensitive groups, then the client's other evaluations by name. An archived position's
+  evaluation stays out, and so does another evaluation without a factor. Each has:
+
+  | Name                                   | Example                                                                                                                                                                                     |
+  | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `roman`, `name`                        | `II`, `Sudor`; `Grupuri sensibile la riscuri specifice`; another's own name                                                                                                                 |
+  | `heading`                              | `LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL`, `POSTUL DE LUCRU: SUDOR` without a work zone, `VIZITATORI`, `GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI …)`                          |
+  | `workZoneOrDash`                       | `Birou`, or `—`                                                                                                                                                                             |
+  | `workSystem`                           | `{ executant, workTask, meansOfProduction, workEnvironment }`: a position's name and activities, or the client-level evaluation's own texts                                                 |
+  | `exposedPersons`, `exposure`           | `3 persoane`, `25 de persoane`, `nicio persoană` (a position's current employees) or the evaluation's text; `8 h / schimb`                                                                  |
+  | `factorCount`                          | `37`                                                                                                                                                                                        |
+  | `components[]`                         | The four components, always, in the sheet's order: `{ label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție', count, share: '24,32 %', noFactors, groups }`                         |
+  | `…groups[]`                            | `{ letter: 'a', name: 'Factori de risc mecanic', factors: [{ code, description, level }] }`, in the order the evaluator first used them                                                     |
+  | `sheet[]`                              | A row of the evaluation sheet per factor: `{ component, group, code: 'F1', description, consequence, gravityClass, probabilityClass, frequency, frequencyPeriod, level }`                   |
+  | `ranked[]`                             | `{ code, description, level }`, every factor, the highest level first                                                                                                                       |
+  | `globalLevel`                          | `2,49`                                                                                                                                                                                      |
+  | `withinLimit`, `overLimit`, `verdict`  | One item in the flag that holds; `valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5`                      |
+  | `unacceptableCount`, `unacceptable[]`  | `2`; `{ code, description, level, measures, technical, organizational, hygienicSanitary, other }`, the highest level first                                                                  |
+  | `hasUnacceptable`, `noUnacceptable`    | One item in the flag that holds                                                                                                                                                             |
+  | `findings`                             | `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 37 de factori de risc identificați, 2 dintre ei depășesc, …`                                         |
+  | `unacceptableLead`, `measuresSentence` | `Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:`, `Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare …`; empty without                          |
+  | `irreversible`                         | `Din analiza „Fișei de evaluare” se constată că 7 dintre factorii de risc identificați, reprezentând 18,92 %, pot avea consecințe ireversibile …`                                           |
+  | `plan[]`, `hasPlan`, `noPlan`          | The plan's rows: every factor with a measure, the highest level first, as `unacceptable[]` plus `actions`, `deadline`, `responsiblePerson`, `observations`; one item in the flag that holds |
+
+  The factors are numbered F1…Fn down the sheet: by component in the provider's order (means of
+  production, work environment, executant, work task), then by group in the order the
+  evaluator first used it, then in the evaluator's order. On a `sheet` row `component` and
+  `group` are empty after their first row, as the merged cells of the sheet print them.
+  `consequence` is the gravity class's wording and `frequency` the probability class's, with
+  `frequencyPeriod` the period it stands for (`Rare`, `o dată la 2–5 ani`). The sentences are
+  worded for any count: `singurul factor`, `niciunul dintre cei 12 factori`, `unul singur`,
+  `toți cei`, and `de` from 20 on (`21 de factori`). `irreversible` counts the factors whose
+  consequence is invalidity or death, gravity classes 4 to 7.
+
+- `themes` is what the training themes (4.2, [ADR 014](architecture/adr-014-training-themes.md))
+  print, built from the client's newest own instructions revision, draft or issued, and the
+  modules it annexes at the versions it annexed them. It is absent while there is no such
+  revision (none, or an uploaded file), and `documentData(context, 'training_themes')` then
+  throws; every other document merges as before. The template reads it by dotted paths, so the
+  snapshot records the whole object and any change in it marks the themes "Date modificate":
+
+  | Name                             | Example                                                                                                                                                                                              |
+  | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `themes.ownInstructionsRevision` | `{ id, number, versionIds }` of the 3.2 revision cited, the module versions in its annex order; never printed                                                                                        |
+  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                                                                                         |
+  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                                                                                             |
+  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one                                                                          |
+  | `…modules[]`                     | `{ title, articleCount, citation }`, the post's modules the revision annexes, in its order; `citation` is `I.P.S.S.M. Birou, Art. 1 – 12`, or the title alone for a module without numbered articles |
+  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                                                                                            |
+  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                                                                                               |
+
+  A session's `content` is the slice of the common part dealt to it, then every module whole,
+  then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The
+  twelve chapters of 3.2 are dealt over the sessions in contiguous groups whose sizes differ by
+  at most one, the larger first. The chapter starts of 3.2 and 2.2 are constants of
+  `apps/api/src/modules/documents/themes.ts`, held to the templates by
+  `apps/api/scripts/lib/theme-chapters.test.ts`.
 
 A test merges every registered template with this context; the engine throws on a placeholder
 without a value, so a template that asks for a new name fails there first. The list of
@@ -393,12 +521,12 @@ same test.
 | `event_registers`                 | The four registers of accidents and dangerous incidents, A4 landscape                                                                                      | None                                                                                                                                                             |
 | `control_report`                  | The report form filled in by hand at each control visit                                                                                                    | None                                                                                                                                                             |
 | `employer_briefing`               | What the law asks of the employer, chapter by chapter, about 30 pages                                                                                      | None                                                                                                                                                             |
-| `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`) for the closing chapter on the unit's own risks                                                                                |
+| `general_training_material`       | The material for the general introductory training, about 85 pages                                                                                         | `unitRisks[]` (`risk`, `measure`), `hasUnitRisks` and `noUnitRisks` for the closing chapter on the unit's own risks                                              |
 | `own_instructions`                | The common part of the own instructions (ADR 012): chapters I–XII, a table of contents without pages, the positions table, and the list of annexed modules | `positions` (`workZoneOrDash`, `intervalLabel`, `trainingDuration`), `annexes` (`number`, `title`, `versionId`, `versionDate`), `noAnnexes`                      |
-| `training_themes`                 | Themes and schedule of the three kinds of training. Content pending                                                                                        | `specialist`, `workplaceManager`                                                                                                                                 |
+| `training_themes`                 | Themes and schedule of the three kinds of training (ADR 014), a block per position in chapters II and III                                                  | `specialist`, `themes` (`annexTitles`, `positions`: `name`, `trainer`, `intervalLabel`, `modules[]`, `sessions[]`)                                               |
 | `protective_equipment_list`       | Protective equipment per job, A4 landscape. Content pending                                                                                                | None yet                                                                                                                                                         |
-| `risk_assessment`                 | The risk assessment, about 75 pages, portrait and landscape. Content pending                                                                               | `specialist`                                                                                                                                                     |
-| `prevention_plan`                 | The prevention and protection plan, A4 landscape. Content pending                                                                                          | None yet                                                                                                                                                         |
+| `risk_assessment`                 | The risk assessment (ADR 015): the method's chapters and annexes, then the unit, the team, a subchapter per evaluation, and the conclusions                | `specialist`, `workplaceManager`, `evaluationTeam`, `workersRepresentatives`, `positions`, `riskAssessment`                                                      |
+| `prevention_plan`                 | The prevention and protection plan (ADR 015), A4 landscape: a table per evaluation with the columns of annex 7 to H.G. 1425/2006                           | `riskAssessment.evaluations[]` (`heading`, `plan[]`, `hasPlan`, `noPlan`)                                                                                        |
 | `decision_imminent_danger`        | Decision no. 4: who acts in serious and imminent danger                                                                                                    | `workplaceManager`, `imminentDanger[]`, `imminentDangerText`                                                                                                     |
 | `decision_workers_representative` | Decision no. 5: the workers' representatives, from 10 employees                                                                                            | `workersRepresentatives[]`, `workersRepresentativesLead`                                                                                                         |
 

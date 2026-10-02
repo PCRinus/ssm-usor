@@ -46,6 +46,11 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'positions.any': `/clients/${clientId}/job-positions?focus=add-position`,
   'positions.equipment': `/clients/${clientId}/job-positions`,
   'positions.instructions': `/clients/${clientId}/job-positions`,
+  'positions.risk_evaluation': `/clients/${clientId}/job-positions`,
+  'risk_evaluations.sensitive_groups': `/clients/${clientId}/job-positions#client-risk-evaluations`,
+  'risk_evaluations.measures': `/clients/${clientId}/job-positions`,
+  'risk_evaluations.plan': `/clients/${clientId}/job-positions`,
+  'documents.own_instructions': `/clients/${clientId}/documents?section=own-instructions`,
 };
 
 describe('the rows of the generation form', () => {
@@ -81,6 +86,66 @@ describe('the rows of the generation form', () => {
       `/clients/${clientId}/job-positions/p-contabil#protective-equipment`,
       `/clients/${clientId}/job-positions/p-contabil#instructions`,
       `/clients/${clientId}/job-positions/p-sudor#instructions`,
+    ]);
+  });
+
+  it('are one per evaluation and per gap, each to where the evaluation is', () => {
+    const groups = documentMissingGroups({
+      missing: [
+        'positions.risk_evaluation',
+        'risk_evaluations.sensitive_groups',
+        'risk_evaluations.measures',
+        'risk_evaluations.plan',
+      ],
+      clientId,
+      clash: null,
+      undecidedJobPositions: [],
+      incompleteRiskEvaluations: [
+        {
+          evaluationId: null,
+          kind: 'job_position',
+          jobPositionId: 'p-contabil',
+          name: 'Contabil',
+          missing: ['factors'],
+        },
+        {
+          evaluationId: 'e-sudor',
+          kind: 'job_position',
+          jobPositionId: 'p-sudor',
+          name: 'Sudor',
+          missing: ['measures', 'plan'],
+        },
+        {
+          evaluationId: null,
+          kind: 'sensitive_groups',
+          jobPositionId: null,
+          name: 'Grupuri sensibile la riscuri specifice',
+          missing: ['factors'],
+        },
+        {
+          evaluationId: 'e-vizitatori',
+          kind: 'other',
+          jobPositionId: null,
+          name: 'Vizitatori',
+          missing: ['plan'],
+        },
+      ],
+      canEditOrganization: true,
+    });
+    expect(groups.map((group) => group.heading)).toEqual(['Evaluarea riscurilor']);
+    expect(groups[0]!.rows.map((row) => [row.key, row.label])).toEqual([
+      ['p-contabil:factors', 'Contabil · evaluarea riscurilor'],
+      ['e-sudor:measures', 'Sudor · măsuri de prevenire'],
+      ['e-sudor:plan', 'Sudor · termene și responsabili'],
+      ['sensitive_groups:factors', 'Evaluarea grupurilor sensibile'],
+      ['e-vizitatori:plan', 'Vizitatori · termene și responsabili'],
+    ]);
+    expect(hrefs(groups)).toEqual([
+      `/clients/${clientId}/job-positions/p-contabil/risk-evaluation#factors`,
+      `/clients/${clientId}/job-positions/p-sudor/risk-evaluation#factors`,
+      `/clients/${clientId}/job-positions/p-sudor/risk-evaluation#factors`,
+      `/clients/${clientId}/job-positions#client-risk-evaluations`,
+      `/clients/${clientId}/job-positions/risk-evaluations/e-vizitatori#factors`,
     ]);
   });
 

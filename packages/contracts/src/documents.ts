@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { riskEvaluationKindSchema } from './risk-evaluations';
+
 /**
  * The built-in documents that can be generated, in the order of the provider's pack. Mirrors
  * the manifest of `packages/document-engine/templates`, without the templates whose content
@@ -17,6 +19,7 @@ export const documentTypeKeys = [
   'cover_own_instructions',
   'own_instructions',
   'cover_training_themes',
+  'training_themes',
   'cover_tests',
   'test_hiring',
   'test_periodic',
@@ -24,6 +27,8 @@ export const documentTypeKeys = [
   'cover_event_registers',
   'event_registers',
   'control_report',
+  'risk_assessment',
+  'prevention_plan',
   'cover_employer_briefing',
   'employer_briefing',
   'control_regulation',
@@ -34,15 +39,11 @@ export const documentTypeKeySchema = z.enum(documentTypeKeys);
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
 /**
- * The documents of the pack the app cannot write yet, because their content follows the
- * client's job titles or is the risk assessment itself (ADR 005, stages 2 and 3). Until it
- * can, the provider writes them elsewhere and uploads the file, so the set is complete.
+ * The documents of the pack the app cannot write yet, which come to exist by uploading a file
+ * written elsewhere so that the set is complete. None since the risk assessment and the
+ * prevention plan are generated (ADR 015); a file still replaces the draft of any document.
  */
-export const uploadedDocumentTypes = {
-  training_themes: 'Tematica și programul de instruire',
-  risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
-  prevention_plan: 'Planul de prevenire și protecție',
-} as const;
+export const uploadedDocumentTypes: Readonly<Record<never, string>> = {};
 
 export type UploadedDocumentTypeKey = keyof typeof uploadedDocumentTypes;
 
@@ -114,6 +115,15 @@ export const missingDocumentData = [
   'positions.any',
   'positions.equipment',
   'positions.instructions',
+  // A current position without an evaluation, or with one that has no factor (ADR 015).
+  'positions.risk_evaluation',
+  'risk_evaluations.sensitive_groups',
+  // An unacceptable factor without a prevention measure.
+  'risk_evaluations.measures',
+  // A factor with prevention measures but without a deadline or a person responsible.
+  'risk_evaluations.plan',
+  // Only for generating the training themes again: they cite the own instructions (ADR 014).
+  'documents.own_instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -125,6 +135,12 @@ export const jobPositionDecisions = ['equipment', 'instructions'] as const;
 export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
 
 export type JobPositionDecision = z.infer<typeof jobPositionDecisionSchema>;
+
+export const riskEvaluationGaps = ['factors', 'measures', 'plan'] as const;
+
+export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
+
+export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
@@ -142,6 +158,18 @@ export const documentReadinessResponseSchema = z.object({
       id: z.uuid(),
       name: z.string(),
       undecided: z.array(jobPositionDecisionSchema).min(1),
+    })
+  ),
+  // The evaluations behind `positions.risk_evaluation` and `risk_evaluations.*`, each with
+  // what it lacks. `evaluationId` is null for a position or the sensitive groups not evaluated
+  // yet; `jobPositionId` is null for an evaluation that is not a position's.
+  incompleteRiskEvaluations: z.array(
+    z.object({
+      evaluationId: z.uuid().nullable(),
+      kind: riskEvaluationKindSchema,
+      jobPositionId: z.uuid().nullable(),
+      name: z.string(),
+      missing: z.array(riskEvaluationGapSchema).min(1),
     })
   ),
 });

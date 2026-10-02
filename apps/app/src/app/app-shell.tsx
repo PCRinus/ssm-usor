@@ -40,6 +40,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquareWarning,
+  ShieldAlert,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -61,6 +62,7 @@ const navigation = [
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
   { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
   { to: '/instructions', label: 'Instrucțiuni', icon: BookOpenText, ownerOnly: false },
+  { to: '/risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
   { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
 ] as const;
 

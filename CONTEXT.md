@@ -46,9 +46,23 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Instruction library** (_biblioteca de instrucțiuni_): the organization's instruction modules, uploaded as Word files or written in the app. Starts empty; the app ships no instruction text. Avoid: catalogue, template set.
 
+**Training themes** (_tematica de instruire_): the document of the set that says, per job position, who trains it and what each training phase covers, citing the general training material and the own instructions by article range and the position's instruction modules by title. Generated from the client's newest own instructions revision. ADR 014. Avoid: training plan, syllabus, and "program de instruire", which is the training schedule.
+
+**Training session** (_ședință de instruire_): one periodic training of a job position, in one of the months its interval gives from the client's first training month: a month, a content line and the client's periodic duration. The training themes print one row per session. Avoid: instructaj, which the law replaced.
+
 **Own instructions** (_instrucțiuni proprii_, IPSSM): the document of the set that binds the client's workers: a **common part** the app generates, which lists as **annexes** the instruction modules the client's positions apply. Its Word file is the common part; its issued PDF is the common part and the annexes in one file. ADR 012. Avoid: bound document, assembled document.
 
 **Allocation mode** (_mod de acordare_): how an item reaches the worker: **personal inventory** (_inventar personal_), issued and replaced when its duration runs out; **section inventory** (_inventar de secție_), kept at the workplace and shared; or **consumable** (_consum_), used up and restocked, with no duration. Avoid: type of issue, ownership.
+
+**Risk evaluation** (_evaluarea postului_): the record of one evaluated work system by the I.N.C.D.P.M. method: its risk factors with their classes and prevention measures. One per job position; a client also holds evaluations that are not posts, the **sensitive groups** always and others by name. Both the risk assessment and the prevention plan are generated from it. ADR 015. Avoid: risk assessment for the record, which is the document.
+
+**Risk factor** (_factor de risc_): one way the work can harm, recorded on a risk evaluation: the component of the work system it belongs to, its description, a gravity class (1–7) and a probability class (1–6). Its **risk level** (1–7) is read from the method's grid, never typed; above 3 it is **unacceptable**. Avoid: hazard, risk on its own.
+
+**Prevention measure** (_măsură de prevenire_): what is done against a risk factor, of one of four kinds: technical, organizational, hygienic-sanitary, other. A factor's prevention measures, with its actions, deadline and person responsible, are its row in the prevention plan. Avoid: measure on its own.
+
+**Global risk level** (_nivel de risc global_): the weighted mean of an evaluation's risk levels, each weighted by itself. Acceptable up to 3.5.
+
+**Evaluation profile** (_profil de evaluare_): a named set of risk factors with classes and prevention measures, kept by the organization and copied into evaluations. The profiles are the **risk library** (_biblioteca de riscuri_), which starts empty; the app ships no risk text. Avoid: template, catalogue.
 
 ## Documents
 
@@ -68,7 +82,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Template**: the Word file a document is merged from. Built-in templates live in the repository and are registered in versions.
 
-**Uploaded document type**: a document of the pack the app cannot write yet, which comes to exist by uploading a `.docx` written elsewhere.
+**Uploaded document type**: a document of the pack the app cannot write yet, which comes to exist by uploading a `.docx` written elsewhere. None is left since the risk assessment and the prevention plan are generated (ADR 015); a file can still replace the draft of any document.
 
 ## Product feedback
 

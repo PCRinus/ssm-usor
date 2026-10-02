@@ -215,7 +215,6 @@ function EquipmentEntryForm({
                 data-testid="equipment-allocation"
                 disabled={busy}
                 aria-describedby="equipment-allocation-hint"
-                className="w-full"
                 {...form.register('allocation')}
               >
                 {equipmentAllocations.map((value) => (

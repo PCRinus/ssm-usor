@@ -8,7 +8,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft, Eye, EyeOff, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
+import { Eye, EyeOff, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { getGetEmployeeQueryKey, useGetEmployee } from '@/api/generated/api';
@@ -90,47 +90,37 @@ export function EmployeePage() {
 
   return (
     <div data-testid="employee-page" className="space-y-7">
-      <div>
-        <Button asChild variant="ghost" size="sm" className="-ml-3 text-muted-foreground">
-          <Link to="/clients/$clientId/employees" params={{ clientId }} data-testid="employee-back">
-            <ArrowLeft aria-hidden="true" />
-            Angajați
-          </Link>
-        </Button>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {formatEmployeeName(employee)}
-            </h1>
-            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <span>{employee.jobPosition.name}</span>
-              <Badge variant={former ? 'outline' : 'secondary'} data-testid="employee-status">
-                {former ? 'Fost angajat' : 'Angajat actual'}
-              </Badge>
-            </p>
-          </div>
-          {!readOnly && (
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline" data-testid="employee-edit">
-                <Link
-                  to="/clients/$clientId/employees/$employeeId/edit"
-                  params={{ clientId, employeeId }}
-                >
-                  <Pencil aria-hidden="true" />
-                  Modifică
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                data-testid="employee-status-action"
-                onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
-              >
-                {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
-                {former ? 'Reactivează…' : 'Marchează plecarea…'}
-              </Button>
-            </div>
-          )}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-semibold tracking-tight">{formatEmployeeName(employee)}</h1>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>{employee.jobPosition.name}</span>
+            <Badge variant={former ? 'outline' : 'secondary'} data-testid="employee-status">
+              {former ? 'Fost angajat' : 'Angajat actual'}
+            </Badge>
+          </p>
         </div>
+        {!readOnly && (
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" data-testid="employee-edit">
+              <Link
+                to="/clients/$clientId/employees/$employeeId/edit"
+                params={{ clientId, employeeId }}
+              >
+                <Pencil aria-hidden="true" />
+                Modifică
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              data-testid="employee-status-action"
+              onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
+            >
+              {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
+              {former ? 'Reactivează…' : 'Marchează plecarea…'}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6">

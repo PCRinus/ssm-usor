@@ -23,6 +23,7 @@ import {
   uploadDocumentFile as upload,
 } from './documents';
 import { loadDocumentFacts } from './facts';
+import { incompleteRiskEvaluations } from './risk-assessment';
 import type {
   attachDocumentSignedCopyRoute,
   confirmDocumentSignedCopyRoute,
@@ -70,6 +71,10 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
         ? workersRepresentativeClash(facts)
         : null,
       undecidedJobPositions: undecidedJobPositions(facts),
+      incompleteRiskEvaluations: incompleteRiskEvaluations(
+        facts.riskEvaluations,
+        facts.jobPositions
+      ),
     },
     200
   );

@@ -1,3 +1,4 @@
+import { riskLevel } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -195,6 +196,30 @@ describe('what is missing', () => {
       })
     ).toContain('client.trainingSchedule');
   });
+
+  it('needs every position and the sensitive groups evaluated, with measures and their plan', () => {
+    const [groups, sudor, contabil] = facts.riskEvaluations;
+    expect(
+      missingDocumentData({ ...facts, riskEvaluations: [groups!, { ...sudor!, factors: [] }] })
+    ).toEqual(['positions.risk_evaluation']);
+    expect(missingDocumentData({ ...facts, riskEvaluations: [sudor!, contabil!] })).toEqual([
+      'risk_evaluations.sensitive_groups',
+    ]);
+    const unmeasured = {
+      ...groups!,
+      factors: groups!.factors.map((factor) => ({ ...factor, measures: [] })),
+    };
+    expect(
+      missingDocumentData({ ...facts, riskEvaluations: [unmeasured, sudor!, contabil!] })
+    ).toEqual(['risk_evaluations.measures']);
+    const unplanned = {
+      ...contabil!,
+      factors: contabil!.factors.map((factor) => ({ ...factor, deadline: null })),
+    };
+    expect(
+      missingDocumentData({ ...facts, riskEvaluations: [groups!, sudor!, unplanned] })
+    ).toEqual(['risk_evaluations.plan']);
+  });
 });
 
 describe('the merge context', () => {
@@ -368,6 +393,155 @@ describe('the merge context', () => {
   it('switches the branding line', () => {
     expect(context.branding).toEqual([{}]);
     expect(buildDocumentContext({ ...facts, branding: false }).branding).toEqual([]);
+  });
+
+  it("gives the training material the evaluations' unacceptable factors as the unit's risks", () => {
+    expect(context.unitRisks).toHaveLength(8);
+    expect(context.unitRisks[0]).toEqual({
+      risk: 'Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.',
+      measure:
+        'Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\nAnunțarea imediată a conducătorului locului de muncă la orice defect electric.',
+    });
+    expect([context.hasUnitRisks, context.noUnitRisks]).toEqual([[{}], []]);
+    const acceptable = buildDocumentContext({
+      ...facts,
+      riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
+        ...evaluation,
+        factors: evaluation.factors.filter(
+          (factor) => riskLevel(factor.gravityClass, factor.probabilityClass) <= 3
+        ),
+      })),
+    });
+    expect([acceptable.unitRisks, acceptable.hasUnitRisks, acceptable.noUnitRisks]).toEqual([
+      [],
+      [],
+      [{}],
+    ]);
+  });
+
+  it('presents the unit and its evaluations for the risk assessment and the prevention plan', () => {
+    expect(context.riskAssessment.unit).toEqual({
+      activity: '2562 – Fabricarea articolelor de feronerie',
+      employeeCount: 6,
+      workplaces: [
+        { name: 'Sediul social', kind: 'Sediu social', address: 'Sector 1, Calea Victoriei 122A' },
+        {
+          name: 'Atelier Ghiroda',
+          kind: 'Punct de lucru',
+          address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
+        },
+      ],
+      noWorkplaces: [],
+    });
+    expect(
+      context.riskAssessment.evaluations.map((evaluation) => [evaluation.roman, evaluation.heading])
+    ).toEqual([
+      ['I', 'LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL'],
+      ['II', 'POSTUL DE LUCRU: SUDOR'],
+      [
+        'III',
+        'GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)',
+      ],
+    ]);
+    expect(context.riskAssessment.globalLevel).toBe('3,15');
+  });
+});
+
+describe('the training themes', () => {
+  const { themes } = buildDocumentContext(facts);
+
+  it('cite the own instructions revision and the titles it annexes', () => {
+    expect(themes!.ownInstructionsRevision).toEqual({
+      id: 'd0d0d0d0-0000-4000-8000-000000000001',
+      number: 2,
+      versionIds: ['b0b0b0b0-0000-4000-8000-000000000002', 'b0b0b0b0-0000-4000-8000-000000000001'],
+    });
+    expect(themes!.annexTitles).toBe(
+      'I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică'
+    );
+  });
+
+  it('give every position its trainer, its modules, its interval and its sessions', () => {
+    expect(
+      themes!.positions.map(({ sessions, ...position }) => ({
+        ...position,
+        months: sessions.map((session) => session.month),
+      }))
+    ).toEqual([
+      {
+        name: 'CONTABIL',
+        trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
+        modules: [
+          {
+            title: 'Activități de birou',
+            articleCount: 12,
+            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+          },
+        ],
+        intervalLabel: '6 LUNI',
+        months: ['FEBRUARIE', 'AUGUST'],
+      },
+      {
+        name: 'SUDOR',
+        trainer: 'Florin Cristian TALOȘ – conducător loc de muncă',
+        modules: [
+          {
+            title: 'Activități de birou',
+            articleCount: 12,
+            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+          },
+          {
+            title: 'Sudură oxiacetilenică',
+            articleCount: 31,
+            citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
+          },
+        ],
+        intervalLabel: '2 LUNI',
+        months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
+      },
+    ]);
+    expect(themes!.positions[0]!.sessions).toEqual([
+      {
+        month: 'FEBRUARIE',
+        content: 'I.P.S.S.M. Art. 1 – 100; I.P.S.S.M. Activități de birou, Art. 1 – 12',
+        duration: '120 min',
+      },
+      {
+        month: 'AUGUST',
+        content: 'I.P.S.S.M. Art. 101 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
+        duration: '120 min',
+      },
+    ]);
+  });
+
+  it('leave out a module the own instructions revision does not annex', () => {
+    const behind = buildDocumentContext({
+      ...facts,
+      ownInstructions: {
+        ...facts.ownInstructions!,
+        annexes: facts.ownInstructions!.annexes.slice(0, 1),
+      },
+    }).themes!;
+    expect(behind.annexTitles).toBe('I.P.S.S.M. Activități de birou');
+    expect(behind.positions[1]!.modules).toEqual([
+      {
+        title: 'Activități de birou',
+        articleCount: 12,
+        citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
+      },
+    ]);
+  });
+
+  it('are absent without an own instructions revision, and the themes alone then refuse', () => {
+    const without = { ...facts, ownInstructions: null };
+    expect(missingDocumentData(without)).toEqual([]);
+    expect(missingDocumentData(without, 'own_instructions')).toEqual([]);
+    expect(missingDocumentData(without, 'training_themes')).toEqual(['documents.own_instructions']);
+    expect(missingDocumentData(facts, 'training_themes')).toEqual([]);
+    const context = buildDocumentContext(without);
+    expect(context).not.toHaveProperty('themes');
+    expect(() => documentData(context, 'training_themes')).toThrow();
+    expect(documentData(context, 'own_instructions')).not.toHaveProperty('themes');
   });
 });
 

@@ -1,0 +1,63 @@
+# ADR 014: The training themes, one block per job position, citing the own instructions
+
+- Status: accepted
+- Date: 2026-10-01
+
+## Context
+
+[ADR 005](adr-005-document-generation.md) left three documents to a second stage because their content follows the client's posts. [ADR 011](adr-011-protective-equipment.md) built the equipment list and [ADR 012](adr-012-own-instructions.md) the own instructions; the training themes (4.2, _tematica de instruire și programul de instruire – testare_) are the last of the three, and the last document of the set that is still uploaded rather than generated apart from the risk assessment and the prevention plan of stage 3. Its template is in the repository with the header placeholders replaced and its body still the gelato bar's, flagged `contentPending` so that registration skips it. ADR 012 settled one thing about it: the themes cite the modules a client's own instructions annex, at the versions that revision annexed, by title and by "Art. 1–N" where N is the module version's count of top-level numbered items.
+
+The provider's two packs give the document the same shape, five pages in three chapters:
+
+- Chapter I, the introductory general training (_instruirea introductiv-generală_): one block for the whole staff, trained by the provider's specialist, then a plan of 240 minutes in rows that cite the general training material (2.2, "MISSMIG") chapter by chapter as article ranges, with a test and the signing of the training sheets at the end.
+- Chapter II, the training at the workplace (_instruirea la locul de muncă_): one block per post naming who trains it and what the material is, a list of government decisions, the whole common part of the own instructions, "IPSSM Art. 1–294", and the post's instruction modules by article range, then a plan of 240 minutes citing the common part chapter by chapter, one row for the client-specific instructions, and practical demonstrations.
+- Chapter III, the periodic training (_instruirea periodică_): one block per post with its interval, then a table with one row per training month of the year, each citing a slice of the common part and a slice of the post's modules, the last one ending in "Testare.", each lasting the client's periodic duration.
+
+The parts the provider fills by hand are what this decision has to compute. With four sessions a year the common part is cut into chapters I–V, VI–VII, VIII–IX and X–XII, a cut chosen once and copied. A module shared by two posts is cut between them by article: the shop assistant's session cites "IPSSM 1 Art. 1–8", the bartender's the same module's articles 27 to 32, and a post applies a module whole in our model, never a part. The store manager appears twice, once as a worker every three months trained by the workplace manager and once as _conducător loc de muncă_ every six months trained by the specialist, and the trainer of every other post is the workplace manager, a link between a person and a post that our data does not hold. The installation company's pack adds to chapter I a row for the construction-site chapter of its general training material, which our 2.2 does not have, and cites its modules by absolute article numbers of the bound file, a numbering ADR 012 gave up.
+
+The law is short on the form. HG 1425/2006, chapter V: the employer holds training and testing programs per trade or activity (art. 80), each phase lasting at least one hour (art. 80^1, since HG 767/2016, which also repealed the old eight-hour minimums), periodic training is done by the direct workplace manager (art. 96) at most every six months for workers and twelve for technical-administrative staff, on themes drawn up by the prevention service and approved by the employer (art. 97), and the individual training sheet names the material taught and its duration (art. 81). No months, no article ranges, no test session are prescribed; the Labour Inspection's document checklist asks for the programs per trade, the themes, and sheets whose "materialul predat" matches them.
+
+The trade's practice was surveyed on 1 October 2026. Provider templates split in two: about half slice the legal texts by chapter across the months and cite the own instructions whole in every session, and a minority slices the own instructions by article range month by month, as our provider does; all have an approval and a drafter block, a duration line, month rows and a final test session. The software products slice nothing: ssm.ro generates the themes per post from whole instruction files picked by title, one tab per period of the year, and EasySSM has the inspector name one whole instruction per month. So the provider's format is a defensible variant of the article-range school rather than the market norm, and where it is hand-made we are free to choose the rule.
+
+The static citations already hold. Counting the numbered articles per chapter, the 3.2 template has 294 and its chapters fall exactly on the ranges chapter II.II prints, and the 2.2 template has 327 whose chapters match chapter I.I's rows but for one slip: the template's unit-risks chapter is article 327, so the provider's "301–327" and "Art. 328" are "301–326" and "Art. 327" in ours.
+
+## Decision
+
+### The provider's shape, one block per position
+
+The themes keep the provider's three chapters and their tables, as one document per client. Chapter I prints once, for the whole staff. Chapters II and III print one block per current job position, in the order of the positions table, with the position's name as _funcția_. Archived positions are ignored, as ADR 006 says. The two plans of 240 minutes and their rows are static text of the template, with the 2.2 slip corrected, and chapter II.II's row for the client-specific instructions cites the annexes of the client's own instructions by title, or a dash when there are none. The construction-site row of the installation company's pack is left out, as the 2.2 template has no such chapter; a client in construction gets it back when 2.2 does.
+
+The legal references a block cites, the government decisions before "IPSSM Art. 1–294", are one fixed list for every post: the sample packs vary them per post by hand, adding the display-screen decision for the office post and the protective-equipment decision for the site, and the specialist edits a post's line in the document where it needs another act. Computing them from the post's equipment or modules was rejected as a guess dressed as data.
+
+### Who trains a post follows its staff category
+
+Every block names the trainer, _șef direct de loc de muncă_. An execution post is trained by the client's workplace manager, the responsible person with that role, printed as "Name – conducător loc de muncă". A technical-administrative post is trained by the provider and the specialist, as the manager cannot train themself. Each position gets one block; the doubled manager of the sample, worker and manager in two rows, is not reproduced. Linking a position to the workplace manager, or marking the position that leads the workplace, was rejected for a document line: the staff category already separates the two kinds of post, and a client with several workplace managers prints the first, as the other documents do.
+
+### The periodic sessions deal out the common part and cite the modules whole
+
+A post's periodic **training sessions** are the months its interval gives from the client's first training month to the end of the year, the same months decision 1.1 prints, so between one and twelve. The twelve chapters of the common part are dealt over the sessions in order, in contiguous groups whose sizes differ by at most one, the larger groups first: with four sessions I–III, IV–VI, VII–IX and X–XII; with two, I–VI and VII–XII; with one, everything; with twelve, one chapter each. A session's row cites the chapters it got as one article range of the common part, then every module the post applies, each whole, as "Title, Art. 1–N", then "Testare." on the last session. Each row lasts the client's periodic duration. The chapter ranges are held to the 3.2 template by a test, as ADR 012 asked.
+
+Dealing the modules out over the sessions like the chapters was considered and dropped: a module is one self-contained instruction for an activity, the law has the post's specific instructions taught at every periodic training, and repeating them in every session is what most templates and every software product print. Splitting a module by article between sessions, or between posts, is out, as the post applies the module whole.
+
+### The themes cite a revision of the own instructions
+
+The themes are generated from the client's newest own instructions revision, draft or issued: its annexes, at their versions, are the modules the themes may cite, with the article count of each version, and the mapping of a position to its modules is read from the position, restricted to those annexes. A module a position applies that the revision does not annex is not cited; the "Date modificate" badge on the own instructions already says they are behind, and regenerating them first brings the module in. Generating the set creates the own instructions before the themes, so the themes of one generation cite the revision made in it. Regenerating the themes alone when the client has no own instructions revision is refused, with a readiness row that leads to the document.
+
+### The snapshot holds the sessions
+
+The themes' part of the merge context is one object: the own instructions revision cited, and per position its trainer, its interval, its modules, and its sessions with their month and content line. It is recorded whole in the revision's snapshot, so the themes show "Date modificate" when the own instructions are regenerated, a position or its modules change, or the training schedule moves, and so the training sheets to come can copy a session's content line as the material taught, which art. 81 requires them to name, instead of reading it back from Word.
+
+## Consequences
+
+- The training themes leave the uploaded document types and join the generated set; a document uploaded before this change stays as it is until regenerated.
+- The themes depend on another document of the set for the first time, so the order of generation matters and the readiness of one document can name another.
+- A provider who slices modules by article, as ours did, gets whole modules in every session; the pattern is a minority one and the document remains theirs to edit.
+- The supplementary training of art. 98, after an absence, an accident or new equipment, has no theme in the provider's pack and none here; ssm.ro has one, and it can be added when training records arrive.
+- A client whose first training month is late in the year gets few sessions, all of them heavy; that is what its schedule says, and decision 1.1 prints the same months.
+
+## Order of work
+
+1. This ADR, the glossary in `CONTEXT.md`, and the amendments to ADR 011 and ADR 012.
+2. The themes in the merge context: the sessions, the trainer, the citation of the own instructions revision, the readiness code, and the test that holds the chapter ranges of 3.2 and 2.2 to their templates.
+3. The template, reauthored around loops for the positions and the sessions, with the 2.2 slip corrected, and its manifest entry unflagged, which moves the type in the contracts.
+4. Registration on hosted after the merge.

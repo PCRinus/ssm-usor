@@ -33,7 +33,8 @@ import {
   missingDocumentData,
   stableJson,
 } from './context';
-import { loadDocumentFacts, type StoredDocumentFacts } from './facts';
+import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
+import { annexedVersionIds, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
 type RevisionRow = Pick<
@@ -137,7 +138,7 @@ async function annexLookup(db: DataClient, documents: DocumentRow[]): Promise<An
 }
 
 function toAnnexes(revision: RevisionRow, lookup: AnnexLookup): DocumentAnnex[] {
-  return snapshotAnnexes(revision.data_snapshot).flatMap((annex) => {
+  return (snapshotAnnexes(revision.data_snapshot) ?? []).flatMap((annex) => {
     const version = lookup.annexed.get(annex.versionId);
     // Out of reach only for a snapshot naming another organization's module.
     if (!version) return [];
@@ -402,15 +403,40 @@ export async function generateClientDocuments(
     .single();
   if (generation.error) throw fromDatabaseError(generation.error, 'create document generation');
 
+  const existingId = (template: Template) =>
+    existing.find((document) => document.type_key === template.typeKey)?.id;
+  // The themes cite the own instructions revision this same run makes, so they come last.
+  const themes = wanted.find((template) => template.typeKey === 'training_themes');
+  const others = wanted.filter((template) => template !== themes);
   // A few at a time: a Worker holds six connections open at once.
   const createdIds: string[] = [];
-  for (let start = 0; start < wanted.length; start += 4) {
-    const batch = wanted.slice(start, start + 4).map((template) =>
+  for (let start = 0; start < others.length; start += 4) {
+    const batch = others.slice(start, start + 4).map((template) =>
       createDocument(db, files, actor, clientId, generation.data.id, template, context, {
-        existingId: existing.find((document) => document.type_key === template.typeKey)?.id,
+        existingId: existingId(template),
       })
     );
     createdIds.push(...(await Promise.all(batch)));
+  }
+  let current = facts;
+  if (themes) {
+    current = { ...facts, ownInstructions: await loadOwnInstructions(db, clientId) };
+    // Nothing to cite only when the own instructions are an uploaded file: the themes wait
+    // for them to be generated.
+    if (current.ownInstructions) {
+      const themesContext = buildDocumentContext({ ...current, ...request });
+      const themesId = await createDocument(
+        db,
+        files,
+        actor,
+        clientId,
+        generation.data.id,
+        themes,
+        themesContext,
+        { existingId: existingId(themes) }
+      );
+      createdIds.push(themesId);
+    }
   }
 
   const documents = await readDocuments(db, clientId);
@@ -419,7 +445,7 @@ export async function generateClientDocuments(
       await presentDocuments(
         db,
         documents.filter((document) => createdIds.includes(document.id)),
-        facts
+        current
       )
     ).sort(byPackOrder),
     skipped: [...complete],
@@ -802,33 +828,6 @@ export async function printDocument(
   const revision = newest(document);
   const annexes = await readAnnexes(db, files, revision?.data_snapshot ?? null);
   return pdf.convertDocuments([bytes, ...annexes]);
-}
-
-/**
- * The version ids of the instruction modules a snapshot annexes (ADR 012), as the own
- * instructions' context lists them under `annexes`. Any other document annexes nothing.
- */
-export function annexedVersionIds(snapshot: Json | null): string[] {
-  const annexes = (snapshot as { annexes?: unknown } | null)?.annexes;
-  if (!Array.isArray(annexes)) return [];
-  return annexes.flatMap((annex) =>
-    typeof (annex as { versionId?: unknown })?.versionId === 'string'
-      ? [(annex as { versionId: string }).versionId]
-      : []
-  );
-}
-
-type SnapshotAnnex = { number: number; title: string; versionId: string };
-
-function snapshotAnnexes(snapshot: Json | null): SnapshotAnnex[] {
-  const annexes = (snapshot as { annexes?: unknown } | null)?.annexes;
-  if (!Array.isArray(annexes)) return [];
-  return annexes.filter(
-    (annex): annex is SnapshotAnnex =>
-      typeof (annex as Partial<SnapshotAnnex> | null)?.versionId === 'string' &&
-      typeof (annex as Partial<SnapshotAnnex>).number === 'number' &&
-      typeof (annex as Partial<SnapshotAnnex>).title === 'string'
-  );
 }
 
 /** The files of the annexed module versions, in the snapshot's order. */

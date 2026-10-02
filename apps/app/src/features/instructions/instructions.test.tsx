@@ -224,6 +224,7 @@ function mockApi({
     if (pathname.endsWith('/equipment')) {
       return Response.json({ items: [], needsProtectiveEquipment: null });
     }
+    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }

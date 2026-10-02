@@ -130,6 +130,7 @@ function mockApi({
     if (pathname.endsWith('/instructions')) {
       return Response.json({ items: [], needsInstructions: null });
     }
+    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
@@ -195,15 +196,17 @@ describe("a job position's page", () => {
       `${welderPath}#details`,
       `${welderPath}#protective-equipment`,
       `${welderPath}#instructions`,
+      `${welderPath}#risk-evaluation`,
     ]);
     expect(
-      ['details', 'protective-equipment', 'instructions'].map(
+      ['details', 'protective-equipment', 'instructions', 'risk-evaluation'].map(
         (id) => document.getElementById(id)?.querySelector('h3')?.textContent
       )
     ).toEqual([
       'Postul',
       expect.stringMatching(/^Echipament de protecție/),
       expect.stringMatching(/^Instrucțiuni/),
+      expect.stringMatching(/^Evaluare de risc/),
     ]);
   });
 

@@ -71,12 +71,18 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   const tabs = await page.getByRole('navigation', { name: 'Secțiunile clientului' }).boundingBox();
   const heading = await instructions.getByRole('heading', { level: 3 }).boundingBox();
   expect(heading!.y).toBeGreaterThanOrEqual(tabs!.y + tabs!.height);
-  await page.getByTestId('job-position-back').click();
+  await page
+    .getByRole('navigation', { name: 'breadcrumb' })
+    .getByRole('link', { name: 'Posturi de lucru' })
+    .click();
   await accountant.getByTestId('job-position-actions').click();
   await page.getByTestId('job-position-menu-equipment').click();
   await expect(page).toHaveURL(/#protective-equipment$/);
   await expect(page.getByTestId('equipment-card')).toBeInViewport();
-  await page.getByTestId('job-position-back').click();
+  await page
+    .getByRole('navigation', { name: 'breadcrumb' })
+    .getByRole('link', { name: 'Posturi de lucru' })
+    .click();
 
   // The same name in another case is the same position.
   await page.getByTestId('job-position-add').click();
@@ -172,7 +178,10 @@ test('a new hire goes into a post from the employee form, and can be moved to an
 
   // What was entered about the person can be corrected, from their page or from the list's
   // row menu; the post and the title stay.
-  await page.getByTestId('employee-back').click();
+  await page
+    .getByRole('navigation', { name: 'breadcrumb' })
+    .getByRole('link', { name: 'Angajați' })
+    .click();
   await page
     .getByTestId('employees-row')
     .filter({ hasText: 'Electricu' })

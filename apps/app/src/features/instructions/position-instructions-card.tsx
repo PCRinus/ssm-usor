@@ -186,7 +186,7 @@ export function PositionInstructionsCard({
         !readOnly &&
         decision !== false && (
           <Button
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="instructions-pick"
             onClick={() => setPicking(true)}
@@ -586,7 +586,6 @@ function CopyInstructionsDialog({
               <NativeSelect
                 id="instructions-copy-source"
                 data-testid="instructions-copy-source"
-                className="w-full"
                 value={source}
                 disabled={copy.isPending || positions.isPending}
                 onChange={(event) => setSource(event.target.value)}

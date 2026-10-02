@@ -140,6 +140,10 @@ describe('typesetting', () => {
     expect(codes.filter((code) => /PAGE/.test(code) && /\\\*/.test(code))).toEqual([]);
   });
 
+  it.each(templateFiles)('%s numbers its pages through, without a restart', (name) => {
+    expect(bodyOf(name)).not.toMatch(/<w:pgNumType\b[^>]*w:start=/);
+  });
+
   it.each(templateFiles)(
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {
@@ -619,5 +623,130 @@ describe('branding', () => {
       new Set([''])
     );
     expect(new Set(footerText(renderDocument(template, data)))).toEqual(new Set(['']));
+  });
+});
+
+// ADR 014: the two plans are static text, and their article ranges fall on the chapters of the
+// 2.2 and 3.2 templates.
+describe('training_themes', () => {
+  const lines = documentText(read('4.2_training_themes.docx')).split('\n');
+
+  it('cites the general training material chapter by chapter, 2.2 as it is numbered', () => {
+    expect(lines.filter((line) => line.startsWith('MISSMIG Art.'))).toEqual([
+      ...[
+        [1, 6],
+        [7, 13],
+        [14, 15],
+        [16, 28],
+        [29, 81],
+        [82, 99],
+        [100, 110],
+        [111, 121],
+        [122, 152],
+        [153, 215],
+        [216, 238],
+        [239, 270],
+        [271, 278],
+        [279, 291],
+        [292, 300],
+        [301, 326],
+      ].map(([from, to]) => `MISSMIG Art. ${from} – ${to}`),
+      'MISSMIG Art. 327',
+    ]);
+  });
+
+  it('cites the common part of the own instructions chapter by chapter', () => {
+    expect(lines.filter((line) => line.startsWith('IPSSM Art.'))).toEqual(
+      [
+        [1, 9],
+        [10, 43],
+        [44, 45],
+        [46, 55],
+        [56, 62],
+        [63, 100],
+        [101, 171],
+        [172, 191],
+        [192, 209],
+        [210, 240],
+        [241, 260],
+        [261, 294],
+      ].map(([from, to]) => `IPSSM Art. ${from} – ${to}`)
+    );
+  });
+
+  it('repeats a block per position, a row per session and a citation per module', () => {
+    const placeholders = templatePlaceholders(read('4.2_training_themes.docx'));
+    expect(placeholders).toEqual(
+      expect.arrayContaining(['themes.positions', 'sessions', 'modules', 'themes.annexTitles'])
+    );
+    const text = lines.join('\n');
+    expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
+    expect(text).toContain('{{#sessions}}{{month}}');
+    expect(text).toContain('IPSSM Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
+  });
+});
+
+describe('risk_assessment', () => {
+  const text = documentText(read('9_risk_assessment.docx'));
+
+  it("prints nothing of the first client's posts, levels or premises", () => {
+    expect(text).not.toMatch(
+      /MANAGER MAGAZIN|Manager magazin|GELATERIE|BARMAN|VIZITATOR|5630|Calea Victoriei|Vestiarele|Stingător P6|2,40|2,55/
+    );
+  });
+
+  it('repeats a subchapter per evaluation, and a contents row for each', () => {
+    expect(templatePlaceholders(read('9_risk_assessment.docx'))).toEqual(
+      expect.arrayContaining([
+        'riskAssessment.evaluations',
+        'components',
+        'groups',
+        'factors',
+        'sheet',
+        'unacceptable',
+        'ranked',
+        'riskAssessment.globalLevel',
+        'workersRepresentatives',
+      ])
+    );
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(3);
+    expect(text).toContain('{{#sheet}}{{component}}');
+    expect(text).toContain('SUBCAPITOLUL V.{{roman}}.');
+    expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
+  });
+
+  it('says when the assessment is reviewed, in the words of H.G. 1425/2006', () => {
+    expect(text).toContain(
+      'ori de câte ori intervin modificări ale condițiilor de muncă, respectiv la apariția unor riscuri noi și în urma producerii unui eveniment'
+    );
+  });
+});
+
+describe('prevention_plan', () => {
+  const text = documentText(read('10_prevention_plan.docx'));
+
+  it("prints nothing of the first client's posts or measures", () => {
+    expect(text).not.toMatch(
+      /MANAGER MAGAZIN|GELATERIE|BARMAN|VIZITATOR|P\.R\.A\.M\.|Cond\. loc muncă|Periodic/
+    );
+  });
+
+  it('repeats a table of the columns of annex 7 per evaluation, or a sentence without measures', () => {
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(1);
+    expect(text).toContain('{{#plan}}{{$index}}.');
+    expect(text).toContain('{{#noPlan}}');
+    for (const column of [
+      'Riscuri evaluate',
+      'Măsuri tehnice',
+      'Măsuri organizatorice',
+      'Măsuri igienico-sanitare',
+      'Măsuri de altă natură',
+      'Acțiuni în scopul realizării măsurii',
+      'Termen de realizare',
+      'Persoana care răspunde de realizarea măsurii',
+      'Observații',
+    ]) {
+      expect(text).toContain(column);
+    }
   });
 });

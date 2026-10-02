@@ -148,7 +148,6 @@ function ModuleForm({
               data-testid="instruction-module-group"
               disabled={busy}
               aria-describedby="instruction-module-group-hint"
-              className="w-full"
               {...form.register('group')}
             >
               {instructionModuleGroups.map((group) => (

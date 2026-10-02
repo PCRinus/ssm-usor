@@ -308,6 +308,82 @@ Members read, create and update their organization's modules, add versions, and 
 remove modules for positions of active clients; updates are granted on the title, the group
 and `archived_at` only.
 
+## Risk evaluations
+
+`risk_evaluations` holds the client's evaluated work systems
+([ADR 015](architecture/adr-015-risk-assessment.md)), from which the risk assessment and the
+prevention plan are generated. `kind` is `job_position`, with a `job_position_id` (at most one
+evaluation per position, and it goes with a position deleted as a mistake), `sensitive_groups`
+(at most one per client), or `other`, with a `name` unique within the client ignoring case
+and the spaces around it; a check constraint ties `job_position_id` and `name` to the kind. The
+evaluation records `means_of_production` and `work_environment` as free text and `exposure`,
+"8 h / schimb" by default. An evaluation that is not of a position also records `work_task`
+and `exposed_persons` ("Min. 3 persoane") as free text; a position's evaluation reads them
+from the position's activities and current employees, and a check constraint keeps them null
+there. It carries the same `client_id`, `organization_id` and composite foreign keys as the
+equipment entries, and an insert under a lead is refused (`CLL01`).
+
+`risk_factors` hangs off the evaluation, with the same `client_id` and `organization_id`, and
+goes with it:
+
+| Column               | Notes                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| `component`          | `executant`, `work_task`, `means_of_production` or `work_environment`.                    |
+| `factor_group`       | Free text under the component: "Factori de risc mecanic", "Acțiuni greșite".              |
+| `description`        | The concrete form the factor takes.                                                       |
+| `gravity_class`      | 1 to 7, chosen by the evaluator.                                                          |
+| `probability_class`  | 1 to 6, chosen by the evaluator.                                                          |
+| `actions`            | For the prevention plan, free text, null until typed.                                     |
+| `deadline`           | For the plan, free text: "Permanent", "Trimestrial".                                      |
+| `responsible_person` | For the plan, free text.                                                                  |
+| `observations`       | For the plan, free text.                                                                  |
+| `sort_order`         | The factor's place in the evaluation, from 0; new factors and copies go after the others. |
+
+The risk level and the global level are not stored: code reads them from the classes with the
+method's grid (`risk-levels` in `packages/contracts`), so they never disagree with them.
+`prevention_measures` holds a factor's measures, each a `kind` (`technical`, `organizational`,
+`hygienic_sanitary`, `other`: the columns of annex 7 to H.G. 1425/2006), a `description` and a
+`sort_order`. Measures are never updated in place.
+
+Three functions run as the caller, so the policies and the archived-client triggers decide,
+and each is one transaction. `save_risk_factor` adds a factor after the others, or replaces
+one and all its measures, and returns its id, or null when the evaluation or the factor
+within it is not the caller's. `reorder_risk_factors` renumbers the factors and returns false
+unless it is given every factor of the evaluation once. `copy_risk_factors` appends copies of
+another evaluation's factors with their measures, only within one client (`RSK01`
+otherwise), and returns how many it copied.
+
+Members read, create, update and delete the evaluations and factors of their organization
+under active clients, and create and delete measures. Updates are granted on the evaluation's
+`name` and five texts, and on the factor's descriptive columns and `sort_order`, so neither
+moves to another position, evaluation or client.
+
+### Evaluation profiles
+
+`evaluation_profiles` is the organization's risk library: a `name`, unique within the
+organization ignoring case and the spaces around it, and nothing else; the library starts
+empty. `evaluation_profile_factors` and `evaluation_profile_measures` hold a profile's factors
+and their measures with the same columns, checks and enums as `risk_factors` and
+`prevention_measures`, tied to the profile and its organization by composite foreign keys
+and deleted with it. They are tables of their own rather than evaluations without a client:
+every key, trigger and policy on the evaluation tables is the client's (the archived-client
+and lead triggers, the client's foreign keys, the policies that ask for an active client).
+Nothing refers to a profile, so a profile is deleted, not archived.
+
+Three functions run as the caller and are one transaction each.
+`save_evaluation_profile_factor` is `save_risk_factor` for a profile. `save_risk_evaluation_as_profile`
+creates a profile by name with copies of an evaluation's factors and measures in their order,
+and returns its id, or null when the evaluation is not the caller's; a taken name fails on the
+unique index (`23505`). It works for an archived client's evaluation, since only the library
+is written. `apply_evaluation_profile` appends copies of a profile's factors and measures after
+an evaluation's own and returns how many; a profile of another organization is refused
+(`RSK02`), and an archived client by its trigger (`CLA01`). A copy keeps no link to where it
+came from, so later changes on either side stay there.
+
+Members read, create, update and delete their organization's profiles and profile factors,
+and create and delete profile measures. Updates are granted on the profile's `name` and on the
+factor's descriptive columns and `sort_order`.
+
 ## Generated documents
 
 A document is generated from a versioned Word template and from then on its `.docx` file is
