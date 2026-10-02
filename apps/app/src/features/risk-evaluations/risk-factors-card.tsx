@@ -15,10 +15,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
+import { Table, TableCell, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { Fragment, type ReactNode, useState } from 'react';
 
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
@@ -59,6 +60,7 @@ export function RiskFactorsCard({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sections = sectionsOf(factors);
+  const columns = readOnly ? 4 : 5;
 
   async function removeFactor(factor: RiskFactor) {
     setError(null);
@@ -84,6 +86,7 @@ export function RiskFactorsCard({
       id={id}
       headingLevel={3}
       data-testid="risk-factors-card"
+      className={cn(sections.length > 0 && 'overflow-hidden pb-0')}
       title={
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           Factori de risc
@@ -122,29 +125,45 @@ export function RiskFactorsCard({
           {empty}
         </p>
       ) : (
-        <div className="grid gap-6">
-          {sections.map((section) => (
-            <section
-              key={section.component}
-              data-testid="risk-component"
-              aria-labelledby={`risk-component-${section.component}`}
-              className="grid gap-3"
-            >
-              <h4
-                id={`risk-component-${section.component}`}
-                className="flex items-baseline gap-2 border-b pb-2 text-base font-semibold"
+        <div className="-mx-6 min-w-0 border-t">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="min-w-64 pl-6">Factor de risc</TableHead>
+                <TableHead>Gravitate</TableHead>
+                <TableHead>Probabilitate</TableHead>
+                <TableHead className={cn(readOnly && 'pr-6')}>Nivel</TableHead>
+                {!readOnly && (
+                  <TableHead className="w-12 pr-4">
+                    <span className="sr-only">Acțiuni</span>
+                  </TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            {sections.map((section) => (
+              <tbody
+                key={section.component}
+                data-testid="risk-component"
+                className="last:[&>tr:last-child]:border-0"
               >
-                {componentLabels[section.component]}
-                <span className="text-sm font-normal text-muted-foreground">
-                  {factorCountLabel(section.count).toLowerCase()}
-                </span>
-              </h4>
-              {section.groups.map((group) => (
-                <div key={group.name} data-testid="risk-group" className="grid gap-1">
-                  <h5 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    {group.name}
-                  </h5>
-                  <ul className="grid divide-y">
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead scope="rowgroup" colSpan={columns} className="h-auto py-2 pl-6">
+                    {componentLabels[section.component]}
+                    <span className="ml-2 font-normal text-muted-foreground">
+                      {factorCountLabel(section.count).toLowerCase()}
+                    </span>
+                  </TableHead>
+                </TableRow>
+                {section.groups.map((group) => (
+                  <Fragment key={group.name}>
+                    <TableRow data-testid="risk-group" className="border-0 hover:bg-transparent">
+                      <TableHead
+                        colSpan={columns}
+                        className="h-auto pt-3 pb-1 pl-6 font-normal whitespace-normal text-muted-foreground"
+                      >
+                        {group.name}
+                      </TableHead>
+                    </TableRow>
                     {group.factors.map((factor) => (
                       <FactorRow
                         key={factor.id}
@@ -154,11 +173,11 @@ export function RiskFactorsCard({
                         onRemove={() => setRemoving(factor)}
                       />
                     ))}
-                  </ul>
-                </div>
-              ))}
-            </section>
-          ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            ))}
+          </Table>
         </div>
       )}
       <RiskFactorDialog
@@ -212,29 +231,70 @@ function FactorRow({
   onRemove: () => void;
 }) {
   const gap = readOnly ? null : factorGap(factor);
-  const plan = [
-    factor.deadline && `Termen: ${factor.deadline}`,
-    factor.responsiblePerson && `Răspunde: ${factor.responsiblePerson}`,
-  ].filter(Boolean);
+  const hasPlan = factor.deadline || factor.responsiblePerson;
   return (
-    <li
+    <TableRow
       data-testid="risk-factor-row"
       {...rowClickProps(readOnly ? undefined : onEdit)}
-      className={cn(
-        'grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 py-3 text-sm',
-        !readOnly && 'cursor-pointer rounded-md hover:bg-muted/50'
-      )}
+      className={cn(readOnly ? 'hover:bg-transparent' : 'cursor-pointer')}
     >
-      <p className="font-medium wrap-anywhere">{factor.description}</p>
-      <div className="row-span-2 flex items-start gap-1">
-        <RiskLevelBadge level={factor.riskLevel} className="mt-0.5" />
-        {!readOnly && (
+      <TableCell className="py-3 pl-6 align-top whitespace-normal">
+        <div className="grid gap-1">
+          <p className="font-medium wrap-anywhere">{factor.description}</p>
+          {factor.measures.length > 0 && (
+            <ul
+              data-testid="risk-factor-measures"
+              className="grid gap-0.5 text-xs text-muted-foreground"
+            >
+              {factor.measures.map((measure) => (
+                <li key={measure.id} className="wrap-anywhere">
+                  {measureKindLabels[measure.kind]}: {measure.description}
+                </li>
+              ))}
+            </ul>
+          )}
+          {hasPlan && (
+            <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+              {factor.deadline && <span className="wrap-anywhere">Termen: {factor.deadline}</span>}
+              {factor.responsiblePerson && (
+                <span className="wrap-anywhere">Răspunde: {factor.responsiblePerson}</span>
+              )}
+            </p>
+          )}
+          {gap && (
+            <p
+              data-testid="risk-factor-gap"
+              className="flex items-start gap-1.5 text-xs text-warning-foreground"
+            >
+              <TriangleAlert aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+              {gap}
+            </p>
+          )}
+        </div>
+      </TableCell>
+      <TableCell data-testid="risk-factor-gravity-class" className="py-3 align-top">
+        <span className="font-medium tabular-nums">{factor.gravityClass}</span>
+        <span className="block text-xs text-muted-foreground">
+          {gravityConsequence(factor.gravityClass)}
+        </span>
+      </TableCell>
+      <TableCell data-testid="risk-factor-probability-class" className="py-3 align-top">
+        <span className="font-medium tabular-nums">{factor.probabilityClass}</span>
+        <span className="block text-xs text-muted-foreground">
+          {probabilityFrequency(factor.probabilityClass).period}
+        </span>
+      </TableCell>
+      <TableCell className={cn('py-3 align-top', readOnly && 'pr-6')}>
+        <RiskLevelBadge level={factor.riskLevel} />
+      </TableCell>
+      {!readOnly && (
+        <TableCell className="py-2 pr-4 align-top">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="-mt-1.5 size-8"
+                className="size-8"
                 data-testid="risk-factor-actions"
                 aria-label={`Acțiuni pentru ${factor.description}`}
               >
@@ -255,38 +315,8 @@ function FactorRow({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-      </div>
-      <p data-testid="risk-factor-classes" className="text-xs text-muted-foreground">
-        Gravitate {factor.gravityClass}: {gravityConsequence(factor.gravityClass)}
-        <span aria-hidden="true"> · </span>
-        Probabilitate {factor.probabilityClass}:{' '}
-        {probabilityFrequency(factor.probabilityClass).period}
-      </p>
-      {factor.measures.length > 0 && (
-        <ul data-testid="risk-factor-measures" className="col-span-2 grid gap-0.5 sm:col-span-1">
-          {factor.measures.map((measure) => (
-            <li key={measure.id} className="wrap-anywhere">
-              <span className="text-muted-foreground">{measureKindLabels[measure.kind]}: </span>
-              {measure.description}
-            </li>
-          ))}
-        </ul>
+        </TableCell>
       )}
-      {plan.length > 0 && (
-        <p className="col-span-2 text-xs text-muted-foreground wrap-anywhere sm:col-span-1">
-          {plan.join(' · ')}
-        </p>
-      )}
-      {gap && (
-        <p
-          data-testid="risk-factor-gap"
-          className="col-span-2 flex items-start gap-1.5 text-xs text-warning-foreground sm:col-span-1"
-        >
-          <TriangleAlert aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-          {gap}
-        </p>
-      )}
-    </li>
+    </TableRow>
   );
 }
