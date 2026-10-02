@@ -88,6 +88,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
         filter={filter}
         empty="Profilul nu are încă factori de risc."
         removalConsequence="nu vor mai fi în profil. Evaluările în care l-ai aplicat își păstrează copiile."
+        editorContext={profile.name}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveProfileDialog

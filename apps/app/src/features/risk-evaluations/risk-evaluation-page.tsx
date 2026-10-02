@@ -280,6 +280,7 @@ function RiskEvaluationView({
             : 'Adaugă un factor de risc, aplică un profil din bibliotecă sau copiază factorii altei evaluări.'
         }
         removalConsequence="nu vor mai apărea în evaluare și în planul de prevenire."
+        editorContext={evaluationTitle(evaluation)}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveEvaluationDialog

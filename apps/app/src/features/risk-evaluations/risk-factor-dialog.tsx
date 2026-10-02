@@ -53,6 +53,7 @@ import {
   toFactorForm,
   toFactorRequest,
 } from './risk-evaluation-schema';
+import { riskLevelTint } from './risk-level-tint';
 
 // `null` is closed, 'new' adds a factor, and a factor edits it.
 export type FactorEditing = RiskFactor | 'new' | null;
@@ -166,15 +167,6 @@ function Suggestions({
     </datalist>
   );
 }
-
-const tileColors = (level: number) =>
-  level >= 7
-    ? 'bg-destructive text-white'
-    : level >= 5
-      ? 'bg-[color-mix(in_oklab,var(--destructive-soft),var(--destructive-border))] text-destructive-foreground'
-      : level === 4
-        ? 'bg-destructive-soft text-destructive-foreground'
-        : 'bg-muted text-foreground';
 
 function RiskFactorForm({
   phone,
@@ -433,7 +425,7 @@ function RiskFactorForm({
                   <span
                     className={cn(
                       'inline-grid size-9 place-items-center rounded-[9px] text-base font-medium tabular-nums',
-                      tileColors(level)
+                      riskLevelTint(level)
                     )}
                   >
                     <span className="sr-only">Nivel </span>
@@ -558,7 +550,7 @@ function RiskFactorForm({
         >
           <Input
             id="risk-factor-actions"
-            data-testid="risk-factor-actions"
+            data-testid="risk-factor-plan-actions"
             list="risk-factor-actions-suggestions"
             autoComplete="off"
             disabled={busy}

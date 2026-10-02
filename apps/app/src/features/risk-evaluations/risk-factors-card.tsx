@@ -66,6 +66,7 @@ export function RiskFactorsCard({
   tools,
   empty,
   removalConsequence,
+  editorContext,
 }: {
   id: string;
   factors: RiskFactor[];
@@ -76,6 +77,7 @@ export function RiskFactorsCard({
   empty: ReactNode;
   /** Continues "<factor> și măsurile lui …" in the removal dialog. */
   removalConsequence: string;
+  editorContext?: string;
 }) {
   const [editing, setEditing] = useState<FactorEditing>(null);
   const [removing, setRemoving] = useState<RiskFactor | null>(null);
@@ -157,6 +159,7 @@ export function RiskFactorsCard({
         factors={factors}
         store={store}
         editing={editing}
+        context={editorContext}
         onClose={() => setEditing(null)}
       />
       <Dialog
