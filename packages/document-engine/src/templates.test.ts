@@ -285,9 +285,9 @@ describe('typesetting', () => {
     const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
     const definitions = new Map(
       [...styles.matchAll(/<w:style ([^>]*)>([\s\S]*?)<\/w:style>/g)]
-        .filter(([, attributes]) => attributes.includes('w:type="paragraph"'))
-        .map(([, attributes, body]) => [
-          /w:styleId="([^"]+)"/.exec(attributes)![1],
+        .filter(([, attributes = '']) => attributes.includes('w:type="paragraph"'))
+        .map(([, attributes = '', body = '']) => [
+          /w:styleId="([^"]+)"/.exec(attributes)![1]!,
           {
             basedOn: /<w:basedOn w:val="([^"]+)"/.exec(body)?.[1],
             own: keepsNext(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(body)?.[0] ?? ''),
