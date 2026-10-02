@@ -15,33 +15,54 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { Table, TableCell, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
+import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
-import { Fragment, type ReactNode, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
+import { type KeyboardEvent, type ReactNode, useId, useState } from 'react';
 
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 
+import {
+  type FactorSort,
+  type FactorSortKey,
+  type FactorTab,
+  factorTabs,
+  measureCountLabel,
+  nextSort,
+  parseSortValue,
+  sortMenu,
+  sortValue,
+  visibleFactors,
+} from './factor-list';
 import type { FactorStore } from './factor-store';
 import {
   componentLabels,
   factorCountLabel,
   factorGap,
-  measureKindLabels,
+  factorGapKind,
+  factorGapLabels,
   type RiskFactor,
-  sectionsOf,
 } from './risk-evaluation-schema';
 import { type FactorEditing, RiskFactorDialog } from './risk-factor-dialog';
-import { RiskLevelBadge } from './risk-level-badge';
+import { RiskLevelTile } from './risk-level-tile';
+import type { FactorFilter } from './use-factor-filter';
+
+const columns = {
+  editable:
+    'grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1fr)_2rem] [grid-template-areas:"tile_desc_desc_menu"_"._g_p_."_"._m_m_."] @2xl:grid-cols-[4.25rem_minmax(0,1fr)_6.5rem_7.5rem_8.5rem_2rem] @2xl:[grid-template-areas:"tile_desc_g_p_m_menu"]',
+  readOnly:
+    'grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1fr)] [grid-template-areas:"tile_desc_desc"_"._g_p"_"._m_m"] @2xl:grid-cols-[4.25rem_minmax(0,1fr)_6.5rem_7.5rem_8.5rem] @2xl:[grid-template-areas:"tile_desc_g_p_m"]',
+};
 
 export function RiskFactorsCard({
   id,
   factors,
   store,
   readOnly,
+  filter,
   tools,
   empty,
   removalConsequence,
@@ -50,6 +71,7 @@ export function RiskFactorsCard({
   factors: RiskFactor[];
   store: FactorStore;
   readOnly: boolean;
+  filter: FactorFilter;
   tools?: ReactNode;
   empty: ReactNode;
   /** Continues "<factor> și măsurile lui …" in the removal dialog. */
@@ -59,8 +81,6 @@ export function RiskFactorsCard({
   const [removing, setRemoving] = useState<RiskFactor | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sections = sectionsOf(factors);
-  const columns = readOnly ? 4 : 5;
 
   async function removeFactor(factor: RiskFactor) {
     setError(null);
@@ -86,7 +106,7 @@ export function RiskFactorsCard({
       id={id}
       headingLevel={3}
       data-testid="risk-factors-card"
-      className={cn(sections.length > 0 && 'overflow-hidden pb-0')}
+      className={cn(factors.length > 0 && 'overflow-hidden pb-0')}
       title={
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           Factori de risc
@@ -103,7 +123,7 @@ export function RiskFactorsCard({
           <>
             {tools}
             <Button
-              variant="outline"
+              variant="tonal"
               size="sm"
               data-testid="risk-factor-add"
               onClick={() => setEditing('new')}
@@ -120,65 +140,18 @@ export function RiskFactorsCard({
           {error}
         </Notice>
       )}
-      {sections.length === 0 ? (
+      {factors.length === 0 ? (
         <p data-testid="risk-factors-empty" className="text-sm text-muted-foreground">
           {empty}
         </p>
       ) : (
-        <div className="-mx-6 min-w-0 border-t">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="min-w-64 pl-6">Factor de risc</TableHead>
-                <TableHead>Gravitate</TableHead>
-                <TableHead>Probabilitate</TableHead>
-                <TableHead className={cn(readOnly && 'pr-6')}>Nivel</TableHead>
-                {!readOnly && (
-                  <TableHead className="w-12 pr-4">
-                    <span className="sr-only">Acțiuni</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            {sections.map((section) => (
-              <tbody
-                key={section.component}
-                data-testid="risk-component"
-                className="last:[&>tr:last-child]:border-0"
-              >
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead scope="rowgroup" colSpan={columns} className="h-auto py-2 pl-6">
-                    {componentLabels[section.component]}
-                    <span className="ml-2 font-normal text-muted-foreground">
-                      {factorCountLabel(section.count).toLowerCase()}
-                    </span>
-                  </TableHead>
-                </TableRow>
-                {section.groups.map((group) => (
-                  <Fragment key={group.name}>
-                    <TableRow data-testid="risk-group" className="border-0 hover:bg-transparent">
-                      <TableHead
-                        colSpan={columns}
-                        className="h-auto pt-3 pb-1 pl-6 font-normal whitespace-normal text-muted-foreground"
-                      >
-                        {group.name}
-                      </TableHead>
-                    </TableRow>
-                    {group.factors.map((factor) => (
-                      <FactorRow
-                        key={factor.id}
-                        factor={factor}
-                        readOnly={readOnly}
-                        onEdit={() => setEditing(factor)}
-                        onRemove={() => setRemoving(factor)}
-                      />
-                    ))}
-                  </Fragment>
-                ))}
-              </tbody>
-            ))}
-          </Table>
-        </div>
+        <FactorList
+          factors={factors}
+          readOnly={readOnly}
+          filter={filter}
+          onEdit={setEditing}
+          onRemove={setRemoving}
+        />
       )}
       <RiskFactorDialog
         factors={factors}
@@ -219,76 +192,279 @@ export function RiskFactorsCard({
   );
 }
 
+function FactorList({
+  factors,
+  readOnly,
+  filter,
+  onEdit,
+  onRemove,
+}: {
+  factors: RiskFactor[];
+  readOnly: boolean;
+  filter: FactorFilter;
+  onEdit: (factor: RiskFactor) => void;
+  onRemove: (factor: RiskFactor) => void;
+}) {
+  const baseId = useId();
+  const [pickedTab, setPickedTab] = useState<FactorTab>('all');
+  const [sort, setSort] = useState<FactorSort>(null);
+  const tabs = factorTabs(factors);
+  const tab = tabs.some((item) => item.tab === pickedTab) ? pickedTab : 'all';
+  const rows = visibleFactors(factors, { tab, cell: filter.cell, sort });
+  const tabId = (value: FactorTab) => `${baseId}-tab-${value}`;
+  const panelId = `${baseId}-panel`;
+  const layout = readOnly ? columns.readOnly : columns.editable;
+
+  function onTabKey(event: KeyboardEvent) {
+    const index = tabs.findIndex((item) => item.tab === tab);
+    const next =
+      event.key === 'ArrowRight'
+        ? (index + 1) % tabs.length
+        : event.key === 'ArrowLeft'
+          ? (index - 1 + tabs.length) % tabs.length
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? tabs.length - 1
+              : null;
+    if (next === null) return;
+    event.preventDefault();
+    const target = tabs[next]!.tab;
+    setPickedTab(target);
+    document.getElementById(tabId(target))?.focus();
+  }
+
+  return (
+    <div className="-mx-6 min-w-0 @container">
+      <div
+        role="tablist"
+        aria-label="Componente"
+        className="flex gap-1 overflow-x-auto px-6 pb-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {tabs.map((item) => (
+          <button
+            key={item.tab}
+            type="button"
+            role="tab"
+            id={tabId(item.tab)}
+            aria-selected={item.tab === tab}
+            aria-controls={panelId}
+            tabIndex={item.tab === tab ? 0 : -1}
+            data-testid="risk-factors-tab"
+            onClick={() => setPickedTab(item.tab)}
+            onKeyDown={onTabKey}
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-selected:bg-muted aria-selected:text-foreground"
+          >
+            {item.tab === 'all' ? 'Toți' : componentLabels[item.tab]}{' '}
+            <span className="font-normal tabular-nums">{item.count}</span>
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id={panelId} aria-labelledby={tabId(tab)}>
+        <div className="flex items-center gap-2.5 px-6 pb-3 @2xl:hidden">
+          <label
+            htmlFor={`${baseId}-sort`}
+            className="text-sm whitespace-nowrap text-muted-foreground"
+          >
+            Sortează după
+          </label>
+          <NativeSelect
+            id={`${baseId}-sort`}
+            size="sm"
+            data-testid="risk-factors-sort"
+            value={sortValue(sort)}
+            onChange={(event) => setSort(parseSortValue(event.target.value))}
+          >
+            {sortMenu(sort).map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+        {filter.cell && (
+          <div
+            data-testid="risk-factors-filter"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t bg-muted/55 px-6 py-2.5 text-sm"
+          >
+            <span>
+              Doar factorii cu gravitate {filter.cell.gravityClass} și probabilitate{' '}
+              {filter.cell.probabilityClass}.
+            </span>
+            <button
+              type="button"
+              onClick={filter.clear}
+              className="cursor-pointer rounded-sm font-medium underline underline-offset-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              Arată toți
+            </button>
+          </div>
+        )}
+        <div role="table" aria-label="Factori de risc">
+          <div
+            role="row"
+            className={cn('hidden items-center gap-x-3.5 border-t px-6 py-1.5 @2xl:grid', layout)}
+          >
+            <SortHeader sortKey="level" label="Nivel" sort={sort} onSort={setSort} />
+            <SortHeader sortKey="description" label="Factor de risc" sort={sort} onSort={setSort} />
+            <SortHeader sortKey="gravity" label="Gravitate" sort={sort} onSort={setSort} centered />
+            <SortHeader
+              sortKey="probability"
+              label="Probabilitate"
+              sort={sort}
+              onSort={setSort}
+              centered
+            />
+            <SortHeader sortKey="measures" label="Măsuri" sort={sort} onSort={setSort} />
+            {!readOnly && (
+              <div role="columnheader">
+                <span className="sr-only">Acțiuni</span>
+              </div>
+            )}
+          </div>
+          {rows.map((factor) => (
+            <FactorRow
+              key={factor.id}
+              factor={factor}
+              withComponent={tab === 'all'}
+              readOnly={readOnly}
+              layout={layout}
+              onEdit={() => onEdit(factor)}
+              onRemove={() => onRemove(factor)}
+            />
+          ))}
+        </div>
+        {rows.length === 0 && (
+          <p className="border-t px-6 py-6 text-sm text-muted-foreground">
+            Niciun factor în această filă cu clasele alese.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SortHeader({
+  sortKey,
+  label,
+  sort,
+  onSort,
+  centered = false,
+}: {
+  sortKey: FactorSortKey;
+  label: string;
+  sort: FactorSort;
+  onSort: (sort: FactorSort) => void;
+  centered?: boolean;
+}) {
+  const order = sort?.key === sortKey ? sort.order : null;
+  return (
+    <div
+      role="columnheader"
+      aria-sort={order === 'asc' ? 'ascending' : order === 'desc' ? 'descending' : 'none'}
+      className={cn(centered && 'flex justify-center')}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        data-testid={`risk-factors-sort-${sortKey}`}
+        className={cn('gap-1.5', !centered && '-ml-2.5')}
+        onClick={() => onSort(nextSort(sort, sortKey))}
+      >
+        {label}
+        {order === 'asc' ? (
+          <ArrowUp aria-hidden="true" />
+        ) : order === 'desc' ? (
+          <ArrowDown aria-hidden="true" />
+        ) : (
+          <ArrowUpDown aria-hidden="true" className="opacity-50" />
+        )}
+      </Button>
+    </div>
+  );
+}
+
 function FactorRow({
   factor,
+  withComponent,
   readOnly,
+  layout,
   onEdit,
   onRemove,
 }: {
   factor: RiskFactor;
+  withComponent: boolean;
   readOnly: boolean;
+  layout: string;
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const gap = readOnly ? null : factorGap(factor);
-  const hasPlan = factor.deadline || factor.responsiblePerson;
+  const gap = readOnly ? null : factorGapKind(factor);
+  const group = withComponent
+    ? factor.group.charAt(0).toLocaleLowerCase('ro') + factor.group.slice(1)
+    : factor.group;
+  const consequence = gravityConsequence(factor.gravityClass);
+  const period = probabilityFrequency(factor.probabilityClass).period;
   return (
-    <TableRow
+    <div
+      role="row"
       data-testid="risk-factor-row"
       {...rowClickProps(readOnly ? undefined : onEdit)}
-      className={cn(readOnly ? 'hover:bg-transparent' : 'cursor-pointer')}
+      className={cn(
+        'grid gap-x-3 gap-y-2.5 border-t px-6 py-3 @2xl:gap-x-3.5 @2xl:gap-y-0',
+        layout,
+        !readOnly && 'cursor-pointer hover:bg-muted/45'
+      )}
     >
-      <TableCell className="py-3 pl-6 align-top whitespace-normal">
-        <div className="grid gap-1">
-          <p className="font-medium wrap-anywhere">{factor.description}</p>
-          {factor.measures.length > 0 && (
-            <ul
-              data-testid="risk-factor-measures"
-              className="grid gap-0.5 text-xs text-muted-foreground"
-            >
-              {factor.measures.map((measure) => (
-                <li key={measure.id} className="wrap-anywhere">
-                  {measureKindLabels[measure.kind]}: {measure.description}
-                </li>
-              ))}
-            </ul>
+      <div role="cell" className="[grid-area:tile]">
+        <RiskLevelTile level={factor.riskLevel} />
+      </div>
+      <div role="cell" className="grid min-w-0 content-start gap-0.5 [grid-area:desc]">
+        <p className="text-sm wrap-anywhere">{factor.description}</p>
+        <p className="text-[0.8125rem] text-muted-foreground wrap-anywhere">
+          {withComponent && (
+            <>
+              <span data-testid="risk-component">{componentLabels[factor.component]}</span>,{' '}
+            </>
           )}
-          {hasPlan && (
-            <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
-              {factor.deadline && <span className="wrap-anywhere">Termen: {factor.deadline}</span>}
-              {factor.responsiblePerson && (
-                <span className="wrap-anywhere">Răspunde: {factor.responsiblePerson}</span>
-              )}
-            </p>
-          )}
-          {gap && (
-            <p
-              data-testid="risk-factor-gap"
-              className="flex items-start gap-1.5 text-xs text-warning-foreground"
-            >
-              <TriangleAlert aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-              {gap}
-            </p>
-          )}
-        </div>
-      </TableCell>
-      <TableCell data-testid="risk-factor-gravity-class" className="py-3 align-top">
-        <span className="font-medium tabular-nums">{factor.gravityClass}</span>
-        <span className="block text-xs text-muted-foreground">
-          {gravityConsequence(factor.gravityClass)}
-        </span>
-      </TableCell>
-      <TableCell data-testid="risk-factor-probability-class" className="py-3 align-top">
-        <span className="font-medium tabular-nums">{factor.probabilityClass}</span>
-        <span className="block text-xs text-muted-foreground">
-          {probabilityFrequency(factor.probabilityClass).period}
-        </span>
-      </TableCell>
-      <TableCell className={cn('py-3 align-top', readOnly && 'pr-6')}>
-        <RiskLevelBadge level={factor.riskLevel} />
-      </TableCell>
+          <span data-testid="risk-group">{group}</span>
+        </p>
+      </div>
+      <ClassCell
+        testId="risk-factor-gravity-class"
+        area="[grid-area:g]"
+        label="Gravitate"
+        value={factor.gravityClass}
+        meaning={consequence}
+      />
+      <ClassCell
+        testId="risk-factor-probability-class"
+        area="[grid-area:p]"
+        label="Probabilitate"
+        value={factor.probabilityClass}
+        meaning={period}
+      />
+      <div
+        role="cell"
+        className="grid content-start gap-0.5 text-[0.8125rem] text-muted-foreground [grid-area:m] @2xl:pt-2 @2xl:text-sm"
+      >
+        {gap !== 'measure' && (
+          <p data-testid="risk-factor-measures">{measureCountLabel(factor.measures.length)}</p>
+        )}
+        {gap && (
+          <p
+            data-testid="risk-factor-gap"
+            title={factorGap(factor) ?? undefined}
+            className="flex items-start gap-1 text-warning-foreground @2xl:text-[0.8125rem]"
+          >
+            <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+            <span aria-hidden="true">{factorGapLabels[gap]}</span>
+            <span className="sr-only">{factorGap(factor)}</span>
+          </p>
+        )}
+      </div>
       {!readOnly && (
-        <TableCell className="py-2 pr-4 align-top">
+        <div role="cell" className="[grid-area:menu]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -315,8 +491,36 @@ function FactorRow({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </TableCell>
+        </div>
       )}
-    </TableRow>
+    </div>
+  );
+}
+
+// One element for both layouts, so a screen reader meets each class once.
+function ClassCell({
+  testId,
+  area,
+  label,
+  value,
+  meaning,
+}: {
+  testId: string;
+  area: string;
+  label: string;
+  value: number;
+  meaning: string;
+}) {
+  return (
+    <div
+      role="cell"
+      data-testid={testId}
+      title={meaning}
+      className={cn('min-w-0 text-sm @2xl:pt-2 @2xl:text-center', area)}
+    >
+      <span className="text-muted-foreground @2xl:sr-only">{label} </span>
+      <span className="font-medium tabular-nums">{value}</span>
+      <span className="block text-[0.8125rem] text-muted-foreground @2xl:sr-only">{meaning}</span>
+    </div>
   );
 }
