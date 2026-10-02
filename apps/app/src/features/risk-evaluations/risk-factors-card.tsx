@@ -28,7 +28,6 @@ import { SectionCard } from '@/components/section-card';
 import {
   type FactorSort,
   type FactorSortKey,
-  type FactorTab,
   factorTabs,
   measureCountLabel,
   nextSort,
@@ -42,13 +41,11 @@ import {
   componentLabels,
   factorCountLabel,
   factorGap,
-  factorGapKind,
-  factorGapLabels,
   type RiskFactor,
 } from './risk-evaluation-schema';
 import { type FactorEditing, RiskFactorDialog } from './risk-factor-dialog';
 import { RiskLevelTile } from './risk-level-tile';
-import type { FactorFilter } from './use-factor-filter';
+import type { FactorListView } from './use-factor-list-view';
 
 const columns = {
   editable:
@@ -62,7 +59,7 @@ export function RiskFactorsCard({
   factors,
   store,
   readOnly,
-  filter,
+  view,
   tools,
   empty,
   removalConsequence,
@@ -72,7 +69,7 @@ export function RiskFactorsCard({
   factors: RiskFactor[];
   store: FactorStore;
   readOnly: boolean;
-  filter: FactorFilter;
+  view: FactorListView;
   tools?: ReactNode;
   empty: ReactNode;
   /** Continues "<factor> și măsurile lui …" in the removal dialog. */
@@ -150,7 +147,7 @@ export function RiskFactorsCard({
         <FactorList
           factors={factors}
           readOnly={readOnly}
-          filter={filter}
+          view={view}
           onEdit={setEditing}
           onRemove={setRemoving}
         />
@@ -198,23 +195,21 @@ export function RiskFactorsCard({
 function FactorList({
   factors,
   readOnly,
-  filter,
+  view,
   onEdit,
   onRemove,
 }: {
   factors: RiskFactor[];
   readOnly: boolean;
-  filter: FactorFilter;
+  view: FactorListView;
   onEdit: (factor: RiskFactor) => void;
   onRemove: (factor: RiskFactor) => void;
 }) {
   const baseId = useId();
-  const [pickedTab, setPickedTab] = useState<FactorTab>('all');
-  const [sort, setSort] = useState<FactorSort>(null);
+  const { tab, sort, cell, setTab, setSort } = view;
   const tabs = factorTabs(factors);
-  const tab = tabs.some((item) => item.tab === pickedTab) ? pickedTab : 'all';
-  const rows = visibleFactors(factors, { tab, cell: filter.cell, sort });
-  const tabId = (value: FactorTab) => `${baseId}-tab-${value}`;
+  const rows = visibleFactors(factors, { tab, cell, sort });
+  const tabId = (value: string) => `${baseId}-tab-${value}`;
   const panelId = `${baseId}-panel`;
   const layout = readOnly ? columns.readOnly : columns.editable;
 
@@ -233,7 +228,7 @@ function FactorList({
     if (next === null) return;
     event.preventDefault();
     const target = tabs[next]!.tab;
-    setPickedTab(target);
+    setTab(target);
     document.getElementById(tabId(target))?.focus();
   }
 
@@ -254,7 +249,7 @@ function FactorList({
             aria-controls={panelId}
             tabIndex={item.tab === tab ? 0 : -1}
             data-testid="risk-factors-tab"
-            onClick={() => setPickedTab(item.tab)}
+            onClick={() => setTab(item.tab)}
             onKeyDown={onTabKey}
             className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-selected:bg-muted aria-selected:text-foreground"
           >
@@ -285,18 +280,18 @@ function FactorList({
             ))}
           </NativeSelect>
         </div>
-        {filter.cell && (
+        {cell && (
           <div
             data-testid="risk-factors-filter"
             className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t bg-muted/55 px-6 py-2.5 text-sm"
           >
             <span>
-              Doar factorii cu gravitate {filter.cell.gravityClass} și probabilitate{' '}
-              {filter.cell.probabilityClass}.
+              Doar factorii cu gravitate {cell.gravityClass} și probabilitate{' '}
+              {cell.probabilityClass}.
             </span>
             <button
               type="button"
-              onClick={filter.clear}
+              onClick={view.clearCell}
               className="cursor-pointer rounded-sm font-medium underline underline-offset-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               Arată toți
@@ -309,7 +304,9 @@ function FactorList({
             className={cn('hidden items-center gap-x-3.5 border-t px-6 py-1.5 @2xl:grid', layout)}
           >
             <SortHeader sortKey="level" label="Nivel" sort={sort} onSort={setSort} />
-            <SortHeader sortKey="description" label="Factor de risc" sort={sort} onSort={setSort} />
+            <div role="columnheader" className="text-sm font-medium">
+              Factor de risc
+            </div>
             <SortHeader sortKey="gravity" label="Gravitate" sort={sort} onSort={setSort} centered />
             <SortHeader
               sortKey="probability"
@@ -402,7 +399,7 @@ function FactorRow({
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const gap = readOnly ? null : factorGapKind(factor);
+  const gap = readOnly ? null : factorGap(factor);
   const group = withComponent
     ? factor.group.charAt(0).toLocaleLowerCase('ro') + factor.group.slice(1)
     : factor.group;
@@ -451,21 +448,19 @@ function FactorRow({
         role="cell"
         className="grid content-start gap-0.5 text-[0.8125rem] text-muted-foreground [grid-area:m] @2xl:pt-2 @2xl:text-sm"
       >
-        {gap !== 'measure' && (
-          <p data-testid="risk-factor-measures">{measureCountLabel(factor.measures.length)}</p>
-        )}
-        {gap && (
-          <p
-            data-testid="risk-factor-gap"
-            title={factorGap(factor) ?? undefined}
-            className="flex items-start gap-1 text-warning-foreground @2xl:text-[0.8125rem]"
-          >
-            <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-            <span aria-hidden="true">{factorGapLabels[gap]}</span>
-            <span className="sr-only">{factorGap(factor)}</span>
-          </p>
-        )}
+        <p data-testid="risk-factor-measures">{measureCountLabel(factor.measures.length)}</p>
       </div>
+      {gap && (
+        // Placed by column only, so it takes a row of its own under the row's content.
+        <div
+          role="cell"
+          data-testid="risk-factor-gap"
+          className="flex items-start gap-2 rounded-md border border-warning-border bg-warning px-3 py-2 text-[0.8125rem] text-warning-foreground [grid-column:2/-2] @2xl:mt-2.5"
+        >
+          <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+          {gap}
+        </div>
+      )}
       {!readOnly && (
         <div role="cell" className="[grid-area:menu]">
           <DropdownMenu>

@@ -26,7 +26,7 @@ import {
   formatShare,
   type RiskEvaluation,
 } from './risk-evaluation-schema';
-import type { FactorFilter } from './use-factor-filter';
+import type { FactorListView } from './use-factor-list-view';
 
 const componentColors: Record<WorkSystemComponent, string> = {
   means_of_production: 'bg-chart-1',
@@ -38,11 +38,11 @@ const componentColors: Record<WorkSystemComponent, string> = {
 export function RiskResultCard({
   id,
   evaluation,
-  filter,
+  view,
 }: {
   id: string;
   evaluation: Pick<RiskEvaluation, 'factors' | 'globalRiskLevel'>;
-  filter: FactorFilter;
+  view: FactorListView;
 }) {
   const { factors, globalRiskLevel } = evaluation;
   const unacceptable = factors.filter((factor) => isUnacceptableRiskLevel(factor.riskLevel));
@@ -123,7 +123,7 @@ export function RiskResultCard({
                 ))}
               </ul>
             </div>
-            <RiskMatrix factors={factors} filter={filter} />
+            <RiskMatrix factors={factors} view={view} />
           </div>
         </div>
       )}
@@ -133,10 +133,10 @@ export function RiskResultCard({
 
 function RiskMatrix({
   factors,
-  filter,
+  view,
 }: {
   factors: RiskEvaluation['factors'];
-  filter: FactorFilter;
+  view: FactorListView;
 }) {
   const headingId = useId();
   return (
@@ -189,10 +189,10 @@ function RiskMatrix({
               key={`${cell.gravityClass}-${cell.probabilityClass}`}
               type="button"
               data-testid="risk-matrix-cell"
-              aria-pressed={sameCell(filter.cell, cell)}
+              aria-pressed={sameCell(view.cell, cell)}
               aria-label={`Gravitate ${cell.gravityClass}, probabilitate ${cell.probabilityClass}: ${cellCountLabel(cell.count)}`}
               title={`Nivel de risc ${cell.level}`}
-              onClick={() => filter.toggle(cell)}
+              onClick={() => view.toggleCell(cell)}
               className={cn(
                 'grid cursor-pointer place-items-center rounded-[5px] leading-none font-medium tabular-nums outline-offset-1 hover:outline-2 hover:outline-foreground/40 focus-visible:outline-2 focus-visible:outline-ring aria-pressed:outline-2 aria-pressed:outline-foreground',
                 bad ? 'bg-destructive-soft text-destructive-foreground' : 'bg-muted text-foreground'
