@@ -12,28 +12,24 @@ const M = legalEntity.filled ? 'span' : 'mark';
   description="Condițiile de utilizare a platformei SSM Ușor pentru servicii externe de prevenire și protecție."
   updated="23 septembrie 2026"
 >
-  {
-    !legalEntity.filled && (
-      <p class="note">
-        Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
-        plecare și trebuie revizuit de un consilier juridic înainte de lansare.
-      </p>
-    )
-  }
+  {!legalEntity.filled && (
+    <p class="note">
+      Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
+      plecare și trebuie revizuit de un consilier juridic înainte de lansare.
+    </p>
+  )}
 
   <h2>1. Cine suntem</h2>
   <p>
     Platforma SSM Ușor („Platforma”) este operată de <M>{legalEntity.name}</M>
-    {
-      legalEntity.address && (
-        <>
-          , cu sediul în <M>{legalEntity.address}</M>
-        </>
-      )
-    }, înregistrată la Registrul Comerțului sub nr. <M>{legalEntity.registry}</M>, CUI <M
-      >{legalEntity.cui}</M
-    >{' '}
-    („noi”, „SSM Ușor”). Ne poți contacta la <a href={`mailto:${links.email}`}>{links.email}</a>.
+    {legalEntity.address && (
+      <>
+        , cu sediul în <M>{legalEntity.address}</M>
+      </>
+    )}
+    , înregistrată la Registrul Comerțului sub nr. <M>{legalEntity.registry}</M>, CUI{' '}
+    <M>{legalEntity.cui}</M> („noi”, „SSM Ușor”). Ne poți contacta la{' '}
+    <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
 
   <h2>2. Ce este Platforma</h2>
@@ -108,8 +104,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
     Pentru a identifica erori, a îmbunătăți Platforma și a răspunde problemelor raportate,
     înregistrăm utilizarea contului, erorile tehnice și sesiunile din Platformă prin PostHog. Poți
     raporta o problemă din meniul lateral. Detaliile despre datele colectate, mascarea conținutului
-    și păstrarea lor sunt în{' '}
-    <a href="/confidentialitate/">Politica de confidențialitate</a>.
+    și păstrarea lor sunt în <a href="/confidentialitate/">Politica de confidențialitate</a>.
   </p>
 
   <h2>8. Prețuri și plată</h2>
@@ -145,14 +140,13 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <p>
     Acești termeni sunt guvernați de legea română. Eventualele litigii se soluționează pe cale
     amiabilă, iar în lipsa unei înțelegeri, de instanțele competente{' '}
-    {
-      legalEntity.city ? (
-        <>
-          din <M>{legalEntity.city}</M>
-        </>
-      ) : (
-        'de la sediul operatorului'
-      )
-    }.
+    {legalEntity.city ? (
+      <>
+        din <M>{legalEntity.city}</M>
+      </>
+    ) : (
+      'de la sediul operatorului'
+    )}
+    .
   </p>
 </LegalPage>

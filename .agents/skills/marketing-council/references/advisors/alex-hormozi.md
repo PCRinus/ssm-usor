@@ -40,4 +40,4 @@ Blunt, compressed, aphoristic — numbered lists, equations, dollar figures, gym
 
 ## Key works
 
-_$100M Offers* (2021) · *$100M Leads_ (2023) · _$100M Money Models_ (2025) · The Game podcast · Acquisition.com · Skool co-owner (2024). Living and prolific — prefer the research pass for current positions.
+_$100M Offers\* (2021) · \*$100M Leads_ (2023) · _$100M Money Models_ (2025) · The Game podcast · Acquisition.com · Skool co-owner (2024). Living and prolific — prefer the research pass for current positions.

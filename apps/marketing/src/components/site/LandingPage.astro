@@ -26,13 +26,17 @@ const scattered = [
     <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
     <p class="lede">{copy.lede}</p>
     <div class="actions">
-      <a class="button primary" href={links.login}>{cta.login}</a>
+      <a class="button primary" href={links.login}>
+        {cta.login}
+      </a>
       <span class="button quiet soon" aria-disabled="true">
         {cta.signup}
         <small>{cta.signupNote}</small>
       </span>
     </div>
-    <p class="notify"><a href="#anunta-ma">{cta.notify}</a></p>
+    <p class="notify">
+      <a href="#anunta-ma">{cta.notify}</a>
+    </p>
 
     <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
       <div class="before">
@@ -47,19 +51,19 @@ const scattered = [
             <path d="M34 34 C 50 50, 60 90, 80 96"></path>
             <path d="M62 6 C 90 20, 85 40, 66 44"></path>
           </svg>
-          {
-            scattered.map((tile, index) => (
-              <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg; --i:${index}`}>
-                {tile.label}
-              </span>
-            ))
-          }
+          {scattered.map((tile, index) => (
+            <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg; --i:${index}`}>
+              {tile.label}
+            </span>
+          ))}
         </div>
       </div>
       <div class="after">
         <p class="panel-title">În SSM Ușor</p>
         <ol class="line">
-          {copy.steps.map((step, index) => <li style={`--i:${index}`}>{step.title}</li>)}
+          {copy.steps.map((step, index) => (
+            <li style={`--i:${index}`}>{step.title}</li>
+          ))}
         </ol>
       </div>
     </figure>
@@ -68,15 +72,13 @@ const scattered = [
   <section class="steps-section wrap" id="cum">
     <h2>Patru pași, pentru fiecare client.</h2>
     <ol class="steps">
-      {
-        copy.steps.map((step, index) => (
-          <li>
-            <span class="n">{index + 1}</span>
-            <h3>{step.title}</h3>
-            <p>{step.text}</p>
-          </li>
-        ))
-      }
+      {copy.steps.map((step, index) => (
+        <li>
+          <span class="n">{index + 1}</span>
+          <h3>{step.title}</h3>
+          <p>{step.text}</p>
+        </li>
+      ))}
     </ol>
   </section>
 
@@ -89,18 +91,16 @@ const scattered = [
         <p>{copy.documentsNote}</p>
       </div>
       <div class="doc-groups">
-        {
-          copy.documents.map((group) => (
-            <div>
-              <h3>{group.title}</h3>
-              <ul>
-                {group.items.map((item) => (
-                  <li>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ))
-        }
+        {copy.documents.map((group) => (
+          <div>
+            <h3>{group.title}</h3>
+            <ul>
+              {group.items.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </div>
   </section>
@@ -111,14 +111,12 @@ const scattered = [
       <p>{copy.signatureNote}</p>
     </div>
     <ul class="signers">
-      {
-        copy.signers.map((signer) => (
-          <li>
-            <h3>{signer.who}</h3>
-            <p>{signer.signs}</p>
-          </li>
-        ))
-      }
+      {copy.signers.map((signer) => (
+        <li>
+          <h3>{signer.who}</h3>
+          <p>{signer.signs}</p>
+        </li>
+      ))}
     </ul>
   </section>
 
@@ -127,14 +125,12 @@ const scattered = [
   <section class="also wrap">
     <h2>Și restul, când ai nevoie.</h2>
     <ul class="also-list">
-      {
-        copy.also.map((item) => (
-          <li>
-            <h3>{item.title}</h3>
-            <p>{item.text}</p>
-          </li>
-        ))
-      }
+      {copy.also.map((item) => (
+        <li>
+          <h3>{item.title}</h3>
+          <p>{item.text}</p>
+        </li>
+      ))}
     </ul>
   </section>
 
@@ -148,7 +144,9 @@ const scattered = [
         </p>
       </div>
       <ul class="trust">
-        {copy.trust.map((item) => <li>{item}</li>)}
+        {copy.trust.map((item) => (
+          <li>{item}</li>
+        ))}
       </ul>
     </div>
   </section>
@@ -156,14 +154,12 @@ const scattered = [
   <section class="faq wrap" id="intrebari">
     <h2>Întrebări frecvente</h2>
     <div class="faq-list">
-      {
-        copy.faq.map((item) => (
-          <details>
-            <summary>{item.q}</summary>
-            <p>{item.a}</p>
-          </details>
-        ))
-      }
+      {copy.faq.map((item) => (
+        <details>
+          <summary>{item.q}</summary>
+          <p>{item.a}</p>
+        </details>
+      ))}
     </div>
   </section>
 </FluxLayout>

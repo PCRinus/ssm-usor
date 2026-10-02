@@ -13,44 +13,44 @@ const M = legalEntity.filled ? 'span' : 'mark';
   updated="18 septembrie 2026"
 >
   <p>
-    Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și se
-    aplică de fiecare dată când prelucrăm date personale în numele unui serviciu extern de prevenire și
-    protecție („Furnizorul”). Îl accepți odată cu Termenii, la crearea organizației în Platformă. Termenii
-    folosiți aici au înțelesul din Regulamentul (UE) 2016/679 („GDPR”).
+    Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și
+    se aplică de fiecare dată când prelucrăm date personale în numele unui serviciu extern de
+    prevenire și protecție („Furnizorul”). Îl accepți odată cu Termenii, la crearea organizației în
+    Platformă. Termenii folosiți aici au înțelesul din Regulamentul (UE) 2016/679 („GDPR”).
   </p>
 
   <h2>1. Părțile și rolurile</h2>
   <p>
     Furnizorul încarcă în Platformă date despre firmele sale client, despre angajații acestora și
     despre reprezentanții lor. Pentru aceste date Furnizorul este operator sau, după caz, persoană
-    împuternicită a angajatorului client. În ambele situații, <M>{legalEntity.name}</M> („SSM Ușor”) le
-    prelucrează doar în numele Furnizorului, ca persoană împuternicită a acestuia.
+    împuternicită a angajatorului client. În ambele situații, <M>{legalEntity.name}</M> („SSM Ușor”)
+    le prelucrează doar în numele Furnizorului, ca persoană împuternicită a acestuia.
   </p>
   <p>
     Pentru datele contului de utilizator și ale vizitatorilor site-ului suntem operator; acestea
-    sunt descrise în <a href="/confidentialitate/">Politica de confidențialitate</a> și nu fac obiectul
-    acestui acord.
+    sunt descrise în <a href="/confidentialitate/">Politica de confidențialitate</a> și nu fac
+    obiectul acestui acord.
   </p>
 
   <h2>2. Ce prelucrăm, de ce și cât timp</h2>
   <ul>
     <li>
-      <strong>Persoane vizate:</strong> angajații firmelor client, reprezentanții legali și persoanele
-      de contact ale acestora, membrii echipei Furnizorului.
+      <strong>Persoane vizate:</strong> angajații firmelor client, reprezentanții legali și
+      persoanele de contact ale acestora, membrii echipei Furnizorului.
     </li>
     <li>
-      <strong>Categorii de date:</strong> date de identificare (nume, CNP, date din actul de identitate
-      atunci când Furnizorul le introduce), date despre locul de muncă (funcție, loc de muncă, data angajării
-      și a plecării), date de contact, evidența instruirilor, testărilor și semnăturilor. Platforma nu
-      este destinată datelor privind sănătatea; Furnizorul nu le încarcă.
+      <strong>Categorii de date:</strong> date de identificare (nume, CNP, date din actul de
+      identitate atunci când Furnizorul le introduce), date despre locul de muncă (funcție, loc de
+      muncă, data angajării și a plecării), date de contact, evidența instruirilor, testărilor și
+      semnăturilor. Platforma nu este destinată datelor privind sănătatea; Furnizorul nu le încarcă.
     </li>
     <li>
-      <strong>Scop:</strong> furnizarea Platformei, adică stocarea, afișarea și generarea documentelor
-      și evidențelor de securitate și sănătate în muncă, la comanda Furnizorului.
+      <strong>Scop:</strong> furnizarea Platformei, adică stocarea, afișarea și generarea
+      documentelor și evidențelor de securitate și sănătate în muncă, la comanda Furnizorului.
     </li>
     <li>
-      <strong>Durată:</strong> cât timp Furnizorul are cont în Platformă, plus perioada de export și ștergere
-      de la punctul 9.
+      <strong>Durată:</strong> cât timp Furnizorul are cont în Platformă, plus perioada de export și
+      ștergere de la punctul 9.
     </li>
   </ul>
 
@@ -91,7 +91,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <ul>
     <li>Cloudflare, Inc.: găzduirea și livrarea Platformei;</li>
     <li>Supabase, Inc.: autentificare și bază de date, cu stocare în Uniunea Europeană;</li>
-    <li><M>{legalEntity.emailProvider}</M>: email tranzacțional;</li>
+    <li>
+      <M>{legalEntity.emailProvider}</M>: email tranzacțional;
+    </li>
     <li>
       <M>{legalEntity.signatureProvider}</M>: semnătură electronică, pentru documentele trimise la
       semnat.
@@ -149,8 +151,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <p>
     Pentru protecția datelor, acest acord prevalează față de Termeni. Limitarea răspunderii din
     Termeni se aplică și aici, în măsura permisă de lege. Modificările se anunță la fel ca
-    modificările Termenilor. Întrebările se trimit la <a href={`mailto:${links.email}`}
-      >{links.email}</a
-    >.
+    modificările Termenilor. Întrebările se trimit la{' '}
+    <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
 </LegalPage>

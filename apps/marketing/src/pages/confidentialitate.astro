@@ -12,29 +12,25 @@ const M = legalEntity.filled ? 'span' : 'mark';
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
   updated="23 septembrie 2026"
 >
-  {
-    !legalEntity.filled && (
-      <p class="note">
-        Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
-        plecare și trebuie revizuit de un consilier juridic sau de un responsabil cu protecția
-        datelor înainte de lansare.
-      </p>
-    )
-  }
+  {!legalEntity.filled && (
+    <p class="note">
+      Datele marcate cu galben se completează înainte de publicare. Acest text este un punct de
+      plecare și trebuie revizuit de un consilier juridic sau de un responsabil cu protecția datelor
+      înainte de lansare.
+    </p>
+  )}
 
   <h2>1. Operatorul</h2>
   <p>
     <M>{legalEntity.name}</M>
-    {
-      legalEntity.address && (
-        <>
-          , cu sediul în <M>{legalEntity.address}</M>
-        </>
-      )
-    }, înregistrată la Registrul Comerțului sub nr. <M>{legalEntity.registry}</M>, CUI <M
-      >{legalEntity.cui}</M
-    >, operează site-ul ssmusor.ro și platforma SSM Ușor. Pentru orice întrebare legată de datele
-    tale ne poți scrie la{' '}
+    {legalEntity.address && (
+      <>
+        , cu sediul în <M>{legalEntity.address}</M>
+      </>
+    )}
+    , înregistrată la Registrul Comerțului sub nr. <M>{legalEntity.registry}</M>, CUI{' '}
+    <M>{legalEntity.cui}</M>, operează site-ul ssmusor.ro și platforma SSM Ușor. Pentru orice
+    întrebare legată de datele tale ne poți scrie la{' '}
     <a href={`mailto:${links.email}`}>{links.email}</a>.
   </p>
 
@@ -44,48 +40,49 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <strong>operator</strong>. Pentru datele angajaților și ale reprezentanților firmelor client
     încărcate în platformă de un serviciu extern de prevenire și protecție, suntem{' '}
     <strong>persoană împuternicită</strong>: prelucrăm aceste date doar în numele și conform
-    instrucțiunilor serviciului extern, care este operatorul lor. Relația este reglementată prin <a
-      href="/prelucrare-date/">Acordul de prelucrare a datelor</a
-    >, acceptat de fiecare serviciu extern odată cu Termenii.
+    instrucțiunilor serviciului extern, care este operatorul lor. Relația este reglementată prin{' '}
+    <a href="/prelucrare-date/">Acordul de prelucrare a datelor</a>, acceptat de fiecare serviciu
+    extern odată cu Termenii.
   </p>
 
   <h2>3. Ce date prelucrăm și de ce</h2>
   <ul>
     <li>
-      <strong>Contact prin email.</strong> Adresa și mesajul tău, pentru a-ți răspunde și, dacă ai cerut,
-      pentru a te anunța când se deschid conturile. Temei: interesul legitim de a răspunde solicitării,
-      respectiv consimțământul tău pentru anunțuri.
+      <strong>Contact prin email.</strong> Adresa și mesajul tău, pentru a-ți răspunde și, dacă ai
+      cerut, pentru a te anunța când se deschid conturile. Temei: interesul legitim de a răspunde
+      solicitării, respectiv consimțământul tău pentru anunțuri.
     </li>
     <li>
-      <strong>Lista de anunțuri.</strong> Adresa de email pe care o lași în formularul „Anunță-mă când
-      se deschid conturile”, data la care ai confirmat-o din emailul primit și versiunea textului de consimțământ
-      afișat. O folosim doar ca să îți scriem când se deschid conturile. Temei: consimțământul tău, pe
-      care îl poți retrage oricând scriindu-ne la adresa de contact.
+      <strong>Lista de anunțuri.</strong> Adresa de email pe care o lași în formularul „Anunță-mă
+      când se deschid conturile”, data la care ai confirmat-o din emailul primit și versiunea
+      textului de consimțământ afișat. O folosim doar ca să îți scriem când se deschid conturile.
+      Temei: consimțământul tău, pe care îl poți retrage oricând scriindu-ne la adresa de contact.
     </li>
     <li>
-      <strong>Contul de utilizator.</strong> Nume, adresă de email, firma și rolul, jurnalul autentificărilor.
-      Temei: executarea contractului de utilizare a platformei.
+      <strong>Contul de utilizator.</strong> Nume, adresă de email, firma și rolul, jurnalul
+      autentificărilor. Temei: executarea contractului de utilizare a platformei.
     </li>
     <li>
-      <strong>Datele din platformă.</strong> Datele firmelor client, ale punctelor de lucru, ale angajaților
-      (nume, funcție, loc de muncă, date de instruire, rezultate la teste, semnături) și documentele generate.
-      Le prelucrăm ca persoană împuternicită, pentru ca serviciul extern să își îndeplinească obligațiile
-      legale de securitate și sănătate în muncă.
+      <strong>Datele din platformă.</strong> Datele firmelor client, ale punctelor de lucru, ale
+      angajaților (nume, funcție, loc de muncă, date de instruire, rezultate la teste, semnături) și
+      documentele generate. Le prelucrăm ca persoană împuternicită, pentru ca serviciul extern să
+      își îndeplinească obligațiile legale de securitate și sănătate în muncă.
     </li>
     <li>
-      <strong>Date tehnice.</strong> Adresa IP, tipul browserului și jurnale de server, pentru securitatea
-      și funcționarea site-ului. Temei: interesul legitim.
+      <strong>Date tehnice.</strong> Adresa IP, tipul browserului și jurnale de server, pentru
+      securitatea și funcționarea site-ului. Temei: interesul legitim.
     </li>
     <li>
-      <strong>Analiză, erori și asistență în platformă.</strong> După autentificare, folosim PostHog pentru
-      evenimente de utilizare, pagini și adrese URL accesate, erori JavaScript, detalii tehnice despre
-      cererile de rețea, înregistrări ale sesiunii și mesajele trimise prin „Raportează o problemă”. Asociem
-      aceste date cu utilizatorul, rolul și organizația sa ca să putem diagnostica probleme, îmbunătăți
-      funcțiile și răspunde solicitărilor. La sesiuni de impersonare, marcăm acțiunile administratorului
-      separat. Mascăm conținutul text, câmpurile introduse și atributele elementelor în înregistrări;
-      nu colectăm prin acestea corpul sau antetele cererilor de rețea. Totuși, adresele URL și mesajele
-      pe care ni le trimiți pot conține informații pe care le-ai inclus acolo. Temei: interesul legitim
-      de a menține și îmbunătăți serviciul și de a acorda asistență.
+      <strong>Analiză, erori și asistență în platformă.</strong> După autentificare, folosim PostHog
+      pentru evenimente de utilizare, pagini și adrese URL accesate, erori JavaScript, detalii
+      tehnice despre cererile de rețea, înregistrări ale sesiunii și mesajele trimise prin
+      „Raportează o problemă”. Asociem aceste date cu utilizatorul, rolul și organizația sa ca să
+      putem diagnostica probleme, îmbunătăți funcțiile și răspunde solicitărilor. La sesiuni de
+      impersonare, marcăm acțiunile administratorului separat. Mascăm conținutul text, câmpurile
+      introduse și atributele elementelor în înregistrări; nu colectăm prin acestea corpul sau
+      antetele cererilor de rețea. Totuși, adresele URL și mesajele pe care ni le trimiți pot
+      conține informații pe care le-ai inclus acolo. Temei: interesul legitim de a menține și
+      îmbunătăți serviciul și de a acorda asistență.
     </li>
   </ul>
   <p>
@@ -115,7 +112,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
       semnătură electronică: <M>{legalEntity.signatureProvider}</M>, pentru documentele trimise la
       semnat;
     </li>
-    <li>email tranzacțional: <M>{legalEntity.emailProvider}</M>.</li>
+    <li>
+      email tranzacțional: <M>{legalEntity.emailProvider}</M>.
+    </li>
     <li>
       analiză a platformei, înregistrări de sesiune, urmărirea erorilor și asistență: PostHog, cu
       proiect găzduit în Uniunea Europeană.
@@ -157,7 +156,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <p>
     Ai dreptul să depui o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu
     Caracter Personal (ANSPDCP), B-dul G-ral. Gheorghe Magheru 28-30, București,{' '}
-    <a href="https://www.dataprotection.ro" rel="noopener">dataprotection.ro</a>.
+    <a href="https://www.dataprotection.ro" rel="noopener">
+      dataprotection.ro
+    </a>
+    .
   </p>
 
   <h2>8. Securitate</h2>
