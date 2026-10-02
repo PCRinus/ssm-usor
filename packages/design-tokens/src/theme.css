@@ -33,6 +33,11 @@
   --color-destructive-soft: var(--destructive-soft);
   --color-destructive-border: var(--destructive-border);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-mid: var(--destructive-mid);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
