@@ -129,8 +129,8 @@ export function RiskFactorDialog({
           data-testid="risk-factor-dialog"
           side="right"
           showCloseButton={false}
-          overlayClassName="bg-foreground/12"
-          className="w-160 max-w-full gap-0 shadow-[-12px_0_40px_rgb(24_52_46/0.18)] sm:max-w-full"
+          overlayClassName="bg-foreground/20"
+          className="w-180 max-w-full gap-0 shadow-[-12px_0_40px_rgb(24_52_46/0.18)] sm:max-w-full"
           {...(context ? {} : { 'aria-describedby': undefined })}
           onOpenAutoFocus={(event) => {
             event.preventDefault();

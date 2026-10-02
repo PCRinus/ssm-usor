@@ -313,7 +313,7 @@ describe('the risk library', () => {
     await screen.findByTestId('risk-profile-page');
     expect(requests('/evaluation-profiles', 'POST')).toEqual([{ name: 'Casier' }]);
     expect(runtime.router.state.location.pathname).toMatch(/^\/risks\/[0-9a-f-]+$/);
-    expect(screen.getByRole('heading', { level: 2, name: 'Casier' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Casier' })).toBeTruthy();
     expect(screen.getByTestId('risk-factors-empty')).toBeTruthy();
   });
 
