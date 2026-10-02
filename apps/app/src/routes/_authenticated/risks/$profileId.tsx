@@ -13,8 +13,10 @@ import {
   EvaluationProfilePage,
 } from '@/features/evaluation-profiles/evaluation-profile-page';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
+import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-view';
 
 export const Route = createFileRoute('/_authenticated/risks/$profileId')({
+  validateSearch: factorListSearch,
   params: { parse: (params) => ({ profileId: z.uuid().parse(params.profileId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;

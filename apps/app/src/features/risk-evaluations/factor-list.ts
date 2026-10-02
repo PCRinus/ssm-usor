@@ -2,7 +2,9 @@ import { riskLevel, sheetComponents, type WorkSystemComponent } from '@ssm-usor/
 
 import { type RiskFactor, sectionsOf } from './risk-evaluation-schema';
 
-export type FactorSortKey = 'level' | 'description' | 'gravity' | 'probability' | 'measures';
+export const factorSortKeys = ['level', 'gravity', 'probability', 'measures'] as const;
+
+export type FactorSortKey = (typeof factorSortKeys)[number];
 
 export type FactorSort = { key: FactorSortKey; order: 'asc' | 'desc' } | null;
 
@@ -13,11 +15,8 @@ export interface MatrixCell {
 
 export type FactorTab = WorkSystemComponent | 'all';
 
-const collator = new Intl.Collator('ro');
-
 const comparators: Record<FactorSortKey, (a: RiskFactor, b: RiskFactor) => number> = {
   level: (a, b) => a.riskLevel - b.riskLevel,
-  description: (a, b) => collator.compare(a.description, b.description),
   gravity: (a, b) => a.gravityClass - b.gravityClass,
   probability: (a, b) => a.probabilityClass - b.probabilityClass,
   measures: (a, b) => a.measures.length - b.measures.length,
@@ -111,7 +110,6 @@ const sortLabels: Record<FactorSortKey, Record<'asc' | 'desc', string>> = {
   gravity: { asc: 'Gravitatea cea mai mică', desc: 'Gravitatea cea mai mare' },
   probability: { asc: 'Probabilitatea cea mai mică', desc: 'Probabilitatea cea mai mare' },
   measures: { asc: 'Întâi cei fără măsuri', desc: 'Întâi cei cu cele mai multe măsuri' },
-  description: { asc: 'Alfabetic', desc: 'Alfabetic, invers' },
 };
 
 const menuSorts: FactorSort[] = [
@@ -120,7 +118,6 @@ const menuSorts: FactorSort[] = [
   { key: 'gravity', order: 'desc' },
   { key: 'probability', order: 'desc' },
   { key: 'measures', order: 'asc' },
-  { key: 'description', order: 'asc' },
 ];
 
 export const sortValue = (sort: FactorSort) => (sort ? `${sort.key}:${sort.order}` : 'sheet');

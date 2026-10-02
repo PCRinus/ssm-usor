@@ -138,15 +138,8 @@ const factorGapMessages: Record<FactorGapKind, string> = {
   responsible: 'Lipsește responsabilul măsurilor.',
 };
 
-export const factorGapLabels: Record<FactorGapKind, string> = {
-  measure: 'Fără măsuri',
-  deadlineAndResponsible: 'Fără termen și responsabil',
-  deadline: 'Fără termen',
-  responsible: 'Fără responsabil',
-};
-
 // What generating will ask of the factor (ADR 015, readiness).
-export function factorGapKind(factor: RiskFactor): FactorGapKind | null {
+function factorGapKind(factor: RiskFactor): FactorGapKind | null {
   if (isUnacceptableRiskLevel(factor.riskLevel) && factor.measures.length === 0) return 'measure';
   if (factor.measures.length > 0 && (!factor.deadline || !factor.responsiblePerson)) {
     return !factor.deadline && !factor.responsiblePerson

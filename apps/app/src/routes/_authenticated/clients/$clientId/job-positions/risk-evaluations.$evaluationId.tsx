@@ -13,12 +13,14 @@ import {
 } from '@/features/risk-evaluations/risk-evaluation-page';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
 import { evaluationTitle } from '@/features/risk-evaluations/risk-evaluation-schema';
+import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-view';
 
 // The client-level evaluations live under the positions section, where their card is, so that
 // section stays the current tab.
 export const Route = createFileRoute(
   '/_authenticated/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
 )({
+  validateSearch: factorListSearch,
   params: { parse: (params) => ({ evaluationId: z.uuid().parse(params.evaluationId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;

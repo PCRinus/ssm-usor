@@ -52,7 +52,7 @@ import {
 import { RiskFactorsCard } from './risk-factors-card';
 import { RiskResultCard } from './risk-result-card';
 import { useEvaluationCache } from './use-evaluation-cache';
-import { useFactorFilter } from './use-factor-filter';
+import { useFactorListView } from './use-factor-list-view';
 import { useStartEvaluation } from './use-start-evaluation';
 import { WorkSystemCard } from './work-system-card';
 
@@ -228,7 +228,7 @@ function RiskEvaluationView({
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const saveAsProfile = useSaveAsProfile();
   const store = useEvaluationFactorStore(evaluation);
-  const filter = useFactorFilter(evaluation.factors, sections.factors);
+  const view = useFactorListView(evaluation.factors, sections.factors);
   return (
     <div data-testid="risk-evaluation-page" className="grid gap-5">
       <Header
@@ -260,7 +260,7 @@ function RiskEvaluationView({
           </div>
         }
       />
-      <RiskResultCard id={sections.result} evaluation={evaluation} filter={filter} />
+      <RiskResultCard id={sections.result} evaluation={evaluation} view={view} />
       <WorkSystemCard
         id={sections.workSystem}
         evaluation={evaluation}
@@ -272,7 +272,7 @@ function RiskEvaluationView({
         factors={evaluation.factors}
         store={store}
         readOnly={readOnly}
-        filter={filter}
+        view={view}
         tools={<FactorSources evaluation={evaluation} userId={userId} />}
         empty={
           readOnly

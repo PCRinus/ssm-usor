@@ -118,13 +118,6 @@ describe('the sort of the factor list', () => {
       'Electrocutare',
       'Ridicarea sarcinilor',
     ]);
-    expect(names(sortFactors(factors, { key: 'description', order: 'asc' }))).toEqual([
-      'Agățare de piese în mișcare',
-      'Electrocutare',
-      'Ridicarea sarcinilor',
-      'Tăiere cu scule',
-      'Zgomot',
-    ]);
   });
 
   it("offers the phone's sorts, and the header's sort when it is not among them", () => {
@@ -134,7 +127,6 @@ describe('the sort of the factor list', () => {
       'Gravitatea cea mai mare',
       'Probabilitatea cea mai mare',
       'Întâi cei fără măsuri',
-      'Alfabetic',
     ]);
     expect(sortMenu({ key: 'level', order: 'asc' }).at(-1)).toEqual({
       value: 'level:asc',

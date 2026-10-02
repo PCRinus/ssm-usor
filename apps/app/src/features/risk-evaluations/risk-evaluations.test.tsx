@@ -397,9 +397,11 @@ describe("a position's risk evaluation page", () => {
     expect(within(moving!).queryByTestId('risk-factor-gap')).toBeNull();
     expect(within(cutsRow!).getByTestId('risk-factor-measures').textContent).toBe('Fără măsuri');
     expect(within(cutsRow!).queryByTestId('risk-factor-gap')).toBeNull();
-    expect(within(electricRow!).queryByTestId('risk-factor-measures')).toBeNull();
+    expect(within(electricRow!).getByTestId('risk-factor-measures').textContent).toBe(
+      'Fără măsuri'
+    );
     expect(within(electricRow!).getByTestId('risk-factor-gap').textContent).toBe(
-      'Fără măsuriUn factor inacceptabil are nevoie de cel puțin o măsură de prevenire.'
+      'Un factor inacceptabil are nevoie de cel puțin o măsură de prevenire.'
     );
     expect(within(carelessRow!).getByTestId('risk-level').textContent).toBe('Nivel 3');
     expect(within(carelessRow!).getByTestId('risk-level').dataset.unacceptable).toBeUndefined();
@@ -407,7 +409,7 @@ describe("a position's risk evaluation page", () => {
 
   it('sorts by a column: ascending, descending, then back to the order of the sheet', async () => {
     mockApi();
-    mount(welderEvaluationPath);
+    const runtime = mount(welderEvaluationPath);
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-factor-row');
     const order = () =>
@@ -423,6 +425,7 @@ describe("a position's risk evaluation page", () => {
       'Electrocutare prin atingere indirectă',
       'Lovire de piese în mișcare',
     ]);
+    expect(runtime.router.state.location.search).toEqual({ sort: 'level', order: 'asc' });
     await user.click(levelHeader);
     expect(sorted()).toBe('descending');
     expect(order()).toEqual([
@@ -433,6 +436,7 @@ describe("a position's risk evaluation page", () => {
     ]);
     await user.click(levelHeader);
     expect(sorted()).toBe('none');
+    expect(runtime.router.state.location.search).toEqual({});
     expect(order()).toEqual([
       'Lovire de piese în mișcare',
       'Tăiere cu scule de mână',
@@ -453,16 +457,53 @@ describe("a position's risk evaluation page", () => {
         .closest('[role="columnheader"]')
         ?.getAttribute('aria-sort')
     ).toBe('ascending');
+    expect(screen.queryByTestId('risk-factors-sort-description')).toBeNull();
+  });
+
+  it('opens with the tab, the sort and the cell of its address', async () => {
+    mockApi();
+    mount(
+      `${welderEvaluationPath}?tab=means_of_production&sort=gravity&order=desc&gravity=4&probability=5`
+    );
+    const rows = await screen.findAllByTestId('risk-factor-row');
+    expect(rows.map((row) => row.querySelector('p')?.textContent)).toEqual([
+      'Lovire de piese în mișcare',
+    ]);
+    expect(
+      screen.getByRole('tab', { name: 'Mijloace de producție 3' }).getAttribute('aria-selected')
+    ).toBe('true');
+    expect(
+      screen
+        .getByTestId('risk-factors-sort-gravity')
+        .closest('[role="columnheader"]')
+        ?.getAttribute('aria-sort')
+    ).toBe('descending');
+    expect(
+      screen
+        .getByRole('button', { name: 'Gravitate 4, probabilitate 5: 1 factor' })
+        .getAttribute('aria-pressed')
+    ).toBe('true');
+  });
+
+  it('ignores an address that names a sort or a cell it does not know', async () => {
+    mockApi();
+    mount(
+      `${welderEvaluationPath}?tab=work_task&sort=description&order=asc&gravity=1&probability=1`
+    );
+    expect(await screen.findAllByTestId('risk-factor-row')).toHaveLength(4);
+    expect(screen.getByRole('tab', { name: 'Toți 4' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByTestId('risk-factors-filter')).toBeNull();
   });
 
   it("shows one component's factors on its tab, with the group alone under each", async () => {
     mockApi();
-    mount(welderEvaluationPath);
+    const runtime = mount(welderEvaluationPath);
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-factor-row');
     const executant = screen.getByRole('tab', { name: 'Executant 1' });
     await user.click(executant);
     expect(executant.getAttribute('aria-selected')).toBe('true');
+    expect(runtime.router.state.location.search).toEqual({ tab: 'executant' });
     const rows = screen.getAllByTestId('risk-factor-row');
     expect(rows.map((row) => row.querySelector('p')?.textContent)).toEqual([
       'Neutilizarea echipamentului de protecție',

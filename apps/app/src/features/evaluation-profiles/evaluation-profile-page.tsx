@@ -14,7 +14,7 @@ import { ApiHttpError } from '@/api/http';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
 import { RiskFactorsCard } from '@/features/risk-evaluations/risk-factors-card';
 import { RiskResultCard } from '@/features/risk-evaluations/risk-result-card';
-import { useFactorFilter } from '@/features/risk-evaluations/use-factor-filter';
+import { useFactorListView } from '@/features/risk-evaluations/use-factor-list-view';
 
 import { ProfileNameDialog } from './profile-name-dialog';
 import { type ProfileNaming, useProfileRenaming } from './profile-naming';
@@ -45,7 +45,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
   const renaming = useProfileRenaming();
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const [removing, setRemoving] = useState(false);
-  const filter = useFactorFilter(profile.factors, 'factors');
+  const view = useFactorListView(profile.factors, 'factors');
 
   return (
     <div data-testid="risk-profile-page" className="grid gap-5">
@@ -79,13 +79,13 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
           Ce schimbi aici nu ajunge în evaluările în care ai aplicat deja profilul.
         </p>
       </div>
-      <RiskResultCard id="result" evaluation={profile} filter={filter} />
+      <RiskResultCard id="result" evaluation={profile} view={view} />
       <RiskFactorsCard
         id="factors"
         factors={profile.factors}
         store={store}
         readOnly={false}
-        filter={filter}
+        view={view}
         empty="Profilul nu are încă factori de risc."
         removalConsequence="nu vor mai fi în profil. Evaluările în care l-ai aplicat își păstrează copiile."
         editorContext={profile.name}
