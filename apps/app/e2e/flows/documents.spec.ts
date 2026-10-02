@@ -393,7 +393,10 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('instructions-pick-option').first().click();
   await page.getByTestId('instructions-pick-save').click();
   await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
-  await page.getByTestId('job-position-back').click();
+  await page
+    .getByRole('navigation', { name: 'breadcrumb' })
+    .getByRole('link', { name: 'Posturi de lucru' })
+    .click();
   const positions = page.getByTestId('job-position-row');
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')
@@ -406,7 +409,10 @@ test("from 10 employees the set includes the decision on the workers' representa
   await expect(page.getByTestId('equipment-none')).toBeVisible();
   await page.getByTestId('instructions-decide-none').click();
   await expect(page.getByTestId('instructions-none')).toBeVisible();
-  await page.getByTestId('job-position-back').click();
+  await page
+    .getByRole('navigation', { name: 'breadcrumb' })
+    .getByRole('link', { name: 'Posturi de lucru' })
+    .click();
   await expect(
     positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-equipment')
   ).toHaveText('Nu necesită');
