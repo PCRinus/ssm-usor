@@ -10,7 +10,7 @@ import type {
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
-import { type EvaluationProfile, profileTotalsLabel } from './profile-schema';
+import { type EvaluationProfile, profileCountLabel, profileTotalsLabel } from './profile-schema';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -283,13 +283,24 @@ describe('the risk library', () => {
       'Lucrător de birou',
       'Șofer',
     ]);
-    expect(within(rows[0]!).getByTestId('risk-profile-totals').textContent).toBe(
-      '2 factori, unul inacceptabil'
-    );
-    expect(within(rows[0]!).getByTestId('risk-profile-level').textContent).toBe(
-      'Nivel global 3,33'
-    );
-    expect(within(rows[1]!).queryByTestId('risk-profile-level')).toBeNull();
+    const cells = (row: HTMLElement) =>
+      ['risk-profile-factors', 'risk-profile-unacceptable', 'risk-profile-level'].map(
+        (testId) => within(row).getByTestId(testId).textContent
+      );
+    expect(cells(rows[0]!)).toEqual(['2', '1', '3,33']);
+    expect(cells(rows[1]!)).toEqual(['0', '0', '—']);
+    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 profiluri');
+  });
+
+  it('counts profiles the Romanian way', () => {
+    expect([1, 2, 19, 20, 101, 120].map(profileCountLabel)).toEqual([
+      '1 profil',
+      '2 profiluri',
+      '19 profiluri',
+      '20 de profiluri',
+      '101 profiluri',
+      '120 de profiluri',
+    ]);
   });
 
   it('starts a profile by name and opens it', async () => {

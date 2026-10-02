@@ -86,7 +86,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
 
   await page.goto('/risks');
   const row = page.getByTestId('risk-profile-row').filter({ hasText: 'Lucrător în atelier' });
-  await expect(row.getByTestId('risk-profile-totals')).toContainText(`${factorCount} `);
+  await expect(row.getByTestId('risk-profile-factors')).toHaveText(String(factorCount));
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await row.getByTestId('risk-profile-open').click();
   await expect(page.getByTestId('risk-profile-page')).toBeVisible();
