@@ -314,8 +314,8 @@ function RiskEvaluationView({
         tools={<FactorSources evaluation={evaluation} userId={userId} />}
         empty={
           readOnly
-            ? 'Evaluarea nu are factori de risc. Clientul este arhivat, așa că nu i se mai adaugă.'
-            : 'Niciun factor de risc încă. Adaugă-i pe rând, pe componentele sistemului de muncă, aplică un profil din biblioteca de riscuri sau copiază-i de la o evaluare asemănătoare a clientului.'
+            ? 'Evaluarea nu are factori de risc.'
+            : 'Adaugă un factor de risc, aplică un profil din bibliotecă sau copiază factorii altei evaluări.'
         }
         removalConsequence="nu vor mai apărea în evaluare și în planul de prevenire."
       />

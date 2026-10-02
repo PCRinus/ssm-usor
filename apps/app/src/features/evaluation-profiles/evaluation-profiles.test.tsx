@@ -363,7 +363,7 @@ describe('a profile page', () => {
     await screen.findByTestId('risk-profile-page');
     expect(screen.getByTestId('risk-global-level').textContent).toBe('3,33');
     expect(screen.getByTestId('risk-result-counts').textContent).toBe(
-      '2 factori, unul inacceptabil.'
+      'Unul din 2 factori este inacceptabil.'
     );
     expect(
       screen.getAllByTestId('risk-factor-row').map((row) => row.querySelector('p')?.textContent)
