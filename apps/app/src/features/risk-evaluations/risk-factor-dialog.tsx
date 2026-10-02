@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -18,6 +17,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -47,10 +47,13 @@ import {
   toFactorForm,
   toFactorRequest,
 } from './risk-evaluation-schema';
-import { RiskLevelBadge } from './risk-level-badge';
 
 // `null` is closed, 'new' adds a factor, and a factor edits it.
 export type FactorEditing = RiskFactor | 'new' | null;
+
+// Floated so the legend is an ordinary grid item: a rendered legend sits on the fieldset's top
+// border and cuts it.
+const legendClass = 'float-left col-span-full text-sm font-semibold';
 
 export function RiskFactorDialog({
   factors,
@@ -135,6 +138,7 @@ function RiskFactorForm({
       ],
     });
   const level = gravity && probability ? riskLevel(Number(gravity), Number(probability)) : null;
+  const unacceptable = level !== null && isUnacceptableRiskLevel(level);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -151,21 +155,22 @@ function RiskFactorForm({
     }
   });
 
-  const describedBy = (id: string, invalid: boolean, hint = true) =>
-    invalid ? `${id}-error` : hint ? `${id}-hint` : undefined;
+  const describedBy = (id: string, invalid: boolean, note: string | null = `${id}-hint`) =>
+    invalid ? `${id}-error` : (note ?? undefined);
 
   return (
-    <DialogContent data-testid="risk-factor-dialog" className="sm:max-w-3xl">
+    <DialogContent
+      data-testid="risk-factor-dialog"
+      className="sm:max-w-3xl"
+      aria-describedby={undefined}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
             {factor ? 'Modifică factorul de risc' : 'Adaugă un factor de risc'}
           </DialogTitle>
-          <DialogDescription>
-            Clasele le alegi tu; nivelul de risc se citește din grila metodei.
-          </DialogDescription>
         </DialogHeader>
-        <DialogBody className="mt-5 grid gap-5">
+        <DialogBody className="mt-5 grid gap-6">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field
               id="risk-factor-component"
@@ -204,26 +209,32 @@ function RiskFactorForm({
               />
               <Suggestions id="risk-factor-group-suggestions" field="group" query={group} />
             </Field>
-          </div>
-          <Field
-            id="risk-factor-description"
-            label="Descrierea factorului"
-            mark="required"
-            error={errors.description}
-            hint="Forma concretă în care apare la acest loc de muncă."
-          >
-            <Textarea
+            <Field
               id="risk-factor-description"
-              data-testid="risk-factor-description"
-              rows={2}
-              maxLength={1000}
-              disabled={busy}
-              aria-invalid={Boolean(errors.description)}
-              aria-describedby={describedBy('risk-factor-description', Boolean(errors.description))}
-              {...form.register('description')}
-            />
-          </Field>
-          <div className="grid gap-5 sm:grid-cols-2">
+              label="Descrierea factorului"
+              mark="required"
+              error={errors.description}
+              hint="Forma concretă de manifestare la acest loc de muncă."
+              className="sm:col-span-2"
+            >
+              <Textarea
+                id="risk-factor-description"
+                data-testid="risk-factor-description"
+                rows={2}
+                maxLength={1000}
+                disabled={busy}
+                aria-invalid={Boolean(errors.description)}
+                aria-describedby={describedBy(
+                  'risk-factor-description',
+                  Boolean(errors.description)
+                )}
+                {...form.register('description')}
+              />
+            </Field>
+          </div>
+
+          <fieldset className="grid gap-5 border-t pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem]">
+            <legend className={legendClass}>Evaluarea</legend>
             <Field
               id="risk-factor-gravity"
               label="Clasa de gravitate"
@@ -252,7 +263,6 @@ function RiskFactorForm({
               label="Clasa de probabilitate"
               mark="required"
               error={errors.probabilityClass}
-              hint="Cât de des se poate produce consecința."
             >
               <NativeSelect
                 id="risk-factor-probability"
@@ -261,7 +271,8 @@ function RiskFactorForm({
                 aria-invalid={Boolean(errors.probabilityClass)}
                 aria-describedby={describedBy(
                   'risk-factor-probability',
-                  Boolean(errors.probabilityClass)
+                  Boolean(errors.probabilityClass),
+                  null
                 )}
                 {...form.register('probabilityClass')}
               >
@@ -273,92 +284,59 @@ function RiskFactorForm({
                 ))}
               </NativeSelect>
             </Field>
-          </div>
-          <p
-            data-testid="risk-factor-level"
-            aria-live="polite"
-            className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-          >
-            {level === null ? (
-              'Nivelul de risc apare după ce alegi cele două clase.'
-            ) : (
-              <>
-                <RiskLevelBadge level={level} />
-                {isUnacceptableRiskLevel(level)
-                  ? 'Inacceptabil: are nevoie de cel puțin o măsură de prevenire.'
-                  : 'Acceptabil.'}
-              </>
-            )}
-          </p>
+            <div className="grid min-w-0 content-start gap-2">
+              <p className="text-sm leading-none font-medium">Nivel de risc</p>
+              <div
+                data-testid="risk-factor-level"
+                data-unacceptable={unacceptable || undefined}
+                aria-live="polite"
+                className="grid gap-1"
+              >
+                {level === null ? (
+                  <p className="flex h-11 items-center text-2xl text-muted-foreground">
+                    <span aria-hidden="true">–</span>
+                    <span className="sr-only">Alege cele două clase.</span>
+                  </p>
+                ) : (
+                  <>
+                    <p className="flex h-11 items-center gap-2">
+                      <span
+                        className={cn(
+                          'text-2xl font-semibold tabular-nums',
+                          unacceptable && 'text-destructive-foreground'
+                        )}
+                      >
+                        <span className="sr-only">Nivel </span>
+                        {level}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-sm',
+                          unacceptable
+                            ? 'font-medium text-destructive-foreground'
+                            : 'text-muted-foreground'
+                        )}
+                      >
+                        {unacceptable ? 'Inacceptabil' : 'Acceptabil'}
+                      </span>
+                    </p>
+                    {unacceptable && measures.fields.length === 0 && (
+                      <p className="text-xs text-destructive-foreground">
+                        Are nevoie de cel puțin o măsură de prevenire.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </fieldset>
 
-          <fieldset className="grid gap-3">
-            <legend className="mb-2 text-sm font-medium">Măsuri de prevenire</legend>
-            {measures.fields.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nicio măsură încă. Planul de prevenire cuprinde factorii care au măsuri.
-              </p>
-            )}
-            <ol className="grid gap-3">
-              {measures.fields.map((measure, index) => {
-                const error = errors.measures?.[index]?.description;
-                const id = `risk-factor-measure-${index}`;
-                return (
-                  <li
-                    key={measure.id}
-                    data-testid="risk-factor-measure"
-                    className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-start"
-                  >
-                    <NativeSelect
-                      aria-label={`Felul măsurii ${index + 1}`}
-                      data-testid="risk-factor-measure-kind"
-                      disabled={busy}
-                      {...form.register(`measures.${index}.kind`)}
-                    >
-                      {preventionMeasureKinds.map((kind) => (
-                        <NativeSelectOption key={kind} value={kind}>
-                          {measureKindLabels[kind]}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                    <div className="grid gap-1">
-                      <Textarea
-                        id={id}
-                        aria-label={`Măsura ${index + 1}`}
-                        data-testid="risk-factor-measure-description"
-                        rows={1}
-                        maxLength={2000}
-                        disabled={busy}
-                        aria-invalid={Boolean(error)}
-                        aria-describedby={error ? `${id}-error` : undefined}
-                        {...form.register(`measures.${index}.description`)}
-                      />
-                      {error && (
-                        <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
-                          {error.message}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="justify-self-end"
-                      data-testid="risk-factor-measure-remove"
-                      aria-label={`Scoate măsura ${index + 1}`}
-                      disabled={busy}
-                      onClick={() => measures.remove(index)}
-                    >
-                      <X aria-hidden="true" />
-                    </Button>
-                  </li>
-                );
-              })}
-            </ol>
+          <fieldset className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 border-t pt-5">
+            <legend className="float-left text-sm font-semibold">Măsuri de prevenire</legend>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="w-fit"
               data-testid="risk-factor-measure-add"
               disabled={busy || measures.fields.length >= 30}
               onClick={() => measures.append({ kind: 'technical', description: '' })}
@@ -366,10 +344,81 @@ function RiskFactorForm({
               <Plus aria-hidden="true" />
               Adaugă o măsură
             </Button>
+            {measures.fields.length === 0 ? (
+              <p className="col-span-2 text-sm text-muted-foreground">
+                Un factor fără măsuri nu intră în planul de prevenire.
+              </p>
+            ) : (
+              <ol className="col-span-2 grid gap-4 sm:gap-3">
+                {measures.fields.map((measure, index) => {
+                  const error = errors.measures?.[index]?.description;
+                  const id = `risk-factor-measure-${index}`;
+                  return (
+                    <li
+                      key={measure.id}
+                      data-testid="risk-factor-measure"
+                      className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 [grid-template-areas:'kind_remove'_'text_text'] sm:grid-cols-[11rem_minmax(0,1fr)_auto] sm:items-start sm:[grid-template-areas:'kind_text_remove']"
+                    >
+                      <div className="[grid-area:kind]">
+                        <NativeSelect
+                          aria-label={`Felul măsurii ${index + 1}`}
+                          data-testid="risk-factor-measure-kind"
+                          disabled={busy}
+                          {...form.register(`measures.${index}.kind`)}
+                        >
+                          {preventionMeasureKinds.map((kind) => (
+                            <NativeSelectOption key={kind} value={kind}>
+                              {measureKindLabels[kind]}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      </div>
+                      <div className="grid gap-2 [grid-area:text]">
+                        <Textarea
+                          id={id}
+                          aria-label={`Măsura ${index + 1}`}
+                          data-testid="risk-factor-measure-description"
+                          rows={1}
+                          maxLength={2000}
+                          disabled={busy}
+                          className="min-h-11 py-3"
+                          aria-invalid={Boolean(error)}
+                          aria-describedby={error ? `${id}-error` : undefined}
+                          {...form.register(`measures.${index}.description`)}
+                        />
+                        {error && (
+                          <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
+                            {error.message}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-11 [grid-area:remove]"
+                        data-testid="risk-factor-measure-remove"
+                        aria-label={`Scoate măsura ${index + 1}`}
+                        disabled={busy}
+                        onClick={() => measures.remove(index)}
+                      >
+                        <X aria-hidden="true" />
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </fieldset>
 
-          <fieldset className="grid gap-5 sm:grid-cols-2">
-            <legend className="mb-2 text-sm font-medium">Pentru planul de prevenire</legend>
+          <fieldset className="grid gap-5 border-t pt-5 sm:grid-cols-2">
+            <legend className={legendClass}>Planul de prevenire</legend>
+            <p
+              id="risk-factor-plan-note"
+              className="-mt-3 text-sm text-muted-foreground sm:col-span-2"
+            >
+              Termenul și persoana care răspunde sunt cerute când factorul are măsuri.
+            </p>
             <Field
               id="risk-factor-actions"
               label="Acțiuni în vederea realizării măsurilor"
@@ -384,22 +433,12 @@ function RiskFactorForm({
                 autoComplete="off"
                 disabled={busy}
                 aria-invalid={Boolean(errors.actions)}
-                aria-describedby={describedBy(
-                  'risk-factor-actions',
-                  Boolean(errors.actions),
-                  false
-                )}
+                aria-describedby={describedBy('risk-factor-actions', Boolean(errors.actions), null)}
                 {...form.register('actions')}
               />
               <Suggestions id="risk-factor-actions-suggestions" field="actions" query={actions} />
             </Field>
-            <Field
-              id="risk-factor-deadline"
-              label="Termen"
-              mark="optional"
-              error={errors.deadline}
-              hint="Cerut când factorul are măsuri: „Permanent”, „Trimestrial”."
-            >
+            <Field id="risk-factor-deadline" label="Termen" error={errors.deadline}>
               <Input
                 id="risk-factor-deadline"
                 data-testid="risk-factor-deadline"
@@ -407,7 +446,11 @@ function RiskFactorForm({
                 autoComplete="off"
                 disabled={busy}
                 aria-invalid={Boolean(errors.deadline)}
-                aria-describedby={describedBy('risk-factor-deadline', Boolean(errors.deadline))}
+                aria-describedby={describedBy(
+                  'risk-factor-deadline',
+                  Boolean(errors.deadline),
+                  'risk-factor-plan-note'
+                )}
                 {...form.register('deadline')}
               />
               <Suggestions
@@ -419,9 +462,7 @@ function RiskFactorForm({
             <Field
               id="risk-factor-responsible"
               label="Persoana care răspunde"
-              mark="optional"
               error={errors.responsiblePerson}
-              hint="Cerută când factorul are măsuri."
             >
               <Input
                 id="risk-factor-responsible"
@@ -432,7 +473,8 @@ function RiskFactorForm({
                 aria-invalid={Boolean(errors.responsiblePerson)}
                 aria-describedby={describedBy(
                   'risk-factor-responsible',
-                  Boolean(errors.responsiblePerson)
+                  Boolean(errors.responsiblePerson),
+                  'risk-factor-plan-note'
                 )}
                 {...form.register('responsiblePerson')}
               />
@@ -459,7 +501,7 @@ function RiskFactorForm({
                 aria-describedby={describedBy(
                   'risk-factor-observations',
                   Boolean(errors.observations),
-                  false
+                  null
                 )}
                 {...form.register('observations')}
               />

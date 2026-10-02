@@ -476,7 +476,7 @@ describe("a position's risk evaluation page", () => {
     await user.selectOptions(screen.getByTestId('risk-factor-gravity'), '3');
     await user.selectOptions(screen.getByTestId('risk-factor-probability'), '6');
     expect(screen.getByTestId('risk-factor-level').textContent).toContain('Nivel 4');
-    expect(screen.getByTestId('risk-factor-level').textContent).toContain('Inacceptabil');
+    expect(screen.getByTestId('risk-factor-level').dataset.unacceptable).toBe('true');
 
     await user.click(screen.getByTestId('risk-factor-measure-add'));
     await user.click(screen.getByTestId('risk-factor-measure-add'));
