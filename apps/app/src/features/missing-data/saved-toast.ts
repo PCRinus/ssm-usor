@@ -15,15 +15,17 @@ const fixedHere = (pathname: string, { to, clientId }: WayBack) =>
     pathname.startsWith(`/clients/${clientId}/`) &&
     !pathname.startsWith(`/clients/${clientId}/${to === 'documents' ? 'documents' : 'contract'}`));
 
+type ToastPosition = NonNullable<NonNullable<Parameters<typeof toast.success>[1]>['position']>;
+
 export function useSavedToast() {
   const { session } = useAuth();
   const router = useRouter();
   const navigate = useNavigate();
 
-  return (message: string) => {
+  return (message: string, position?: ToastPosition) => {
     const wayBack = currentWayBack(session?.user.id);
     if (!wayBack || !fixedHere(router.state.location.pathname, wayBack)) {
-      toast.success(message);
+      toast.success(message, { position });
       return;
     }
     const back = () => {
@@ -44,6 +46,7 @@ export function useSavedToast() {
       }
     };
     toast.success(message, {
+      position,
       duration: wayBackToastDuration,
       action: {
         label: wayBack.to === 'documents' ? 'Înapoi la generare' : 'Înapoi la contract',

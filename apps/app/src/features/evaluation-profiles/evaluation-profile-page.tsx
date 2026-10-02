@@ -6,7 +6,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft, PenLine, Trash2 } from 'lucide-react';
+import { PenLine, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
@@ -14,6 +14,7 @@ import { ApiHttpError } from '@/api/http';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
 import { RiskFactorsCard } from '@/features/risk-evaluations/risk-factors-card';
 import { RiskResultCard } from '@/features/risk-evaluations/risk-result-card';
+import { useFactorFilter } from '@/features/risk-evaluations/use-factor-filter';
 
 import { ProfileNameDialog } from './profile-name-dialog';
 import { type ProfileNaming, useProfileRenaming } from './profile-naming';
@@ -44,16 +45,11 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
   const renaming = useProfileRenaming();
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const [removing, setRemoving] = useState(false);
+  const filter = useFactorFilter(profile.factors, 'factors');
 
   return (
     <div data-testid="risk-profile-page" className="grid gap-5">
       <div className="grid gap-3">
-        <Button asChild variant="ghost" size="sm" className="-ml-3 w-fit text-muted-foreground">
-          <Link to="/risks" data-testid="risk-profile-back">
-            <ArrowLeft aria-hidden="true" />
-            Biblioteca de riscuri
-          </Link>
-        </Button>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div className="grid gap-1">
             <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{profile.name}</h2>
@@ -69,7 +65,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
               Redenumește…
             </Button>
             <Button
-              variant="outline"
+              variant="destructive-outline"
               size="sm"
               data-testid="risk-profile-remove"
               onClick={() => setRemoving(true)}
@@ -83,14 +79,16 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
           Ce schimbi aici nu ajunge în evaluările în care ai aplicat deja profilul.
         </p>
       </div>
-      <RiskResultCard id="result" evaluation={profile} />
+      <RiskResultCard id="result" evaluation={profile} filter={filter} />
       <RiskFactorsCard
         id="factors"
         factors={profile.factors}
         store={store}
         readOnly={false}
+        filter={filter}
         empty="Profilul nu are încă factori de risc."
         removalConsequence="nu vor mai fi în profil. Evaluările în care l-ai aplicat își păstrează copiile."
+        editorContext={profile.name}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveProfileDialog

@@ -129,19 +129,38 @@ export function sectionsOf(factors: readonly RiskFactor[]): ComponentSection[] {
   });
 }
 
+type FactorGapKind = 'measure' | 'deadlineAndResponsible' | 'deadline' | 'responsible';
+
+const factorGapMessages: Record<FactorGapKind, string> = {
+  measure: 'Un factor inacceptabil are nevoie de cel puțin o măsură de prevenire.',
+  deadlineAndResponsible: 'Lipsesc termenul și responsabilul măsurilor.',
+  deadline: 'Lipsește termenul măsurilor.',
+  responsible: 'Lipsește responsabilul măsurilor.',
+};
+
+export const factorGapLabels: Record<FactorGapKind, string> = {
+  measure: 'Fără măsuri',
+  deadlineAndResponsible: 'Fără termen și responsabil',
+  deadline: 'Fără termen',
+  responsible: 'Fără responsabil',
+};
+
 // What generating will ask of the factor (ADR 015, readiness).
-export function factorGap(factor: RiskFactor): string | null {
-  if (isUnacceptableRiskLevel(factor.riskLevel) && factor.measures.length === 0) {
-    return 'Un factor inacceptabil are nevoie de cel puțin o măsură de prevenire.';
-  }
+export function factorGapKind(factor: RiskFactor): FactorGapKind | null {
+  if (isUnacceptableRiskLevel(factor.riskLevel) && factor.measures.length === 0) return 'measure';
   if (factor.measures.length > 0 && (!factor.deadline || !factor.responsiblePerson)) {
     return !factor.deadline && !factor.responsiblePerson
-      ? 'Lipsesc termenul și responsabilul măsurilor.'
+      ? 'deadlineAndResponsible'
       : !factor.deadline
-        ? 'Lipsește termenul măsurilor.'
-        : 'Lipsește responsabilul măsurilor.';
+        ? 'deadline'
+        : 'responsible';
   }
   return null;
+}
+
+export function factorGap(factor: RiskFactor): string | null {
+  const kind = factorGapKind(factor);
+  return kind && factorGapMessages[kind];
 }
 
 const optionalText = (max: number, what: string) =>

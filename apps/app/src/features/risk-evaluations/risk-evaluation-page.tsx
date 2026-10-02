@@ -16,7 +16,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { ArrowLeft, Copy, LibraryBig, Trash2 } from 'lucide-react';
+import { Copy, LibraryBig, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -52,6 +52,7 @@ import {
 import { RiskFactorsCard } from './risk-factors-card';
 import { RiskResultCard } from './risk-result-card';
 import { useEvaluationCache } from './use-evaluation-cache';
+import { useFactorFilter } from './use-factor-filter';
 import { useStartEvaluation } from './use-start-evaluation';
 import { WorkSystemCard } from './work-system-card';
 
@@ -92,25 +93,12 @@ export function PositionRiskEvaluationPage() {
   });
   const position = positions.data?.items.find((item) => item.id === jobPositionId);
   if (!position || !query.data) return <RiskEvaluationPending />;
-  const back = (
-    <BackLink>
-      <Link
-        to="/clients/$clientId/job-positions/$jobPositionId"
-        params={{ clientId, jobPositionId }}
-        hash={positionSections.riskEvaluation}
-        data-testid="risk-evaluation-back"
-      >
-        <ArrowLeft aria-hidden="true" />
-        {position.name}
-      </Link>
-    </BackLink>
-  );
   const { evaluation } = query.data;
 
   if (!evaluation) {
     return (
       <div data-testid="risk-evaluation-page" className="grid gap-5">
-        <Header back={back} title={position.name} />
+        <Header title={position.name} />
         <PositionNotEvaluated clientId={clientId} position={position} readOnly={readOnly} />
       </div>
     );
@@ -120,7 +108,6 @@ export function PositionRiskEvaluationPage() {
     <RiskEvaluationView
       evaluation={evaluation}
       position={position}
-      back={back}
       userId={userId}
       readOnly={readOnly}
       afterRemove={{
@@ -150,19 +137,6 @@ export function ClientRiskEvaluationPage() {
   return (
     <RiskEvaluationView
       evaluation={evaluation}
-      back={
-        <BackLink>
-          <Link
-            to="/clients/$clientId/job-positions"
-            params={{ clientId }}
-            hash={clientEvaluationsSection}
-            data-testid="risk-evaluation-back"
-          >
-            <ArrowLeft aria-hidden="true" />
-            Posturi de lucru
-          </Link>
-        </BackLink>
-      }
       userId={userId}
       readOnly={readOnly}
       afterRemove={{
@@ -217,25 +191,14 @@ function PositionNotEvaluated({
   );
 }
 
-function BackLink({ children }: { children: ReactNode }) {
+function Header({ title, action }: { title: string; action?: ReactNode }) {
   return (
-    <Button asChild variant="ghost" size="sm" className="-ml-3 w-fit text-muted-foreground">
-      {children}
-    </Button>
-  );
-}
-
-function Header({ back, title, action }: { back: ReactNode; title: string; action?: ReactNode }) {
-  return (
-    <div className="grid gap-3">
-      {back}
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="grid gap-1">
-          <p className="text-sm text-muted-foreground">Evaluare de risc</p>
-          <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
-        </div>
-        {action}
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+      <div className="grid gap-1">
+        <p className="text-sm text-muted-foreground">Evaluare de risc</p>
+        <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
       </div>
+      {action}
     </div>
   );
 }
@@ -251,14 +214,12 @@ type AfterRemove =
 function RiskEvaluationView({
   evaluation,
   position,
-  back,
   userId,
   readOnly,
   afterRemove,
 }: {
   evaluation: RiskEvaluation;
   position?: JobPosition;
-  back: ReactNode;
   userId: string;
   readOnly: boolean;
   afterRemove: AfterRemove;
@@ -267,10 +228,10 @@ function RiskEvaluationView({
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const saveAsProfile = useSaveAsProfile();
   const store = useEvaluationFactorStore(evaluation);
+  const filter = useFactorFilter(evaluation.factors, sections.factors);
   return (
     <div data-testid="risk-evaluation-page" className="grid gap-5">
       <Header
-        back={back}
         title={evaluationTitle(evaluation)}
         action={
           <div className="flex flex-wrap gap-2">
@@ -287,7 +248,7 @@ function RiskEvaluationView({
             )}
             {!readOnly && (
               <Button
-                variant="outline"
+                variant="destructive-outline"
                 size="sm"
                 data-testid="risk-evaluation-remove"
                 onClick={() => setRemoving(true)}
@@ -299,7 +260,7 @@ function RiskEvaluationView({
           </div>
         }
       />
-      <RiskResultCard id={sections.result} evaluation={evaluation} />
+      <RiskResultCard id={sections.result} evaluation={evaluation} filter={filter} />
       <WorkSystemCard
         id={sections.workSystem}
         evaluation={evaluation}
@@ -311,6 +272,7 @@ function RiskEvaluationView({
         factors={evaluation.factors}
         store={store}
         readOnly={readOnly}
+        filter={filter}
         tools={<FactorSources evaluation={evaluation} userId={userId} />}
         empty={
           readOnly
@@ -318,6 +280,7 @@ function RiskEvaluationView({
             : 'Adaugă un factor de risc, aplică un profil din bibliotecă sau copiază factorii altei evaluări.'
         }
         removalConsequence="nu vor mai apărea în evaluare și în planul de prevenire."
+        editorContext={evaluationTitle(evaluation)}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveEvaluationDialog
