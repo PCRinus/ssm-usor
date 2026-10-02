@@ -724,6 +724,154 @@ describe("a position's risk evaluation page", () => {
   });
 });
 
+describe('the factor editor', () => {
+  const phoneScreen = () => {
+    const media = window.matchMedia;
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ ...media(query), matches: query === '(max-width: 767px)' }))
+    );
+  };
+
+  async function fillFactor(user: ReturnType<typeof userEvent.setup>, description: string) {
+    await user.type(screen.getByTestId('risk-factor-description'), description);
+    await user.selectOptions(screen.getByTestId('risk-factor-gravity'), '3');
+    await user.selectOptions(screen.getByTestId('risk-factor-probability'), '6');
+  }
+
+  it('opens beside the list on a wide screen, with the box to add another unticked', async () => {
+    mockApi();
+    mount(welderEvaluationPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-factor-add'));
+    const editor = await screen.findByTestId('risk-factor-dialog');
+    expect(editor.dataset.slot).toBe('sheet-content');
+    expect(within(editor).getByRole('heading', { name: 'Factor nou' })).toBeTruthy();
+    expect(within(editor).getByRole('button', { name: 'Renunță' })).toBeTruthy();
+    expect(within(editor).getByTestId('risk-factor-add-another').getAttribute('aria-checked')).toBe(
+      'false'
+    );
+    expect(within(editor).getByTestId('risk-factor-save').textContent).toBe('Adaugă');
+  });
+
+  it('opens as a drawer from the bottom on a phone, closed from its header', async () => {
+    phoneScreen();
+    mockApi();
+    mount(welderEvaluationPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-factor-add'));
+    const editor = await screen.findByTestId('risk-factor-dialog');
+    expect(editor.dataset.slot).toBe('drawer-content');
+    expect(within(editor).getByRole('heading', { name: 'Factor nou' })).toBeTruthy();
+    expect(within(editor).getByTestId('risk-factor-add-another')).toBeTruthy();
+    expect(within(editor).getByTestId('risk-factor-save').textContent).toBe('Adaugă');
+
+    await fillFactor(user, 'Zgomot peste limită');
+    await user.click(within(editor).getByTestId('risk-factor-save'));
+    await waitFor(() =>
+      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toHaveLength(1)
+    );
+    await waitFor(() => expect(screen.queryByTestId('risk-factor-dialog')).toBeNull());
+
+    await user.click(screen.getByTestId('risk-factor-add'));
+    await user.click(
+      within(await screen.findByTestId('risk-factor-dialog')).getByRole('button', {
+        name: 'Renunță',
+      })
+    );
+    await waitFor(() => expect(screen.queryByTestId('risk-factor-dialog')).toBeNull());
+  });
+
+  it('with the box ticked, stays open for the next factor, keeping the component and the group', async () => {
+    mockApi();
+    mount(welderEvaluationPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-factor-add'));
+    const editor = await screen.findByTestId('risk-factor-dialog');
+    await user.click(within(editor).getByTestId('risk-factor-add-another'));
+
+    await user.selectOptions(screen.getByTestId('risk-factor-component'), 'work_environment');
+    const group = screen.getByTestId('risk-factor-group');
+    await user.clear(group);
+    await user.type(group, 'Fizici');
+    await fillFactor(user, 'Zgomot');
+    await user.click(screen.getByTestId('risk-factor-measure-add'));
+    await user.type(screen.getByTestId('risk-factor-measure-description'), 'Căști');
+    await user.type(screen.getByTestId('risk-factor-deadline'), 'Zilnic');
+    await user.type(screen.getByTestId('risk-factor-responsible'), 'Șef');
+    await user.click(screen.getByTestId('risk-factor-save'));
+
+    expect(
+      await screen.findByText('Factorul a fost adăugat. Completează-l pe următorul.')
+    ).toBeTruthy();
+    const description = screen.getByTestId<HTMLTextAreaElement>('risk-factor-description');
+    await waitFor(() => expect(document.activeElement).toBe(description));
+    expect(screen.getByTestId('risk-factor-dialog')).toBe(editor);
+    expect(screen.getByTestId<HTMLSelectElement>('risk-factor-component').value).toBe(
+      'work_environment'
+    );
+    expect(screen.getByTestId<HTMLInputElement>('risk-factor-group').value).toBe('Fizici');
+    expect(description.value).toBe('');
+    expect(screen.getByTestId<HTMLSelectElement>('risk-factor-gravity').value).toBe('');
+    expect(screen.queryAllByTestId('risk-factor-measure')).toHaveLength(0);
+    expect(screen.getByTestId<HTMLInputElement>('risk-factor-deadline').value).toBe('');
+    expect(screen.queryByTestId('risk-factor-description-error')).toBeNull();
+    expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(5);
+
+    await fillFactor(user, 'Lumină');
+    await user.click(screen.getByTestId('risk-factor-save'));
+    await waitFor(() =>
+      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toHaveLength(2)
+    );
+    expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')[1]).toMatchObject({
+      component: 'work_environment',
+      group: 'Fizici',
+      description: 'Lumină',
+      measures: [],
+    });
+    await waitFor(() => expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(6));
+    expect(screen.getByTestId('risk-factor-dialog')).toBe(editor);
+
+    await user.click(within(editor).getByRole('button', { name: 'Renunță' }));
+    await waitFor(() => expect(screen.queryByTestId('risk-factor-dialog')).toBeNull());
+    await user.click(screen.getByTestId('risk-factor-add'));
+    expect(
+      (await screen.findByTestId('risk-factor-add-another')).getAttribute('aria-checked')
+    ).toBe('true');
+  });
+
+  it('starts with the box unticked when the browser keeps no storage', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    mockApi();
+    mount(welderEvaluationPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-factor-add'));
+    const box = await screen.findByTestId('risk-factor-add-another');
+    expect(box.getAttribute('aria-checked')).toBe('false');
+    await user.click(box);
+    expect(box.getAttribute('aria-checked')).toBe('true');
+    vi.restoreAllMocks();
+  });
+
+  it('edits a factor without the box to add another', async () => {
+    mockApi();
+    mount(welderEvaluationPath);
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('risk-factor-row');
+    await user.click(within(rows[0]!).getByTestId('risk-factor-actions'));
+    await user.click(await screen.findByTestId('risk-factor-edit'));
+    const editor = await screen.findByTestId('risk-factor-dialog');
+    expect(within(editor).getByRole('heading', { name: 'Modifică factorul' })).toBeTruthy();
+    expect(within(editor).queryByTestId('risk-factor-add-another')).toBeNull();
+    expect(within(editor).getByTestId('risk-factor-save').textContent).toBe('Salvează');
+  });
+});
+
 describe("a client's evaluations outside its positions", () => {
   it('starts the sensitive groups evaluation and opens it', async () => {
     mockApi();
