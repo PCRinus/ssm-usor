@@ -236,11 +236,12 @@ content the organization's instruction modules now carry as annexes (ADR 012). `
 writes paragraphs at the end, each `{ text, bold, italic, keep, above, below }`: the chapter
 XIII heading and the annex list, its loop tags in paragraphs of their own so the engine
 repeats the line per annex. A table definition without `rows` can drop columns and rows of
-the original and add rows with `addRows`, which is how the table of contents keeps the
-original's chapter titles, loses its page numbers, and gains the annex rows.
-The five tables of chapter XI that showed the steps of lifting a load beside a picture are
-rebuilt from their text alone, the picture column dropped: a picture anchored inside a table
-cell stops LibreOffice's PDF export at that table, and every page after it is lost.
+the original and add rows with `addRows`, which is how the table of contents kept the
+original's chapter titles, lost its page numbers, and gained the annex rows; since the audit
+of 2026-10-03 the contents is a list of paragraphs, and so are the five boxes of chapter XI
+that showed the steps of lifting a load beside a picture, rebuilt from their text alone when
+the picture was dropped: a picture anchored inside a table cell stops LibreOffice's PDF export
+at that table, and every page after it is lost. The equipment list (6) is portrait since then.
 
 `sections` rewrites a part in the middle of the body. Each `{ from, to, content }` removes
 everything from the first paragraph matching `from` (the first after the one matching
