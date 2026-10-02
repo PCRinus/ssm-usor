@@ -52,7 +52,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
       <div className="grid gap-3">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div className="grid gap-1">
-            <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{profile.name}</h2>
+            <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{profile.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -103,7 +103,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
 export function EvaluationProfileNotFound() {
   return (
     <div data-testid="risk-profile-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h2 className="text-xl font-semibold tracking-tight">Profilul nu a fost găsit</h2>
+      <h1 className="text-2xl font-semibold">Profilul nu a fost găsit</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">
         Nu există niciun profil cu acest identificator în biblioteca de riscuri, sau a fost șters.
       </p>
@@ -126,7 +126,7 @@ export function EvaluationProfileError({ error }: ErrorComponentProps) {
       role="alert"
       className="mx-auto grid max-w-lg gap-5 py-14"
     >
-      <h2 className="text-xl font-semibold tracking-tight">Profilul nu a putut fi încărcat</h2>
+      <h1 className="text-2xl font-semibold">Profilul nu a putut fi încărcat</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
       <Button variant="outline" className="w-fit" onClick={() => void router.invalidate()}>
         Încearcă din nou
