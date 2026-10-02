@@ -33,7 +33,7 @@ import uno
 from com.sun.star.beans import PropertyValue
 from com.sun.star.lang import Locale
 from com.sun.star.style.BreakType import NONE as NO_BREAK
-from com.sun.star.style.BreakType import PAGE_BEFORE
+from com.sun.star.style.BreakType import PAGE_AFTER, PAGE_BEFORE
 from com.sun.star.style.PageStyleLayout import ALL as ALL_PAGES
 from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
 from com.sun.star.table import BorderLine2
@@ -391,12 +391,15 @@ def insert_handover(document, text, cursor, sides, signing_room=42):
     return table
 
 
-def rebuild_table(document, definition):
+def rebuild_table(document, definition, following=None):
     """Replaces a table of the body with one drawn from a definition, where the original is
     beyond tidying: columns a letter wide, cells aligned with tabs. `rows` holds the cells as
-    text or as {text, colspan, rowspan}; a cell another one spans over is an empty string."""
+    text or as {text, colspan, rowspan}; a cell another one spans over is an empty string.
+    With `following`, draws the table before that paragraph instead."""
     body = list(_elements(document.Text))
-    if 'replaceTable' in definition:
+    if following is not None:
+        pass
+    elif 'replaceTable' in definition:
         tables = [item for item in body if item.supportsService('com.sun.star.text.TextTable')]
         old = tables[definition['replaceTable']]
         if definition.get('remove'):
@@ -880,7 +883,7 @@ def matches(text, patterns):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
-def typeset(document, kind, shrink_empty=False):
+def typeset(document, kind, shrink_empty=False, subheadings=()):
     rules = KINDS[kind]
 
     page_styles = document.StyleFamilies.getByName('PageStyles')
@@ -1109,6 +1112,10 @@ def typeset(document, kind, shrink_empty=False):
             label = paragraph.getText().createTextCursorByRange(paragraph.getStart())
             label.goRight(2, True)
             label.CharWeight = 150
+        elif matches(text, subheadings):
+            paragraph.CharWeight = 150
+            paragraph.ParaTopMargin = round(12 * POINT)
+            paragraph.ParaKeepTogether = True
         elif matches(text, rules['subtitle']):
             paragraph.ParaAdjust = CENTER
             paragraph.ParaBottomMargin = round(12 * POINT)
@@ -1202,9 +1209,9 @@ def typeset(document, kind, shrink_empty=False):
         last.ParaTopMargin = 0
         last.ParaBottomMargin = 0
     closing = list(_elements(document.Text))
-    if len(closing) > 1 and closing[-2].supportsService('com.sun.star.text.TextTable') \
-            and closing[-1].getString().strip().startswith('{{/'):
-        # Merged, the loop's closing tag leaves nothing behind, and its table would end the file.
+    if len(closing) > 1 and closing[-1].getString().strip().startswith('{{/'):
+        # Merged, loop tags leave nothing behind, and a table inside or before them would end
+        # the file.
         cursor = document.Text.createTextCursorByRange(closing[-1].getEnd())
         document.Text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
         end = list(_elements(document.Text))[-1]
@@ -1261,6 +1268,10 @@ def sweep(path):
                 # the bare keyword; with the switch it paints the result cached in the file, the
                 # last page's number, on every page.
                 xml = re.sub(r'(<w:instrText[^>]*>\s*(?:PAGE|NUMPAGES|SECTIONPAGES))\s+\\\* ARABIC\s*(?=<)', r'\1 ', xml)
+                # A section that restarts its page numbers keeps the number the original had
+                # there, and "Pag. X din Y" then counts wrong once the pages before it change.
+                # The API's PageNumberOffset does not let go of it.
+                xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
@@ -1301,6 +1312,110 @@ def append_paragraphs(document, items):
         first = False
 
 
+def clear_section(document, section, marker):
+    """Removes the body from the paragraph matching `from`, the first after the one matching
+    `after` where there is one, up to the one matching `to`, or to the end without one, and
+    leaves `marker` in a paragraph where it was, for `fill_section`. The risk assessment's
+    chapters about the unit and its evaluations, and the prevention plan's tables, are
+    rewritten this way around the merge context's loops (ADR 015)."""
+    text = document.Text
+    elements = list(_elements(text))
+
+    def find(pattern, start):
+        return next((index for index in range(start, len(elements))
+                     if elements[index].supportsService('com.sun.star.text.Paragraph')
+                     and re.search(pattern, elements[index].getString())), None)
+
+    after = find(section['after'], 0) if section.get('after') else -1
+    if after is None:
+        raise RuntimeError(f'section: no paragraph matches {section["after"]!r}')
+    start = find(section['from'], after + 1)
+    if start is None:
+        raise RuntimeError(f'section: no paragraph matches {section["from"]!r}')
+    end = find(section['to'], start + 1) if section.get('to') else len(elements)
+    if end is None:
+        raise RuntimeError(f'section: no paragraph matches {section["to"]!r}')
+    first, last = elements[start], elements[end - 1]
+
+    # A frame anchored in the range would move to the paragraph left. One anchored as a
+    # character goes with its text.
+    for frames in (document.TextFrames, document.GraphicObjects):
+        for frame in [frames.getByIndex(index) for index in range(frames.getCount())]:
+            try:
+                anchor = frame.getAnchor()
+                inside = frame.AnchorType.value != 'AS_CHARACTER' \
+                    and text.compareRegionStarts(first.getStart(), anchor.getStart()) >= 0 \
+                    and text.compareRegionEnds(anchor.getEnd(), last.getEnd()) >= 0
+            except Exception:  # noqa: BLE001 - anchored in a header, a frame or a table cell
+                inside = False
+            if inside:
+                frame.dispose()
+    for element in elements[start:end]:
+        if element.supportsService('com.sun.star.text.TextTable'):
+            element.dispose()
+    elements = list(_elements(text))
+    start = find(section['from'], after + 1)
+    end = find(section['to'], start + 1) if section.get('to') else len(elements)
+    cursor = text.createTextCursorByRange(elements[start].getStart())
+    cursor.gotoRange(elements[end - 1].getEnd(), True)
+    cursor.setString(marker)
+    # The paragraph left keeps the list and the style of the first one removed, which every
+    # paragraph written over it would inherit.
+    cursor.ParaStyleName = 'Standard'
+    cursor.NumberingStyleName = ''
+
+
+def fill_section(document, marker, content):
+    """Writes `content` over the paragraph holding `marker`: paragraphs as `append` writes
+    them, with `indent`, `pageBefore` and `pageAfter`, and tables drawn from a definition with
+    `rows` ({"table": …})."""
+    text = document.Text
+    holder = next(element for element in _elements(text)
+                  if element.supportsService('com.sun.star.text.Paragraph') and element.getString() == marker)
+    cursor = text.createTextCursorByRange(holder.getStart())
+    cursor.gotoEndOfParagraph(True)
+    cursor.setString('')
+    tables = []
+    for index, item in enumerate(content):
+        if 'table' in item:
+            tables.append((f'{marker} table {index}', item['table']))
+            write_paragraph(text, cursor, tables[-1][0], adjust=LEFT, below=0, first=index == 0)
+            cursor.ParaLeftMargin = 0
+            cursor.BreakType = NO_BREAK
+            continue
+        write_paragraph(text, cursor, item['text'], bold=item.get('bold', False),
+                        italic=item.get('italic', False), adjust=LEFT,
+                        above=item.get('above', 0), below=item.get('below', 6),
+                        keep=item.get('keep', False), first=index == 0)
+        cursor.ParaLeftMargin = item.get('indent', 0)
+        cursor.BreakType = PAGE_BEFORE if item.get('pageBefore') else \
+            PAGE_AFTER if item.get('pageAfter') else NO_BREAK
+
+    for table_marker, definition in tables:
+        anchor = next(element for element in _elements(text)
+                      if element.supportsService('com.sun.star.text.Paragraph')
+                      and element.getString() == table_marker)
+        rebuild_table(document, definition, following=anchor)
+        set_text(anchor, '')
+        flow = list(_elements(text))
+        position = next(index for index, element in enumerate(flow)
+                        if element.supportsService('com.sun.star.text.Paragraph')
+                        and text.compareRegionStarts(element.getStart(), anchor.getStart()) == 0)
+        # The paragraph stays only between two tables, which Word would otherwise save as one.
+        if position + 1 < len(flow) and flow[position + 1].supportsService('com.sun.star.text.Paragraph'):
+            text.removeTextContent(anchor)
+
+
+def reloaded(desktop, document, name):
+    """The same document, through a file and back. After a long range is removed, charts and
+    formulas among it, LibreOffice fails to save the file once the document grows past where
+    that range was, and says nothing more; a round trip drops whatever it kept."""
+    path = f'/tmp/{name}.reloaded.docx'
+    document.storeToURL(uno.systemPathToFileUrl(path), (prop('FilterName', 'MS Word 2007 XML'),))
+    document.close(True)
+    return desktop.loadComponentFromURL(uno.systemPathToFileUrl(path), '_blank', 0, (prop('Hidden', True),))
+
+
 def import_template(desktop, spec_path, wording, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
@@ -1322,6 +1437,13 @@ def import_template(desktop, spec_path, wording, output):
             cut_tail(document, spec['cut'])
         if spec.get('append'):
             append_paragraphs(document, spec['append'])
+        markers = [f'@@section {index}@@' for index in range(len(spec.get('sections', [])))]
+        for section, marker in zip(spec.get('sections', []), markers):
+            clear_section(document, section, marker)
+        if markers:
+            document = reloaded(desktop, document, name)
+        for section, marker in zip(spec.get('sections', []), markers):
+            fill_section(document, marker, section['content'])
         if spec.get('header'):
             build_header(document, spec['header'])
         strip_spacing(document)
@@ -1331,7 +1453,8 @@ def import_template(desktop, spec_path, wording, output):
             rebuild_table(document, definition)
         rules = wording_replacements(wording, document_words(document))
         fixes = sum(apply(document, replacement) for replacement in rules)
-        removed = typeset(document, spec.get('kind', 'decision'), spec.get('emptyParagraphs') == 'shrink')
+        removed = typeset(document, spec.get('kind', 'decision'), spec.get('emptyParagraphs') == 'shrink',
+                          spec.get('subheadings', []))
         # A table that still does not fit at the small print, by its place in the body.
         body_tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
         for index, size in spec.get('tableSizes', {}).items():

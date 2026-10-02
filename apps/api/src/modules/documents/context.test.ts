@@ -1,3 +1,4 @@
+import { riskLevel } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -195,6 +196,30 @@ describe('what is missing', () => {
       })
     ).toContain('client.trainingSchedule');
   });
+
+  it('needs every position and the sensitive groups evaluated, with measures and their plan', () => {
+    const [groups, sudor, contabil] = facts.riskEvaluations;
+    expect(
+      missingDocumentData({ ...facts, riskEvaluations: [groups!, { ...sudor!, factors: [] }] })
+    ).toEqual(['positions.risk_evaluation']);
+    expect(missingDocumentData({ ...facts, riskEvaluations: [sudor!, contabil!] })).toEqual([
+      'risk_evaluations.sensitive_groups',
+    ]);
+    const unmeasured = {
+      ...groups!,
+      factors: groups!.factors.map((factor) => ({ ...factor, measures: [] })),
+    };
+    expect(
+      missingDocumentData({ ...facts, riskEvaluations: [unmeasured, sudor!, contabil!] })
+    ).toEqual(['risk_evaluations.measures']);
+    const unplanned = {
+      ...contabil!,
+      factors: contabil!.factors.map((factor) => ({ ...factor, deadline: null })),
+    };
+    expect(
+      missingDocumentData({ ...facts, riskEvaluations: [groups!, sudor!, unplanned] })
+    ).toEqual(['risk_evaluations.plan']);
+  });
 });
 
 describe('the merge context', () => {
@@ -368,6 +393,57 @@ describe('the merge context', () => {
   it('switches the branding line', () => {
     expect(context.branding).toEqual([{}]);
     expect(buildDocumentContext({ ...facts, branding: false }).branding).toEqual([]);
+  });
+
+  it("gives the training material the evaluations' unacceptable factors as the unit's risks", () => {
+    expect(context.unitRisks).toHaveLength(8);
+    expect(context.unitRisks[0]).toEqual({
+      risk: 'Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.',
+      measure:
+        'Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\nAnunțarea imediată a conducătorului locului de muncă la orice defect electric.',
+    });
+    expect([context.hasUnitRisks, context.noUnitRisks]).toEqual([[{}], []]);
+    const acceptable = buildDocumentContext({
+      ...facts,
+      riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
+        ...evaluation,
+        factors: evaluation.factors.filter(
+          (factor) => riskLevel(factor.gravityClass, factor.probabilityClass) <= 3
+        ),
+      })),
+    });
+    expect([acceptable.unitRisks, acceptable.hasUnitRisks, acceptable.noUnitRisks]).toEqual([
+      [],
+      [],
+      [{}],
+    ]);
+  });
+
+  it('presents the unit and its evaluations for the risk assessment and the prevention plan', () => {
+    expect(context.riskAssessment.unit).toEqual({
+      activity: '2562 – Fabricarea articolelor de feronerie',
+      employeeCount: 6,
+      workplaces: [
+        { name: 'Sediul social', kind: 'Sediu social', address: 'Sector 1, Calea Victoriei 122A' },
+        {
+          name: 'Atelier Ghiroda',
+          kind: 'Punct de lucru',
+          address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
+        },
+      ],
+      noWorkplaces: [],
+    });
+    expect(
+      context.riskAssessment.evaluations.map((evaluation) => [evaluation.roman, evaluation.heading])
+    ).toEqual([
+      ['I', 'LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL'],
+      ['II', 'POSTUL DE LUCRU: SUDOR'],
+      [
+        'III',
+        'GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)',
+      ],
+    ]);
+    expect(context.riskAssessment.globalLevel).toBe('3,15');
   });
 });
 

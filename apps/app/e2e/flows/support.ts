@@ -4,6 +4,12 @@ import { readFile } from 'node:fs/promises';
 import { expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
+import {
+  type RiskEvaluationFixture,
+  sensitiveGroupsEvaluation,
+  workshopEvaluation,
+} from '../../../api/src/modules/documents/risk-evaluations.fixture';
+
 // Fixtures are written with the local stack's secret key, the way the seed script does it.
 const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -160,6 +166,94 @@ export async function completeDocumentData(
     },
     moduleId
   );
+  // Generating waits for every post and the sensitive groups to be evaluated (ADR 015).
+  await evaluateRisks(organizationId, clientId);
+}
+
+async function insertEvaluation(
+  owner: { organization_id: string; client_id: string },
+  evaluation: Record<string, unknown>,
+  fixture: RiskEvaluationFixture
+) {
+  const created = await admin
+    .from('risk_evaluations')
+    .insert({
+      ...owner,
+      ...evaluation,
+      means_of_production: fixture.meansOfProduction,
+      work_environment: fixture.workEnvironment,
+      exposure: fixture.exposure,
+    })
+    .select('id')
+    .single();
+  if (created.error) throw created.error;
+  for (const [index, factor] of fixture.factors.entries()) {
+    const saved = await admin
+      .from('risk_factors')
+      .insert({
+        ...owner,
+        evaluation_id: created.data.id,
+        component: factor.component,
+        factor_group: factor.group,
+        description: factor.description,
+        gravity_class: factor.gravityClass,
+        probability_class: factor.probabilityClass,
+        actions: factor.actions,
+        deadline: factor.deadline,
+        responsible_person: factor.responsiblePerson,
+        observations: factor.observations,
+        sort_order: index,
+      })
+      .select('id')
+      .single();
+    if (saved.error) throw saved.error;
+    if (factor.measures.length === 0) continue;
+    const measures = await admin.from('prevention_measures').insert(
+      factor.measures.map((measure, order) => ({
+        ...owner,
+        factor_id: saved.data.id,
+        kind: measure.kind,
+        description: measure.description,
+        sort_order: order,
+      }))
+    );
+    if (measures.error) throw measures.error;
+  }
+}
+
+export async function evaluateRisks(organizationId: string, clientId: string) {
+  const owner = { organization_id: organizationId, client_id: clientId };
+  const positions = await admin
+    .from('job_positions')
+    .select('id')
+    .eq('client_id', clientId)
+    .is('archived_at', null);
+  if (positions.error) throw positions.error;
+  const existing = await admin
+    .from('risk_evaluations')
+    .select('kind, job_position_id')
+    .eq('client_id', clientId);
+  if (existing.error) throw existing.error;
+  const evaluated = new Set(existing.data.map((row) => row.job_position_id));
+  for (const position of positions.data) {
+    if (evaluated.has(position.id)) continue;
+    await insertEvaluation(
+      owner,
+      { kind: 'job_position', job_position_id: position.id },
+      workshopEvaluation
+    );
+  }
+  if (!existing.data.some((row) => row.kind === 'sensitive_groups')) {
+    await insertEvaluation(
+      owner,
+      {
+        kind: 'sensitive_groups',
+        work_task: sensitiveGroupsEvaluation.workTask,
+        exposed_persons: sensitiveGroupsEvaluation.exposedPersons,
+      },
+      sensitiveGroupsEvaluation
+    );
+  }
 }
 
 const moduleFixture = new URL(
@@ -311,6 +405,8 @@ export async function cleanUp() {
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
+    // Their factors and measures go with them; a position's would go with the position.
+    await admin.from('risk_evaluations').delete().eq('organization_id', id);
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);

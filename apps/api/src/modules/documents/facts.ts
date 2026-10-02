@@ -1,12 +1,15 @@
-import type {
-  EquipmentAllocation,
-  ResponsiblePersonRole,
-  StaffCategory,
+import {
+  type CountyCode,
+  countyNames,
+  type EquipmentAllocation,
+  type ResponsiblePersonRole,
+  type StaffCategory,
 } from '@ssm-usor/contracts';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { DocumentFacts } from './context';
+import type { RiskEvaluationFacts } from './risk-assessment';
 import { snapshotAnnexes } from './snapshot';
 
 // Row-level security scopes every query to the caller's organization.
@@ -34,12 +37,14 @@ export async function loadDocumentFacts(
     generatedDecision,
     positions,
     ownInstructions,
+    workplaces,
+    riskEvaluations,
     ...employeeCounts
   ] = await Promise.all([
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, archived_at'
+        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, archived_at'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -73,10 +78,13 @@ export async function loadDocumentFacts(
     db
       .from('job_positions')
       .select(
-        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
+        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
+      // Embedded filters narrow the embedded employees to the current ones, not the positions.
+      .eq('employees.status', 'active')
+      .is('employees.archived_at', null)
       .order('name')
       .order('id')
       .order('created_at', { referencedTable: 'job_position_equipment' })
@@ -85,6 +93,14 @@ export async function loadDocumentFacts(
       .order('number', { referencedTable: moduleVersionsPath, ascending: false })
       .limit(1, { referencedTable: moduleVersionsPath }),
     loadOwnInstructions(db, clientId),
+    db
+      .from('client_workplaces')
+      .select('name, is_registered_office, county_code, locality, address_line')
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      .order('name')
+      .order('id'),
+    loadRiskEvaluations(db, clientId),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -108,6 +124,7 @@ export async function loadDocumentFacts(
     throw fromDatabaseError(generatedDecision.error, 'document facts: generated decision 1.5');
   }
   if (positions.error) throw fromDatabaseError(positions.error, 'document facts: job positions');
+  if (workplaces.error) throw fromDatabaseError(workplaces.error, 'document facts: workplaces');
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
   }
@@ -137,7 +154,16 @@ export async function loadDocumentFacts(
       trainingFirstMonth: client.data.training_first_month,
       trainingDayFrom: client.data.training_day_from,
       trainingDayTo: client.data.training_day_to,
+      caenCode: client.data.caen_code,
     },
+    workplaces: workplaces.data.map((workplace) => ({
+      name: workplace.name,
+      registeredOffice: workplace.is_registered_office,
+      county: workplace.county_code ? countyNames[workplace.county_code as CountyCode] : null,
+      countyCode: workplace.county_code,
+      locality: workplace.locality,
+      addressLine: workplace.address_line,
+    })),
     responsiblePersons: persons.data.map((person) => ({
       fullName: person.full_name,
       jobTitle: person.job_title,
@@ -151,6 +177,7 @@ export async function loadDocumentFacts(
       staffCategory: position.staff_category,
       workZone: position.work_zone,
       activities: position.activities,
+      currentEmployeeCount: position.employees.length,
       trainingIntervalMonths: position.training_interval_months,
       needsProtectiveEquipment: position.needs_protective_equipment,
       needsInstructions: position.needs_instructions,
@@ -179,7 +206,52 @@ export async function loadDocumentFacts(
     currentEmployeeCount: headcount.count ?? 0,
     workersRepresentativeDecisionGenerated: (generatedDecision.count ?? 0) > 0,
     ownInstructions,
+    riskEvaluations,
   };
+}
+
+const bySortOrder = (
+  a: { sort_order: number; id: string },
+  b: { sort_order: number; id: string }
+) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
+
+export async function loadRiskEvaluations(
+  db: DataClient,
+  clientId: string
+): Promise<RiskEvaluationFacts[]> {
+  const { data, error } = await db
+    .from('risk_evaluations')
+    .select(
+      'id, kind, job_position_id, name, means_of_production, work_environment, exposure, work_task, exposed_persons, risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, prevention_measures(id, kind, description, sort_order))'
+    )
+    .eq('client_id', clientId);
+  if (error) throw fromDatabaseError(error, 'document facts: risk evaluations');
+  return data.map((evaluation) => ({
+    id: evaluation.id,
+    kind: evaluation.kind,
+    jobPositionId: evaluation.job_position_id,
+    name: evaluation.name,
+    meansOfProduction: evaluation.means_of_production,
+    workEnvironment: evaluation.work_environment,
+    exposure: evaluation.exposure,
+    workTask: evaluation.work_task,
+    exposedPersons: evaluation.exposed_persons,
+    factors: [...evaluation.risk_factors].sort(bySortOrder).map((factor) => ({
+      component: factor.component,
+      group: factor.factor_group,
+      description: factor.description,
+      gravityClass: factor.gravity_class,
+      probabilityClass: factor.probability_class,
+      measures: [...factor.prevention_measures].sort(bySortOrder).map((measure) => ({
+        kind: measure.kind,
+        description: measure.description,
+      })),
+      actions: factor.actions,
+      deadline: factor.deadline,
+      responsiblePerson: factor.responsible_person,
+      observations: factor.observations,
+    })),
+  }));
 }
 
 /**

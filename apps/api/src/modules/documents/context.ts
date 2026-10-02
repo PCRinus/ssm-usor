@@ -8,12 +8,20 @@ import {
   type MissingDocumentData,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
+  type RiskEvaluationGap,
   samePersonName,
   type StaffCategory,
   trainingMonths,
-  unfilledMark,
 } from '@ssm-usor/contracts';
 
+import {
+  incompleteRiskEvaluations,
+  riskAssessment,
+  type RiskAssessmentContext,
+  type RiskEvaluationFacts,
+  unitRisks,
+  type WorkplaceFacts,
+} from './risk-assessment';
 import {
   monthNames,
   type OwnInstructionsRevision,
@@ -49,7 +57,9 @@ export type DocumentFacts = {
     trainingFirstMonth: number | null;
     trainingDayFrom: number | null;
     trainingDayTo: number | null;
+    caenCode: string | null;
   };
+  workplaces: WorkplaceFacts[];
   /** In the order they should be printed. */
   responsiblePersons: {
     fullName: string;
@@ -65,6 +75,7 @@ export type DocumentFacts = {
     staffCategory: StaffCategory;
     workZone: string | null;
     activities: string | null;
+    currentEmployeeCount: number;
     /** The post's own interval, or null for the client's interval of its category. */
     trainingIntervalMonths: number | null;
     /** Null until decided; false when the post needs none; true while it has entries (ADR 011). */
@@ -93,6 +104,8 @@ export type DocumentFacts = {
   workersRepresentativeDecisionGenerated: boolean;
   /** What the training themes cite; null until the own instructions are generated (ADR 014). */
   ownInstructions: OwnInstructionsRevision | null;
+  /** Every evaluation of the client, archived positions' included (ADR 015). */
+  riskEvaluations: RiskEvaluationFacts[];
 };
 
 type Person = { name: string; jobTitle: string };
@@ -156,6 +169,9 @@ export type DocumentContext = {
     dayTo: number;
   };
   unitRisks: { risk: string; measure: string }[];
+  hasUnitRisks: Record<string, never>[];
+  noUnitRisks: Record<string, never>[];
+  riskAssessment: RiskAssessmentContext;
   /** Every current position, for the table of posts; then only the ones with equipment. */
   positions: PositionContext[];
   equippedPositions: PositionContext[];
@@ -241,6 +257,12 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     typeKey === 'decision_workers_representative' ? 1 : 0
   );
   const representatives = currentWorkersRepresentatives(facts);
+  const incomplete = incompleteRiskEvaluations(facts.riskEvaluations, facts.jobPositions);
+  const lacks = (kind: 'job_position' | 'sensitive_groups' | null, gap: RiskEvaluationGap) =>
+    incomplete.some(
+      (evaluation) =>
+        (kind === null || evaluation.kind === kind) && evaluation.missing.includes(gap)
+    );
   const checks: [MissingDocumentData, boolean][] = [
     ['provider.legalName', filled(organization.legalName)],
     ['provider.representativeName', filled(organization.representativeName)],
@@ -269,6 +291,10 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     ['positions.any', facts.jobPositions.length > 0],
     ['positions.equipment', undecidedJobPositions(facts, 'equipment').length === 0],
     ['positions.instructions', undecidedJobPositions(facts, 'instructions').length === 0],
+    ['positions.risk_evaluation', !lacks('job_position', 'factors')],
+    ['risk_evaluations.sensitive_groups', !lacks('sensitive_groups', 'factors')],
+    ['risk_evaluations.measures', !lacks(null, 'measures')],
+    ['risk_evaluations.plan', !lacks(null, 'plan')],
     ['documents.own_instructions', typeKey !== 'training_themes' || facts.ownInstructions !== null],
   ];
   return checks.filter(([, present]) => !present).map(([code]) => code);
@@ -366,6 +392,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
   const annexes = annexedModules(facts);
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
+  const risks = unitRisks(facts.riskEvaluations, facts.jobPositions);
   return {
     branding: facts.branding ? [{}] : [],
     issueDate: printedDate(facts.issueDate),
@@ -426,9 +453,16 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       dayFrom: client.trainingDayFrom!,
       dayTo: client.trainingDayTo!,
     },
-    // The unit's own risks come from the risk assessment, which is not in the app yet: the
-    // chapter is generated as a row to fill in by hand (ADR 005).
-    unitRisks: [{ risk: unfilledMark, measure: unfilledMark }],
+    unitRisks: risks,
+    hasUnitRisks: risks.length > 0 ? [{}] : [],
+    noUnitRisks: risks.length === 0 ? [{}] : [],
+    riskAssessment: riskAssessment({
+      evaluations: facts.riskEvaluations,
+      positions: facts.jobPositions,
+      caenCode: client.caenCode,
+      workplaces: facts.workplaces,
+      currentEmployeeCount: facts.currentEmployeeCount,
+    }),
     positions,
     equippedPositions: positions.filter((position) => position.equipment.length > 0),
     annexes,

@@ -141,6 +141,28 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set with `moduleIds`                                                                        |
 | `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules                                                                         |
 | `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
+| `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                             |
+| `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                   |
+| `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                             |
+| `PATCH …/risk-evaluations/{evaluationId}`                              | Verified user with a membership       | `{ "evaluation": { … } }` after changing its work system texts or name                                                    |
+| `DELETE …/risk-evaluations/{evaluationId}`                             | Verified user with a membership       | `204`, with its factors                                                                                                   |
+| `POST …/risk-evaluations/{evaluationId}/factors`                       | Verified user with a membership       | `201 { "evaluation": { … } }` after adding a factor with its measures                                                     |
+| `PUT …/risk-evaluations/{evaluationId}/factors/{factorId}`             | Verified user with a membership       | `{ "evaluation": { … } }` after replacing a factor and its measures                                                       |
+| `DELETE …/risk-evaluations/{evaluationId}/factors/{factorId}`          | Verified user with a membership       | `{ "evaluation": { … } }` after removing a factor                                                                         |
+| `PUT …/risk-evaluations/{evaluationId}/factor-order`                   | Verified user with a membership       | `{ "evaluation": { … } }` after reordering the factors by `factorIds`                                                     |
+| `POST …/risk-evaluations/{evaluationId}/factors/copy`                  | Verified user with a membership       | `{ "evaluation": { … } }` after adding another evaluation's factors                                                       |
+| `GET …/job-positions/{jobPositionId}/risk-evaluation`                  | Verified user with a membership       | `{ "evaluation": { … } }`, the position's evaluation, or `null`                                                           |
+| `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                  |
+| `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                          |
+| `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                  |
+| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts and global levels                                             |
+| `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                    |
+| `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its factors, measures, levels and global level                                                |
+| `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming it                                                                                  |
+| `DELETE /evaluation-profiles/{profileId}`                              | Verified user with a membership       | `204`, with its factors; the copies in evaluations stay                                                                   |
+| `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                        |
+| `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                          |
+| `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                            |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -348,6 +370,60 @@ another client. `PATCH …/instructions-decision` takes `needsInstructions: fals
 modules are applied `409` with `instructions_applied`. Job positions carry
 `needsInstructions` and `instructionCount` in every response.
 
+Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)) belong to the client.
+`POST …/risk-evaluations` takes a `kind`: `job_position` with a `jobPositionId` (a current
+position of the client, or `400` on `jobPositionId`), `sensitive_groups`, or `other` with a
+`name`; and optionally `meansOfProduction`, `workEnvironment` and `exposure`, which defaults
+to "8 h / schimb". An evaluation that is not of a position also takes `workTask` and
+`exposedPersons` ("Min. 3 persoane"), which a position's evaluation reads from the position;
+sent for one, they answer `400` on the field. A second evaluation of a position or of the
+sensitive groups answers `409` with `risk_evaluation_exists`, a name the client already uses
+`409` with `risk_evaluation_name_taken`. `PATCH` changes the fields sent, `null` clearing an
+optional text; a `name` for an evaluation that is not `other`, or a `workTask` or
+`exposedPersons` for a position's, answers `400`. `GET …/risk-evaluations` lists
+the evaluations of current positions in name order, then the sensitive groups, then the
+others by name, each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
+`GET …/job-positions/{jobPositionId}/risk-evaluation` reads a position's evaluation by the
+position, `null` until one is started.
+
+An evaluation is read whole: its factors in their order, each with `component`, `group`,
+`description`, `gravityClass` (1–7), `probabilityClass` (1–6), the plan fields `actions`,
+`deadline`, `responsiblePerson` and `observations`, its `measures` (`kind`: `technical`,
+`organizational`, `hygienic_sanitary` or `other`, and a `description`) in their order, and
+`riskLevel` from the method's grid; and the evaluation's `globalRiskLevel`, Σ R² / Σ R to two
+decimals, null without factors. Levels are computed, never stored or sent; the SPA computes
+the rest (unacceptable factors, shares per component, the consequence of a gravity class)
+with the same module, `@ssm-usor/contracts`' `risk-levels`. Every change to the factors
+answers with the whole evaluation, since the global level moves with each. `POST …/factors`
+adds a factor after the others and `PUT …/factors/{factorId}` replaces one; both carry the
+factor's `measures`, which replace its old ones in one transaction. `PUT …/factor-order`
+takes `factorIds`, every factor of the evaluation once, or `400` on `factorIds`. `POST
+…/factors/copy` adds copies of the factors of `fromEvaluationId`, another evaluation of the
+same client, after the factors already there, with `400` on `fromEvaluationId` for the
+evaluation itself or one of another client. `GET /risk-factor-suggestions` returns, for
+`field` `group`, `actions`, `deadline`, `responsiblePerson` or `observations`, what the
+organization typed before, in its evaluations and in its risk library alike, as the equipment
+suggestions do. A write under an archived client answers `409` with `client_archived`.
+
+The risk library is the organization's evaluation profiles, each a `name` and factors exactly
+like an evaluation's. `GET /evaluation-profiles` lists them by name without their factors,
+each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`; `GET
+/evaluation-profiles/{profileId}` reads one whole, as an evaluation is read. `POST
+/evaluation-profiles` starts an empty one by `name` and `PATCH` renames it; a name the
+library already holds, ignoring case and the spaces around it, answers `409` with
+`evaluation_profile_name_taken` on `name`. `DELETE` removes a profile with its factors;
+nothing refers to a profile, so there is no archive. `POST …/factors`, `PUT
+…/factors/{factorId}` and `DELETE …/factors/{factorId}` take the bodies an evaluation's
+factor routes take (`RiskFactorRequest`) and answer with the whole profile. Two routes join
+an evaluation and the library, and nothing links what they copy: `POST
+/clients/{clientId}/risk-evaluations/{evaluationId}/save-as-profile` takes a `name` and
+answers `201` with a new profile holding copies of the evaluation's factors (its work system
+texts stay behind), also for an archived client's evaluation; `POST
+…/risk-evaluations/{evaluationId}/factors/apply-profile` takes a `profileId` and answers with
+the evaluation, the profile's factors copied after its own, and `addedFactorCount`. A profile
+outside the library answers `400` on `profileId`, an archived client `409` with
+`client_archived`.
+
 A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
 keeps about a client or a lead without the app writing or reading them; a lead uses the same
 routes. `GET /clients/{clientId}/files` lists the files the caller can see: a specialist is
@@ -525,7 +601,15 @@ role nobody holds, `positions.any` for a client without a current position,
 ([ADR 011](architecture/adr-011-protective-equipment.md)), and `positions.instructions` while
 one is undecided about the instruction modules it applies
 ([ADR 012](architecture/adr-012-own-instructions.md)); `undecidedJobPositions` names those,
-so the form can send someone to each. Generating the training themes again also needs an own
+so the form can send someone to each. The risk evaluations
+([ADR 015](architecture/adr-015-risk-assessment.md)) add four: `positions.risk_evaluation`
+while a current position has no evaluation or one without a factor,
+`risk_evaluations.sensitive_groups` likewise for the sensitive groups,
+`risk_evaluations.measures` while an unacceptable factor (level above 3) has no prevention
+measure, and `risk_evaluations.plan` while a factor with measures lacks its deadline or its
+person responsible. `incompleteRiskEvaluations` names the evaluations behind them, each with
+`evaluationId` (null for one not started), `kind`, `jobPositionId`, `name` and `missing`, a
+list of `factors`, `measures` and `plan`. Generating the training themes again also needs an own
 instructions revision to cite, `documents.own_instructions`
 ([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
 the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
@@ -584,11 +668,10 @@ document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
 the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. Two of them are `uploadedDocumentTypes`, which the app cannot write until stage 3
-is done (the risk assessment and the prevention plan; the protective equipment list, the own
-instructions and the training themes are generated since ADR 011, ADR 012 and ADR 014): for those the upload is how the document comes to exist, as
-revision 1 in draft under the title its template will carry, so a client's set can be
-complete today. For a document that exists, the file replaces the draft, or starts the next
+its order. A type in `uploadedDocumentTypes`, one the app cannot write, would come to exist
+by its upload, as revision 1 in draft under the title its template will carry; there is none
+left since the risk assessment and the prevention plan are generated (ADR 015), the last of
+the pack. For a document that exists, the file replaces the draft, or starts the next
 draft beside the issued revision, keeping the generation and so the date. An uploaded
 revision has no template and no data snapshot, so it never reports `dataChanged`, and it
 cannot be regenerated. A generated type that does not exist yet answers `409` with the reason

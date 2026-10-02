@@ -10,9 +10,11 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+  getGetJobPositionRiskEvaluationQueryKey,
   getListEquipmentQueryKey,
   getListJobPositionsQueryKey,
   getListPositionInstructionsQueryKey,
+  useGetJobPositionRiskEvaluation,
   useListEquipment,
   useListJobPositions,
   useListPositionInstructions,
@@ -23,6 +25,7 @@ import { EditAction, Fact, FactList, SectionCard } from '@/components/section-ca
 import { useAuth } from '@/features/auth/auth-context';
 import { PositionInstructionsCard } from '@/features/instructions/position-instructions-card';
 import { EquipmentCard } from '@/features/protective-equipment/equipment-card';
+import { PositionRiskEvaluationCard } from '@/features/risk-evaluations/position-risk-evaluation-card';
 
 import { JobPositionDialog } from './job-position-dialog';
 import { JobPositionPending } from './job-position-pending';
@@ -38,6 +41,7 @@ const sectionLinks = [
   { hash: positionSections.details, label: 'Postul' },
   { hash: positionSections.equipment, label: 'Echipament de protecție' },
   { hash: positionSections.instructions, label: 'Instrucțiuni' },
+  { hash: positionSections.riskEvaluation, label: 'Evaluare de risc' },
 ] as const;
 
 export function JobPositionPage() {
@@ -64,9 +68,21 @@ export function JobPositionPage() {
       enabled,
     },
   });
+  const riskEvaluation = useGetJobPositionRiskEvaluation(clientId, jobPositionId, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getGetJobPositionRiskEvaluationQueryKey(clientId, jobPositionId), userId],
+      enabled,
+    },
+  });
   const [editing, setEditing] = useState(false);
   const position = positions.data?.items.find((item) => item.id === jobPositionId);
-  useScrollToHash(Boolean(position) && !equipment.isPending && !instructions.isPending);
+  useScrollToHash(
+    Boolean(position) &&
+      !equipment.isPending &&
+      !instructions.isPending &&
+      !riskEvaluation.isPending
+  );
   if (!position) return positions.data ? <JobPositionNotFound /> : <JobPositionPending />;
 
   return (
@@ -148,6 +164,13 @@ export function JobPositionPage() {
       />
       <PositionInstructionsCard
         id={positionSections.instructions}
+        clientId={clientId}
+        position={position}
+        userId={userId}
+        readOnly={readOnly}
+      />
+      <PositionRiskEvaluationCard
+        id={positionSections.riskEvaluation}
         clientId={clientId}
         position={position}
         userId={userId}

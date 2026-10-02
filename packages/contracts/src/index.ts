@@ -12,6 +12,7 @@ export * from './cui';
 export * from './document-data';
 export * from './documents';
 export * from './employees';
+export * from './evaluation-profiles';
 export * from './iban';
 export * from './instruction-modules';
 export * from './invitations';
@@ -22,6 +23,8 @@ export * from './organizations';
 export * from './pdf';
 export * from './profile';
 export * from './protective-equipment';
+export * from './risk-evaluations';
+export * from './risk-levels';
 export * from './service-contracts';
 export * from './waitlist';
 

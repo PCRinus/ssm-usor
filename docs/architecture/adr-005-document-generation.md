@@ -73,7 +73,7 @@ As built ([PDF Worker](../pdf.md)): the container belongs to a Worker of its own
 
 ### Stages and order of work
 
-Stage 1 covers the names-and-dates files, with the first decision and the general training material as described. Stage 2 adds the files driven by job titles, which need job titles per client and the activity modules. Stage 3 is the risk assessment and the prevention plan, a module with its own ADR; until then the user uploads a risk assessment written elsewhere, so the set is complete.
+Stage 1 covers the names-and-dates files, with the first decision and the general training material as described. Stage 2 adds the files driven by job titles, which need job titles per client and the activity modules. Stage 3 is the risk assessment and the prevention plan, a module with its own ADR; until then the user uploads a risk assessment written elsewhere, so the set is complete. (Amended by [ADR 015](adr-015-risk-assessment.md): the assessment and the plan are generated from risk evaluations recorded per job position by the I.N.C.D.P.M. method, with the organization's own library of evaluated posts.)
 
 Stage 1 is built in this order:
 

@@ -13,9 +13,11 @@ import {
   seedProfessionalTitle,
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
+import { seedEvaluationProfiles } from './lib/seed-evaluation-profiles';
 import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
+import { seedRiskEvaluations } from './lib/seed-risk-evaluations';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
@@ -125,6 +127,12 @@ try {
     console.log(
       `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} to posts and decided ${instructions.decided} need none, where undecided.`
     );
+    const evaluations = await seedRiskEvaluations(client, organization.id, user.id);
+    console.log(
+      `Evaluated the risks of ${evaluations.positions} posts and the sensitive groups of ${evaluations.sensitiveGroups} clients, where they were not evaluated.`
+    );
+    const profiles = await seedEvaluationProfiles(client, organization.id, user.id);
+    console.log(`Added ${profiles} evaluation profiles to the risk library, where missing.`);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'The seed failed.');

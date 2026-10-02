@@ -140,6 +140,10 @@ describe('typesetting', () => {
     expect(codes.filter((code) => /PAGE/.test(code) && /\\\*/.test(code))).toEqual([]);
   });
 
+  it.each(templateFiles)('%s numbers its pages through, without a restart', (name) => {
+    expect(bodyOf(name)).not.toMatch(/<w:pgNumType\b[^>]*w:start=/);
+  });
+
   it.each(templateFiles)(
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {
@@ -679,5 +683,70 @@ describe('training_themes', () => {
     expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
     expect(text).toContain('{{#sessions}}{{month}}');
     expect(text).toContain('IPSSM Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
+  });
+});
+
+describe('risk_assessment', () => {
+  const text = documentText(read('9_risk_assessment.docx'));
+
+  it("prints nothing of the first client's posts, levels or premises", () => {
+    expect(text).not.toMatch(
+      /MANAGER MAGAZIN|Manager magazin|GELATERIE|BARMAN|VIZITATOR|5630|Calea Victoriei|Vestiarele|Stingător P6|2,40|2,55/
+    );
+  });
+
+  it('repeats a subchapter per evaluation, and a contents row for each', () => {
+    expect(templatePlaceholders(read('9_risk_assessment.docx'))).toEqual(
+      expect.arrayContaining([
+        'riskAssessment.evaluations',
+        'components',
+        'groups',
+        'factors',
+        'sheet',
+        'unacceptable',
+        'ranked',
+        'riskAssessment.globalLevel',
+        'workersRepresentatives',
+      ])
+    );
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(3);
+    expect(text).toContain('{{#sheet}}{{component}}');
+    expect(text).toContain('SUBCAPITOLUL V.{{roman}}.');
+    expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
+  });
+
+  it('says when the assessment is reviewed, in the words of H.G. 1425/2006', () => {
+    expect(text).toContain(
+      'ori de câte ori intervin modificări ale condițiilor de muncă, respectiv la apariția unor riscuri noi și în urma producerii unui eveniment'
+    );
+  });
+});
+
+describe('prevention_plan', () => {
+  const text = documentText(read('10_prevention_plan.docx'));
+
+  it("prints nothing of the first client's posts or measures", () => {
+    expect(text).not.toMatch(
+      /MANAGER MAGAZIN|GELATERIE|BARMAN|VIZITATOR|P\.R\.A\.M\.|Cond\. loc muncă|Periodic/
+    );
+  });
+
+  it('repeats a table of the columns of annex 7 per evaluation, or a sentence without measures', () => {
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(1);
+    expect(text).toContain('{{#plan}}{{$index}}.');
+    expect(text).toContain('{{#noPlan}}');
+    for (const column of [
+      'Riscuri evaluate',
+      'Măsuri tehnice',
+      'Măsuri organizatorice',
+      'Măsuri igienico-sanitare',
+      'Măsuri de altă natură',
+      'Acțiuni în scopul realizării măsurii',
+      'Termen de realizare',
+      'Persoana care răspunde de realizarea măsurii',
+      'Observații',
+    ]) {
+      expect(text).toContain(column);
+    }
   });
 });

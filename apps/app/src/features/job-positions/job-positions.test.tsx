@@ -82,6 +82,8 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
+    if (pathname === `/clients/${clientId}/risk-evaluations`) return Response.json({ items: [] });
+    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
     if (pathname.endsWith('/equipment')) {
       return Response.json({ items: [], needsProtectiveEquipment: null });
     }
@@ -224,6 +226,7 @@ describe("a client's job positions", () => {
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
       'Instrucțiuni',
+      'Evaluare de risc',
       'Modifică',
       'Șterge',
     ]);
@@ -441,6 +444,7 @@ describe("a client's job positions", () => {
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
       'Instrucțiuni',
+      'Evaluare de risc',
     ]);
   });
 

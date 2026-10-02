@@ -1,4 +1,9 @@
 import type { DocumentFacts } from './context';
+import {
+  officeEvaluation,
+  sensitiveGroupsEvaluation,
+  workshopEvaluation,
+} from './risk-evaluations.fixture';
 
 export const facts: DocumentFacts = {
   issueDate: '2026-01-19',
@@ -22,7 +27,26 @@ export const facts: DocumentFacts = {
     trainingFirstMonth: 2,
     trainingDayFrom: 2,
     trainingDayTo: 7,
+    caenCode: '2562',
   },
+  workplaces: [
+    {
+      name: 'Atelier Ghiroda',
+      registeredOffice: false,
+      county: 'Timiș',
+      countyCode: 'TM',
+      locality: 'Ghiroda',
+      addressLine: 'Str. Industriilor 4',
+    },
+    {
+      name: 'Sediul social',
+      registeredOffice: true,
+      county: 'București',
+      countyCode: 'B',
+      locality: 'Sector 1',
+      addressLine: 'Calea Victoriei 122A',
+    },
+  ],
   responsiblePersons: [
     {
       fullName: 'Florin Cristian TALOȘ',
@@ -44,6 +68,7 @@ export const facts: DocumentFacts = {
       staffCategory: 'technical_administrative',
       workZone: 'Birou',
       activities: null,
+      currentEmployeeCount: 1,
       trainingIntervalMonths: null,
       needsProtectiveEquipment: false,
       needsInstructions: true,
@@ -67,6 +92,7 @@ export const facts: DocumentFacts = {
       staffCategory: 'execution',
       workZone: null,
       activities: 'Sudură electrică și autogenă.',
+      currentEmployeeCount: 5,
       trainingIntervalMonths: 2,
       needsProtectiveEquipment: true,
       needsInstructions: true,
@@ -138,4 +164,31 @@ export const facts: DocumentFacts = {
       },
     ],
   },
+  riskEvaluations: [
+    {
+      id: 'e0e0e0e0-0000-4000-8000-000000000003',
+      kind: 'sensitive_groups',
+      jobPositionId: null,
+      name: null,
+      ...sensitiveGroupsEvaluation,
+    },
+    {
+      id: 'e0e0e0e0-0000-4000-8000-000000000002',
+      kind: 'job_position',
+      jobPositionId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+      name: null,
+      ...workshopEvaluation,
+      workTask: null,
+      exposedPersons: null,
+    },
+    {
+      id: 'e0e0e0e0-0000-4000-8000-000000000001',
+      kind: 'job_position',
+      jobPositionId: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+      name: null,
+      ...officeEvaluation,
+      workTask: null,
+      exposedPersons: null,
+    },
+  ],
 };

@@ -9,19 +9,22 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluations.fixture';
 
 // The engine is tested in its own package, against the real templates. Here it prints the
-// client, a decision's number, and the training themes whenever there are any, and a file's
-// text is its bytes read as text.
+// client, a decision's number, and the training themes whenever there are any; the template
+// whose file starts with 7 also prints the risk evaluations. A file's text is its bytes read
+// as text.
 vi.mock('@ssm-usor/document-engine', () => ({
   TemplateError: class TemplateError extends Error {},
   documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
-  renderTemplate: (_template: Uint8Array, data: Record<string, unknown>) => ({
+  renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => ({
     document: new Uint8Array([80, 75, 3, 4]),
     usedNames: [
       'client',
       ...('decisionNumber' in data ? ['decisionNumber'] : []),
       ...('themes' in data ? ['themes'] : []),
+      ...(template[0] === 7 ? ['riskAssessment', 'unitRisks'] : []),
     ],
   }),
 }));
@@ -111,6 +114,7 @@ const positionRow = {
   training_interval_months: null,
   needs_protective_equipment: true,
   needs_instructions: true,
+  employees: [{ id: '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e' }],
   job_position_instructions: [
     {
       module_id: 'a0a0a0a0-0000-4000-8000-000000000001',
@@ -139,6 +143,66 @@ const positionRow = {
     },
   ],
 };
+const workplaceRow = {
+  name: 'Sediul social',
+  is_registered_office: true,
+  county_code: 'TM',
+  locality: 'Timișoara',
+  address_line: 'Str. Lungă 5',
+};
+
+const evaluationRow = (
+  id: string,
+  kind: string,
+  jobPositionId: string | null,
+  fixture: typeof workshopEvaluation & { workTask?: string; exposedPersons?: string }
+) => ({
+  id,
+  kind,
+  job_position_id: jobPositionId,
+  name: null,
+  means_of_production: fixture.meansOfProduction,
+  work_environment: fixture.workEnvironment,
+  exposure: fixture.exposure,
+  work_task: fixture.workTask ?? null,
+  exposed_persons: fixture.exposedPersons ?? null,
+  // Stored out of order: the facts sort by `sort_order`.
+  risk_factors: fixture.factors
+    .map((factor, index) => ({
+      id: `factor-${index}`,
+      component: factor.component,
+      factor_group: factor.group,
+      description: factor.description,
+      gravity_class: factor.gravityClass,
+      probability_class: factor.probabilityClass,
+      actions: factor.actions,
+      deadline: factor.deadline,
+      responsible_person: factor.responsiblePerson,
+      observations: factor.observations,
+      sort_order: index,
+      prevention_measures: factor.measures.map((measure, order) => ({
+        id: `measure-${index}-${order}`,
+        ...measure,
+        sort_order: order,
+      })),
+    }))
+    .reverse(),
+});
+const evaluationRows = [
+  evaluationRow(
+    'e0e0e0e0-0000-4000-8000-000000000100',
+    'sensitive_groups',
+    null,
+    sensitiveGroupsEvaluation
+  ),
+  evaluationRow(
+    'e0e0e0e0-0000-4000-8000-000000000200',
+    'job_position',
+    positionRow.id,
+    workshopEvaluation
+  ),
+];
+
 const documentRow = {
   id: documentId,
   client_id: clientId,
@@ -184,7 +248,9 @@ type Upstream =
   | 'upload'
   | 'signedCopies'
   | 'moduleVersions'
-  | 'ownInstructions';
+  | 'ownInstructions'
+  | 'workplaces'
+  | 'riskEvaluations';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -204,7 +270,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       }
       // Files are read through the link just signed.
       if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
-        return new Response(new Uint8Array([1, 2, 3]));
+        return new Response(
+          new Uint8Array(url.pathname.includes('/general_training_material/') ? [7, 7] : [1, 2, 3])
+        );
       }
       if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
         return new Response(new Uint8Array([9, 9]));
@@ -235,6 +303,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         );
       case '/rest/v1/job_positions':
         return handlers.positions?.(init, url) ?? Response.json([positionRow]);
+      case '/rest/v1/client_workplaces':
+        return handlers.workplaces?.() ?? Response.json([workplaceRow]);
+      case '/rest/v1/risk_evaluations':
+        return handlers.riskEvaluations?.() ?? Response.json(evaluationRows);
       case '/rest/v1/client_documents':
         if (method === 'HEAD') {
           return (
@@ -327,12 +399,19 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       currentEmployeeCount: 1,
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
+      incompleteRiskEvaluations: [],
     });
     const positions = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
       .find((url) => url.pathname === '/rest/v1/job_positions')!;
     expect(positions.searchParams.get('archived_at')).toBe('is.null');
     expect(positions.searchParams.get('order')).toBe('name.asc,id.asc');
+    expect(positions.searchParams.get('employees.status')).toBe('eq.active');
+    expect(positions.searchParams.get('employees.archived_at')).toBe('is.null');
+    const evaluations = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.pathname === '/rest/v1/risk_evaluations')!;
+    expect(evaluations.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     const persons = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
       .find((url) => url.pathname === '/rest/v1/client_responsible_persons')!;
@@ -361,6 +440,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       currentEmployeeCount: 1,
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
+      incompleteRiskEvaluations: [],
     });
   });
 
@@ -383,7 +463,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       ready: false,
-      missing: ['positions.equipment', 'positions.instructions'],
+      missing: ['positions.equipment', 'positions.instructions', 'positions.risk_evaluation'],
       undecidedJobPositions: [
         {
           id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
@@ -397,6 +477,52 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await none.json()).missing).toEqual([
       'positions.any',
     ]);
+  });
+
+  it('names the evaluations that are missing or incomplete', async () => {
+    const [groups, sudor] = evaluationRows;
+    mockUpstream({
+      riskEvaluations: () =>
+        Response.json([
+          {
+            ...sudor,
+            risk_factors: sudor!.risk_factors.map((factor) => ({
+              ...factor,
+              responsible_person: null,
+              prevention_measures: [],
+            })),
+          },
+        ]),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
+      ready: false,
+      missing: ['risk_evaluations.sensitive_groups', 'risk_evaluations.measures'],
+      incompleteRiskEvaluations: [
+        {
+          evaluationId: sudor!.id,
+          kind: 'job_position',
+          jobPositionId: positionRow.id,
+          name: 'Sudor',
+          missing: ['measures'],
+        },
+        {
+          evaluationId: null,
+          kind: 'sensitive_groups',
+          jobPositionId: null,
+          name: 'Grupuri sensibile la riscuri specifice',
+          missing: ['factors'],
+        },
+      ],
+    });
+    mockUpstream({ riskEvaluations: () => Response.json([groups]) });
+    const unevaluated = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await unevaluated.json())).toMatchObject({
+      missing: ['positions.risk_evaluation'],
+      incompleteRiskEvaluations: [
+        { evaluationId: null, jobPositionId: positionRow.id, missing: ['factors'] },
+      ],
+    });
   });
 
   it("names the workers' representative who has the legal representative's name", async () => {
@@ -448,6 +574,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       currentEmployeeCount: 1,
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
+      incompleteRiskEvaluations: [],
     });
   });
 
@@ -930,6 +1057,79 @@ describe('POST /documents/{documentId}/regenerate', () => {
   it('answers 404 for a document of another organization', async () => {
     mockUpstream({ documents: () => Response.json(null) });
     expect((await regenerate()).status).toBe(404);
+  });
+});
+
+describe('the risk evaluations', () => {
+  const materialId = 'f2f2f2f2-0000-4000-8000-000000000001';
+  const materialTemplate = {
+    type_key: 'general_training_material',
+    title: 'Material de instruire introductiv-generală',
+    document_template_versions: [
+      { id: 'v7', version: 1, storage_path: 'built-in/general_training_material/one.docx' },
+    ],
+  };
+  const materialDocument = (snapshot: unknown) => ({
+    ...documentRow,
+    id: materialId,
+    type_key: 'general_training_material',
+    title: materialTemplate.title,
+    decision_number: null,
+    document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
+  });
+
+  it('are recorded whole in the snapshot, so that a changed factor marks the document', async () => {
+    mockUpstream({
+      templates: () => Response.json([materialTemplate]),
+      documents: () => Response.json(materialDocument(null)),
+    });
+    expect((await request(`/documents/${materialId}/regenerate`, 'POST', {})).status).toBe(200);
+    const snapshot = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot as {
+      riskAssessment: { evaluations: { name: string; factorCount: number }[] };
+      unitRisks: { risk: string }[];
+    };
+    expect(
+      snapshot.riskAssessment.evaluations.map((evaluation) => [
+        evaluation.name,
+        evaluation.factorCount,
+      ])
+    ).toEqual([
+      ['Sudor', 12],
+      ['Grupuri sensibile la riscuri specifice', 7],
+    ]);
+    expect(snapshot.unitRisks.map((risk) => risk.risk.slice(0, 20))).toEqual([
+      'Prinderea mâinilor s',
+      'Proiectarea de așchi',
+      'Electrocutare prin a',
+      'Ridicarea și transpo',
+      'Executarea de către ',
+      'Ridicarea și transpo',
+    ]);
+
+    const [groups, sudor] = evaluationRows;
+    const dataChanged = async (changes: Partial<Record<Upstream, Handler>>) => {
+      mockUpstream({ documents: () => Response.json([materialDocument(snapshot)]), ...changes });
+      const body = clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents`)).json()
+      );
+      return body.items[0]!.draft!.dataChanged;
+    };
+    expect(await dataChanged({})).toBe(false);
+    expect(
+      await dataChanged({
+        riskEvaluations: () =>
+          Response.json([
+            groups,
+            {
+              ...sudor,
+              risk_factors: sudor!.risk_factors.map((factor) =>
+                factor.sort_order === 11 ? { ...factor, probability_class: 1 } : factor
+              ),
+            },
+          ]),
+      })
+    ).toBe(true);
+    expect(await dataChanged({ workplaces: () => Response.json([]) })).toBe(true);
   });
 });
 
@@ -1831,29 +2031,8 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       init?.method === 'POST'
         ? Response.json({ id: documentId })
         : url?.searchParams.has('id')
-          ? Response.json(rows[0] ?? { ...documentRow, type_key: 'risk_assessment' })
+          ? Response.json(rows[0] ?? documentRow)
           : Response.json(rows);
-
-  it('creates a document the app cannot generate, as revision 1 in draft', async () => {
-    mockUpstream({ documents: documents([]) });
-    const response = await upload('risk_assessment');
-    expect(response.status).toBe(200);
-
-    expect(sentBody('/rest/v1/client_documents')).toMatchObject({
-      client_id: clientId,
-      type_key: 'risk_assessment',
-      title: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
-    });
-    const revision = sentBody('/rest/v1/document_revisions');
-    expect(revision).toMatchObject({
-      revision: 1,
-      generation_id: null,
-      docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
-      edited_by: user.id,
-    });
-    expect(revision.template_version_id).toBeUndefined();
-    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(1);
-  });
 
   it("replaces the draft's file of a document that has one", async () => {
     mockUpstream({ documents: documents([documentRow]) });
@@ -1869,28 +2048,34 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     mockUpstream({ documents: documents([{ ...documentRow, document_revisions: [issued] }]) });
     expect((await upload('decision_first_aid')).status).toBe(200);
     expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
-    expect(sentBody('/rest/v1/document_revisions')).toMatchObject({
+    const revision = sentBody('/rest/v1/document_revisions');
+    expect(revision).toMatchObject({
       revision: 2,
       generation_id: generationId,
       docx_path: `${organizationId}/${clientId}/${documentId}/2.docx`,
+      edited_by: user.id,
     });
+    expect(revision.template_version_id).toBeUndefined();
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(1);
   });
 
   it('removes the revision again when the file cannot be stored', async () => {
     mockUpstream({
-      documents: documents([]),
+      documents: documents([{ ...documentRow, document_revisions: [issuedRevision] }]),
       upload: () => Response.json({ message: 'down' }, { status: 500 }),
     });
-    expect((await upload('risk_assessment')).status).toBeGreaterThanOrEqual(500);
+    expect((await upload('decision_first_aid')).status).toBeGreaterThanOrEqual(500);
     expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
   });
 
   it('refuses a generated type that does not exist yet, other files, and unknown types', async () => {
     mockUpstream({ documents: documents([]) });
-    const early = await upload('decision_first_aid');
-    expect(early.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await early.json()).reason).toBe('not_generated_yet');
-    expect((await upload('risk_assessment', new Uint8Array([1, 2, 3]))).status).toBe(400);
+    for (const typeKey of ['decision_first_aid', 'risk_assessment', 'prevention_plan']) {
+      const early = await upload(typeKey);
+      expect(early.status).toBe(409);
+      expect(apiErrorResponseSchema.parse(await early.json()).reason).toBe('not_generated_yet');
+    }
+    expect((await upload('prevention_plan', new Uint8Array([1, 2, 3]))).status).toBe(400);
     expect((await upload('anything_else')).status).toBe(400);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
   });
@@ -1900,6 +2085,6 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       documents: documents([]),
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
-    expect((await upload('risk_assessment')).status).toBe(409);
+    expect((await upload('prevention_plan')).status).toBe(409);
   });
 });

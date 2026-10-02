@@ -158,8 +158,7 @@
       "stage": 3,
       "typeKey": "risk_assessment",
       "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
-      "file": "9_risk_assessment.docx",
-      "contentPending": true
+      "file": "9_risk_assessment.docx"
     },
     {
       "number": "10",
@@ -167,8 +166,7 @@
       "stage": 3,
       "typeKey": "prevention_plan",
       "title": "Planul de prevenire și protecție",
-      "file": "10_prevention_plan.docx",
-      "contentPending": true
+      "file": "10_prevention_plan.docx"
     },
     {
       "number": "11.1",

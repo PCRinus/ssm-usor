@@ -33,7 +33,9 @@ import { Fragment, useRef, useState } from 'react';
 import {
   type ApiErrorResponse,
   getListJobPositionsQueryKey,
+  getListRiskEvaluationsQueryKey,
   useListJobPositions,
+  useListRiskEvaluations,
   useRemoveJobPosition,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -46,6 +48,10 @@ import {
 } from '@/features/instructions/instruction-schema';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { equipmentStateLabel } from '@/features/protective-equipment/equipment-schema';
+import {
+  evaluationStateLabel,
+  type RiskEvaluationSummary,
+} from '@/features/risk-evaluations/risk-evaluation-schema';
 
 import { DecisionBadge } from './decision-badge';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
@@ -75,6 +81,15 @@ export function JobPositionsCard({
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId] },
   });
+  const evaluations = useListRiskEvaluations(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListRiskEvaluationsQueryKey(clientId), userId] },
+  });
+  const evaluationOf = new Map(
+    (evaluations.data?.items ?? []).flatMap((evaluation) =>
+      evaluation.jobPosition ? [[evaluation.jobPosition.id, evaluation] as const] : []
+    )
+  );
   const remove = useRemoveJobPosition({ request: apiRequest });
   const navigate = useNavigate();
   const [editing, setEditing] = useState<JobPositionEditing>(null);
@@ -112,7 +127,7 @@ export function JobPositionsCard({
       title="Posturi de lucru"
       description={
         !readOnly &&
-        'Deschide un post ca să îi stabilești echipamentul de protecție și instrucțiunile.'
+        'Deschide un post ca să îi stabilești echipamentul de protecție și instrucțiunile și să îi evaluezi riscurile.'
       }
       action={
         !readOnly && (
@@ -171,6 +186,7 @@ export function JobPositionsCard({
               <TableHead>Angajați</TableHead>
               <TableHead>EIP</TableHead>
               <TableHead>Instrucțiuni</TableHead>
+              <TableHead>Evaluare de risc</TableHead>
               <TableHead className="w-12">
                 <span className="sr-only">Acțiuni</span>
               </TableHead>
@@ -266,6 +282,18 @@ export function JobPositionsCard({
                     testId="job-position-instructions"
                   />
                 </TableCell>
+                <TableCell className="max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-5 max-sm:grid max-sm:justify-items-start max-sm:gap-1 max-sm:p-0">
+                  <span className="text-xs text-muted-foreground sm:hidden">Evaluare de risc</span>
+                  {evaluations.data ? (
+                    <RiskEvaluationLink
+                      clientId={clientId}
+                      position={position}
+                      evaluation={evaluationOf.get(position.id) ?? null}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="max-sm:col-start-3 max-sm:row-start-1 max-sm:-mt-1.5 max-sm:p-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -295,6 +323,14 @@ export function JobPositionsCard({
                           hash={positionSections.instructions}
                         >
                           Instrucțiuni
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild data-testid="job-position-menu-risk">
+                        <Link
+                          to="/clients/$clientId/job-positions/$jobPositionId/risk-evaluation"
+                          params={{ clientId, jobPositionId: position.id }}
+                        >
+                          Evaluare de risc
                         </Link>
                       </DropdownMenuItem>
                       {!readOnly && (
@@ -384,6 +420,29 @@ function StateLink({
         data-testid={testId}
       >
         {label}
+        <ChevronRight aria-hidden="true" />
+      </Link>
+    </DecisionBadge>
+  );
+}
+
+function RiskEvaluationLink({
+  clientId,
+  position,
+  evaluation,
+}: {
+  clientId: string;
+  position: JobPosition;
+  evaluation: RiskEvaluationSummary | null;
+}) {
+  return (
+    <DecisionBadge asChild decision={(evaluation && evaluation.factorCount > 0) || null}>
+      <Link
+        to="/clients/$clientId/job-positions/$jobPositionId/risk-evaluation"
+        params={{ clientId, jobPositionId: position.id }}
+        data-testid="job-position-risk"
+      >
+        {evaluationStateLabel(evaluation)}
         <ChevronRight aria-hidden="true" />
       </Link>
     </DecisionBadge>
