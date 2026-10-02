@@ -288,8 +288,15 @@ LibreOffice cannot read the boxes as text, and every cover is the same page with
 title. `tools/import/build_covers.py` makes them from `tools/import/covers.ro.json`: the
 provider's name at the head, an optional motto, the title at 16 pt, the client's name at
 14 pt, a list of contents where there is one, and the hand-over block as two borderless
-columns, the client's side and the provider's. A cover is the one place the house style goes
-above 12 pt.
+columns, the client's side and the provider's, each with a line for the date. A cover is the
+one place the house style goes above 12 pt.
+
+The hand-over block starts at the same height on all seven, so the covers of a binder differ
+only in their title and contents. The builder lays every cover out first and measures, in
+LibreOffice, where the block would start; the lowest of them, plus 36 pt, is where it starts
+on all, and each cover gets the space above the block that puts it there. A conditional item
+is followed by an inverted section, `{{^condition}}`, holding an empty line of the item's
+height, so the block stays put without it.
 
 One correction to the content: the decisions' cover listed a fifth decision, naming the worker
 designated for prevention and protection, which the pack does not contain. The list now has

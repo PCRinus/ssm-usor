@@ -638,7 +638,7 @@ describe('cover_decisions', () => {
     expect(render([{}])).toContain('5. Desemnarea reprezentanților lucrătorilor');
     const without = render([]);
     expect(without).not.toContain('Desemnarea reprezentanților');
-    expect(without).toContain('grav și iminent;');
+    expect(without).toContain('grav și iminent.');
   });
 });
 
