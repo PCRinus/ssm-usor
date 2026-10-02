@@ -223,7 +223,6 @@ function JobPositionForm({
                   ? 'job-position-interval-error'
                   : 'job-position-interval-hint'
               }
-              className="w-full"
               {...form.register('trainingIntervalMonths')}
             >
               <NativeSelectOption value="">Cel al categoriei</NativeSelectOption>

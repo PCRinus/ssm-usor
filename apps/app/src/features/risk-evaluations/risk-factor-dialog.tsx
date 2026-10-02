@@ -175,7 +175,6 @@ function RiskFactorForm({
               <NativeSelect
                 id="risk-factor-component"
                 data-testid="risk-factor-component"
-                className="w-full"
                 disabled={busy}
                 {...form.register('component')}
               >
@@ -235,7 +234,6 @@ function RiskFactorForm({
               <NativeSelect
                 id="risk-factor-gravity"
                 data-testid="risk-factor-gravity"
-                className="w-full"
                 disabled={busy}
                 aria-invalid={Boolean(errors.gravityClass)}
                 aria-describedby={describedBy('risk-factor-gravity', Boolean(errors.gravityClass))}
@@ -259,7 +257,6 @@ function RiskFactorForm({
               <NativeSelect
                 id="risk-factor-probability"
                 data-testid="risk-factor-probability"
-                className="w-full"
                 disabled={busy}
                 aria-invalid={Boolean(errors.probabilityClass)}
                 aria-describedby={describedBy(
@@ -314,7 +311,6 @@ function RiskFactorForm({
                     <NativeSelect
                       aria-label={`Felul măsurii ${index + 1}`}
                       data-testid="risk-factor-measure-kind"
-                      className="w-full"
                       disabled={busy}
                       {...form.register(`measures.${index}.kind`)}
                     >

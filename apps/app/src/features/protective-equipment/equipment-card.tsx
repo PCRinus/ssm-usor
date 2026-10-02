@@ -453,7 +453,6 @@ function CopyEquipmentDialog({
               <NativeSelect
                 id="equipment-copy-source"
                 data-testid="equipment-copy-source"
-                className="w-full"
                 value={source}
                 disabled={copy.isPending || positions.isPending}
                 onChange={(event) => setSource(event.target.value)}
