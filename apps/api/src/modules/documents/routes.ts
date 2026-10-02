@@ -5,10 +5,10 @@ import {
   documentDownloadQuerySchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
+  documentTypeKeySchema,
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
   issueDocumentRequestSchema,
-  packDocumentTypeKeySchema,
   regenerateDocumentRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -18,7 +18,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 
 const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
-const uploadParams = z.object({ clientId: z.uuid(), typeKey: packDocumentTypeKeySchema });
+const uploadParams = z.object({ clientId: z.uuid(), typeKey: documentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 
 const noSuchClient = {
@@ -413,7 +413,7 @@ export const uploadClientDocumentRoute = createRoute({
   operationId: 'uploadClientDocument',
   summary: "Take a Word file written elsewhere as a document's draft",
   description:
-    'Takes the bytes of a `.docx`, up to 15 MB. A type the app cannot generate yet (the own instructions, the training themes, the protective equipment list, the risk assessment, the prevention plan) comes to exist this way, as revision 1 in draft. For a document that exists, the file replaces the draft, or starts the next draft beside the issued revision. A generated type that does not exist yet is refused with the reason `not_generated_yet`.',
+    'Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

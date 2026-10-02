@@ -4,17 +4,14 @@ import {
   type DocumentAnnex,
   type DocumentFileFormat,
   type DocumentRevision,
+  type DocumentTypeKey,
   documentTypeKeys,
   type GenerateDocumentsRequest,
   type IssueDocumentRequest,
-  isUploadedDocumentType,
-  type PackDocumentTypeKey,
-  packDocumentTypeKeys,
   type RegenerateDocumentRequest,
   serviceContractTitle,
   serviceContractTypeKey,
   unfilledMark,
-  uploadedDocumentTypes,
 } from '@ssm-usor/contracts';
 import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
@@ -67,7 +64,7 @@ type DocumentRow = Pick<
 const documentColumns =
   'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
-const typeOrder = new Map<string, number>(packDocumentTypeKeys.map((key, index) => [key, index]));
+const typeOrder = new Map<string, number>(documentTypeKeys.map((key, index) => [key, index]));
 
 export type Actor = { userId: string; organizationId: string; createdBy: string };
 
@@ -878,17 +875,16 @@ export async function saveDraftFile(
 }
 
 /**
- * Takes a file written elsewhere as a document's draft. For a type the app cannot generate
- * yet this is how the document comes to exist; for any document it is the way around the
- * editor. A draft's file is replaced; beside an issued revision a new draft starts, and the
- * issued one stays in force until that is issued.
+ * Takes a file written elsewhere as a document's draft, the way around the editor. A draft's
+ * file is replaced; beside an issued revision a new draft starts, and the issued one stays in
+ * force until that is issued.
  */
 export async function uploadDocumentFile(
   db: DataClient,
   files: FileStore,
   actor: Actor,
   clientId: string,
-  typeKey: PackDocumentTypeKey,
+  typeKey: DocumentTypeKey,
   bytes: Uint8Array
 ) {
   requireDocx(bytes);
@@ -903,34 +899,18 @@ export async function uploadDocumentFile(
     return saveDraftFile(db, files, actor, existing.id, bytes);
   }
 
-  let documentId = existing?.id;
-  if (!documentId) {
-    if (!isUploadedDocumentType(typeKey)) {
-      // A generated document is numbered and dated by its generation; uploading over nothing
-      // would skip both.
-      throw new ApiError(
-        'conflict',
-        'This document is generated first; a file can then replace its draft.',
-        undefined,
-        'not_generated_yet'
-      );
-    }
-    const document = await db
-      .from('client_documents')
-      .insert({
-        organization_id: actor.organizationId,
-        client_id: clientId,
-        type_key: typeKey,
-        title: uploadedDocumentTypes[typeKey],
-        created_by: actor.createdBy,
-      })
-      .select('id')
-      .single();
-    if (document.error) throw fromDatabaseError(document.error, 'create client document');
-    documentId = document.data.id;
+  if (!existing) {
+    // A document is numbered and dated by its generation; uploading over nothing would skip both.
+    throw new ApiError(
+      'conflict',
+      'This document is generated first; a file can then replace its draft.',
+      undefined,
+      'not_generated_yet'
+    );
   }
 
-  const last = existing ? newest(existing) : null;
+  const documentId = existing.id;
+  const last = newest(existing);
   const number = (last?.revision ?? 0) + 1;
   // The row before the file: the storage policies only accept the file of a draft revision.
   const path = `${actor.organizationId}/${clientId}/${documentId}/${number}.docx`;

@@ -222,11 +222,10 @@ across runs, and leaves an ellipsis alone.
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
 
-All 23 are templates, and none is marked `contentPending` any more: the own instructions
-(3.2), the training themes (4.2) and the protective equipment list (6), stage 2, are
-generated from the positions (ADR 011, ADR 012, ADR 014), and the risk assessment (9) and the
-prevention plan (10), stage 3, from the risk evaluations (ADR 015). The key stays for a
-template whose content is still the first client's, which registering leaves out.
+All 23 are templates: the own instructions (3.2), the training themes (4.2) and the
+protective equipment list (6), stage 2, are generated from the positions (ADR 011, ADR 012,
+ADR 014), and the risk assessment (9) and the prevention plan (10), stage 3, from the risk
+evaluations (ADR 015).
 
 Two things the long originals needed. A table that Word floats arrives inside a text frame,
 outside the body's flow; the import walks the frames too, and a `tables` entry with
@@ -392,8 +391,7 @@ For every entry of the manifest it uploads the file to the private bucket `docum
 as `built-in/<type_key>/<sha256>.docx` and calls `register_built_in_template_version`. The path
 holds the hash, so a file that is already there is not sent again, and a hash that is already
 registered stays the version it was. A changed file becomes the next version; revisions
-generated from the earlier one keep pointing at it. Entries marked `contentPending` are left
-out, so nothing offers them for generation yet.
+generated from the earlier one keep pointing at it.
 
 On `main`, the job "Register document templates" runs the same script after the migrations
 when a template, the script or a migration changed since the last deployment. The deployment

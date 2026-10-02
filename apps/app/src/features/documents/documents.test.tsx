@@ -861,15 +861,13 @@ describe('client documents', () => {
     expect(requests(`/documents/${firstAidId}/issue`, 'POST')).toHaveLength(2);
   });
 
-  it('leaves no document waiting for a file, and a file still takes the place of a draft', async () => {
+  it('counts the documents not generated yet, and a file takes the place of a draft', async () => {
     mockApi({ items: [firstAid] });
     mount();
     const user = userEvent.setup();
 
     await screen.findAllByTestId('document-section');
     expect(['4', '9', '10'].map(summaryOf)).toEqual(Array(3).fill('negenerat'));
-    await openSection(user, '10');
-    expect(screen.queryByTestId('document-slot')).toBeNull();
 
     await openMenu(user, 'primul ajutor', '1');
     await user.click(screen.getByTestId('document-upload'));
@@ -904,7 +902,6 @@ describe('client documents', () => {
 
     const row = await openMenu(user, 'Planul de prevenire', '10');
     expect(within(row).getByTestId('document-edited').textContent).toBe('Modificat');
-    expect(within(row).queryByTestId('document-uploaded')).toBeNull();
     expect(screen.getByTestId('document-regenerate')).toBeTruthy();
     await user.click(screen.getByTestId('document-upload'));
     expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(

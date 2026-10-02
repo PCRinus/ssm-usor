@@ -41,10 +41,9 @@ try {
         .templates.map((entry) => ({ ...entry, folder }))
     ),
   };
-  const ready = manifest.templates.filter((entry) => !entry.contentPending);
   const results = await registerTemplates(
     client,
-    ready.map((entry) => ({
+    manifest.templates.map((entry) => ({
       typeKey: entry.typeKey,
       title: entry.title,
       bytes: readFileSync(new URL(entry.file, entry.folder)),
@@ -55,8 +54,7 @@ try {
   }
   const added = results.filter((result) => result.created).length;
   console.log(
-    `${results.length} templates in ${new URL(config.url).hostname}, ${added} new versions; ` +
-      `${manifest.templates.length - ready.length} with content pending left out.`
+    `${results.length} templates in ${new URL(config.url).hostname}, ${added} new versions.`
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'Registering the templates failed.');

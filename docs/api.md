@@ -667,15 +667,11 @@ and `edited_by`, which the list shows and "Generează din nou" warns about. `409
 document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
-the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. A type in `uploadedDocumentTypes`, one the app cannot write, would come to exist
-by its upload, as revision 1 in draft under the title its template will carry; there is none
-left since the risk assessment and the prevention plan are generated (ADR 015), the last of
-the pack. For a document that exists, the file replaces the draft, or starts the next
-draft beside the issued revision, keeping the generation and so the date. An uploaded
-revision has no template and no data snapshot, so it never reports `dataChanged`, and it
-cannot be regenerated. A generated type that does not exist yet answers `409` with the reason
-`not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
+the same checks. `typeKey` is one of the contracts' `documentTypeKeys`, the whole pack in its
+order. The file replaces the draft, or starts the next draft beside the issued revision,
+keeping the generation and so the date. An uploaded revision has no template and no data
+snapshot, so it never reports `dataChanged`. A document that does not exist yet answers `409`
+with the reason `not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
 downloading and the editor work on an uploaded document as on any other.
 
 The whole set, 18 documents, merges and uploads in under a second against the local stack,
