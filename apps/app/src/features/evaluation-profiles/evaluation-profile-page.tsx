@@ -56,7 +56,6 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
         </Button>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div className="grid gap-1">
-            <p className="text-sm text-muted-foreground">Profil de evaluare</p>
             <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{profile.name}</h2>
           </div>
           <div className="flex flex-wrap gap-2">
