@@ -38,14 +38,12 @@ const points = [
     <div class="copy">
       <h2>Două minute pe telefon.</h2>
       <ol>
-        {
-          points.map((point, index) => (
-            <li>
-              <span class="n">{index + 1}</span>
-              <p>{point}</p>
-            </li>
-          ))
-        }
+        {points.map((point, index) => (
+          <li>
+            <span class="n">{index + 1}</span>
+            <p>{point}</p>
+          </li>
+        ))}
       </ol>
     </div>
   </div>

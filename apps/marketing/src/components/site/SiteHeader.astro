@@ -21,7 +21,9 @@ const { home = '/' } = Astro.props;
       <a href={`${home}#intrebari`}>Întrebări</a>
     </nav>
     <div class="auth">
-      <a class="button quiet small" href={links.login}>{cta.login}</a>
+      <a class="button quiet small" href={links.login}>
+        {cta.login}
+      </a>
       <span class="button primary small soon" aria-disabled="true">
         {cta.signup}
         <small>{cta.signupNote}</small>

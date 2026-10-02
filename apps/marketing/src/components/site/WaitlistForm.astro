@@ -9,49 +9,47 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'https://api.ssmusor.ro';
 ---
 
-{
-  siteKey ? (
-    <form
-      class="waitlist"
-      id="anunta-ma"
-      data-endpoint={`${apiUrl}/waitlist`}
-      data-sitekey={siteKey}
-      data-consent-version={waitlist.consentVersion}
-      data-sending={waitlist.sending}
-      data-success={waitlist.success}
-      data-error={waitlist.error}
-      data-challenge-failed={waitlist.challengeFailed}
-    >
-      <label for="waitlist-email">{cta.notify}</label>
-      <div class="row">
-        <input
-          id="waitlist-email"
-          name="email"
-          type="email"
-          required
-          maxlength="254"
-          autocomplete="email"
-          placeholder={waitlist.placeholder}
-          aria-describedby="waitlist-consent"
-        />
-        <button class="button primary light" type="submit">
-          {waitlist.submit}
-        </button>
-      </div>
-      <p class="consent" id="waitlist-consent">
-        {waitlist.consent} <a href="/confidentialitate/">{waitlist.consentLink}</a>
-      </p>
-      <div class="challenge" data-challenge />
-      <p class="feedback" role="status" aria-live="polite" data-feedback />
-    </form>
-  ) : (
-    <p class="waitlist-fallback" id="anunta-ma">
-      <a class="button ghost" href={links.notifyHref}>
-        {cta.notify}
-      </a>
+{siteKey ? (
+  <form
+    class="waitlist"
+    id="anunta-ma"
+    data-endpoint={`${apiUrl}/waitlist`}
+    data-sitekey={siteKey}
+    data-consent-version={waitlist.consentVersion}
+    data-sending={waitlist.sending}
+    data-success={waitlist.success}
+    data-error={waitlist.error}
+    data-challenge-failed={waitlist.challengeFailed}
+  >
+    <label for="waitlist-email">{cta.notify}</label>
+    <div class="row">
+      <input
+        id="waitlist-email"
+        name="email"
+        type="email"
+        required
+        maxlength="254"
+        autocomplete="email"
+        placeholder={waitlist.placeholder}
+        aria-describedby="waitlist-consent"
+      />
+      <button class="button primary light" type="submit">
+        {waitlist.submit}
+      </button>
+    </div>
+    <p class="consent" id="waitlist-consent">
+      {waitlist.consent} <a href="/confidentialitate/">{waitlist.consentLink}</a>
     </p>
-  )
-}
+    <div class="challenge" data-challenge />
+    <p class="feedback" role="status" aria-live="polite" data-feedback />
+  </form>
+) : (
+  <p class="waitlist-fallback" id="anunta-ma">
+    <a class="button ghost" href={links.notifyHref}>
+      {cta.notify}
+    </a>
+  </p>
+)}
 
 <script>
   type Turnstile = {

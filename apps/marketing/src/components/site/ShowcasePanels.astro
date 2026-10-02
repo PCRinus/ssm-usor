@@ -39,44 +39,38 @@ const signatures: [string, number, number][] = [
       <li style="--i: 1">
         <span class="step-label">2. Angajați</span>
         <div class="panel people">
-          {
-            employees.map(([name, role]) => (
-              <div>
-                <b>{name}</b>
-                <span>{role}</span>
-              </div>
-            ))
-          }
+          {employees.map(([name, role]) => (
+            <div>
+              <b>{name}</b>
+              <span>{role}</span>
+            </div>
+          ))}
           <p>și încă 34</p>
         </div>
       </li>
       <li style="--i: 2">
         <span class="step-label">3. Documente și teste</span>
         <div class="panel docs">
-          {
-            documents.map(([name, state]) => (
-              <div>
-                <b>{name}</b>
-                <span>{state}</span>
-              </div>
-            ))
-          }
+          {documents.map(([name, state]) => (
+            <div>
+              <b>{name}</b>
+              <span>{state}</span>
+            </div>
+          ))}
         </div>
       </li>
       <li style="--i: 3">
         <span class="step-label">4. Semnături</span>
         <div class="panel signs">
-          {
-            signatures.map(([who, done, total], index) => (
-              <div>
-                <b>{who}</b>
-                <span>
-                  {done} din {total}
-                </span>
-                <i style={`--p:${(done / total) * 100}%; --j:${index}`} />
-              </div>
-            ))
-          }
+          {signatures.map(([who, done, total], index) => (
+            <div>
+              <b>{who}</b>
+              <span>
+                {done} din {total}
+              </span>
+              <i style={`--p:${(done / total) * 100}%; --j:${index}`} />
+            </div>
+          ))}
         </div>
       </li>
     </ol>
