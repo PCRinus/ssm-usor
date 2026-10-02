@@ -116,7 +116,7 @@ export type ThemesContext = {
   positions: {
     name: string;
     trainer: string;
-    modules: (CitedModule & { citation: string })[];
+    modules: { citation: string }[];
     intervalLabel: string;
     sessions: TrainingSession[];
   }[];
@@ -156,17 +156,11 @@ export function trainingThemes({
     annexTitles:
       annexes.length === 0 ? '—' : annexes.map((annex) => `I.P.S.S.M. ${annex.title}`).join('; '),
     positions: positions.map((position) => {
-      const modules = annexes
-        .filter((annex) => position.moduleIds.includes(annex.moduleId))
-        .map((annex) => ({
-          title: annex.title,
-          articleCount: annex.articleCount,
-          citation: citation(annex),
-        }));
+      const modules = annexes.filter((annex) => position.moduleIds.includes(annex.moduleId));
       return {
         name: position.name.trim().toLocaleUpperCase('ro'),
         trainer: trainerOf(position.staffCategory, names),
-        modules,
+        modules: modules.map((module) => ({ citation: citation(module) })),
         intervalLabel: themeIntervalLabel(position.intervalMonths),
         sessions:
           position.intervalMonths === null

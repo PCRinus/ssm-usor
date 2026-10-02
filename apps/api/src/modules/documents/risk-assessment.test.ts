@@ -283,8 +283,6 @@ describe('an evaluation of the risk assessment', () => {
       consequence: 'Invaliditate gradul II',
       gravityClass: 5,
       probabilityClass: 3,
-      frequency: 'Rare',
-      frequencyPeriod: 'o dată la 2–5 ani',
       level: 4,
     });
   });
@@ -332,10 +330,10 @@ describe('an evaluation of the risk assessment', () => {
     ]);
     const executantOnly = only([factor(2, 2)]);
     expect(executantOnly.components.map((component) => component.noFactors)).toEqual([
-      [{}],
-      [{}],
-      [],
-      [{}],
+      true,
+      true,
+      false,
+      true,
     ]);
     expect(executantOnly.components.map((component) => component.share)).toEqual([
       '0,00 %',
@@ -366,22 +364,17 @@ describe('an evaluation of the risk assessment', () => {
     expect(contabil).toMatchObject({
       factorCount: 11,
       globalLevel: '2,86',
-      withinLimit: [{}],
-      overLimit: [],
       verdict:
         'valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5',
     });
     expect(only([factor(7, 4), factor(2, 2)])).toMatchObject({
       globalLevel: '5,00',
-      withinLimit: [],
-      overLimit: [{}],
       verdict:
         'valoare care depășește limita maximă acceptabilă de 3,5 și îl încadrează în categoria locurilor de muncă cu nivel de risc inacceptabil',
     });
   });
 
-  it('lists the unacceptable factors, the highest first, with their measures by kind', () => {
-    expect(sudor!.unacceptableCount).toBe(4);
+  it('lists the unacceptable factors, the highest first, with their measures', () => {
     expect(sudor!.unacceptable.map((row) => row.code)).toEqual(['F1', 'F3', 'F4', 'F8']);
     expect(sudor!.unacceptable[1]).toEqual({
       code: 'F3',
@@ -390,11 +383,6 @@ describe('an evaluation of the risk assessment', () => {
       level: 4,
       measures:
         'Folosirea polizorului numai cu apărătoarea discului montată.\nOchelari de protecție.\nInstruirea pentru alegerea și schimbarea discurilor.',
-      technical:
-        'Folosirea polizorului numai cu apărătoarea discului montată.\nOchelari de protecție.',
-      organizational: 'Instruirea pentru alegerea și schimbarea discurilor.',
-      hygienicSanitary: '—',
-      other: '—',
     });
     const higher = only([
       factor(5, 2, { description: 'Mai întâi' }),
@@ -424,15 +412,15 @@ describe('an evaluation of the risk assessment', () => {
       `${lead} singurul factor de risc identificat nu depășește, ca nivel parțial de risc, valoarea 3.`,
       '',
       '',
-      [],
-      [{}],
+      false,
+      true,
     ]);
     expect(sentences([factor(5, 2)])).toEqual([
       `${lead} singurul factor de risc identificat depășește, ${exceeds}`,
       'Factorul de risc care se situează în domeniul inacceptabil este:',
       'Pentru diminuarea sau eliminarea acestui factor de risc sunt necesare măsurile prezentate în „Fișa de măsuri propuse”.',
-      [{}],
-      [],
+      true,
+      false,
     ]);
     expect(sentences([factor(2, 2), factor(2, 3)])[0]).toBe(
       `${lead} niciunul dintre cei 2 factori de risc identificați nu depășește, ca nivel parțial de risc, valoarea 3.`
@@ -479,22 +467,11 @@ describe('an evaluation of the risk assessment', () => {
     );
   });
 
-  it('gives the plan a row per factor with measures, the highest level first, dashes for what is empty', () => {
-    expect(sudor!.plan.map((row) => `${row.code}:${row.level}`)).toEqual([
-      'F1:4',
-      'F3:4',
-      'F4:4',
-      'F8:4',
-      'F2:3',
-      'F5:3',
-      'F10:3',
-    ]);
+  it('gives the plan a row per factor with measures, the highest level first, its measures by kind, dashes for what is empty', () => {
+    expect(sudor!.plan.map((row) => row.code)).toEqual(['F1', 'F3', 'F4', 'F8', 'F2', 'F5', 'F10']);
     expect(sudor!.plan[5]).toEqual({
       code: 'F5',
       description: 'Zgomot peste valorile de expunere, în timpul funcționării mașinilor.',
-      level: 3,
-      measures:
-        'Antifoane pentru lucrul lângă mașinile zgomotoase.\nAudiogramă la examenul medical periodic.',
       technical: 'Antifoane pentru lucrul lângă mașinile zgomotoase.',
       organizational: '—',
       hygienicSanitary: 'Audiogramă la examenul medical periodic.',
@@ -504,8 +481,8 @@ describe('an evaluation of the risk assessment', () => {
       responsiblePerson: 'Administratorul',
       observations: '—',
     });
-    expect([sudor!.hasPlan, sudor!.noPlan]).toEqual([[{}], []]);
-    expect(only([factor(2, 2)])).toMatchObject({ plan: [], hasPlan: [], noPlan: [{}] });
+    expect([sudor!.hasPlan, sudor!.noPlan]).toEqual([true, false]);
+    expect(only([factor(2, 2)])).toMatchObject({ plan: [], hasPlan: false, noPlan: true });
   });
 });
 
@@ -555,7 +532,7 @@ describe('the risk assessment', () => {
         },
         { name: 'Depozit', kind: 'Punct de lucru', address: '—' },
       ],
-      noWorkplaces: [],
+      noWorkplaces: false,
     });
     expect(context.evaluations.map((evaluation) => evaluation.globalLevel)).toEqual([
       '2,86',
@@ -563,7 +540,6 @@ describe('the risk assessment', () => {
       '3,19',
     ]);
     expect(context).toMatchObject({
-      evaluationCount: 3,
       evaluationCountText: '3 posturi de lucru',
       globalLevel: '3,15',
     });
@@ -579,8 +555,7 @@ describe('the risk assessment', () => {
         currentEmployeeCount: 0,
       })
     ).toEqual({
-      unit: { activity: '—', employeeCount: 0, workplaces: [], noWorkplaces: [{}] },
-      evaluationCount: 0,
+      unit: { activity: '—', employeeCount: 0, workplaces: [], noWorkplaces: true },
       evaluationCountText: '0 posturi de lucru',
       globalLevel: '—',
       evaluations: [],

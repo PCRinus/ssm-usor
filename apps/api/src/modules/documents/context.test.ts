@@ -252,8 +252,8 @@ describe('the merge context', () => {
     expect(context.training).toEqual({
       periodicDuration: '2 ore',
       intervalPhrase: 'următoarele intervale de timp',
-      administrative: [{}],
-      worker: [{}],
+      administrative: true,
+      worker: true,
       administrativeFrequency: 'SEMESTRIAL',
       administrativeMonths: 'februarie, august',
       workerFrequency: 'TRIMESTRIAL',
@@ -292,7 +292,7 @@ describe('the merge context', () => {
         workerTrainingNotApplicable: true,
       },
     });
-    expect(administrativeOnly.training.worker).toEqual([]);
+    expect(administrativeOnly.training.worker).toBe(false);
     expect(administrativeOnly.training.intervalPhrase).toBe('următorul interval de timp');
     expect(administrativeOnly.training).not.toHaveProperty('workerFrequency');
 
@@ -305,7 +305,7 @@ describe('the merge context', () => {
         administrativeTrainingNotApplicable: true,
       },
     });
-    expect(workerOnly.training.administrative).toEqual([]);
+    expect(workerOnly.training.administrative).toBe(false);
     expect(workerOnly.training).not.toHaveProperty('administrativeFrequency');
   });
 
@@ -323,7 +323,7 @@ describe('the merge context', () => {
         activities: '—',
         staffCategory: 'Tehnic-administrativ',
         workZone: 'Birou',
-        workZoneLine: [{}],
+        workZoneLine: true,
         workZoneOrDash: 'Birou',
         intervalLabel: 'la 6 luni',
         trainingDuration: '2 ore',
@@ -334,7 +334,7 @@ describe('the merge context', () => {
         activities: 'Sudură electrică și autogenă.',
         staffCategory: 'Execuție',
         workZone: '',
-        workZoneLine: [],
+        workZoneLine: false,
         workZoneOrDash: '—',
         intervalLabel: 'la 2 luni',
         trainingDuration: '2 ore',
@@ -378,7 +378,7 @@ describe('the merge context', () => {
         versionDate: '25.09.2026',
       },
     ]);
-    expect(context.noAnnexes).toEqual([]);
+    expect(context.noAnnexes).toBe(false);
     const none = buildDocumentContext({
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
@@ -387,12 +387,12 @@ describe('the merge context', () => {
         instructions: [],
       })),
     });
-    expect([none.annexes, none.noAnnexes]).toEqual([[], [{}]]);
+    expect([none.annexes, none.noAnnexes]).toEqual([[], true]);
   });
 
   it('switches the branding line', () => {
-    expect(context.branding).toEqual([{}]);
-    expect(buildDocumentContext({ ...facts, branding: false }).branding).toEqual([]);
+    expect(context.branding).toBe(true);
+    expect(buildDocumentContext({ ...facts, branding: false }).branding).toBe(false);
   });
 
   it("gives the training material the evaluations' unacceptable factors as the unit's risks", () => {
@@ -402,7 +402,7 @@ describe('the merge context', () => {
       measure:
         'Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\nAnunțarea imediată a conducătorului locului de muncă la orice defect electric.',
     });
-    expect([context.hasUnitRisks, context.noUnitRisks]).toEqual([[{}], []]);
+    expect([context.hasUnitRisks, context.noUnitRisks]).toEqual([true, false]);
     const acceptable = buildDocumentContext({
       ...facts,
       riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
@@ -414,8 +414,8 @@ describe('the merge context', () => {
     });
     expect([acceptable.unitRisks, acceptable.hasUnitRisks, acceptable.noUnitRisks]).toEqual([
       [],
-      [],
-      [{}],
+      false,
+      true,
     ]);
   });
 
@@ -431,7 +431,7 @@ describe('the merge context', () => {
           address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
         },
       ],
-      noWorkplaces: [],
+      noWorkplaces: false,
     });
     expect(
       context.riskAssessment.evaluations.map((evaluation) => [evaluation.roman, evaluation.heading])
@@ -471,13 +471,7 @@ describe('the training themes', () => {
       {
         name: 'CONTABIL',
         trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
-        modules: [
-          {
-            title: 'Activități de birou',
-            articleCount: 12,
-            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
-          },
-        ],
+        modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' }],
         intervalLabel: '6 LUNI',
         months: ['FEBRUARIE', 'AUGUST'],
       },
@@ -485,16 +479,8 @@ describe('the training themes', () => {
         name: 'SUDOR',
         trainer: 'Florin Cristian TALOȘ – conducător loc de muncă',
         modules: [
-          {
-            title: 'Activități de birou',
-            articleCount: 12,
-            citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
-          },
-          {
-            title: 'Sudură oxiacetilenică',
-            articleCount: 31,
-            citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
-          },
+          { citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' },
+          { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31' },
         ],
         intervalLabel: '2 LUNI',
         months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
@@ -524,11 +510,7 @@ describe('the training themes', () => {
     }).themes!;
     expect(behind.annexTitles).toBe('I.P.S.S.M. Activități de birou');
     expect(behind.positions[1]!.modules).toEqual([
-      {
-        title: 'Activități de birou',
-        articleCount: 12,
-        citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12',
-      },
+      { citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' },
     ]);
   });
 
@@ -580,17 +562,17 @@ describe('decision 1.5', () => {
     const context = buildDocumentContext(withRepresentatives);
     expect(context.workersRepresentatives).toEqual([{ name: 'Mihai DOBRE', jobTitle: 'Vânzător' }]);
     expect(context.workersRepresentativesLead).toBe('următorul angajat');
-    expect(context.workersRepresentativeDecision).toEqual([{}]);
+    expect(context.workersRepresentativeDecision).toBe(true);
     expect(documentData(context, 'decision_workers_representative')).toMatchObject({
       decisionNumber: 9,
     });
   });
 
   it('is left off the cover under 10 current employees, unless it was generated', () => {
-    expect(buildDocumentContext(facts).workersRepresentativeDecision).toEqual([]);
+    expect(buildDocumentContext(facts).workersRepresentativeDecision).toBe(false);
     expect(
       buildDocumentContext({ ...facts, workersRepresentativeDecisionGenerated: true })
         .workersRepresentativeDecision
-    ).toEqual([{}]);
+    ).toBe(true);
   });
 });

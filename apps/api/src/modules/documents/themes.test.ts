@@ -194,10 +194,7 @@ describe('the themes', () => {
     });
     expect(themes.positions[0]).toMatchObject({
       name: 'ȘOFER',
-      modules: [
-        { title: 'Birou', articleCount: 12, citation: 'I.P.S.S.M. Birou, Art. 1 – 12' },
-        { title: 'Scări', articleCount: 0, citation: 'I.P.S.S.M. Scări' },
-      ],
+      modules: [{ citation: 'I.P.S.S.M. Birou, Art. 1 – 12' }, { citation: 'I.P.S.S.M. Scări' }],
       intervalLabel: '6 LUNI',
     });
   });

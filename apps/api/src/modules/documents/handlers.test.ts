@@ -1221,13 +1221,7 @@ describe('the training themes', () => {
         {
           name: 'SUDOR',
           trainer: 'Florin TALOȘ – conducător loc de muncă',
-          modules: [
-            {
-              title: 'Scări metalice',
-              articleCount: 14,
-              citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 14',
-            },
-          ],
+          modules: [{ citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 14' }],
           intervalLabel: '3 LUNI',
           sessions: [
             ['FEBRUARIE', 'I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Scări metalice, Art. 1 – 14'],

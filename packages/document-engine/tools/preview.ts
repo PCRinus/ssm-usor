@@ -18,8 +18,6 @@ const person = (name: string, jobTitle: string) => ({ name, jobTitle });
 const described = (people: { name: string; jobTitle: string }[]) =>
   people.map(({ name, jobTitle }) => `${name} având funcția de ${jobTitle}`).join(', ');
 
-const flag = (on: boolean) => (on ? [{}] : []);
-
 function evaluation(roman: string, name: string, heading: string, count: number) {
   const labels = [
     ['MIJLOACE DE PRODUCȚIE', 'mijloacelor de producție'],
@@ -68,7 +66,7 @@ function evaluation(roman: string, name: string, heading: string, count: number)
         of,
         count: own.length,
         share: count ? `${((own.length * 100) / count).toFixed(2).replace('.', ',')} %` : '0,00 %',
-        noFactors: flag(own.length === 0),
+        noFactors: own.length === 0,
         groups: own.length ? [{ letter: 'a', name: 'Factori de risc mecanic', factors: own }] : [],
       };
     }),
@@ -79,17 +77,14 @@ function evaluation(roman: string, name: string, heading: string, count: number)
       consequence: factor.level > 3 ? 'Invaliditate gradul II' : 'ITM 3–45 zile',
       gravityClass: factor.level > 3 ? 5 : 2,
       probabilityClass: 3,
-      frequency: 'Rare',
-      frequencyPeriod: 'o dată la 2–5 ani',
     })),
     ranked: [...factors].sort((a, b) => b.level - a.level),
     globalLevel: '2,75',
     verdict:
       'valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5',
-    unacceptableCount: unacceptable.length,
     unacceptable,
-    hasUnacceptable: flag(unacceptable.length > 0),
-    noUnacceptable: flag(unacceptable.length === 0),
+    hasUnacceptable: unacceptable.length > 0,
+    noUnacceptable: unacceptable.length === 0,
     findings: `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de ${count} factori de risc identificați, ${unacceptable.length} dintre ei depășesc valoarea 3.`,
     unacceptableLead: unacceptable.length ? 'Factorii de risc din domeniul inacceptabil sunt:' : '',
     measuresSentence: unacceptable.length
@@ -104,8 +99,8 @@ function evaluation(roman: string, name: string, heading: string, count: number)
       responsiblePerson: 'Conducătorul locului de muncă',
       observations: '—',
     })),
-    hasPlan: flag(measured.length > 0),
-    noPlan: flag(measured.length === 0),
+    hasPlan: measured.length > 0,
+    noPlan: measured.length === 0,
   };
 }
 
@@ -118,12 +113,12 @@ function sample(
   return {
     label,
     data: {
-      branding: [{}],
+      branding: true,
       decisionNumber: 1,
       issueDate: '19.01.2026',
       issueYear: '2026',
-      hasUnitRisks: [{}],
-      noUnitRisks: [],
+      hasUnitRisks: true,
+      noUnitRisks: false,
       unitRisks: [
         {
           risk: 'Cădere de la același nivel pe pardoseală alunecoasă.',
@@ -142,7 +137,7 @@ function sample(
           activities: 'Conduce magazinul și ține legătura cu furnizorii.',
           staffCategory: 'Tehnic-administrativ',
           workZone: 'Birou',
-          workZoneLine: [{}],
+          workZoneLine: true,
           workZoneOrDash: 'Birou',
           intervalLabel: 'la 6 luni',
           trainingDuration: '2 ore',
@@ -153,7 +148,7 @@ function sample(
           activities: 'Sudură electrică și autogenă în atelier și pe șantier.',
           staffCategory: 'Execuție',
           workZone: 'Atelier',
-          workZoneLine: [{}],
+          workZoneLine: true,
           workZoneOrDash: 'Atelier',
           intervalLabel: 'la 2 luni',
           trainingDuration: '2 ore',
@@ -170,7 +165,7 @@ function sample(
             index === 0 ? '—' : 'Montaj și întreținere de instalații criogenice pe șantier.',
           staffCategory: index === 0 ? 'Tehnic-administrativ' : 'Execuție',
           workZone: index === 0 ? '' : 'Atelier, șantier temporar',
-          workZoneLine: index === 0 ? [] : [{}],
+          workZoneLine: index !== 0,
           workZoneOrDash: index === 0 ? '—' : 'Atelier, șantier temporar',
           intervalLabel: index === 0 ? 'la 6 luni' : 'la 3 luni',
           trainingDuration: '2 ore',
@@ -215,7 +210,7 @@ function sample(
           versionDate: '26.09.2026',
         },
       ],
-      noAnnexes: [],
+      noAnnexes: false,
       riskAssessment: {
         unit: {
           activity: '2562 – Fabricarea articolelor de feronerie',
@@ -228,9 +223,8 @@ function sample(
               address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
             },
           ],
-          noWorkplaces: [],
+          noWorkplaces: false,
         },
-        evaluationCount: 3,
         evaluationCountText: '3 posturi de lucru',
         globalLevel: '2,80',
         evaluations: [
@@ -257,13 +251,7 @@ function sample(
           {
             name: 'MANAGER MAGAZIN',
             trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Ana IONESCU',
-            modules: [
-              {
-                title: 'Activități de birou',
-                articleCount: 15,
-                citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 15',
-              },
-            ],
+            modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 15' }],
             intervalLabel: '6 LUNI',
             sessions: [
               {
@@ -283,16 +271,8 @@ function sample(
             name: jobTitle.toUpperCase(),
             trainer: `${name} – conducător loc de muncă`,
             modules: [
-              {
-                title: 'Scări metalice',
-                articleCount: 12,
-                citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12',
-              },
-              {
-                title: 'Aparat de sudură oxiacetilenică',
-                articleCount: 0,
-                citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică',
-              },
+              { citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12' },
+              { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },
             ],
             intervalLabel: '1 LUNĂ',
             sessions: [
@@ -330,14 +310,14 @@ function sample(
       evaluationTeam: people,
       imminentDanger: people,
       imminentDangerText: described(people),
-      workersRepresentativeDecision: [{}],
+      workersRepresentativeDecision: true,
       workersRepresentatives: people,
       workersRepresentativesLead: people.length === 1 ? 'următorul angajat' : 'următorii angajați',
       training: {
         periodicDuration: '2 ore',
         intervalPhrase: 'următoarele intervale de timp',
-        administrative: [{}],
-        worker: [{}],
+        administrative: true,
+        worker: true,
         administrativeFrequency: 'SEMESTRIAL',
         administrativeMonths: 'februarie, august',
         workerFrequency: 'TRIMESTRIAL',

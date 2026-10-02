@@ -30,12 +30,56 @@ describe('the built-in templates', () => {
     );
   });
 
-  // The engine throws on a placeholder without a value, so this proves the context covers
-  // everything the templates ask for.
-  it.each(ready.map((entry) => [entry.typeKey, entry.file] as const))(
-    '%s renders from the context with nothing missing',
-    (typeKey, file) => {
-      const context = buildDocumentContext(facts);
+  const reversed: typeof facts = {
+    ...facts,
+    branding: false,
+    workplaces: [],
+    client: {
+      ...facts.client,
+      administrativeTrainingIntervalMonths: null,
+      administrativeTrainingNotApplicable: true,
+    },
+    staffCategoriesInUse: ['execution'],
+    jobPositions: facts.jobPositions.map((position) => ({
+      ...position,
+      workZone: position.workZone ? null : 'Atelier',
+      needsProtectiveEquipment: false,
+      equipment: [],
+      needsInstructions: false,
+      instructions: [],
+    })),
+    riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
+      ...evaluation,
+      factors: evaluation.factors.map((factor) => ({
+        ...factor,
+        gravityClass: 1,
+        probabilityClass: 1,
+        measures: [],
+      })),
+    })),
+    currentEmployeeCount: 12,
+    responsiblePersons: [
+      ...facts.responsiblePersons,
+      {
+        fullName: 'Mihai POPESCU',
+        jobTitle: 'Sudor',
+        roles: ['workers_representative'],
+        currentEmployee: true,
+      },
+    ],
+  };
+
+  // The engine throws on a placeholder without a value, and on a section name the data does
+  // not have, so this proves the context covers everything the templates ask for.
+  it.each(
+    ready.flatMap((entry) => [
+      [entry.typeKey, 'the fixture', entry.file, facts] as const,
+      [entry.typeKey, 'every condition reversed', entry.file, reversed] as const,
+    ])
+  )(
+    '%s renders from %s with nothing missing',
+    (typeKey, _, file, variant) => {
+      const context = buildDocumentContext(variant);
       const output = renderDocument(
         readFileSync(new URL(file, templatesUrl)),
         documentData(context, typeKey as (typeof documentTypeKeys)[number])
@@ -43,9 +87,7 @@ describe('the built-in templates', () => {
       const text = documentText(output);
       expect(text).not.toContain('{{');
       expect(text).toContain('PIPETECH');
-      if (typeKey !== 'event_registers' && !typeKey.startsWith('cover_')) {
-        expect(text).toContain('Document generat cu SSM Ușor');
-      }
+      expect(text.includes('Document generat cu SSM Ușor')).toBe(variant.branding);
     },
     30_000
   );

@@ -8,7 +8,6 @@ import {
   isUnacceptableRiskLevel,
   maxAcceptableGlobalRiskLevel,
   type PreventionMeasureKind,
-  probabilityFrequency,
   type RiskEvaluationGap,
   type RiskEvaluationKind,
   riskLevel,
@@ -65,9 +64,6 @@ export type WorkplaceFacts = {
   locality: string | null;
   addressLine: string | null;
 };
-
-type Flag = Record<string, never>[];
-const flag = (on: boolean): Flag => (on ? [{}] : []);
 
 const dash = '—';
 const orDash = (value: string | null | undefined) => value?.trim() || dash;
@@ -261,17 +257,9 @@ export function incompleteRiskEvaluations(
   ].filter((evaluation) => evaluation.missing.length > 0);
 }
 
-type SheetFactor = {
-  code: string;
-  description: string;
-  level: number;
-};
+type FactorLine = { code: string; description: string };
 
-type MeasuredFactor = SheetFactor &
-  MeasuresByKind & {
-    /** Every measure, one per line, in the order entered. */
-    measures: string;
-  };
+type SheetFactor = FactorLine & { level: number };
 
 export type RiskAssessmentEvaluation = {
   /** The subchapter's numeral in chapter V: "I", "II". */
@@ -296,8 +284,8 @@ export type RiskAssessmentEvaluation = {
     of: string;
     count: number;
     share: string;
-    noFactors: Flag;
-    groups: { letter: string; name: string; factors: SheetFactor[] }[];
+    noFactors: boolean;
+    groups: { letter: string; name: string; factors: FactorLine[] }[];
   }[];
   /** A row per factor; the component and the group are printed on their first row only. */
   sheet: (SheetFactor & {
@@ -306,35 +294,33 @@ export type RiskAssessmentEvaluation = {
     consequence: string;
     gravityClass: number;
     probabilityClass: number;
-    /** "Rare", as annex 3 words the class, and "o dată la 2–5 ani", the period it stands for. */
-    frequency: string;
-    frequencyPeriod: string;
   })[];
   /** Every factor, the highest level first; equal levels in the sheet's order. */
   ranked: SheetFactor[];
   globalLevel: string;
-  withinLimit: Flag;
-  overLimit: Flag;
   verdict: string;
-  unacceptableCount: number;
   /** The highest level first: the measures sheet and the interpretation's list. */
-  unacceptable: MeasuredFactor[];
-  hasUnacceptable: Flag;
-  noUnacceptable: Flag;
+  unacceptable: (SheetFactor & {
+    /** Every measure, one per line, in the order entered. */
+    measures: string;
+  })[];
+  hasUnacceptable: boolean;
+  noUnacceptable: boolean;
   findings: string;
   /** Empty without unacceptable factors, like `measuresSentence`. */
   unacceptableLead: string;
   measuresSentence: string;
   irreversible: string;
   /** The prevention plan's rows: every factor with a measure, the highest level first. */
-  plan: (MeasuredFactor & {
-    actions: string;
-    deadline: string;
-    responsiblePerson: string;
-    observations: string;
-  })[];
-  hasPlan: Flag;
-  noPlan: Flag;
+  plan: (FactorLine &
+    MeasuresByKind & {
+      actions: string;
+      deadline: string;
+      responsiblePerson: string;
+      observations: string;
+    })[];
+  hasPlan: boolean;
+  noPlan: boolean;
 };
 
 export type RiskAssessmentContext = {
@@ -343,9 +329,8 @@ export type RiskAssessmentContext = {
     activity: string;
     employeeCount: number;
     workplaces: { name: string; kind: string; address: string }[];
-    noWorkplaces: Flag;
+    noWorkplaces: boolean;
   };
-  evaluationCount: number;
   /** "5 posturi de lucru": every evaluation printed, the sensitive groups included. */
   evaluationCountText: string;
   /** The unit's level: the evaluations' levels, each weighted by itself, as the method says. */
@@ -471,22 +456,19 @@ function evaluationContext(
     code: `F${number + 1}`,
     description: factor.description.trim(),
   }));
-  const sheetFactor = (entry: (typeof facts)[number]): SheetFactor => ({
+  const factorLine = (entry: (typeof facts)[number]): FactorLine => ({
     code: entry.code,
     description: entry.description,
-    level: entry.level,
   });
-  const measured = (entry: (typeof facts)[number]): MeasuredFactor => ({
-    ...sheetFactor(entry),
-    measures: orDash(entry.factor.measures.map((measure) => measure.description.trim()).join('\n')),
-    ...measuresByKind(entry.factor.measures),
+  const sheetFactor = (entry: (typeof facts)[number]): SheetFactor => ({
+    ...factorLine(entry),
+    level: entry.level,
   });
   const unacceptable = unacceptableFactors(facts.map((entry) => ({ ...entry.factor, entry }))).map(
     ({ entry }) => entry
   );
   const shares = componentShares(evaluation.factors);
   const level = globalRiskLevel(facts.map((entry) => entry.level))!;
-  const overLimit = isOverAcceptableLimit(level);
   const irreversibleCount = evaluation.factors.filter(
     (factor) => factor.gravityClass >= irreversibleGravity
   ).length;
@@ -515,11 +497,11 @@ function evaluationContext(
         ...componentWords[component],
         count,
         share: printedShare(shares[component]),
-        noFactors: flag(count === 0),
+        noFactors: count === 0,
         groups: componentGroups.map((group, groupIndex) => ({
           letter: String.fromCharCode(97 + (groupIndex % 26)),
           name: group.name,
-          factors: facts.filter((entry) => group.factors.includes(entry.factor)).map(sheetFactor),
+          factors: facts.filter((entry) => group.factors.includes(entry.factor)).map(factorLine),
         })),
       };
     }),
@@ -533,19 +515,19 @@ function evaluationContext(
         consequence: gravityConsequence(entry.factor.gravityClass),
         gravityClass: entry.factor.gravityClass,
         probabilityClass: entry.factor.probabilityClass,
-        frequency: probabilityFrequency(entry.factor.probabilityClass).label,
-        frequencyPeriod: probabilityFrequency(entry.factor.probabilityClass).period,
       };
     }),
     ranked: [...facts].sort(byLevel).map(sheetFactor),
     globalLevel: printedLevel(level),
-    withinLimit: flag(!overLimit),
-    overLimit: flag(overLimit),
-    verdict: overLimit ? verdicts.over : verdicts.within,
-    unacceptableCount: unacceptable.length,
-    unacceptable: unacceptable.map(measured),
-    hasUnacceptable: flag(unacceptable.length > 0),
-    noUnacceptable: flag(unacceptable.length === 0),
+    verdict: isOverAcceptableLimit(level) ? verdicts.over : verdicts.within,
+    unacceptable: unacceptable.map((entry) => ({
+      ...sheetFactor(entry),
+      measures: orDash(
+        entry.factor.measures.map((measure) => measure.description.trim()).join('\n')
+      ),
+    })),
+    hasUnacceptable: unacceptable.length > 0,
+    noUnacceptable: unacceptable.length === 0,
     findings: findings(facts.length, unacceptable.length),
     unacceptableLead: unacceptableLead(unacceptable.length),
     measuresSentence: measuresSentence(unacceptable.length),
@@ -554,14 +536,15 @@ function evaluationContext(
       .filter((entry) => entry.factor.measures.length > 0)
       .sort(byLevel)
       .map((entry) => ({
-        ...measured(entry),
+        ...factorLine(entry),
+        ...measuresByKind(entry.factor.measures),
         actions: orDash(entry.factor.actions),
         deadline: orDash(entry.factor.deadline),
         responsiblePerson: orDash(entry.factor.responsiblePerson),
         observations: orDash(entry.factor.observations),
       })),
-    hasPlan: flag(facts.some((entry) => entry.factor.measures.length > 0)),
-    noPlan: flag(!facts.some((entry) => entry.factor.measures.length > 0)),
+    hasPlan: facts.some((entry) => entry.factor.measures.length > 0),
+    noPlan: !facts.some((entry) => entry.factor.measures.length > 0),
   };
 }
 
@@ -609,9 +592,8 @@ export function riskAssessment({
         kind: workplace.registeredOffice ? 'Sediu social' : 'Punct de lucru',
         address: workplaceAddress(workplace),
       })),
-      noWorkplaces: flag(workplaces.length === 0),
+      noWorkplaces: workplaces.length === 0,
     },
-    evaluationCount: printed.length,
     evaluationCountText: countOf(printed.length, 'post de lucru', 'posturi de lucru'),
     globalLevel: unitLevel === null ? dash : printedLevel(unitLevel),
     evaluations: printed,

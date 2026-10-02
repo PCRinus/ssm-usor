@@ -10,6 +10,9 @@ import { isTextPart, replaceText } from './text';
 //                                              table row it repeats the row; with each tag
 //                                              alone in its own paragraph it repeats the
 //                                              paragraphs between them; otherwise inline
+//   {{#flag}} … {{/flag}}                      once for true, a text or an object; never for
+//                                              false, null or an empty list
+//   {{^plan}} … {{/plan}}                      once for false, null or an empty list
 //   {{.}}                                      the current item of a list of strings
 //   {{$index}}                                 the item's number in its list, from 1
 //
@@ -44,26 +47,33 @@ function lookup(scope: unknown, path: string[]): unknown {
   return value;
 }
 
-// docxtemplater's own parser reads one property name. This one reads a dotted path and looks
-// it up from the innermost scope outwards, so a row of a list can still print the client.
-// It evaluates nothing, which is what Workers require: no `eval`, no `new Function`.
-// `used` collects the top-level names that gave a value, which is what a document depends on.
-const parserRecording = (used: Set<string>) =>
-  function parser(tag: string) {
+// docxtemplater's own parser reads one property name. This one reads a dotted path; where a
+// scope has none, docxtemplater asks again with the next scope outwards, so a row of a list
+// can still print the client. It evaluates nothing, which is what Workers require: no `eval`,
+// no `new Function`. `used` collects the top-level names that gave a value, which is what a
+// document depends on.
+const parserRecording = (used: Set<string>, missing: Set<string>) =>
+  function parser(tag: string, options?: { tag?: { module?: string } }) {
     const path = tag.trim();
+    const section = options?.tag?.module === 'loop';
     return {
       get(scope: unknown, context: ParserContext) {
         if (path === '.') return scope;
         if (path === '$index') return (context.scopePathItem.at(-1) ?? 0) + 1;
         const keys = path.split('.');
-        for (let index = context.num; index >= 0; index -= 1) {
-          const value = lookup(context.scopeList[index], keys);
-          if (value !== undefined) {
-            if (index === 0) used.add(keys[0]!);
-            return value;
-          }
+        const value = lookup(scope, keys);
+        // A section on a boolean or a text pushes the scope it stands in once more, so the
+        // top level is not always at index 0.
+        if (value !== undefined && scope === context.scopeList[0]) used.add(keys[0]!);
+        // The nullGetter cannot tell null, an empty value, from a name no scope has.
+        if (
+          section &&
+          context.num === 0 &&
+          context.scopeList.every((each) => lookup(each, keys) === undefined)
+        ) {
+          missing.add(path);
         }
-        return undefined;
+        return value;
       },
     };
   };
@@ -104,9 +114,12 @@ export function renderTemplate(
       // Loop tags alone in their paragraphs leave no empty paragraphs behind.
       paragraphLoop: true,
       linebreaks: true,
-      parser: parserRecording(used),
+      // The default logs the data around an error, people's names included.
+      errorLogging: false,
+      // Otherwise a control character pasted into any value aborts the whole document.
+      stripInvalidXMLChars: true,
+      parser: parserRecording(used, missing),
       nullGetter: (part: { value?: string; module?: string }) => {
-        // A loop over nothing is an empty list, which is a legitimate value.
         if (part.module === 'loop') return [];
         missing.add(part.value ?? '?');
         return '';
@@ -150,6 +163,7 @@ export function templatePlaceholders(template: Uint8Array): string[] {
     const document = new Docxtemplater(new PizZip(template), {
       delimiters: { start: '{{', end: '}}' },
       paragraphLoop: true,
+      errorLogging: false,
       parser: collector,
       nullGetter: () => '',
     });

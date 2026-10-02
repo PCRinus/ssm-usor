@@ -11,22 +11,29 @@ knowledge of the database: the API builds the data and stores the result.
 
 Templates are ordinary `.docx` files with `{{ }}` placeholders:
 
-| Placeholder                             | Meaning                                                   |
-| --------------------------------------- | --------------------------------------------------------- |
-| `{{client.legalName}}`                  | A value, by dotted path.                                  |
-| `{{#firstAiders}}` … `{{/firstAiders}}` | A repeated block; inside, `{{name}}` reads from the item. |
-| `{{.}}`                                 | The current item of a list of strings.                    |
-| `{{$index}}`                            | The item's number in its list, from 1.                    |
+| Placeholder                             | Meaning                                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `{{client.legalName}}`                  | A value, by dotted path.                                                                          |
+| `{{#firstAiders}}` … `{{/firstAiders}}` | A repeated block; inside, `{{name}}` reads from the item.                                         |
+| `{{#noPlan}}` … `{{/noPlan}}`           | On a boolean, a text or an object: printed once when it is true or set, never when false or null. |
+| `{{^plan}}` … `{{/plan}}`               | The other way round: printed once when the value is false, null or an empty list.                 |
+| `{{.}}`                                 | The current item of a list of strings.                                                            |
+| `{{$index}}`                            | The item's number in its list, from 1.                                                            |
 
 Where the two loop tags sit decides what repeats. Both in one table row: the row. Each alone
 in a paragraph of its own: the paragraphs between them. Anywhere else: the text between
 them, inline. Inside a loop a name is looked up on the item first and then outwards, so a
-table row can still print `{{issueDate}}` or `{{client.legalName}}`.
+table row can still print `{{issueDate}}` or `{{client.legalName}}`. A condition is a section
+on a boolean (`hasPlan: true`), not a list of one empty item.
 
 `renderDocument(template, data)` returns the merged file. **A placeholder without a value is
 an error, never a blank**: it throws a `TemplateError` whose `missing` lists every one, so a
-generated document cannot leave a gap where a name belongs. A list with no items is a value.
-`templatePlaceholders(template)` lists what a template asks for.
+generated document cannot leave a gap where a name belongs. A section's name is held to the
+same rule: one the data does not have at all is in `missing`, so a misspelt `{{#plna}}`
+cannot print nothing in silence. `null`, `false` and a list with no items are values: the
+section prints nothing (and `{{^…}}` prints). A control character in a value is dropped
+rather than abort the document, and errors are not logged by the engine with the data around
+them. `templatePlaceholders(template)` lists what a template asks for.
 
 The engine uses docxtemplater with a parser of its own, because docxtemplater's default reads
 a single property name and its expression parser needs `eval`, which Workers forbid. Ours
@@ -200,7 +207,7 @@ pass over the templates that exist, covers included, without originals or an off
 | Staying together | From a heading to the table it introduces, everything moves to the next page together, but no run of paragraphs kept with the next, by their own setting or their style's, is longer than three: the sweep cuts a longer one, which left pages two thirds empty, sparing a chapter heading and a line that ends in a colon; a short table does not split; two lines at least stay together at a page break |
 | Characters       | Romanian as the language, no font colours (the provider marks in red what they replace by hand), no dead internal hyperlinks and the underline they left, no boxes or shading around a paragraph, no empty shapes drawn behind a title                                                                                                                                                                     |
 | Page fields      | "Pag. X din Y" in the header box is real `PAGE` and `NUMPAGES` fields, written as the bare keywords: LibreOffice spells the default format out as `\* ARABIC`, and the in-app editor then paints the cached result, the last page's number, on every page instead of evaluating the field                                                                                                                  |
-| Footer           | Every footer ends with `{{#branding}}Document generat cu SSM Ușor · ssmusor.ro{{/branding}}`, Arial 7.5 pt, grey, centred: alone where the document had no footer, one more paragraph where it had one. `branding: [{}]` in the merge data prints it; empty or missing prints nothing. See [branding](document-branding.md)                                                                                |
+| Footer           | Every footer ends with `{{#branding}}Document generat cu SSM Ușor · ssmusor.ro{{/branding}}`, Arial 7.5 pt, grey, centred: alone where the document had no footer, one more paragraph where it had one. `branding: true` in the merge data prints it; `false` prints nothing. See [branding](document-branding.md)                                                                                         |
 | The end          | A document that closes with a table keeps the one paragraph Word needs after it, at 1 pt, so it cannot spill onto an empty last page                                                                                                                                                                                                                                                                       |
 
 Then **read the result**. `preview` renders every template twice, with one person and short
@@ -338,7 +345,7 @@ responsibility.
   `{{#contract.coversOccupationalSafety}}` around the others, so a contract prints one
   service, the other, or both. `provider.vatPayer` and `provider.notVatPayer`, and
   `contract.renewsAutomatically` and `contract.endsWithoutRenewal`, choose between two
-  sentences: the engine has no "else", so the context carries both sides.
+  sentences. The template predates `{{^…}}`, so the context carries both sides.
 - **Prices** are printed as `DE COMPLETAT`, the contracts' `unfilledMark`, which is what
   issuing already warns about. The app keeps no prices (ADR 007).
 - `{{#client.phone}}…{{/client.phone}}` and `{{#client.activity}}…` are inline conditions: the
@@ -434,8 +441,8 @@ The API builds the data once per generation and merges every template with it
   assessment prints, each description once (compared without case, spacing or a closing full
   stop), the highest level first and then in the order met, with `risk` the description and
   `measure` every prevention measure taken against it, one per line, those of a repeated
-  factor merged. `hasUnitRisks` is one item when there are some, for the table, and
-  `noUnitRisks` one when there are none, for a sentence to say so.
+  factor merged. `hasUnitRisks` is true when there are some, for the table, and
+  `noUnitRisks` when there are none, for a sentence to say so.
 - `riskAssessment` is what the risk assessment (9) and the prevention plan (10) print
   ([ADR 015](architecture/adr-015-risk-assessment.md)). It is built whole and recorded whole
   in a snapshot that prints any of it, so a changed factor marks those documents "Date
@@ -443,46 +450,45 @@ The API builds the data once per generation and merges every template with it
   levels and shares have a comma and two decimals, and a value that holds several lines
   (`measures`, the four kinds) breaks them with line breaks.
 
-  | Name                                      | Example                                                                                                                |
-  | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-  | `riskAssessment.unit.activity`            | `5630 – Baruri și alte activități de servire a băuturilor`, the CAEN class by name; `—` without a code                 |
-  | `….unit.employeeCount`                    | `6`, the current employees                                                                                             |
-  | `….unit.workplaces[]`                     | `{ name, kind: 'Sediu social' \| 'Punct de lucru', address }`, the registered office first; `noWorkplaces` without any |
-  | `riskAssessment.evaluationCount`, `…Text` | `5`, `5 posturi de lucru`: every evaluation printed, the sensitive groups included                                     |
-  | `riskAssessment.globalLevel`              | `2,50`, the unit's: the evaluations' levels, each weighted by itself (Σ Nr² / Σ Nr)                                    |
-  | `riskAssessment.evaluations[]`            | One per subchapter of chapter V and per table of the plan, in the order below                                          |
+  | Name                                 | Example                                                                                                                |
+  | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+  | `riskAssessment.unit.activity`       | `5630 – Baruri și alte activități de servire a băuturilor`, the CAEN class by name; `—` without a code                 |
+  | `….unit.employeeCount`               | `6`, the current employees                                                                                             |
+  | `….unit.workplaces[]`                | `{ name, kind: 'Sediu social' \| 'Punct de lucru', address }`, the registered office first; `noWorkplaces` without any |
+  | `riskAssessment.evaluationCountText` | `5 posturi de lucru`: every evaluation printed, the sensitive groups included                                          |
+  | `riskAssessment.globalLevel`         | `2,50`, the unit's: the evaluations' levels, each weighted by itself (Σ Nr² / Σ Nr)                                    |
+  | `riskAssessment.evaluations[]`       | One per subchapter of chapter V and per table of the plan, in the order below                                          |
 
   The evaluations are the current positions in the order of the positions table, then the
   sensitive groups, then the client's other evaluations by name. An archived position's
   evaluation stays out, and so does another evaluation without a factor. Each has:
 
-  | Name                                   | Example                                                                                                                                                                                     |
-  | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `roman`, `name`                        | `II`, `Sudor`; `Grupuri sensibile la riscuri specifice`; another's own name                                                                                                                 |
-  | `heading`                              | `LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL`, `POSTUL DE LUCRU: SUDOR` without a work zone, `VIZITATORI`, `GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI …)`                          |
-  | `workZoneOrDash`                       | `Birou`, or `—`                                                                                                                                                                             |
-  | `workSystem`                           | `{ executant, workTask, meansOfProduction, workEnvironment }`: a position's name and activities, or the client-level evaluation's own texts                                                 |
-  | `exposedPersons`, `exposure`           | `3 persoane`, `25 de persoane`, `nicio persoană` (a position's current employees) or the evaluation's text; `8 h / schimb`                                                                  |
-  | `factorCount`                          | `37`                                                                                                                                                                                        |
-  | `components[]`                         | The four components, always, in the sheet's order: `{ label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție', count, share: '24,32 %', noFactors, groups }`                         |
-  | `…groups[]`                            | `{ letter: 'a', name: 'Factori de risc mecanic', factors: [{ code, description, level }] }`, in the order the evaluator first used them                                                     |
-  | `sheet[]`                              | A row of the evaluation sheet per factor: `{ component, group, code: 'F1', description, consequence, gravityClass, probabilityClass, frequency, frequencyPeriod, level }`                   |
-  | `ranked[]`                             | `{ code, description, level }`, every factor, the highest level first                                                                                                                       |
-  | `globalLevel`                          | `2,49`                                                                                                                                                                                      |
-  | `withinLimit`, `overLimit`, `verdict`  | One item in the flag that holds; `valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5`                      |
-  | `unacceptableCount`, `unacceptable[]`  | `2`; `{ code, description, level, measures, technical, organizational, hygienicSanitary, other }`, the highest level first                                                                  |
-  | `hasUnacceptable`, `noUnacceptable`    | One item in the flag that holds                                                                                                                                                             |
-  | `findings`                             | `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 37 de factori de risc identificați, 2 dintre ei depășesc, …`                                         |
-  | `unacceptableLead`, `measuresSentence` | `Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:`, `Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare …`; empty without                          |
-  | `irreversible`                         | `Din analiza „Fișei de evaluare” se constată că 7 dintre factorii de risc identificați, reprezentând 18,92 %, pot avea consecințe ireversibile …`                                           |
-  | `plan[]`, `hasPlan`, `noPlan`          | The plan's rows: every factor with a measure, the highest level first, as `unacceptable[]` plus `actions`, `deadline`, `responsiblePerson`, `observations`; one item in the flag that holds |
+  | Name                                   | Example                                                                                                                                                                                                          |
+  | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `roman`, `name`                        | `II`, `Sudor`; `Grupuri sensibile la riscuri specifice`; another's own name                                                                                                                                      |
+  | `heading`                              | `LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL`, `POSTUL DE LUCRU: SUDOR` without a work zone, `VIZITATORI`, `GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI …)`                                               |
+  | `workZoneOrDash`                       | `Birou`, or `—`                                                                                                                                                                                                  |
+  | `workSystem`                           | `{ executant, workTask, meansOfProduction, workEnvironment }`: a position's name and activities, or the client-level evaluation's own texts                                                                      |
+  | `exposedPersons`, `exposure`           | `3 persoane`, `25 de persoane`, `nicio persoană` (a position's current employees) or the evaluation's text; `8 h / schimb`                                                                                       |
+  | `factorCount`                          | `37`                                                                                                                                                                                                             |
+  | `components[]`                         | The four components, always, in the sheet's order: `{ label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție', count, share: '24,32 %', noFactors, groups }`                                              |
+  | `…groups[]`                            | `{ letter: 'a', name: 'Factori de risc mecanic', factors: [{ code, description }] }`, in the order the evaluator first used them                                                                                 |
+  | `sheet[]`                              | A row of the evaluation sheet per factor: `{ component, group, code: 'F1', description, consequence, gravityClass, probabilityClass, level }`                                                                    |
+  | `ranked[]`                             | `{ code, description, level }`, every factor, the highest level first                                                                                                                                            |
+  | `globalLevel`                          | `2,49`                                                                                                                                                                                                           |
+  | `verdict`                              | `valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5`, or the sentence for a level over the limit                                |
+  | `unacceptable[]`                       | `{ code, description, level, measures }`, the highest level first                                                                                                                                                |
+  | `hasUnacceptable`, `noUnacceptable`    | Booleans                                                                                                                                                                                                         |
+  | `findings`                             | `Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 37 de factori de risc identificați, 2 dintre ei depășesc, …`                                                              |
+  | `unacceptableLead`, `measuresSentence` | `Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:`, `Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare …`; empty without                                               |
+  | `irreversible`                         | `Din analiza „Fișei de evaluare” se constată că 7 dintre factorii de risc identificați, reprezentând 18,92 %, pot avea consecințe ireversibile …`                                                                |
+  | `plan[]`, `hasPlan`, `noPlan`          | The plan's rows: every factor with a measure, the highest level first, `{ code, description, technical, organizational, hygienicSanitary, other, actions, deadline, responsiblePerson, observations }`; booleans |
 
   The factors are numbered F1…Fn down the sheet: by component in the provider's order (means of
   production, work environment, executant, work task), then by group in the order the
   evaluator first used it, then in the evaluator's order. On a `sheet` row `component` and
   `group` are empty after their first row, as the merged cells of the sheet print them.
-  `consequence` is the gravity class's wording and `frequency` the probability class's, with
-  `frequencyPeriod` the period it stands for (`Rare`, `o dată la 2–5 ani`). The sentences are
+  `consequence` is the gravity class's wording. The sentences are
   worded for any count: `singurul factor`, `niciunul dintre cei 12 factori`, `unul singur`,
   `toți cei`, and `de` from 20 on (`21 de factori`). `irreversible` counts the factors whose
   consequence is invalidity or death, gravity classes 4 to 7.
@@ -494,15 +500,15 @@ The API builds the data once per generation and merges every template with it
   throws; every other document merges as before. The template reads it by dotted paths, so the
   snapshot records the whole object and any change in it marks the themes "Date modificate":
 
-  | Name                             | Example                                                                                                                                                                                              |
-  | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `themes.ownInstructionsRevision` | `{ id, number, versionIds }` of the 3.2 revision cited, the module versions in its annex order; never printed                                                                                        |
-  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                                                                                         |
-  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                                                                                             |
-  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one                                                                          |
-  | `…modules[]`                     | `{ title, articleCount, citation }`, the post's modules the revision annexes, in its order; `citation` is `I.P.S.S.M. Birou, Art. 1 – 12`, or the title alone for a module without numbered articles |
-  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                                                                                            |
-  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                                                                                               |
+  | Name                             | Example                                                                                                                                                           |
+  | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `themes.ownInstructionsRevision` | `{ id, number, versionIds }` of the 3.2 revision cited, the module versions in its annex order; never printed                                                     |
+  | `themes.annexTitles`             | `I.P.S.S.M. Birou; I.P.S.S.M. Scări`, or `—` without annexes                                                                                                      |
+  | `themes.positions[].name`        | `ȘOFER`, the position's name in capitals                                                                                                                          |
+  | `…trainer`                       | `Ion POP – conducător loc de muncă` for an execution post, `S.C. SSM S.R.L. – Dan MARIN` for a technical-administrative one                                       |
+  | `…modules[]`                     | `{ citation }`, the post's modules the revision annexes, in its order: `I.P.S.S.M. Birou, Art. 1 – 12`, or the title alone for a module without numbered articles |
+  | `…intervalLabel`                 | `3 LUNI`, `1 LUNĂ`: the post's interval or its category's                                                                                                         |
+  | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                                                            |
 
   A session's `content` is the slice of the common part dealt to it, then every module whole,
   then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The
@@ -539,9 +545,8 @@ same test.
 | `decision_workers_representative` | Decision no. 5: the workers' representatives, from 10 employees                                                                                            | `workersRepresentatives[]`, `workersRepresentativesLead`                                                                                                         |
 
 For `decision_training`, `training` has `periodicDuration`, `intervalPhrase`, `dayFrom`, and
-`dayTo`. The `administrative[]` and `worker[]` arrays contain one item when applicable and are
-empty otherwise, controlling which interval paragraphs print. Their matching frequency and
-months values exist only for applicable categories.
+`dayTo`. The booleans `administrative` and `worker` say which interval paragraphs print.
+Their matching frequency and months values exist only for applicable categories.
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
 and `representativeName`. A person in a list is `name` and `jobTitle`. Every decision ends with

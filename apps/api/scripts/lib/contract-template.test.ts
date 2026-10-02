@@ -115,6 +115,38 @@ describe('the starter contract', () => {
     expect(text).toContain('Document generat cu SSM Ușor');
   });
 
+  const services = [
+    [true, false],
+    [false, true],
+    [true, true],
+  ] as const;
+  const combinations = services.flatMap(([occupational, fire]) =>
+    [true, false].flatMap((renews) =>
+      [true, false].flatMap((vatPayer) =>
+        [null, '0744 123 456'].flatMap((phone) =>
+          [null, '5630'].map((caen) => [occupational, fire, renews, vatPayer, phone, caen] as const)
+        )
+      )
+    )
+  );
+
+  it.each(combinations)(
+    'renders with nothing missing: occupational %s, fire %s, renews %s, VAT payer %s, phone %s, CAEN %s',
+    (occupational, fire, renews, vatPayer, phone, caen) => {
+      const context = buildServiceContractContext({
+        client: { ...facts.client, contact_phone: phone, caen_code: caen },
+        organization: { ...facts.organization, vat_payer: vatPayer },
+        contract: {
+          ...contract,
+          coversOccupationalSafety: occupational,
+          coversFireSafety: fire,
+          renewsAutomatically: renews,
+        },
+      });
+      expect(documentText(renderTemplate(template, context).document)).not.toContain('{{');
+    }
+  );
+
   it('leaves the prices for the owner, under the mark that issuing warns about', () => {
     expect(merged().split(unfilledMark).length - 1).toBe(3);
   });
