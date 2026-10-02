@@ -83,7 +83,7 @@ export function EditAction({
   ...props
 }: Omit<ComponentProps<typeof Button>, 'children' | 'variant' | 'size'> & { empty?: boolean }) {
   return (
-    <Button variant="outline" size="sm" {...props}>
+    <Button variant={empty ? 'tonal' : 'outline'} size="sm" {...props}>
       {empty ? <Plus aria-hidden="true" /> : <Pencil aria-hidden="true" />}
       {empty ? 'Adaugă' : 'Modifică'}
     </Button>

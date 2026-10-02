@@ -169,7 +169,7 @@ export function ResponsiblePersonsCard({
         !readOnly && (
           <Button
             ref={addRef}
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="responsible-add"
             onClick={() => setEditing('new')}
@@ -353,7 +353,6 @@ export function ResponsiblePersonsCard({
                 Renunță
               </Button>
               <Button
-                variant="destructive"
                 data-testid="responsible-archive-confirm"
                 disabled={archive.isPending}
                 onClick={() => void archivePerson(archiving)}

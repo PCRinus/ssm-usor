@@ -175,7 +175,7 @@ export function EquipmentCard({
         !readOnly &&
         decision !== false && (
           <Button
-            variant="outline"
+            variant="tonal"
             size="sm"
             data-testid="equipment-add"
             onClick={() => setEditing('new')}
