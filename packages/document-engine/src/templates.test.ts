@@ -899,10 +899,10 @@ describe('training_themes', () => {
         [63, 94],
         [95, 165],
         [166, 185],
-        [186, 203],
-        [204, 234],
-        [235, 254],
-        [255, 288],
+        [186, 202],
+        [203, 233],
+        [234, 253],
+        [254, 287],
       ].map(([from, to]) => `I.P.S.S.M. Art. ${from} – ${to}`)
     );
   });
@@ -915,7 +915,7 @@ describe('training_themes', () => {
     const text = lines.join('\n');
     expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
     expect(text).toContain('{{#sessions}}{{month}}');
-    expect(text).toContain('I.P.S.S.M. Art. 1 – 288; {{#modules}}{{citation}}; {{/modules}}');
+    expect(text).toContain('I.P.S.S.M. Art. 1 – 287; {{#modules}}{{citation}}; {{/modules}}');
   });
 
   it('adds the minutes of every row of a plan, breaks included, up to the total it prints', () => {

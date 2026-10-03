@@ -268,7 +268,7 @@ function sample(
               {
                 month: 'AUGUST',
                 content:
-                  'I.P.S.S.M. Art. 166 – 288; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
+                  'I.P.S.S.M. Art. 166 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
                 duration: '120 min',
               },
             ],

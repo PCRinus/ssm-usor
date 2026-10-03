@@ -585,7 +585,7 @@ describe('the training themes', () => {
       },
       {
         month: 'AUGUST',
-        content: 'I.P.S.S.M. Art. 95 – 288; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
+        content: 'I.P.S.S.M. Art. 95 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
         duration: '120 min',
       },
     ]);

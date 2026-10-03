@@ -4,9 +4,9 @@ import { listed } from '../../lib/romanian';
 
 // Both lists are held to their templates by scripts/lib/theme-chapters.test.ts.
 export const ownInstructionsChapterStarts = [
-  1, 10, 44, 46, 56, 63, 95, 166, 186, 204, 235, 255,
+  1, 10, 44, 46, 56, 63, 95, 166, 186, 203, 234, 254,
 ] as const;
-export const ownInstructionsArticleCount = 288;
+export const ownInstructionsArticleCount = 287;
 
 export const generalTrainingChapterStarts = [
   1, 7, 14, 16, 29, 82, 100, 111, 122, 153, 216, 239, 271, 279, 292, 301, 327,

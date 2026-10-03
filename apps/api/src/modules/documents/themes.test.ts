@@ -13,15 +13,15 @@ const ranges = (sessions: number) =>
 
 describe('dealing the chapters of the common part', () => {
   it('gives one session everything', () => {
-    expect(ranges(1)).toEqual(['Art. 1 – 288']);
+    expect(ranges(1)).toEqual(['Art. 1 – 287']);
   });
 
   it('halves them for two sessions', () => {
-    expect(ranges(2)).toEqual(['Art. 1 – 94', 'Art. 95 – 288']);
+    expect(ranges(2)).toEqual(['Art. 1 – 94', 'Art. 95 – 287']);
   });
 
   it('gives four sessions three chapters each', () => {
-    expect(ranges(4)).toEqual(['Art. 1 – 45', 'Art. 46 – 94', 'Art. 95 – 203', 'Art. 204 – 288']);
+    expect(ranges(4)).toEqual(['Art. 1 – 45', 'Art. 46 – 94', 'Art. 95 – 202', 'Art. 203 – 287']);
   });
 
   it('puts the larger groups first', () => {
@@ -29,8 +29,8 @@ describe('dealing the chapters of the common part', () => {
       'Art. 1 – 45',
       'Art. 46 – 94',
       'Art. 95 – 185',
-      'Art. 186 – 234',
-      'Art. 235 – 288',
+      'Art. 186 – 233',
+      'Art. 234 – 287',
     ]);
   });
 
@@ -44,10 +44,10 @@ describe('dealing the chapters of the common part', () => {
       'Art. 63 – 94',
       'Art. 95 – 165',
       'Art. 166 – 185',
-      'Art. 186 – 203',
-      'Art. 204 – 234',
-      'Art. 235 – 254',
-      'Art. 255 – 288',
+      'Art. 186 – 202',
+      'Art. 203 – 233',
+      'Art. 234 – 253',
+      'Art. 254 – 287',
     ]);
   });
 
@@ -82,13 +82,13 @@ describe('the periodic sessions of a post', () => {
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art. 95 – 203; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7',
+          'I.P.S.S.M. Art. 95 – 202; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7',
         duration: '120 min',
       },
       {
         month: 'NOIEMBRIE',
         content:
-          'I.P.S.S.M. Art. 204 – 288; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7; Testare.',
+          'I.P.S.S.M. Art. 203 – 287; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7; Testare.',
         duration: '120 min',
       },
     ]);
@@ -102,7 +102,7 @@ describe('the periodic sessions of a post', () => {
       modules: [],
     });
     expect(sessions).toEqual([
-      { month: 'IULIE', content: 'I.P.S.S.M. Art. 1 – 288; Testare.', duration: '60 min' },
+      { month: 'IULIE', content: 'I.P.S.S.M. Art. 1 – 287; Testare.', duration: '60 min' },
     ]);
   });
 
@@ -113,7 +113,7 @@ describe('the periodic sessions of a post', () => {
       periodicTrainingMinutes: 30,
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
-    expect(session!.content).toBe('I.P.S.S.M. Art. 1 – 288; I.P.S.S.M. Fără articole; Testare.');
+    expect(session!.content).toBe('I.P.S.S.M. Art. 1 – 287; I.P.S.S.M. Fără articole; Testare.');
   });
 
   it('end in the test only once, in the last month', () => {

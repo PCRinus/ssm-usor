@@ -100,11 +100,11 @@ describe('the training themes', () => {
     );
     expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
     expect(text).toContain(
-      'I.P.S.S.M. Art. 1 – 288; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31;'
+      'I.P.S.S.M. Art. 1 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31;'
     );
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
     expect(text.match(/Testare\.$/gm)).toHaveLength(2);
-    expect(text).toContain('I.P.S.S.M. Art. 235 – 288;');
+    expect(text).toContain('I.P.S.S.M. Art. 234 – 287;');
   }, 30_000);
 });
 
