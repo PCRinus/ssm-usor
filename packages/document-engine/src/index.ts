@@ -1,3 +1,4 @@
+export { annexTitlePage } from './annex-title';
 export { countArticles, firstLine, sweepFonts } from './modules';
 export * from './render';
 export { instructionModuleSkeleton } from './skeleton';
