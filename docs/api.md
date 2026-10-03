@@ -631,7 +631,11 @@ generated.
 
 Each revision keeps the part of the data its template printed. The list compares it with the
 stored facts and sets `dataChanged` on a draft that would now print differently: a new
-first-aider marks the first aid decision, not the whole set. All files go through
+first-aider marks the first aid decision, not the whole set. While data is missing there is
+nothing to compare with: a draft is marked when the gap is in what it prints (a position
+without an evaluation marks the risk assessment, the prevention plan and the training
+material; a gap in the provider's or the client's details marks every draft), and otherwise
+waits until the data is complete. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
 document's title as the file name.
 
@@ -667,15 +671,11 @@ and `edited_by`, which the list shows and "Generează din nou" warns about. `409
 document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
-the same checks. `typeKey` is one of the contracts' `packDocumentTypeKeys`, the whole pack in
-its order. A type in `uploadedDocumentTypes`, one the app cannot write, would come to exist
-by its upload, as revision 1 in draft under the title its template will carry; there is none
-left since the risk assessment and the prevention plan are generated (ADR 015), the last of
-the pack. For a document that exists, the file replaces the draft, or starts the next
-draft beside the issued revision, keeping the generation and so the date. An uploaded
-revision has no template and no data snapshot, so it never reports `dataChanged`, and it
-cannot be regenerated. A generated type that does not exist yet answers `409` with the reason
-`not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
+the same checks. `typeKey` is one of the contracts' `documentTypeKeys`, the whole pack in its
+order. The file replaces the draft, or starts the next draft beside the issued revision,
+keeping the generation and so the date. An uploaded revision has no template and no data
+snapshot, so it never reports `dataChanged`. A document that does not exist yet answers `409`
+with the reason `not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
 downloading and the editor work on an uploaded document as on any other.
 
 The whole set, 18 documents, merges and uploads in under a second against the local stack,

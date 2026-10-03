@@ -508,15 +508,12 @@ mobile navigation link closes the Sheet.
   document says that the hand edits of the issued file are not carried over, and names that
   action as the way to keep them. When issuing is refused with the reason
   `unfilled_text`, the same dialog asks a second question, "Documentul mai are text de
-  completat", and "Emite oricum" sends `acceptUnfilled`. A document the app could not
-  write (`uploadedDocumentTypes`, none since ADR 015) would show in its place in the pack as a
-  "Neîncărcat" row with an upload button, once the client has any document; every row's menu
-  has "Încarcă un fișier", which asks first when it would replace a draft. One hidden file input
+  completat", and "Emite oricum" sends `acceptUnfilled`. Every row's menu has "Încarcă un
+  fișier", which asks first when it would replace a draft. One hidden file input
   serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An issued
   revision with `hasPdf` also offers "Descarcă PDF-ul documentului emis"; the issuing dialog
   says that making the PDF can take a few seconds, and a `503` with `pdf_unavailable` says
-  that nothing was issued. An
-  uploaded document reads "Încărcat" instead of "Modificat" and has no "Generează din nou".
+  that nothing was issued.
   A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. A download fetches the signed link and
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own

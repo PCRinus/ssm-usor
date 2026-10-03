@@ -1,4 +1,4 @@
-import type { PackDocumentTypeKey } from '@ssm-usor/contracts';
+import type { DocumentTypeKey } from '@ssm-usor/contracts';
 
 import type { ClientDocument } from './document-labels';
 
@@ -83,7 +83,7 @@ export const documentSections = [
   id: string;
   number: string;
   title: string;
-  typeKeys: readonly PackDocumentTypeKey[];
+  typeKeys: readonly DocumentTypeKey[];
 }[];
 
 // A document type the API knows before this build of the app does.

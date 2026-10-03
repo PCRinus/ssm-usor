@@ -3,9 +3,8 @@ import { z } from 'zod';
 import { riskEvaluationKindSchema } from './risk-evaluations';
 
 /**
- * The built-in documents that can be generated, in the order of the provider's pack. Mirrors
- * the manifest of `packages/document-engine/templates`, without the templates whose content
- * is still pending.
+ * The built-in documents, in the order of the provider's pack. Mirrors the manifest of
+ * `packages/document-engine/templates`.
  */
 export const documentTypeKeys = [
   'cover_decisions',
@@ -37,50 +36,6 @@ export const documentTypeKeys = [
 export const documentTypeKeySchema = z.enum(documentTypeKeys);
 
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
-
-/**
- * The documents of the pack the app cannot write yet, which come to exist by uploading a file
- * written elsewhere so that the set is complete. None since the risk assessment and the
- * prevention plan are generated (ADR 015); a file still replaces the draft of any document.
- */
-export const uploadedDocumentTypes: Readonly<Record<never, string>> = {};
-
-export type UploadedDocumentTypeKey = keyof typeof uploadedDocumentTypes;
-
-export const isUploadedDocumentType = (typeKey: string): typeKey is UploadedDocumentTypeKey =>
-  Object.hasOwn(uploadedDocumentTypes, typeKey);
-
-/** Every document of the pack, generated or uploaded, in the pack's order. */
-export const packDocumentTypeKeys = [
-  'cover_decisions',
-  'decision_training',
-  'decision_risk_evaluation_team',
-  'decision_first_aid',
-  'decision_imminent_danger',
-  'decision_workers_representative',
-  'cover_general_training_material',
-  'general_training_material',
-  'cover_own_instructions',
-  'own_instructions',
-  'cover_training_themes',
-  'training_themes',
-  'cover_tests',
-  'test_hiring',
-  'test_periodic',
-  'protective_equipment_list',
-  'cover_event_registers',
-  'event_registers',
-  'control_report',
-  'risk_assessment',
-  'prevention_plan',
-  'cover_employer_briefing',
-  'employer_briefing',
-  'control_regulation',
-] as const satisfies readonly (DocumentTypeKey | UploadedDocumentTypeKey)[];
-
-export const packDocumentTypeKeySchema = z.enum(packDocumentTypeKeys);
-
-export type PackDocumentTypeKey = z.infer<typeof packDocumentTypeKeySchema>;
 
 /** The decisions, in the order they are numbered from the first decision number. */
 export const decisionTypeKeys = [

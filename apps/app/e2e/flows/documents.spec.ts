@@ -222,7 +222,6 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await openDocumentSection(page, '9');
   const assessment = rows.filter({ hasText: 'Evaluarea riscurilor' });
   await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
-  await expect(assessment.getByTestId('document-uploaded')).toHaveCount(0);
   await act(page, assessment, 'document-issue');
   await page.getByTestId('document-confirm').click();
   await expect(assessment.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
@@ -234,7 +233,6 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   const wordFile = await file.path();
   const plan = rows.filter({ hasText: 'Planul de prevenire' });
   await expect(plan.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
-  await expect(page.getByTestId('document-slot')).toHaveCount(0);
   let chooser = page.waitForEvent('filechooser');
   await act(page, plan, 'document-upload');
   await expect(page.getByTestId('document-confirm-dialog')).toContainText('ia locul ciornei');

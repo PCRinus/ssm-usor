@@ -1,5 +1,6 @@
 import {
   decisionTypeKeys,
+  type DocumentTypeKey,
   type EquipmentAllocation,
   formatTrainingDuration,
   type InstructionModuleGroup,
@@ -115,14 +116,16 @@ type PositionContext = {
   activities: string;
   staffCategory: string;
   workZone: string;
-  /** One item when the position has a work zone, which the section head then prints. */
-  workZoneLine: Record<string, never>[];
+  workZoneLine: boolean;
   /** The zone, or a dash in a table cell. */
   workZoneOrDash: string;
   /** "la 3 luni", the post's own interval or its category's. */
   intervalLabel: string;
   /** "2 ore", the client's periodic training duration. */
   trainingDuration: string;
+};
+
+type EquippedPositionContext = PositionContext & {
   equipment: { risk: string; item: string; quantityLabel: string; allocationLabel: string }[];
 };
 
@@ -136,7 +139,7 @@ type AnnexContext = {
 };
 
 export type DocumentContext = {
-  branding: Record<string, never>[];
+  branding: boolean;
   issueDate: string;
   issueYear: string;
   followingYear: string;
@@ -151,16 +154,16 @@ export type DocumentContext = {
   evaluationTeam: Person[];
   imminentDanger: Person[];
   imminentDangerText: string;
-  /** One item when decision 1.5 is part of the set, which the cover lists. */
-  workersRepresentativeDecision: Record<string, never>[];
+  /** Whether decision 1.5 is part of the set, which the cover then lists. */
+  workersRepresentativeDecision: boolean;
   workersRepresentatives: Person[];
   /** "următorul angajat" or "următorii angajați". */
   workersRepresentativesLead: string;
   training: {
     periodicDuration: string;
     intervalPhrase: string;
-    administrative: Record<string, never>[];
-    worker: Record<string, never>[];
+    administrative: boolean;
+    worker: boolean;
     administrativeFrequency?: string;
     administrativeMonths?: string;
     workerFrequency?: string;
@@ -169,16 +172,15 @@ export type DocumentContext = {
     dayTo: number;
   };
   unitRisks: { risk: string; measure: string }[];
-  hasUnitRisks: Record<string, never>[];
-  noUnitRisks: Record<string, never>[];
+  hasUnitRisks: boolean;
+  noUnitRisks: boolean;
   riskAssessment: RiskAssessmentContext;
   /** Every current position, for the table of posts; then only the ones with equipment. */
   positions: PositionContext[];
-  equippedPositions: PositionContext[];
+  equippedPositions: EquippedPositionContext[];
   /** The modules the positions apply, each once, in the order of the groups and titles. */
   annexes: AnnexContext[];
-  /** One item when no position applies a module, which the chapter then says. */
-  noAnnexes: Record<string, never>[];
+  noAnnexes: boolean;
   /** Absent without an own instructions revision, which only the training themes need. */
   themes?: ThemesContext;
 };
@@ -300,6 +302,24 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
   return checks.filter(([, present]) => !present).map(([code]) => code);
 }
 
+const riskDocuments: readonly DocumentTypeKey[] = [
+  'general_training_material',
+  'risk_assessment',
+  'prevention_plan',
+];
+
+// Any other code is a gap in what the whole set prints.
+const concernedDocuments: [codePrefix: string, typeKeys: readonly string[]][] = [
+  ['positions.risk_evaluation', riskDocuments],
+  ['risk_evaluations.', riskDocuments],
+  ['documents.own_instructions', ['training_themes'] satisfies DocumentTypeKey[]],
+];
+
+export function missingDataConcerns(code: MissingDocumentData, typeKey: string) {
+  const concerned = concernedDocuments.find(([prefix]) => code.startsWith(prefix));
+  return !concerned || concerned[1].includes(typeKey);
+}
+
 // A representative whose employee has left no longer speaks for the workers.
 const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePersons'>) =>
   facts.responsiblePersons.filter(
@@ -368,17 +388,28 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     activities: position.activities?.trim() || '—',
     staffCategory: staffCategoryLabels[position.staffCategory],
     workZone: position.workZone?.trim() ?? '',
-    workZoneLine: position.workZone?.trim() ? [{}] : [],
+    workZoneLine: Boolean(position.workZone?.trim()),
     workZoneOrDash: position.workZone?.trim() || '—',
     intervalLabel: intervalLabel(intervalOf(position)),
     trainingDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
-    equipment: position.equipment.map((entry) => ({
-      risk: entry.risk.trim(),
-      item: entry.item.trim(),
-      quantityLabel: quantityLabel(entry),
-      allocationLabel: allocationLabels[entry.allocation],
-    })),
   }));
+  // Not on `positions`: a snapshot keeps all of a name it printed, so an equipment edit would
+  // mark every document that prints the posts.
+  const equippedPositions = facts.jobPositions.flatMap((position, index) =>
+    position.equipment.length === 0
+      ? []
+      : [
+          {
+            ...positions[index]!,
+            equipment: position.equipment.map((entry) => ({
+              risk: entry.risk.trim(),
+              item: entry.item.trim(),
+              quantityLabel: quantityLabel(entry),
+              allocationLabel: allocationLabels[entry.allocation],
+            })),
+          },
+        ]
+  );
   const workplaceManagers = withRole('workplace_manager');
   const provider = {
     legalName: organization.legalName!.trim(),
@@ -394,7 +425,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
   const imminentDanger = withRole('imminent_danger');
   const risks = unitRisks(facts.riskEvaluations, facts.jobPositions);
   return {
-    branding: facts.branding ? [{}] : [],
+    branding: facts.branding,
     issueDate: printedDate(facts.issueDate),
     issueYear: String(year),
     followingYear: String(year + 1),
@@ -420,9 +451,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
     workersRepresentativeDecision:
       documentApplies(facts, 'decision_workers_representative') ||
-      facts.workersRepresentativeDecisionGenerated
-        ? [{}]
-        : [],
+      facts.workersRepresentativeDecisionGenerated,
     workersRepresentatives,
     workersRepresentativesLead:
       workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',
@@ -433,8 +462,8 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
         client.workerTrainingIntervalMonths !== null
           ? 'următoarele intervale de timp'
           : 'următorul interval de timp',
-      administrative: client.administrativeTrainingIntervalMonths === null ? [] : [{}],
-      worker: client.workerTrainingIntervalMonths === null ? [] : [{}],
+      administrative: client.administrativeTrainingIntervalMonths !== null,
+      worker: client.workerTrainingIntervalMonths !== null,
       ...(client.administrativeTrainingIntervalMonths === null
         ? {}
         : {
@@ -454,8 +483,8 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       dayTo: client.trainingDayTo!,
     },
     unitRisks: risks,
-    hasUnitRisks: risks.length > 0 ? [{}] : [],
-    noUnitRisks: risks.length === 0 ? [{}] : [],
+    hasUnitRisks: risks.length > 0,
+    noUnitRisks: risks.length === 0,
     riskAssessment: riskAssessment({
       evaluations: facts.riskEvaluations,
       positions: facts.jobPositions,
@@ -464,9 +493,9 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       currentEmployeeCount: facts.currentEmployeeCount,
     }),
     positions,
-    equippedPositions: positions.filter((position) => position.equipment.length > 0),
+    equippedPositions,
     annexes,
-    noAnnexes: annexes.length === 0 ? [{}] : [],
+    noAnnexes: annexes.length === 0,
     ...(facts.ownInstructions && {
       themes: trainingThemes({
         ownInstructions: facts.ownInstructions,

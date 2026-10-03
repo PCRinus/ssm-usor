@@ -18,8 +18,6 @@ export const manifestSchema = z.object({
       typeKey: z.string().regex(/^[a-z][a-z0-9_]{1,59}$/),
       title: z.string().min(2).max(200),
       file: z.string().endsWith('.docx'),
-      // Laid out, but its content is still one client's: not offered for generation yet.
-      contentPending: z.boolean().optional(),
     })
   ),
 });

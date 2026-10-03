@@ -366,6 +366,7 @@ describe('wording', () => {
 describe('decision_first_aid', () => {
   const template = read('1.3_decision_first_aid.docx');
   const data = {
+    branding: false,
     decisionNumber: 3,
     issueDate: '19.01.2026',
     client: {
@@ -431,6 +432,7 @@ const people = [
   { name: 'Elena DUMITRU', jobTitle: 'Lucrător comercial' },
 ];
 const shared = {
+  branding: false,
   issueDate: '19.01.2026',
   client: {
     legalName: 'S.C. CLIENT DEMO S.R.L.',
@@ -451,8 +453,8 @@ describe('decision_training', () => {
     training: {
       periodicDuration: '2 ore',
       intervalPhrase: 'următoarele intervale de timp',
-      administrative: [{}],
-      worker: [{}],
+      administrative: true,
+      worker: true,
       administrativeFrequency: 'SEMESTRIAL',
       administrativeMonths: 'Februarie, August',
       workerFrequency: 'TRIMESTRIAL',
@@ -499,7 +501,7 @@ describe('decision_training', () => {
         training: {
           ...data.training,
           intervalPhrase: 'următorul interval de timp',
-          worker: [],
+          worker: false,
           workerFrequency: undefined,
           workerMonths: undefined,
         },
@@ -515,7 +517,7 @@ describe('decision_training', () => {
         training: {
           ...data.training,
           intervalPhrase: 'următorul interval de timp',
-          administrative: [],
+          administrative: false,
           administrativeFrequency: undefined,
           administrativeMonths: undefined,
         },
@@ -631,7 +633,7 @@ describe('decision_workers_representative', () => {
 
 describe('cover_decisions', () => {
   const template = read('1.0_cover_decisions.docx');
-  const render = (workersRepresentativeDecision: Record<string, never>[]) =>
+  const render = (workersRepresentativeDecision: boolean) =>
     documentText(
       renderDocument(template, {
         ...shared,
@@ -641,8 +643,8 @@ describe('cover_decisions', () => {
     );
 
   it('lists decision 1.5 only when it is part of the set', () => {
-    expect(render([{}])).toContain('5. Desemnarea reprezentanților lucrătorilor');
-    const without = render([]);
+    expect(render(true)).toContain('5. Desemnarea reprezentanților lucrătorilor');
+    const without = render(false);
     expect(without).not.toContain('Desemnarea reprezentanților');
     expect(without).toContain('grav și iminent.');
   });
@@ -664,15 +666,15 @@ describe('branding', () => {
   };
 
   it('prints the line in the footer when the merge data asks for it', () => {
-    const footers = footerText(renderDocument(template, { ...data, branding: [{}] }));
+    const footers = footerText(renderDocument(template, { ...data, branding: true }));
     expect(new Set(footers)).toEqual(new Set(['Document generat cu SSM Ușor · ssmusor.ro']));
   });
 
-  it('prints nothing when branding is empty or left out, and asks for no value', () => {
-    expect(new Set(footerText(renderDocument(template, { ...data, branding: [] })))).toEqual(
+  it('prints nothing when branding is false, and refuses data without it', () => {
+    expect(new Set(footerText(renderDocument(template, { ...data, branding: false })))).toEqual(
       new Set([''])
     );
-    expect(new Set(footerText(renderDocument(template, data)))).toEqual(new Set(['']));
+    expect(() => renderDocument(template, { ...data, branding: undefined })).toThrow(/branding/);
   });
 
   it.each(templateFiles)('%s sets the line in 7.5 pt grey', (name) => {

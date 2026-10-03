@@ -2,11 +2,7 @@ import {
   type DocumentAnnex,
   type DocumentTypeKey,
   documentTypeKeys,
-  isUploadedDocumentType,
-  type PackDocumentTypeKey,
-  packDocumentTypeKeys,
   unfilledMark,
-  uploadedDocumentTypes,
 } from '@ssm-usor/contracts';
 import {
   Accordion,
@@ -43,7 +39,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { FileText, MoreHorizontal, Sparkles, Upload } from 'lucide-react';
+import { FileText, MoreHorizontal, Sparkles } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
 
 import {
@@ -82,12 +78,11 @@ import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { pdfOfRevision, usePrint } from './print';
 
 type Revision = NonNullable<ClientDocument['draft']>;
-// A document, or the place of one that waits for a file.
+// A document, or null in the place of one that does not apply to the client.
 type Row = {
   typeKey: string;
   title: string;
   document: ClientDocument | null;
-  notApplicable?: boolean;
 };
 type Confirming = {
   // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
@@ -183,7 +178,7 @@ export function DocumentsCard({
   const { printing, print } = usePrint();
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
-  const uploadTarget = useRef<{ typeKey: PackDocumentTypeKey; title: string } | null>(null);
+  const uploadTarget = useRef<{ typeKey: DocumentTypeKey; title: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | null>(null);
@@ -213,19 +208,15 @@ export function DocumentsCard({
     anchor: () => generateRef.current,
     open: canGenerate ? openGenerate : undefined,
   });
-  // The documents the app cannot write yet wait for a file, in their place in the pack.
-  const packRows = packDocumentTypeKeys.flatMap((typeKey): Row[] => {
+  const packRows = documentTypeKeys.flatMap((typeKey): Row[] => {
     const document = items.find((item) => item.typeKey === typeKey);
     if (document) return [{ typeKey, title: document.title, document }];
-    const notApplicableTitle = notApplicableTitles[typeKey as DocumentTypeKey];
-    if (notApplicable.has(typeKey as DocumentTypeKey) && notApplicableTitle) {
-      return [{ typeKey, title: notApplicableTitle, document: null, notApplicable: true }];
-    }
-    return isUploadedDocumentType(typeKey)
-      ? [{ typeKey, title: uploadedDocumentTypes[typeKey], document: null }]
+    const notApplicableTitle = notApplicableTitles[typeKey];
+    return notApplicable.has(typeKey) && notApplicableTitle
+      ? [{ typeKey, title: notApplicableTitle, document: null }]
       : [];
   });
-  const known = new Set<string>(packDocumentTypeKeys);
+  const known = new Set<string>(documentTypeKeys);
   const otherRows = items
     .filter((item) => !known.has(item.typeKey))
     .map((document): Row => ({ typeKey: document.typeKey, title: document.title, document }));
@@ -239,7 +230,7 @@ export function DocumentsCard({
   ];
 
   function chooseFile(typeKey: string, title: string) {
-    uploadTarget.current = { typeKey: typeKey as PackDocumentTypeKey, title };
+    uploadTarget.current = { typeKey: typeKey as DocumentTypeKey, title };
     fileInput.current?.click();
   }
 
@@ -453,281 +444,235 @@ export function DocumentsCard({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {section.rows.map(
-                          ({ typeKey, title, document, notApplicable: skipped }) => {
-                            if (skipped) {
-                              return (
-                                <TableRow key={typeKey} data-testid="document-not-applicable">
-                                  <TableCell className="font-medium text-muted-foreground">
-                                    {title}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant="outline"
-                                      title={workersRepresentativesRule(
-                                        documents.data?.currentEmployeeCount ?? 0,
-                                        false
-                                      )}
-                                    >
-                                      Nu se aplică
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground">
-                                    Sub 10 angajați
-                                  </TableCell>
-                                  <TableCell />
-                                </TableRow>
-                              );
-                            }
-                            if (!document) {
-                              return (
-                                <TableRow key={typeKey} data-testid="document-slot">
-                                  <TableCell className="font-medium text-muted-foreground">
-                                    {title}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant="outline"
-                                      title="Aplicația nu scrie încă acest document. Încarcă fișierul Word scris în altă parte, ca documentația să fie completă."
-                                    >
-                                      Neîncărcat
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground">—</TableCell>
-                                  <TableCell>
-                                    {!readOnly && (
+                        {section.rows.map(({ typeKey, title, document }) => {
+                          if (!document) {
+                            return (
+                              <TableRow key={typeKey} data-testid="document-not-applicable">
+                                <TableCell className="font-medium text-muted-foreground">
+                                  {title}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    title={workersRepresentativesRule(
+                                      documents.data?.currentEmployeeCount ?? 0,
+                                      false
+                                    )}
+                                  >
+                                    Nu se aplică
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  Sub 10 angajați
+                                </TableCell>
+                                <TableCell />
+                              </TableRow>
+                            );
+                          }
+                          const current = document.draft ?? document.issued;
+                          return (
+                            <Fragment key={document.id}>
+                              <TableRow
+                                data-testid="document-row"
+                                {...rowClickProps(
+                                  () =>
+                                    void navigate({
+                                      to: '/clients/$clientId/documents/$documentId',
+                                      params: { clientId, documentId: document.id },
+                                      state: { openedFromList: true },
+                                    })
+                                )}
+                              >
+                                <TableCell>
+                                  <Link
+                                    to="/clients/$clientId/documents/$documentId"
+                                    params={{ clientId, documentId: document.id }}
+                                    state={{ openedFromList: true }}
+                                    data-testid="document-title"
+                                    className="font-medium underline-offset-4 hover:underline"
+                                  >
+                                    {document.title}
+                                  </Link>
+                                  {document.decisionNumber !== null && (
+                                    <span className="block text-xs text-muted-foreground">
+                                      Decizia nr. {document.decisionNumber} SSM
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <span className="flex flex-wrap gap-1.5">
+                                    {document.issued && (
+                                      <Badge data-testid="document-issued">
+                                        Emis · rev. {document.issued.revision}
+                                      </Badge>
+                                    )}
+                                    {document.draft && (
+                                      <Badge variant="secondary" data-testid="document-draft">
+                                        Ciornă · rev. {document.draft.revision}
+                                      </Badge>
+                                    )}
+                                    {document.draft?.editedAt && (
+                                      <Badge
+                                        variant="outline"
+                                        data-testid="document-edited"
+                                        title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
+                                      >
+                                        Modificat
+                                      </Badge>
+                                    )}
+                                    {document.draft?.dataChanged && (
+                                      <Badge
+                                        variant="outline"
+                                        data-testid="document-data-changed"
+                                        title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
+                                      >
+                                        Date modificate
+                                      </Badge>
+                                    )}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground tabular-nums">
+                                  {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        data-testid="document-slot-upload"
-                                        aria-label={`Încarcă ${title}`}
-                                        disabled={busy}
-                                        onClick={() => chooseFile(typeKey, title)}
+                                        data-testid="document-actions"
+                                        aria-label={`Acțiuni pentru ${document.title}`}
                                       >
-                                        <Upload aria-hidden="true" />
+                                        <MoreHorizontal aria-hidden="true" />
                                       </Button>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            }
-                            const current = document.draft ?? document.issued;
-                            const uploaded = isUploadedDocumentType(document.typeKey);
-                            return (
-                              <Fragment key={document.id}>
-                                <TableRow
-                                  data-testid="document-row"
-                                  {...rowClickProps(
-                                    () =>
-                                      void navigate({
-                                        to: '/clients/$clientId/documents/$documentId',
-                                        params: { clientId, documentId: document.id },
-                                        state: { openedFromList: true },
-                                      })
-                                  )}
-                                >
-                                  <TableCell>
-                                    <Link
-                                      to="/clients/$clientId/documents/$documentId"
-                                      params={{ clientId, documentId: document.id }}
-                                      state={{ openedFromList: true }}
-                                      data-testid="document-title"
-                                      className="font-medium underline-offset-4 hover:underline"
-                                    >
-                                      {document.title}
-                                    </Link>
-                                    {document.decisionNumber !== null && (
-                                      <span className="block text-xs text-muted-foreground">
-                                        Decizia nr. {document.decisionNumber} SSM
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    <span className="flex flex-wrap gap-1.5">
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem asChild data-testid="document-open">
+                                        <Link
+                                          to="/clients/$clientId/documents/$documentId"
+                                          params={{ clientId, documentId: document.id }}
+                                        >
+                                          {document.draft && !readOnly
+                                            ? 'Deschide și modifică'
+                                            : 'Deschide'}
+                                        </Link>
+                                      </DropdownMenuItem>
+                                      {document.draft && (
+                                        <DropdownMenuItem
+                                          data-testid="document-download-draft"
+                                          onSelect={() => void download(document, document.draft!)}
+                                        >
+                                          Descarcă ciorna
+                                        </DropdownMenuItem>
+                                      )}
                                       {document.issued && (
-                                        <Badge data-testid="document-issued">
-                                          Emis · rev. {document.issued.revision}
-                                        </Badge>
+                                        <DropdownMenuItem
+                                          data-testid="document-download-issued"
+                                          onSelect={() => void download(document, document.issued!)}
+                                        >
+                                          Descarcă documentul emis
+                                        </DropdownMenuItem>
+                                      )}
+                                      {document.issued?.hasPdf && (
+                                        <DropdownMenuItem
+                                          data-testid="document-download-pdf"
+                                          onSelect={() =>
+                                            void download(document, document.issued!, 'pdf')
+                                          }
+                                        >
+                                          Descarcă PDF-ul documentului emis
+                                        </DropdownMenuItem>
                                       )}
                                       {document.draft && (
-                                        <Badge variant="secondary" data-testid="document-draft">
-                                          Ciornă · rev. {document.draft.revision}
-                                        </Badge>
-                                      )}
-                                      {document.draft?.editedAt && uploaded && (
-                                        <Badge variant="outline" data-testid="document-uploaded">
-                                          Încărcat
-                                        </Badge>
-                                      )}
-                                      {document.draft?.editedAt && !uploaded && (
-                                        <Badge
-                                          variant="outline"
-                                          data-testid="document-edited"
-                                          title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
+                                        <DropdownMenuItem
+                                          data-testid="document-print-draft"
+                                          disabled={printing}
+                                          onSelect={() =>
+                                            void printRevision(document, document.draft!)
+                                          }
                                         >
-                                          Modificat
-                                        </Badge>
-                                      )}
-                                      {document.draft?.dataChanged && (
-                                        <Badge
-                                          variant="outline"
-                                          data-testid="document-data-changed"
-                                          title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
-                                        >
-                                          Date modificate
-                                        </Badge>
-                                      )}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground tabular-nums">
-                                    {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
-                                  </TableCell>
-                                  <TableCell>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          data-testid="document-actions"
-                                          aria-label={`Acțiuni pentru ${document.title}`}
-                                        >
-                                          <MoreHorizontal aria-hidden="true" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild data-testid="document-open">
-                                          <Link
-                                            to="/clients/$clientId/documents/$documentId"
-                                            params={{ clientId, documentId: document.id }}
-                                          >
-                                            {document.draft && !readOnly
-                                              ? 'Deschide și modifică'
-                                              : 'Deschide'}
-                                          </Link>
+                                          Tipărește ciorna
                                         </DropdownMenuItem>
-                                        {document.draft && (
+                                      )}
+                                      {document.issued && (
+                                        <DropdownMenuItem
+                                          data-testid="document-print-issued"
+                                          disabled={printing}
+                                          onSelect={() =>
+                                            void printRevision(document, document.issued!)
+                                          }
+                                        >
+                                          Tipărește documentul emis
+                                        </DropdownMenuItem>
+                                      )}
+                                      {!readOnly && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          {document.issued && !document.draft && (
+                                            <DropdownMenuItem
+                                              data-testid="document-start-draft"
+                                              disabled={busy}
+                                              onSelect={() => void startDraftFromIssued(document)}
+                                            >
+                                              Modifică documentul emis
+                                            </DropdownMenuItem>
+                                          )}
                                           <DropdownMenuItem
-                                            data-testid="document-download-draft"
+                                            data-testid="document-regenerate"
                                             onSelect={() =>
-                                              void download(document, document.draft!)
+                                              setConfirming({ action: 'regenerate', document })
                                             }
                                           >
-                                            Descarcă ciorna
+                                            Generează din nou
                                           </DropdownMenuItem>
-                                        )}
-                                        {document.issued && (
                                           <DropdownMenuItem
-                                            data-testid="document-download-issued"
+                                            data-testid="document-upload"
                                             onSelect={() =>
-                                              void download(document, document.issued!)
+                                              document.draft
+                                                ? setConfirming({ action: 'upload', document })
+                                                : chooseFile(document.typeKey, document.title)
                                             }
                                           >
-                                            Descarcă documentul emis
+                                            Încarcă un fișier
                                           </DropdownMenuItem>
-                                        )}
-                                        {document.issued?.hasPdf && (
-                                          <DropdownMenuItem
-                                            data-testid="document-download-pdf"
-                                            onSelect={() =>
-                                              void download(document, document.issued!, 'pdf')
-                                            }
-                                          >
-                                            Descarcă PDF-ul documentului emis
-                                          </DropdownMenuItem>
-                                        )}
-                                        {document.draft && (
-                                          <DropdownMenuItem
-                                            data-testid="document-print-draft"
-                                            disabled={printing}
-                                            onSelect={() =>
-                                              void printRevision(document, document.draft!)
-                                            }
-                                          >
-                                            Tipărește ciorna
-                                          </DropdownMenuItem>
-                                        )}
-                                        {document.issued && (
-                                          <DropdownMenuItem
-                                            data-testid="document-print-issued"
-                                            disabled={printing}
-                                            onSelect={() =>
-                                              void printRevision(document, document.issued!)
-                                            }
-                                          >
-                                            Tipărește documentul emis
-                                          </DropdownMenuItem>
-                                        )}
-                                        {!readOnly && (
-                                          <>
-                                            <DropdownMenuSeparator />
-                                            {document.issued && !document.draft && (
+                                          {document.draft && (
+                                            <>
                                               <DropdownMenuItem
-                                                data-testid="document-start-draft"
-                                                disabled={busy}
-                                                onSelect={() => void startDraftFromIssued(document)}
-                                              >
-                                                Modifică documentul emis
-                                              </DropdownMenuItem>
-                                            )}
-                                            {!uploaded && (
-                                              <DropdownMenuItem
-                                                data-testid="document-regenerate"
+                                                data-testid="document-issue"
                                                 onSelect={() =>
-                                                  setConfirming({ action: 'regenerate', document })
+                                                  setConfirming({ action: 'issue', document })
                                                 }
                                               >
-                                                Generează din nou
+                                                Emite
                                               </DropdownMenuItem>
-                                            )}
-                                            <DropdownMenuItem
-                                              data-testid="document-upload"
-                                              onSelect={() =>
-                                                document.draft
-                                                  ? setConfirming({ action: 'upload', document })
-                                                  : chooseFile(document.typeKey, document.title)
-                                              }
-                                            >
-                                              Încarcă un fișier
-                                            </DropdownMenuItem>
-                                            {document.draft && (
-                                              <>
-                                                <DropdownMenuItem
-                                                  data-testid="document-issue"
-                                                  onSelect={() =>
-                                                    setConfirming({ action: 'issue', document })
-                                                  }
-                                                >
-                                                  Emite
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                  data-testid="document-delete-draft"
-                                                  variant="destructive"
-                                                  onSelect={() =>
-                                                    setConfirming({ action: 'delete', document })
-                                                  }
-                                                >
-                                                  Șterge ciorna
-                                                </DropdownMenuItem>
-                                              </>
-                                            )}
-                                          </>
-                                        )}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-                                {current?.annexes.map((annex) => (
-                                  <AnnexRow
-                                    key={annex.version.id}
-                                    annex={annex}
-                                    onDownload={() => void downloadAnnex(annex)}
-                                  />
-                                ))}
-                              </Fragment>
-                            );
-                          }
-                        )}
+                                              <DropdownMenuSeparator />
+                                              <DropdownMenuItem
+                                                data-testid="document-delete-draft"
+                                                variant="destructive"
+                                                onSelect={() =>
+                                                  setConfirming({ action: 'delete', document })
+                                                }
+                                              >
+                                                Șterge ciorna
+                                              </DropdownMenuItem>
+                                            </>
+                                          )}
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                              {current?.annexes.map((annex) => (
+                                <AnnexRow
+                                  key={annex.version.id}
+                                  annex={annex}
+                                  onDownload={() => void downloadAnnex(annex)}
+                                />
+                              ))}
+                            </Fragment>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   )}

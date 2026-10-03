@@ -124,7 +124,7 @@ describe('renderDocument', () => {
       client: { legalName: 'S.C. CLIENT S.R.L.' },
       people: [{ name: 'Ana' }],
       issueDate: '19.01.2026',
-      branding: [],
+      branding: false,
       provider: { legalName: 'unused' },
     };
     expect(renderTemplate(template, data).usedNames).toEqual([
@@ -133,6 +133,52 @@ describe('renderDocument', () => {
       'issueDate',
       'people',
     ]);
+  });
+
+  it('records a name printed only inside a section on a boolean', () => {
+    const template = docx(paragraph(run('{{#flag}}{{client.legalName}}{{/flag}}')));
+    const { document, usedNames } = renderTemplate(template, {
+      flag: true,
+      client: { legalName: 'S.C. CLIENT S.R.L.' },
+    });
+    expect(documentText(document)).toBe('S.C. CLIENT S.R.L.');
+    expect(usedNames).toEqual(['client', 'flag']);
+  });
+
+  it('prints a section on true once, on false not at all, and an inverted one the other way', () => {
+    const template = docx(
+      paragraph(run('{{#on}}yes{{/on}}{{^on}}no{{/on}}')) +
+        paragraph(run('{{#plan}}[{{code}}]{{/plan}}{{^plan}}none{{/plan}}'))
+    );
+    const render = (data: Record<string, unknown>) => documentText(renderDocument(template, data));
+    expect(render({ on: true, plan: [{ code: 'F1' }, { code: 'F2' }] })).toBe('yes\n[F1][F2]');
+    expect(render({ on: false, plan: [] })).toBe('no\nnone');
+  });
+
+  it('refuses a section whose name the data does not have, and takes null as empty', () => {
+    const template = docx(paragraph(run('{{#plna}}x{{/plna}}{{^phone}}-{{/phone}}')));
+    const attempt = () => renderDocument(template, { phone: null });
+
+    expect(attempt).toThrow(TemplateError);
+    try {
+      attempt();
+    } catch (error) {
+      expect((error as TemplateError).missing).toEqual(['plna']);
+    }
+    expect(documentText(renderDocument(template, { plna: null, phone: null }))).toBe('-');
+  });
+
+  it('refuses a section name no scope has, inside a loop too', () => {
+    const template = docx(paragraph(run('{{#people}}{{#lead}}*{{/lead}}{{name}}{{/people}}')));
+    expect(() => renderDocument(template, { people: [{ name: 'Ana' }] })).toThrow(/lead/);
+    expect(documentText(renderDocument(template, { people: [{ name: 'Ana', lead: true }] }))).toBe(
+      '*Ana'
+    );
+  });
+
+  it('drops a control character from a value instead of failing', () => {
+    const template = docx(paragraph(run('{{name}}')));
+    expect(documentText(renderDocument(template, { name: 'Ion\u000bPOP' }))).toBe('IonPOP');
   });
 
   it('drops the second full stop when a value that ends in one closes a sentence', () => {

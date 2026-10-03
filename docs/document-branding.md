@@ -19,7 +19,8 @@ Decided with Mircea on 19 September 2026, after the exploration below.
   platform, would be disingenuous. The mark lives in the Word file as ordinary text, where the
   person who owns the document can see it and remove it.
 - **Every template carries it**, wrapped in `{{#branding}}…{{/branding}}`, so the merge data
-  switches it: `branding: [{}]` prints it, an empty or missing `branding` prints nothing. The
+  switches it: `branding: true` prints it, `false` prints nothing, and data without `branding`
+  is refused like any other missing value. The
   import script adds it as part of the house style. Where a document already has a footer,
   the line is one more paragraph at its end.
 - The footer sits inside the 20 mm bottom margin: 12 mm from the page edge to the footer, the
