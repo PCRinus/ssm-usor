@@ -855,13 +855,13 @@ describe('training_themes', () => {
         [44, 45],
         [46, 55],
         [56, 62],
-        [63, 100],
-        [101, 171],
-        [172, 191],
-        [192, 209],
-        [210, 240],
-        [241, 260],
-        [261, 294],
+        [63, 94],
+        [95, 165],
+        [166, 185],
+        [186, 203],
+        [204, 234],
+        [235, 254],
+        [255, 288],
       ].map(([from, to]) => `I.P.S.S.M. Art. ${from} – ${to}`)
     );
   });
@@ -874,7 +874,7 @@ describe('training_themes', () => {
     const text = lines.join('\n');
     expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
     expect(text).toContain('{{#sessions}}{{month}}');
-    expect(text).toContain('I.P.S.S.M. Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
+    expect(text).toContain('I.P.S.S.M. Art. 1 – 288; {{#modules}}{{citation}}; {{/modules}}');
   });
 
   it('labels the trainer without saying who it is, since the provider trains some posts', () => {

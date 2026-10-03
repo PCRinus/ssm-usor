@@ -15,10 +15,12 @@ import {
 
 const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
 
+function documentXml(file: string) {
+  return new PizZip(readFileSync(new URL(file, templatesUrl))).file('word/document.xml')!.asText();
+}
+
 function articlesByChapter(file: string) {
-  const xml = new PizZip(readFileSync(new URL(file, templatesUrl)))
-    .file('word/document.xml')!
-    .asText();
+  const xml = documentXml(file);
   const paragraphs = (xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map((paragraph) => {
     const numbering = /<w:pPr>[\s\S]*?<w:numPr>([\s\S]*?)<\/w:numPr>/.exec(paragraph)?.[1] ?? '';
     const level = /<w:ilvl w:val="(\d+)"\/>/.exec(numbering)?.[1];
@@ -57,5 +59,26 @@ describe('the chapters the training themes cite', () => {
       chapterStarts: [...generalTrainingChapterStarts],
       total: generalTrainingArticleCount,
     });
+  });
+
+  it('are the ranges the training themes template prints', () => {
+    const text = documentXml('4.2_training_themes.docx')
+      .replace(/<\/w:p>/g, '\n')
+      .replace(/<[^>]+>/g, '');
+    const printed = (prefix: string) =>
+      [...text.matchAll(new RegExp(`^${prefix} Art\\. (\\d+)(?: – (\\d+))?$`, 'gm'))].map(
+        ([, from, to]) => [Number(from), Number(to ?? from)]
+      );
+    const ranges = (file: string) => {
+      const { chapterStarts, total } = articlesByChapter(file);
+      const starts = chapterStarts.filter((start) => start <= total);
+      return starts.map((start, index) => [start, (starts[index + 1] ?? total + 1) - 1]);
+    };
+
+    expect(printed('I\\.P\\.S\\.S\\.M\\.')).toEqual(ranges('3.2_own_instructions.docx'));
+    expect(printed('MISSMIG')).toEqual(ranges('2.2_general_training_material.docx'));
+    expect(text).toContain(
+      `I.P.S.S.M. Art. 1 – ${articlesByChapter('3.2_own_instructions.docx').total};`
+    );
   });
 });

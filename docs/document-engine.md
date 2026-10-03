@@ -541,8 +541,8 @@ The API builds the data once per generation and merges every template with it
   then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The
   twelve chapters of 3.2 are dealt over the sessions in contiguous groups whose sizes differ by
   at most one, the larger first. The chapter starts of 3.2 and 2.2 are constants of
-  `apps/api/src/modules/documents/themes.ts`, held to the templates by
-  `apps/api/scripts/lib/theme-chapters.test.ts`.
+  `apps/api/src/modules/documents/themes.ts`, held to the templates, and to the ranges 4.2
+  prints, by `apps/api/scripts/lib/theme-chapters.test.ts`.
 
 A test merges every registered template with this context; the engine throws on a placeholder
 without a value, so a template that asks for a new name fails there first. The list of

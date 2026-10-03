@@ -261,13 +261,13 @@ function sample(
             sessions: [
               {
                 month: 'FEBRUARIE',
-                content: 'I.P.S.S.M. Art. 1 – 171; I.P.S.S.M. Activități de birou, Art. 1 – 15;',
+                content: 'I.P.S.S.M. Art. 1 – 165; I.P.S.S.M. Activități de birou, Art. 1 – 15;',
                 duration: '120 min',
               },
               {
                 month: 'AUGUST',
                 content:
-                  'I.P.S.S.M. Art. 172 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
+                  'I.P.S.S.M. Art. 166 – 288; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
                 duration: '120 min',
               },
             ],
