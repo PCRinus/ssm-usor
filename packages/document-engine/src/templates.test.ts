@@ -402,7 +402,7 @@ describe('decision_first_aid', () => {
     const text = documentText(renderDocument(template, data));
 
     expect(text).not.toContain('{{');
-    expect(text).toContain('Nr.: 3 SSM Din: 19.01.2026');
+    expect(text).toContain('Nr. 3 SSM din 19.01.2026');
     expect(text).toContain(
       'Maria POPESCU în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
@@ -414,7 +414,10 @@ describe('decision_first_aid', () => {
     expect(text.match(/^Lucrător comercial$/gm)).toHaveLength(2);
     expect(text).toContain('S.C. SERVICIU EXTERN S.R.L. – Ana IONESCU');
     // Reads the same for one first aider or several.
-    expect(text).toContain('Ion MARIN, Elena DUMITRU, desemnate să acorde primul ajutor');
+    expect(text).toContain(
+      'a personalului desemnat să acorde primul ajutor și să aplice măsurile de prevenire și stingere a incendiilor: Ion MARIN, Elena DUMITRU.'
+    );
+    expect(text).toContain('Personalul desemnat prin prezenta decizie va fi instruit suplimentar');
   });
 
   it('refuses to render without a first aider name list rather than leave a gap', () => {
@@ -468,13 +471,13 @@ describe('decision_training', () => {
     expect(text).toContain('din cadrul S.C. CLIENT DEMO S.R.L.\n');
     expect(text).not.toContain('..');
     expect(text).toContain(
-      'va fi instruit SEMESTRIAL respectiv în lunile Februarie, August, în perioada (ziua) 2 – 7 ale lunii'
+      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL respectiv în lunile Februarie, August, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
       'va fi instruit TRIMESTRIAL respectiv în lunile Februarie, Mai, August, Noiembrie'
     );
     expect(text).toContain(
-      'Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
+      'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
     );
     expect(
       text.match(
@@ -502,9 +505,9 @@ describe('decision_training', () => {
         },
       })
     );
-    expect(administrativeOnly).toContain('va fi instruit SEMESTRIAL');
+    expect(administrativeOnly).toContain('vor fi instruiți SEMESTRIAL');
     expect(administrativeOnly).toContain('următorul interval de timp');
-    expect(administrativeOnly).not.toContain('personalul de execuție, va fi instruit');
+    expect(administrativeOnly).not.toContain('personalul de execuție va fi instruit');
 
     const workerOnly = documentText(
       renderDocument(template, {
@@ -520,7 +523,7 @@ describe('decision_training', () => {
     );
     expect(workerOnly).toContain('va fi instruit TRIMESTRIAL');
     expect(workerOnly).not.toContain(
-      'personalul tehnic-administrativ și șefii de locuri de muncă, va fi instruit'
+      'personalul tehnic-administrativ și șefii de locuri de muncă vor fi instruiți'
     );
   });
 
@@ -543,7 +546,7 @@ describe('decision_risk_evaluation_team', () => {
     );
 
     expect(text).not.toContain('{{');
-    expect(text).toContain('Nr.: 2 SSM Din: 19.01.2026');
+    expect(text).toContain('Nr. 2 SSM din 19.01.2026');
     expect(text.match(/va îndeplini și funcția de membru al echipei de evaluare/g)).toHaveLength(2);
     expect(text).toContain(
       'Ana IONESCU în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L.'
@@ -569,11 +572,14 @@ describe('decision_imminent_danger', () => {
 
     expect(text).not.toContain('{{');
     expect(text).toContain(
-      `Ion MARIN în calitate de Manager magazin în cadrul S.C. CLIENT DEMO S.R.L. desemnează următorii lucrători: ${imminentDangerText}, cu următoarele atribuții:`
+      `Ion MARIN în calitate de Manager magazin în cadrul S.C. CLIENT DEMO S.R.L. desemnează pe ${imminentDangerText}, cu următoarele atribuții:`
     );
     // Named once; each of the five measures then refers to them.
     expect(text.split(imminentDangerText)).toHaveLength(2);
-    expect(text.match(/: lucrătorii desemnați/g)).toHaveLength(5);
+    // Worded for one designated person or several.
+    expect(text.match(/: personalul desemnat/g)).toHaveLength(5);
+    expect(text).toContain('Personalul desemnat va primi de asemenea');
+    expect(text).not.toMatch(/lucrătorii desemnați/i);
     acknowledged(text);
   });
 });
@@ -594,7 +600,7 @@ describe('decision_workers_representative', () => {
   it('designates each representative once, and lists them in the table', () => {
     const text = render(people);
     expect(text).not.toContain('{{');
-    expect(text).toContain('Nr.: 5 SSM Din: 19.01.2026');
+    expect(text).toContain('Nr. 5 SSM din 19.01.2026');
     expect(text).toContain(
       'Maria POPESCU având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
     );
@@ -638,7 +644,7 @@ describe('cover_decisions', () => {
     expect(render([{}])).toContain('5. Desemnarea reprezentanților lucrătorilor');
     const without = render([]);
     expect(without).not.toContain('Desemnarea reprezentanților');
-    expect(without).toContain('grav și iminent;');
+    expect(without).toContain('grav și iminent.');
   });
 });
 
