@@ -380,9 +380,14 @@ describe('wording', () => {
     }
   );
 
+  // A Symbol font's private-use code points (an arrow, a degree sign) print as a gap in Arial.
+  it.each(texts)('%s carries no private-use character', (_, text) => {
+    expect(text).not.toMatch(/[\uE000-\uF8FF]/);
+  });
+
   it.each(texts)("%s has none of the originals' typos or missing diacritics", (_, text) => {
     expect(text).not.toMatch(
-      /instuirii|activitatatilor|deasemeni|deoparte|în tabelului|securitatii|sanatatii|(?<!\p{L})in munca(?!\p{L})|(?<!\p{L})si(?!\p{L})|functia|Subsemnat/u
+      /instuirii|activitatatilor|deasemeni|deoparte|în tabelului|securitatii|sanatatii|(?<!\p{L})in munca(?!\p{L})|(?<!\p{L})si(?!\p{L})|functia|Subsemnat|laindemana|tinanduse|preventelor|contcteaza|cf\.deciziei|vor hotăra/u
     );
   });
 
@@ -777,9 +782,9 @@ describe('branding', () => {
     expect(() => renderDocument(template, { ...data, branding: undefined })).toThrow(/branding/);
   });
 
-  it.each(typesetFiles)('%s sets the line in 7.5 pt grey', (name) => {
+  const brandingParagraphs = (name: string) => {
     const zip = new PizZip(read(name));
-    const runs = Object.keys(zip.files)
+    return Object.keys(zip.files)
       .filter((part) => /word\/footer\d*\.xml/.test(part))
       .flatMap(
         (part) =>
@@ -788,7 +793,21 @@ describe('branding', () => {
             .asText()
             .match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []
       )
-      .filter((paragraph) => documentTextOf(paragraph).includes('{{#branding}}'))
+      .filter((paragraph) => documentTextOf(paragraph).includes('{{#branding}}'));
+  };
+
+  // The own instructions' PDF puts an annex title page after its pages: the line must not move.
+  it.each(typesetFiles)('%s centres the line on the width of the text', (name) => {
+    const paragraphs = brandingParagraphs(name);
+    expect(paragraphs.length).toBeGreaterThan(0);
+    for (const paragraph of paragraphs) {
+      expect(paragraph).toContain('<w:jc w:val="center"/>');
+      expect(paragraph).not.toMatch(/<w:ind [^>]*w:(right|end)="[1-9]/);
+    }
+  });
+
+  it.each(typesetFiles)('%s sets the line in 7.5 pt grey', (name) => {
+    const runs = brandingParagraphs(name)
       .flatMap((paragraph) => paragraph.match(/<w:r[ >][\s\S]*?<\/w:r>/g) ?? [])
       .filter((run) => run.includes('<w:t'));
     expect(runs.length).toBeGreaterThan(0);

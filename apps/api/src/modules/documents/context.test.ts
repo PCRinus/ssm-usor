@@ -404,6 +404,18 @@ describe('the merge context', () => {
     ]);
   });
 
+  it('names the positions without equipment only beside equipped ones', () => {
+    expect(context.unequippedPositionsText).toBe('postul de lucru Contabil');
+    const [contabil, sudor] = facts.jobPositions;
+    const withPositions = (jobPositions: (typeof facts)['jobPositions']) =>
+      buildDocumentContext({ ...facts, jobPositions }).unequippedPositionsText;
+    expect(withPositions([contabil!, { ...contabil!, name: 'Șofer' }, sudor!])).toBe(
+      'posturile de lucru Contabil și Șofer'
+    );
+    expect(withPositions([sudor!])).toBeNull();
+    expect(withPositions([contabil!])).toBeNull();
+  });
+
   it('counts the months of an equipment entry as Romanian counts them', () => {
     expect(
       [1, 2, 19, 20, 21, 101, 120].map((durationMonths) =>
@@ -482,14 +494,9 @@ describe('the merge context', () => {
       activity: '2562 – Fabricarea articolelor de feronerie',
       employeeCount: 6,
       workplaces: [
+        { label: 'Sediu social', address: 'București, Sector 1, Calea Victoriei 122A' },
         {
-          name: 'Sediul social',
-          kind: 'Sediu social',
-          address: 'București, Sector 1, Calea Victoriei 122A',
-        },
-        {
-          name: 'Atelier Ghiroda',
-          kind: 'Punct de lucru',
+          label: 'Punct de lucru „Atelier Ghiroda”',
           address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
         },
       ],

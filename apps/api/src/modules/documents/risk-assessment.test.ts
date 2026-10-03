@@ -513,16 +513,14 @@ describe('the risk assessment', () => {
       employeeCount: 24,
       workplaces: [
         {
-          name: 'Sediu',
-          kind: 'Sediu social',
+          label: 'Sediu social „Sediu”',
           address: 'București, Sector 1, Calea Victoriei 122A',
         },
         {
-          name: 'Atelier',
-          kind: 'Punct de lucru',
+          label: 'Punct de lucru „Atelier”',
           address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
         },
-        { name: 'Depozit', kind: 'Punct de lucru', address: '—' },
+        { label: 'Punct de lucru „Depozit”', address: '—' },
       ],
       noWorkplaces: false,
     });
@@ -535,6 +533,35 @@ describe('the risk assessment', () => {
       evaluationCountText: '2 posturi de lucru și grupurile sensibile la riscuri specifice',
       globalLevel: '3,15',
     });
+  });
+
+  it('names a workplace by its kind alone where its name only repeats the kind', () => {
+    const labels = (workplaces: { name: string; registeredOffice: boolean }[]) =>
+      riskAssessment({
+        evaluations: [],
+        positions: [],
+        caenCode: null,
+        workplaces: workplaces.map((workplace) => ({
+          ...workplace,
+          countyCode: null,
+          locality: null,
+          addressLine: null,
+        })),
+        currentEmployeeCount: 0,
+      }).unit.workplaces.map((workplace) => workplace.label);
+    expect(
+      labels([
+        { name: 'Sediul social', registeredOffice: true },
+        { name: ' PUNCTUL  DE LUCRU ', registeredOffice: false },
+        { name: 'Punct de lucru', registeredOffice: false },
+        { name: 'Sediu social', registeredOffice: false },
+      ])
+    ).toEqual([
+      'Sediu social',
+      'Punct de lucru',
+      'Punct de lucru',
+      'Punct de lucru „Sediu social”',
+    ]);
   });
 
   it('prints a dash for a client without a CAEN class, and says when it has no workplace', () => {

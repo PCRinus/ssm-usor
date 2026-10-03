@@ -182,6 +182,12 @@ export type DocumentContext = {
   /** Every current position, for the table of posts; then only the ones with equipment. */
   positions: PositionContext[];
   equippedPositions: EquippedPositionContext[];
+  /**
+   * Beside equipped positions, the others: "postul de lucru Contabil", "posturile de lucru
+   * Contabil și Șofer". Null when every position is equipped or none is; the template says
+   * the latter in a sentence of its own.
+   */
+  unequippedPositionsText: string | null;
   /** The modules the positions apply, each once, in the order of the groups and titles. */
   annexes: AnnexContext[];
   noAnnexes: boolean;
@@ -423,6 +429,9 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
           },
         ]
   );
+  const unequipped = positions.filter(
+    (_, index) => facts.jobPositions[index]!.equipment.length === 0
+  );
   const workplaceManagers = withRole('workplace_manager');
   const provider = {
     legalName: organization.legalName!.trim(),
@@ -508,6 +517,10 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     }),
     positions,
     equippedPositions,
+    unequippedPositionsText:
+      unequipped.length === 0 || equippedPositions.length === 0
+        ? null
+        : `${unequipped.length === 1 ? 'postul de lucru' : 'posturile de lucru'} ${listed(unequipped.map((position) => position.name))}`,
     annexes,
     noAnnexes: annexes.length === 0,
     ...(facts.ownInstructions && {

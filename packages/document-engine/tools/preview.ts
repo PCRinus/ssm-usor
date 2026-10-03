@@ -205,6 +205,7 @@ function sample(
       get equippedPositions() {
         return this.positions.filter((position) => position.equipment.length > 0);
       },
+      unequippedPositionsText: 'postul de lucru Manager magazin',
       annexes: [
         { number: 1, title: 'Activități de birou', versionId: 'v-1', versionDate: '26.09.2026' },
         { number: 2, title: 'Scări metalice', versionId: 'v-2', versionDate: '12.03.2026' },
@@ -221,10 +222,9 @@ function sample(
           activity: '2562 – Fabricarea articolelor de feronerie',
           employeeCount: 6,
           workplaces: [
-            { name: 'Sediul social', kind: 'Sediu social', address: 'București, Sector 1' },
+            { label: 'Sediu social', address: 'București, Sector 1' },
             {
-              name: 'Atelier',
-              kind: 'Punct de lucru',
+              label: 'Punct de lucru „Atelier”',
               address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
             },
           ],

@@ -173,10 +173,16 @@ describe('the protective equipment list', () => {
   const none =
     'Pentru posturile de lucru de mai sus nu a fost stabilit necesar de dotare cu echipament individual de protecție.';
 
-  it('prints a section per equipped position', () => {
+  it('prints a section per equipped position, and names the others after them', () => {
     const text = renderWith('protective_equipment_list', facts);
     expect(text).toContain('POST DE LUCRU:');
     expect(text).not.toContain(none);
+    expect(text).toMatch(
+      /\nPentru postul de lucru Contabil nu a fost stabilit necesar de dotare cu echipament individual de protecție\.\nObservații:/
+    );
+    expect(text.indexOf('Pentru postul de lucru Contabil')).toBeGreaterThan(
+      text.lastIndexOf('POST DE LUCRU:')
+    );
   }, 30_000);
 
   it('says so where no position is equipped', () => {
@@ -190,6 +196,7 @@ describe('the protective equipment list', () => {
     });
     expect(text).not.toContain('POST DE LUCRU:');
     expect(text).toContain(`prelucrarea materialelor de acoperire;\n${none}\nObservații:`);
+    expect(text.match(/nu a fost stabilit necesar de dotare/g)).toHaveLength(1);
   }, 30_000);
 });
 
@@ -341,7 +348,7 @@ describe('the risk assessment', () => {
       'Activitatea principală (clasa CAEN): 2562 – Fabricarea articolelor de feronerie'
     );
     expect(text).toContain(
-      'Punct de lucru „Atelier Ghiroda”: Ghiroda, județul Timiș, Str. Industriilor 4'
+      'Sediu social și puncte de lucru:\nSediu social: București, Sector 1, Calea Victoriei 122A\nPunct de lucru „Atelier Ghiroda”: Ghiroda, județul Timiș, Str. Industriilor 4'
     );
     for (const evaluation of context.riskAssessment.evaluations) {
       expect(text).toContain(

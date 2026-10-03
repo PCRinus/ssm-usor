@@ -325,7 +325,8 @@ export type RiskAssessmentContext = {
     /** "5630 – Baruri și alte activități de servire a băuturilor", or a dash without one. */
     activity: string;
     employeeCount: number;
-    workplaces: { name: string; kind: string; address: string }[];
+    /** `Punct de lucru „Atelier”`, or the kind alone where the name only repeats it. */
+    workplaces: { label: string; address: string }[];
     noWorkplaces: boolean;
   };
   /** "5 posturi de lucru, grupurile sensibile la riscuri specifice și o altă evaluare". */
@@ -556,6 +557,22 @@ function evaluationCountText(printed: readonly RiskEvaluationFacts[]) {
   ]);
 }
 
+const workplaceKinds = {
+  registeredOffice: ['Sediu social', 'Sediul social'],
+  other: ['Punct de lucru', 'Punctul de lucru'],
+};
+
+const comparable = (text: string) =>
+  text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+function workplaceLabel(workplace: Pick<WorkplaceFacts, 'name' | 'registeredOffice'>) {
+  const kinds = workplaceKinds[workplace.registeredOffice ? 'registeredOffice' : 'other'];
+  const name = workplace.name.trim();
+  return kinds.some((kind) => comparable(kind) === comparable(name))
+    ? kinds[0]!
+    : `${kinds[0]} „${name}”`;
+}
+
 export function riskAssessment({
   evaluations,
   positions,
@@ -587,8 +604,7 @@ export function riskAssessment({
       activity: caenCode ? (activity ? `${caenCode} – ${activity}` : caenCode) : dash,
       employeeCount: currentEmployeeCount,
       workplaces: ordered.map((workplace) => ({
-        name: workplace.name.trim(),
-        kind: workplace.registeredOffice ? 'Sediu social' : 'Punct de lucru',
+        label: workplaceLabel(workplace),
         address: orDash(printedAddress(workplace)),
       })),
       noWorkplaces: workplaces.length === 0,

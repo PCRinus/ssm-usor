@@ -19,7 +19,7 @@ vi.mock('@ssm-usor/document-engine', () => {
   const printedBy: Record<string, string[]> = {
     general_training_material: ['riskAssessment', 'unitRisks'],
     own_instructions: ['positions'],
-    protective_equipment_list: ['positions', 'equippedPositions'],
+    protective_equipment_list: ['positions', 'equippedPositions', 'unequippedPositionsText'],
     risk_assessment: ['positions', 'riskAssessment'],
     prevention_plan: ['riskAssessment'],
   };
