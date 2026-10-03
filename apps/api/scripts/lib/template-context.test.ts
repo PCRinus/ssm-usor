@@ -159,6 +159,65 @@ describe('the decisions', () => {
   }, 30_000);
 });
 
+const renderWith = (typeKey: (typeof documentTypeKeys)[number], variant: typeof facts) => {
+  const entry = manifest.templates.find((template) => template.typeKey === typeKey)!;
+  return documentText(
+    renderDocument(
+      readFileSync(new URL(entry.file, templatesUrl)),
+      documentData(buildDocumentContext(variant), typeKey)
+    )
+  );
+};
+
+describe('the protective equipment list', () => {
+  const none =
+    'Pentru posturile de lucru de mai sus nu a fost stabilit necesar de dotare cu echipament individual de protecție.';
+
+  it('prints a section per equipped position', () => {
+    const text = renderWith('protective_equipment_list', facts);
+    expect(text).toContain('POST DE LUCRU:');
+    expect(text).not.toContain(none);
+  }, 30_000);
+
+  it('says so where no position is equipped', () => {
+    const text = renderWith('protective_equipment_list', {
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        needsProtectiveEquipment: false,
+        equipment: [],
+      })),
+    });
+    expect(text).not.toContain('POST DE LUCRU:');
+    expect(text).toContain(`prelucrarea materialelor de acoperire;\n${none}\nObservații:`);
+  }, 30_000);
+});
+
+describe('the employer briefing', () => {
+  it('names decision 1.5 as how the representatives are designated, when the pack has it', () => {
+    const without = renderWith('employer_briefing', facts);
+    expect(without).toContain(
+      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece nu se încadrează conform HG 1425/ 2006 art. 60, alin. (2), litera c).'
+    );
+    expect(without).not.toContain('sunt desemnați prin decizia internă');
+
+    const withDecision = renderWith('employer_briefing', {
+      ...facts,
+      workersRepresentativeDecisionGenerated: true,
+    });
+    expect(withDecision).toContain(
+      'Reprezentanții lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. sunt desemnați prin decizia internă privind reprezentanții lucrătorilor.'
+    );
+    expect(withDecision).not.toContain('nu este stabilit, deoarece');
+  }, 30_000);
+
+  it('says the committee is not needed below 50 workers', () => {
+    expect(renderWith('employer_briefing', facts)).toContain(
+      'Având în vedere că S.C. PIPETECH S.R.L. are un număr mediu de sub 50 de lucrători, NU este necesar să se constituie un Comitet de securitate și sănătate în muncă.'
+    );
+  }, 30_000);
+});
+
 describe('the general training material', () => {
   it("prints the evaluations' unacceptable factors as the unit's own risks", () => {
     const entry = manifest.templates.find(
@@ -255,7 +314,9 @@ describe('the prevention plan', () => {
       }
     }
     expect(text.match(/Riscuri evaluate/g)).toHaveLength(3);
-    expect(text).toContain('Nu au fost stabilite măsuri de prevenire și protecție');
+    expect(text).toContain(
+      'Nu au fost stabilite măsuri de prevenire și protecție: niciun factor de risc evaluat nu depășește nivelul de risc\u00a03.'
+    );
   }, 30_000);
 });
 
@@ -347,7 +408,7 @@ describe('the risk assessment', () => {
     });
     expect(text).toContain('PENTRU VIZITATORI');
     expect(text).toContain(
-      'Nu au fost stabilite măsuri de prevenire: niciunul dintre factorii de risc identificați nu depășește nivelul de risc\u00a03.'
+      'Nu au fost stabilite măsuri de prevenire: niciun factor de risc identificat nu depășește nivelul de risc\u00a03.'
     );
     expect(text).toContain('Nu au fost identificați factori de risc proprii executantului.');
     expect(text).toContain(

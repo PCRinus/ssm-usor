@@ -1,12 +1,6 @@
-import {
-  caenClassName,
-  type CountyCode,
-  countyNames,
-  formatCui,
-  formatIban,
-  type ServiceContract,
-} from '@ssm-usor/contracts';
+import { caenClassName, formatCui, formatIban, type ServiceContract } from '@ssm-usor/contracts';
 
+import { printedAddress } from '../../lib/address';
 import { countOf } from '../../lib/romanian';
 import { printedDate } from '../documents/context';
 import type { ServiceContractFacts } from './facts';
@@ -18,17 +12,16 @@ export function monthsText(months: number) {
   return months === 1 ? 'o lună' : countOf(months, 'lună', 'luni');
 }
 
-function address(row: {
+const address = (row: {
   county_code: string | null;
   locality: string | null;
   address_line: string | null;
-}) {
-  const county = row.county_code ? countyNames[row.county_code as CountyCode] : null;
-  // The capital is its own county: "București, Calea Victoriei 122A", without "județul".
-  const place =
-    row.county_code === 'B' ? row.locality : [row.locality, county && `județul ${county}`];
-  return [place, row.address_line].flat().filter(Boolean).join(', ');
-}
+}) =>
+  printedAddress({
+    countyCode: row.county_code,
+    locality: row.locality,
+    addressLine: row.address_line,
+  });
 
 export function buildServiceContractContext({
   client,

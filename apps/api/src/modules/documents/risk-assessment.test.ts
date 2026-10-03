@@ -487,7 +487,6 @@ describe('the risk assessment', () => {
         {
           name: 'Atelier',
           registeredOffice: false,
-          county: 'Timiș',
           countyCode: 'TM',
           locality: 'Ghiroda',
           addressLine: 'Str. Industriilor 4',
@@ -495,7 +494,6 @@ describe('the risk assessment', () => {
         {
           name: 'Sediu',
           registeredOffice: true,
-          county: 'București',
           countyCode: 'B',
           locality: 'Sector 1',
           addressLine: 'Calea Victoriei 122A',
@@ -503,7 +501,6 @@ describe('the risk assessment', () => {
         {
           name: 'Depozit',
           registeredOffice: false,
-          county: null,
           countyCode: null,
           locality: null,
           addressLine: null,
@@ -515,7 +512,11 @@ describe('the risk assessment', () => {
       activity: '2562 – Fabricarea articolelor de feronerie',
       employeeCount: 24,
       workplaces: [
-        { name: 'Sediu', kind: 'Sediu social', address: 'Sector 1, Calea Victoriei 122A' },
+        {
+          name: 'Sediu',
+          kind: 'Sediu social',
+          address: 'București, Sector 1, Calea Victoriei 122A',
+        },
         {
           name: 'Atelier',
           kind: 'Punct de lucru',

@@ -364,10 +364,10 @@ function frequency(intervalMonths: number) {
   return named[intervalMonths] ?? `LA ${intervalMonths} LUNI`;
 }
 
-const months = (firstMonth: number, intervalMonths: number) =>
-  trainingMonths(firstMonth, intervalMonths)
-    .map((month) => monthNames[month - 1])
-    .join(', ');
+const months = (firstMonth: number, intervalMonths: number) => {
+  const names = trainingMonths(firstMonth, intervalMonths).map((month) => monthNames[month - 1]!);
+  return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
+};
 
 export function printedDate(isoDate: string) {
   const [year, month, day] = isoDate.split('-');

@@ -492,9 +492,9 @@ describe('decision_training', () => {
       administrative: true,
       worker: true,
       administrativeFrequency: 'SEMESTRIAL',
-      administrativeMonths: 'Februarie, August',
-      workerFrequency: 'TRIMESTRIAL',
-      workerMonths: 'Februarie, Mai, August, Noiembrie',
+      administrativeMonths: 'lunile februarie și august',
+      workerFrequency: 'ANUAL',
+      workerMonths: 'luna februarie',
       dayFrom: 2,
       dayTo: 7,
     },
@@ -509,10 +509,10 @@ describe('decision_training', () => {
     expect(text).toContain('din cadrul S.C. CLIENT DEMO S.R.L.\n');
     expect(text).not.toContain('..');
     expect(text).toContain(
-      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL respectiv în lunile Februarie, August, în perioada (ziua) 2 – 7 ale lunii'
+      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL respectiv în lunile februarie și august, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'va fi instruit TRIMESTRIAL respectiv în lunile Februarie, Mai, August, Noiembrie'
+      'va fi instruit ANUAL respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
       'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
@@ -558,7 +558,7 @@ describe('decision_training', () => {
         },
       })
     );
-    expect(workerOnly).toContain('va fi instruit TRIMESTRIAL');
+    expect(workerOnly).toContain('va fi instruit ANUAL');
     expect(workerOnly).not.toContain(
       'personalul tehnic-administrativ și șefii de locuri de muncă vor fi instruiți'
     );
@@ -640,8 +640,10 @@ describe('decision_workers_representative', () => {
     expect(text).toContain(
       'Maria POPESCU având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
     );
-    expect(text).toMatch(/pe următorii angajați:\s+Ion MARIN, având funcția de Manager magazin;/);
-    expect(text).toContain('Elena DUMITRU, având funcția de Lucrător comercial;');
+    expect(text).toMatch(
+      /pe următorii angajați:\s+Ion MARIN, având funcția de Manager magazin\.\s+Elena DUMITRU, având funcția de Lucrător comercial\./
+    );
+    expect(text).not.toMatch(/funcția de [^\n]*;/);
     acknowledged(text);
   });
 

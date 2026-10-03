@@ -1,6 +1,4 @@
 import {
-  type CountyCode,
-  countyNames,
   type EquipmentAllocation,
   type ResponsiblePersonRole,
   type StaffCategory,
@@ -159,7 +157,6 @@ export async function loadDocumentFacts(
     workplaces: workplaces.data.map((workplace) => ({
       name: workplace.name,
       registeredOffice: workplace.is_registered_office,
-      county: workplace.county_code ? countyNames[workplace.county_code as CountyCode] : null,
       countyCode: workplace.county_code,
       locality: workplace.locality,
       addressLine: workplace.address_line,

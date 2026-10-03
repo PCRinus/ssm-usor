@@ -293,9 +293,9 @@ describe('the merge context', () => {
       administrative: true,
       worker: true,
       administrativeFrequency: 'SEMESTRIAL',
-      administrativeMonths: 'februarie, august',
+      administrativeMonths: 'lunile februarie și august',
       workerFrequency: 'TRIMESTRIAL',
-      workerMonths: 'februarie, mai, august, noiembrie',
+      workerMonths: 'lunile februarie, mai, august și noiembrie',
       dayFrom: 2,
       dayTo: 7,
     });
@@ -315,9 +315,9 @@ describe('the merge context', () => {
         .training.periodicDuration
     ).toBe('1\u00a0oră și 30\u00a0de\u00a0minute');
     expect(other.training.administrativeFrequency).toBe('ANUAL');
-    expect(other.training.administrativeMonths).toBe('septembrie');
+    expect(other.training.administrativeMonths).toBe('luna septembrie');
     expect(other.training.workerFrequency).toBe('LA 2 LUNI');
-    expect(other.training.workerMonths).toBe('septembrie, noiembrie');
+    expect(other.training.workerMonths).toBe('lunile septembrie și noiembrie');
   });
 
   it('builds only the applicable category context', () => {
@@ -482,7 +482,11 @@ describe('the merge context', () => {
       activity: '2562 – Fabricarea articolelor de feronerie',
       employeeCount: 6,
       workplaces: [
-        { name: 'Sediul social', kind: 'Sediu social', address: 'Sector 1, Calea Victoriei 122A' },
+        {
+          name: 'Sediul social',
+          kind: 'Sediu social',
+          address: 'București, Sector 1, Calea Victoriei 122A',
+        },
         {
           name: 'Atelier Ghiroda',
           kind: 'Punct de lucru',

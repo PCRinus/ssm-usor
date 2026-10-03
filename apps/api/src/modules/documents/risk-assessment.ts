@@ -16,6 +16,7 @@ import {
   type WorkSystemComponent,
 } from '@ssm-usor/contracts';
 
+import { printedAddress } from '../../lib/address';
 import { countOf, listed } from '../../lib/romanian';
 
 export type RiskFactorFacts = {
@@ -60,8 +61,6 @@ export type EvaluatedPosition = {
 export type WorkplaceFacts = {
   name: string;
   registeredOffice: boolean;
-  /** Already in words: "București", "Timiș". */
-  county: string | null;
   countyCode: string | null;
   locality: string | null;
   addressLine: string | null;
@@ -557,15 +556,6 @@ function evaluationCountText(printed: readonly RiskEvaluationFacts[]) {
   ]);
 }
 
-const workplaceAddress = (workplace: WorkplaceFacts) => {
-  // The capital is its own county: "București, Calea Victoriei 122A", without "județul".
-  const place =
-    workplace.countyCode === 'B'
-      ? [workplace.locality]
-      : [workplace.locality, workplace.county && `județul ${workplace.county}`];
-  return orDash([...place, workplace.addressLine].filter(Boolean).join(', '));
-};
-
 export function riskAssessment({
   evaluations,
   positions,
@@ -599,7 +589,7 @@ export function riskAssessment({
       workplaces: ordered.map((workplace) => ({
         name: workplace.name.trim(),
         kind: workplace.registeredOffice ? 'Sediu social' : 'Punct de lucru',
-        address: workplaceAddress(workplace),
+        address: orDash(printedAddress(workplace)),
       })),
       noWorkplaces: workplaces.length === 0,
     },

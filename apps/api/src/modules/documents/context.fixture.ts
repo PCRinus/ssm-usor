@@ -33,7 +33,6 @@ export const facts: DocumentFacts = {
     {
       name: 'Atelier Ghiroda',
       registeredOffice: false,
-      county: 'Timiș',
       countyCode: 'TM',
       locality: 'Ghiroda',
       addressLine: 'Str. Industriilor 4',
@@ -41,7 +40,6 @@ export const facts: DocumentFacts = {
     {
       name: 'Sediul social',
       registeredOffice: true,
-      county: 'București',
       countyCode: 'B',
       locality: 'Sector 1',
       addressLine: 'Calea Victoriei 122A',
