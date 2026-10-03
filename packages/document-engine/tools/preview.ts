@@ -141,7 +141,7 @@ function sample(
         {
           name: 'Manager magazin',
           activities: 'Conduce magazinul și ține legătura cu furnizorii.',
-          staffCategory: 'Tehnic-administrativ',
+          staffCategory: 'Tehnico-administrativ',
           workZone: 'Birou',
           workZoneLine: true,
           workZoneOrDash: 'Birou',
@@ -169,7 +169,7 @@ function sample(
           name: jobTitle,
           activities:
             index === 0 ? '—' : 'Montaj și întreținere de instalații criogenice pe șantier.',
-          staffCategory: index === 0 ? 'Tehnic-administrativ' : 'Execuție',
+          staffCategory: index === 0 ? 'Tehnico-administrativ' : 'Execuție',
           workZone: index === 0 ? '' : 'Atelier, șantier temporar',
           workZoneLine: index !== 0,
           workZoneOrDash: index === 0 ? '—' : 'Atelier, șantier temporar',

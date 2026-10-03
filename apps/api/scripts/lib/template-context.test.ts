@@ -144,10 +144,10 @@ describe('the decisions', () => {
   const managers =
     'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă';
 
-  it('name every workplace manager once as those who train the whole staff', () => {
+  it('name every workplace manager once as those who train the execution staff', () => {
     const text = render('decision_training');
     expect(text).toContain(
-      `Personalul de conducere al locurilor de muncă – ${managers} – va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul din cadrul S.C. PIPETECH S.R.L.`
+      `Personalul de conducere al locurilor de muncă – ${managers} – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. PIPETECH S.R.L.`
     );
     expect(text).toContain('durata instruirii periodice va fi de 2\u00a0ore;');
   }, 30_000);
