@@ -680,10 +680,11 @@ describe('decision_workers_representative', () => {
     expect(render([people[0]!])).toContain('pe următorul angajat:');
   });
 
-  it('prints the thresholds of H.G. 1425/2006 art. 53(1)', () => {
+  it('prints the thresholds of H.G. 1425/2006 art. 53(2) as minimums', () => {
     const text = render(people);
+    expect(text).toContain('cel puțin un reprezentant, în cazul în care');
     expect(text).toContain('va avea între 10 și 49 de lucrători inclusiv');
-    expect(text).toContain('doi reprezentanți, în cazul în care');
+    expect(text).toContain('cel puțin doi reprezentanți, în cazul în care');
     expect(text).toContain('va avea între 50 și 100 de lucrători inclusiv');
   });
 
