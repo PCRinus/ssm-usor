@@ -1258,7 +1258,10 @@ KEEP_CHAIN = 3
 BLOCK_TAG = re.compile(r'<(/?)w:(p|tbl)\b[^>]*?(/?)>')
 KEEP_NEXT = re.compile(r'<w:keepNext(?: w:val="(\w+)")?/>')
 KEEP_NEXT_OFF = '<w:keepNext w:val="false"/>'
+KEEP_NEXT_ON = '<w:keepNext/>'
 LOOP_TAG_OR_NOTHING = re.compile(r'(\{\{[#/^][^}]*\}\})?')
+CHAPTER = re.compile(r'(sub)?capitolul\b', re.I)
+TYPED_LIST_ITEM = re.compile(r'([a-z]\)|\d{1,2}[.)]\s|[-–•]\s)')
 
 
 def keeps_next(properties):
@@ -1320,64 +1323,92 @@ def own_properties(paragraph):
     return match.group(1) if match else ''
 
 
-def keep_next_off(paragraph):
+def set_keep_next(paragraph, element):
     properties = own_properties(paragraph)
     if paragraph.endswith('/>') and '</w:p>' not in paragraph:
-        return f'{paragraph[:-2]}><w:pPr>{KEEP_NEXT_OFF}</w:pPr></w:p>'
+        return f'{paragraph[:-2]}><w:pPr>{element}</w:pPr></w:p>'
     if not properties:
         opening = re.match(r'<w:p\b[^>]*>', paragraph).group(0)
-        return f'{opening}<w:pPr>{KEEP_NEXT_OFF}</w:pPr>{paragraph[len(opening):]}'
+        return f'{opening}<w:pPr>{element}</w:pPr>{paragraph[len(opening):]}'
     if KEEP_NEXT.search(properties):
-        changed = KEEP_NEXT.sub(KEEP_NEXT_OFF, properties, count=1)
+        changed = KEEP_NEXT.sub(element, properties, count=1)
     else:
         # Second in the schema's order, after the style.
         style = re.match(r'<w:pPr>(<w:pStyle\b[^>]*/>)?', properties)
-        changed = properties[:style.end()] + KEEP_NEXT_OFF + properties[style.end():]
+        changed = properties[:style.end()] + element + properties[style.end():]
     return paragraph.replace(properties, changed, 1)
 
 
-def cap_keep_chains(xml, styles):
+def paragraph_keeps_next(paragraph, keeping, default):
     """Counts what the paragraph says and, where it says nothing, what its style says: the
     Heading styles of the imported files keep every article with the next one."""
+    properties = own_properties(paragraph)
+    own = keeps_next(properties)
+    style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
+    return own if own is not None else (style.group(1) if style else default) in keeping
+
+
+def paragraph_text(paragraph):
+    return ''.join(re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>', paragraph)).strip()
+
+
+def is_list_item(paragraph):
+    # The originals typed many of their lists' letters and dashes by hand.
+    return '<w:numPr>' in own_properties(paragraph) or TYPED_LIST_ITEM.match(paragraph_text(paragraph)) is not None
+
+
+def keep_lead_ins(xml, styles):
+    """A line that introduces a list ("Tipuri de pansamente:") keeps with the list's first item."""
+    keeping, default = styles_keeping_next(styles)
+    blocks = list(body_blocks(xml))
+    lead_ins = [(start, end) for (kind, start, end), (following, item_start, item_end) in zip(blocks, blocks[1:])
+                if kind == following == 'p'
+                and paragraph_text(xml[start:end]).endswith(':')
+                and is_list_item(xml[item_start:item_end])
+                and not paragraph_keeps_next(xml[start:end], keeping, default)]
+    for start, end in reversed(lead_ins):
+        xml = xml[:start] + set_keep_next(xml[start:end], KEEP_NEXT_ON) + xml[end:]
+    return xml
+
+
+def cap_keep_chains(xml, styles):
     keeping, default = styles_keeping_next(styles)
     run, cuts = [], []
 
-    def text(span):
-        return ''.join(re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>', xml[span[0]:span[1]])).strip()
-
     def close():
         if len(run) > KEEP_CHAIN:
-            # Cut down to its last three, the run would leave a chapter heading or a line that
-            # introduces a list ("Dacă victima prezintă:") alone at the foot of a page. Those
-            # keep, and so does an empty paragraph or a loop tag after them, which takes no room.
-            kept = [False] * (len(run) - KEEP_CHAIN) + [True] * KEEP_CHAIN
-            for index, span in enumerate(run[:-KEEP_CHAIN]):
-                said = text(span)
-                kept[index] = said.endswith(':') or bool(re.match(r'(sub)?capitolul\b', said, re.I)) \
-                    or (index > 0 and kept[index - 1] and LOOP_TAG_OR_NOTHING.fullmatch(said) is not None)
-            group = []
-            for span, keeps in zip(run + [None], kept + [False]):
-                if keeps:
-                    group.append(span)
-                    continue
-                # Longer only where a heading or a lead-in starts it, which must not be the one cut.
-                cuts.extend(group[KEEP_CHAIN:])
-                group = []
-                if span is not None:
-                    cuts.append(span)
+            said = [paragraph_text(xml[start:end]) for start, end in run]
+            kept = [False] * len(run)
+
+            def keep(index):
+                left = next((count for count in range(index) if not kept[index - 1 - count]), index)
+                after = len(run) - 1 - index
+                right = next((count for count in range(after) if not kept[index + 1 + count]), after)
+                if kept[index] or left + 1 + right > KEEP_CHAIN:
+                    return
+                kept[index] = True
+                # It takes no room, and the keep reaches the paragraph after it only through it.
+                if index < len(run) - 1 and LOOP_TAG_OR_NOTHING.fullmatch(said[index + 1]):
+                    keep(index + 1)
+
+            # Cut down to its last three, the run left a chapter heading, a line that introduces
+            # a list ("Dacă victima prezintă:") or the article that opens it ("(1) Mijloacele de
+            # semnalizare rutieră sunt") alone at the foot of a page.
+            last = len(run) - 1
+            for index in [index for index, text in enumerate(said) if text.endswith(':') or CHAPTER.match(text)] \
+                    + [0, last, last - 1, last - 2, 1]:
+                keep(index)
+            cuts.extend(span for span, keeps in zip(run, kept) if not keeps)
         run.clear()
 
     for kind, start, end in body_blocks(xml):
-        properties = own_properties(xml[start:end]) if kind == 'p' else ''
-        own = keeps_next(properties)
-        style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
-        if kind == 'p' and (own if own is not None else (style.group(1) if style else default) in keeping):
+        if kind == 'p' and paragraph_keeps_next(xml[start:end], keeping, default):
             run.append((start, end))
         else:
             close()
     close()
     for start, end in reversed(cuts):
-        xml = xml[:start] + keep_next_off(xml[start:end]) + xml[end:]
+        xml = xml[:start] + set_keep_next(xml[start:end], KEEP_NEXT_OFF) + xml[end:]
     return xml
 
 
@@ -1440,9 +1471,9 @@ def sweep(path):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
-    and its own fonts as the defaults of the styles. Then two rules every template keeps: no
-    run of paragraphs kept with the next longer than `KEEP_CHAIN`, and the branding line small
-    and grey. Safe to run again."""
+    and its own fonts as the defaults of the styles. Then three rules every template keeps: a
+    line ending in ":" keeps with the list item after it, no run of paragraphs kept with the
+    next longer than `KEEP_CHAIN`, and the branding line small and grey. Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
@@ -1463,7 +1494,7 @@ def sweep(path):
                 # The API's PageNumberOffset does not let go of it.
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 if item.filename == 'word/document.xml':
-                    xml = cap_keep_chains(xml, styles)
+                    xml = cap_keep_chains(keep_lead_ins(xml, styles), styles)
                 elif item.filename.startswith('word/footer'):
                     xml = style_branding(xml)
                 data = xml.encode('utf8')

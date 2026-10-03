@@ -278,10 +278,8 @@ describe('typesetting', () => {
     return match ? !['false', '0', 'off'].includes(match[1] ?? 'true') : undefined;
   };
 
-  // A heading, the paragraph that introduces a table, and a loop tag between them. A longer run
-  // moves to the next page whole and leaves most of a page empty before it. The Heading styles
-  // of the imported files keep with the next paragraph too.
-  it.each(templateFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
+  // The Heading styles of the imported files keep with the next paragraph too.
+  const keepingOf = (name: string) => {
     const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
     const definitions = new Map(
       [...styles.matchAll(/<w:style ([^>]*)>([\s\S]*?)<\/w:style>/g)]
@@ -301,20 +299,48 @@ describe('typesetting', () => {
       return style.own ?? styleKeeps(style.basedOn, depth + 1);
     };
     const defaultStyle = [...definitions].find(([, style]) => style.isDefault)?.[0];
-    const blocks = bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    return (block: string) => {
+      if (block.startsWith('<w:tbl>')) return false;
+      const style = /<w:pStyle w:val="([^"]+)"/.exec(propertiesOf(block))?.[1] ?? defaultStyle;
+      return keepsNext(propertiesOf(block)) ?? styleKeeps(style);
+    };
+  };
+  const propertiesOf = (block: string) =>
+    /^<w:p\b[^>]*>\s*<w:pPr>[\s\S]*?<\/w:pPr>/.exec(block)?.[0] ?? '';
+  // The originals typed many of their lists' letters and dashes by hand.
+  const isListItem = (block: string) =>
+    block.startsWith('<w:p') &&
+    (propertiesOf(block).includes('<w:numPr>') ||
+      /^([a-z]\)|\d{1,2}[.)]\s|[-–•]\s)/.test(documentTextOf(block).trim()));
+  const blocksOf = (name: string) =>
+    bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+
+  // A heading, the paragraph that introduces a table, and a loop tag between them. A longer run
+  // moves to the next page whole and leaves most of a page empty before it.
+  it.each(templateFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
+    const paragraphKeeps = keepingOf(name);
     let run = 0;
     let longest = 0;
-    const paragraphKeeps = (block: string) => {
-      if (block.startsWith('<w:tbl>')) return false;
-      const properties = /^<w:p\b[^>]*>\s*<w:pPr>[\s\S]*?<\/w:pPr>/.exec(block)?.[0] ?? '';
-      const style = /<w:pStyle w:val="([^"]+)"/.exec(properties)?.[1] ?? defaultStyle;
-      return keepsNext(properties) ?? styleKeeps(style);
-    };
-    for (const block of blocks) {
+    for (const block of blocksOf(name)) {
       run = paragraphKeeps(block) ? run + 1 : 0;
       longest = Math.max(longest, run);
     }
     expect(longest).toBeLessThanOrEqual(3);
+  });
+
+  it.each(templateFiles)('%s keeps a line ending in ":" with the list item after it', (name) => {
+    const paragraphKeeps = keepingOf(name);
+    const blocks = blocksOf(name);
+    const stranded = blocks
+      .filter(
+        (block, index) =>
+          !block.startsWith('<w:tbl>') &&
+          documentTextOf(block).trim().endsWith(':') &&
+          isListItem(blocks[index + 1] ?? '') &&
+          !paragraphKeeps(block)
+      )
+      .map(documentTextOf);
+    expect(stranded).toEqual([]);
   });
 
   it.each(decisionFiles)(
