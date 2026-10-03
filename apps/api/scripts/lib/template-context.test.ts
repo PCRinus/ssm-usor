@@ -169,6 +169,25 @@ const renderWith = (typeKey: (typeof documentTypeKeys)[number], variant: typeof 
   );
 };
 
+describe('the employer briefing', () => {
+  it.each([
+    [30, '30 de minute'],
+    [90, '1 oră și 30 de minute'],
+  ])(
+    'prints the periodic training duration of %i minutes as decision 1.1 does',
+    (minutes, duration) => {
+      const variant = { ...facts, client: { ...facts.client, periodicTrainingMinutes: minutes } };
+      expect(renderWith('employer_briefing', variant)).toContain(
+        `Instructajul periodic durează ${duration} și va avea frecvența stabilită prin instrucțiunile proprii ale societății.`
+      );
+      expect(renderWith('decision_training', variant)).toContain(
+        `durata instruirii periodice va fi de ${duration};`
+      );
+    },
+    30_000
+  );
+});
+
 describe('the protective equipment list', () => {
   const none =
     'Pentru posturile de lucru de mai sus nu a fost stabilit necesar de dotare cu echipament individual de protecție.';

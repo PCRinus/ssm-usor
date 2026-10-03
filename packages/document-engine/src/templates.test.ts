@@ -672,6 +672,26 @@ describe('decision_workers_representative', () => {
   });
 });
 
+describe('employer_briefing', () => {
+  const template = read('11_employer_briefing.docx');
+
+  it("prints the client's periodic training duration from the field decision 1.1 prints", () => {
+    expect(templatePlaceholders(template)).toContain('training.periodicDuration');
+    const text = documentText(
+      renderDocument(template, {
+        ...shared,
+        provider: { ...shared.provider, representativeRole: 'Administrator' },
+        workersRepresentativeDecision: false,
+        training: { periodicDuration: '30 de minute' },
+      })
+    );
+    expect(text).toContain(
+      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale societății.'
+    );
+    expect(text).not.toContain('1,30 ore');
+  });
+});
+
 describe('cover_decisions', () => {
   const template = read('1.0_cover_decisions.docx');
   const render = (workersRepresentativeDecision: boolean) =>
