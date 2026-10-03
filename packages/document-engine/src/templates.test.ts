@@ -273,6 +273,50 @@ describe('typesetting', () => {
     }
   );
 
+  const keepsNext = (properties: string) => {
+    const match = /<w:keepNext(?: w:val="(\w+)")?\/>/.exec(properties);
+    return match ? !['false', '0', 'off'].includes(match[1] ?? 'true') : undefined;
+  };
+
+  // A heading, the paragraph that introduces a table, and a loop tag between them. A longer run
+  // moves to the next page whole and leaves most of a page empty before it. The Heading styles
+  // of the imported files keep with the next paragraph too.
+  it.each(templateFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
+    const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
+    const definitions = new Map(
+      [...styles.matchAll(/<w:style ([^>]*)>([\s\S]*?)<\/w:style>/g)]
+        .filter(([, attributes = '']) => attributes.includes('w:type="paragraph"'))
+        .map(([, attributes = '', body = '']) => [
+          /w:styleId="([^"]+)"/.exec(attributes)![1]!,
+          {
+            basedOn: /<w:basedOn w:val="([^"]+)"/.exec(body)?.[1],
+            own: keepsNext(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(body)?.[0] ?? ''),
+            isDefault: /w:default="(1|true)"/.test(attributes),
+          },
+        ])
+    );
+    const styleKeeps = (id: string | undefined, depth = 0): boolean => {
+      const style = id === undefined ? undefined : definitions.get(id);
+      if (!style || depth > 20) return false;
+      return style.own ?? styleKeeps(style.basedOn, depth + 1);
+    };
+    const defaultStyle = [...definitions].find(([, style]) => style.isDefault)?.[0];
+    const blocks = bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    let run = 0;
+    let longest = 0;
+    const paragraphKeeps = (block: string) => {
+      if (block.startsWith('<w:tbl>')) return false;
+      const properties = /^<w:p\b[^>]*>\s*<w:pPr>[\s\S]*?<\/w:pPr>/.exec(block)?.[0] ?? '';
+      const style = /<w:pStyle w:val="([^"]+)"/.exec(properties)?.[1] ?? defaultStyle;
+      return keepsNext(properties) ?? styleKeeps(style);
+    };
+    for (const block of blocks) {
+      run = paragraphKeeps(block) ? run + 1 : 0;
+      longest = Math.max(longest, run);
+    }
+    expect(longest).toBeLessThanOrEqual(3);
+  });
+
   it.each(decisionFiles)(
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
@@ -623,6 +667,27 @@ describe('branding', () => {
       new Set([''])
     );
     expect(new Set(footerText(renderDocument(template, data)))).toEqual(new Set(['']));
+  });
+
+  it.each(templateFiles)('%s sets the line in 7.5 pt grey', (name) => {
+    const zip = new PizZip(read(name));
+    const runs = Object.keys(zip.files)
+      .filter((part) => /word\/footer\d*\.xml/.test(part))
+      .flatMap(
+        (part) =>
+          zip
+            .file(part)!
+            .asText()
+            .match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []
+      )
+      .filter((paragraph) => documentTextOf(paragraph).includes('{{#branding}}'))
+      .flatMap((paragraph) => paragraph.match(/<w:r[ >][\s\S]*?<\/w:r>/g) ?? [])
+      .filter((run) => run.includes('<w:t'));
+    expect(runs.length).toBeGreaterThan(0);
+    for (const run of runs) {
+      expect(run).toContain('<w:sz w:val="15"/>');
+      expect(run).toContain('<w:color w:val="7A7A7A"/>');
+    }
   });
 });
 

@@ -840,6 +840,7 @@ def add_branding(page_style):
     cursor.gotoStartOfParagraph(True)
     cursor.CharFontName = FONT
     cursor.CharHeight = BRANDING_SIZE
+    cursor.CharHeightComplex = BRANDING_SIZE
     cursor.CharColor = BRANDING_COLOR
     cursor.CharWeight = 100
     cursor.CharLocale = ROMANIAN
@@ -1249,13 +1250,202 @@ def inline_drawing(match):
     return f'<wp:inline distT="0" distB="0" distL="0" distR="0">{extent}<wp:effectExtent l="0" t="0" r="0" b="0"/>{rest}'
 
 
+# A heading, the paragraph that introduces a table, and a loop tag between them that disappears
+# once merged. A longer run kept together moves to the next page whole: the import kept
+# everything from a heading to its table, and left pages two thirds empty before a long one.
+KEEP_CHAIN = 3
+
+BLOCK_TAG = re.compile(r'<(/?)w:(p|tbl)\b[^>]*?(/?)>')
+KEEP_NEXT = re.compile(r'<w:keepNext(?: w:val="(\w+)")?/>')
+KEEP_NEXT_OFF = '<w:keepNext w:val="false"/>'
+LOOP_TAG_OR_NOTHING = re.compile(r'(\{\{[#/^][^}]*\}\})?')
+
+
+def keeps_next(properties):
+    """True or False where `properties` say so, None where they leave it to the style."""
+    match = KEEP_NEXT.search(properties)
+    return None if match is None else match.group(1) not in ('false', '0', 'off')
+
+
+def styles_keeping_next(styles):
+    """The paragraph styles that keep with the next paragraph, through what they are based on,
+    and the one a paragraph without a style takes."""
+    definitions, default = {}, None
+    for match in re.finditer(r'<w:style\b([^>]*)>(.*?)</w:style>', styles, flags=re.S):
+        attributes, body = match.groups()
+        if 'w:type="paragraph"' not in attributes:
+            continue
+        name = re.search(r'w:styleId="([^"]+)"', attributes).group(1)
+        based_on = re.search(r'<w:basedOn w:val="([^"]+)"', body)
+        properties = re.search(r'<w:pPr>.*?</w:pPr>', body, flags=re.S)
+        definitions[name] = (based_on and based_on.group(1),
+                             keeps_next(properties.group(0)) if properties else None)
+        if re.search(r'w:default="(1|true)"', attributes):
+            default = name
+    defaults = re.search(r'<w:pPrDefault>.*?</w:pPrDefault>', styles, flags=re.S)
+
+    def resolve(name, seen=()):
+        if name not in definitions or name in seen:
+            return bool(defaults and keeps_next(defaults.group(0)))
+        based_on, own = definitions[name]
+        if own is not None:
+            return own
+        return resolve(based_on, seen + (name,)) if based_on else resolve(None)
+
+    return {name for name in definitions if resolve(name)}, default
+
+
+def body_blocks(xml):
+    """The top-level paragraphs and tables of a part, as (kind, start, end). A paragraph inside
+    a table or a text box belongs to the block around it."""
+    depth, start, kind = 0, 0, None
+    for match in BLOCK_TAG.finditer(xml):
+        closing, name, empty = match.groups()
+        if empty:
+            if depth == 0:
+                yield name, match.start(), match.end()
+        elif closing:
+            depth -= 1
+            if depth == 0:
+                yield kind, start, match.end()
+        else:
+            if depth == 0:
+                start, kind = match.start(), name
+            depth += 1
+
+
+def own_properties(paragraph):
+    """A paragraph's own `w:pPr`, not one of a text box inside it, or ''."""
+    match = re.match(r'<w:p\b[^>]*>\s*(<w:pPr>.*?</w:pPr>)', paragraph, flags=re.S)
+    return match.group(1) if match else ''
+
+
+def keep_next_off(paragraph):
+    properties = own_properties(paragraph)
+    if paragraph.endswith('/>') and '</w:p>' not in paragraph:
+        return f'{paragraph[:-2]}><w:pPr>{KEEP_NEXT_OFF}</w:pPr></w:p>'
+    if not properties:
+        opening = re.match(r'<w:p\b[^>]*>', paragraph).group(0)
+        return f'{opening}<w:pPr>{KEEP_NEXT_OFF}</w:pPr>{paragraph[len(opening):]}'
+    if KEEP_NEXT.search(properties):
+        changed = KEEP_NEXT.sub(KEEP_NEXT_OFF, properties, count=1)
+    else:
+        # Second in the schema's order, after the style.
+        style = re.match(r'<w:pPr>(<w:pStyle\b[^>]*/>)?', properties)
+        changed = properties[:style.end()] + KEEP_NEXT_OFF + properties[style.end():]
+    return paragraph.replace(properties, changed, 1)
+
+
+def cap_keep_chains(xml, styles):
+    """Counts what the paragraph says and, where it says nothing, what its style says: the
+    Heading styles of the imported files keep every article with the next one."""
+    keeping, default = styles_keeping_next(styles)
+    run, cuts = [], []
+
+    def text(span):
+        return ''.join(re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>', xml[span[0]:span[1]])).strip()
+
+    def close():
+        if len(run) > KEEP_CHAIN:
+            # Cut down to its last three, the run would leave a chapter heading or a line that
+            # introduces a list ("Dacă victima prezintă:") alone at the foot of a page. Those
+            # keep, and so does an empty paragraph or a loop tag after them, which takes no room.
+            kept = [False] * (len(run) - KEEP_CHAIN) + [True] * KEEP_CHAIN
+            for index, span in enumerate(run[:-KEEP_CHAIN]):
+                said = text(span)
+                kept[index] = said.endswith(':') or bool(re.match(r'(sub)?capitolul\b', said, re.I)) \
+                    or (index > 0 and kept[index - 1] and LOOP_TAG_OR_NOTHING.fullmatch(said) is not None)
+            group = []
+            for span, keeps in zip(run + [None], kept + [False]):
+                if keeps:
+                    group.append(span)
+                    continue
+                # Longer only where a heading or a lead-in starts it, which must not be the one cut.
+                cuts.extend(group[KEEP_CHAIN:])
+                group = []
+                if span is not None:
+                    cuts.append(span)
+        run.clear()
+
+    for kind, start, end in body_blocks(xml):
+        properties = own_properties(xml[start:end]) if kind == 'p' else ''
+        own = keeps_next(properties)
+        style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
+        if kind == 'p' and (own if own is not None else (style.group(1) if style else default) in keeping):
+            run.append((start, end))
+        else:
+            close()
+    close()
+    for start, end in reversed(cuts):
+        xml = xml[:start] + keep_next_off(xml[start:end]) + xml[end:]
+    return xml
+
+
+RUN_PROPERTIES = ['rStyle', 'rFonts', 'b', 'bCs', 'i', 'iCs', 'caps', 'smallCaps', 'strike',
+                  'dstrike', 'outline', 'shadow', 'emboss', 'imprint', 'noProof', 'snapToGrid',
+                  'vanish', 'webHidden', 'color', 'spacing', 'w', 'kern', 'position', 'sz', 'szCs',
+                  'highlight', 'u', 'effect', 'bdr', 'shd', 'fitText', 'vertAlign', 'rtl', 'cs',
+                  'em', 'lang', 'eastAsianLayout', 'specVanish', 'oMath']
+BRANDING_RUN = {
+    'color': f'<w:color w:val="{BRANDING_COLOR:06X}"/>',
+    'sz': f'<w:sz w:val="{round(BRANDING_SIZE * 2)}"/>',
+    'szCs': f'<w:szCs w:val="{round(BRANDING_SIZE * 2)}"/>',
+}
+
+
+def set_run_property(properties, name, element):
+    """Writes one child of a `w:rPr`, where the schema orders it: Word refuses a file whose
+    run properties are out of order."""
+    existing = re.compile(rf'<w:{name}\b[^>]*/>')
+    if existing.search(properties):
+        return existing.sub(element, properties, count=1)
+    rank = RUN_PROPERTIES.index(name)
+    for child in re.finditer(r'<w:(\w+)\b', properties):
+        if child.group(1) in RUN_PROPERTIES and RUN_PROPERTIES.index(child.group(1)) > rank:
+            return properties[:child.start()] + element + properties[child.start():]
+    return properties + element
+
+
+def style_branding_properties(match):
+    inner = match.group(1)
+    for name, element in BRANDING_RUN.items():
+        inner = set_run_property(inner, name, element)
+    return f'<w:rPr>{inner}</w:rPr>'
+
+
+def style_branding_run(match):
+    run = match.group(0)
+    if '<w:rPr>' in run:
+        return re.sub(r'<w:rPr>(.*?)</w:rPr>', style_branding_properties, run, count=1, flags=re.S)
+    opening = re.match(r'<w:r\b[^>]*>', run).group(0)
+    return f'{opening}<w:rPr>{"".join(BRANDING_RUN.values())}</w:rPr>{run[len(opening):]}'
+
+
+def style_branding(xml):
+    """The branding line is set small and grey; the import's pass over every character of a
+    footer sets it back to the footer's size and to no colour."""
+    def paragraph(match):
+        text = ''.join(re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>', match.group(0)))
+        if '{{#branding}}' not in text:
+            return match.group(0)
+        styled = re.sub(r'<w:pPr>.*?</w:pPr>',
+                        lambda mark: re.sub(r'<w:rPr>(.*?)</w:rPr>', style_branding_properties,
+                                            mark.group(0), flags=re.S),
+                        match.group(0), count=1, flags=re.S)
+        return re.sub(r'<w:r\b[^>]*>(?:(?!</w:r>).)*</w:r>', style_branding_run, styled, flags=re.S)
+    return re.sub(r'<w:p(?:\s[^>]*)?(?<!/)>(?:(?!</w:p>).)*</w:p>', paragraph, xml, flags=re.S)
+
+
 def sweep(path):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
-    and its own fonts as the defaults of the styles. Safe to run again."""
+    and its own fonts as the defaults of the styles. Then two rules every template keeps: no
+    run of paragraphs kept with the next longer than `KEEP_CHAIN`, and the branding line small
+    and grey. Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
+        styles = archive.read('word/styles.xml').decode('utf8')
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
         for item, data in entries:
             if re.fullmatch(r'word/(document|header\d*|footer\d*)\.xml', item.filename):
@@ -1272,6 +1462,10 @@ def sweep(path):
                 # there, and "Pag. X din Y" then counts wrong once the pages before it change.
                 # The API's PageNumberOffset does not let go of it.
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
+                if item.filename == 'word/document.xml':
+                    xml = cap_keep_chains(xml, styles)
+                elif item.filename.startswith('word/footer'):
+                    xml = style_branding(xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
