@@ -275,7 +275,10 @@ function sample(
             trainer:
               people.length === 1
                 ? `${name} – conducător loc de muncă`
-                : `${people.map((manager) => manager.name).join(', ')} – conducători loc de muncă`,
+                : `${people
+                    .slice(0, -1)
+                    .map((manager) => manager.name)
+                    .join(', ')} și ${people.at(-1)!.name} – conducători loc de muncă`,
             modules: [
               { citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12' },
               { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },
