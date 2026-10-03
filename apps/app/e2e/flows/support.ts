@@ -18,7 +18,8 @@ const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABA
 export const password = 'Parola-e2e-1';
 
 // One run never collides with another, or with what a developer has in their local stack.
-const run = Date.now().toString(36);
+// Workers start in the same millisecond, and `cleanUp` deletes every account with this suffix.
+const run = `${Date.now().toString(36)}w${process.env.TEST_WORKER_INDEX ?? ''}`;
 export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
 
 const created = { users: [] as string[], organizations: [] as string[] };

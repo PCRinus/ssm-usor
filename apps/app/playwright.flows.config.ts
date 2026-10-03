@@ -44,10 +44,11 @@ process.env.E2E_API_URL = apiUrl;
 
 export default defineConfig({
   testDir: './e2e/flows',
-  fullyParallel: false,
+  // Tests run side by side, even those of one file, so each makes its own accounts and data.
+  fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  workers: 4,
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report-flows' }]],
