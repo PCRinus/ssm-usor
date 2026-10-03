@@ -15,6 +15,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
+import { countOf, listed } from '../../lib/romanian';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -148,7 +149,10 @@ export type DocumentContext = {
   provider: { legalName: string; representativeName: string; representativeRole: string };
   specialist: { name: string; professionalTitle: string };
   workplaceManagers: Person[];
-  workplaceManager: Person;
+  /** "Ion POP având funcția de Șef atelier și Ana RUS având funcția de Șef sală". */
+  workplaceManagersText: string;
+  /** "Ion POP, Șef atelier; Ana RUS, Șef sală". */
+  workplaceManagersList: string;
   firstAiders: Person[];
   firstAiderNames: string;
   evaluationTeam: Person[];
@@ -197,11 +201,20 @@ const allocationLabels: Record<EquipmentAllocation, string> = {
 };
 
 /** "2 buc. / 12 luni"; a consumable has no duration, and its mode says so in its column. */
-function quantityLabel(entry: { quantity: number; durationMonths: number | null }) {
+export function quantityLabel(entry: { quantity: number; durationMonths: number | null }) {
   const pieces = `${entry.quantity} buc.`;
   if (entry.durationMonths === null) return pieces;
-  return `${pieces} / ${entry.durationMonths === 1 ? '1 lună' : `${entry.durationMonths} luni`}`;
+  return `${pieces} / ${countOf(entry.durationMonths, 'lună', 'luni')}`;
 }
+
+// A line break between a number and its unit ("2 / ore") reads as two values.
+const unbroken = (text: string) =>
+  text.replace(/(\d+) (de )?/g, (_, number: string, de?: string) =>
+    de ? `${number}\u00a0de\u00a0` : `${number}\u00a0`
+  );
+
+const described = (people: readonly Person[]) =>
+  listed(people.map((person) => `${person.name} având funcția de ${person.jobTitle}`));
 
 /**
  * The positions still undecided about their equipment (ADR 011) or their instructions
@@ -391,7 +404,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     workZoneLine: Boolean(position.workZone?.trim()),
     workZoneOrDash: position.workZone?.trim() || '—',
     intervalLabel: intervalLabel(intervalOf(position)),
-    trainingDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
+    trainingDuration: unbroken(formatTrainingDuration(client.periodicTrainingMinutes!)),
   }));
   // Not on `positions`: a snapshot keeps all of a name it printed, so an equipment edit would
   // mark every document that prints the posts.
@@ -440,14 +453,15 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     provider,
     specialist,
     workplaceManagers,
-    workplaceManager: workplaceManagers[0]!,
+    workplaceManagersText: described(workplaceManagers),
+    workplaceManagersList: workplaceManagers
+      .map((person) => `${person.name}, ${person.jobTitle}`)
+      .join('; '),
     firstAiders,
-    firstAiderNames: firstAiders.map((person) => person.name).join(', '),
+    firstAiderNames: listed(firstAiders.map((person) => person.name)),
     evaluationTeam: withRole('risk_evaluation_team'),
     imminentDanger,
-    imminentDangerText: imminentDanger
-      .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
-      .join(', '),
+    imminentDangerText: described(imminentDanger),
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
     workersRepresentativeDecision:
       documentApplies(facts, 'decision_workers_representative') ||
@@ -456,7 +470,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     workersRepresentativesLead:
       workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',
     training: {
-      periodicDuration: formatTrainingDuration(client.periodicTrainingMinutes!),
+      periodicDuration: unbroken(formatTrainingDuration(client.periodicTrainingMinutes!)),
       intervalPhrase:
         client.administrativeTrainingIntervalMonths !== null &&
         client.workerTrainingIntervalMonths !== null
@@ -508,7 +522,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
         firstMonth: client.trainingFirstMonth!,
         periodicTrainingMinutes: client.periodicTrainingMinutes!,
         names: {
-          workplaceManager: workplaceManagers[0]!.name,
+          workplaceManagers: workplaceManagers.map((person) => person.name),
           provider: provider.legalName,
           specialist: specialist.name,
         },

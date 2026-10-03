@@ -88,6 +88,7 @@ describe('the months of a contract', () => {
     [12, '12 luni'],
     [19, '19 luni'],
     [20, '20 de luni'],
+    [21, '21 de luni'],
     [24, '24 de luni'],
     [100, '100 de luni'],
     [112, '112 luni'],

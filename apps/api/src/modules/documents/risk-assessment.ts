@@ -16,6 +16,8 @@ import {
   type WorkSystemComponent,
 } from '@ssm-usor/contracts';
 
+import { countOf, listed } from '../../lib/romanian';
+
 export type RiskFactorFacts = {
   component: WorkSystemComponent;
   group: string;
@@ -78,15 +80,6 @@ const sensitiveGroupsHeading =
 const sensitiveGroupsExecutant =
   'Lucrători din grupurile sensibile la riscuri specifice: femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități';
 
-/** Romanian puts "de" between a number and its noun from 20 on, except 101 to 119 and the like. */
-export function countOf(count: number, one: string, many: string) {
-  if (count === 1) return `1 ${one}`;
-  const lastTwo = count % 100;
-  return count >= 20 && (lastTwo === 0 || lastTwo >= 20)
-    ? `${count} de ${many}`
-    : `${count} ${many}`;
-}
-
 /** "2,49": two decimals and a comma, as the method's sheets print a level. */
 export const printedLevel = (level: number) => level.toFixed(2).replace('.', ',');
 
@@ -108,15 +101,18 @@ const measureKinds = {
 
 type MeasuresByKind = Record<keyof typeof measureKinds, string>;
 
+// One cell holds several measures, and a wrapped line would read as the start of the next.
+const measureLines = (measures: readonly string[]) =>
+  orDash(measures.map((measure) => `– ${measure}`).join('\n'));
+
 function measuresByKind(measures: RiskFactorFacts['measures']): MeasuresByKind {
   return Object.fromEntries(
     Object.entries(measureKinds).map(([key, kind]) => [
       key,
-      orDash(
+      measureLines(
         measures
           .filter((measure) => measure.kind === kind)
           .map((measure) => measure.description.trim())
-          .join('\n')
       ),
     ])
   ) as MeasuresByKind;
@@ -299,11 +295,8 @@ export type RiskAssessmentEvaluation = {
   ranked: SheetFactor[];
   globalLevel: string;
   verdict: string;
-  /** The highest level first: the measures sheet and the interpretation's list. */
-  unacceptable: (SheetFactor & {
-    /** Every measure, one per line, in the order entered. */
-    measures: string;
-  })[];
+  /** The highest level first, for the interpretation's list. */
+  unacceptable: SheetFactor[];
   hasUnacceptable: boolean;
   noUnacceptable: boolean;
   findings: string;
@@ -311,9 +304,14 @@ export type RiskAssessmentEvaluation = {
   unacceptableLead: string;
   measuresSentence: string;
   irreversible: string;
-  /** The prevention plan's rows: every factor with a measure, the highest level first. */
-  plan: (FactorLine &
+  /**
+   * Every factor with a measure, the highest level first: the rows of the measures sheet and of
+   * the prevention plan.
+   */
+  plan: (SheetFactor &
     MeasuresByKind & {
+      /** Every measure, a line each, in the order entered. */
+      measures: string;
       actions: string;
       deadline: string;
       responsiblePerson: string;
@@ -331,7 +329,7 @@ export type RiskAssessmentContext = {
     workplaces: { name: string; kind: string; address: string }[];
     noWorkplaces: boolean;
   };
-  /** "5 posturi de lucru": every evaluation printed, the sensitive groups included. */
+  /** "5 posturi de lucru, grupurile sensibile la riscuri specifice și o altă evaluare". */
   evaluationCountText: string;
   /** The unit's level: the evaluations' levels, each weighted by itself, as the method says. */
   globalLevel: string;
@@ -520,12 +518,7 @@ function evaluationContext(
     ranked: [...facts].sort(byLevel).map(sheetFactor),
     globalLevel: printedLevel(level),
     verdict: isOverAcceptableLimit(level) ? verdicts.over : verdicts.within,
-    unacceptable: unacceptable.map((entry) => ({
-      ...sheetFactor(entry),
-      measures: orDash(
-        entry.factor.measures.map((measure) => measure.description.trim()).join('\n')
-      ),
-    })),
+    unacceptable: unacceptable.map(sheetFactor),
     hasUnacceptable: unacceptable.length > 0,
     noUnacceptable: unacceptable.length === 0,
     findings: findings(facts.length, unacceptable.length),
@@ -536,8 +529,9 @@ function evaluationContext(
       .filter((entry) => entry.factor.measures.length > 0)
       .sort(byLevel)
       .map((entry) => ({
-        ...factorLine(entry),
+        ...sheetFactor(entry),
         ...measuresByKind(entry.factor.measures),
+        measures: measureLines(entry.factor.measures.map((measure) => measure.description.trim())),
         actions: orDash(entry.factor.actions),
         deadline: orDash(entry.factor.deadline),
         responsiblePerson: orDash(entry.factor.responsiblePerson),
@@ -546,6 +540,21 @@ function evaluationContext(
     hasPlan: facts.some((entry) => entry.factor.measures.length > 0),
     noPlan: !facts.some((entry) => entry.factor.measures.length > 0),
   };
+}
+
+function evaluationCountText(printed: readonly RiskEvaluationFacts[]) {
+  const posts = printed.filter((evaluation) => evaluation.kind === 'job_position').length;
+  const others = printed.filter((evaluation) => evaluation.kind === 'other').length;
+  const sensitiveGroups = printed.some((evaluation) => evaluation.kind === 'sensitive_groups');
+  return listed([
+    ...(posts > 0 || printed.length === 0
+      ? [posts === 1 ? 'un post de lucru' : countOf(posts, 'post de lucru', 'posturi de lucru')]
+      : []),
+    ...(sensitiveGroups ? ['grupurile sensibile la riscuri specifice'] : []),
+    ...(others === 0
+      ? []
+      : [others === 1 ? 'o altă evaluare' : `alte ${countOf(others, 'evaluare', 'evaluări')}`]),
+  ]);
 }
 
 const workplaceAddress = (workplace: WorkplaceFacts) => {
@@ -594,7 +603,7 @@ export function riskAssessment({
       })),
       noWorkplaces: workplaces.length === 0,
     },
-    evaluationCountText: countOf(printed.length, 'post de lucru', 'posturi de lucru'),
+    evaluationCountText: evaluationCountText(printedFacts),
     globalLevel: unitLevel === null ? dash : printedLevel(unitLevel),
     evaluations: printed,
   };
@@ -641,6 +650,6 @@ export function unitRisks(
   }
   return [...risks.values()].sort(byLevel).map((risk) => ({
     risk: risk.risk,
-    measure: orDash([...risk.measures.values()].join('\n')),
+    measure: measureLines([...risk.measures.values()]),
   }));
 }

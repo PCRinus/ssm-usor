@@ -7,17 +7,15 @@ import {
   type ServiceContract,
 } from '@ssm-usor/contracts';
 
+import { countOf } from '../../lib/romanian';
 import { printedDate } from '../documents/context';
 import type { ServiceContractFacts } from './facts';
 
 // What the starter template of the service contract is merged with. The readiness check
 // guarantees the values; a name left without one makes the engine refuse, never print a gap.
 
-/** "o lună", "12 luni", "24 de luni": from 20 on, a number takes "de" before its noun. */
 export function monthsText(months: number) {
-  if (months === 1) return 'o lună';
-  const lastTwo = months % 100;
-  return lastTwo === 0 || lastTwo >= 20 ? `${months} de luni` : `${months} luni`;
+  return months === 1 ? 'o lună' : countOf(months, 'lună', 'luni');
 }
 
 function address(row: {

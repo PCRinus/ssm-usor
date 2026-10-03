@@ -15,8 +15,10 @@ const templates = `${root}${templatesArgument}/`;
 const output = `${root}${outputArgument}/`;
 
 const person = (name: string, jobTitle: string) => ({ name, jobTitle });
+const listed = (items: string[]) =>
+  items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
 const described = (people: { name: string; jobTitle: string }[]) =>
-  people.map(({ name, jobTitle }) => `${name} având funcția de ${jobTitle}`).join(', ');
+  listed(people.map(({ name, jobTitle }) => `${name} având funcția de ${jobTitle}`));
 
 function evaluation(roman: string, name: string, heading: string, count: number) {
   const labels = [
@@ -33,14 +35,15 @@ function evaluation(roman: string, name: string, heading: string, count: number)
   }));
   const measured = factors
     .filter((factor) => factor.level > 3 || factor.code === 'F2')
+    .sort((a, b) => b.level - a.level)
     .map((factor) => ({
       code: factor.code,
       description: factor.description,
       level: factor.level,
       measures:
-        'Verificarea periodică a echipamentelor.\nInstruirea lucrătorilor la locul de muncă.',
-      technical: 'Verificarea periodică a echipamentelor.',
-      organizational: 'Instruirea lucrătorilor la locul de muncă.',
+        '– Verificarea periodică a echipamentelor.\n– Instruirea lucrătorilor la locul de muncă, la angajare și periodic, cu demonstrații practice.',
+      technical: '– Verificarea periodică a echipamentelor.',
+      organizational: '– Instruirea lucrătorilor la locul de muncă.',
       hygienicSanitary: '—',
       other: '—',
     }));
@@ -123,11 +126,11 @@ function sample(
         {
           risk: 'Cădere de la același nivel pe pardoseală alunecoasă.',
           measure:
-            'Întreținerea curățeniei în spațiile de lucru și purtarea de încălțăminte adecvată.',
+            '– Întreținerea curățeniei în spațiile de lucru și purtarea de încălțăminte adecvată.\n– Semnalizarea pardoselii ude.',
         },
         {
           risk: 'Electrocutare prin atingere directă sau indirectă.',
-          measure: 'Verificări PRAM anuale și verificarea vizuală a integrității cablurilor.',
+          measure: '– Verificări PRAM anuale și verificarea vizuală a integrității cablurilor.',
         },
       ],
       followingYear: '2027',
@@ -140,7 +143,7 @@ function sample(
           workZoneLine: true,
           workZoneOrDash: 'Birou',
           intervalLabel: 'la 6 luni',
-          trainingDuration: '2 ore',
+          trainingDuration: '2\u00a0ore',
           equipment: [],
         },
         {
@@ -151,7 +154,7 @@ function sample(
           workZoneLine: true,
           workZoneOrDash: 'Atelier',
           intervalLabel: 'la 2 luni',
-          trainingDuration: '2 ore',
+          trainingDuration: '2\u00a0ore',
           equipment: Array.from({ length: 30 }, (_, index) => ({
             risk: `Risc ${index + 1}: înțepături, tăieturi, zgârieturi (mâini, brațe)`,
             item: `Articol ${index + 1}`,
@@ -168,7 +171,7 @@ function sample(
           workZoneLine: index !== 0,
           workZoneOrDash: index === 0 ? '—' : 'Atelier, șantier temporar',
           intervalLabel: index === 0 ? 'la 6 luni' : 'la 3 luni',
-          trainingDuration: '2 ore',
+          trainingDuration: '2\u00a0ore',
           equipment: [
             {
               risk: 'Lovituri, impact, cădere de obiecte de la înălțime (craniu)',
@@ -225,7 +228,7 @@ function sample(
           ],
           noWorkplaces: false,
         },
-        evaluationCountText: '3 posturi de lucru',
+        evaluationCountText: '2 posturi de lucru și grupurile sensibile la riscuri specifice',
         globalLevel: '2,80',
         evaluations: [
           evaluation(
@@ -269,7 +272,13 @@ function sample(
           },
           ...people.map(({ name, jobTitle }) => ({
             name: jobTitle.toUpperCase(),
-            trainer: `${name} – conducător loc de muncă`,
+            trainer:
+              people.length === 1
+                ? `${name} – conducător loc de muncă`
+                : `${people
+                    .slice(0, -1)
+                    .map((manager) => manager.name)
+                    .join(', ')} și ${people.at(-1)!.name} – conducători loc de muncă`,
             modules: [
               { citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12' },
               { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },
@@ -304,9 +313,10 @@ function sample(
       },
       specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
       workplaceManagers: people,
-      workplaceManager: people[0],
+      workplaceManagersText: described(people),
+      workplaceManagersList: people.map(({ name, jobTitle }) => `${name}, ${jobTitle}`).join('; '),
       firstAiders: people,
-      firstAiderNames: people.map(({ name }) => name).join(', '),
+      firstAiderNames: listed(people.map(({ name }) => name)),
       evaluationTeam: people,
       imminentDanger: people,
       imminentDangerText: described(people),
@@ -314,7 +324,7 @@ function sample(
       workersRepresentatives: people,
       workersRepresentativesLead: people.length === 1 ? 'următorul angajat' : 'următorii angajați',
       training: {
-        periodicDuration: '2 ore',
+        periodicDuration: '2\u00a0ore',
         intervalPhrase: 'următoarele intervale de timp',
         administrative: true,
         worker: true,

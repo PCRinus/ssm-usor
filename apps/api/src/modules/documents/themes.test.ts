@@ -133,13 +133,19 @@ describe('the periodic sessions of a post', () => {
 
 describe('who trains a post', () => {
   const names = {
-    workplaceManager: 'Ion POP',
+    workplaceManagers: ['Ion POP'],
     provider: 'S.C. SSM S.R.L.',
     specialist: 'Dan MARIN',
   };
 
   it('is the workplace manager for execution posts', () => {
     expect(trainerOf('execution', names)).toBe('Ion POP – conducător loc de muncă');
+  });
+
+  it('is every workplace manager for execution posts, where there are several', () => {
+    expect(
+      trainerOf('execution', { ...names, workplaceManagers: ['Steliana GAL', 'Lucrețiu ANDREI'] })
+    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducători loc de muncă');
   });
 
   it('is the provider and its specialist for technical-administrative posts', () => {
@@ -166,7 +172,7 @@ describe('the themes', () => {
     ],
   };
   const names = {
-    workplaceManager: 'Ion POP',
+    workplaceManagers: ['Ion POP'],
     provider: 'S.C. SSM S.R.L.',
     specialist: 'Dan MARIN',
   };

@@ -1,5 +1,7 @@
 import { type StaffCategory, trainingMonths } from '@ssm-usor/contracts';
 
+import { listed } from '../../lib/romanian';
+
 // Both lists are held to their templates by scripts/lib/theme-chapters.test.ts.
 export const ownInstructionsChapterStarts = [
   1, 10, 44, 46, 56, 63, 101, 172, 192, 210, 241, 261,
@@ -87,14 +89,19 @@ export function trainingSessions({
   });
 }
 
-// The workplace manager cannot train themself, so the specialist trains the other posts.
-export function trainerOf(
-  staffCategory: StaffCategory,
-  names: { workplaceManager: string; provider: string; specialist: string }
-) {
-  return staffCategory === 'execution'
-    ? `${names.workplaceManager} – conducător loc de muncă`
-    : `${names.provider} – ${names.specialist}`;
+export type TrainerNames = {
+  /** At least one. */
+  workplaceManagers: readonly string[];
+  provider: string;
+  specialist: string;
+};
+
+// A workplace manager cannot train themself, so the specialist trains the other posts.
+export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
+  if (staffCategory !== 'execution') return `${names.provider} – ${names.specialist}`;
+  return names.workplaceManagers.length === 1
+    ? `${names.workplaceManagers[0]} – conducător loc de muncă`
+    : `${listed(names.workplaceManagers)} – conducători loc de muncă`;
 }
 
 export function themeIntervalLabel(months: number | null) {
@@ -140,7 +147,7 @@ export function trainingThemes({
   }[];
   firstMonth: number;
   periodicTrainingMinutes: number;
-  names: { workplaceManager: string; provider: string; specialist: string };
+  names: TrainerNames;
 }): ThemesContext {
   const annexes = ownInstructions.annexes.map((annex) => ({
     ...annex,

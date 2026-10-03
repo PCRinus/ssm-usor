@@ -57,7 +57,7 @@ export const facts: DocumentFacts = {
     {
       fullName: 'Ioana PETRE',
       jobTitle: 'Șef de echipă',
-      roles: ['first_aid', 'imminent_danger'],
+      roles: ['workplace_manager', 'first_aid', 'imminent_danger'],
       currentEmployee: true,
     },
   ],
