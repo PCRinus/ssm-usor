@@ -339,7 +339,7 @@ export type RiskAssessmentContext = {
 function findings(total: number, unacceptable: number) {
   const lead = 'Rezultatul este susținut de „Fișa de evaluare”, din care se observă că';
   const exceeds =
-    'ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mare';
+    'ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mediu sau mare';
   const factors = countOf(total, 'factor de risc identificat', 'factori de risc identificați');
   if (total === 1) {
     return unacceptable === 0
