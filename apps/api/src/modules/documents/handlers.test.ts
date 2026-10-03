@@ -14,7 +14,7 @@ import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluation
 // The engine is tested in its own package, against the real templates. Here it prints the
 // client, a decision's number, and the training themes whenever there are any; a template's
 // file is its type key, and some types print more, as their real templates do. A file's text
-// is its bytes read as text.
+// is its bytes read as text. A merged annex title page is its data as JSON.
 vi.mock('@ssm-usor/document-engine', () => {
   const printedBy: Record<string, string[]> = {
     general_training_material: ['riskAssessment', 'unitRisks'],
@@ -25,9 +25,13 @@ vi.mock('@ssm-usor/document-engine', () => {
   };
   return {
     TemplateError: class TemplateError extends Error {},
+    annexTitlePage: () => new TextEncoder().encode('annex_title_page'),
     documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
     renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => ({
-      document: new Uint8Array([80, 75, 3, 4]),
+      document:
+        new TextDecoder().decode(template) === 'annex_title_page'
+          ? new TextEncoder().encode(JSON.stringify(data))
+          : new Uint8Array([80, 75, 3, 4]),
       usedNames: [
         'client',
         ...('decisionNumber' in data ? ['decisionNumber'] : []),
@@ -283,7 +287,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return new Response(new TextEncoder().encode(typeKey));
       }
       if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
-        return new Response(new Uint8Array([9, 9]));
+        return new Response(new TextEncoder().encode(url.pathname.split('/').at(-2)));
       }
       return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
     }
@@ -981,6 +985,45 @@ const issuedRevision = {
   issued_at: '2026-09-19T11:00:00+00:00',
 };
 
+const printedProvider = {
+  legalName: 'S.C. SAFETY S.R.L.',
+  representativeName: 'Maria POPESCU',
+  representativeRole: 'Administrator',
+};
+const ownInstructionsSnapshot = {
+  branding: true,
+  issueDate: '19.01.2026',
+  provider: printedProvider,
+  client: printedClient,
+  annexes: [
+    { number: 1, title: 'Scări metalice', versionId: 'v-ladders', versionDate: '26.09.2026' },
+    { number: 2, title: 'Birouri', versionId: 'v-offices', versionDate: '28.09.2026' },
+  ],
+  noAnnexes: false,
+};
+const annexedModuleVersions = () =>
+  Response.json([
+    { id: 'v-offices', docx_path: `${organizationId}/m-offices/1.docx` },
+    { id: 'v-ladders', docx_path: `${organizationId}/m-ladders/2.docx` },
+  ]);
+const annexTitlePageData = (index: number) => {
+  const { number, title, versionDate } = ownInstructionsSnapshot.annexes[index]!;
+  return {
+    branding: true,
+    issueDate: '19.01.2026',
+    provider: printedProvider,
+    client: printedClient,
+    number,
+    title,
+    versionDate,
+  };
+};
+const convertedFiles = (files: ArrayBuffer[]) =>
+  files.map((file) => {
+    const text = new TextDecoder().decode(file);
+    return text.startsWith('{') ? (JSON.parse(text) as unknown) : text;
+  });
+
 describe('POST /documents/{documentId}/regenerate', () => {
   const regenerate = (body: unknown = {}) =>
     request(`/documents/${documentId}/regenerate`, 'POST', body);
@@ -1530,29 +1573,15 @@ describe('POST /documents/{documentId}/issue', () => {
     expect(sent.p_pdf_sha256).not.toBe(sent.p_docx_sha256);
   });
 
-  it('annexes the module versions the snapshot names, in one PDF', async () => {
+  it('annexes the module versions the snapshot names, each after its title page, in one PDF', async () => {
     mockUpstream({
       documents: () =>
         Response.json({
           ...documentRow,
           type_key: 'own_instructions',
-          document_revisions: [
-            {
-              ...revisionRow,
-              data_snapshot: {
-                annexes: [
-                  { versionId: 'v-ladders', title: 'Scări metalice' },
-                  { versionId: 'v-offices', title: 'Birouri' },
-                ],
-              },
-            },
-          ],
+          document_revisions: [{ ...revisionRow, data_snapshot: ownInstructionsSnapshot }],
         }),
-      moduleVersions: () =>
-        Response.json([
-          { id: 'v-offices', docx_path: `${organizationId}/m-offices/1.docx` },
-          { id: 'v-ladders', docx_path: `${organizationId}/m-ladders/2.docx` },
-        ]),
+      moduleVersions: annexedModuleVersions,
     });
     const convertDocx = vi.fn();
     const convertDocuments = vi.fn(async (files: ArrayBuffer[]) => {
@@ -1561,11 +1590,12 @@ describe('POST /documents/{documentId}/issue', () => {
     });
     expect((await issueWith(convertDocx, convertDocuments)).status).toBe(200);
     expect(convertDocx).not.toHaveBeenCalled();
-    const files = convertDocuments.mock.calls[0]![0].map((file) => [...new Uint8Array(file)]);
-    expect(files).toEqual([
-      [1, 2, 3],
-      [9, 9],
-      [9, 9],
+    expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
+      '\u0001\u0002\u0003',
+      annexTitlePageData(0),
+      'm-ladders',
+      annexTitlePageData(1),
+      'm-offices',
     ]);
     const signed = calls('/storage/v1/object/sign/instruction-modules/', 'POST').map(
       ([input]) => new URL(String(input)).pathname
@@ -2060,6 +2090,41 @@ describe('POST /documents/{documentId}/print', () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(pdfBytes);
     expect(new Uint8Array(convertDocx.mock.calls[0]![0])).toEqual(docx);
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
+
+  it('prints the own instructions with each annexed module after its title page', async () => {
+    const ownInstructions = (snapshot: unknown) => () =>
+      Response.json({
+        ...documentRow,
+        type_key: 'own_instructions',
+        document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
+      });
+    const convertDocuments = vi.fn(async (files: ArrayBuffer[]) => {
+      void files;
+      return pdfBytes.slice().buffer;
+    });
+    const convertDocx = converter();
+    const bindings = { PDF_CONVERSION: 'service', PDF: { convertDocx, convertDocuments } } as const;
+
+    mockUpstream({
+      documents: ownInstructions(ownInstructionsSnapshot),
+      moduleVersions: annexedModuleVersions,
+    });
+    expect((await print(docx, bindings)).status).toBe(200);
+    expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
+      new TextDecoder().decode(docx),
+      annexTitlePageData(0),
+      'm-ladders',
+      annexTitlePageData(1),
+      'm-offices',
+    ]);
+
+    mockUpstream({
+      documents: ownInstructions({ ...ownInstructionsSnapshot, annexes: [], noAnnexes: true }),
+    });
+    expect((await print(docx, bindings)).status).toBe(200);
+    expect(convertDocuments).toHaveBeenCalledTimes(1);
+    expect(new Uint8Array(convertDocx.mock.calls[0]![0])).toEqual(docx);
   });
 
   it('refuses what is not a Word document, before converting anything', async () => {

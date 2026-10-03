@@ -4,11 +4,17 @@ import { fileURLToPath } from 'node:url';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { annexTitlePage } from './annex-title';
 import { renderDocument, templatePlaceholders } from './render';
 import { documentText } from './text';
 
 const templatesUrl = new URL('../templates/', import.meta.url);
-const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
+// Built into the engine rather than kept in `templates/`, and typeset like the rest.
+const annexTitle = 'annex title page';
+const read = (name: string) =>
+  name === annexTitle
+    ? annexTitlePage()
+    : new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 const documentTextOf = (paragraph: string) =>
   [...paragraph.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
 
@@ -24,9 +30,10 @@ const originals =
 // What only the decisions have: a signature block, an acknowledgement table, its wording.
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
 const templateFiles = allTemplateFiles;
+const typesetFiles = [...templateFiles, annexTitle];
 
 describe('built-in templates', () => {
-  it.each(templateFiles)('%s carries nothing of the client it was made from', (name) => {
+  it.each(typesetFiles)('%s carries nothing of the client it was made from', (name) => {
     expect(documentText(read(name))).not.toMatch(originals);
   });
 });
@@ -125,7 +132,7 @@ describe('typesetting', () => {
 
   // The in-app editor evaluates a page field only when its code is the bare keyword; the
   // "\\* ARABIC" LibreOffice spells out makes it paint the cached result on every page.
-  it.each(templateFiles)('%s writes its page fields without a format switch', (name) => {
+  it.each(typesetFiles)('%s writes its page fields without a format switch', (name) => {
     const zip = new PizZip(read(name));
     const parts = Object.keys(zip.files).filter((file) =>
       /^word\/(header|footer)\d*\.xml$/.test(file)
@@ -140,11 +147,11 @@ describe('typesetting', () => {
     expect(codes.filter((code) => /PAGE/.test(code) && /\\\*/.test(code))).toEqual([]);
   });
 
-  it.each(templateFiles)('%s numbers its pages through, without a restart', (name) => {
+  it.each(typesetFiles)('%s numbers its pages through, without a restart', (name) => {
     expect(bodyOf(name)).not.toMatch(/<w:pgNumType\b[^>]*w:start=/);
   });
 
-  it.each(templateFiles)(
+  it.each(typesetFiles)(
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {
       // A table cell or a text box may be empty; a paragraph that holds a picture is not.
@@ -167,7 +174,7 @@ describe('typesetting', () => {
     }
   );
 
-  it.each(templateFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
+  it.each(typesetFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
     const xml = bodyOf(name);
     // Of the runs that carry text, here and below: a paragraph's end mark may keep a font, a
     // size or a language of its own, which nothing shows and LibreOffice does not let go of.
@@ -205,18 +212,18 @@ describe('typesetting', () => {
     expect([...languages]).toEqual(['ro-RO']);
   });
 
-  it.each(templateFiles)('%s justifies nothing', (name) => {
+  it.each(typesetFiles)('%s justifies nothing', (name) => {
     // Without hyphenation a justified line opens uneven gaps between words.
     expect(bodyOf(name)).not.toContain('<w:jc w:val="both"/>');
   });
 
-  it.each(templateFiles)("%s names none of LibreOffice's own fonts in its styles", (name) => {
+  it.each(typesetFiles)("%s names none of LibreOffice's own fonts in its styles", (name) => {
     // No text uses them, but a viewer without them warns that it shows substitutes.
     const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
     expect(styles).not.toMatch(/"(Liberation (Serif|Sans)|Noto [^"]*)"/);
   });
 
-  it.each(templateFiles)('%s has no picture floating at the left between two lines', (name) => {
+  it.each(typesetFiles)('%s has no picture floating at the left between two lines', (name) => {
     // The in-app editor cannot lay out the page around one; as a character it looks the same.
     const floating = bodyOf(name).match(/<wp:anchor .*?<\/wp:anchor>/gs) ?? [];
     const atTheLeft = floating.filter((anchor) => {
@@ -228,13 +235,13 @@ describe('typesetting', () => {
     expect(atTheLeft).toHaveLength(0);
   });
 
-  it.each(templateFiles)('%s contains no hyperlinks', (name) => {
+  it.each(typesetFiles)('%s contains no hyperlinks', (name) => {
     // The originals carry dead internal links, and clearing them carelessly wraps all the text
     // in a link to nowhere, which some viewers draw as links.
     expect(bodyOf(name)).not.toContain('<w:hyperlink');
   });
 
-  it.each(templateFiles)(
+  it.each(typesetFiles)(
     '%s has the house margins, no header but the document details, and a footer that ends with the branding line',
     (name) => {
       const xml = bodyOf(name);
@@ -260,7 +267,7 @@ describe('typesetting', () => {
         for (const text of headers) {
           expect(text).toContain('Data întocmirii documentului:{{issueDate}}');
           expect(text).toContain('Întocmit pentru:{{client.legalName}}');
-          expect(text).toMatch(/Cod document:.+Denumire document:.+Pag\. /);
+          expect(text).toMatch(/Cod document:.+Denumire document:.+(Pag\. |Anexa \{\{number\}\})/);
         }
       }
       const footers = parts.filter((file) => /word\/footer\d*\.xml/.test(file));
@@ -317,7 +324,7 @@ describe('typesetting', () => {
 
   // A heading, the paragraph that introduces a table, and a loop tag between them. A longer run
   // moves to the next page whole and leaves most of a page empty before it.
-  it.each(templateFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
+  it.each(typesetFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
     const paragraphKeeps = keepingOf(name);
     let run = 0;
     let longest = 0;
@@ -328,7 +335,7 @@ describe('typesetting', () => {
     expect(longest).toBeLessThanOrEqual(3);
   });
 
-  it.each(templateFiles)('%s keeps a line ending in ":" with the list item after it', (name) => {
+  it.each(typesetFiles)('%s keeps a line ending in ":" with the list item after it', (name) => {
     const paragraphKeeps = keepingOf(name);
     const blocks = blocksOf(name);
     const stranded = blocks
@@ -359,7 +366,7 @@ describe('typesetting', () => {
 
 // The editorial pass of `tools/import/wording.ro.json`: what the originals got wrong.
 describe('wording', () => {
-  const texts = templateFiles.map((name) => [name, documentText(read(name))] as const);
+  const texts = typesetFiles.map((name) => [name, documentText(read(name))] as const);
 
   it.each(texts)(
     '%s uses comma-below letters, single spaces, no space before punctuation',
@@ -677,6 +684,70 @@ describe('cover_decisions', () => {
   });
 });
 
+describe('annex title page', () => {
+  const template = annexTitlePage();
+  const data = {
+    ...shared,
+    provider: { ...shared.provider, representativeRole: 'Administrator' },
+    number: 2,
+    title: 'Scări metalice',
+    versionDate: '26.09.2026',
+  };
+  const headerText = (file: Uint8Array) => {
+    const zip = new PizZip(file);
+    return Object.keys(zip.files)
+      .filter((part) => /word\/header\d*\.xml/.test(part))
+      .map((part) => documentTextOf(zip.file(part)!.asText()));
+  };
+
+  it('asks for the header of the own instructions and the annex', () => {
+    expect(templatePlaceholders(template)).toEqual([
+      'branding',
+      'client.legalName',
+      'client.representativeName',
+      'client.representativeRole',
+      'issueDate',
+      'number',
+      'provider.legalName',
+      'provider.representativeName',
+      'provider.representativeRole',
+      'title',
+      'versionDate',
+    ]);
+  });
+
+  it('names the annex in the body and where the common part numbers its pages', () => {
+    const merged = renderDocument(template, data);
+    const body = new PizZip(merged).file('word/document.xml')!.asText();
+    expect((body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf)).toEqual([
+      'ANEXA 2',
+      'la Instrucțiunile proprii de securitate și sănătate în muncă',
+      'I.P.S.S.M. Scări metalice',
+      'versiunea din 26.09.2026',
+    ]);
+    for (const text of headerText(merged)) {
+      expect(text).toContain('Cod document:IPSSM');
+      expect(text).toContain(
+        'Denumire document:Instrucțiuni proprii în domeniul securității și sănătății în muncă'
+      );
+      expect(text).toMatch(/Anexa 2$/);
+      expect(text).not.toContain('Pag.');
+    }
+  });
+
+  it('carries the same box of document details as the common part', () => {
+    const cells = (file: Uint8Array) =>
+      headerText(file)[0]!.replace(/Pag\. .*$|Anexa \{\{number\}\}$/, '');
+    expect(cells(template)).toBe(cells(read('3.2_own_instructions.docx')));
+  });
+
+  it('refuses to render without the annex it introduces', () => {
+    expect(() => renderDocument(template, { ...data, versionDate: undefined })).toThrow(
+      /versionDate/
+    );
+  });
+});
+
 describe('branding', () => {
   const template = read('1.2_decision_risk_evaluation_team.docx');
   const data = {
@@ -704,7 +775,7 @@ describe('branding', () => {
     expect(() => renderDocument(template, { ...data, branding: undefined })).toThrow(/branding/);
   });
 
-  it.each(templateFiles)('%s sets the line in 7.5 pt grey', (name) => {
+  it.each(typesetFiles)('%s sets the line in 7.5 pt grey', (name) => {
     const zip = new PizZip(read(name));
     const runs = Object.keys(zip.files)
       .filter((part) => /word\/footer\d*\.xml/.test(part))

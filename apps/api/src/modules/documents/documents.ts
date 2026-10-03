@@ -13,7 +13,12 @@ import {
   serviceContractTypeKey,
   unfilledMark,
 } from '@ssm-usor/contracts';
-import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
+import {
+  annexTitlePage,
+  documentText,
+  renderTemplate,
+  TemplateError,
+} from '@ssm-usor/document-engine';
 
 import type { Database, Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
@@ -32,7 +37,7 @@ import {
   stableJson,
 } from './context';
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
-import { annexedVersionIds, snapshotAnnexes } from './snapshot';
+import { annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
 type RevisionRow = Pick<
@@ -832,17 +837,23 @@ export async function printDocument(
   return pdf.convertDocuments([bytes, ...annexes]);
 }
 
-/** The files of the annexed module versions, in the snapshot's order. */
+/**
+ * A module's own file is never written to (ADR 012), so a title page before it is what names
+ * it "Anexa N".
+ */
 async function readAnnexes(db: DataClient, files: FileStore, snapshot: Json | null) {
   const versionIds = annexedVersionIds(snapshot);
   if (versionIds.length === 0) return [];
+  const titlePages = annexTitlePagesData(snapshot).map(
+    (data) => merge(annexTitlePage(), data, 'annex_title_page').bytes
+  );
   const { data, error } = await db
     .from('instruction_module_versions')
     .select('id, docx_path')
     .in('id', versionIds);
   if (error) throw fromDatabaseError(error, 'read annexed module versions');
   const paths = new Map(data.map((row) => [row.id, row.docx_path]));
-  return Promise.all(
+  const modules = await Promise.all(
     versionIds.map((versionId) => {
       const path = paths.get(versionId);
       // A version row is never deleted, so a missing one is a snapshot from another
@@ -851,6 +862,7 @@ async function readAnnexes(db: DataClient, files: FileStore, snapshot: Json | nu
       return files.readModule(path);
     })
   );
+  return modules.flatMap((module, index) => [titlePages[index]!, module]);
 }
 
 /**

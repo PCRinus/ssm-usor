@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 
 import { documentTypeKeys } from '@ssm-usor/contracts';
-import { documentText, renderDocument } from '@ssm-usor/document-engine';
+import { annexTitlePage, documentText, renderDocument } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
+import type { Json } from '../../src/database.types';
 import { buildDocumentContext, documentData } from '../../src/modules/documents/context';
 import { facts } from '../../src/modules/documents/context.fixture';
+import { merge } from '../../src/modules/documents/documents';
+import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
 
 // Lives with the scripts because it reads the repository's files, which the Worker's own
 // code cannot: the templates, merged with the context the API builds.
@@ -102,6 +105,29 @@ describe('the training themes', () => {
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
     expect(text.match(/Testare\.$/gm)).toHaveLength(2);
     expect(text).toContain('I.P.S.S.M. Art. 241 – 294;');
+  }, 30_000);
+});
+
+describe('the annex title pages', () => {
+  it('merge from what the own instructions snapshot, one per annexed module', () => {
+    const entry = manifest.templates.find((template) => template.typeKey === 'own_instructions')!;
+    const { snapshot } = merge(
+      readFileSync(new URL(entry.file, templatesUrl)),
+      documentData(buildDocumentContext(facts), 'own_instructions'),
+      'own_instructions'
+    );
+    const pages = annexTitlePagesData(snapshot as Json).map((data) =>
+      documentText(renderDocument(annexTitlePage(), data))
+    );
+    expect(pages).toHaveLength(2);
+    expect(pages[0]).toContain('ANEXA 1');
+    expect(pages[0]).toContain('I.P.S.S.M. Activități de birou');
+    expect(pages[1]).toContain('I.P.S.S.M. Sudură oxiacetilenică');
+    for (const text of pages) {
+      expect(text).not.toContain('{{');
+      expect(text).toContain('PIPETECH');
+      expect(text).toMatch(/versiunea din \d{2}\.\d{2}\.\d{4}/);
+    }
   }, 30_000);
 });
 
