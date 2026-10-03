@@ -505,7 +505,7 @@ describe('decision_training', () => {
     },
   };
 
-  it('prints the training schedule, and names the workplace managers once as those who train everyone', () => {
+  it('prints the training schedule, and names the workplace managers once as those who train the execution staff', () => {
     const text = documentText(renderDocument(template, data));
 
     expect(text).not.toContain('{{');
@@ -520,12 +520,12 @@ describe('decision_training', () => {
       'va fi instruit ANUAL, respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
+      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
     );
     expect(text).toContain(
-      'Personalul de conducere al locurilor de muncă – Ion MARIN având funcția de Manager magazin și Elena DUMITRU având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul din cadrul S.C. CLIENT DEMO S.R.L.'
+      'Personalul de conducere al locurilor de muncă – Ion MARIN având funcția de Manager magazin și Elena DUMITRU având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
     );
-    expect(text.match(/pentru întreg personalul/g)).toHaveLength(1);
+    expect(text.match(/pentru personalul de execuție/g)).toHaveLength(1);
     acknowledged(text);
   });
 
@@ -564,6 +564,9 @@ describe('decision_training', () => {
       })
     );
     expect(workerOnly).toContain('va fi instruit ANUAL');
+    expect(workerOnly).toContain(
+      'instruirea periodică pentru personalul de conducere al locurilor de muncă din cadrul'
+    );
     expect(workerOnly).not.toContain(
       'personalul tehnic-administrativ și șefii de locuri de muncă vor fi instruiți'
     );
