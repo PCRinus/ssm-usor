@@ -50,7 +50,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Training session** (_ședință de instruire_): one periodic training of a job position, in one of the months its interval gives from the client's first training month: a month, a content line and the client's periodic duration. The training themes print one row per session. Avoid: instructaj, which the law replaced.
 
-**Own instructions** (_instrucțiuni proprii_, IPSSM): the document of the set that binds the client's workers: a **common part** the app generates, which lists as **annexes** the instruction modules the client's positions apply. Its Word file is the common part; its issued PDF is the common part and the annexes in one file. ADR 012. Avoid: bound document, assembled document.
+**Own instructions** (_instrucțiuni proprii_, IPSSM): the document of the set that binds the client's workers: a **common part** the app generates, which lists as **annexes** the instruction modules the client's positions apply. Its Word file is the common part; its issued PDF is the common part and the annexes in one file, each module after an **annex title page** that names it "Anexa N" (the module's own file is never written to). ADR 012. Avoid: bound document, assembled document.
 
 **Allocation mode** (_mod de acordare_): how an item reaches the worker: **personal inventory** (_inventar personal_), issued and replaced when its duration runs out; **section inventory** (_inventar de secție_), kept at the workplace and shared; or **consumable** (_consum_), used up and restocked, with no duration. Avoid: type of issue, ownership.
 

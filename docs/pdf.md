@@ -25,7 +25,10 @@ convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 `convertDocuments` is one PDF of several Word files in the order given, for a document and
 the instruction modules it annexes ([ADR 012](architecture/adr-012-own-instructions.md)):
 one request to Gotenberg's LibreOffice route with `merge=true`, the files named `0001.docx`,
-`0002.docx` and so on, since Gotenberg merges in the alphanumeric order of the names.
+`0002.docx` and so on, since Gotenberg merges in the alphanumeric order of the names. For the
+own instructions the files are the common part, then per annex its title page and the
+module's file: `[common part, title page 1, module 1, title page 2, module 2, …]`, 1 + 2n
+files, which four digits number up to 9,999.
 
 The result is PDF/A-2b: fonts embedded, nothing fetched when it is opened, the flavour meant
 for a copy that is kept as evidence and later signed. It rejects with the message
@@ -52,7 +55,8 @@ The variable exists because `wrangler dev` creates the binding too, with nothing
 
 Issuing reads the draft's Word file and, for the own instructions, the files of the module
 versions its snapshot annexes (`annexes[].versionId`, read from `instruction_module_versions`
-and the `instruction-modules` bucket), converts them into one PDF, writes it beside the file
+and the `instruction-modules` bucket), merges an annex title page before each from the same
+snapshot ([document engine](document-engine.md#instruction-modules)), converts them into one PDF, writes it beside the file
 (`…/<revision>.pdf`) while the revision is still a draft, which is what lets the storage
 policies accept it, and then calls `issue_document_revision` with both hashes. From then on
 neither file can be written. When the conversion fails nothing is issued: `503` with the

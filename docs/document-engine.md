@@ -375,6 +375,27 @@ in a TypeScript module so the API needs no file at run time; the fixtures land i
 and groups. Their article list is the one the templates keep, "Art. 1." flush left with
 "1." and "a)" tiers under it.
 
+The **annex title page** the PDF of the own instructions prints before each module (ADR 012,
+amended 2026-10-03) is a template, but neither the pack's nor one of `templates/other/`:
+`annexTitlePage()` returns it from `src/annex-title.ts`, base64 like the skeleton, so it
+needs no Storage, no registry and no version in the snapshot. It is not a document a client
+has, only a page of another document's PDF; it changes with a deploy, and an issued revision
+keeps the one it was issued with inside its stored PDF. The API merges it per annex with
+`branding`, `issueDate`, `provider` and `client` from the own instructions' snapshot and the
+annex's `number`, `title` and `versionDate`; a missing value is an error, as for any template.
+
+It is built like the covers, through LibreOffice, so that it gets the box of document details
+from the import's own `build_header`, the same as 3.2's pages and checked equal to them by a
+test, and the sweep:
+
+```sh
+pnpm --filter @ssm-usor/document-engine build-annex-title
+```
+
+`tools/import/build_annex_title.py` reads `tools/import/annex-title.ro.json`: the header's
+code and name, what replaces "Pag. X din Y" ("Anexa {{number}}"), and the lines of the body,
+centred in the upper third of the page. The typesetting tests run over it with the templates.
+
 ## Registering the templates
 
 Both manifests are registered: the pack's, and `templates/other/manifest.json`.
