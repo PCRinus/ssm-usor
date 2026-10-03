@@ -607,6 +607,7 @@ describe('decision_imminent_danger', () => {
         workplaceManagersText: described(people.slice(0, 1)),
         imminentDanger: people,
         imminentDangerText,
+        workplaceManagersAssumeImminentDanger: false,
       })
     );
 
@@ -621,6 +622,26 @@ describe('decision_imminent_danger', () => {
     expect(text.match(/: personalul desemnat/g)).toHaveLength(5);
     expect(text).toContain('Personalul desemnat va primi de asemenea');
     expect(text).not.toMatch(/lucrătorii desemnați/i);
+    acknowledged(text);
+  });
+
+  it('lets the workplace managers take the duties on when they are the ones designated', () => {
+    const text = documentText(
+      renderDocument(read('1.4_decision_imminent_danger.docx'), {
+        ...shared,
+        decisionNumber: 4,
+        workplaceManagersText: described(people),
+        imminentDanger: people,
+        imminentDangerText: described(people),
+        workplaceManagersAssumeImminentDanger: true,
+      })
+    );
+
+    expect(text).toContain(
+      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ${described(people)} – își asumă următoarele atribuții:`
+    );
+    expect(text.split(described(people))).toHaveLength(2);
+    expect(text).not.toContain('desemnează pe');
     acknowledged(text);
   });
 });

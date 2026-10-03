@@ -286,6 +286,28 @@ describe('the merge context', () => {
     expect(one.firstAiderNames).toBe('Florin Cristian TALOȘ');
   });
 
+  it('says when the people designated for imminent danger are exactly the workplace managers', () => {
+    const assume = (...roles: DocumentFacts['responsiblePersons'][number]['roles'][]) =>
+      buildDocumentContext({
+        ...facts,
+        responsiblePersons: roles.map((personRoles, index) => ({
+          fullName: `Persoana ${index + 1}`,
+          jobTitle: 'Administrator',
+          roles: [...personRoles, 'first_aid', 'risk_evaluation_team'],
+          currentEmployee: true,
+        })),
+      }).workplaceManagersAssumeImminentDanger;
+
+    expect(context.workplaceManagersAssumeImminentDanger).toBe(true);
+    expect(assume(['workplace_manager', 'imminent_danger'])).toBe(true);
+    expect(
+      assume(['workplace_manager', 'imminent_danger'], ['workplace_manager', 'imminent_danger'])
+    ).toBe(true);
+    expect(assume(['workplace_manager', 'imminent_danger'], ['imminent_danger'])).toBe(false);
+    expect(assume(['workplace_manager'], ['imminent_danger'])).toBe(false);
+    expect(assume(['workplace_manager', 'imminent_danger'], ['workplace_manager'])).toBe(false);
+  });
+
   it('words the training schedule', () => {
     expect(context.training).toEqual({
       periodicDuration: '2\u00a0ore',

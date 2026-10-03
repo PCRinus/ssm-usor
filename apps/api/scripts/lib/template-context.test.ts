@@ -56,7 +56,7 @@ describe('the built-in templates', () => {
       {
         fullName: 'Mihai POPESCU',
         jobTitle: 'Sudor',
-        roles: ['workers_representative'],
+        roles: ['workers_representative', 'imminent_danger'],
         currentEmployee: true,
       },
     ],
@@ -152,11 +152,72 @@ describe('the decisions', () => {
     expect(text).toContain('durata instruirii periodice va fi de 2\u00a0ore;');
   }, 30_000);
 
-  it('name every workplace manager as those who designate the people for imminent danger', () => {
-    expect(render('decision_imminent_danger')).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – desemnează pe ${managers}, cu următoarele atribuții:`
+  it('let the workplace managers take on the imminent danger duties when they are the ones designated', () => {
+    const text = render('decision_imminent_danger');
+    expect(text).toContain(
+      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – își asumă următoarele atribuții:`
     );
+    expect(text).not.toContain('desemnează pe');
   }, 30_000);
+});
+
+describe('decision 1.4', () => {
+  const person = (
+    fullName: string,
+    jobTitle: string,
+    roles: (typeof facts)['responsiblePersons'][number]['roles']
+  ) => ({ fullName, jobTitle, roles, currentEmployee: true });
+  const roza = 'Roza URSU având funcția de Director general';
+  const ion = 'Ion MARIN având funcția de Șef atelier';
+  const article2 = (...responsiblePersons: (typeof facts)['responsiblePersons']) =>
+    renderWith('decision_imminent_danger', {
+      ...facts,
+      responsiblePersons: [
+        ...responsiblePersons,
+        person('Dan RUS', 'Magaziner', ['first_aid', 'risk_evaluation_team']),
+      ],
+    });
+  const lead = 'conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ';
+
+  it.each([
+    [
+      'the one manager designated',
+      [person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger'])],
+      `${lead}${roza} – își asumă următoarele atribuții:`,
+    ],
+    [
+      'two managers who are the two designated',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['workplace_manager', 'imminent_danger']),
+      ],
+      `${lead}${roza} și ${ion} – își asumă următoarele atribuții:`,
+    ],
+    [
+      'a manager designated beside someone else',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
+      ],
+      `${lead}${roza} – desemnează pe ${roza} și ${ion}, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager who designates someone else',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager']),
+        person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
+      ],
+      `${lead}${roza} – desemnează pe ${ion}, cu următoarele atribuții:`,
+    ],
+  ])(
+    'words Art. 2 for %s',
+    (_, responsiblePersons, sentence) => {
+      const text = article2(...responsiblePersons);
+      expect(text.replace(/\s+/g, ' ')).toContain(sentence);
+      expect(text).toContain('Personalul desemnat va primi');
+    },
+    30_000
+  );
 });
 
 const renderWith = (typeKey: (typeof documentTypeKeys)[number], variant: typeof facts) => {

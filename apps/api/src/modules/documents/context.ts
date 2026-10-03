@@ -158,6 +158,11 @@ export type DocumentContext = {
   evaluationTeam: Person[];
   imminentDanger: Person[];
   imminentDangerText: string;
+  /**
+   * The people designated for imminent danger are exactly the workplace managers, who then
+   * take the duties on themselves instead of designating themselves.
+   */
+  workplaceManagersAssumeImminentDanger: boolean;
   /** Whether decision 1.5 is part of the set, which the cover then lists. */
   workersRepresentativeDecision: boolean;
   workersRepresentatives: Person[];
@@ -471,6 +476,10 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     evaluationTeam: withRole('risk_evaluation_team'),
     imminentDanger,
     imminentDangerText: described(imminentDanger),
+    workplaceManagersAssumeImminentDanger: facts.responsiblePersons.every(
+      (person) =>
+        person.roles.includes('workplace_manager') === person.roles.includes('imminent_danger')
+    ),
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
     workersRepresentativeDecision:
       documentApplies(facts, 'decision_workers_representative') ||
