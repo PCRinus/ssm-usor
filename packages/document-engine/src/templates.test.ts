@@ -727,7 +727,7 @@ describe('training_themes', () => {
   });
 
   it('cites the common part of the own instructions chapter by chapter', () => {
-    expect(lines.filter((line) => line.startsWith('IPSSM Art.'))).toEqual(
+    expect(lines.filter((line) => line.startsWith('I.P.S.S.M. Art.'))).toEqual(
       [
         [1, 9],
         [10, 43],
@@ -741,7 +741,7 @@ describe('training_themes', () => {
         [210, 240],
         [241, 260],
         [261, 294],
-      ].map(([from, to]) => `IPSSM Art. ${from} – ${to}`)
+      ].map(([from, to]) => `I.P.S.S.M. Art. ${from} – ${to}`)
     );
   });
 
@@ -753,7 +753,7 @@ describe('training_themes', () => {
     const text = lines.join('\n');
     expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
     expect(text).toContain('{{#sessions}}{{month}}');
-    expect(text).toContain('IPSSM Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
+    expect(text).toContain('I.P.S.S.M. Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
   });
 });
 
