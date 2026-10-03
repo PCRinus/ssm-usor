@@ -145,7 +145,7 @@ describe('who trains a post', () => {
   it('is every workplace manager for execution posts, where there are several', () => {
     expect(
       trainerOf('execution', { ...names, workplaceManagers: ['Steliana GAL', 'Lucrețiu ANDREI'] })
-    ).toBe('Steliana GAL, Lucrețiu ANDREI – conducători loc de muncă');
+    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducători loc de muncă');
   });
 
   it('is the provider and its specialist for technical-administrative posts', () => {

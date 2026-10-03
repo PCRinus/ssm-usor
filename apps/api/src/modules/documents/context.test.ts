@@ -535,7 +535,7 @@ describe('the training themes', () => {
       },
       {
         name: 'SUDOR',
-        trainer: 'Florin Cristian TALOȘ, Ioana PETRE – conducători loc de muncă',
+        trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducători loc de muncă',
         modules: [
           { citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' },
           { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31' },

@@ -1,5 +1,7 @@
 import { type StaffCategory, trainingMonths } from '@ssm-usor/contracts';
 
+import { listed } from '../../lib/romanian';
+
 // Both lists are held to their templates by scripts/lib/theme-chapters.test.ts.
 export const ownInstructionsChapterStarts = [
   1, 10, 44, 46, 56, 63, 101, 172, 192, 210, 241, 261,
@@ -99,7 +101,7 @@ export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
   if (staffCategory !== 'execution') return `${names.provider} – ${names.specialist}`;
   return names.workplaceManagers.length === 1
     ? `${names.workplaceManagers[0]} – conducător loc de muncă`
-    : `${names.workplaceManagers.join(', ')} – conducători loc de muncă`;
+    : `${listed(names.workplaceManagers)} – conducători loc de muncă`;
 }
 
 export function themeIntervalLabel(months: number | null) {
