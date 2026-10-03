@@ -83,7 +83,7 @@ const sensitiveGroupsExecutant =
 /** "2,49": two decimals and a comma, as the method's sheets print a level. */
 export const printedLevel = (level: number) => level.toFixed(2).replace('.', ',');
 
-export const printedShare = (percent: number) => `${printedLevel(percent)} %`;
+export const printedShare = (percent: number) => `${printedLevel(percent)}\u00a0%`;
 
 const componentWords: Record<WorkSystemComponent, { label: string; of: string }> = {
   means_of_production: { label: 'MIJLOACE DE PRODUCȚIE', of: 'mijloacelor de producție' },

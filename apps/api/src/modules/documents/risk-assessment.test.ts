@@ -287,28 +287,28 @@ describe('an evaluation of the risk assessment', () => {
         'MIJLOACE DE PRODUCȚIE',
         'mijloacelor de producție',
         4,
-        '33,33 %',
+        '33,33\u00a0%',
         ['a) Factori de risc mecanic: F1 F2 F3', 'b) Factori de risc electric: F4'],
       ],
       [
         'MEDIUL DE MUNCĂ',
         'mediului de muncă',
         3,
-        '25,00 %',
+        '25,00\u00a0%',
         ['a) Factori de risc fizic: F5 F6', 'b) Factori de risc chimic: F7'],
       ],
       [
         'EXECUTANT',
         'executantului',
         3,
-        '25,00 %',
+        '25,00\u00a0%',
         ['a) Acțiuni greșite: F8 F9', 'b) Omisiuni: F10'],
       ],
       [
         'SARCINA DE MUNCĂ',
         'sarcinii de muncă',
         2,
-        '16,67 %',
+        '16,67\u00a0%',
         ['a) Suprasolicitare fizică: F11', 'b) Alte riscuri: F12'],
       ],
     ]);
@@ -320,10 +320,10 @@ describe('an evaluation of the risk assessment', () => {
       true,
     ]);
     expect(executantOnly.components.map((component) => component.share)).toEqual([
-      '0,00 %',
-      '0,00 %',
-      '100,00 %',
-      '0,00 %',
+      '0,00\u00a0%',
+      '0,00\u00a0%',
+      '100,00\u00a0%',
+      '0,00\u00a0%',
     ]);
   });
 
@@ -433,10 +433,10 @@ describe('an evaluation of the risk assessment', () => {
     const consequences = 'consecințe ireversibile asupra executantului (deces sau invaliditate).';
     const lead = 'Din analiza „Fișei de evaluare” se constată că';
     expect(sudor!.irreversible).toBe(
-      `${lead} 4 dintre factorii de risc identificați, reprezentând 33,33 %, pot avea ${consequences}`
+      `${lead} 4 dintre factorii de risc identificați, reprezentând 33,33\u00a0%, pot avea ${consequences}`
     );
     expect(only([factor(4, 1), factor(3, 1), factor(3, 1)]).irreversible).toBe(
-      `${lead} unul dintre factorii de risc identificați, reprezentând 33,33 %, poate avea ${consequences}`
+      `${lead} unul dintre factorii de risc identificați, reprezentând 33,33\u00a0%, poate avea ${consequences}`
     );
     expect(only([factor(3, 1), factor(3, 1)]).irreversible).toBe(
       `Niciunul dintre factorii de risc identificați nu poate avea ${consequences}`

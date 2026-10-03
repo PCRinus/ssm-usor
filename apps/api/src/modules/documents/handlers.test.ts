@@ -1322,7 +1322,7 @@ describe('the training themes', () => {
       positions: [
         {
           name: 'SUDOR',
-          trainer: 'Florin TALOȘ – conducător loc de muncă',
+          trainer: 'Florin TALOȘ – conducător loc\u00a0de\u00a0muncă',
           modules: [{ citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 14' }],
           intervalLabel: '3 LUNI',
           sessions: [

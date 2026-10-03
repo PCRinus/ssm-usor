@@ -34,15 +34,16 @@ export function equipmentStateLabel(
   return entryCountLabel(position.equipmentCount).toLowerCase().replace(/^un /, '1 ');
 }
 
-/** "2 buc. / 12 luni", "1 buc. / consum": the quantity with what limits it. */
+/** "2 buc. / 24 de luni", "1 buc. / consum": the quantity with what limits it. */
 export function quantityLabel(entry: Pick<EquipmentEntry, 'quantity' | 'durationMonths'>) {
-  const duration =
-    entry.durationMonths === null
-      ? 'consum'
-      : entry.durationMonths === 1
-        ? '1 lună'
-        : `${entry.durationMonths} luni`;
-  return `${entry.quantity} buc. / ${duration}`;
+  return `${entry.quantity} buc. / ${durationLabel(entry.durationMonths)}`;
+}
+
+function durationLabel(months: number | null) {
+  if (months === null) return 'consum';
+  if (months === 1) return '1 lună';
+  const tens = months % 100;
+  return tens === 0 || tens >= 20 ? `${months} de luni` : `${months} luni`;
 }
 
 const wholeNumber = (min: number, max: number, message: string) =>
