@@ -568,7 +568,7 @@ describe('decision_training', () => {
       'instruirea periodică pentru personalul de conducere al locurilor de muncă din cadrul'
     );
     expect(workerOnly).not.toContain(
-      'personalul tehnic-administrativ și șefii de locuri de muncă vor fi instruiți'
+      'personalul tehnico-administrativ și șefii de locuri de muncă vor fi instruiți'
     );
   });
 

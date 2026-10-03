@@ -381,7 +381,7 @@ describe('the merge context', () => {
       {
         name: 'Contabil',
         activities: '—',
-        staffCategory: 'Tehnic-administrativ',
+        staffCategory: 'Tehnico-administrativ',
         workZone: 'Birou',
         workZoneLine: true,
         workZoneOrDash: 'Birou',
