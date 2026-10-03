@@ -321,7 +321,7 @@ describe('the risk assessment', () => {
     });
     expect(text).toContain('PENTRU VIZITATORI');
     expect(text).toContain(
-      'Niciunul dintre factorii de risc identificați nu depășește nivelul de risc 3'
+      'Nu au fost stabilite măsuri de prevenire: niciunul dintre factorii de risc identificați nu depășește nivelul de risc\u00a03.'
     );
     expect(text).toContain('Nu au fost identificați factori de risc proprii executantului.');
     expect(text).toContain(
