@@ -897,6 +897,24 @@ describe('training_themes', () => {
     expect(text).toContain('I.P.S.S.M. Art. 1 – 288; {{#modules}}{{citation}}; {{/modules}}');
   });
 
+  it('adds the minutes of every row of a plan, breaks included, up to the total it prints', () => {
+    const cellsOf = (row: string) =>
+      (row.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? []).map(documentTextOf);
+    const plans = (bodyOf('4.2_training_themes.docx').match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [])
+      .map((table) => (table.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) ?? []).map(cellsOf))
+      .filter((rows) => rows.some((cells) => cells.includes('TIMP TOTAL DE INSTRUIRE')));
+    expect(plans).toHaveLength(2);
+    for (const rows of plans) {
+      const minutes = (cells: string[]) => Number(/^(\d+) min$/.exec(cells.at(-1)!)?.[1] ?? 0);
+      const total = rows.find((cells) => cells.includes('TIMP TOTAL DE INSTRUIRE'))!;
+      const sum = rows
+        .filter((cells) => cells !== total)
+        .reduce((minutesSoFar, cells) => minutesSoFar + minutes(cells), 0);
+      expect(sum).toBe(minutes(total));
+      expect(sum).toBe(240);
+    }
+  });
+
   it('labels the trainer without saying who it is, since the provider trains some posts', () => {
     const text = lines.join('\n');
     expect(text.match(/CINE EFECTUEAZĂ INSTRUIREA: /g)).toHaveLength(3);
