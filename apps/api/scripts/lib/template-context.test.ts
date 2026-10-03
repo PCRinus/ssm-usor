@@ -92,7 +92,9 @@ describe('the training themes', () => {
         documentData(buildDocumentContext(facts), 'training_themes')
       )
     );
-    expect(text).toContain('Florin Cristian TALOȘ și Ioana PETRE – conducători loc de muncă');
+    expect(text).toContain(
+      'Florin Cristian TALOȘ și Ioana PETRE – conducători loc\u00a0de\u00a0muncă'
+    );
     expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
     expect(text).toContain(
       'I.P.S.S.M. Art. 1 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31;'
@@ -319,7 +321,7 @@ describe('the risk assessment', () => {
     });
     expect(text).toContain('PENTRU VIZITATORI');
     expect(text).toContain(
-      'Niciunul dintre factorii de risc identificați nu depășește nivelul de risc 3'
+      'Nu au fost stabilite măsuri de prevenire: niciunul dintre factorii de risc identificați nu depășește nivelul de risc\u00a03.'
     );
     expect(text).toContain('Nu au fost identificați factori de risc proprii executantului.');
     expect(text).toContain(

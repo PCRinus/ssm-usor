@@ -68,7 +68,9 @@ function evaluation(roman: string, name: string, heading: string, count: number)
         label,
         of,
         count: own.length,
-        share: count ? `${((own.length * 100) / count).toFixed(2).replace('.', ',')} %` : '0,00 %',
+        share: count
+          ? `${((own.length * 100) / count).toFixed(2).replace('.', ',')}\u00a0%`
+          : '0,00\u00a0%',
         noFactors: own.length === 0,
         groups: own.length ? [{ letter: 'a', name: 'Factori de risc mecanic', factors: own }] : [],
       };
@@ -274,11 +276,11 @@ function sample(
             name: jobTitle.toUpperCase(),
             trainer:
               people.length === 1
-                ? `${name} – conducător loc de muncă`
+                ? `${name} – conducător loc\u00a0de\u00a0muncă`
                 : `${people
                     .slice(0, -1)
                     .map((manager) => manager.name)
-                    .join(', ')} și ${people.at(-1)!.name} – conducători loc de muncă`,
+                    .join(', ')} și ${people.at(-1)!.name} – conducători loc\u00a0de\u00a0muncă`,
             modules: [
               { citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12' },
               { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },

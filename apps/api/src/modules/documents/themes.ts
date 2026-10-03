@@ -100,8 +100,8 @@ export type TrainerNames = {
 export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
   if (staffCategory !== 'execution') return `${names.provider} – ${names.specialist}`;
   return names.workplaceManagers.length === 1
-    ? `${names.workplaceManagers[0]} – conducător loc de muncă`
-    : `${listed(names.workplaceManagers)} – conducători loc de muncă`;
+    ? `${names.workplaceManagers[0]} – conducător loc\u00a0de\u00a0muncă`
+    : `${listed(names.workplaceManagers)} – conducători loc\u00a0de\u00a0muncă`;
 }
 
 export function themeIntervalLabel(months: number | null) {

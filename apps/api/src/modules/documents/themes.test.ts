@@ -139,13 +139,13 @@ describe('who trains a post', () => {
   };
 
   it('is the workplace manager for execution posts', () => {
-    expect(trainerOf('execution', names)).toBe('Ion POP – conducător loc de muncă');
+    expect(trainerOf('execution', names)).toBe('Ion POP – conducător loc\u00a0de\u00a0muncă');
   });
 
   it('is every workplace manager for execution posts, where there are several', () => {
     expect(
       trainerOf('execution', { ...names, workplaceManagers: ['Steliana GAL', 'Lucrețiu ANDREI'] })
-    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducători loc de muncă');
+    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducători loc\u00a0de\u00a0muncă');
   });
 
   it('is the provider and its specialist for technical-administrative posts', () => {

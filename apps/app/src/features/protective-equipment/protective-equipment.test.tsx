@@ -170,7 +170,7 @@ describe("a job position's page", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]!.textContent).toContain('Mască de sudură');
     expect(within(rows[0]!).getByTestId('equipment-quantity-cell').textContent).toBe(
-      '1 buc. / 24 luni'
+      '1 buc. / 24 de luni'
     );
     expect(rows[0]!.textContent).toContain('Inventar de secție');
     expect(within(rows[1]!).getByTestId('equipment-quantity-cell').textContent).toBe(
@@ -425,5 +425,8 @@ describe('labels', () => {
     );
     expect(quantityLabel({ quantity: 2, durationMonths: 1 })).toBe('2 buc. / 1 lună');
     expect(quantityLabel({ quantity: 10, durationMonths: null })).toBe('10 buc. / consum');
+    expect(quantityLabel({ quantity: 1, durationMonths: 12 })).toBe('1 buc. / 12 luni');
+    expect(quantityLabel({ quantity: 1, durationMonths: 24 })).toBe('1 buc. / 24 de luni');
+    expect(quantityLabel({ quantity: 1, durationMonths: 112 })).toBe('1 buc. / 112 luni');
   });
 });
