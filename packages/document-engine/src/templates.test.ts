@@ -454,7 +454,7 @@ describe('decision_first_aid', () => {
     expect(text).toContain('S.C. SERVICIU EXTERN S.R.L. – Ana IONESCU');
     // Reads the same for one first aider or several.
     expect(text).toContain(
-      'a personalului desemnat să acorde primul ajutor și să aplice măsurile de prevenire și stingere a incendiilor: Ion MARIN, Elena DUMITRU.'
+      'a personalului desemnat să acorde primul ajutor: Ion MARIN, Elena DUMITRU.'
     );
     expect(text).toContain('Personalul desemnat prin prezenta decizie va fi instruit suplimentar');
   });
