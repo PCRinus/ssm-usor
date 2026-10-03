@@ -446,7 +446,7 @@ describe('decision_first_aid', () => {
       'Maria POPESCU în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text).toContain(
-      'Elena DUMITRU având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L.'
+      'Elena DUMITRU având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L. pentru sediul și punctele de lucru ale societății.'
     );
     // Once in the decision, once in each of the two acknowledgement tables.
     expect(text.match(/Ion MARIN/g)).toHaveLength(4);
@@ -607,6 +607,7 @@ describe('decision_imminent_danger', () => {
         workplaceManagersText: described(people.slice(0, 1)),
         imminentDanger: people,
         imminentDangerText,
+        workplaceManagersAssumeImminentDanger: false,
       })
     );
 
@@ -621,6 +622,26 @@ describe('decision_imminent_danger', () => {
     expect(text.match(/: personalul desemnat/g)).toHaveLength(5);
     expect(text).toContain('Personalul desemnat va primi de asemenea');
     expect(text).not.toMatch(/lucrătorii desemnați/i);
+    acknowledged(text);
+  });
+
+  it('lets the workplace managers take the duties on when they are the ones designated', () => {
+    const text = documentText(
+      renderDocument(read('1.4_decision_imminent_danger.docx'), {
+        ...shared,
+        decisionNumber: 4,
+        workplaceManagersText: described(people),
+        imminentDanger: people,
+        imminentDangerText: described(people),
+        workplaceManagersAssumeImminentDanger: true,
+      })
+    );
+
+    expect(text).toContain(
+      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ${described(people)} – își asumă următoarele atribuții:`
+    );
+    expect(text.split(described(people))).toHaveLength(2);
+    expect(text).not.toContain('desemnează pe');
     acknowledged(text);
   });
 });
@@ -669,6 +690,26 @@ describe('decision_workers_representative', () => {
       'Reprezentanții lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă sunt aleși de către și dintre lucrătorii'
     );
     expect(text).not.toContain('Numirea reprezentanților');
+  });
+});
+
+describe('employer_briefing', () => {
+  const template = read('11_employer_briefing.docx');
+
+  it("prints the client's periodic training duration from the field decision 1.1 prints", () => {
+    expect(templatePlaceholders(template)).toContain('training.periodicDuration');
+    const text = documentText(
+      renderDocument(template, {
+        ...shared,
+        provider: { ...shared.provider, representativeRole: 'Administrator' },
+        workersRepresentativeDecision: false,
+        training: { periodicDuration: '30 de minute' },
+      })
+    );
+    expect(text).toContain(
+      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale societății.'
+    );
+    expect(text).not.toContain('1,30 ore');
   });
 });
 
@@ -855,13 +896,13 @@ describe('training_themes', () => {
         [44, 45],
         [46, 55],
         [56, 62],
-        [63, 100],
-        [101, 171],
-        [172, 191],
-        [192, 209],
-        [210, 240],
-        [241, 260],
-        [261, 294],
+        [63, 94],
+        [95, 165],
+        [166, 185],
+        [186, 202],
+        [203, 233],
+        [234, 253],
+        [254, 287],
       ].map(([from, to]) => `I.P.S.S.M. Art. ${from} – ${to}`)
     );
   });
@@ -874,7 +915,25 @@ describe('training_themes', () => {
     const text = lines.join('\n');
     expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
     expect(text).toContain('{{#sessions}}{{month}}');
-    expect(text).toContain('I.P.S.S.M. Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
+    expect(text).toContain('I.P.S.S.M. Art. 1 – 287; {{#modules}}{{citation}}; {{/modules}}');
+  });
+
+  it('adds the minutes of every row of a plan, breaks included, up to the total it prints', () => {
+    const cellsOf = (row: string) =>
+      (row.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? []).map(documentTextOf);
+    const plans = (bodyOf('4.2_training_themes.docx').match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [])
+      .map((table) => (table.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) ?? []).map(cellsOf))
+      .filter((rows) => rows.some((cells) => cells.includes('TIMP TOTAL DE INSTRUIRE')));
+    expect(plans).toHaveLength(2);
+    for (const rows of plans) {
+      const minutes = (cells: string[]) => Number(/^(\d+) min$/.exec(cells.at(-1)!)?.[1] ?? 0);
+      const total = rows.find((cells) => cells.includes('TIMP TOTAL DE INSTRUIRE'))!;
+      const sum = rows
+        .filter((cells) => cells !== total)
+        .reduce((minutesSoFar, cells) => minutesSoFar + minutes(cells), 0);
+      expect(sum).toBe(minutes(total));
+      expect(sum).toBe(240);
+    }
   });
 
   it('labels the trainer without saying who it is, since the provider trains some posts', () => {

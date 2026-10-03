@@ -286,6 +286,28 @@ describe('the merge context', () => {
     expect(one.firstAiderNames).toBe('Florin Cristian TALOȘ');
   });
 
+  it('says when the people designated for imminent danger are exactly the workplace managers', () => {
+    const assume = (...roles: DocumentFacts['responsiblePersons'][number]['roles'][]) =>
+      buildDocumentContext({
+        ...facts,
+        responsiblePersons: roles.map((personRoles, index) => ({
+          fullName: `Persoana ${index + 1}`,
+          jobTitle: 'Administrator',
+          roles: [...personRoles, 'first_aid', 'risk_evaluation_team'],
+          currentEmployee: true,
+        })),
+      }).workplaceManagersAssumeImminentDanger;
+
+    expect(context.workplaceManagersAssumeImminentDanger).toBe(true);
+    expect(assume(['workplace_manager', 'imminent_danger'])).toBe(true);
+    expect(
+      assume(['workplace_manager', 'imminent_danger'], ['workplace_manager', 'imminent_danger'])
+    ).toBe(true);
+    expect(assume(['workplace_manager', 'imminent_danger'], ['imminent_danger'])).toBe(false);
+    expect(assume(['workplace_manager'], ['imminent_danger'])).toBe(false);
+    expect(assume(['workplace_manager', 'imminent_danger'], ['workplace_manager'])).toBe(false);
+  });
+
   it('words the training schedule', () => {
     expect(context.training).toEqual({
       periodicDuration: '2\u00a0ore',
@@ -558,12 +580,12 @@ describe('the training themes', () => {
     expect(themes!.positions[0]!.sessions).toEqual([
       {
         month: 'FEBRUARIE',
-        content: 'I.P.S.S.M. Art. 1 – 100; I.P.S.S.M. Activități de birou, Art. 1 – 12',
+        content: 'I.P.S.S.M. Art. 1 – 94; I.P.S.S.M. Activități de birou, Art. 1 – 12',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
-        content: 'I.P.S.S.M. Art. 101 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
+        content: 'I.P.S.S.M. Art. 95 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
         duration: '120 min',
       },
     ]);

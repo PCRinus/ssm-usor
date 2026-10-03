@@ -1370,11 +1370,11 @@ describe('the training themes', () => {
           intervalLabel: '3 LUNI',
           sessions: [
             ['FEBRUARIE', 'I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
-            ['MAI', 'I.P.S.S.M. Art. 46 – 100; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
-            ['AUGUST', 'I.P.S.S.M. Art. 101 – 209; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
+            ['MAI', 'I.P.S.S.M. Art. 46 – 94; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
+            ['AUGUST', 'I.P.S.S.M. Art. 95 – 202; I.P.S.S.M. Scări metalice, Art. 1 – 14'],
             [
               'NOIEMBRIE',
-              'I.P.S.S.M. Art. 210 – 294; I.P.S.S.M. Scări metalice, Art. 1 – 14; Testare.',
+              'I.P.S.S.M. Art. 203 – 287; I.P.S.S.M. Scări metalice, Art. 1 – 14; Testare.',
             ],
           ].map(([month, content]) => ({ month, content, duration: '120 min' })),
         },

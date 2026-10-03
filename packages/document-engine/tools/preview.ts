@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { renderDocument } from '../src/render';
 
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
-// every role and short names, then three people and names long enough to test the layout.
+// every role and short names, then three people and names long enough to test the layout. Only
+// two of the three act in imminent danger, so decision 1.4 shows both wordings of its Art. 2.
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 // preview [templates-dir] [output-dir], both relative to the package.
@@ -261,13 +262,13 @@ function sample(
             sessions: [
               {
                 month: 'FEBRUARIE',
-                content: 'I.P.S.S.M. Art. 1 – 171; I.P.S.S.M. Activități de birou, Art. 1 – 15;',
+                content: 'I.P.S.S.M. Art. 1 – 165; I.P.S.S.M. Activități de birou, Art. 1 – 15;',
                 duration: '120 min',
               },
               {
                 month: 'AUGUST',
                 content:
-                  'I.P.S.S.M. Art. 172 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
+                  'I.P.S.S.M. Art. 166 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
                 duration: '120 min',
               },
             ],
@@ -320,8 +321,9 @@ function sample(
       firstAiders: people,
       firstAiderNames: listed(people.map(({ name }) => name)),
       evaluationTeam: people,
-      imminentDanger: people,
-      imminentDangerText: described(people),
+      imminentDanger: people.slice(0, 2),
+      imminentDangerText: described(people.slice(0, 2)),
+      workplaceManagersAssumeImminentDanger: people.length <= 2,
       workersRepresentativeDecision: true,
       workersRepresentatives: people,
       workersRepresentativesLead: people.length === 1 ? 'următorul angajat' : 'următorii angajați',
