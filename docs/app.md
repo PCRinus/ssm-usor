@@ -420,7 +420,7 @@ mobile navigation link closes the Sheet.
 - `/clients/:clientId/job-positions`: the "Posturi de lucru" section of a client, second after
   "Angajați", in `src/features/job-positions/` ([ADR 006](architecture/adr-006-job-positions.md)). The
   card lists `GET /clients/{clientId}/job-positions`: the name with the activities under it,
-  the staff category as a badge ("Execuție", "Tehnic-administrativ", the full wording in its
+  the staff category as a badge ("Execuție", "Tehnico-administrativ", the full wording in its
   title), the work zone, and the current employees counted the Romanian way ("2 angajați",
   "20 de angajați"). The dialog adds or replaces a position; the category defaults to
   execution, the shorter training interval, and the zone's hint says it is a kind of place,

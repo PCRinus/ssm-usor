@@ -46,13 +46,13 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await page.getByTestId('job-position-name').fill('Contabil');
   await page
     .getByTestId('job-position-category')
-    .selectOption({ label: 'Tehnic-administrativ și conducători de locuri de muncă' });
+    .selectOption({ label: 'Tehnico-administrativ și conducători de locuri de muncă' });
   await page.getByTestId('job-position-zone').fill('Birou');
   await page.getByTestId('job-position-save').click();
   await expect(page.getByText('Postul de lucru a fost adăugat.')).toBeVisible();
   const accountant = rows.filter({ hasText: 'Contabil' });
   await expect(accountant.getByTestId('job-position-category-badge')).toHaveText(
-    'Tehnic-administrativ'
+    'Tehnico-administrativ'
   );
   await expect(accountant.getByTestId('job-position-employees')).toHaveText('Niciun angajat');
 

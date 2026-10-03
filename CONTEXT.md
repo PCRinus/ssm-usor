@@ -30,7 +30,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Contract title** (_funcția din contract_): the title in a person's employment contract, kept on the employee. Usually the same words as their job position, and not the same fact: two people with one contract title can fill different positions. Documents about a person print it. Avoid: job title on its own, which does not say which of the two is meant.
 
-**Staff category** (_categorie de personal_): one of two kinds of job position, each with its own interval of periodic training: _tehnic-administrativ și conducători de locuri de muncă_, or _personal de execuție_.
+**Staff category** (_categorie de personal_): one of two kinds of job position, each with its own interval of periodic training: _tehnico-administrativ și conducători de locuri de muncă_, or _personal de execuție_.
 
 **Training schedule** (_program de instruire_): the client's periodic training plan. For each staff category, it records an interval or the specialist's explicit decision that the category does not apply; a blank choice remains undecided.
 
