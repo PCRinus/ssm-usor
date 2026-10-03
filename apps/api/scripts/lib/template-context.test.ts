@@ -275,7 +275,7 @@ describe('the protective equipment list', () => {
       })),
     });
     expect(text).not.toContain('POST DE LUCRU:');
-    expect(text).toContain(`prelucrarea materialelor de acoperire;\n${none}\nObservații:`);
+    expect(text).toContain(`prelucrarea materialelor de acoperire.\n${none}\nObservații:`);
     expect(text.match(/nu a fost stabilit necesar de dotare/g)).toHaveLength(1);
   }, 30_000);
 });
