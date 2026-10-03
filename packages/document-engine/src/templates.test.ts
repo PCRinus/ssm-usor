@@ -354,7 +354,7 @@ describe('typesetting', () => {
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
       const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
-        documentTextOf(paragraph).includes('PROCES VERBAL DE LUARE LA CUNOȘTINȚĂ')
+        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE LA CUNOȘTINȚĂ')
       );
       expect(heading).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
       // A table that may not split is written as rows that keep with the next one.
@@ -514,10 +514,10 @@ describe('decision_training', () => {
     expect(text).toContain('din cadrul S.C. CLIENT DEMO S.R.L.\n');
     expect(text).not.toContain('..');
     expect(text).toContain(
-      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL respectiv în lunile februarie și august, în perioada (ziua) 2 – 7 ale lunii'
+      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL, respectiv în lunile februarie și august, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'va fi instruit ANUAL respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
+      'va fi instruit ANUAL, respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
       'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
