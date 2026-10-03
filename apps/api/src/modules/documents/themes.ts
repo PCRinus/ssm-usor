@@ -9,9 +9,9 @@ export const ownInstructionsChapterStarts = [
 export const ownInstructionsArticleCount = 287;
 
 export const generalTrainingChapterStarts = [
-  1, 7, 14, 16, 29, 82, 100, 111, 122, 153, 212, 235, 267, 275, 288, 297, 323,
+  1, 7, 14, 16, 28, 81, 97, 108, 119, 150, 209, 232, 264, 272, 285, 294, 320,
 ] as const;
-export const generalTrainingArticleCount = 323;
+export const generalTrainingArticleCount = 320;
 
 export const monthNames = [
   'ianuarie',
