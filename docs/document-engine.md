@@ -552,7 +552,8 @@ same test.
 
 For `decision_training`, `training` has `periodicDuration`, `intervalPhrase`, `dayFrom`, and
 `dayTo`. The booleans `administrative` and `worker` say which interval paragraphs print.
-Their matching frequency and months values exist only for applicable categories.
+Their matching frequency and months values exist only for applicable categories; the months
+carry their noun, "luna martie" or "lunile februarie și august", so one month reads right.
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
 and `representativeName`. A person in a list is `name` and `jobTitle`. Every decision ends with
