@@ -5,7 +5,9 @@ import {
   buildDocumentContext,
   documentApplies,
   documentData,
+  type DocumentFacts,
   missingDocumentData,
+  quantityLabel,
   undecidedJobPositions,
   workersRepresentativeClash,
 } from './context';
@@ -239,18 +241,54 @@ describe('the merge context', () => {
   it('puts people under the roles they hold', () => {
     expect(context.workplaceManagers).toEqual([
       { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' },
+      { name: 'Ioana PETRE', jobTitle: 'Șef de echipă' },
     ]);
-    expect(context.workplaceManager).toEqual(context.workplaceManagers[0]);
-    expect(context.firstAiderNames).toBe('Florin Cristian TALOȘ, Ioana PETRE');
     expect(context.evaluationTeam).toHaveLength(1);
-    expect(context.imminentDangerText).toBe(
-      'Florin Cristian TALOȘ având funcția de Administrator, Ioana PETRE având funcția de Șef de echipă'
+    expect(context).not.toHaveProperty('workplaceManager');
+  });
+
+  it('names every holder of a role in a sentence that reads for one person or several', () => {
+    expect(context.workplaceManagersText).toBe(
+      'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă'
     );
+    expect(context.workplaceManagersList).toBe(
+      'Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă'
+    );
+    expect(context.firstAiderNames).toBe('Florin Cristian TALOȘ și Ioana PETRE');
+    expect(context.imminentDangerText).toBe(
+      'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă'
+    );
+
+    const third: DocumentFacts['responsiblePersons'][number] = {
+      fullName: 'Dan RUS',
+      jobTitle: 'Magaziner',
+      roles: ['workplace_manager', 'first_aid', 'imminent_danger'],
+      currentEmployee: true,
+    };
+    const three = buildDocumentContext({
+      ...facts,
+      responsiblePersons: [...facts.responsiblePersons, third],
+    });
+    expect(three.firstAiderNames).toBe('Florin Cristian TALOȘ, Ioana PETRE și Dan RUS');
+    expect(three.imminentDangerText).toBe(
+      'Florin Cristian TALOȘ având funcția de Administrator, Ioana PETRE având funcția de Șef de echipă și Dan RUS având funcția de Magaziner'
+    );
+    expect(three.workplaceManagersList).toBe(
+      'Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă; Dan RUS, Magaziner'
+    );
+
+    const one = buildDocumentContext({
+      ...facts,
+      responsiblePersons: facts.responsiblePersons.slice(0, 1),
+    });
+    expect(one.workplaceManagersText).toBe('Florin Cristian TALOȘ având funcția de Administrator');
+    expect(one.workplaceManagersList).toBe('Florin Cristian TALOȘ, Administrator');
+    expect(one.firstAiderNames).toBe('Florin Cristian TALOȘ');
   });
 
   it('words the training schedule', () => {
     expect(context.training).toEqual({
-      periodicDuration: '2 ore',
+      periodicDuration: '2\u00a0ore',
       intervalPhrase: 'următoarele intervale de timp',
       administrative: true,
       worker: true,
@@ -271,11 +309,11 @@ describe('the merge context', () => {
         trainingFirstMonth: 9,
       },
     });
-    expect(other.training.periodicDuration).toBe('1 oră');
+    expect(other.training.periodicDuration).toBe('1\u00a0oră');
     expect(
       buildDocumentContext({ ...facts, client: { ...facts.client, periodicTrainingMinutes: 90 } })
         .training.periodicDuration
-    ).toBe('1 oră și 30 de minute');
+    ).toBe('1\u00a0oră și 30\u00a0de\u00a0minute');
     expect(other.training.administrativeFrequency).toBe('ANUAL');
     expect(other.training.administrativeMonths).toBe('septembrie');
     expect(other.training.workerFrequency).toBe('LA 2 LUNI');
@@ -326,7 +364,7 @@ describe('the merge context', () => {
         workZoneLine: true,
         workZoneOrDash: 'Birou',
         intervalLabel: 'la 6 luni',
-        trainingDuration: '2 ore',
+        trainingDuration: '2\u00a0ore',
       },
       {
         name: 'Sudor',
@@ -336,7 +374,7 @@ describe('the merge context', () => {
         workZoneLine: false,
         workZoneOrDash: '—',
         intervalLabel: 'la 2 luni',
-        trainingDuration: '2 ore',
+        trainingDuration: '2\u00a0ore',
       },
     ]);
     expect(context.equippedPositions).toEqual([
@@ -346,7 +384,7 @@ describe('the merge context', () => {
           {
             risk: 'Radiații, împroșcare (față, ochi)',
             item: 'Mască de sudură',
-            quantityLabel: '1 buc. / 24 luni',
+            quantityLabel: '1 buc. / 24 de luni',
             allocationLabel: 'Inventar de secție',
           },
           {
@@ -364,6 +402,23 @@ describe('the merge context', () => {
         ],
       },
     ]);
+  });
+
+  it('counts the months of an equipment entry as Romanian counts them', () => {
+    expect(
+      [1, 2, 19, 20, 21, 101, 120].map((durationMonths) =>
+        quantityLabel({ quantity: 2, durationMonths })
+      )
+    ).toEqual([
+      '2 buc. / 1 lună',
+      '2 buc. / 2 luni',
+      '2 buc. / 19 luni',
+      '2 buc. / 20 de luni',
+      '2 buc. / 21 de luni',
+      '2 buc. / 101 luni',
+      '2 buc. / 120 de luni',
+    ]);
+    expect(quantityLabel({ quantity: 20, durationMonths: null })).toBe('20 buc.');
   });
 
   it('annexes the modules the positions apply, each once, by group and title, with their versions', () => {
@@ -403,7 +458,7 @@ describe('the merge context', () => {
     expect(context.unitRisks[0]).toEqual({
       risk: 'Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.',
       measure:
-        'Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\nAnunțarea imediată a conducătorului locului de muncă la orice defect electric.',
+        '– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\n– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.',
     });
     expect([context.hasUnitRisks, context.noUnitRisks]).toEqual([true, false]);
     const acceptable = buildDocumentContext({
@@ -480,7 +535,7 @@ describe('the training themes', () => {
       },
       {
         name: 'SUDOR',
-        trainer: 'Florin Cristian TALOȘ – conducător loc de muncă',
+        trainer: 'Florin Cristian TALOȘ, Ioana PETRE – conducători loc de muncă',
         modules: [
           { citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' },
           { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31' },

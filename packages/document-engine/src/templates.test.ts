@@ -457,6 +457,8 @@ const people = [
   { name: 'Ion MARIN', jobTitle: 'Manager magazin' },
   { name: 'Elena DUMITRU', jobTitle: 'Lucrător comercial' },
 ];
+const described = (list: typeof people) =>
+  list.map((person) => `${person.name} având funcția de ${person.jobTitle}`).join(' și ');
 const shared = {
   branding: false,
   issueDate: '19.01.2026',
@@ -476,6 +478,7 @@ describe('decision_training', () => {
     ...shared,
     decisionNumber: 1,
     workplaceManagers: people,
+    workplaceManagersText: described(people),
     training: {
       periodicDuration: '2 ore',
       intervalPhrase: 'următoarele intervale de timp',
@@ -490,7 +493,7 @@ describe('decision_training', () => {
     },
   };
 
-  it('prints the training schedule and a paragraph per workplace manager', () => {
+  it('prints the training schedule, and names the workplace managers once as those who train everyone', () => {
     const text = documentText(renderDocument(template, data));
 
     expect(text).not.toContain('{{');
@@ -507,11 +510,10 @@ describe('decision_training', () => {
     expect(text).toContain(
       'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
     );
-    expect(
-      text.match(
-        /va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul/g
-      )
-    ).toHaveLength(2);
+    expect(text).toContain(
+      'Personalul de conducere al locurilor de muncă – Ion MARIN având funcția de Manager magazin și Elena DUMITRU având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul din cadrul S.C. CLIENT DEMO S.R.L.'
+    );
+    expect(text.match(/pentru întreg personalul/g)).toHaveLength(1);
     acknowledged(text);
   });
 
@@ -585,14 +587,12 @@ describe('decision_risk_evaluation_team', () => {
 
 describe('decision_imminent_danger', () => {
   it('names the designated people in each of the five measures', () => {
-    const imminentDangerText = people
-      .map((person) => `${person.name} având funcția de ${person.jobTitle}`)
-      .join(', ');
+    const imminentDangerText = described(people);
     const text = documentText(
       renderDocument(read('1.4_decision_imminent_danger.docx'), {
         ...shared,
         decisionNumber: 4,
-        workplaceManager: people[0],
+        workplaceManagersText: described(people.slice(0, 1)),
         imminentDanger: people,
         imminentDangerText,
       })
@@ -600,10 +600,11 @@ describe('decision_imminent_danger', () => {
 
     expect(text).not.toContain('{{');
     expect(text).toContain(
-      `Ion MARIN în calitate de Manager magazin în cadrul S.C. CLIENT DEMO S.R.L. desemnează pe ${imminentDangerText}, cu următoarele atribuții:`
+      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – Ion MARIN având funcția de Manager magazin – desemnează pe ${imminentDangerText}, cu următoarele atribuții:`
     );
     // Named once; each of the five measures then refers to them.
     expect(text.split(imminentDangerText)).toHaveLength(2);
+    expect(text).not.toContain('în calitate de Manager magazin');
     // Worded for one designated person or several.
     expect(text.match(/: personalul desemnat/g)).toHaveLength(5);
     expect(text).toContain('Personalul desemnat va primi de asemenea');
@@ -783,6 +784,12 @@ describe('training_themes', () => {
     expect(text).toContain('{{#sessions}}{{month}}');
     expect(text).toContain('I.P.S.S.M. Art. 1 – 294; {{#modules}}{{citation}}; {{/modules}}');
   });
+
+  it('labels the trainer without saying who it is, since the provider trains some posts', () => {
+    const text = lines.join('\n');
+    expect(text.match(/CINE EFECTUEAZĂ INSTRUIREA: /g)).toHaveLength(3);
+    expect(text).not.toContain('ȘEF DIRECT');
+  });
 });
 
 describe('risk_assessment', () => {
@@ -803,6 +810,7 @@ describe('risk_assessment', () => {
         'factors',
         'sheet',
         'unacceptable',
+        'plan',
         'ranked',
         'riskAssessment.globalLevel',
         'workersRepresentatives',
@@ -810,8 +818,20 @@ describe('risk_assessment', () => {
     );
     expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(3);
     expect(text).toContain('{{#sheet}}{{component}}');
+    expect(text).toContain('Conducerea locurilor de muncă: {{workplaceManagersList}}');
     expect(text).toContain('SUBCAPITOLUL V.{{roman}}.');
     expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
+  });
+
+  it('lists every factor with a measure in the measures sheet, as the plan does', () => {
+    const sheet = text.slice(
+      text.indexOf('IV. FIȘA DE MĂSURI PROPUSE'),
+      text.indexOf('V. INTERPRETAREA REZULTATELOR EVALUĂRII')
+    );
+    expect(sheet).toContain('{{#plan}}{{$index}}.');
+    expect(sheet).toContain('{{measures}}{{/plan}}');
+    expect(sheet).toContain('{{#noPlan}}');
+    expect(sheet).not.toContain('nacceptable}}');
   });
 
   it('says when the assessment is reviewed, in the words of H.G. 1425/2006', () => {

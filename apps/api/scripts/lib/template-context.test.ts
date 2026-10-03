@@ -92,7 +92,7 @@ describe('the training themes', () => {
         documentData(buildDocumentContext(facts), 'training_themes')
       )
     );
-    expect(text).toContain('Florin Cristian TALOȘ – conducător loc de muncă');
+    expect(text).toContain('Florin Cristian TALOȘ, Ioana PETRE – conducători loc de muncă');
     expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
     expect(text).toContain(
       'I.P.S.S.M. Art. 1 – 294; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31;'
@@ -100,6 +100,34 @@ describe('the training themes', () => {
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
     expect(text.match(/Testare\.$/gm)).toHaveLength(2);
     expect(text).toContain('I.P.S.S.M. Art. 241 – 294;');
+  }, 30_000);
+});
+
+describe('the decisions', () => {
+  const render = (typeKey: string) => {
+    const entry = manifest.templates.find((template) => template.typeKey === typeKey)!;
+    return documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(facts), typeKey)
+      )
+    );
+  };
+  const managers =
+    'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă';
+
+  it('name every workplace manager once as those who train the whole staff', () => {
+    const text = render('decision_training');
+    expect(text).toContain(
+      `Personalul de conducere al locurilor de muncă – ${managers} – va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul din cadrul S.C. PIPETECH S.R.L.`
+    );
+    expect(text).toContain('durata instruirii periodice va fi de 2\u00a0ore;');
+  }, 30_000);
+
+  it('name every workplace manager as those who designate the people for imminent danger', () => {
+    expect(render('decision_imminent_danger')).toContain(
+      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – desemnează pe ${managers}, cu următoarele atribuții:`
+    );
   }, 30_000);
 });
 
@@ -118,7 +146,7 @@ describe('the general training material', () => {
     expect(text).toContain(
       'Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.'
     );
-    expect(text).toContain('Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).');
+    expect(text).toContain('– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).');
     expect(text).not.toContain('nu a identificat în unitate factori de risc');
   }, 30_000);
 
@@ -234,7 +262,17 @@ describe('the risk assessment', () => {
       for (const row of evaluation.sheet) expect(text).toContain(`${row.code}. ${row.description}`);
     }
     expect(text).toContain(`Nrg = ${context.riskAssessment.globalLevel}`);
-    expect(text).toContain('pentru 3 posturi de lucru din cadrul S.C. PIPETECH S.R.L.');
+    expect(text).toContain(
+      'pentru 2 posturi de lucru și grupurile sensibile la riscuri specifice din cadrul S.C. PIPETECH S.R.L.'
+    );
+    expect(text).toContain(
+      'Conducerea locurilor de muncă: Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă'
+    );
+    for (const evaluation of context.riskAssessment.evaluations) {
+      for (const row of evaluation.plan) {
+        expect(text).toContain(`${row.code}. ${row.description}\n${row.level}\n– `);
+      }
+    }
     expect(text).not.toContain('Niciunul dintre factorii de risc identificați nu depășește');
   }, 30_000);
 

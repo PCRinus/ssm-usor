@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  countOf,
   type EvaluatedPosition,
   incompleteRiskEvaluations,
   printedEvaluations,
@@ -103,21 +102,6 @@ const build = (list: RiskEvaluationFacts[] = evaluations) =>
 const only = (factors: RiskFactorFacts[]) => build([{ ...officeFacts, factors }]).evaluations[0]!;
 
 describe('the numbers in words', () => {
-  it('put "de" between a number and its noun from 20 on, except 101 to 119 and the like', () => {
-    const persons = (count: number) => countOf(count, 'persoană', 'persoane');
-    expect([1, 2, 19, 20, 23, 100, 101, 119, 120].map(persons)).toEqual([
-      '1 persoană',
-      '2 persoane',
-      '19 persoane',
-      '20 de persoane',
-      '23 de persoane',
-      '100 de persoane',
-      '101 persoane',
-      '119 persoane',
-      '120 de persoane',
-    ]);
-  });
-
   it('number the subchapters in roman numerals', () => {
     expect([1, 4, 9, 14, 40].map(roman)).toEqual(['I', 'IV', 'IX', 'XIV', 'XL']);
   });
@@ -374,15 +358,13 @@ describe('an evaluation of the risk assessment', () => {
     });
   });
 
-  it('lists the unacceptable factors, the highest first, with their measures', () => {
+  it('lists the unacceptable factors, the highest first', () => {
     expect(sudor!.unacceptable.map((row) => row.code)).toEqual(['F1', 'F3', 'F4', 'F8']);
     expect(sudor!.unacceptable[1]).toEqual({
       code: 'F3',
       description:
         'Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular.',
       level: 4,
-      measures:
-        'Folosirea polizorului numai cu apărătoarea discului montată.\nOchelari de protecție.\nInstruirea pentru alegerea și schimbarea discurilor.',
     });
     const higher = only([
       factor(5, 2, { description: 'Mai întâi' }),
@@ -467,14 +449,23 @@ describe('an evaluation of the risk assessment', () => {
     );
   });
 
-  it('gives the plan a row per factor with measures, the highest level first, its measures by kind, dashes for what is empty', () => {
+  it('gives the measures sheet and the plan a row per factor with measures, the highest level first, its measures a line each and by kind, dashes for what is empty', () => {
     expect(sudor!.plan.map((row) => row.code)).toEqual(['F1', 'F3', 'F4', 'F8', 'F2', 'F5', 'F10']);
+    expect(sudor!.plan[1]).toMatchObject({
+      code: 'F3',
+      level: 4,
+      measures:
+        '– Folosirea polizorului numai cu apărătoarea discului montată.\n– Ochelari de protecție.\n– Instruirea pentru alegerea și schimbarea discurilor.',
+    });
     expect(sudor!.plan[5]).toEqual({
       code: 'F5',
       description: 'Zgomot peste valorile de expunere, în timpul funcționării mașinilor.',
-      technical: 'Antifoane pentru lucrul lângă mașinile zgomotoase.',
+      level: 3,
+      measures:
+        '– Antifoane pentru lucrul lângă mașinile zgomotoase.\n– Audiogramă la examenul medical periodic.',
+      technical: '– Antifoane pentru lucrul lângă mașinile zgomotoase.',
       organizational: '—',
-      hygienicSanitary: 'Audiogramă la examenul medical periodic.',
+      hygienicSanitary: '– Audiogramă la examenul medical periodic.',
       other: '—',
       actions: '—',
       deadline: 'Anual',
@@ -540,7 +531,7 @@ describe('the risk assessment', () => {
       '3,19',
     ]);
     expect(context).toMatchObject({
-      evaluationCountText: '3 posturi de lucru',
+      evaluationCountText: '2 posturi de lucru și grupurile sensibile la riscuri specifice',
       globalLevel: '3,15',
     });
   });
@@ -561,6 +552,33 @@ describe('the risk assessment', () => {
       evaluations: [],
     });
   });
+
+  it('counts the posts, the sensitive groups and the other evaluations apart', () => {
+    const countText = (list: RiskEvaluationFacts[], evaluated = positions) =>
+      riskAssessment({
+        evaluations: list,
+        positions: evaluated,
+        caenCode: null,
+        workplaces: [],
+        currentEmployeeCount: 0,
+      }).evaluationCountText;
+    const others = (count: number) =>
+      [...Array<null>(count)].map((_, index) =>
+        other(`Evaluare ${index}`, [factor(2, 2)], `e0e0e0e0-0000-4000-8000-0000000001${index}`)
+      );
+    expect(countText([...evaluations, ...others(1)])).toBe(
+      '2 posturi de lucru, grupurile sensibile la riscuri specifice și o altă evaluare'
+    );
+    expect(countText([...evaluations, ...others(2)])).toBe(
+      '2 posturi de lucru, grupurile sensibile la riscuri specifice și alte 2 evaluări'
+    );
+    expect(countText([...evaluations, ...others(20)])).toBe(
+      '2 posturi de lucru, grupurile sensibile la riscuri specifice și alte 20 de evaluări'
+    );
+    expect(countText([sensitiveGroups, workshopFacts], [workshop])).toBe(
+      'un post de lucru și grupurile sensibile la riscuri specifice'
+    );
+  });
 });
 
 describe("the unit's own risks", () => {
@@ -579,7 +597,7 @@ describe("the unit's own risks", () => {
     expect(risks[1]).toEqual({
       risk: 'Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu.',
       measure:
-        'Instruirea lucrătorilor privind circulația pe drumurile publice.\nPlanificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.',
+        '– Instruirea lucrătorilor privind circulația pe drumurile publice.\n– Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.',
     });
   });
 
@@ -600,7 +618,7 @@ describe("the unit's own risks", () => {
       positions
     );
     expect(risks).toEqual([
-      { risk: 'lovire  de vehicule', measure: 'Instruire.\nVestă reflectorizantă.' },
+      { risk: 'lovire  de vehicule', measure: '– Instruire.\n– Vestă reflectorizantă.' },
       { risk: 'Factor 4/5', measure: '—' },
     ]);
   });
