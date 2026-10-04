@@ -199,7 +199,16 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
       ],
-      `${lead}${roza} – desemnează pe ${roza}, și ${ion}, cu următoarele atribuții:`,
+      `${lead}${roza} – își asumă rolul de personal desemnat și desemnează pe ${ion}, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager designated beside two others',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
+        person('Ana POP', 'Contabil', ['imminent_danger']),
+      ],
+      `${lead}${roza} – își asumă rolul de personal desemnat și desemnează pe ${ion}, și Ana POP, având funcția de Contabil, cu următoarele atribuții:`,
     ],
     [
       'a manager who designates someone else',
@@ -208,6 +217,15 @@ describe('decision 1.4', () => {
         person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
       ],
       `${lead}${roza} – desemnează pe ${ion}, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager designated while another manager is not',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['workplace_manager']),
+        person('Ana POP', 'Contabil', ['imminent_danger']),
+      ],
+      `${lead}${roza}, și ${ion} – desemnează pe ${roza}, și Ana POP, având funcția de Contabil, cu următoarele atribuții:`,
     ],
   ])(
     'words Art. 2 for %s',
@@ -218,6 +236,16 @@ describe('decision 1.4', () => {
     },
     30_000
   );
+
+  it('lists everyone designated in the record, the managers among them', () => {
+    const text = article2(
+      person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+      person('Ion MARIN', 'Șef atelier', ['imminent_danger'])
+    );
+    const record = text.slice(text.indexOf('PROCES-VERBAL'));
+    expect(record).toContain('Roza URSU');
+    expect(record).toContain('Ion MARIN');
+  }, 30_000);
 });
 
 const renderWith = (typeKey: (typeof documentTypeKeys)[number], variant: typeof facts) => {

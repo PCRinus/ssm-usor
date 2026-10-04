@@ -601,25 +601,36 @@ describe('decision_risk_evaluation_team', () => {
 });
 
 describe('decision_imminent_danger', () => {
-  it('names the designated people in each of the five measures', () => {
-    const imminentDangerText = described(people);
-    const text = documentText(
+  const render = (
+    managers: typeof people,
+    wording: 'assume' | 'assume_and_designate' | 'designate',
+    others: typeof people | null = null
+  ) =>
+    documentText(
       renderDocument(read('1.4_decision_imminent_danger.docx'), {
         ...shared,
         decisionNumber: 4,
-        workplaceManagersText: described(people.slice(0, 1)),
+        workplaceManagersText: described(managers),
         imminentDanger: people,
-        imminentDangerText,
-        workplaceManagersAssumeImminentDanger: false,
+        imminentDangerText: described(people),
+        workplaceManagersAssumeImminentDanger: wording === 'assume',
+        workplaceManagersAssumeAndDesignateImminentDanger: wording === 'assume_and_designate',
+        workplaceManagersDesignateImminentDanger: wording === 'designate',
+        imminentDangerOthersText: others && described(others),
       })
     );
+  const lead = 'conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ';
+
+  it('names the designated people in each of the five measures', () => {
+    const manager = [{ name: 'Ana POP', jobTitle: 'Șef sală' }];
+    const text = render(manager, 'designate');
 
     expect(text).not.toContain('{{');
     expect(text).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – Ion MARIN, având funcția de Manager magazin – desemnează pe ${imminentDangerText}, cu următoarele atribuții:`
+      `${lead}Ana POP, având funcția de Șef sală – desemnează pe ${described(people)}, cu următoarele atribuții:`
     );
     // Named once; each of the five measures then refers to them.
-    expect(text.split(imminentDangerText)).toHaveLength(2);
+    expect(text.split(described(people))).toHaveLength(2);
     expect(text).not.toContain('în calitate de Manager magazin');
     // Worded for one designated person or several.
     expect(text.match(/: personalul desemnat/g)).toHaveLength(5);
@@ -629,22 +640,25 @@ describe('decision_imminent_danger', () => {
   });
 
   it('lets the workplace managers take the duties on when they are the ones designated', () => {
-    const text = documentText(
-      renderDocument(read('1.4_decision_imminent_danger.docx'), {
-        ...shared,
-        decisionNumber: 4,
-        workplaceManagersText: described(people),
-        imminentDanger: people,
-        imminentDangerText: described(people),
-        workplaceManagersAssumeImminentDanger: true,
-      })
-    );
+    const text = render(people, 'assume');
 
     expect(text).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ${described(people)} – își asumă, în calitate de personal desemnat, următoarele atribuții:`
+      `${lead}${described(people)} – își asumă, în calitate de personal desemnat, următoarele atribuții:`
     );
     expect(text.split(described(people))).toHaveLength(2);
     expect(text).not.toContain('desemnează pe');
+    acknowledged(text);
+  });
+
+  it('lets the workplace managers take the duties on and designate the others beside them', () => {
+    const text = render(people.slice(0, 1), 'assume_and_designate', people.slice(1));
+
+    expect(text).not.toContain('{{');
+    expect(text).toContain(
+      `${lead}Ion MARIN, având funcția de Manager magazin – își asumă rolul de personal desemnat și desemnează pe Elena DUMITRU, având funcția de Lucrător comercial, cu următoarele atribuții:`
+    );
+    expect(text.match(/desemnează pe/g)).toHaveLength(1);
+    expect(text.match(/Ion MARIN/g)).toHaveLength(2);
     acknowledged(text);
   });
 });

@@ -159,10 +159,20 @@ export type DocumentContext = {
   imminentDanger: Person[];
   imminentDangerText: string;
   /**
-   * The people designated for imminent danger are exactly the workplace managers, who then
-   * take the duties on themselves instead of designating themselves.
+   * Decision 1.4's Art. 2, exactly one of the three. The people designated for imminent danger
+   * are exactly the workplace managers, who then take the duties on themselves instead of
+   * designating themselves.
    */
   workplaceManagersAssumeImminentDanger: boolean;
+  /** Every manager is designated, beside the people of `imminentDangerOthersText`. */
+  workplaceManagersAssumeAndDesignateImminentDanger: boolean;
+  /**
+   * Everyone else: a manager who is not designated cannot be said to take the duties on, so the
+   * managers designate everyone in `imminentDangerText`, any of themselves included.
+   */
+  workplaceManagersDesignateImminentDanger: boolean;
+  /** Null unless every manager is designated beside them. */
+  imminentDangerOthersText: string | null;
   /** Whether decision 1.5 is part of the set, which the cover then lists. */
   workersRepresentativeDecision: boolean;
   workersRepresentatives: Person[];
@@ -384,6 +394,19 @@ const months = (firstMonth: number, intervalMonths: number) => {
   return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
 };
 
+const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
+  name: person.fullName.trim(),
+  jobTitle: person.jobTitle.trim(),
+});
+
+function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
+  const managers = people.filter((person) => person.roles.includes('workplace_manager'));
+  const designated = people.filter((person) => person.roles.includes('imminent_danger'));
+  if (!managers.every((person) => person.roles.includes('imminent_danger'))) return 'designate';
+  if (designated.length === managers.length) return 'assume';
+  return managers.length > 0 ? 'assume_and_designate' : 'designate';
+}
+
 export function printedDate(isoDate: string) {
   const [year, month, day] = isoDate.split('-');
   return `${day}.${month}.${year}`;
@@ -399,9 +422,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
   const withRole = (role: ResponsiblePersonRole): Person[] =>
-    facts.responsiblePersons
-      .filter((person) => person.roles.includes(role))
-      .map((person) => ({ name: person.fullName.trim(), jobTitle: person.jobTitle.trim() }));
+    facts.responsiblePersons.filter((person) => person.roles.includes(role)).map(asPerson);
   const workersRepresentatives = currentWorkersRepresentatives(facts).map((person) => ({
     name: person.fullName.trim(),
     jobTitle: person.jobTitle.trim(),
@@ -454,6 +475,7 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
   const annexes = annexedModules(facts);
   const firstAiders = withRole('first_aid');
   const imminentDanger = withRole('imminent_danger');
+  const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
   const risks = unitRisks(facts.riskEvaluations, facts.jobPositions);
   return {
     branding: facts.branding,
@@ -480,10 +502,22 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     evaluationTeam: withRole('risk_evaluation_team'),
     imminentDanger,
     imminentDangerText: described(imminentDanger),
-    workplaceManagersAssumeImminentDanger: facts.responsiblePersons.every(
-      (person) =>
-        person.roles.includes('workplace_manager') === person.roles.includes('imminent_danger')
-    ),
+    workplaceManagersAssumeImminentDanger: imminentDangerWording === 'assume',
+    workplaceManagersAssumeAndDesignateImminentDanger:
+      imminentDangerWording === 'assume_and_designate',
+    workplaceManagersDesignateImminentDanger: imminentDangerWording === 'designate',
+    imminentDangerOthersText:
+      imminentDangerWording === 'assume_and_designate'
+        ? described(
+            facts.responsiblePersons
+              .filter(
+                (person) =>
+                  person.roles.includes('imminent_danger') &&
+                  !person.roles.includes('workplace_manager')
+              )
+              .map(asPerson)
+          )
+        : null,
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
     workersRepresentativeDecision:
       documentApplies(facts, 'decision_workers_representative') ||
