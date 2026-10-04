@@ -159,20 +159,32 @@ export type DocumentContext = {
   imminentDanger: Person[];
   imminentDangerText: string;
   /**
-   * Decision 1.4's Art. 2, exactly one of the three. The people designated for imminent danger
-   * are exactly the workplace managers, who then take the duties on themselves instead of
-   * designating themselves.
+   * Decision 1.4's Art. 2, exactly one of the five, so that no manager designates himself. The
+   * people designated for imminent danger are exactly the workplace managers, who then take the
+   * duties on themselves.
    */
   workplaceManagersAssumeImminentDanger: boolean;
   /** Every manager is designated, beside the people of `imminentDangerOthersText`. */
   workplaceManagersAssumeAndDesignateImminentDanger: boolean;
   /**
-   * Everyone else: a manager who is not designated cannot be said to take the duties on, so the
-   * managers designate everyone in `imminentDangerText`, any of themselves included.
+   * Some managers are designated, `imminentDangerManagerNames`, and others are not: the managers
+   * designate the people of `imminentDangerOthersText` alongside those who take the role on.
    */
+  workplaceManagersDesignateAlongsideImminentDanger: boolean;
+  /**
+   * Only some of the managers are designated, and nobody else: the managers settle that
+   * `imminentDangerManagerNames` take the duties on.
+   */
+  workplaceManagersAssignImminentDanger: boolean;
+  /** No manager is designated: the managers designate everyone in `imminentDangerText`. */
   workplaceManagersDesignateImminentDanger: boolean;
-  /** Null unless every manager is designated beside them. */
+  /** The people designated who are not managers; null unless a manager is designated beside them. */
   imminentDangerOthersText: string | null;
+  /**
+   * "Ion POP și Ana RUS": the managers designated, by name only, since Art. 2 has just described
+   * them; null unless only some managers are designated.
+   */
+  imminentDangerManagerNames: string | null;
   /** Whether decision 1.5 is part of the set, which the cover then lists. */
   workersRepresentativeDecision: boolean;
   workersRepresentatives: Person[];
@@ -401,10 +413,21 @@ const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person =
 
 function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
   const managers = people.filter((person) => person.roles.includes('workplace_manager'));
-  const designated = people.filter((person) => person.roles.includes('imminent_danger'));
-  if (!managers.every((person) => person.roles.includes('imminent_danger'))) return 'designate';
-  if (designated.length === managers.length) return 'assume';
-  return managers.length > 0 ? 'assume_and_designate' : 'designate';
+  const designatedManagers = managers.filter((person) => person.roles.includes('imminent_danger'));
+  const others = people.filter(
+    (person) =>
+      person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
+  );
+  if (designatedManagers.length === 0) return { wording: 'designate', designatedManagers, others };
+  const wording =
+    designatedManagers.length === managers.length
+      ? others.length === 0
+        ? 'assume'
+        : 'assume_and_designate'
+      : others.length === 0
+        ? 'assign'
+        : 'designate_alongside';
+  return { wording, designatedManagers, others };
 }
 
 export function printedDate(isoDate: string) {
@@ -502,21 +525,22 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     evaluationTeam: withRole('risk_evaluation_team'),
     imminentDanger,
     imminentDangerText: described(imminentDanger),
-    workplaceManagersAssumeImminentDanger: imminentDangerWording === 'assume',
+    workplaceManagersAssumeImminentDanger: imminentDangerWording.wording === 'assume',
     workplaceManagersAssumeAndDesignateImminentDanger:
-      imminentDangerWording === 'assume_and_designate',
-    workplaceManagersDesignateImminentDanger: imminentDangerWording === 'designate',
+      imminentDangerWording.wording === 'assume_and_designate',
+    workplaceManagersDesignateAlongsideImminentDanger:
+      imminentDangerWording.wording === 'designate_alongside',
+    workplaceManagersAssignImminentDanger: imminentDangerWording.wording === 'assign',
+    workplaceManagersDesignateImminentDanger: imminentDangerWording.wording === 'designate',
     imminentDangerOthersText:
-      imminentDangerWording === 'assume_and_designate'
-        ? described(
-            facts.responsiblePersons
-              .filter(
-                (person) =>
-                  person.roles.includes('imminent_danger') &&
-                  !person.roles.includes('workplace_manager')
-              )
-              .map(asPerson)
-          )
+      imminentDangerWording.wording === 'assume_and_designate' ||
+      imminentDangerWording.wording === 'designate_alongside'
+        ? described(imminentDangerWording.others.map(asPerson))
+        : null,
+    imminentDangerManagerNames:
+      imminentDangerWording.wording === 'designate_alongside' ||
+      imminentDangerWording.wording === 'assign'
+        ? listed(imminentDangerWording.designatedManagers.map((person) => person.fullName.trim()))
         : null,
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
     workersRepresentativeDecision:

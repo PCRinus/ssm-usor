@@ -6,8 +6,8 @@ import { renderDocument } from '../src/render';
 
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
 // every role and short names, then three people and names long enough to test the layout. Only
-// two of the three act in imminent danger, so decision 1.4 shows two of the three wordings of
-// its Art. 2: the managers take the duties on, or designate the people named.
+// two of the three act in imminent danger, so decision 1.4 shows two of the five wordings of
+// its Art. 2: the managers take the duties on, or settle which of them do.
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 // preview [templates-dir] [output-dir], both relative to the package.
@@ -330,8 +330,12 @@ function sample(
       imminentDangerText: described(people.slice(0, 2)),
       workplaceManagersAssumeImminentDanger: people.length <= 2,
       workplaceManagersAssumeAndDesignateImminentDanger: false,
-      workplaceManagersDesignateImminentDanger: people.length > 2,
+      workplaceManagersDesignateAlongsideImminentDanger: false,
+      workplaceManagersAssignImminentDanger: people.length > 2,
+      workplaceManagersDesignateImminentDanger: false,
       imminentDangerOthersText: null,
+      imminentDangerManagerNames:
+        people.length > 2 ? listed(people.slice(0, 2).map(({ name }) => name)) : null,
       workersRepresentativeDecision: true,
       workersRepresentatives: people,
       workersRepresentativesLead: people.length === 1 ? 'următorul angajat' : 'următorii angajați',

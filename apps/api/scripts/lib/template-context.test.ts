@@ -219,13 +219,41 @@ describe('decision 1.4', () => {
       `${lead}${roza} – desemnează pe ${ion}, cu următoarele atribuții:`,
     ],
     [
-      'a manager designated while another manager is not',
+      'two managers who designate someone else',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager']),
+        person('Ion MARIN', 'Șef atelier', ['workplace_manager']),
+        person('Ana POP', 'Contabil', ['imminent_danger']),
+      ],
+      `${lead}${roza}, și ${ion} – desemnează pe Ana POP, având funcția de Contabil, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager designated beside someone else while another manager is not',
       [
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['workplace_manager']),
         person('Ana POP', 'Contabil', ['imminent_danger']),
       ],
-      `${lead}${roza}, și ${ion} – desemnează pe ${roza}, și Ana POP, având funcția de Contabil, cu următoarele atribuții:`,
+      `${lead}${roza}, și ${ion} – desemnează pe Ana POP, având funcția de Contabil, alături de Roza URSU, care își asumă rolul de personal desemnat, cu următoarele atribuții:`,
+    ],
+    [
+      'two managers designated beside two others while a third manager is not',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['workplace_manager', 'imminent_danger']),
+        person('Dan POP', 'Șef sală', ['workplace_manager']),
+        person('Ana POP', 'Contabil', ['imminent_danger']),
+        person('Eva DAN', 'Casier', ['imminent_danger']),
+      ],
+      `${lead}${roza}, ${ion}, și Dan POP, având funcția de Șef sală – desemnează pe Ana POP, având funcția de Contabil, și Eva DAN, având funcția de Casier, alături de Roza URSU și Ion MARIN, care își asumă rolul de personal desemnat, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager designated while another manager is not, and nobody else',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['workplace_manager']),
+      ],
+      `${lead}${roza}, și ${ion} – stabilește ca Roza URSU să își asume, în calitate de personal desemnat, următoarele atribuții:`,
     ],
   ])(
     'words Art. 2 for %s',
@@ -245,6 +273,18 @@ describe('decision 1.4', () => {
     const record = text.slice(text.indexOf('PROCES-VERBAL'));
     expect(record).toContain('Roza URSU');
     expect(record).toContain('Ion MARIN');
+  }, 30_000);
+
+  it('lists only the people designated in the record when a manager is not', () => {
+    const text = article2(
+      person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+      person('Ion MARIN', 'Șef atelier', ['workplace_manager']),
+      person('Ana POP', 'Contabil', ['imminent_danger'])
+    );
+    const record = text.slice(text.indexOf('PROCES-VERBAL'));
+    expect(record).toContain('Roza URSU');
+    expect(record).toContain('Ana POP');
+    expect(record).not.toContain('Ion MARIN');
   }, 30_000);
 });
 
