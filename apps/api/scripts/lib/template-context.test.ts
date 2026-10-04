@@ -199,7 +199,16 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
       ],
-      `${lead}${roza} – desemnează pe ${roza}, și ${ion}, cu următoarele atribuții:`,
+      `${lead}${roza} – își asumă rolul de personal desemnat și desemnează pe ${ion}, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager designated beside two others',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
+        person('Ana POP', 'Contabil', ['imminent_danger']),
+      ],
+      `${lead}${roza} – își asumă rolul de personal desemnat și desemnează pe ${ion}, și Ana POP, având funcția de Contabil, cu următoarele atribuții:`,
     ],
     [
       'a manager who designates someone else',
@@ -208,6 +217,15 @@ describe('decision 1.4', () => {
         person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
       ],
       `${lead}${roza} – desemnează pe ${ion}, cu următoarele atribuții:`,
+    ],
+    [
+      'a manager designated while another manager is not',
+      [
+        person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+        person('Ion MARIN', 'Șef atelier', ['workplace_manager']),
+        person('Ana POP', 'Contabil', ['imminent_danger']),
+      ],
+      `${lead}${roza}, și ${ion} – desemnează pe ${roza}, și Ana POP, având funcția de Contabil, cu următoarele atribuții:`,
     ],
   ])(
     'words Art. 2 for %s',
@@ -218,6 +236,16 @@ describe('decision 1.4', () => {
     },
     30_000
   );
+
+  it('lists everyone designated in the record, the managers among them', () => {
+    const text = article2(
+      person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
+      person('Ion MARIN', 'Șef atelier', ['imminent_danger'])
+    );
+    const record = text.slice(text.indexOf('PROCES-VERBAL'));
+    expect(record).toContain('Roza URSU');
+    expect(record).toContain('Ion MARIN');
+  }, 30_000);
 });
 
 const renderWith = (typeKey: (typeof documentTypeKeys)[number], variant: typeof facts) => {
@@ -250,22 +278,23 @@ describe('the employer briefing', () => {
 });
 
 describe('the protective equipment list', () => {
-  const none =
-    'Pentru posturile de lucru de mai sus nu este necesară dotarea cu echipament individual de protecție.';
+  const handover =
+    'Observații: La predarea echipamentului individual de protecție se va completa procesul-verbal de predare-primire.';
 
   it('prints a section per equipped position, and names the others after them', () => {
     const text = renderWith('protective_equipment_list', facts);
     expect(text).toContain('POST DE LUCRU:');
-    expect(text).not.toContain(none);
+    expect(text).not.toContain('de mai sus');
     expect(text).toMatch(
       /\nPentru postul de lucru Contabil nu este necesară dotarea cu echipament individual de protecție\.\nObservații:/
     );
     expect(text.indexOf('Pentru postul de lucru Contabil')).toBeGreaterThan(
       text.lastIndexOf('POST DE LUCRU:')
     );
+    expect(text).toContain(handover);
   }, 30_000);
 
-  it('says so where no position is equipped', () => {
+  it('names every position where none is equipped, with no note on handing equipment over', () => {
     const text = renderWith('protective_equipment_list', {
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
@@ -275,8 +304,11 @@ describe('the protective equipment list', () => {
       })),
     });
     expect(text).not.toContain('POST DE LUCRU:');
-    expect(text).toContain(`prelucrarea materialelor de acoperire.\n${none}\nObservații:`);
+    expect(text).toMatch(
+      /prelucrarea materialelor de acoperire\.\nPentru posturile de lucru Contabil și Sudor nu este necesară dotarea cu echipament individual de protecție\./
+    );
     expect(text.match(/nu este necesară dotarea/g)).toHaveLength(1);
+    expect(text).not.toContain('Observații:');
   }, 30_000);
 });
 

@@ -286,9 +286,9 @@ describe('the merge context', () => {
     expect(one.firstAiderNames).toBe('Florin Cristian TALOȘ');
   });
 
-  it('says when the people designated for imminent danger are exactly the workplace managers', () => {
-    const assume = (...roles: DocumentFacts['responsiblePersons'][number]['roles'][]) =>
-      buildDocumentContext({
+  it('chooses how the workplace managers act in imminent danger', () => {
+    const wording = (...roles: DocumentFacts['responsiblePersons'][number]['roles'][]) => {
+      const built = buildDocumentContext({
         ...facts,
         responsiblePersons: roles.map((personRoles, index) => ({
           fullName: `Persoana ${index + 1}`,
@@ -296,16 +296,34 @@ describe('the merge context', () => {
           roles: [...personRoles, 'first_aid', 'risk_evaluation_team'],
           currentEmployee: true,
         })),
-      }).workplaceManagersAssumeImminentDanger;
+      });
+      const chosen = [
+        built.workplaceManagersAssumeImminentDanger && 'assume',
+        built.workplaceManagersAssumeAndDesignateImminentDanger && 'assume and designate',
+        built.workplaceManagersDesignateImminentDanger && 'designate',
+      ].filter(Boolean);
+      expect(chosen).toHaveLength(1);
+      return [chosen[0], built.imminentDangerOthersText];
+    };
+    const both = ['workplace_manager', 'imminent_danger'] as const;
 
     expect(context.workplaceManagersAssumeImminentDanger).toBe(true);
-    expect(assume(['workplace_manager', 'imminent_danger'])).toBe(true);
-    expect(
-      assume(['workplace_manager', 'imminent_danger'], ['workplace_manager', 'imminent_danger'])
-    ).toBe(true);
-    expect(assume(['workplace_manager', 'imminent_danger'], ['imminent_danger'])).toBe(false);
-    expect(assume(['workplace_manager'], ['imminent_danger'])).toBe(false);
-    expect(assume(['workplace_manager', 'imminent_danger'], ['workplace_manager'])).toBe(false);
+    expect(wording([...both])).toEqual(['assume', null]);
+    expect(wording([...both], [...both])).toEqual(['assume', null]);
+    expect(wording([...both], ['imminent_danger'])).toEqual([
+      'assume and designate',
+      'Persoana 2, având funcția de Administrator',
+    ]);
+    expect(wording([...both], [...both], ['imminent_danger'], ['imminent_danger'])).toEqual([
+      'assume and designate',
+      'Persoana 3, având funcția de Administrator, și Persoana 4, având funcția de Administrator',
+    ]);
+    expect(wording(['workplace_manager'], ['imminent_danger'])).toEqual(['designate', null]);
+    expect(wording([...both], ['workplace_manager'])).toEqual(['designate', null]);
+    expect(wording([...both], ['workplace_manager'], ['imminent_danger'])).toEqual([
+      'designate',
+      null,
+    ]);
   });
 
   it('words the training schedule', () => {
@@ -339,7 +357,17 @@ describe('the merge context', () => {
     expect(other.training.administrativeFrequency).toBe('ANUAL');
     expect(other.training.administrativeMonths).toBe('luna septembrie');
     expect(other.training.workerFrequency).toBe('LA 2 LUNI');
-    expect(other.training.workerMonths).toBe('lunile septembrie și noiembrie');
+    expect(other.training.workerMonths).toBe(
+      'lunile ianuarie, martie, mai, iulie, septembrie și noiembrie'
+    );
+
+    const late = buildDocumentContext({
+      ...facts,
+      client: { ...facts.client, workerTrainingIntervalMonths: 6, trainingFirstMonth: 11 },
+    });
+    expect(late.training.workerFrequency).toBe('SEMESTRIAL');
+    expect(late.training.workerMonths).toBe('lunile mai și noiembrie');
+    expect(late.training.administrativeMonths).toBe('lunile mai și noiembrie');
   });
 
   it('builds only the applicable category context', () => {
@@ -426,16 +454,20 @@ describe('the merge context', () => {
     ]);
   });
 
-  it('names the positions without equipment only beside equipped ones', () => {
+  it('names the positions without equipment, all of them when none is equipped', () => {
     expect(context.unequippedPositionsText).toBe('postul de lucru Contabil');
+    expect(context.hasEquippedPositions).toBe(true);
     const [contabil, sudor] = facts.jobPositions;
     const withPositions = (jobPositions: (typeof facts)['jobPositions']) =>
-      buildDocumentContext({ ...facts, jobPositions }).unequippedPositionsText;
-    expect(withPositions([contabil!, { ...contabil!, name: 'Șofer' }, sudor!])).toBe(
-      'posturile de lucru Contabil și Șofer'
-    );
-    expect(withPositions([sudor!])).toBeNull();
-    expect(withPositions([contabil!])).toBeNull();
+      buildDocumentContext({ ...facts, jobPositions });
+    expect(
+      withPositions([contabil!, { ...contabil!, name: 'Șofer' }, sudor!]).unequippedPositionsText
+    ).toBe('posturile de lucru Contabil și Șofer');
+    expect(withPositions([sudor!]).unequippedPositionsText).toBeNull();
+    const none = withPositions([contabil!, { ...contabil!, name: 'Șofer' }]);
+    expect(none.unequippedPositionsText).toBe('posturile de lucru Contabil și Șofer');
+    expect(none.hasEquippedPositions).toBe(false);
+    expect(withPositions([contabil!]).unequippedPositionsText).toBe('postul de lucru Contabil');
   });
 
   it('counts the months of an equipment entry as Romanian counts them', () => {

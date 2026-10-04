@@ -11,16 +11,28 @@ import {
 } from './document-data';
 
 describe('trainingMonths', () => {
-  it('starts at the first month and repeats by the interval until the year ends', () => {
+  it('starts at the first month and repeats by the interval', () => {
     // The two sample documentation sets: February and August; January, April, July, October.
     expect(trainingMonths(2, 6)).toEqual([2, 8]);
     expect(trainingMonths(1, 3)).toEqual([1, 4, 7, 10]);
     expect(trainingMonths(2, 3)).toEqual([2, 5, 8, 11]);
   });
 
-  it('gives one month for a yearly interval, and the rest of the year for a monthly one', () => {
+  it('wraps around the year and lists the months in calendar order', () => {
+    expect(trainingMonths(11, 6)).toEqual([5, 11]);
+    expect(trainingMonths(10, 3)).toEqual([1, 4, 7, 10]);
+    expect(trainingMonths(12, 4)).toEqual([4, 8, 12]);
+    expect(trainingMonths(9, 2)).toEqual([1, 3, 5, 7, 9, 11]);
+  });
+
+  it('gives as many sessions as the interval fits in a year, whatever the first month', () => {
+    for (const interval of [1, 2, 3, 4, 6, 12]) {
+      for (let first = 1; first <= 12; first += 1) {
+        expect(trainingMonths(first, interval)).toHaveLength(12 / interval);
+      }
+    }
     expect(trainingMonths(5, 12)).toEqual([5]);
-    expect(trainingMonths(10, 1)).toEqual([10, 11, 12]);
+    expect(trainingMonths(10, 1)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   });
 });
 
