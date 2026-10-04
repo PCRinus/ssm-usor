@@ -155,7 +155,7 @@ describe('the decisions', () => {
   it('let the workplace managers take on the imminent danger duties when they are the ones designated', () => {
     const text = render('decision_imminent_danger');
     expect(text).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – își asumă următoarele atribuții:`
+      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – își asumă, în calitate de personal desemnat, următoarele atribuții:`
     );
     expect(text).not.toContain('desemnează pe');
   }, 30_000);
@@ -183,7 +183,7 @@ describe('decision 1.4', () => {
     [
       'the one manager designated',
       [person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger'])],
-      `${lead}${roza} – își asumă următoarele atribuții:`,
+      `${lead}${roza} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
     ],
     [
       'two managers who are the two designated',
@@ -191,7 +191,7 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['workplace_manager', 'imminent_danger']),
       ],
-      `${lead}${roza} și ${ion} – își asumă următoarele atribuții:`,
+      `${lead}${roza} și ${ion} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
     ],
     [
       'a manager designated beside someone else',

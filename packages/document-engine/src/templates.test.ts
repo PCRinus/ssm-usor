@@ -641,7 +641,7 @@ describe('decision_imminent_danger', () => {
     );
 
     expect(text).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ${described(people)} – își asumă următoarele atribuții:`
+      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ${described(people)} – își asumă, în calitate de personal desemnat, următoarele atribuții:`
     );
     expect(text.split(described(people))).toHaveLength(2);
     expect(text).not.toContain('desemnează pe');
