@@ -594,7 +594,7 @@ describe('decision_risk_evaluation_team', () => {
     expect(text).toContain('Nr. 2 SSM din 19.01.2026');
     expect(text.match(/va îndeplini și funcția de membru al echipei de evaluare/g)).toHaveLength(2);
     expect(text).toContain(
-      'Ana IONESCU în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L.'
+      'Ana IONESCU, în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L., va coordona'
     );
     acknowledged(text);
   });
