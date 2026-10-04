@@ -773,7 +773,7 @@ describe('annex title page', () => {
     const body = new PizZip(merged).file('word/document.xml')!.asText();
     expect((body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf)).toEqual([
       'ANEXA 2',
-      'la Instrucțiunile proprii de securitate și sănătate în muncă',
+      'la Instrucțiunile proprii în domeniul securității și sănătății în muncă',
       'I.P.S.S.M. Scări metalice',
       'versiunea din 26.09.2026',
     ]);

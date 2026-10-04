@@ -6,7 +6,10 @@
   },
   "lines": [
     { "text": "ANEXA {{number}}", "bold": true, "size": 12, "above": 140, "below": 6 },
-    { "text": "la Instrucțiunile proprii de securitate și sănătate în muncă", "below": 36 },
+    {
+      "text": "la Instrucțiunile proprii în domeniul securității și sănătății în muncă",
+      "below": 36
+    },
     { "text": "I.P.S.S.M. {{title}}", "bold": true, "size": 12, "below": 6 },
     { "text": "versiunea din {{versionDate}}", "below": 0 }
   ]
