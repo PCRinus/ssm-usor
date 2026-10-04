@@ -446,7 +446,7 @@ describe('decision_first_aid', () => {
       'Maria POPESCU, în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text).toContain(
-      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru toate locurile de muncă ale societății.'
+      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru toate locurile de muncă ale unității.'
     );
     // Once in the decision, once in each of the two acknowledgement tables.
     expect(text.match(/Ion MARIN/g)).toHaveLength(4);
@@ -520,7 +520,7 @@ describe('decision_training', () => {
       'va fi instruit ANUAL, respectiv în luna februarie, în perioada (zilele) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
+      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul unității; Elena DUMITRU,'
     );
     expect(text).toContain(
       'Personalul de conducere al locurilor de muncă – Ion MARIN, având funcția de Manager magazin, și Elena DUMITRU, având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
@@ -725,7 +725,7 @@ describe('employer_briefing', () => {
       })
     );
     expect(text).toContain(
-      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale societății.'
+      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale unității.'
     );
     expect(text).not.toContain('1,30 ore');
   });

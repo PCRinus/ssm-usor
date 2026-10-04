@@ -267,7 +267,7 @@ describe('the employer briefing', () => {
     (minutes, duration) => {
       const variant = { ...facts, client: { ...facts.client, periodicTrainingMinutes: minutes } };
       expect(renderWith('employer_briefing', variant)).toContain(
-        `Instructajul periodic durează ${duration} și va avea frecvența stabilită prin instrucțiunile proprii ale societății.`
+        `Instructajul periodic durează ${duration} și va avea frecvența stabilită prin instrucțiunile proprii ale unității.`
       );
       expect(renderWith('decision_training', variant)).toContain(
         `durata instruirii periodice va fi de ${duration};`
