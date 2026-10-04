@@ -249,14 +249,14 @@ describe('the merge context', () => {
 
   it('names every holder of a role in a sentence that reads for one person or several', () => {
     expect(context.workplaceManagersText).toBe(
-      'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă'
+      'Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă'
     );
     expect(context.workplaceManagersList).toBe(
       'Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă'
     );
     expect(context.firstAiderNames).toBe('Florin Cristian TALOȘ și Ioana PETRE');
     expect(context.imminentDangerText).toBe(
-      'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă'
+      'Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă'
     );
 
     const third: DocumentFacts['responsiblePersons'][number] = {
@@ -271,7 +271,7 @@ describe('the merge context', () => {
     });
     expect(three.firstAiderNames).toBe('Florin Cristian TALOȘ, Ioana PETRE și Dan RUS');
     expect(three.imminentDangerText).toBe(
-      'Florin Cristian TALOȘ având funcția de Administrator, Ioana PETRE având funcția de Șef de echipă și Dan RUS având funcția de Magaziner'
+      'Florin Cristian TALOȘ, având funcția de Administrator, Ioana PETRE, având funcția de Șef de echipă, și Dan RUS, având funcția de Magaziner'
     );
     expect(three.workplaceManagersList).toBe(
       'Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă; Dan RUS, Magaziner'
@@ -281,7 +281,7 @@ describe('the merge context', () => {
       ...facts,
       responsiblePersons: facts.responsiblePersons.slice(0, 1),
     });
-    expect(one.workplaceManagersText).toBe('Florin Cristian TALOȘ având funcția de Administrator');
+    expect(one.workplaceManagersText).toBe('Florin Cristian TALOȘ, având funcția de Administrator');
     expect(one.workplaceManagersList).toBe('Florin Cristian TALOȘ, Administrator');
     expect(one.firstAiderNames).toBe('Florin Cristian TALOȘ');
   });

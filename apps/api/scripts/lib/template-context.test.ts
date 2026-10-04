@@ -142,7 +142,7 @@ describe('the decisions', () => {
     );
   };
   const managers =
-    'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă';
+    'Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă';
 
   it('name every workplace manager once as those who train the execution staff', () => {
     const text = render('decision_training');
@@ -167,8 +167,8 @@ describe('decision 1.4', () => {
     jobTitle: string,
     roles: (typeof facts)['responsiblePersons'][number]['roles']
   ) => ({ fullName, jobTitle, roles, currentEmployee: true });
-  const roza = 'Roza URSU având funcția de Director general';
-  const ion = 'Ion MARIN având funcția de Șef atelier';
+  const roza = 'Roza URSU, având funcția de Director general';
+  const ion = 'Ion MARIN, având funcția de Șef atelier';
   const article2 = (...responsiblePersons: (typeof facts)['responsiblePersons']) =>
     renderWith('decision_imminent_danger', {
       ...facts,
@@ -191,7 +191,7 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['workplace_manager', 'imminent_danger']),
       ],
-      `${lead}${roza} și ${ion} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
+      `${lead}${roza}, și ${ion} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
     ],
     [
       'a manager designated beside someone else',
@@ -199,7 +199,7 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
       ],
-      `${lead}${roza} – desemnează pe ${roza} și ${ion}, cu următoarele atribuții:`,
+      `${lead}${roza} – desemnează pe ${roza}, și ${ion}, cu următoarele atribuții:`,
     ],
     [
       'a manager who designates someone else',
