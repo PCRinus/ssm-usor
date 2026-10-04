@@ -339,7 +339,17 @@ describe('the merge context', () => {
     expect(other.training.administrativeFrequency).toBe('ANUAL');
     expect(other.training.administrativeMonths).toBe('luna septembrie');
     expect(other.training.workerFrequency).toBe('LA 2 LUNI');
-    expect(other.training.workerMonths).toBe('lunile septembrie și noiembrie');
+    expect(other.training.workerMonths).toBe(
+      'lunile ianuarie, martie, mai, iulie, septembrie și noiembrie'
+    );
+
+    const late = buildDocumentContext({
+      ...facts,
+      client: { ...facts.client, workerTrainingIntervalMonths: 6, trainingFirstMonth: 11 },
+    });
+    expect(late.training.workerFrequency).toBe('SEMESTRIAL');
+    expect(late.training.workerMonths).toBe('lunile mai și noiembrie');
+    expect(late.training.administrativeMonths).toBe('lunile mai și noiembrie');
   });
 
   it('builds only the applicable category context', () => {

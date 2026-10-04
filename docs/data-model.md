@@ -141,15 +141,15 @@ and the accepted terms out of that update. A specialist's qualification, as prin
 training schedule that the first decision sets is on the client too, because the deadline
 calendar will read the same columns:
 
-| Column                                    | Notes                                                                 |
-| ----------------------------------------- | --------------------------------------------------------------------- |
-| `periodic_training_minutes`               | Duration of a periodic training: 30, 60, 90 or 120.                   |
-| `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.   |
-| `administrative_training_not_applicable`  | Explicit exclusion; false with a null interval means undecided.       |
-| `worker_training_interval_months`         | Execution personnel, 1 to 6.                                          |
-| `worker_training_not_applicable`          | Explicit exclusion; false with a null interval means undecided.       |
-| `training_first_month`                    | First month of the year with a training; the rest follow by interval. |
-| `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.       |
+| Column                                    | Notes                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| `periodic_training_minutes`               | Duration of a periodic training: 30, 60, 90 or 120.                      |
+| `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.      |
+| `administrative_training_not_applicable`  | Explicit exclusion; false with a null interval means undecided.          |
+| `worker_training_interval_months`         | Execution personnel, 1 to 6.                                             |
+| `worker_training_not_applicable`          | Explicit exclusion; false with a null interval means undecided.          |
+| `training_first_month`                    | A month with a training; the others follow by interval, around the year. |
+| `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.          |
 
 **Workplaces.** `client_workplaces` holds the registered office and the points of work: a
 name, `is_registered_office` (one per client, by a partial unique index), and an address.

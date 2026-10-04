@@ -576,6 +576,8 @@ For `decision_training`, `training` has `periodicDuration`, `intervalPhrase`, `d
 `dayTo`. The booleans `administrative` and `worker` say which interval paragraphs print.
 Their matching frequency and months values exist only for applicable categories; the months
 carry their noun, "luna martie" or "lunile februarie și august", so one month reads right.
+They run from the first training month around the year, in calendar order: November every
+six months is "lunile mai și noiembrie".
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
 and `representativeName`. A person in a list is `name` and `jobTitle`. Every decision ends with

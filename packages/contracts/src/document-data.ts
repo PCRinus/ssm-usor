@@ -296,13 +296,16 @@ export const responsiblePersonConflictReasons = {
 } as const;
 
 /**
- * The months of the year with a periodic training: the first month, then every `interval`
- * months until the year ends. February every 3 months gives 2, 5, 8, 11.
+ * The months of the year with a periodic training, in calendar order: the first month, then
+ * every `interval` months around the year, for twelve months. February every 3 months gives
+ * 2, 5, 8, 11; November every 6 months gives 5, 11.
  */
 export function trainingMonths(firstMonth: number, intervalMonths: number): number[] {
   const months: number[] = [];
-  for (let month = firstMonth; month <= 12; month += intervalMonths) months.push(month);
-  return months;
+  for (let offset = 0; offset < 12; offset += intervalMonths) {
+    months.push(((firstMonth - 1 + offset) % 12) + 1);
+  }
+  return months.sort((a, b) => a - b);
 }
 
 /**

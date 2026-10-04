@@ -97,7 +97,7 @@ describe('the periodic sessions of a post', () => {
   it('cite the common part alone for a post without modules', () => {
     const sessions = trainingSessions({
       firstMonth: 7,
-      intervalMonths: 6,
+      intervalMonths: 12,
       periodicTrainingMinutes: 60,
       modules: [],
     });
@@ -110,10 +110,31 @@ describe('the periodic sessions of a post', () => {
     ]);
   });
 
+  it('run in calendar order when the schedule wraps the year, and test in the last of them', () => {
+    const sessions = trainingSessions({
+      firstMonth: 11,
+      intervalMonths: 6,
+      periodicTrainingMinutes: 60,
+      modules: [],
+    });
+    expect(sessions).toEqual([
+      {
+        month: 'MAI',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a094',
+        duration: '60 min',
+      },
+      {
+        month: 'NOIEMBRIE',
+        content: 'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0287; Testare.',
+        duration: '60 min',
+      },
+    ]);
+  });
+
   it('cite a module without numbered articles by its title', () => {
     const [session] = trainingSessions({
       firstMonth: 12,
-      intervalMonths: 1,
+      intervalMonths: 12,
       periodicTrainingMinutes: 30,
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
