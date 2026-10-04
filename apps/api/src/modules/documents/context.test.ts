@@ -300,29 +300,51 @@ describe('the merge context', () => {
       const chosen = [
         built.workplaceManagersAssumeImminentDanger && 'assume',
         built.workplaceManagersAssumeAndDesignateImminentDanger && 'assume and designate',
+        built.workplaceManagersDesignateAlongsideImminentDanger && 'designate alongside',
+        built.workplaceManagersAssignImminentDanger && 'assign',
         built.workplaceManagersDesignateImminentDanger && 'designate',
       ].filter(Boolean);
       expect(chosen).toHaveLength(1);
-      return [chosen[0], built.imminentDangerOthersText];
+      return [chosen[0], built.imminentDangerOthersText, built.imminentDangerManagerNames];
     };
     const both = ['workplace_manager', 'imminent_danger'] as const;
 
     expect(context.workplaceManagersAssumeImminentDanger).toBe(true);
-    expect(wording([...both])).toEqual(['assume', null]);
-    expect(wording([...both], [...both])).toEqual(['assume', null]);
+    expect(wording([...both])).toEqual(['assume', null, null]);
+    expect(wording([...both], [...both])).toEqual(['assume', null, null]);
     expect(wording([...both], ['imminent_danger'])).toEqual([
       'assume and designate',
       'Persoana 2, având funcția de Administrator',
+      null,
     ]);
     expect(wording([...both], [...both], ['imminent_danger'], ['imminent_danger'])).toEqual([
       'assume and designate',
       'Persoana 3, având funcția de Administrator, și Persoana 4, având funcția de Administrator',
+      null,
     ]);
-    expect(wording(['workplace_manager'], ['imminent_danger'])).toEqual(['designate', null]);
-    expect(wording([...both], ['workplace_manager'])).toEqual(['designate', null]);
-    expect(wording([...both], ['workplace_manager'], ['imminent_danger'])).toEqual([
+    expect(wording(['workplace_manager'], ['imminent_danger'])).toEqual(['designate', null, null]);
+    expect(wording(['workplace_manager'], ['workplace_manager'], ['imminent_danger'])).toEqual([
       'designate',
       null,
+      null,
+    ]);
+    expect(wording([...both], ['workplace_manager'])).toEqual(['assign', null, 'Persoana 1']);
+    expect(wording([...both], [...both], ['workplace_manager'])).toEqual([
+      'assign',
+      null,
+      'Persoana 1 și Persoana 2',
+    ]);
+    expect(wording([...both], ['workplace_manager'], ['imminent_danger'])).toEqual([
+      'designate alongside',
+      'Persoana 3, având funcția de Administrator',
+      'Persoana 1',
+    ]);
+    expect(
+      wording([...both], [...both], ['workplace_manager'], ['imminent_danger'], ['imminent_danger'])
+    ).toEqual([
+      'designate alongside',
+      'Persoana 4, având funcția de Administrator, și Persoana 5, având funcția de Administrator',
+      'Persoana 1 și Persoana 2',
     ]);
   });
 

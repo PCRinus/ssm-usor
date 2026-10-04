@@ -446,7 +446,7 @@ describe('decision_first_aid', () => {
       'Maria POPESCU, în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text).toContain(
-      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru toate locurile de muncă ale societății.'
+      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru toate locurile de muncă ale unității.'
     );
     // Once in the decision, once in each of the two acknowledgement tables.
     expect(text.match(/Ion MARIN/g)).toHaveLength(4);
@@ -520,7 +520,7 @@ describe('decision_training', () => {
       'va fi instruit ANUAL, respectiv în luna februarie, în perioada (zilele) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
+      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul unității; Elena DUMITRU,'
     );
     expect(text).toContain(
       'Personalul de conducere al locurilor de muncă – Ion MARIN, având funcția de Manager magazin, și Elena DUMITRU, având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
@@ -603,8 +603,9 @@ describe('decision_risk_evaluation_team', () => {
 describe('decision_imminent_danger', () => {
   const render = (
     managers: typeof people,
-    wording: 'assume' | 'assume_and_designate' | 'designate',
-    others: typeof people | null = null
+    wording: 'assume' | 'assume_and_designate' | 'designate_alongside' | 'assign' | 'designate',
+    others: typeof people | null = null,
+    managerNames: string | null = null
   ) =>
     documentText(
       renderDocument(read('1.4_decision_imminent_danger.docx'), {
@@ -615,8 +616,11 @@ describe('decision_imminent_danger', () => {
         imminentDangerText: described(people),
         workplaceManagersAssumeImminentDanger: wording === 'assume',
         workplaceManagersAssumeAndDesignateImminentDanger: wording === 'assume_and_designate',
+        workplaceManagersDesignateAlongsideImminentDanger: wording === 'designate_alongside',
+        workplaceManagersAssignImminentDanger: wording === 'assign',
         workplaceManagersDesignateImminentDanger: wording === 'designate',
         imminentDangerOthersText: others && described(others),
+        imminentDangerManagerNames: managerNames,
       })
     );
   const lead = 'conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – ';
@@ -659,6 +663,31 @@ describe('decision_imminent_danger', () => {
     );
     expect(text.match(/desemnează pe/g)).toHaveLength(1);
     expect(text.match(/Ion MARIN/g)).toHaveLength(2);
+    acknowledged(text);
+  });
+
+  const manager = { name: 'Ana POP', jobTitle: 'Șef sală' };
+
+  it('lets a designated manager take the role on beside the people the managers designate', () => {
+    const text = render([people[0]!, manager], 'designate_alongside', people.slice(1), 'Ion MARIN');
+
+    expect(text).not.toContain('{{');
+    expect(text).toContain(
+      `${lead}${described([people[0]!, manager])} – desemnează pe Elena DUMITRU, având funcția de Lucrător comercial, alături de Ion MARIN, care își asumă rolul de personal desemnat, cu următoarele atribuții:`
+    );
+    expect(text.match(/desemnează pe/g)).toHaveLength(1);
+    expect(text).not.toContain('Ion MARIN, având funcția de Manager magazin, și Elena');
+    acknowledged(text);
+  });
+
+  it('settles which managers take the duties on when nobody else is designated', () => {
+    const text = render([people[0]!, manager], 'assign', null, 'Ion MARIN');
+
+    expect(text).not.toContain('{{');
+    expect(text).toContain(
+      `${lead}${described([people[0]!, manager])} – stabilește ca Ion MARIN să își asume, în calitate de personal desemnat, următoarele atribuții:`
+    );
+    expect(text).not.toContain('desemnează pe');
     acknowledged(text);
   });
 });
@@ -725,7 +754,7 @@ describe('employer_briefing', () => {
       })
     );
     expect(text).toContain(
-      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale societății.'
+      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale unității.'
     );
     expect(text).not.toContain('1,30 ore');
   });
