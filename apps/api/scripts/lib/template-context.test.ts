@@ -251,7 +251,7 @@ describe('the employer briefing', () => {
 
 describe('the protective equipment list', () => {
   const none =
-    'Pentru posturile de lucru de mai sus nu a fost stabilit necesar de dotare cu echipament individual de protecție.';
+    'Pentru posturile de lucru de mai sus nu este necesară dotarea cu echipament individual de protecție.';
 
   it('prints a section per equipped position, and names the others after them', () => {
     const text = renderWith('protective_equipment_list', facts);
@@ -276,7 +276,7 @@ describe('the protective equipment list', () => {
     });
     expect(text).not.toContain('POST DE LUCRU:');
     expect(text).toContain(`prelucrarea materialelor de acoperire.\n${none}\nObservații:`);
-    expect(text.match(/nu a fost stabilit necesar de dotare/g)).toHaveLength(1);
+    expect(text.match(/nu este necesară dotarea/g)).toHaveLength(1);
   }, 30_000);
 });
 
