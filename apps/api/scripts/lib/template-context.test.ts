@@ -258,7 +258,7 @@ describe('the protective equipment list', () => {
     expect(text).toContain('POST DE LUCRU:');
     expect(text).not.toContain(none);
     expect(text).toMatch(
-      /\nPentru postul de lucru Contabil nu a fost stabilit necesar de dotare cu echipament individual de protecție\.\nObservații:/
+      /\nPentru postul de lucru Contabil nu este necesară dotarea cu echipament individual de protecție\.\nObservații:/
     );
     expect(text.indexOf('Pentru postul de lucru Contabil')).toBeGreaterThan(
       text.lastIndexOf('POST DE LUCRU:')
