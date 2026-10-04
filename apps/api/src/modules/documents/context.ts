@@ -201,7 +201,7 @@ export type DocumentContext = {
 };
 
 const staffCategoryLabels: Record<StaffCategory, string> = {
-  technical_administrative: 'Tehnic-administrativ',
+  technical_administrative: 'Tehnico-administrativ',
   execution: 'Execuție',
 };
 

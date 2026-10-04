@@ -13,12 +13,12 @@ export type JobPosition = JobPositionListResponse['items'][number];
 // The two kinds of staff the training decision gives an interval each, in its own words.
 export const staffCategoryLabels: Record<StaffCategory, string> = {
   execution: 'Personal de execuție',
-  technical_administrative: 'Tehnic-administrativ și conducători de locuri de muncă',
+  technical_administrative: 'Tehnico-administrativ și conducători de locuri de muncă',
 };
 
 export const staffCategoryShortLabels: Record<StaffCategory, string> = {
   execution: 'Execuție',
-  technical_administrative: 'Tehnic-administrativ',
+  technical_administrative: 'Tehnico-administrativ',
 };
 
 export const intervalOptionsFor = (category: StaffCategory) =>

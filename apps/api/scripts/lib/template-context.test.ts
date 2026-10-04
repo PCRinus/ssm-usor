@@ -144,10 +144,10 @@ describe('the decisions', () => {
   const managers =
     'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă';
 
-  it('name every workplace manager once as those who train the whole staff', () => {
+  it('name every workplace manager once as those who train the execution staff', () => {
     const text = render('decision_training');
     expect(text).toContain(
-      `Personalul de conducere al locurilor de muncă – ${managers} – va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul din cadrul S.C. PIPETECH S.R.L.`
+      `Personalul de conducere al locurilor de muncă – ${managers} – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. PIPETECH S.R.L.`
     );
     expect(text).toContain('durata instruirii periodice va fi de 2\u00a0ore;');
   }, 30_000);
@@ -275,7 +275,7 @@ describe('the protective equipment list', () => {
       })),
     });
     expect(text).not.toContain('POST DE LUCRU:');
-    expect(text).toContain(`prelucrarea materialelor de acoperire;\n${none}\nObservații:`);
+    expect(text).toContain(`prelucrarea materialelor de acoperire.\n${none}\nObservații:`);
     expect(text.match(/nu a fost stabilit necesar de dotare/g)).toHaveLength(1);
   }, 30_000);
 });

@@ -354,7 +354,7 @@ describe('typesetting', () => {
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
       const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
-        documentTextOf(paragraph).includes('PROCES VERBAL DE LUARE LA CUNOȘTINȚĂ')
+        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE LA CUNOȘTINȚĂ')
       );
       expect(heading).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
       // A table that may not split is written as rows that keep with the next one.
@@ -454,7 +454,7 @@ describe('decision_first_aid', () => {
     expect(text).toContain('S.C. SERVICIU EXTERN S.R.L. – Ana IONESCU');
     // Reads the same for one first aider or several.
     expect(text).toContain(
-      'a personalului desemnat să acorde primul ajutor și să aplice măsurile de prevenire și stingere a incendiilor: Ion MARIN, Elena DUMITRU.'
+      'a personalului desemnat să acorde primul ajutor: Ion MARIN, Elena DUMITRU.'
     );
     expect(text).toContain('Personalul desemnat prin prezenta decizie va fi instruit suplimentar');
   });
@@ -505,7 +505,7 @@ describe('decision_training', () => {
     },
   };
 
-  it('prints the training schedule, and names the workplace managers once as those who train everyone', () => {
+  it('prints the training schedule, and names the workplace managers once as those who train the execution staff', () => {
     const text = documentText(renderDocument(template, data));
 
     expect(text).not.toContain('{{');
@@ -514,18 +514,18 @@ describe('decision_training', () => {
     expect(text).toContain('din cadrul S.C. CLIENT DEMO S.R.L.\n');
     expect(text).not.toContain('..');
     expect(text).toContain(
-      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL respectiv în lunile februarie și august, în perioada (ziua) 2 – 7 ale lunii'
+      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL, respectiv în lunile februarie și august, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'va fi instruit ANUAL respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
+      'va fi instruit ANUAL, respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
+      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
     );
     expect(text).toContain(
-      'Personalul de conducere al locurilor de muncă – Ion MARIN având funcția de Manager magazin și Elena DUMITRU având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru întreg personalul din cadrul S.C. CLIENT DEMO S.R.L.'
+      'Personalul de conducere al locurilor de muncă – Ion MARIN având funcția de Manager magazin și Elena DUMITRU având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
     );
-    expect(text.match(/pentru întreg personalul/g)).toHaveLength(1);
+    expect(text.match(/pentru personalul de execuție/g)).toHaveLength(1);
     acknowledged(text);
   });
 
@@ -564,8 +564,11 @@ describe('decision_training', () => {
       })
     );
     expect(workerOnly).toContain('va fi instruit ANUAL');
+    expect(workerOnly).toContain(
+      'instruirea periodică pentru personalul de conducere al locurilor de muncă din cadrul'
+    );
     expect(workerOnly).not.toContain(
-      'personalul tehnic-administrativ și șefii de locuri de muncă vor fi instruiți'
+      'personalul tehnico-administrativ și șefii de locuri de muncă vor fi instruiți'
     );
   });
 
@@ -677,10 +680,11 @@ describe('decision_workers_representative', () => {
     expect(render([people[0]!])).toContain('pe următorul angajat:');
   });
 
-  it('prints the thresholds of H.G. 1425/2006 art. 53(1)', () => {
+  it('prints the thresholds of H.G. 1425/2006 art. 53(2) as minimums', () => {
     const text = render(people);
+    expect(text).toContain('cel puțin un reprezentant, în cazul în care');
     expect(text).toContain('va avea între 10 și 49 de lucrători inclusiv');
-    expect(text).toContain('doi reprezentanți, în cazul în care');
+    expect(text).toContain('cel puțin doi reprezentanți, în cazul în care');
     expect(text).toContain('va avea între 50 și 100 de lucrători inclusiv');
   });
 
@@ -870,21 +874,21 @@ describe('training_themes', () => {
         [1, 6],
         [7, 13],
         [14, 15],
-        [16, 28],
-        [29, 81],
-        [82, 99],
-        [100, 110],
-        [111, 121],
-        [122, 152],
-        [153, 215],
-        [216, 238],
-        [239, 270],
-        [271, 278],
-        [279, 291],
-        [292, 300],
-        [301, 326],
+        [16, 27],
+        [28, 80],
+        [81, 96],
+        [97, 107],
+        [108, 118],
+        [119, 149],
+        [150, 208],
+        [209, 231],
+        [232, 263],
+        [264, 271],
+        [272, 284],
+        [285, 293],
+        [294, 319],
       ].map(([from, to]) => `MISSMIG Art. ${from} – ${to}`),
-      'MISSMIG Art. 327',
+      'MISSMIG Art. 320',
     ]);
   });
 

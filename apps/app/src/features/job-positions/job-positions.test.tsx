@@ -135,7 +135,7 @@ describe("a client's job positions", () => {
     expect(first!.textContent).toContain('Gelaterie');
     expect(within(first!).getByTestId('job-position-employees').textContent).toBe('3 angajați');
     expect(within(second!).getByTestId('job-position-category-badge').textContent).toBe(
-      'Tehnic-administrativ'
+      'Tehnico-administrativ'
     );
     expect(within(second!).getByTestId('job-position-employees').textContent).toBe(
       'Niciun angajat'

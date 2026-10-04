@@ -389,7 +389,7 @@ describe('an evaluation of the risk assessment', () => {
     };
     const lead = 'Rezultatul este susținut de „Fișa de evaluare”, din care se observă că';
     const exceeds =
-      'ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mare.';
+      'ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mediu sau mare.';
     expect(sentences([factor(2, 2)])).toEqual([
       `${lead} singurul factor de risc identificat nu depășește, ca nivel parțial de risc, valoarea 3.`,
       '',

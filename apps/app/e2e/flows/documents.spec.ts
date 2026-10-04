@@ -184,7 +184,9 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
     .filter({ hasText: /^Material de instruire introductiv-generală/ });
   await act(page, material, 'document-issue');
   await page.getByTestId('document-confirm').click();
-  await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
+    timeout: 30_000,
+  });
 
   // The own instructions annex the module the position applies (ADR 012): issuing converts
   // the common part and the module's file into the one PDF the revision keeps.
