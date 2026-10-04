@@ -443,10 +443,10 @@ describe('decision_first_aid', () => {
     expect(text).not.toContain('{{');
     expect(text).toContain('Nr. 3 SSM din 19.01.2026');
     expect(text).toContain(
-      'Maria POPESCU în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
+      'Maria POPESCU, în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text).toContain(
-      'Elena DUMITRU având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L. pentru sediul și punctele de lucru ale societății.'
+      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru sediul și punctele de lucru ale societății.'
     );
     // Once in the decision, once in each of the two acknowledgement tables.
     expect(text.match(/Ion MARIN/g)).toHaveLength(4);
@@ -514,10 +514,10 @@ describe('decision_training', () => {
     expect(text).toContain('din cadrul S.C. CLIENT DEMO S.R.L.\n');
     expect(text).not.toContain('..');
     expect(text).toContain(
-      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL, respectiv în lunile februarie și august, în perioada (ziua) 2 – 7 ale lunii'
+      'șefii de locuri de muncă vor fi instruiți SEMESTRIAL, respectiv în lunile februarie și august, în perioada (zilele) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'va fi instruit ANUAL, respectiv în luna februarie, în perioada (ziua) 2 – 7 ale lunii'
+      'va fi instruit ANUAL, respectiv în luna februarie, în perioada (zilele) 2 – 7 ale lunii'
     );
     expect(text).toContain(
       'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
@@ -594,7 +594,7 @@ describe('decision_risk_evaluation_team', () => {
     expect(text).toContain('Nr. 2 SSM din 19.01.2026');
     expect(text.match(/va îndeplini și funcția de membru al echipei de evaluare/g)).toHaveLength(2);
     expect(text).toContain(
-      'Ana IONESCU în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L.'
+      'Ana IONESCU, în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L., va coordona'
     );
     acknowledged(text);
   });
@@ -667,7 +667,7 @@ describe('decision_workers_representative', () => {
     expect(text).not.toContain('{{');
     expect(text).toContain('Nr. 5 SSM din 19.01.2026');
     expect(text).toContain(
-      'Maria POPESCU având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
+      'Maria POPESCU, având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
     );
     expect(text).toMatch(
       /pe următorii angajați:\s+Ion MARIN, având funcția de Manager magazin\.\s+Elena DUMITRU, având funcția de Lucrător comercial\./
@@ -773,7 +773,7 @@ describe('annex title page', () => {
     const body = new PizZip(merged).file('word/document.xml')!.asText();
     expect((body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf)).toEqual([
       'ANEXA 2',
-      'la Instrucțiunile proprii de securitate și sănătate în muncă',
+      'la Instrucțiunile proprii în domeniul securității și sănătății în muncă',
       'I.P.S.S.M. Scări metalice',
       'versiunea din 26.09.2026',
     ]);
