@@ -446,7 +446,7 @@ describe('decision_first_aid', () => {
       'Maria POPESCU, în calitate de Director general în cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text).toContain(
-      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru sediul și punctele de lucru ale societății.'
+      'Elena DUMITRU, având funcția de Lucrător comercial în cadrul S.C. CLIENT DEMO S.R.L., pentru toate locurile de muncă ale societății.'
     );
     // Once in the decision, once in each of the two acknowledgement tables.
     expect(text.match(/Ion MARIN/g)).toHaveLength(4);
