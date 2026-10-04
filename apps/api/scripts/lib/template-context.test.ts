@@ -278,22 +278,23 @@ describe('the employer briefing', () => {
 });
 
 describe('the protective equipment list', () => {
-  const none =
-    'Pentru posturile de lucru de mai sus nu este necesară dotarea cu echipament individual de protecție.';
+  const handover =
+    'Observații: La predarea echipamentului individual de protecție se va completa procesul-verbal de predare-primire.';
 
   it('prints a section per equipped position, and names the others after them', () => {
     const text = renderWith('protective_equipment_list', facts);
     expect(text).toContain('POST DE LUCRU:');
-    expect(text).not.toContain(none);
+    expect(text).not.toContain('de mai sus');
     expect(text).toMatch(
       /\nPentru postul de lucru Contabil nu este necesară dotarea cu echipament individual de protecție\.\nObservații:/
     );
     expect(text.indexOf('Pentru postul de lucru Contabil')).toBeGreaterThan(
       text.lastIndexOf('POST DE LUCRU:')
     );
+    expect(text).toContain(handover);
   }, 30_000);
 
-  it('says so where no position is equipped', () => {
+  it('names every position where none is equipped, with no note on handing equipment over', () => {
     const text = renderWith('protective_equipment_list', {
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
@@ -303,8 +304,11 @@ describe('the protective equipment list', () => {
       })),
     });
     expect(text).not.toContain('POST DE LUCRU:');
-    expect(text).toContain(`prelucrarea materialelor de acoperire.\n${none}\nObservații:`);
+    expect(text).toMatch(
+      /prelucrarea materialelor de acoperire\.\nPentru posturile de lucru Contabil și Sudor nu este necesară dotarea cu echipament individual de protecție\./
+    );
     expect(text.match(/nu este necesară dotarea/g)).toHaveLength(1);
+    expect(text).not.toContain('Observații:');
   }, 30_000);
 });
 

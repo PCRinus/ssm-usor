@@ -197,10 +197,10 @@ export type DocumentContext = {
   /** Every current position, for the table of posts; then only the ones with equipment. */
   positions: PositionContext[];
   equippedPositions: EquippedPositionContext[];
+  hasEquippedPositions: boolean;
   /**
-   * Beside equipped positions, the others: "postul de lucru Contabil", "posturile de lucru
-   * Contabil și Șofer". Null when every position is equipped or none is; the template says
-   * the latter in a sentence of its own.
+   * The positions without equipment, every one of them when none has any: "postul de lucru
+   * Contabil", "posturile de lucru Contabil și Șofer". Null when every position is equipped.
    */
   unequippedPositionsText: string | null;
   /** The modules the positions apply, each once, in the order of the groups and titles. */
@@ -564,8 +564,9 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     }),
     positions,
     equippedPositions,
+    hasEquippedPositions: equippedPositions.length > 0,
     unequippedPositionsText:
-      unequipped.length === 0 || equippedPositions.length === 0
+      unequipped.length === 0
         ? null
         : `${unequipped.length === 1 ? 'postul de lucru' : 'posturile de lucru'} ${listed(unequipped.map((position) => position.name))}`,
     annexes,

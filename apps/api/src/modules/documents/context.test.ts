@@ -454,16 +454,20 @@ describe('the merge context', () => {
     ]);
   });
 
-  it('names the positions without equipment only beside equipped ones', () => {
+  it('names the positions without equipment, all of them when none is equipped', () => {
     expect(context.unequippedPositionsText).toBe('postul de lucru Contabil');
+    expect(context.hasEquippedPositions).toBe(true);
     const [contabil, sudor] = facts.jobPositions;
     const withPositions = (jobPositions: (typeof facts)['jobPositions']) =>
-      buildDocumentContext({ ...facts, jobPositions }).unequippedPositionsText;
-    expect(withPositions([contabil!, { ...contabil!, name: 'Șofer' }, sudor!])).toBe(
-      'posturile de lucru Contabil și Șofer'
-    );
-    expect(withPositions([sudor!])).toBeNull();
-    expect(withPositions([contabil!])).toBeNull();
+      buildDocumentContext({ ...facts, jobPositions });
+    expect(
+      withPositions([contabil!, { ...contabil!, name: 'Șofer' }, sudor!]).unequippedPositionsText
+    ).toBe('posturile de lucru Contabil și Șofer');
+    expect(withPositions([sudor!]).unequippedPositionsText).toBeNull();
+    const none = withPositions([contabil!, { ...contabil!, name: 'Șofer' }]);
+    expect(none.unequippedPositionsText).toBe('posturile de lucru Contabil și Șofer');
+    expect(none.hasEquippedPositions).toBe(false);
+    expect(withPositions([contabil!]).unequippedPositionsText).toBe('postul de lucru Contabil');
   });
 
   it('counts the months of an equipment entry as Romanian counts them', () => {

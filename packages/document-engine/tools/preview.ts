@@ -209,6 +209,7 @@ function sample(
       get equippedPositions() {
         return this.positions.filter((position) => position.equipment.length > 0);
       },
+      hasEquippedPositions: true,
       unequippedPositionsText: 'postul de lucru Manager magazin',
       annexes: [
         { number: 1, title: 'Activități de birou', versionId: 'v-1', versionDate: '26.09.2026' },
