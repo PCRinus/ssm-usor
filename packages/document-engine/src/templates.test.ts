@@ -470,7 +470,7 @@ const people = [
   { name: 'Elena DUMITRU', jobTitle: 'Lucrător comercial' },
 ];
 const described = (list: typeof people) =>
-  list.map((person) => `${person.name} având funcția de ${person.jobTitle}`).join(' și ');
+  list.map((person) => `${person.name}, având funcția de ${person.jobTitle}`).join(', și ');
 const shared = {
   branding: false,
   issueDate: '19.01.2026',
@@ -523,7 +523,7 @@ describe('decision_training', () => {
       'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul societății; Elena DUMITRU,'
     );
     expect(text).toContain(
-      'Personalul de conducere al locurilor de muncă – Ion MARIN având funcția de Manager magazin și Elena DUMITRU având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
+      'Personalul de conducere al locurilor de muncă – Ion MARIN, având funcția de Manager magazin, și Elena DUMITRU, având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
     );
     expect(text.match(/pentru personalul de execuție/g)).toHaveLength(1);
     acknowledged(text);
@@ -616,7 +616,7 @@ describe('decision_imminent_danger', () => {
 
     expect(text).not.toContain('{{');
     expect(text).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – Ion MARIN având funcția de Manager magazin – desemnează pe ${imminentDangerText}, cu următoarele atribuții:`
+      `conducerea locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. – Ion MARIN, având funcția de Manager magazin – desemnează pe ${imminentDangerText}, cu următoarele atribuții:`
     );
     // Named once; each of the five measures then refers to them.
     expect(text.split(imminentDangerText)).toHaveLength(2);

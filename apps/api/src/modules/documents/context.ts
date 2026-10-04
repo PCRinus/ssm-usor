@@ -149,7 +149,7 @@ export type DocumentContext = {
   provider: { legalName: string; representativeName: string; representativeRole: string };
   specialist: { name: string; professionalTitle: string };
   workplaceManagers: Person[];
-  /** "Ion POP având funcția de Șef atelier și Ana RUS având funcția de Șef sală". */
+  /** "Ion POP, având funcția de Șef atelier, și Ana RUS, având funcția de Șef sală". */
   workplaceManagersText: string;
   /** "Ion POP, Șef atelier; Ana RUS, Șef sală". */
   workplaceManagersList: string;
@@ -224,8 +224,12 @@ const unbroken = (text: string) =>
     de ? `${number}\u00a0de\u00a0` : `${number}\u00a0`
   );
 
-const described = (people: readonly Person[]) =>
-  listed(people.map((person) => `${person.name} având funcția de ${person.jobTitle}`));
+// Each person ends in an apposition, so "și" takes a comma before it; the comma that closes
+// the last one, where the sentence goes on, is the template's ("desemnează pe {{…}}, cu").
+const described = (people: readonly Person[]) => {
+  const items = people.map((person) => `${person.name}, având funcția de ${person.jobTitle}`);
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')}, și ${items.at(-1)}`;
+};
 
 /**
  * The positions still undecided about their equipment (ADR 011) or their instructions

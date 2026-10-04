@@ -142,7 +142,7 @@ describe('the decisions', () => {
     );
   };
   const managers =
-    'Florin Cristian TALOȘ având funcția de Administrator și Ioana PETRE având funcția de Șef de echipă';
+    'Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă';
 
   it('name every workplace manager once as those who train the execution staff', () => {
     const text = render('decision_training');
@@ -167,8 +167,8 @@ describe('decision 1.4', () => {
     jobTitle: string,
     roles: (typeof facts)['responsiblePersons'][number]['roles']
   ) => ({ fullName, jobTitle, roles, currentEmployee: true });
-  const roza = 'Roza URSU având funcția de Director general';
-  const ion = 'Ion MARIN având funcția de Șef atelier';
+  const roza = 'Roza URSU, având funcția de Director general';
+  const ion = 'Ion MARIN, având funcția de Șef atelier';
   const article2 = (...responsiblePersons: (typeof facts)['responsiblePersons']) =>
     renderWith('decision_imminent_danger', {
       ...facts,
@@ -191,7 +191,7 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['workplace_manager', 'imminent_danger']),
       ],
-      `${lead}${roza} și ${ion} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
+      `${lead}${roza}, și ${ion} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
     ],
     [
       'a manager designated beside someone else',
@@ -199,7 +199,7 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['imminent_danger']),
       ],
-      `${lead}${roza} – desemnează pe ${roza} și ${ion}, cu următoarele atribuții:`,
+      `${lead}${roza} – desemnează pe ${roza}, și ${ion}, cu următoarele atribuții:`,
     ],
     [
       'a manager who designates someone else',
@@ -251,14 +251,14 @@ describe('the employer briefing', () => {
 
 describe('the protective equipment list', () => {
   const none =
-    'Pentru posturile de lucru de mai sus nu a fost stabilit necesar de dotare cu echipament individual de protecție.';
+    'Pentru posturile de lucru de mai sus nu este necesară dotarea cu echipament individual de protecție.';
 
   it('prints a section per equipped position, and names the others after them', () => {
     const text = renderWith('protective_equipment_list', facts);
     expect(text).toContain('POST DE LUCRU:');
     expect(text).not.toContain(none);
     expect(text).toMatch(
-      /\nPentru postul de lucru Contabil nu a fost stabilit necesar de dotare cu echipament individual de protecție\.\nObservații:/
+      /\nPentru postul de lucru Contabil nu este necesară dotarea cu echipament individual de protecție\.\nObservații:/
     );
     expect(text.indexOf('Pentru postul de lucru Contabil')).toBeGreaterThan(
       text.lastIndexOf('POST DE LUCRU:')
@@ -276,7 +276,7 @@ describe('the protective equipment list', () => {
     });
     expect(text).not.toContain('POST DE LUCRU:');
     expect(text).toContain(`prelucrarea materialelor de acoperire.\n${none}\nObservații:`);
-    expect(text.match(/nu a fost stabilit necesar de dotare/g)).toHaveLength(1);
+    expect(text.match(/nu este necesară dotarea/g)).toHaveLength(1);
   }, 30_000);
 });
 
@@ -284,7 +284,7 @@ describe('the employer briefing', () => {
   it('names decision 1.5 as how the representatives are designated, when the pack has it', () => {
     const without = renderWith('employer_briefing', facts);
     expect(without).toContain(
-      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece nu se încadrează conform H.G. 1425/ 2006 art. 60, alin. (2), litera c).'
+      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece unitatea are sub 10 lucrători (H.G. 1425/ 2006, art. 53 alin. (2)).'
     );
     expect(without).not.toContain('sunt desemnați prin decizia internă');
 

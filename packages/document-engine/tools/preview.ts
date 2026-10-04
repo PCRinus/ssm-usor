@@ -18,8 +18,10 @@ const output = `${root}${outputArgument}/`;
 const person = (name: string, jobTitle: string) => ({ name, jobTitle });
 const listed = (items: string[]) =>
   items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
-const described = (people: { name: string; jobTitle: string }[]) =>
-  listed(people.map(({ name, jobTitle }) => `${name} având funcția de ${jobTitle}`));
+const described = (people: { name: string; jobTitle: string }[]) => {
+  const items = people.map(({ name, jobTitle }) => `${name}, având funcția de ${jobTitle}`);
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')}, și ${items.at(-1)}`;
+};
 
 function evaluation(roman: string, name: string, heading: string, count: number) {
   const labels = [
