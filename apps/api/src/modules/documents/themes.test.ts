@@ -70,25 +70,25 @@ describe('the periodic sessions of a post', () => {
       {
         month: 'FEBRUARIE',
         content:
-          'I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7',
+          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a045; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'MAI',
         content:
-          'I.P.S.S.M. Art. 46 – 94; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7',
+          'I.P.S.S.M. Art.\u00a046\u00a0–\u00a094; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art. 95 – 202; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7',
+          'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0202; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'NOIEMBRIE',
         content:
-          'I.P.S.S.M. Art. 203 – 287; I.P.S.S.M. Title one, Art. 1 – 18; I.P.S.S.M. Title two, Art. 1 – 7; Testare.',
+          'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0287; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07; Testare.',
         duration: '120 min',
       },
     ]);
@@ -102,7 +102,11 @@ describe('the periodic sessions of a post', () => {
       modules: [],
     });
     expect(sessions).toEqual([
-      { month: 'IULIE', content: 'I.P.S.S.M. Art. 1 – 287; Testare.', duration: '60 min' },
+      {
+        month: 'IULIE',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; Testare.',
+        duration: '60 min',
+      },
     ]);
   });
 
@@ -113,7 +117,9 @@ describe('the periodic sessions of a post', () => {
       periodicTrainingMinutes: 30,
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
-    expect(session!.content).toBe('I.P.S.S.M. Art. 1 – 287; I.P.S.S.M. Fără articole; Testare.');
+    expect(session!.content).toBe(
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; I.P.S.S.M. Fără articole; Testare.'
+    );
   });
 
   it('end in the test only once, in the last month', () => {
@@ -200,7 +206,10 @@ describe('the themes', () => {
     });
     expect(themes.positions[0]).toMatchObject({
       name: 'ȘOFER',
-      modules: [{ citation: 'I.P.S.S.M. Birou, Art. 1 – 12' }, { citation: 'I.P.S.S.M. Scări' }],
+      modules: [
+        { citation: 'I.P.S.S.M. Birou, Art.\u00a01\u00a0–\u00a012' },
+        { citation: 'I.P.S.S.M. Scări' },
+      ],
       intervalLabel: '6 LUNI',
     });
   });

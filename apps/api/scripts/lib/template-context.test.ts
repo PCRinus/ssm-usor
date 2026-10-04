@@ -100,11 +100,11 @@ describe('the training themes', () => {
     );
     expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
     expect(text).toContain(
-      'I.P.S.S.M. Art. 1 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31;'
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031;'
     );
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
     expect(text.match(/Testare\.$/gm)).toHaveLength(2);
-    expect(text).toContain('I.P.S.S.M. Art. 234 – 287;');
+    expect(text).toContain('I.P.S.S.M. Art.\u00a0234\u00a0–\u00a0287;');
   }, 30_000);
 });
 
@@ -155,7 +155,7 @@ describe('the decisions', () => {
   it('let the workplace managers take on the imminent danger duties when they are the ones designated', () => {
     const text = render('decision_imminent_danger');
     expect(text).toContain(
-      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – își asumă următoarele atribuții:`
+      `conducerea locurilor de muncă din cadrul S.C. PIPETECH S.R.L. – ${managers} – își asumă, în calitate de personal desemnat, următoarele atribuții:`
     );
     expect(text).not.toContain('desemnează pe');
   }, 30_000);
@@ -183,7 +183,7 @@ describe('decision 1.4', () => {
     [
       'the one manager designated',
       [person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger'])],
-      `${lead}${roza} – își asumă următoarele atribuții:`,
+      `${lead}${roza} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
     ],
     [
       'two managers who are the two designated',
@@ -191,7 +191,7 @@ describe('decision 1.4', () => {
         person('Roza URSU', 'Director general', ['workplace_manager', 'imminent_danger']),
         person('Ion MARIN', 'Șef atelier', ['workplace_manager', 'imminent_danger']),
       ],
-      `${lead}${roza} și ${ion} – își asumă următoarele atribuții:`,
+      `${lead}${roza} și ${ion} – își asumă, în calitate de personal desemnat, următoarele atribuții:`,
     ],
     [
       'a manager designated beside someone else',
@@ -284,7 +284,7 @@ describe('the employer briefing', () => {
   it('names decision 1.5 as how the representatives are designated, when the pack has it', () => {
     const without = renderWith('employer_briefing', facts);
     expect(without).toContain(
-      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece nu se încadrează conform HG 1425/ 2006 art. 60, alin. (2), litera c).'
+      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece nu se încadrează conform H.G. 1425/ 2006 art. 60, alin. (2), litera c).'
     );
     expect(without).not.toContain('sunt desemnați prin decizia internă');
 

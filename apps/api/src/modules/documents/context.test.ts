@@ -562,7 +562,7 @@ describe('the training themes', () => {
       {
         name: 'CONTABIL',
         trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
-        modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' }],
+        modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' }],
         intervalLabel: '6 LUNI',
         months: ['FEBRUARIE', 'AUGUST'],
       },
@@ -570,8 +570,8 @@ describe('the training themes', () => {
         name: 'SUDOR',
         trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducători loc\u00a0de\u00a0muncă',
         modules: [
-          { citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' },
-          { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31' },
+          { citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' },
+          { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031' },
         ],
         intervalLabel: '2 LUNI',
         months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
@@ -580,12 +580,14 @@ describe('the training themes', () => {
     expect(themes!.positions[0]!.sessions).toEqual([
       {
         month: 'FEBRUARIE',
-        content: 'I.P.S.S.M. Art. 1 – 94; I.P.S.S.M. Activități de birou, Art. 1 – 12',
+        content:
+          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a094; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
-        content: 'I.P.S.S.M. Art. 95 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.',
+        content:
+          'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
         duration: '120 min',
       },
     ]);
@@ -601,7 +603,7 @@ describe('the training themes', () => {
     }).themes!;
     expect(behind.annexTitles).toBe('I.P.S.S.M. Activități de birou');
     expect(behind.positions[1]!.modules).toEqual([
-      { citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 12' },
+      { citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' },
     ]);
   });
 
