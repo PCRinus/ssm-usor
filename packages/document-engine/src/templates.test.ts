@@ -667,7 +667,7 @@ describe('decision_workers_representative', () => {
     expect(text).not.toContain('{{');
     expect(text).toContain('Nr. 5 SSM din 19.01.2026');
     expect(text).toContain(
-      'Maria POPESCU având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
+      'Maria POPESCU, având funcția de Director general în cadrul S.C. CLIENT DEMO S.R.L., începând cu data de 19.01.2026, desemnează'
     );
     expect(text).toMatch(
       /pe următorii angajați:\s+Ion MARIN, având funcția de Manager magazin\.\s+Elena DUMITRU, având funcția de Lucrător comercial\./
