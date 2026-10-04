@@ -78,7 +78,7 @@ describe('the chapters the training themes cite', () => {
     expect(printed('I\\.P\\.S\\.S\\.M\\.')).toEqual(ranges('3.2_own_instructions.docx'));
     expect(printed('MISSMIG')).toEqual(ranges('2.2_general_training_material.docx'));
     expect(text).toContain(
-      `I.P.S.S.M. Art. 1 – ${articlesByChapter('3.2_own_instructions.docx').total};`
+      `I.P.S.S.M. Art.\u00a01\u00a0–\u00a0${articlesByChapter('3.2_own_instructions.docx').total};`
     );
   });
 });

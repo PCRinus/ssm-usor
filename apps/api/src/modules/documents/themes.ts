@@ -9,7 +9,7 @@ export const ownInstructionsChapterStarts = [
 export const ownInstructionsArticleCount = 287;
 
 export const generalTrainingChapterStarts = [
-  1, 7, 14, 16, 28, 81, 97, 108, 119, 150, 209, 232, 264, 272, 285, 294, 320,
+  1, 7, 14, 16, 28, 81, 97, 108, 120, 151, 210, 233, 265, 273, 286, 295, 320,
 ] as const;
 export const generalTrainingArticleCount = 320;
 
@@ -52,10 +52,12 @@ export function dealChapters(sessions: number): ArticleRange[] {
 
 export type CitedModule = { title: string; articleCount: number };
 
+const articles = (from: number, to: number) => `Art.\u00a0${from}\u00a0–\u00a0${to}`;
+
 // A file without a numbered list counts no articles, and "Art. 1 – 0" would cite nothing.
 export const citation = (module: CitedModule) =>
   module.articleCount > 0
-    ? `I.P.S.S.M. ${module.title}, Art. 1 – ${module.articleCount}`
+    ? `I.P.S.S.M. ${module.title}, ${articles(1, module.articleCount)}`
     : `I.P.S.S.M. ${module.title}`;
 
 export type TrainingSession = { month: string; content: string; duration: string };
@@ -77,7 +79,7 @@ export function trainingSessions({
     const last = index === months.length - 1;
     const range = ranges[index]!;
     const parts = [
-      `I.P.S.S.M. Art. ${range.from} – ${range.to}`,
+      `I.P.S.S.M. ${articles(range.from, range.to)}`,
       ...modules.map(citation),
       ...(last ? ['Testare.'] : []),
     ];

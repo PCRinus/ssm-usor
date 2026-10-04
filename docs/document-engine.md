@@ -538,7 +538,8 @@ The API builds the data once per generation and merges every template with it
   | `…sessions[]`                    | `{ month: 'FEBRUARIE', content, duration: '120 min' }`                                                                                                                                                                                                |
 
   A session's `content` is the slice of the common part dealt to it, then every module whole,
-  then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`. The
+  then `Testare.` on the last: `I.P.S.S.M. Art. 1 – 45; I.P.S.S.M. Birou, Art. 1 – 12`, the
+  spaces of every range non-breaking so that a narrow cell never splits one. The
   twelve chapters of 3.2 are dealt over the sessions in contiguous groups whose sizes differ by
   at most one, the larger first. The chapter starts of 3.2 and 2.2 are constants of
   `apps/api/src/modules/documents/themes.ts`, held to the templates, and to the ranges 4.2

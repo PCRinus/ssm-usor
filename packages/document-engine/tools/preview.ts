@@ -257,18 +257,19 @@ function sample(
           {
             name: 'MANAGER MAGAZIN',
             trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Ana IONESCU',
-            modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art. 1 – 15' }],
+            modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015' }],
             intervalLabel: '6 LUNI',
             sessions: [
               {
                 month: 'FEBRUARIE',
-                content: 'I.P.S.S.M. Art. 1 – 165; I.P.S.S.M. Activități de birou, Art. 1 – 15;',
+                content:
+                  'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0165; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015;',
                 duration: '120 min',
               },
               {
                 month: 'AUGUST',
                 content:
-                  'I.P.S.S.M. Art. 166 – 287; I.P.S.S.M. Activități de birou, Art. 1 – 15; Testare.',
+                  'I.P.S.S.M. Art.\u00a0166\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015; Testare.',
                 duration: '120 min',
               },
             ],
@@ -283,7 +284,7 @@ function sample(
                     .map((manager) => manager.name)
                     .join(', ')} și ${people.at(-1)!.name} – conducători loc\u00a0de\u00a0muncă`,
             modules: [
-              { citation: 'I.P.S.S.M. Scări metalice, Art. 1 – 12' },
+              { citation: 'I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012' },
               { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },
             ],
             intervalLabel: '1 LUNĂ',
@@ -302,7 +303,7 @@ function sample(
               'DECEMBRIE',
             ].map((month, index, months) => ({
               month,
-              content: `I.P.S.S.M. Art. ${index * 24 + 1} – ${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art. 1 – 12; I.P.S.S.M. Aparat de sudură oxiacetilenică;${index === months.length - 1 ? ' Testare.' : ''}`,
+              content: `I.P.S.S.M. Art.\u00a0${index * 24 + 1}\u00a0–\u00a0${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Aparat de sudură oxiacetilenică;${index === months.length - 1 ? ' Testare.' : ''}`,
               duration: '120 min',
             })),
           })),
