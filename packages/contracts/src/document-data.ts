@@ -100,16 +100,15 @@ export type UpdateOrganizationAuthorizationsRequest = z.infer<
   typeof updateOrganizationAuthorizationsRequestSchema
 >;
 
-// The durations an SSM specialist confirmed providers use (issue #81).
-export const periodicTrainingMinutesOptions = [30, 60, 90, 120] as const;
+// H.G. 1425/2006 art. 80¹ sets one hour as the minimum; the SSM contact confirmed these (issues #81, #307).
+export const periodicTrainingMinutesOptions = [60, 90, 120] as const;
 
-/** "30 de minute", "1 oră", "1 oră și 30 de minute", "2 ore": as the first decision prints it. */
+/** "1 oră", "1 oră și 30 de minute", "2 ore": as the first decision prints it. */
 export function formatTrainingDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   const hoursText = hours === 1 ? '1 oră' : `${hours} ore`;
   const restText = rest >= 20 ? `${rest} de minute` : `${rest} minute`;
-  if (hours === 0) return restText;
   return rest === 0 ? hoursText : `${hoursText} și ${restText}`;
 }
 

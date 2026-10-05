@@ -750,11 +750,11 @@ describe('employer_briefing', () => {
         ...shared,
         provider: { ...shared.provider, representativeRole: 'Administrator' },
         workersRepresentativeDecision: false,
-        training: { periodicDuration: '30 de minute' },
+        training: { periodicDuration: '1 oră și 30 de minute' },
       })
     );
     expect(text).toContain(
-      'Instructajul periodic durează 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale unității.'
+      'Instructajul periodic durează 1 oră și 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale unității.'
     );
     expect(text).not.toContain('1,30 ore');
   });

@@ -143,7 +143,7 @@ calendar will read the same columns:
 
 | Column                                    | Notes                                                                    |
 | ----------------------------------------- | ------------------------------------------------------------------------ |
-| `periodic_training_minutes`               | Duration of a periodic training: 30, 60, 90 or 120.                      |
+| `periodic_training_minutes`               | Duration of a periodic training: 60, 90 or 120.                          |
 | `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.      |
 | `administrative_training_not_applicable`  | Explicit exclusion; false with a null interval means undecided.          |
 | `worker_training_interval_months`         | Execution personnel, 1 to 6.                                             |
