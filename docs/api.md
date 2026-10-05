@@ -212,6 +212,21 @@ reason `client_is_lead`. `POST /clients/{clientId}/promote` turns an active lead
 `409` with `client_archived` and is restored first. The owners' notes, `…/owner-notes`, are one free text per client or
 lead, up to 5000 characters, never readable by a specialist, before or after promotion.
 
+Each client of `GET /clients` also says what is left to do, from computed fields of one read
+(no request per row): `jobPositionCount`, the positions not archived;
+`jobPositionsNeedingWorkCount`, those with the equipment or the instructions undecided or
+without a risk evaluation (whether an evaluation is complete is not asked: that needs the risk
+levels); and `documentation` with `state` (`none` while no document of the set has a revision,
+`issued` when every document that applies has an issued revision, `in_progress` otherwise),
+`issuedCount`, `totalCount` and `lastGeneratedAt`. The total is `documentationProgress` in
+`modules/documents/context.ts`: the built-in documents that apply, decision 1.5 from 10 current
+employees or once it has a revision, plus any other document the set holds, as the "Documente
+SSM" tab lists them; training themes waiting for generated own instructions count as not done.
+`clientSince` is when the company became a client: its promotion for a former lead, otherwise
+its creation. A lead carries null for all four. `sort=documentation` orders by the issued count
+and `sort=jobPositionCount` by the positions, each with the name next; `sort=clientSince` by
+`clientSince`.
+
 The service contract of a client or a lead (ADR 007) is an owner's. `GET
 /clients/{clientId}/service-contract` returns what the app reads about it (`contract`: number,
 dates, duration, renewal, the services covered, and `endDate`, the last day of the first term;
@@ -296,7 +311,8 @@ so does a CNP or employee number already used by an active employee of that clie
 omits the CNP and, without `?status=`, returns current employees; archived rows
 are never listed. Lists are paginated with page numbers (`page` from 1, `pageSize` up to 100,
 25 by default) and sorted by one whitelisted key at a time (employees:
-`sort=name|jobTitle|hiredAt`; clients: `sort=legalName|cui|currentEmployeeCount`;
+`sort=name|jobTitle|hiredAt`; clients:
+`sort=legalName|cui|currentEmployeeCount|jobPositionCount|documentation|clientSince`;
 `order=asc|desc`), always with the id as a tiebreaker; the shared query and envelope schemas
 live in `packages/contracts/src/list.ts`. A page past the end answers an empty page with the
 real total. `POST` validates the CNP checksum and calendar date, stores it as digits,

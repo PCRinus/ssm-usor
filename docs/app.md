@@ -360,10 +360,23 @@ The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting 
 mobile navigation link closes the Sheet.
 
 - `/dashboard`: overview and existing account/API status.
-- `/clients`: the organization's active clients from `GET /clients` on the shared data table:
-  sortable by company, CUI, and declared headcount, paged through `?page=` with the sort in
-  `?sort=&order=`, with loading, empty, and error states (a missing membership is explained;
-  other failures offer a retry). "Activi" and "Arhivați" switch the list through `?status=`.
+- `/clients`: the organization's active clients from `GET /clients` on the shared data table,
+  built to show which still need work. "Companie" has the registered office (locality, county)
+  under the name; then "CUI", "Angajați" (current employees), "Posturi" (current positions, with
+  "N de completat" in the warning tone under it when some have the equipment or instructions
+  undecided or no risk evaluation, and "de adăugat" when there are none), "Documentație"
+  (`DocumentationBadge`: Negenerată and În lucru in the warning tone, Emisă calm, beside "18 din
+  23 emise", with "generată dd.mm.yyyy" under it; the state labels live in
+  `documentation-badge.tsx` alone). No contract column: most clients are imported from another
+  system and never get a contract here. Last, "Adăugat": the day the company became a client
+  (`clientSince`: its promotion for a former lead, otherwise its creation), muted; not
+  `updatedAt`, which only moves when the client row itself is edited. Sortable by company, CUI,
+  employees, positions, documentation (issued count, least done first ascending) and
+  "Adăugat", whose first click sorts newest first (`sortDescFirst` on the column), paged through `?page=` with the
+  sort in `?sort=&order=`, with loading, empty, and error states (a missing membership is
+  explained; other failures offer a retry). The company name wraps so that the table fits
+  1280 px with the sidebar open; on a phone it scrolls sideways. "Activi" and "Arhivați" switch
+  the list through `?status=`, with the same columns.
   A row's menu holds "Modifică" and, for an owner, "Arhivează…", or "Restaurează…" on an
   archived row; one dialog confirms both and says how many documents are still drafts. An
   archived client's page opens read-only under a banner, with "Restaurează…" for an owner.
@@ -374,8 +387,7 @@ mobile navigation link closes the Sheet.
   over the full CAEN Rev. 3 class list from `packages/contracts` (code prefix or words from
   the activity name, diacritics optional); a four-digit code outside the list can still be
   used. Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
-  Search, editing, archiving, and row actions are not implemented yet. The company name
-  opens the client.
+  The list has no search yet. The company name opens the client.
 - Lists share `src/components/data-table/`: a headless TanStack Table (v9) wrapper for
   server-side tables. Columns come from `createDataTableColumns()`, sortable ones use the API
   sort key as their id, and column `meta` carries class names for header, cell, and skeleton.
