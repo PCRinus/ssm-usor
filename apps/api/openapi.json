@@ -368,6 +368,40 @@
                   "type": "string",
                   "nullable": true,
                   "format": "date-time"
+                },
+                "jobPositionCount": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 0
+                },
+                "jobPositionsNeedingWorkCount": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 0
+                },
+                "documentation": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": ["none", "in_progress", "issued"]
+                    },
+                    "issuedCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "totalCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "lastGeneratedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["state", "issuedCount", "totalCount", "lastGeneratedAt"]
                 }
               },
               "required": [
@@ -391,7 +425,10 @@
                 "serviceContractState",
                 "createdAt",
                 "updatedAt",
-                "archivedAt"
+                "archivedAt",
+                "jobPositionCount",
+                "jobPositionsNeedingWorkCount",
+                "documentation"
               ]
             }
           },
@@ -6692,7 +6729,7 @@
       "get": {
         "operationId": "listClients",
         "summary": "List the organization's clients or its leads, active or archived",
-        "description": "Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; \"legalName\" is the default.",
+        "description": "Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; \"legalName\" is the default, and \"documentation\" sorts by the number of issued documents. A client carries its job positions and where its documentation set stands; a lead carries null for both, and its contract state instead.",
         "security": [
           {
             "bearerAuth": []
@@ -6723,7 +6760,13 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["legalName", "cui", "currentEmployeeCount"],
+              "enum": [
+                "legalName",
+                "cui",
+                "currentEmployeeCount",
+                "jobPositionCount",
+                "documentation"
+              ],
               "default": "legalName"
             },
             "required": false,

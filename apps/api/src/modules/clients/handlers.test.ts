@@ -3,6 +3,7 @@ import {
   clientListResponseSchema,
   clientOwnerNotesResponseSchema,
   clientResponseSchema,
+  documentTypeKeys,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -54,6 +55,14 @@ const clientRow = {
   created_at: '2026-09-17T10:00:00+00:00',
   updated_at: '2026-09-17T10:00:00+00:00',
   archived_at: null,
+};
+
+const workRow = {
+  job_position_count: 4,
+  job_positions_needing_work_count: 1,
+  documentation_generated_type_keys: documentTypeKeys.slice(6),
+  documentation_issued_count: 18,
+  documentation_last_generated_at: '2026-09-20T10:00:00+00:00',
 };
 
 type Handler = (init?: RequestInit) => Response | Promise<Response>;
@@ -115,7 +124,10 @@ afterEach(() => {
 
 describe('GET /clients', () => {
   it('lists active clients of the effective organization as the verified user', async () => {
-    mockUpstream({});
+    mockUpstream({
+      clients: () =>
+        Response.json([{ ...clientRow, ...workRow }], { headers: { 'Content-Range': '0-0/1' } }),
+    });
     const response = await request('/clients');
     expect(response.status).toBe(200);
     expect(clientListResponseSchema.parse(await response.json())).toEqual({
@@ -145,6 +157,14 @@ describe('GET /clients', () => {
           createdAt: clientRow.created_at,
           updatedAt: clientRow.updated_at,
           archivedAt: null,
+          jobPositionCount: 4,
+          jobPositionsNeedingWorkCount: 1,
+          documentation: {
+            state: 'in_progress',
+            issuedCount: 18,
+            totalCount: 23,
+            lastGeneratedAt: '2026-09-20T10:00:00+00:00',
+          },
         },
       ],
     });
@@ -176,6 +196,107 @@ describe('GET /clients', () => {
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('order')).toBe('current_employee_count.desc,legal_name.desc,id.asc');
     expect(query.get('offset')).toBe('25');
+  });
+
+  it.each([
+    ['jobPositionCount', 'asc', 'job_position_count.asc,legal_name.asc,id.asc'],
+    ['documentation', 'asc', 'documentation_issued_count.asc,legal_name.asc,id.asc'],
+    ['documentation', 'desc', 'documentation_issued_count.desc,legal_name.desc,id.asc'],
+  ])('sorts by %s %s through the computed fields', async (sort, order, expected) => {
+    mockUpstream({});
+    expect((await request(`/clients?sort=${sort}&order=${order}`)).status).toBe(200);
+    const [listUrl] = calls('/rest/v1/clients')[0]!;
+    expect(new URL(String(listUrl)).searchParams.get('order')).toBe(expected);
+  });
+
+  const documentationOf = async (row: Record<string, unknown>) => {
+    mockUpstream({
+      clients: () =>
+        Response.json([{ ...clientRow, ...workRow, ...row }], {
+          headers: { 'Content-Range': '0-0/1' },
+        }),
+    });
+    const body = clientListResponseSchema.parse(await (await request('/clients')).json());
+    return body.items[0]!.documentation;
+  };
+
+  it('says the documentation is not generated while no document of the set has a revision', async () => {
+    expect(
+      await documentationOf({
+        documentation_generated_type_keys: [],
+        documentation_issued_count: 0,
+        documentation_last_generated_at: null,
+      })
+    ).toEqual({ state: 'none', issuedCount: 0, totalCount: 23, lastGeneratedAt: null });
+  });
+
+  it('counts the workers representative decision from 10 current employees', async () => {
+    const issuedSet = documentTypeKeys.filter((key) => key !== 'decision_workers_representative');
+    expect(
+      await documentationOf({
+        current_employee_count: 9,
+        documentation_generated_type_keys: issuedSet,
+        documentation_issued_count: issuedSet.length,
+      })
+    ).toMatchObject({ state: 'issued', issuedCount: 23, totalCount: 23 });
+    expect(
+      await documentationOf({
+        current_employee_count: 10,
+        documentation_generated_type_keys: issuedSet,
+        documentation_issued_count: issuedSet.length,
+      })
+    ).toMatchObject({ state: 'in_progress', issuedCount: 23, totalCount: 24 });
+  });
+
+  it('keeps a workers representative decision that exists below 10 employees', async () => {
+    expect(
+      await documentationOf({
+        current_employee_count: 4,
+        documentation_generated_type_keys: [...documentTypeKeys],
+        documentation_issued_count: documentTypeKeys.length,
+      })
+    ).toMatchObject({ state: 'issued', issuedCount: 24, totalCount: 24 });
+  });
+
+  it('counts training themes still waiting for generated own instructions as not done', async () => {
+    const generated = documentTypeKeys.filter(
+      (key) => key !== 'decision_workers_representative' && key !== 'training_themes'
+    );
+    expect(
+      await documentationOf({
+        documentation_generated_type_keys: generated,
+        documentation_issued_count: generated.length,
+      })
+    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
+  });
+
+  it('reads no contract for a client', async () => {
+    mockUpstream({});
+    await request('/clients');
+    const select = new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select');
+    expect(select).toContain('job_positions_needing_work_count');
+    expect(select).not.toContain('client_documents');
+  });
+
+  it('leaves the work columns out of the leads', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json([{ ...clientRow, stage: 'lead', client_documents: [] }], {
+          headers: { 'Content-Range': '0-0/1' },
+        }),
+    });
+    const body = clientListResponseSchema.parse(
+      await (await request('/clients?stage=lead')).json()
+    );
+    expect(
+      new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')
+    ).not.toContain('job_position_count');
+    expect(body.items[0]).toMatchObject({
+      serviceContractState: 'none',
+      jobPositionCount: null,
+      jobPositionsNeedingWorkCount: null,
+      documentation: null,
+    });
   });
 
   it.each(['page=0', 'pageSize=101', 'sort=cnp', 'order=up'])(

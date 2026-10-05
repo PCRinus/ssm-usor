@@ -2,6 +2,7 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type Client,
   clientConflictReasons,
+  type ClientListItem,
   type ClientSortKey,
   normalizeCui,
   pageRange,
@@ -17,6 +18,7 @@ import {
 } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { documentationProgress } from '../documents/context';
 import type {
   archiveClientRoute,
   createClientRoute,
@@ -126,7 +128,50 @@ const sortColumns: Record<ClientSortKey, string[]> = {
   legalName: ['legal_name'],
   cui: ['cui'],
   currentEmployeeCount: ['current_employee_count', 'legal_name'],
+  jobPositionCount: ['job_position_count', 'legal_name'],
+  documentation: ['documentation_issued_count', 'legal_name'],
 };
+
+const workColumns =
+  'job_position_count, job_positions_needing_work_count, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at';
+
+type WorkRow = Pick<
+  ClientRow,
+  | 'job_position_count'
+  | 'job_positions_needing_work_count'
+  | 'documentation_generated_type_keys'
+  | 'documentation_issued_count'
+  | 'documentation_last_generated_at'
+>;
+
+// Each pair of tables is linked twice, by id and by id with organization, so the relationship
+// is named.
+const contractEmbed =
+  'client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))';
+
+// The computed fields cannot tell the generated types that they are never null.
+function toClientListItem(row: SelectedClientRow & ContractDocuments & Partial<WorkRow>) {
+  const item: ClientListItem = {
+    ...toClient(row),
+    jobPositionCount: null,
+    jobPositionsNeedingWorkCount: null,
+    documentation: null,
+  };
+  if (row.stage === 'lead') return item;
+  return {
+    ...item,
+    jobPositionCount: row.job_position_count ?? 0,
+    jobPositionsNeedingWorkCount: row.job_positions_needing_work_count ?? 0,
+    documentation: {
+      ...documentationProgress({
+        currentEmployeeCount: row.current_employee_count ?? 0,
+        generatedTypeKeys: row.documentation_generated_type_keys ?? [],
+        issuedCount: row.documentation_issued_count ?? 0,
+      }),
+      lastGeneratedAt: row.documentation_last_generated_at ?? null,
+    },
+  };
+}
 
 export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async (c) => {
   const { page, pageSize, sort, order, status, stage } = c.req.valid('query');
@@ -136,12 +181,10 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
     const clients = db
       .from('clients')
       // The contract of a lead is what says where the lead stands. Owners only, as leads are.
-      // Each pair of tables is linked twice, by id and by id with organization, so the
-      // relationship is named.
       .select(
         stage === 'lead'
-          ? `${clientColumns}, client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))`
-          : clientColumns,
+          ? `${clientColumns}, ${contractEmbed}`
+          : `${clientColumns}, ${workColumns}`,
         { count: 'exact' }
       )
       .eq('stage', stage);
@@ -149,7 +192,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
       status === 'archived'
         ? clients.not('archived_at', 'is', null)
         : clients.is('archived_at', null)
-    ).returns<(SelectedClientRow & ContractDocuments)[]>();
+    ).returns<(SelectedClientRow & ContractDocuments & Partial<WorkRow>)[]>();
   };
   let query = listed();
   for (const column of sortColumns[sort])
@@ -163,7 +206,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
     return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
   }
   if (error) throw fromDatabaseError(error, 'list clients');
-  return c.json({ items: data.map(toClient), page, pageSize, total: count ?? 0 }, 200);
+  return c.json({ items: data.map(toClientListItem), page, pageSize, total: count ?? 0 }, 200);
 };
 
 // Row-level security hides other organizations' clients, so a missing row is a 404
