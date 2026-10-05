@@ -78,6 +78,13 @@ export function factorCountLabel(count: number) {
   return tens === 0 || tens >= 20 ? `${count} de factori` : `${count} factori`;
 }
 
+export function evaluationCountLabel(count: number) {
+  if (count === 0) return 'Nicio evaluare';
+  if (count === 1) return 'O evaluare';
+  const tens = count % 100;
+  return tens === 0 || tens >= 20 ? `${count} de evaluări` : `${count} evaluări`;
+}
+
 /** "niciunul inacceptabil", "unul inacceptabil", "3 inacceptabili". */
 export function unacceptableCountLabel(count: number) {
   if (count === 0) return 'niciunul inacceptabil';

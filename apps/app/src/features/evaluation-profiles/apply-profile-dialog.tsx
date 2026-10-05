@@ -111,8 +111,8 @@ export function ApplyProfileDialog({
             <Notice variant="destructive">Nu am putut încărca biblioteca de riscuri.</Notice>
           ) : sources.length === 0 ? (
             <Notice variant="info" data-testid="apply-profile-none">
-              Biblioteca de riscuri nu are încă profiluri cu factori. Salvează ca profil o evaluare
-              terminată, sau pornește unul din{' '}
+              Biblioteca de riscuri nu are încă profiluri cu factori. Salvează în bibliotecă o
+              evaluare terminată sau pornește un profil din{' '}
               <Link to="/risks" className="font-medium underline underline-offset-2">
                 Riscuri
               </Link>

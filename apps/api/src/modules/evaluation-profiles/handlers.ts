@@ -3,6 +3,7 @@ import {
   evaluationGlobalRiskLevel,
   type EvaluationProfile,
   type EvaluationProfileSummary,
+  type EvaluationProfileUse,
   type RiskFactorRequest,
 } from '@ssm-usor/contracts';
 
@@ -11,6 +12,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import {
+  byEvaluationOrder,
   bySortOrder,
   factorTotals,
   findEvaluation,
@@ -27,6 +29,7 @@ import type {
   createEvaluationProfileFactorRoute,
   createEvaluationProfileRoute,
   getEvaluationProfileRoute,
+  getEvaluationProfileUsageRoute,
   listEvaluationProfilesRoute,
   removeEvaluationProfileFactorRoute,
   removeEvaluationProfileRoute,
@@ -35,8 +38,10 @@ import type {
   updateEvaluationProfileFactorRoute,
 } from './routes';
 
+type Tables = Database['public']['Tables'];
+
 type ProfileRow = Pick<
-  Database['public']['Tables']['evaluation_profiles']['Row'],
+  Tables['evaluation_profiles']['Row'],
   'id' | 'name' | 'created_at' | 'updated_at'
 >;
 
@@ -49,6 +54,19 @@ type FullProfileRow = ProfileRow & {
 type SummaryRow = ProfileRow & {
   evaluation_profile_factors: Pick<RiskFactorFields, 'gravity_class' | 'probability_class'>[];
 };
+
+type LinkedFactorRow = {
+  risk_evaluations: Pick<
+    Tables['risk_evaluations']['Row'],
+    'id' | 'client_id' | 'kind' | 'name'
+  > & {
+    job_positions: { id: string; name: string; archived_at: string | null } | null;
+    clients: { legal_name: string; archived_at: string | null };
+  };
+};
+
+const linkedFactorColumns =
+  'evaluation_profile_factors!inner(profile_id), risk_evaluations!inner(id, client_id, kind, name, job_positions(id, name, archived_at), clients!risk_evaluations_client_id_fkey(legal_name, archived_at))';
 
 const profileColumns = `id, name, created_at, updated_at, evaluation_profile_factors(${riskFactorFieldColumns}, evaluation_profile_measures(${preventionMeasureFieldColumns}))`;
 
@@ -190,6 +208,50 @@ export const removeEvaluationProfile: RouteHandler<
   if (error) throw fromDatabaseError(error, 'delete evaluation profile');
   if (data.length === 0) throw noSuchProfile();
   return c.body(null, 204);
+};
+
+export const getEvaluationProfileUsage: RouteHandler<
+  typeof getEvaluationProfileUsageRoute,
+  ApiEnv
+> = async (c) => {
+  const { profileId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findProfile(db, profileId);
+  const { data, error } = await db
+    .from('risk_factors')
+    .select(linkedFactorColumns)
+    .eq('evaluation_profile_factors.profile_id', profileId)
+    .returns<LinkedFactorRow[]>();
+  if (error) throw fromDatabaseError(error, 'list evaluation profile usage');
+  const uses = new Map<string, EvaluationProfileUse>();
+  for (const { risk_evaluations: evaluation } of data) {
+    if (evaluation.job_positions?.archived_at) continue;
+    const use = uses.get(evaluation.id);
+    if (use) {
+      use.linkedFactorCount += 1;
+      continue;
+    }
+    uses.set(evaluation.id, {
+      id: evaluation.id,
+      clientId: evaluation.client_id,
+      clientName: evaluation.clients.legal_name,
+      clientArchivedAt: evaluation.clients.archived_at,
+      kind: evaluation.kind,
+      jobPosition: evaluation.job_positions && {
+        id: evaluation.job_positions.id,
+        name: evaluation.job_positions.name,
+      },
+      name: evaluation.name,
+      linkedFactorCount: 1,
+    });
+  }
+  const items = [...uses.values()].sort(
+    (a, b) =>
+      collator.compare(a.clientName, b.clientName) ||
+      a.clientId.localeCompare(b.clientId) ||
+      byEvaluationOrder(a, b)
+  );
+  return c.json({ items }, 200);
 };
 
 async function saveFactor(

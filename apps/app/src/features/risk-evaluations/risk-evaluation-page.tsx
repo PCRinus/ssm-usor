@@ -40,7 +40,10 @@ import { positionSections } from '@/features/job-positions/position-sections';
 
 import { CopyRiskFactorsDialog } from './copy-risk-factors-dialog';
 import { evaluationFailure } from './evaluation-failure';
+import { hasLibraryFactor } from './factor-origin';
+import { OriginSummary } from './factor-origin-view';
 import { useEvaluationFactorStore } from './factor-store';
+import { LibraryNudge } from './library-nudge';
 import { RiskEvaluationPending } from './risk-evaluation-pending';
 import {
   clientEvaluationsSection,
@@ -53,6 +56,7 @@ import { RiskFactorsCard } from './risk-factors-card';
 import { RiskResultCard } from './risk-result-card';
 import { useEvaluationCache } from './use-evaluation-cache';
 import { useFactorListView } from './use-factor-list-view';
+import { useLibraryNudge } from './use-library-nudge';
 import { useStartEvaluation } from './use-start-evaluation';
 import { WorkSystemCard } from './work-system-card';
 
@@ -226,24 +230,26 @@ function RiskEvaluationView({
 }) {
   const [removing, setRemoving] = useState(false);
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
-  const saveAsProfile = useSaveAsProfile();
+  const saveAsProfile = useSaveAsProfile(evaluation.clientId);
+  const nudge = useLibraryNudge(evaluation, readOnly);
   const store = useEvaluationFactorStore(evaluation);
   const view = useFactorListView(evaluation.factors, sections.factors);
+  const saveToLibrary = () => setNaming(saveAsProfile(evaluation));
   return (
     <div data-testid="risk-evaluation-page" className="grid gap-5">
       <Header
         title={evaluationTitle(evaluation)}
         action={
           <div className="flex flex-wrap gap-2">
-            {evaluation.factors.length > 0 && (
+            {evaluation.factors.length > 0 && !nudge.shown && (
               <Button
                 variant="outline"
                 size="sm"
                 data-testid="risk-evaluation-save-as-profile"
-                onClick={() => setNaming(saveAsProfile(evaluation))}
+                onClick={saveToLibrary}
               >
                 <LibraryBig aria-hidden="true" />
-                Salvează ca profil…
+                Salvează în bibliotecă…
               </Button>
             )}
             {!readOnly && (
@@ -274,6 +280,10 @@ function RiskEvaluationView({
         readOnly={readOnly}
         view={view}
         tools={<FactorSources evaluation={evaluation} userId={userId} />}
+        description={
+          hasLibraryFactor(evaluation.factors) && <OriginSummary factors={evaluation.factors} />
+        }
+        footer={nudge.shown && <LibraryNudge onSave={saveToLibrary} onDismiss={nudge.dismiss} />}
         empty={
           readOnly
             ? 'Evaluarea nu are factori de risc.'

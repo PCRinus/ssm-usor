@@ -4,6 +4,7 @@ import {
   createEvaluationProfile,
   createEvaluationProfileFactor,
   getEvaluationProfile,
+  getEvaluationProfileUsage,
   listEvaluationProfiles,
   removeEvaluationProfile,
   removeEvaluationProfileFactor,
@@ -16,6 +17,7 @@ import {
   createEvaluationProfileFactorRoute,
   createEvaluationProfileRoute,
   getEvaluationProfileRoute,
+  getEvaluationProfileUsageRoute,
   listEvaluationProfilesRoute,
   removeEvaluationProfileFactorRoute,
   removeEvaluationProfileRoute,
@@ -28,6 +30,7 @@ export const evaluationProfilesRouter = createRouter()
   .openapi(listEvaluationProfilesRoute, listEvaluationProfiles)
   .openapi(createEvaluationProfileRoute, createEvaluationProfile)
   .openapi(getEvaluationProfileRoute, getEvaluationProfile)
+  .openapi(getEvaluationProfileUsageRoute, getEvaluationProfileUsage)
   .openapi(renameEvaluationProfileRoute, renameEvaluationProfile)
   .openapi(removeEvaluationProfileRoute, removeEvaluationProfile)
   .openapi(createEvaluationProfileFactorRoute, createEvaluationProfileFactor)

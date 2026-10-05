@@ -1667,6 +1667,7 @@ export type Database = {
           probability_class: number;
           responsible_person: string | null;
           sort_order: number;
+          source_profile_factor_id: string | null;
           updated_at: string;
         };
         Insert: {
@@ -1686,6 +1687,7 @@ export type Database = {
           probability_class: number;
           responsible_person?: string | null;
           sort_order: number;
+          source_profile_factor_id?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -1705,6 +1707,7 @@ export type Database = {
           probability_class?: number;
           responsible_person?: string | null;
           sort_order?: number;
+          source_profile_factor_id?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -1735,6 +1738,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_factors_source_profile_factor_in_organization';
+            columns: ['source_profile_factor_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'evaluation_profile_factors';
+            referencedColumns: ['id', 'organization_id'];
           },
         ];
       };

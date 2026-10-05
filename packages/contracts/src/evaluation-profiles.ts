@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { riskEvaluationResponseSchema, riskFactorSchema } from './risk-evaluations';
+import {
+  evaluatedJobPositionSchema,
+  riskEvaluationKindSchema,
+  riskEvaluationResponseSchema,
+  riskFactorSchema,
+} from './risk-evaluations';
 
 // The organization's risk library (ADR 015). A profile's factors take the same requests as an
 // evaluation's, `riskFactorRequestSchema`, and answer with the same factors.
@@ -54,6 +59,27 @@ export const applyEvaluationProfileResponseSchema = riskEvaluationResponseSchema
 });
 
 export type ApplyEvaluationProfileResponse = z.infer<typeof applyEvaluationProfileResponseSchema>;
+
+// An evaluation with factors that point into the profile. `id`, `clientId`, `kind`,
+// `jobPosition` and `name` are the evaluation's, as on a summary.
+export const evaluationProfileUseSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  clientName: z.string(),
+  clientArchivedAt: z.iso.datetime({ offset: true }).nullable(),
+  kind: riskEvaluationKindSchema,
+  jobPosition: evaluatedJobPositionSchema.nullable(),
+  name: z.string().nullable(),
+  linkedFactorCount: z.int().min(1),
+});
+
+export type EvaluationProfileUse = z.infer<typeof evaluationProfileUseSchema>;
+
+export const evaluationProfileUsageResponseSchema = z.object({
+  items: z.array(evaluationProfileUseSchema),
+});
+
+export type EvaluationProfileUsageResponse = z.infer<typeof evaluationProfileUsageResponseSchema>;
 
 /** `reason` values on evaluation profile errors, so the SPA can word them itself. */
 export const evaluationProfileErrorReasons = ['evaluation_profile_name_taken'] as const;

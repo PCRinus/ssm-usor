@@ -40,6 +40,7 @@ const sensitiveId = '8d0f7780-8536-41ef-a55c-f18fd2010bf8';
 const otherId = '9e1a8891-9647-42f0-b66d-0290e3121c09';
 const electrocutionId = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const rhythmId = '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e';
+const profileId = '6b8d5568-6314-4fcd-833a-d96eb0e80ad6';
 
 const stamp = '2026-10-01T10:00:00+00:00';
 
@@ -71,6 +72,7 @@ const electrocution = {
       sort_order: 0,
     },
   ],
+  source_profile_factor: { evaluation_profiles: { id: profileId, name: 'Lucrător de birou' } },
 };
 
 const rhythm = {
@@ -86,6 +88,7 @@ const rhythm = {
   responsible_person: null,
   sort_order: 0,
   prevention_measures: [],
+  source_profile_factor: null,
 };
 
 const managerEvaluation = {
@@ -429,6 +432,23 @@ describe('GET …/risk-evaluations/{evaluationId}', () => {
   it('answers 404 for an evaluation of another client', async () => {
     mockUpstream({ evaluations: (init) => (isGet(init) ? Response.json([]) : undefined) });
     expect((await request(evaluationPath)).status).toBe(404);
+  });
+
+  it('names the library profile each factor was copied from, if any', async () => {
+    mockUpstream();
+    const { evaluation } = riskEvaluationResponseSchema.parse(
+      await (await request(evaluationPath)).json()
+    );
+    expect(evaluation.factors.map((f) => [f.description, f.sourceProfile])).toEqual([
+      ['Ritm de muncă intens', null],
+      ['Electrocutare prin atingere indirectă', { id: profileId, name: 'Lucrător de birou' }],
+    ]);
+    const read = calls('risk_evaluations', 'GET')
+      .map(([input]) => new URL(String(input)).searchParams.get('select')!)
+      .find((select) => select.includes('risk_factors'));
+    expect(read).toContain(
+      'source_profile_factor:evaluation_profile_factors(evaluation_profiles(id,name))'
+    );
   });
 });
 

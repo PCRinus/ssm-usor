@@ -124,6 +124,10 @@ export const preventionMeasureSchema = z.object({
 
 export type PreventionMeasure = z.infer<typeof preventionMeasureSchema>;
 
+export const riskFactorSourceProfileSchema = z.object({ id: z.uuid(), name: z.string() });
+
+export type RiskFactorSourceProfile = z.infer<typeof riskFactorSourceProfileSchema>;
+
 export const riskFactorSchema = z.object({
   id: z.uuid(),
   component: workSystemComponentSchema,
@@ -137,13 +141,17 @@ export const riskFactorSchema = z.object({
   deadline: z.string().nullable(),
   responsiblePerson: z.string().nullable(),
   observations: z.string().nullable(),
+  // The library profile the factor was copied from or saved into, provenance only: the two
+  // change apart (ADR 015). Null for a factor typed in the evaluation and never saved into the
+  // library, once that profile factor is deleted, and always on a profile's own factors.
+  sourceProfile: riskFactorSourceProfileSchema.nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
 
 export type RiskFactor = z.infer<typeof riskFactorSchema>;
 
-const evaluatedJobPositionSchema = z.object({ id: z.uuid(), name: z.string() });
+export const evaluatedJobPositionSchema = z.object({ id: z.uuid(), name: z.string() });
 
 const riskEvaluationFields = {
   id: z.uuid(),

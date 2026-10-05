@@ -1567,6 +1567,14 @@ export type RiskEvaluationResponseEvaluationFactorsItemMeasuresItem = {
   description: string;
 };
 
+/**
+ * @nullable
+ */
+export type RiskEvaluationResponseEvaluationFactorsItemSourceProfile = {
+  id: string;
+  name: string;
+} | null;
+
 export type RiskEvaluationResponseEvaluationFactorsItem = {
   id: string;
   component: RiskEvaluationResponseEvaluationFactorsItemComponent;
@@ -1596,6 +1604,8 @@ export type RiskEvaluationResponseEvaluationFactorsItem = {
   responsiblePerson: string | null;
   /** @nullable */
   observations: string | null;
+  /** @nullable */
+  sourceProfile: RiskEvaluationResponseEvaluationFactorsItemSourceProfile;
   createdAt: string;
   updatedAt: string;
 };
@@ -1904,6 +1914,14 @@ export type JobPositionRiskEvaluationResponseEvaluationFactorsItemMeasuresItem =
   description: string;
 };
 
+/**
+ * @nullable
+ */
+export type JobPositionRiskEvaluationResponseEvaluationFactorsItemSourceProfile = {
+  id: string;
+  name: string;
+} | null;
+
 export type JobPositionRiskEvaluationResponseEvaluationFactorsItem = {
   id: string;
   component: JobPositionRiskEvaluationResponseEvaluationFactorsItemComponent;
@@ -1933,6 +1951,8 @@ export type JobPositionRiskEvaluationResponseEvaluationFactorsItem = {
   responsiblePerson: string | null;
   /** @nullable */
   observations: string | null;
+  /** @nullable */
+  sourceProfile: JobPositionRiskEvaluationResponseEvaluationFactorsItemSourceProfile;
   createdAt: string;
   updatedAt: string;
 };
@@ -2024,6 +2044,14 @@ export type EvaluationProfileResponseProfileFactorsItemMeasuresItem = {
   description: string;
 };
 
+/**
+ * @nullable
+ */
+export type EvaluationProfileResponseProfileFactorsItemSourceProfile = {
+  id: string;
+  name: string;
+} | null;
+
 export type EvaluationProfileResponseProfileFactorsItem = {
   id: string;
   component: EvaluationProfileResponseProfileFactorsItemComponent;
@@ -2053,6 +2081,8 @@ export type EvaluationProfileResponseProfileFactorsItem = {
   responsiblePerson: string | null;
   /** @nullable */
   observations: string | null;
+  /** @nullable */
+  sourceProfile: EvaluationProfileResponseProfileFactorsItemSourceProfile;
   createdAt: string;
   updatedAt: string;
 };
@@ -2081,6 +2111,42 @@ export interface EvaluationProfileNameRequest {
    * @maxLength 160
    */
   name: string;
+}
+
+export type EvaluationProfileUsageResponseItemsItemKind =
+  (typeof EvaluationProfileUsageResponseItemsItemKind)[keyof typeof EvaluationProfileUsageResponseItemsItemKind];
+
+export const EvaluationProfileUsageResponseItemsItemKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EvaluationProfileUsageResponseItemsItemJobPosition = {
+  id: string;
+  name: string;
+} | null;
+
+export type EvaluationProfileUsageResponseItemsItem = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  /** @nullable */
+  clientArchivedAt: string | null;
+  kind: EvaluationProfileUsageResponseItemsItemKind;
+  /** @nullable */
+  jobPosition: EvaluationProfileUsageResponseItemsItemJobPosition;
+  /** @nullable */
+  name: string | null;
+  /** @minimum 1 */
+  linkedFactorCount: number;
+};
+
+export interface EvaluationProfileUsageResponse {
+  items: EvaluationProfileUsageResponseItemsItem[];
 }
 
 export type ApplyEvaluationProfileResponseEvaluationKind =
@@ -2126,6 +2192,14 @@ export type ApplyEvaluationProfileResponseEvaluationFactorsItemMeasuresItem = {
   description: string;
 };
 
+/**
+ * @nullable
+ */
+export type ApplyEvaluationProfileResponseEvaluationFactorsItemSourceProfile = {
+  id: string;
+  name: string;
+} | null;
+
 export type ApplyEvaluationProfileResponseEvaluationFactorsItem = {
   id: string;
   component: ApplyEvaluationProfileResponseEvaluationFactorsItemComponent;
@@ -2155,6 +2229,8 @@ export type ApplyEvaluationProfileResponseEvaluationFactorsItem = {
   responsiblePerson: string | null;
   /** @nullable */
   observations: string | null;
+  /** @nullable */
+  sourceProfile: ApplyEvaluationProfileResponseEvaluationFactorsItemSourceProfile;
   createdAt: string;
   updatedAt: string;
 };
@@ -10167,7 +10243,7 @@ export const getCopyRiskFactorsUrl = (clientId: string, evaluationId: string) =>
 };
 
 /**
- * Adds copies of the factors of `fromEvaluationId`, with their classes, measures and plan fields, after the factors the evaluation already has.
+ * Adds copies of the factors of `fromEvaluationId`, with their classes, measures, plan fields and `sourceProfile`, after the factors the evaluation already has.
  * @summary Copy the factors of another evaluation of the client
  */
 export const copyRiskFactors = async (
@@ -11406,7 +11482,7 @@ export const getRemoveEvaluationProfileUrl = (profileId: string) => {
 };
 
 /**
- * The factors it gave evaluations stay in them: a copy is the client’s and never refers back to the profile.
+ * The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.
  * @summary Delete an evaluation profile with its factors
  */
 export const removeEvaluationProfile = async (
@@ -11489,6 +11565,144 @@ export const useRemoveEvaluationProfile = <
 > => {
   return useMutation(getRemoveEvaluationProfileMutationOptions(options), queryClient);
 };
+
+export const getGetEvaluationProfileUsageUrl = (profileId: string) => {
+  return `/evaluation-profiles/${profileId}/usage`;
+};
+
+/**
+ * Every evaluation, archived clients’ included, with at least one factor whose `sourceProfile` is this profile, and `linkedFactorCount` of them. By client name, then as the client’s evaluations are listed. Evaluations of archived positions are left out, as from that list.
+ * @summary List the risk evaluations that hold copies of a profile’s factors
+ */
+export const getEvaluationProfileUsage = async (
+  profileId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EvaluationProfileUsageResponse> => {
+  return apiFetch<EvaluationProfileUsageResponse>(getGetEvaluationProfileUsageUrl(profileId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetEvaluationProfileUsageQueryKey = (profileId: string) => {
+  return [`/evaluation-profiles/${profileId}/usage`] as const;
+};
+
+export const getGetEvaluationProfileUsageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfileUsage>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetEvaluationProfileUsageQueryKey(profileId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEvaluationProfileUsage>>> = ({
+    signal,
+  }) => getEvaluationProfileUsage(profileId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: profileId !== null && profileId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfileUsage>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetEvaluationProfileUsageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEvaluationProfileUsage>>
+>;
+export type GetEvaluationProfileUsageQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetEvaluationProfileUsage<
+  TData = Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfileUsage>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+          TError,
+          Awaited<ReturnType<typeof getEvaluationProfileUsage>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEvaluationProfileUsage<
+  TData = Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfileUsage>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+          TError,
+          Awaited<ReturnType<typeof getEvaluationProfileUsage>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEvaluationProfileUsage<
+  TData = Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfileUsage>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the risk evaluations that hold copies of a profile’s factors
+ */
+
+export function useGetEvaluationProfileUsage<
+  TData = Awaited<ReturnType<typeof getEvaluationProfileUsage>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  profileId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEvaluationProfileUsage>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetEvaluationProfileUsageQueryOptions(profileId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getCreateEvaluationProfileFactorUrl = (profileId: string) => {
   return `/evaluation-profiles/${profileId}/factors`;
@@ -11610,7 +11824,7 @@ export const getUpdateEvaluationProfileFactorUrl = (profileId: string, factorId:
 };
 
 /**
- * The factor keeps its place. Copies already made in evaluations stay as they are. Answers with the whole profile.
+ * The factor keeps its place. Copies already made in evaluations stay as they are, still pointing at it. Answers with the whole profile.
  * @summary Replace a profile's risk factor and its prevention measures
  */
 export const updateEvaluationProfileFactor = async (
@@ -11827,7 +12041,7 @@ export const getSaveRiskEvaluationAsProfileUrl = (clientId: string, evaluationId
 };
 
 /**
- * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. An archived client’s evaluation can be saved too.
+ * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
  * @summary Save a risk evaluation as a profile of the library
  */
 export const saveRiskEvaluationAsProfile = async (
@@ -11947,7 +12161,7 @@ export const getApplyEvaluationProfileUrl = (clientId: string, evaluationId: str
 };
 
 /**
- * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.
+ * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.
  * @summary Copy the factors of a profile into a risk evaluation
  */
 export const applyEvaluationProfile = async (

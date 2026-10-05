@@ -8,6 +8,7 @@ import {
   type RiskEvaluationSummary,
   type RiskFactor,
   type RiskFactorRequest,
+  type RiskFactorSourceProfile,
   type RiskFactorSuggestionField,
   riskLevel,
 } from '@ssm-usor/contracts';
@@ -61,6 +62,8 @@ export const riskFactorFieldColumns =
 
 export const preventionMeasureFieldColumns = 'id, kind, description, sort_order';
 
+type SourceProfileFactor = { evaluation_profiles: RiskFactorSourceProfile } | null;
+
 type EvaluationRow = Pick<
   Tables['risk_evaluations']['Row'],
   | 'id'
@@ -76,7 +79,10 @@ type EvaluationRow = Pick<
   | 'updated_at'
 > & {
   job_positions: { id: string; name: string } | null;
-  risk_factors: (RiskFactorFields & { prevention_measures: PreventionMeasureFields[] })[];
+  risk_factors: (RiskFactorFields & {
+    prevention_measures: PreventionMeasureFields[];
+    source_profile_factor: SourceProfileFactor;
+  })[];
 };
 
 type SummaryRow = Pick<
@@ -87,7 +93,7 @@ type SummaryRow = Pick<
   risk_factors: Pick<Tables['risk_factors']['Row'], 'gravity_class' | 'probability_class'>[];
 };
 
-const evaluationColumns = `id, client_id, kind, name, means_of_production, work_environment, exposure, work_task, exposed_persons, created_at, updated_at, job_positions(id, name), risk_factors(${riskFactorFieldColumns}, prevention_measures(${preventionMeasureFieldColumns}))`;
+const evaluationColumns = `id, client_id, kind, name, means_of_production, work_environment, exposure, work_task, exposed_persons, created_at, updated_at, job_positions(id, name), risk_factors(${riskFactorFieldColumns}, prevention_measures(${preventionMeasureFieldColumns}), source_profile_factor:evaluation_profile_factors(evaluation_profiles(id, name)))`;
 
 const summaryColumns =
   'id, client_id, kind, name, created_at, updated_at, job_positions(id, name, archived_at), risk_factors(gravity_class, probability_class)';
@@ -99,7 +105,8 @@ export const bySortOrder = (
 
 export function toRiskFactor(
   factor: RiskFactorFields,
-  measures: PreventionMeasureFields[]
+  measures: PreventionMeasureFields[],
+  sourceProfile: RiskFactorSourceProfile | null = null
 ): RiskFactor {
   return {
     id: factor.id,
@@ -118,6 +125,7 @@ export function toRiskFactor(
     deadline: factor.deadline,
     responsiblePerson: factor.responsible_person,
     observations: factor.observations,
+    sourceProfile,
     createdAt: factor.created_at,
     updatedAt: factor.updated_at,
   };
@@ -142,7 +150,13 @@ export function factorTotals(
 function toEvaluation(row: EvaluationRow): RiskEvaluation {
   const factors = [...row.risk_factors]
     .sort(bySortOrder)
-    .map((factor) => toRiskFactor(factor, factor.prevention_measures));
+    .map((factor) =>
+      toRiskFactor(
+        factor,
+        factor.prevention_measures,
+        factor.source_profile_factor?.evaluation_profiles ?? null
+      )
+    );
   return {
     id: row.id,
     clientId: row.client_id,
@@ -180,8 +194,14 @@ const kindOrder: Record<RiskEvaluationKind, number> = {
   other: 2,
 };
 
-const summaryLabel = (summary: RiskEvaluationSummary) =>
-  summary.jobPosition?.name ?? summary.name ?? '';
+type Listed = Pick<RiskEvaluationSummary, 'id' | 'kind' | 'jobPosition' | 'name'>;
+
+const listedLabel = (evaluation: Listed) => evaluation.jobPosition?.name ?? evaluation.name ?? '';
+
+export const byEvaluationOrder = (a: Listed, b: Listed) =>
+  kindOrder[a.kind] - kindOrder[b.kind] ||
+  listedLabel(a).localeCompare(listedLabel(b), 'ro') ||
+  a.id.localeCompare(b.id);
 
 const noSuchClient = () =>
   new ApiError('not_found', 'This client does not exist in your organization.');
@@ -253,12 +273,7 @@ export const listRiskEvaluations: RouteHandler<typeof listRiskEvaluationsRoute, 
   const items = data
     .filter((row) => !row.job_positions?.archived_at)
     .map(toSummary)
-    .sort(
-      (a, b) =>
-        kindOrder[a.kind] - kindOrder[b.kind] ||
-        summaryLabel(a).localeCompare(summaryLabel(b), 'ro') ||
-        a.id.localeCompare(b.id)
-    );
+    .sort(byEvaluationOrder);
   return c.json({ items }, 200);
 };
 

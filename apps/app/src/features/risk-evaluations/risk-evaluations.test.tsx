@@ -70,6 +70,7 @@ function makeFactor(
     deadline: null,
     responsiblePerson: null,
     observations: null,
+    sourceProfile: null,
     createdAt: stamp,
     updatedAt: stamp,
     ...fields,

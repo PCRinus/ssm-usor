@@ -1,3 +1,4 @@
+import type { Query, QueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 
 import {
@@ -9,6 +10,23 @@ import {
 } from '@/api/generated/api';
 
 import type { RiskEvaluation } from './risk-evaluation-schema';
+
+// The generated keys are whole paths, so no shared prefix reaches every profile's usage or
+// every client's evaluation.
+const pathMatches =
+  (pattern: RegExp) =>
+  ({ queryKey }: Query) =>
+    typeof queryKey[0] === 'string' && pattern.test(queryKey[0]);
+
+const profileUsagePath = /^\/evaluation-profiles\/[^/]+\/usage$/;
+const evaluationPath =
+  /^\/clients\/[^/]+\/(risk-evaluations\/[^/]+|job-positions\/[^/]+\/risk-evaluation)$/;
+
+export const invalidateProfileUsage = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({ predicate: pathMatches(profileUsagePath) });
+
+export const invalidateEvaluations = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({ predicate: pathMatches(evaluationPath) });
 
 // Every change answers with the whole evaluation, so it is written into both ways of reading
 // it; the list's counts and levels move with it.
@@ -30,7 +48,10 @@ export function useEvaluationCache(clientId: string) {
           { evaluation }
         );
       }
-      await queryClient.invalidateQueries({ queryKey: listKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listKey }),
+        invalidateProfileUsage(queryClient),
+      ]);
     },
     removed: async (evaluation: RiskEvaluation) => {
       queryClient.removeQueries({
@@ -44,7 +65,10 @@ export function useEvaluationCache(clientId: string) {
           { evaluation: null }
         );
       }
-      await queryClient.invalidateQueries({ queryKey: listKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listKey }),
+        invalidateProfileUsage(queryClient),
+      ]);
     },
     // A failure may mean the evaluation changed or went away meanwhile.
     refresh: (evaluation: RiskEvaluation) =>
@@ -57,6 +81,7 @@ export function useEvaluationCache(clientId: string) {
             queryKey: getGetJobPositionRiskEvaluationQueryKey(clientId, evaluation.jobPosition.id),
           }),
         queryClient.invalidateQueries({ queryKey: listKey }),
+        invalidateProfileUsage(queryClient),
       ]),
   };
 }

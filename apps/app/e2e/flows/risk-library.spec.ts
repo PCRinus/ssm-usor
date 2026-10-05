@@ -53,19 +53,24 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.getByTestId('nav-risks').click();
-  await expect(page.getByTestId('risk-library-empty')).toContainText('Salvează ca profil');
+  await expect(page.getByTestId('risk-library-empty')).toContainText('Salvează în bibliotecă');
 
   await page.goto(`/clients/${firstClient}/job-positions/${firstPosition}/risk-evaluation`);
   await expect(page.getByTestId('risk-factor-row').first()).toBeVisible();
   const factorCount = await page.getByTestId('risk-factor-row').count();
   expect(factorCount).toBeGreaterThan(0);
-  await page.getByTestId('risk-evaluation-save-as-profile').click();
+  await expect(page.getByTestId('risk-evaluation-save-as-profile')).toHaveCount(0);
+  await page.getByTestId('risk-library-nudge-save').click();
   await expect(page.getByTestId('profile-name')).toHaveValue('Lăcătuș mecanic');
   await page.getByTestId('profile-name').fill('Lucrător în atelier');
   await page.getByTestId('profile-name-submit').click();
   await expect(
     page.getByText('Profilul „Lucrător în atelier” a fost salvat în biblioteca de riscuri.')
   ).toBeVisible();
+  await expect(page.getByTestId('risk-library-nudge')).toHaveCount(0);
+  await expect(page.getByTestId('risk-factors-origin')).toContainText(
+    'în profilul Lucrător în atelier.'
+  );
 
   await page.goto(`/clients/${second.data.id}/job-positions/${secondPosition}/risk-evaluation`);
   await page.getByTestId('risk-evaluation-start').click();
@@ -82,6 +87,10 @@ test("a client's evaluated post becomes a profile that evaluates another client'
     page.getByText(/din „Lucrător în atelier” au fost adăugați în evaluare\./)
   ).toBeVisible();
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount);
+  await expect(page.getByTestId('risk-factors-origin')).toHaveText(
+    `Toți cei ${factorCount} factori sunt în profilul Lucrător în atelier.`
+  );
+  await expect(page.getByTestId('risk-factor-origin')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 
   await page.goto('/risks');
@@ -90,6 +99,10 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await row.getByTestId('risk-profile-open').click();
   await expect(page.getByTestId('risk-profile-page')).toBeVisible();
+  const usage = page.getByTestId('risk-profile-usage-client');
+  await expect(usage).toHaveCount(2);
+  await expect(usage.nth(0)).toContainText('S.C. AL DOILEA CLIENT E2E S.R.L.');
+  await expect(usage.nth(1).getByTestId('risk-profile-usage-open')).toHaveText('Lăcătuș mecanic');
   await page.getByTestId('risk-factor-row').first().getByTestId('risk-factor-actions').click();
   await page.getByTestId('risk-factor-remove').click();
   await page.getByTestId('risk-factor-remove-confirm').click();
@@ -98,4 +111,5 @@ test("a client's evaluated post becomes a profile that evaluates another client'
 
   await page.goto(`/clients/${second.data.id}/job-positions/${secondPosition}/risk-evaluation`);
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount);
+  await expect(page.getByTestId('risk-factor-origin')).toHaveCount(factorCount - 1);
 });

@@ -30,7 +30,7 @@ export function useProfileRenaming() {
     failure: 'Nu am putut redenumi profilul. Verifică conexiunea și încearcă din nou.',
     submit: async (name) => {
       const result = await rename.mutateAsync({ profileId: profile.id, data: { name } });
-      await cache.saved(result.profile);
+      await Promise.all([cache.saved(result.profile), cache.linksChanged(profile.id)]);
       toast.success('Profilul a fost redenumit.');
     },
   });

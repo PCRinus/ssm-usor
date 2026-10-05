@@ -298,7 +298,7 @@ export const copyRiskFactorsRoute = createRoute({
   operationId: 'copyRiskFactors',
   summary: 'Copy the factors of another evaluation of the client',
   description:
-    'Adds copies of the factors of `fromEvaluationId`, with their classes, measures and plan fields, after the factors the evaluation already has.',
+    'Adds copies of the factors of `fromEvaluationId`, with their classes, measures, plan fields and `sourceProfile`, after the factors the evaluation already has.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

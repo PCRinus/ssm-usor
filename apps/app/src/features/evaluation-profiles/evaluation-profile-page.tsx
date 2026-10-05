@@ -19,6 +19,7 @@ import { useFactorListView } from '@/features/risk-evaluations/use-factor-list-v
 import { ProfileNameDialog } from './profile-name-dialog';
 import { type ProfileNaming, useProfileRenaming } from './profile-naming';
 import type { EvaluationProfile } from './profile-schema';
+import { ProfileUsageCard } from './profile-usage-card';
 import { RemoveProfileDialog } from './remove-profile-dialog';
 import { useProfileFactorStore } from './use-profile-cache';
 
@@ -36,10 +37,10 @@ export function EvaluationProfilePage({
   });
   const profile = query.data?.profile;
   if (!profile) return query.isError ? <EvaluationProfileNotFound /> : <RiskEvaluationPending />;
-  return <ProfileView profile={profile} />;
+  return <ProfileView profile={profile} userId={userId} />;
 }
 
-function ProfileView({ profile }: { profile: EvaluationProfile }) {
+function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: string }) {
   const navigate = useNavigate();
   const store = useProfileFactorStore(profile);
   const renaming = useProfileRenaming();
@@ -90,6 +91,7 @@ function ProfileView({ profile }: { profile: EvaluationProfile }) {
         removalConsequence="nu vor mai fi în profil. Evaluările în care l-ai aplicat își păstrează copiile."
         editorContext={profile.name}
       />
+      <ProfileUsageCard profileId={profile.id} userId={userId} />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveProfileDialog
         profile={removing ? { ...profile, factorCount: profile.factors.length } : null}

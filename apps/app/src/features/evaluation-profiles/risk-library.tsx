@@ -118,8 +118,8 @@ export function RiskLibrary({ userId }: { userId: string }) {
             <Library className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
             <h3 className="text-base font-medium">Niciun profil încă</h3>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Salvează evaluarea unui post de la un client cu „Salvează ca profil” sau pornește unul
-              gol cu „Profil nou”.
+              Salvează evaluarea unui post de la un client cu „Salvează în bibliotecă” sau pornește
+              un profil gol cu „Profil nou”.
             </p>
           </div>
         ) : (
