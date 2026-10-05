@@ -36,6 +36,8 @@ import {
   sortValue,
   visibleFactors,
 } from './factor-list';
+import { rowsShowOrigin } from './factor-origin';
+import { FactorOrigin } from './factor-origin-view';
 import type { FactorStore } from './factor-store';
 import {
   componentLabels,
@@ -61,6 +63,8 @@ export function RiskFactorsCard({
   readOnly,
   view,
   tools,
+  description,
+  footer,
   empty,
   removalConsequence,
   editorContext,
@@ -71,6 +75,9 @@ export function RiskFactorsCard({
   readOnly: boolean;
   view: FactorListView;
   tools?: ReactNode;
+  description?: ReactNode;
+  /** Runs the card's full width under the list; shown only while there are factors. */
+  footer?: ReactNode;
   empty: ReactNode;
   /** Continues "<factor> și măsurile lui …" in the removal dialog. */
   removalConsequence: string;
@@ -106,6 +113,7 @@ export function RiskFactorsCard({
       headingLevel={3}
       data-testid="risk-factors-card"
       className={cn(factors.length > 0 && 'overflow-hidden pb-0')}
+      description={description}
       title={
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           Factori de risc
@@ -148,6 +156,7 @@ export function RiskFactorsCard({
           factors={factors}
           readOnly={readOnly}
           view={view}
+          footer={footer}
           onEdit={setEditing}
           onRemove={setRemoving}
         />
@@ -196,12 +205,14 @@ function FactorList({
   factors,
   readOnly,
   view,
+  footer,
   onEdit,
   onRemove,
 }: {
   factors: RiskFactor[];
   readOnly: boolean;
   view: FactorListView;
+  footer: ReactNode;
   onEdit: (factor: RiskFactor) => void;
   onRemove: (factor: RiskFactor) => void;
 }) {
@@ -212,6 +223,7 @@ function FactorList({
   const tabId = (value: string) => `${baseId}-tab-${value}`;
   const panelId = `${baseId}-panel`;
   const layout = readOnly ? columns.readOnly : columns.editable;
+  const withOrigin = rowsShowOrigin(factors);
 
   function onTabKey(event: KeyboardEvent) {
     const index = tabs.findIndex((item) => item.tab === tab);
@@ -327,6 +339,7 @@ function FactorList({
               key={factor.id}
               factor={factor}
               withComponent={tab === 'all'}
+              withOrigin={withOrigin}
               readOnly={readOnly}
               layout={layout}
               onEdit={() => onEdit(factor)}
@@ -340,6 +353,7 @@ function FactorList({
           </p>
         )}
       </div>
+      {footer}
     </div>
   );
 }
@@ -387,6 +401,7 @@ function SortHeader({
 function FactorRow({
   factor,
   withComponent,
+  withOrigin,
   readOnly,
   layout,
   onEdit,
@@ -394,6 +409,7 @@ function FactorRow({
 }: {
   factor: RiskFactor;
   withComponent: boolean;
+  withOrigin: boolean;
   readOnly: boolean;
   layout: string;
   onEdit: () => void;
@@ -429,6 +445,7 @@ function FactorRow({
           )}
           <span data-testid="risk-group">{group}</span>
         </p>
+        {withOrigin && factor.sourceProfile && <FactorOrigin profile={factor.sourceProfile} />}
       </div>
       <ClassCell
         testId="risk-factor-gravity-class"
