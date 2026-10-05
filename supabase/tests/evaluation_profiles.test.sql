@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(39);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -24,19 +24,28 @@ insert into public.risk_evaluations (id, organization_id, client_id, kind, name)
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'other', 'Birou'),
   ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Birou'),
   ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'other', 'Birou'),
+  ('e1e1e1e1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Depozit'),
   ('e2e2e2e2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'other', 'Birou');
 
 insert into public.risk_factors (id, organization_id, client_id, evaluation_id, component, factor_group, description, gravity_class, probability_class, deadline, responsible_person, sort_order) values
   ('f1f1f1f1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'work_task', 'Suprasolicitare psihică', 'Ritm de muncă intens', 2, 4, null, null, 1),
   ('f1f1f1f1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'means_of_production', 'Factori de risc electric', 'Electrocutare prin atingere indirectă', 5, 3, 'Anual', 'Administratorul', 0),
-  ('f1f1f1f1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'e1e1e1e1-0000-4000-8000-000000000002', 'executant', 'Acțiuni greșite', 'Lovire de mobilier', 2, 2, null, null, 0);
+  ('f1f1f1f1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'e1e1e1e1-0000-4000-8000-000000000002', 'executant', 'Acțiuni greșite', 'Lovire de mobilier', 2, 2, null, null, 0),
+  ('f1f1f1f1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'e1e1e1e1-0000-4000-8000-000000000003', 'work_environment', 'Factori de risc fizic', 'Iluminat insuficient', 2, 3, null, null, 0);
 
 insert into public.prevention_measures (organization_id, client_id, factor_id, kind, description, sort_order) values
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000002', 'organizational', 'Instruirea lucrătorilor', 1),
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000002', 'technical', 'Verificarea împământării', 0);
 
 insert into public.evaluation_profiles (id, organization_id, name) values
+  ('a1a1a1a1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'Profil vechi'),
   ('b2b2b2b2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'Profil B');
+
+insert into public.evaluation_profile_factors (id, organization_id, profile_id, component, factor_group, description, gravity_class, probability_class, sort_order) values
+  ('a2a2a2a2-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'a1a1a1a1-0000-4000-8000-000000000009', 'work_environment', 'Factori de risc fizic', 'Zgomot', 2, 3, 0);
+
+insert into public.risk_factors (id, organization_id, client_id, evaluation_id, component, factor_group, description, gravity_class, probability_class, sort_order, source_profile_factor_id) values
+  ('f1f1f1f1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'e1e1e1e1-0000-4000-8000-000000000003', 'work_environment', 'Factori de risc fizic', 'Zgomot', 2, 3, 1, 'a2a2a2a2-0000-4000-8000-000000000001');
 
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000003';
 
@@ -187,6 +196,18 @@ select results_eq(
   'the profile copies the factors in their order, with their classes, plan fields and measures'
 );
 
+select results_eq(
+  $$ select f.description, pf.description, p.name
+     from public.risk_factors f
+     join public.evaluation_profile_factors pf on pf.id = f.source_profile_factor_id
+     join public.evaluation_profiles p on p.id = pf.profile_id
+     where f.evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000001' order by f.sort_order $$,
+  $$ values
+       ('Electrocutare prin atingere indirectă', 'Electrocutare prin atingere indirectă', 'Lucrător de birou'),
+       ('Ritm de muncă intens', 'Ritm de muncă intens', 'Lucrător de birou') $$,
+  'each factor saved into the library points at the profile factor made from it'
+);
+
 select throws_ok(
   $$ select public.save_risk_evaluation_as_profile('e1e1e1e1-0000-4000-8000-000000000002', 'LUCRĂTOR DE BIROU') $$,
   '23505',
@@ -197,6 +218,15 @@ select throws_ok(
 select ok(
   public.save_risk_evaluation_as_profile('e1e1e1e1-0000-4000-8000-000000000003', 'Din arhivă') is not null,
   'an archived client''s evaluation can still go into the library'
+);
+
+select results_eq(
+  $$ select id, source_profile_factor_id from public.risk_factors
+     where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000003' order by sort_order $$,
+  $$ values
+       ('f1f1f1f1-0000-4000-8000-000000000004'::uuid, null::uuid),
+       ('f1f1f1f1-0000-4000-8000-000000000005'::uuid, 'a2a2a2a2-0000-4000-8000-000000000001'::uuid) $$,
+  'an archived client''s factors are left as they were when saved into the library'
 );
 
 select is(
@@ -221,6 +251,78 @@ select results_eq(
      group by f.id order by f.sort_order $$,
   $$ values ('Lovire de mobilier', 0, 0), ('Electrocutare prin atingere indirectă', 1, 2), ('Ritm de muncă intens', 2, 0) $$,
   'the profile''s factors go after the evaluation''s own, with their measures'
+);
+
+select results_eq(
+  $$ select f.description, pf.description, p.name
+     from public.risk_factors f
+     left join public.evaluation_profile_factors pf on pf.id = f.source_profile_factor_id
+     left join public.evaluation_profiles p on p.id = pf.profile_id
+     where f.evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002' order by f.sort_order $$,
+  $$ values
+       ('Lovire de mobilier', null::text, null::text),
+       ('Electrocutare prin atingere indirectă', 'Electrocutare prin atingere indirectă', 'Lucrător de birou'),
+       ('Ritm de muncă intens', 'Ritm de muncă intens', 'Lucrător de birou') $$,
+  'each applied factor points at the profile factor it was copied from'
+);
+
+select lives_ok(
+  $$ select public.save_risk_factor(
+       p_evaluation_id => 'e1e1e1e1-0000-4000-8000-000000000002',
+       p_factor_id => (select id from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002' and description = 'Ritm de muncă intens'),
+       p_component => 'work_task',
+       p_factor_group => 'Suprasolicitare psihică',
+       p_description => 'Ritm de muncă foarte intens',
+       p_gravity_class => 2::smallint,
+       p_probability_class => 4::smallint,
+       p_measures => '[]') $$,
+  'a member adjusts an applied factor to the client'
+);
+
+select is(
+  (select p.name from public.risk_factors f
+   join public.evaluation_profile_factors pf on pf.id = f.source_profile_factor_id
+   join public.evaluation_profiles p on p.id = pf.profile_id
+   where f.description = 'Ritm de muncă foarte intens'),
+  'Lucrător de birou',
+  'an applied factor adjusted to the client keeps its origin'
+);
+
+select ok(
+  public.save_risk_evaluation_as_profile('e1e1e1e1-0000-4000-8000-000000000002', 'Birou extins') is not null,
+  'an evaluation with applied factors is saved as a profile'
+);
+
+select results_eq(
+  $$ select f.description, p.name
+     from public.risk_factors f
+     join public.evaluation_profile_factors pf on pf.id = f.source_profile_factor_id
+     join public.evaluation_profiles p on p.id = pf.profile_id
+     where f.evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002' order by f.sort_order $$,
+  $$ values
+       ('Lovire de mobilier', 'Birou extins'),
+       ('Electrocutare prin atingere indirectă', 'Lucrător de birou'),
+       ('Ritm de muncă foarte intens', 'Lucrător de birou') $$,
+  'saving as a profile links only the factors without an origin'
+);
+
+select is(
+  public.copy_risk_factors('e1e1e1e1-0000-4000-8000-000000000004', 'e1e1e1e1-0000-4000-8000-000000000002'),
+  3,
+  'a member copies an evaluation with linked factors within the client'
+);
+
+select is(
+  (select array_agg(source_profile_factor_id order by sort_order) from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000004'),
+  (select array_agg(source_profile_factor_id order by sort_order) from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002'),
+  'a copy within the client carries the origin along'
+);
+
+select throws_ok(
+  $$ update public.risk_factors set source_profile_factor_id = null where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002' $$,
+  '42501',
+  null,
+  'a member does not write the origin of a factor'
 );
 
 select throws_ok(
@@ -252,6 +354,30 @@ select is(
   (select count(*)::int from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002'),
   3,
   'deleting a profile leaves its copies in the evaluations'
+);
+
+select results_eq(
+  $$ select f.description, p.name
+     from public.risk_factors f
+     left join public.evaluation_profile_factors pf on pf.id = f.source_profile_factor_id
+     left join public.evaluation_profiles p on p.id = pf.profile_id
+     where f.evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000004' order by f.sort_order $$,
+  $$ values
+       ('Lovire de mobilier', 'Birou extins'),
+       ('Electrocutare prin atingere indirectă', null::text),
+       ('Ritm de muncă foarte intens', null::text) $$,
+  'deleting a profile clears the origin of its copies, and only theirs'
+);
+
+select lives_ok(
+  $$ delete from public.evaluation_profiles where id = 'a1a1a1a1-0000-4000-8000-000000000009' $$,
+  'a profile copied into an archived client''s evaluation can be deleted'
+);
+
+select is(
+  (select source_profile_factor_id from public.risk_factors where id = 'f1f1f1f1-0000-4000-8000-000000000005'),
+  null,
+  'deleting a profile clears the origin under an archived client too'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002', '{"provider":"email"}');
