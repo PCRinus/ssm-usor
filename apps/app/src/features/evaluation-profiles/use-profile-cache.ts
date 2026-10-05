@@ -3,12 +3,14 @@ import { useRouteContext } from '@tanstack/react-router';
 import {
   type EvaluationProfileResponse,
   getGetEvaluationProfileQueryKey,
+  getGetEvaluationProfileUsageQueryKey,
   getListEvaluationProfilesQueryKey,
   useCreateEvaluationProfileFactor,
   useRemoveEvaluationProfileFactor,
   useUpdateEvaluationProfileFactor,
 } from '@/api/generated/api';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
+import { invalidateEvaluations } from '@/features/risk-evaluations/use-evaluation-cache';
 
 import { type EvaluationProfile, profileFailure } from './profile-schema';
 
@@ -26,8 +28,21 @@ export function useProfileCache() {
     },
     removed: async (profileId: string) => {
       queryClient.removeQueries({ queryKey: getGetEvaluationProfileQueryKey(profileId) });
-      await queryClient.invalidateQueries({ queryKey: listKey });
+      queryClient.removeQueries({ queryKey: getGetEvaluationProfileUsageQueryKey(profileId) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listKey }),
+        invalidateEvaluations(queryClient),
+      ]);
     },
+    // Evaluations show the name of the profile each factor is in, and lose the link when the
+    // profile's factor goes.
+    linksChanged: (profileId: string) =>
+      Promise.all([
+        invalidateEvaluations(queryClient),
+        queryClient.invalidateQueries({
+          queryKey: getGetEvaluationProfileUsageQueryKey(profileId),
+        }),
+      ]),
     refresh: (profileId: string) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetEvaluationProfileQueryKey(profileId) }),
@@ -53,7 +68,7 @@ export function useProfileFactorStore(profile: EvaluationProfile): FactorStore {
     },
     remove: async (factorId) => {
       const result = await remove.mutateAsync({ profileId: profile.id, factorId });
-      await cache.saved(result.profile);
+      await Promise.all([cache.saved(result.profile), cache.linksChanged(profile.id)]);
     },
     refresh: () => cache.refresh(profile.id),
     failure: profileFailure,
