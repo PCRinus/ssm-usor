@@ -62,7 +62,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Global risk level** (_nivel de risc global_): the weighted mean of an evaluation's risk levels, each weighted by itself. Acceptable up to 3.5.
 
-**Evaluation profile** (_profil de evaluare_): a named set of risk factors with classes and prevention measures, kept by the organization and copied into evaluations. The profiles are the **risk library** (_biblioteca de riscuri_), which starts empty; the app ships no risk text. Avoid: template, catalogue.
+**Evaluation profile** (_profil de evaluare_): a named set of risk factors with classes and prevention measures, kept by the organization and copied into evaluations. A copied factor remembers the profile it came from, as provenance only: the two change apart. The profiles are the **risk library** (_biblioteca de riscuri_), which starts empty; the app ships no risk text. Avoid: template, catalogue.
 
 ## Documents
 

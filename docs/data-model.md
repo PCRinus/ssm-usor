@@ -326,18 +326,19 @@ equipment entries, and an insert under a lead is refused (`CLL01`).
 `risk_factors` hangs off the evaluation, with the same `client_id` and `organization_id`, and
 goes with it:
 
-| Column               | Notes                                                                                     |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| `component`          | `executant`, `work_task`, `means_of_production` or `work_environment`.                    |
-| `factor_group`       | Free text under the component: "Factori de risc mecanic", "Acțiuni greșite".              |
-| `description`        | The concrete form the factor takes.                                                       |
-| `gravity_class`      | 1 to 7, chosen by the evaluator.                                                          |
-| `probability_class`  | 1 to 6, chosen by the evaluator.                                                          |
-| `actions`            | For the prevention plan, free text, null until typed.                                     |
-| `deadline`           | For the plan, free text: "Permanent", "Trimestrial".                                      |
-| `responsible_person` | For the plan, free text.                                                                  |
-| `observations`       | For the plan, free text.                                                                  |
-| `sort_order`         | The factor's place in the evaluation, from 0; new factors and copies go after the others. |
+| Column                     | Notes                                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `component`                | `executant`, `work_task`, `means_of_production` or `work_environment`.                    |
+| `factor_group`             | Free text under the component: "Factori de risc mecanic", "Acțiuni greșite".              |
+| `description`              | The concrete form the factor takes.                                                       |
+| `gravity_class`            | 1 to 7, chosen by the evaluator.                                                          |
+| `probability_class`        | 1 to 6, chosen by the evaluator.                                                          |
+| `actions`                  | For the prevention plan, free text, null until typed.                                     |
+| `deadline`                 | For the plan, free text: "Permanent", "Trimestrial".                                      |
+| `responsible_person`       | For the plan, free text.                                                                  |
+| `observations`             | For the plan, free text.                                                                  |
+| `sort_order`               | The factor's place in the evaluation, from 0; new factors and copies go after the others. |
+| `source_profile_factor_id` | The profile factor this one was copied from or saved as, null once that is deleted.       |
 
 The risk level and the global level are not stored: code reads them from the classes with the
 method's grid (`risk-levels` in `packages/contracts`), so they never disagree with them.
@@ -356,7 +357,9 @@ otherwise), and returns how many it copied.
 Members read, create, update and delete the evaluations and factors of their organization
 under active clients, and create and delete measures. Updates are granted on the evaluation's
 `name` and five texts, and on the factor's descriptive columns and `sort_order`, so neither
-moves to another position, evaluation or client.
+moves to another position, evaluation or client. No update is granted on
+`source_profile_factor_id`: only the profile functions below set it, and `copy_risk_factors`
+carries it along.
 
 ### Evaluation profiles
 
@@ -368,17 +371,24 @@ and their measures with the same columns, checks and enums as `risk_factors` and
 and deleted with it. They are tables of their own rather than evaluations without a client:
 every key, trigger and policy on the evaluation tables is the client's (the archived-client
 and lead triggers, the client's foreign keys, the policies that ask for an active client).
-Nothing refers to a profile, so a profile is deleted, not archived.
+Only the factors copied from a profile refer to it, as provenance, so a profile is deleted,
+not archived.
 
-Three functions run as the caller and are one transaction each.
-`save_evaluation_profile_factor` is `save_risk_factor` for a profile. `save_risk_evaluation_as_profile`
-creates a profile by name with copies of an evaluation's factors and measures in their order,
-and returns its id, or null when the evaluation is not the caller's; a taken name fails on the
-unique index (`23505`). It works for an archived client's evaluation, since only the library
-is written. `apply_evaluation_profile` appends copies of a profile's factors and measures after
-an evaluation's own and returns how many; a profile of another organization is refused
-(`RSK02`), and an archived client by its trigger (`CLA01`). A copy keeps no link to where it
-came from, so later changes on either side stay there.
+Each function is one transaction. `save_evaluation_profile_factor` and
+`apply_evaluation_profile` run as the caller. `save_evaluation_profile_factor` is
+`save_risk_factor` for a profile. `apply_evaluation_profile` appends copies of a profile's
+factors and measures after an evaluation's own, each pointing at the factor it was copied from
+by `source_profile_factor_id`, and returns how many; a profile of another organization is
+refused (`RSK02`), and an archived client by its trigger (`CLA01`).
+`save_risk_evaluation_as_profile` runs as its owner, because it writes
+`source_profile_factor_id`, and so checks the caller's organization itself. It creates a
+profile by name with copies of an evaluation's factors and measures in their order, points each
+of the evaluation's factors that had no origin at its copy, and returns the profile's id, or
+null when the evaluation is not the caller's; a taken name fails on the unique index (`23505`).
+It works for an archived client's evaluation, whose factors it leaves unlinked. The pointer is
+provenance only ([ADR 015](architecture/adr-015-risk-assessment.md), amended 2026-10-05):
+later changes on either side stay there. Deleting a profile or its factor clears it through the
+foreign key, which the archived-client trigger on `risk_factors` lets through.
 
 Members read, create, update and delete their organization's profiles and profile factors,
 and create and delete profile measures. Updates are granted on the profile's `name` and on the
