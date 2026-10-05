@@ -25,7 +25,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if tg_op = 'UPDATE' and new.source_profile_factor_id is null
+  if tg_op = 'UPDATE' and old.source_profile_factor_id is not null
+    and new.source_profile_factor_id is null
     and (to_jsonb(new) - 'source_profile_factor_id' - 'updated_at')
       = (to_jsonb(old) - 'source_profile_factor_id' - 'updated_at') then
     return new;
