@@ -106,19 +106,16 @@ export function sectionOf(typeKey: string): DocumentSectionId {
 const counted = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
-export function sectionSummary(
-  rows: readonly { document: ClientDocument | null; notApplicable?: boolean }[]
-) {
+// A row without a document is one that does not apply to the client.
+export function sectionSummary(rows: readonly { document: ClientDocument | null }[]) {
   if (rows.length === 0) return 'negenerat';
   const documents = rows.flatMap((row) => (row.document ? [row.document] : []));
   const issued = documents.filter((document) => document.issued).length;
   const drafts = documents.filter((document) => document.draft).length;
   const dataChanged = documents.filter((document) => document.draft?.dataChanged).length;
-  const waiting = rows.filter((row) => !row.document && !row.notApplicable).length;
   const parts = [
     issued > 0 && counted(issued, 'emis', 'emise'),
     drafts > 0 && counted(drafts, 'ciornă', 'ciorne'),
-    waiting > 0 && counted(waiting, 'neîncărcat', 'neîncărcate'),
     dataChanged > 0 && `${dataChanged} cu date modificate`,
   ].filter((part) => part !== false);
   return parts.length > 0 ? parts.join(' · ') : 'nu se aplică';

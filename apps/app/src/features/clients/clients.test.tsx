@@ -30,6 +30,21 @@ const sampleClient = {
 
 const archivedClient = { ...sampleClient, archivedAt: '2026-09-21T08:00:00+00:00' };
 
+const listed = (client: object = sampleClient, work: object = {}) => ({
+  ...client,
+  serviceContractState: null,
+  clientSince: '2026-09-18T07:30:00+00:00',
+  jobPositionCount: 3,
+  jobPositionsNeedingWorkCount: 0,
+  documentation: {
+    state: 'issued',
+    issuedCount: 23,
+    totalCount: 23,
+    lastGeneratedAt: '2026-09-20T10:00:00+00:00',
+  },
+  ...work,
+});
+
 const meAs = (role: 'owner' | 'specialist') => () =>
   Response.json({
     user: { id: 'user-one', email: 'review@example.test' },
@@ -164,11 +179,12 @@ afterEach(() => {
 
 describe('clients list', () => {
   it('lists clients from the API with the VAT prefix and registered office', async () => {
-    mockApi({ list: () => Response.json(page([sampleClient])) });
+    mockApi({ list: () => Response.json(page([listed()])) });
     mountApp(authFixture(makeSession()).client, '/clients');
     const row = await screen.findByTestId('clients-row');
     expect(within(row).getByText('OMV PETROM SA')).toBeTruthy();
-    expect(within(row).getByText('CAEN 0610')).toBeTruthy();
+    expect(within(row).queryByText('CAEN 0610')).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Sediu social' })).toBeNull();
     expect(within(row).getByText('RO1590082')).toBeTruthy();
     expect(within(row).getByText('Sector 1 Mun. București, București')).toBeTruthy();
     // The list count, not what was declared.
@@ -181,6 +197,87 @@ describe('clients list', () => {
     expect(query.get('pageSize')).toBe('25');
     expect(query.get('sort')).toBe('legalName');
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+  });
+
+  it('shows which clients still need work on their positions and documentation', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([
+            listed(sampleClient, {
+              jobPositionCount: 0,
+              documentation: {
+                state: 'none',
+                issuedCount: 0,
+                totalCount: 23,
+                lastGeneratedAt: null,
+              },
+            }),
+            listed(
+              { ...sampleClient, id: 'b2', legalName: 'IN LUCRU SRL' },
+              {
+                jobPositionCount: 5,
+                jobPositionsNeedingWorkCount: 2,
+                documentation: {
+                  state: 'in_progress',
+                  issuedCount: 18,
+                  totalCount: 24,
+                  lastGeneratedAt: '2026-09-20T10:00:00+00:00',
+                },
+              }
+            ),
+            listed({ ...sampleClient, id: 'c3', legalName: 'GATA SRL' }),
+          ])
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, '/clients');
+    const [none, working, done] = await screen.findAllByTestId('clients-row');
+    expect(within(none!).getByTestId('clients-documentation').textContent).toBe('Negenerată');
+    expect(within(none!).queryByTestId('clients-documentation-progress')).toBeNull();
+    expect(within(none!).getByTestId('clients-positions-work').textContent).toBe('de adăugat');
+    expect(within(working!).getByTestId('clients-documentation').textContent).toBe('În lucru');
+    expect(within(working!).getByTestId('clients-documentation-progress').textContent).toBe(
+      '18 din 24 emise'
+    );
+    expect(within(working!).getByText('generată 20.09.2026')).toBeTruthy();
+    expect(within(working!).getByTestId('clients-positions-work').textContent).toBe(
+      '2 de completat'
+    );
+    expect(within(done!).getByTestId('clients-documentation').textContent).toBe('Emisă');
+    expect(within(done!).queryByTestId('clients-positions-work')).toBeNull();
+  });
+
+  it('sorts by documentation progress and by positions through the API', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-row');
+    await user.click(screen.getByTestId('sort-documentation'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'documentation' })
+    );
+    await user.click(screen.getByTestId('sort-jobPositionCount'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'jobPositionCount' })
+    );
+    const sorts = requests('/clients').map(([url]) =>
+      new URL(String(url)).searchParams.get('sort')
+    );
+    expect(sorts).toEqual(expect.arrayContaining(['documentation', 'jobPositionCount']));
+  });
+
+  it('shows when each company became a client, newest first on the first click', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const row = await screen.findByTestId('clients-row');
+    expect(within(row).getByText('18.09.2026')).toBeTruthy();
+    await userEvent.setup().click(screen.getByTestId('sort-clientSince'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'clientSince', order: 'desc' })
+    );
+    const query = new URL(String(requests('/clients').at(-1)![0])).searchParams;
+    expect(query.get('sort')).toBe('clientSince');
+    expect(query.get('order')).toBe('desc');
   });
 
   it('opens a client from anywhere on its row', async () => {

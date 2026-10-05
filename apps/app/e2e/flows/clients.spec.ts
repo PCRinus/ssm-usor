@@ -44,6 +44,8 @@ test('an owner archives a client, finds it among the archived, and restores it',
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto('/clients');
+  await expect(page.getByTestId('clients-documentation')).toHaveText('Negenerată');
+  await expect(page.getByTestId('clients-positions-work')).toHaveText('de adăugat');
 
   await page.getByTestId('clients-row-menu').click();
   await page.getByTestId('clients-archive').click();

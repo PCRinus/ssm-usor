@@ -1,6 +1,8 @@
 import {
   decisionTypeKeys,
+  type DocumentationState,
   type DocumentTypeKey,
+  documentTypeKeys,
   type EquipmentAllocation,
   formatTrainingDuration,
   type InstructionModuleGroup,
@@ -657,6 +659,32 @@ export function documentApplies(
     typeKey !== 'decision_workers_representative' ||
     requiredWorkersRepresentatives(facts.currentEmployeeCount) > 0
   );
+}
+
+const builtInTypeKeys = new Set<string>(documentTypeKeys);
+
+/**
+ * How much of a client's documentation set is issued, counted over what the "Documente SSM" tab
+ * lists: every built-in document that applies, plus any other the set holds. Training themes
+ * waiting for generated own instructions count as not done.
+ */
+export function documentationProgress({
+  currentEmployeeCount,
+  generatedTypeKeys,
+  issuedCount,
+}: {
+  currentEmployeeCount: number;
+  generatedTypeKeys: readonly string[];
+  issuedCount: number;
+}): { state: DocumentationState; issuedCount: number; totalCount: number } {
+  const generated = new Set(generatedTypeKeys);
+  const totalCount =
+    documentTypeKeys.filter(
+      (typeKey) => generated.has(typeKey) || documentApplies({ currentEmployeeCount }, typeKey)
+    ).length + [...generated].filter((typeKey) => !builtInTypeKeys.has(typeKey)).length;
+  const state =
+    generated.size === 0 ? 'none' : issuedCount >= totalCount ? 'issued' : 'in_progress';
+  return { state, issuedCount, totalCount };
 }
 
 /**

@@ -73,6 +73,17 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 | `promoted_at`, `promoted_by`                     | Written by the trigger at promotion, never by hand; null for a lead.                                                                                                 |
 | `archived_at`                                    | Soft delete. There is no delete policy.                                                                                                                              |
 
+The list of clients reads more computed fields of `clients`, security invoker like
+`current_employee_count`, so they count only what the caller may see: `job_position_count`
+(positions not archived), `job_positions_needing_work_count` (of those, the ones with
+`needs_protective_equipment` or `needs_instructions` null, or without a risk evaluation),
+`documentation_generated_type_keys` (type keys of the documentation set that have a revision),
+`documentation_issued_count` (documents of the set with an issued revision, the sort of
+`sort=documentation`), and `documentation_last_generated_at` (the newest
+`document_generations.created_at`). The contract is `other`, so none of them count it.
+`client_since` is `coalesce(promoted_at, created_at)`, a computed field only because PostgREST
+orders by columns and computed fields, not by expressions.
+
 Every member corrects a client's data, and only an owner archives or restores one: the update
 policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change
 of `archived_at` (`42501` otherwise). A caller without a user, which is the secret key of seeds

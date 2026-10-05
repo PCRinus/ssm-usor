@@ -312,6 +312,7 @@ describe('client documents', () => {
     const skipped = screen.getByTestId('document-not-applicable');
     expect(skipped.textContent).toContain('Decizia privind reprezentanții lucrătorilor');
     expect(skipped.textContent).toContain('Nu se aplică');
+    expect(summaryOf('1')).toBe('5 ciorne');
   });
 
   it.each([
