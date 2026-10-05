@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(10);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -121,6 +121,22 @@ select results_eq(
      from foreign_client f $$,
   $$ values ('{}'::text[], null::timestamptz) $$,
   'nor its documents or generations'
+);
+
+reset role;
+
+select is(
+  public.client_since(jsonb_populate_record(null::public.clients,
+    '{"created_at": "2026-08-01T00:00:00Z", "promoted_at": "2026-09-01T00:00:00Z"}')),
+  '2026-09-01 00:00+00'::timestamptz,
+  'a former lead became a client when it was promoted'
+);
+
+select is(
+  public.client_since(jsonb_populate_record(null::public.clients,
+    '{"created_at": "2026-08-01T00:00:00Z", "promoted_at": null}')),
+  '2026-08-01 00:00+00'::timestamptz,
+  'any other client when it was created'
 );
 
 select * from finish();

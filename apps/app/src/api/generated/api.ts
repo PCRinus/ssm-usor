@@ -306,6 +306,8 @@ export type ClientListResponseItemsItem = {
   updatedAt: string;
   /** @nullable */
   archivedAt: string | null;
+  /** @nullable */
+  clientSince: string | null;
   /**
    * @minimum 0
    * @nullable
@@ -4277,6 +4279,7 @@ export const ListClientsSort = {
   currentEmployeeCount: 'currentEmployeeCount',
   jobPositionCount: 'jobPositionCount',
   documentation: 'documentation',
+  clientSince: 'clientSince',
 } as const;
 
 export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClientsOrder];
@@ -5076,7 +5079,7 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, and "documentation" sorts by the number of issued documents. A client carries its job positions and where its documentation set stands; a lead carries null for both, and its contract state instead.
+ * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, "documentation" sorts by the number of issued documents, and "clientSince" by when the company became a client. A client carries its job positions and where its documentation set stands; a lead carries null for both, and its contract state instead.
  * @summary List the organization's clients or its leads, active or archived
  */
 export const listClients = async (

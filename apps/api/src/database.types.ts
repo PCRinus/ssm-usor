@@ -343,6 +343,7 @@ export type Database = {
           vat_payer: boolean;
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
+          client_since: string | null;
           current_employee_count: number | null;
           documentation_generated_type_keys: string[] | null;
           documentation_issued_count: number | null;
@@ -1952,6 +1953,12 @@ export type Database = {
           new_role: Database['public']['Enums']['organization_role'];
         };
         Returns: boolean;
+      };
+      client_since: {
+        Args: { '': Database['public']['Tables']['clients']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.client_since with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };

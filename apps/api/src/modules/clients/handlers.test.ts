@@ -58,6 +58,7 @@ const clientRow = {
 };
 
 const workRow = {
+  client_since: '2026-09-17T10:00:00+00:00',
   job_position_count: 4,
   job_positions_needing_work_count: 1,
   documentation_generated_type_keys: documentTypeKeys.slice(6),
@@ -157,6 +158,7 @@ describe('GET /clients', () => {
           createdAt: clientRow.created_at,
           updatedAt: clientRow.updated_at,
           archivedAt: null,
+          clientSince: '2026-09-17T10:00:00+00:00',
           jobPositionCount: 4,
           jobPositionsNeedingWorkCount: 1,
           documentation: {
@@ -202,6 +204,7 @@ describe('GET /clients', () => {
     ['jobPositionCount', 'asc', 'job_position_count.asc,legal_name.asc,id.asc'],
     ['documentation', 'asc', 'documentation_issued_count.asc,legal_name.asc,id.asc'],
     ['documentation', 'desc', 'documentation_issued_count.desc,legal_name.desc,id.asc'],
+    ['clientSince', 'desc', 'client_since.desc,id.asc'],
   ])('sorts by %s %s through the computed fields', async (sort, order, expected) => {
     mockUpstream({});
     expect((await request(`/clients?sort=${sort}&order=${order}`)).status).toBe(200);
@@ -293,6 +296,7 @@ describe('GET /clients', () => {
     ).not.toContain('job_position_count');
     expect(body.items[0]).toMatchObject({
       serviceContractState: 'none',
+      clientSince: null,
       jobPositionCount: null,
       jobPositionsNeedingWorkCount: null,
       documentation: null,

@@ -130,13 +130,15 @@ const sortColumns: Record<ClientSortKey, string[]> = {
   currentEmployeeCount: ['current_employee_count', 'legal_name'],
   jobPositionCount: ['job_position_count', 'legal_name'],
   documentation: ['documentation_issued_count', 'legal_name'],
+  clientSince: ['client_since'],
 };
 
 const workColumns =
-  'job_position_count, job_positions_needing_work_count, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at';
+  'client_since, job_position_count, job_positions_needing_work_count, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at';
 
 type WorkRow = Pick<
   ClientRow,
+  | 'client_since'
   | 'job_position_count'
   | 'job_positions_needing_work_count'
   | 'documentation_generated_type_keys'
@@ -153,6 +155,7 @@ const contractEmbed =
 function toClientListItem(row: SelectedClientRow & ContractDocuments & Partial<WorkRow>) {
   const item: ClientListItem = {
     ...toClient(row),
+    clientSince: null,
     jobPositionCount: null,
     jobPositionsNeedingWorkCount: null,
     documentation: null,
@@ -160,6 +163,7 @@ function toClientListItem(row: SelectedClientRow & ContractDocuments & Partial<W
   if (row.stage === 'lead') return item;
   return {
     ...item,
+    clientSince: row.client_since ?? row.created_at,
     jobPositionCount: row.job_position_count ?? 0,
     jobPositionsNeedingWorkCount: row.job_positions_needing_work_count ?? 0,
     documentation: {

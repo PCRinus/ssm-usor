@@ -112,8 +112,10 @@ export const clientDocumentationSchema = z.object({
 export type ClientDocumentation = z.infer<typeof clientDocumentationSchema>;
 
 // What the list of clients adds to each, to show which still need work. A lead has no job
-// positions and no documentation set, so all three are null for a lead.
+// positions and no documentation set, and is not a client yet, so all four are null for a lead.
 export const clientListItemSchema = clientSchema.extend({
+  // When the company became a client: its promotion for a former lead, otherwise its creation.
+  clientSince: z.iso.datetime({ offset: true }).nullable(),
   jobPositionCount: z.int().min(0).nullable(),
   // Equipment or instructions undecided, or no risk evaluation; not whether one is complete.
   jobPositionsNeedingWorkCount: z.int().min(0).nullable(),
@@ -129,6 +131,7 @@ export const clientSortKeys = [
   'jobPositionCount',
   // By the number of issued documents, so that ascending puts the least done first.
   'documentation',
+  'clientSince',
 ] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
 
