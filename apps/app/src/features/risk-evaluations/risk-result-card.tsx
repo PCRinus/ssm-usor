@@ -45,10 +45,6 @@ export function RiskResultCard({
   view: FactorListView;
 }) {
   const { factors, globalRiskLevel } = evaluation;
-  const unacceptable = factors.filter((factor) => isUnacceptableRiskLevel(factor.riskLevel));
-  const shares = componentShares(factors);
-  const over = isOverAcceptableLimit(globalRiskLevel);
-
   return (
     <SectionCard
       id={id}
@@ -57,15 +53,55 @@ export function RiskResultCard({
       title="Rezultatul evaluării"
     >
       {globalRiskLevel === null ? (
-        <p data-testid="risk-result-empty" className="text-sm text-muted-foreground">
-          Nivelul de risc global apare după primul factor de risc.
-        </p>
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            inert
+            data-testid="risk-result-placeholder"
+            className="pointer-events-none opacity-75 blur-[3px] grayscale select-none"
+          >
+            <ResultLayout result={null} view={view} />
+          </div>
+          <div
+            data-testid="risk-result-empty"
+            className="absolute inset-0 grid content-center justify-items-center bg-[radial-gradient(closest-side,var(--card)_40%,transparent_80%)] px-5 text-center"
+          >
+            <h4 className="text-base font-medium">Niciun rezultat încă</h4>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              Nivelul de risc global, ponderea pe componente și grila apar după primul factor de
+              risc.
+            </p>
+          </div>
+        </div>
       ) : (
-        <div className="@container">
-          <div className="grid items-start gap-x-14 gap-y-6 @xl:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid min-w-0 content-start">
-              <h4 className="text-sm font-medium">Nivel de risc global</h4>
-              <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <ResultLayout result={{ factors, globalRiskLevel }} view={view} />
+      )}
+    </SectionCard>
+  );
+}
+
+// `null` draws the layout with no figures, so the card keeps its size when the first factor
+// arrives.
+function ResultLayout({
+  result,
+  view,
+}: {
+  result: { factors: RiskEvaluation['factors']; globalRiskLevel: number } | null;
+  view: FactorListView;
+}) {
+  const factors = result?.factors ?? [];
+  const unacceptable = factors.filter((factor) => isUnacceptableRiskLevel(factor.riskLevel));
+  const shares = componentShares(factors);
+  const over = result !== null && isOverAcceptableLimit(result.globalRiskLevel);
+
+  return (
+    <div className="@container">
+      <div className="grid items-start gap-x-14 gap-y-6 @xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid min-w-0 content-start">
+          <h4 className="text-sm font-medium">Nivel de risc global</h4>
+          <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            {result ? (
+              <>
                 <span
                   data-testid="risk-global-level"
                   className={cn(
@@ -73,7 +109,7 @@ export function RiskResultCard({
                     over && 'text-destructive-foreground'
                   )}
                 >
-                  {formatGlobalLevel(globalRiskLevel)}
+                  {formatGlobalLevel(result.globalRiskLevel)}
                 </span>
                 <Badge
                   data-testid="risk-global-verdict"
@@ -86,57 +122,71 @@ export function RiskResultCard({
                 >
                   {over ? 'Peste limita acceptabilă' : 'Acceptabil'}
                 </Badge>
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Limita acceptabilă este {acceptableLimitLabel}.{' '}
-                <span data-testid="risk-result-counts">
-                  {unacceptableSummary(factors.length, unacceptable.length)}
-                </span>
-              </p>
-              <h4 className="mt-6 text-sm font-medium">Ponderea factorilor pe componente</h4>
-              <div
-                aria-hidden="true"
-                className="mt-2.5 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
-              >
-                {sheetComponents
-                  .filter((component) => shares[component] > 0)
-                  .map((component) => (
-                    <span
-                      key={component}
-                      className={cn('h-full basis-0', componentColors[component])}
-                      style={{ flexGrow: shares[component] }}
-                    />
-                  ))}
-              </div>
-              <ul className="mt-3 flex flex-wrap gap-x-7 gap-y-2 text-sm">
-                {sheetComponents.map((component) => (
-                  <li key={component} className="flex items-center gap-2 whitespace-nowrap">
-                    <span
-                      aria-hidden="true"
-                      className={cn('size-2.5 shrink-0 rounded-[3px]', componentColors[component])}
-                    />
-                    <span className="text-muted-foreground">{componentLabels[component]}</span>
-                    <span data-testid="risk-share" className="font-medium tabular-nums">
-                      {formatShare(shares[component])}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <RiskMatrix factors={factors} view={view} />
+              </>
+            ) : (
+              <>
+                <span className="text-3xl leading-tight font-medium tracking-tight">—</span>
+                <Badge variant="outline">Fără factori</Badge>
+              </>
+            )}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Limita acceptabilă este {acceptableLimitLabel}.{' '}
+            {result ? (
+              <span data-testid="risk-result-counts">
+                {unacceptableSummary(factors.length, unacceptable.length)}
+              </span>
+            ) : (
+              'Niciun factor de risc încă.'
+            )}
+          </p>
+          <h4 className="mt-6 text-sm font-medium">Ponderea factorilor pe componente</h4>
+          <div
+            aria-hidden="true"
+            className="mt-2.5 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
+          >
+            {sheetComponents
+              .filter((component) => !result || shares[component] > 0)
+              .map((component) => (
+                <span
+                  key={component}
+                  className={cn('h-full basis-0', componentColors[component])}
+                  style={{ flexGrow: result ? shares[component] : 1 }}
+                />
+              ))}
           </div>
+          <ul className="mt-3 flex flex-wrap gap-x-7 gap-y-2 text-sm">
+            {sheetComponents.map((component) => (
+              <li key={component} className="flex items-center gap-2 whitespace-nowrap">
+                <span
+                  aria-hidden="true"
+                  className={cn('size-2.5 shrink-0 rounded-[3px]', componentColors[component])}
+                />
+                <span className="text-muted-foreground">{componentLabels[component]}</span>
+                <span
+                  data-testid={result ? 'risk-share' : undefined}
+                  className="font-medium tabular-nums"
+                >
+                  {result ? formatShare(shares[component]) : '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
-    </SectionCard>
+        <RiskMatrix factors={factors} view={view} tinted={result !== null} />
+      </div>
+    </div>
   );
 }
 
 function RiskMatrix({
   factors,
   view,
+  tinted,
 }: {
   factors: RiskEvaluation['factors'];
   view: FactorListView;
+  tinted: boolean;
 }) {
   const headingId = useId();
   return (
@@ -172,14 +222,17 @@ function RiskMatrix({
           </span>
         ))}
         {matrixCells(factors).map((cell) => {
-          const bad = isUnacceptableRiskLevel(cell.level);
+          const bad = tinted && isUnacceptableRiskLevel(cell.level);
           const place = { gridRow: 8 - cell.gravityClass, gridColumn: cell.probabilityClass + 2 };
           if (cell.count === 0) {
             return (
               <span
                 key={`${cell.gravityClass}-${cell.probabilityClass}`}
                 aria-hidden="true"
-                className={cn('rounded-[5px]', bad ? 'bg-destructive-soft/55' : 'bg-muted/50')}
+                className={cn(
+                  'rounded-[5px]',
+                  bad ? 'bg-destructive-soft/55' : tinted ? 'bg-muted/50' : 'bg-muted'
+                )}
                 style={place}
               />
             );
@@ -224,7 +277,10 @@ function RiskMatrix({
       <p className="mt-2 flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
         <span
           aria-hidden="true"
-          className="size-2.5 rounded-[3px] border border-destructive-border bg-destructive-soft"
+          className={cn(
+            'size-2.5 rounded-[3px] border',
+            tinted ? 'border-destructive-border bg-destructive-soft' : 'bg-muted'
+          )}
         />
         Nivel inacceptabil
       </p>

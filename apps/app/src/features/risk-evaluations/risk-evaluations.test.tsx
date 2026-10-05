@@ -569,6 +569,21 @@ describe("a position's risk evaluation page", () => {
     ]);
   });
 
+  it('shows the shape of the result without figures until the first factor', async () => {
+    mockApi();
+    mount(`${positionsPath}/${cashier.id}/risk-evaluation`);
+    expect((await screen.findByTestId('risk-result-empty')).textContent).toContain(
+      'apar după primul factor de risc'
+    );
+    const placeholder = screen.getByTestId('risk-result-placeholder');
+    expect(placeholder.getAttribute('aria-hidden')).toBe('true');
+    expect(placeholder.hasAttribute('inert')).toBe(true);
+    expect(placeholder.textContent).not.toContain('%');
+    expect(screen.queryByTestId('risk-global-level')).toBeNull();
+    expect(screen.queryAllByTestId('risk-share')).toHaveLength(0);
+    expect(screen.queryAllByTestId('risk-matrix-cell')).toHaveLength(0);
+  });
+
   it('shows the work system, taking the task and the people from the position', async () => {
     mockApi();
     mount(welderEvaluationPath);
