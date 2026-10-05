@@ -300,7 +300,7 @@ const renderWith = (typeKey: (typeof documentTypeKeys)[number], variant: typeof 
 
 describe('the employer briefing', () => {
   it.each([
-    [30, '30 de minute'],
+    [60, '1 oră'],
     [90, '1 oră și 30 de minute'],
   ])(
     'prints the periodic training duration of %i minutes as decision 1.1 does',

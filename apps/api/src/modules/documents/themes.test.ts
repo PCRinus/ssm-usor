@@ -135,7 +135,7 @@ describe('the periodic sessions of a post', () => {
     const [session] = trainingSessions({
       firstMonth: 12,
       intervalMonths: 12,
-      periodicTrainingMinutes: 30,
+      periodicTrainingMinutes: 60,
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
     expect(session!.content).toBe(
