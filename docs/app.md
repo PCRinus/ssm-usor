@@ -736,12 +736,21 @@ mobile navigation link closes the Sheet.
   other evaluations that have factors and calls `POST …/factors/copy`; "Aplică un profil"
   lists the library's profiles that have factors, with their counts and global level, as a
   radio list, calls `POST …/factors/apply-profile`, and the toast says how many factors were
-  added. "Salvează ca profil…" in the header, shown while the evaluation has factors, asks
-  for a name (the evaluation's title by default; a `409` with `evaluation_profile_name_taken`
-  goes on the field) and calls `POST …/save-as-profile`; its toast opens the new profile.
+  added. "Salvează în bibliotecă…" asks for a name (the evaluation's title by default; a
+  `409` with `evaluation_profile_name_taken` goes on the field) and calls
+  `POST …/save-as-profile`; its toast opens the new profile, and the evaluation is read again,
+  since saving links its factors to the profile. While the evaluation has factors and none is
+  in the library, the factors card ends in a band inviting the user to save it there
+  (`library-nudge.tsx`), which holds the action; "Nu acum" hides it for that evaluation
+  (remembered in `localStorage`), and the header's outline "Salvează în bibliotecă…" shows
+  whenever the band does not. Once a factor is in a profile (`sourceProfile`), the card's
+  description says which profiles hold how many of the factors, with links
+  (`factor-origin.tsx`); a row names its profile ("În profilul …") only when the rows differ,
+  and the factor dialog says the factor is also in the profile and that edits stay here.
   Every change answers with the whole evaluation, which is written into both ways of reading
-  it and refreshes the list. An archived client gets the page with "Salvează ca profil…" as
-  its only action, since the library is the organization's.
+  it and refreshes the list and every profile's usage. An archived client gets the page with
+  "Salvează în bibliotecă…" as its only action and no band, since the library is the
+  organization's.
 - The factors card (`risk-factors-card.tsx`) and the factor dialog serve both an evaluation
   and a profile. They take the factors and a `FactorStore` (`factor-store.ts`): saving a
   factor (new or replaced), removing one, refreshing after a failure, and wording a failure.
@@ -754,7 +763,7 @@ mobile navigation link closes the Sheet.
   in `src/features/evaluation-profiles/`, an entry of the sidebar for owners and specialists
   alike. The list shows `GET /evaluation-profiles` by name, each with "12 factori, 2
   inacceptabili" and "Nivel global 2,79", red above 3,50; empty, it says that a profile comes
-  from "Salvează ca profil" on an evaluation or from "Profil nou". "Profil nou" asks for a
+  from "Salvează în bibliotecă" on an evaluation or from "Profil nou". "Profil nou" asks for a
   name, creates an empty profile and opens it; the row menu renames and deletes, after asking
   and saying that the evaluations it was applied to keep their copies. The name dialog
   (`profile-name-dialog.tsx`) is one component for starting, renaming and saving an
@@ -762,7 +771,10 @@ mobile navigation link closes the Sheet.
 - `/risks/:profileId`: the profile's name with "Redenumește…" and "Șterge profilul…", a line
   saying that changes do not reach the evaluations it was applied to, "Rezultatul evaluării"
   and "Factori de risc" as on the evaluation page, without a work system: a profile holds
-  factors only.
+  factors only. "Unde este folosit" lists `GET /evaluation-profiles/{id}/usage` by client:
+  each evaluation with a link and how many of its factors are in the profile, archived clients
+  marked. Renaming or deleting the profile, or deleting one of its factors, refreshes every
+  evaluation read, since their links and names change.
 - `/profile`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
