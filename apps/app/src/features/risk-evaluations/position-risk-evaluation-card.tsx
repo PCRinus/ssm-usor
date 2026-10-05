@@ -6,12 +6,13 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, Plus, ShieldAlert } from 'lucide-react';
 
 import {
   getGetJobPositionRiskEvaluationQueryKey,
   useGetJobPositionRiskEvaluation,
 } from '@/api/generated/api';
+import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
@@ -106,26 +107,28 @@ export function PositionRiskEvaluationCard({
           Nu am putut încărca evaluarea postului.
         </Notice>
       ) : !evaluation ? (
-        <div data-testid="position-risk-empty" className="grid gap-3">
-          <p className="text-sm text-muted-foreground">
-            {readOnly
-              ? 'Postul nu a fost evaluat. Clientul este arhivat, așa că nu se mai evaluează.'
-              : 'Documentația nu se poate genera până nu evaluezi riscurile postului: factorii de risc, clasele lor și măsurile de prevenire.'}
-          </p>
-          {!readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              data-testid="position-risk-start"
-              disabled={pending}
-              onClick={() => void start({ kind: 'job_position', jobPositionId: position.id })}
-            >
-              <Plus aria-hidden="true" />
-              {pending ? 'Se pornește…' : 'Începe evaluarea'}
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          data-testid="position-risk-empty"
+          icon={ShieldAlert}
+          actions={
+            !readOnly && (
+              <Button
+                variant="tonal"
+                size="sm"
+                data-testid="position-risk-start"
+                disabled={pending}
+                onClick={() => void start({ kind: 'job_position', jobPositionId: position.id })}
+              >
+                <Plus aria-hidden="true" />
+                {pending ? 'Se pornește…' : 'Începe evaluarea'}
+              </Button>
+            )
+          }
+        >
+          {readOnly
+            ? 'Postul nu a fost evaluat. Clientul este arhivat, așa că nu se mai evaluează.'
+            : 'Documentația nu se poate genera până nu evaluezi riscurile postului: factorii de risc, clasele lor și măsurile de prevenire.'}
+        </EmptyState>
       ) : evaluation.globalRiskLevel === null ? (
         <p data-testid="position-risk-no-factors" className="text-sm text-muted-foreground">
           Evaluarea a început, dar nu are încă factori de risc.

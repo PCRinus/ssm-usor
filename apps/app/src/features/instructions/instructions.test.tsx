@@ -402,9 +402,14 @@ describe("a job position's instructions", () => {
     mockApi();
     mount(`${positionsPath}/${fitter.id}`);
     const user = userEvent.setup();
-    expect((await screen.findByTestId('instructions-empty')).textContent).toContain(
-      'nu se pot genera'
-    );
+    const empty = await screen.findByTestId('instructions-empty');
+    expect(empty.textContent).toContain('nu se pot genera');
+    expect(
+      within(empty)
+        .getAllByRole('button')
+        .map((button) => button.dataset.testid)
+    ).toEqual(['instructions-pick', 'instructions-decide-none', 'instructions-copy']);
+    expect(screen.getAllByTestId('instructions-pick')).toHaveLength(1);
     mockApi({ instructions: { [fitter.id]: { items: [], needsInstructions: false } } });
     await user.click(screen.getByTestId('instructions-decide-none'));
     await waitFor(() =>
