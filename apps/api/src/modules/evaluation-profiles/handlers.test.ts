@@ -3,6 +3,7 @@ import {
   applyEvaluationProfileResponseSchema,
   evaluationProfileListResponseSchema,
   evaluationProfileResponseSchema,
+  evaluationProfileUsageResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -124,6 +125,7 @@ function mockUpstream(
     profiles?: Handler;
     factors?: Handler;
     evaluations?: Handler;
+    riskFactors?: Handler;
     rpc?: Handler;
   } = {}
 ) {
@@ -162,6 +164,10 @@ function mockUpstream(
         return Response.json([{ id: evaluationId, kind: 'other' }]);
       }
       return Response.json([evaluation]);
+    }
+    if (url.pathname === '/rest/v1/risk_factors') {
+      const custom = handlers.riskFactors?.(init, url);
+      if (custom) return custom;
     }
     throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
   });
@@ -305,11 +311,89 @@ describe('GET /evaluation-profiles/{profileId}', () => {
       'organizational',
     ]);
     expect(profile.globalRiskLevel).toBe(3.33);
+    expect(profile.factors.map((factor) => factor.sourceProfile)).toEqual([null, null]);
   });
 
   it('answers 404 for a profile outside the organization', async () => {
     mockUpstream({ profiles: () => Response.json([]) });
     expect((await request(profilePath)).status).toBe(404);
+  });
+});
+
+describe('GET /evaluation-profiles/{profileId}/usage', () => {
+  const linked = (
+    id: string,
+    client: { id: string; name: string; archivedAt?: string },
+    fields: { kind: string; name?: string; position?: { name: string; archivedAt?: string } }
+  ) => ({
+    evaluation_profile_factors: { profile_id: profileId },
+    risk_evaluations: {
+      id,
+      client_id: client.id,
+      kind: fields.kind,
+      name: fields.name ?? null,
+      job_positions: fields.position
+        ? {
+            id: `${id.slice(0, -4)}0000`,
+            name: fields.position.name,
+            archived_at: fields.position.archivedAt ?? null,
+          }
+        : null,
+      clients: { legal_name: client.name, archived_at: client.archivedAt ?? null },
+    },
+  });
+  const beta = { id: 'b0000000-0000-4000-8000-000000000001', name: 'Beta SRL' };
+  const alfa = { id: 'a0000000-0000-4000-8000-000000000001', name: 'Alfa SRL', archivedAt: stamp };
+  const visitors = 'e0000000-0000-4000-8000-000000000001';
+  const accountant = 'e0000000-0000-4000-8000-000000000002';
+  const sensitive = 'e0000000-0000-4000-8000-000000000003';
+  const welder = 'e0000000-0000-4000-8000-000000000004';
+  const alfaVisitors = 'e0000000-0000-4000-8000-000000000005';
+
+  it('lists the evaluations with copies of its factors, counted, by client and as listed', async () => {
+    mockUpstream({
+      riskFactors: () =>
+        Response.json([
+          linked(visitors, beta, { kind: 'other', name: 'Vizitatori' }),
+          linked(accountant, beta, { kind: 'job_position', position: { name: 'Contabil' } }),
+          linked(visitors, beta, { kind: 'other', name: 'Vizitatori' }),
+          linked(sensitive, beta, { kind: 'sensitive_groups' }),
+          linked(accountant, beta, { kind: 'job_position', position: { name: 'Contabil' } }),
+          linked(accountant, beta, { kind: 'job_position', position: { name: 'Contabil' } }),
+          linked(welder, beta, {
+            kind: 'job_position',
+            position: { name: 'Sudor', archivedAt: stamp },
+          }),
+          linked(alfaVisitors, alfa, { kind: 'other', name: 'Vizitatori' }),
+        ]),
+    });
+    const response = await request(`${profilePath}/usage`);
+    expect(response.status).toBe(200);
+    const { items } = evaluationProfileUsageResponseSchema.parse(await response.json());
+    expect(
+      items.map((item) => [
+        item.clientName,
+        item.clientArchivedAt,
+        item.id,
+        item.jobPosition?.name ?? item.name,
+        item.linkedFactorCount,
+      ])
+    ).toEqual([
+      ['Alfa SRL', stamp, alfaVisitors, 'Vizitatori', 1],
+      ['Beta SRL', null, accountant, 'Contabil', 3],
+      ['Beta SRL', null, sensitive, null, 1],
+      ['Beta SRL', null, visitors, 'Vizitatori', 2],
+    ]);
+    expect(items[1]).toMatchObject({ clientId: beta.id, kind: 'job_position' });
+    const [read] = calls('risk_factors', 'GET');
+    const params = new URL(String(read![0])).searchParams;
+    expect(params.get('evaluation_profile_factors.profile_id')).toBe(`eq.${profileId}`);
+  });
+
+  it('answers 404 for a profile outside the organization', async () => {
+    mockUpstream({ profiles: () => Response.json([]) });
+    expect((await request(`${profilePath}/usage`)).status).toBe(404);
+    expect(calls('risk_factors', 'GET')).toHaveLength(0);
   });
 });
 

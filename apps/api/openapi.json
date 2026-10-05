@@ -2319,6 +2319,20 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "sourceProfile": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2341,6 +2355,7 @@
                     "deadline",
                     "responsiblePerson",
                     "observations",
+                    "sourceProfile",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -2777,6 +2792,20 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "sourceProfile": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2799,6 +2828,7 @@
                     "deadline",
                     "responsiblePerson",
                     "observations",
+                    "sourceProfile",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -2986,6 +3016,20 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "sourceProfile": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -3008,6 +3052,7 @@
                     "deadline",
                     "responsiblePerson",
                     "observations",
+                    "sourceProfile",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -3029,6 +3074,72 @@
           }
         },
         "required": ["name"]
+      },
+      "EvaluationProfileUsageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientName": {
+                  "type": "string"
+                },
+                "clientArchivedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["job_position", "sensitive_groups", "other"]
+                },
+                "jobPosition": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "name": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "linkedFactorCount": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "clientName",
+                "clientArchivedAt",
+                "kind",
+                "jobPosition",
+                "name",
+                "linkedFactorCount"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
       },
       "ApplyEvaluationProfileResponse": {
         "type": "object",
@@ -3169,6 +3280,20 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "sourceProfile": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name"]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -3191,6 +3316,7 @@
                     "deadline",
                     "responsiblePerson",
                     "observations",
+                    "sourceProfile",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -11420,7 +11546,7 @@
       "post": {
         "operationId": "copyRiskFactors",
         "summary": "Copy the factors of another evaluation of the client",
-        "description": "Adds copies of the factors of `fromEvaluationId`, with their classes, measures and plan fields, after the factors the evaluation already has.",
+        "description": "Adds copies of the factors of `fromEvaluationId`, with their classes, measures, plan fields and `sourceProfile`, after the factors the evaluation already has.",
         "security": [
           {
             "bearerAuth": []
@@ -12482,7 +12608,7 @@
       "delete": {
         "operationId": "removeEvaluationProfile",
         "summary": "Delete an evaluation profile with its factors",
-        "description": "The factors it gave evaluations stay in them: a copy is the client’s and never refers back to the profile.",
+        "description": "The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.",
         "security": [
           {
             "bearerAuth": []
@@ -12502,6 +12628,101 @@
         "responses": {
           "204": {
             "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The profile does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evaluation-profiles/{profileId}/usage": {
+      "get": {
+        "operationId": "getEvaluationProfileUsage",
+        "summary": "List the risk evaluations that hold copies of a profile’s factors",
+        "description": "Every evaluation, archived clients’ included, with at least one factor whose `sourceProfile` is this profile, and `linkedFactorCount` of them. By client name, then as the client’s evaluations are listed. Evaluations of archived positions are left out, as from that list.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "profileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The evaluations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationProfileUsageResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid path",
@@ -12675,7 +12896,7 @@
       "put": {
         "operationId": "updateEvaluationProfileFactor",
         "summary": "Replace a profile's risk factor and its prevention measures",
-        "description": "The factor keeps its place. Copies already made in evaluations stay as they are. Answers with the whole profile.",
+        "description": "The factor keeps its place. Copies already made in evaluations stay as they are, still pointing at it. Answers with the whole profile.",
         "security": [
           {
             "bearerAuth": []
@@ -12891,7 +13112,7 @@
       "post": {
         "operationId": "saveRiskEvaluationAsProfile",
         "summary": "Save a risk evaluation as a profile of the library",
-        "description": "A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. An archived client’s evaluation can be saved too.",
+        "description": "A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.",
         "security": [
           {
             "bearerAuth": []
@@ -13015,7 +13236,7 @@
       "post": {
         "operationId": "applyEvaluationProfile",
         "summary": "Copy the factors of a profile into a risk evaluation",
-        "description": "Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.",
+        "description": "Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.",
         "security": [
           {
             "bearerAuth": []

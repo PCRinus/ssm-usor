@@ -5,6 +5,7 @@ import {
   evaluationProfileListResponseSchema,
   evaluationProfileNameRequestSchema,
   evaluationProfileResponseSchema,
+  evaluationProfileUsageResponseSchema,
   riskFactorRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -131,12 +132,39 @@ export const removeEvaluationProfileRoute = createRoute({
   operationId: 'removeEvaluationProfile',
   summary: 'Delete an evaluation profile with its factors',
   description:
-    'The factors it gave evaluations stay in them: a copy is the client’s and never refers back to the profile.',
+    'The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: profileParams },
   responses: {
     204: { description: 'Deleted' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchProfile,
+    ...membershipErrors,
+  },
+});
+
+export const getEvaluationProfileUsageRoute = createRoute({
+  method: 'get',
+  path: '/evaluation-profiles/{profileId}/usage',
+  operationId: 'getEvaluationProfileUsage',
+  summary: 'List the risk evaluations that hold copies of a profile’s factors',
+  description:
+    'Every evaluation, archived clients’ included, with at least one factor whose `sourceProfile` is this profile, and `linkedFactorCount` of them. By client name, then as the client’s evaluations are listed. Evaluations of archived positions are left out, as from that list.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: profileParams },
+  responses: {
+    200: {
+      description: 'The evaluations',
+      content: {
+        'application/json': {
+          schema: evaluationProfileUsageResponseSchema.meta({
+            id: 'EvaluationProfileUsageResponse',
+          }),
+        },
+      },
+    },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchProfile,
     ...membershipErrors,
@@ -167,7 +195,7 @@ export const updateEvaluationProfileFactorRoute = createRoute({
   operationId: 'updateEvaluationProfileFactor',
   summary: "Replace a profile's risk factor and its prevention measures",
   description:
-    'The factor keeps its place. Copies already made in evaluations stay as they are. Answers with the whole profile.',
+    'The factor keeps its place. Copies already made in evaluations stay as they are, still pointing at it. Answers with the whole profile.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: factorParams, body: factorBody },
@@ -202,7 +230,7 @@ export const saveRiskEvaluationAsProfileRoute = createRoute({
   operationId: 'saveRiskEvaluationAsProfile',
   summary: 'Save a risk evaluation as a profile of the library',
   description:
-    'A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. An archived client’s evaluation can be saved too.',
+    'A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: evaluationParams, body: nameBody },
@@ -224,7 +252,7 @@ export const applyEvaluationProfileRoute = createRoute({
   operationId: 'applyEvaluationProfile',
   summary: 'Copy the factors of a profile into a risk evaluation',
   description:
-    'Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.',
+    'Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
