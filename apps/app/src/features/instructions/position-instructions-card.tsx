@@ -22,7 +22,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { Copy, ListChecks, X } from 'lucide-react';
+import { BookOpenText, Copy, ListChecks, X } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -38,6 +38,7 @@ import {
   useListPositionInstructions,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -152,6 +153,18 @@ export function PositionInstructionsCard({
   const decision = instructions.data?.needsInstructions ?? position.needsInstructions;
   const items = instructions.data?.items ?? [];
 
+  const pickAction = !readOnly && decision !== false && (
+    <Button
+      variant="tonal"
+      size="sm"
+      data-testid="instructions-pick"
+      onClick={() => setPicking(true)}
+    >
+      <ListChecks aria-hidden="true" />
+      Alege instrucțiunile
+    </Button>
+  );
+
   const copyAction = !readOnly && (
     <Button
       variant="outline"
@@ -182,20 +195,7 @@ export function PositionInstructionsCard({
           )}
         </span>
       }
-      action={
-        !readOnly &&
-        decision !== false && (
-          <Button
-            variant="tonal"
-            size="sm"
-            data-testid="instructions-pick"
-            onClick={() => setPicking(true)}
-          >
-            <ListChecks aria-hidden="true" />
-            Alege instrucțiunile
-          </Button>
-        )
-      }
+      action={items.length > 0 && pickAction}
     >
       {error && (
         <Notice variant="destructive" data-testid="instructions-error">
@@ -241,27 +241,31 @@ export function PositionInstructionsCard({
           nu anexează nimic pentru el.
         </Notice>
       ) : items.length === 0 ? (
-        <div data-testid="instructions-empty" className="grid gap-3">
-          <p className="text-sm text-muted-foreground">
-            {readOnly
-              ? 'Nu s-a stabilit ce instrucțiuni privesc postul. Clientul este arhivat, așa că instrucțiunile lui nu se mai completează.'
-              : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.'}
-          </p>
-          {!readOnly && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="instructions-decide-none"
-                disabled={decide.isPending}
-                onClick={() => void decideNone(false)}
-              >
-                Postul nu necesită instrucțiuni specifice
-              </Button>
-              {copyAction}
-            </div>
-          )}
-        </div>
+        <EmptyState
+          data-testid="instructions-empty"
+          icon={BookOpenText}
+          actions={
+            !readOnly && (
+              <>
+                {pickAction}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="instructions-decide-none"
+                  disabled={decide.isPending}
+                  onClick={() => void decideNone(false)}
+                >
+                  Postul nu necesită instrucțiuni specifice
+                </Button>
+                {copyAction}
+              </>
+            )
+          }
+        >
+          {readOnly
+            ? 'Nu s-a stabilit ce instrucțiuni privesc postul. Clientul este arhivat, așa că instrucțiunile lui nu se mai completează.'
+            : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.'}
+        </EmptyState>
       ) : (
         <>
           <Table className="max-sm:block">

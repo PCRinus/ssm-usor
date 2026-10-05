@@ -27,7 +27,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { Copy, MoreHorizontal, Plus } from 'lucide-react';
+import { Copy, HardHat, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -42,6 +42,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -141,6 +142,20 @@ export function EquipmentCard({
   const decision = equipment.data?.needsProtectiveEquipment ?? position.needsProtectiveEquipment;
   const items = equipment.data?.items ?? [];
 
+  const addAction = (label: string) =>
+    !readOnly &&
+    decision !== false && (
+      <Button
+        variant="tonal"
+        size="sm"
+        data-testid="equipment-add"
+        onClick={() => setEditing('new')}
+      >
+        <Plus aria-hidden="true" />
+        {label}
+      </Button>
+    );
+
   const copyAction = !readOnly && (
     <Button
       variant="outline"
@@ -171,20 +186,7 @@ export function EquipmentCard({
           )}
         </span>
       }
-      action={
-        !readOnly &&
-        decision !== false && (
-          <Button
-            variant="tonal"
-            size="sm"
-            data-testid="equipment-add"
-            onClick={() => setEditing('new')}
-          >
-            <Plus aria-hidden="true" />
-            Adaugă
-          </Button>
-        )
-      }
+      action={items.length > 0 && addAction('Adaugă')}
     >
       {error && (
         <Notice variant="destructive" data-testid="equipment-error">
@@ -230,27 +232,31 @@ export function EquipmentCard({
           deoparte.
         </Notice>
       ) : items.length === 0 ? (
-        <div data-testid="equipment-empty" className="grid gap-3">
-          <p className="text-sm text-muted-foreground">
-            {readOnly
-              ? 'Nu s-a stabilit ce primește postul. Clientul este arhivat, așa că echipamentul lui nu se mai completează.'
-              : 'Documentația nu se poate genera până nu spui ce primește postul, sau că nu are nevoie de echipament.'}
-          </p>
-          {!readOnly && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="equipment-decide-none"
-                disabled={decide.isPending}
-                onClick={() => void decideNone(false)}
-              >
-                Postul nu necesită echipament
-              </Button>
-              {copyAction}
-            </div>
-          )}
-        </div>
+        <EmptyState
+          data-testid="equipment-empty"
+          icon={HardHat}
+          actions={
+            !readOnly && (
+              <>
+                {addAction('Adaugă un articol')}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="equipment-decide-none"
+                  disabled={decide.isPending}
+                  onClick={() => void decideNone(false)}
+                >
+                  Postul nu necesită echipament
+                </Button>
+                {copyAction}
+              </>
+            )
+          }
+        >
+          {readOnly
+            ? 'Nu s-a stabilit ce primește postul. Clientul este arhivat, așa că echipamentul lui nu se mai completează.'
+            : 'Documentația nu se poate genera până nu spui ce primește postul, sau că nu are nevoie de echipament.'}
+        </EmptyState>
       ) : (
         <>
           <Table className="max-sm:block">

@@ -245,10 +245,15 @@ describe("a job position's equipment", () => {
     mockApi();
     mount(fitterPath);
     const user = userEvent.setup();
-    expect((await screen.findByTestId('equipment-empty')).textContent).toContain(
-      'nu se poate genera'
-    );
+    const empty = await screen.findByTestId('equipment-empty');
+    expect(empty.textContent).toContain('nu se poate genera');
     expect(screen.getByTestId('equipment-state').textContent).toBe('De stabilit');
+    expect(
+      within(empty)
+        .getAllByRole('button')
+        .map((button) => button.dataset.testid)
+    ).toEqual(['equipment-add', 'equipment-decide-none', 'equipment-copy']);
+    expect(screen.getAllByTestId('equipment-add')).toHaveLength(1);
 
     mockApi({
       equipment: {

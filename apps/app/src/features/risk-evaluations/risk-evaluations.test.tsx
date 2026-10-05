@@ -333,7 +333,9 @@ describe("a position's risk evaluation card", () => {
     const card = await screen.findByTestId('position-risk-card');
     expect((await within(card).findByTestId('position-risk-state')).textContent).toBe('Neevaluat');
 
-    await user.click(within(card).getByTestId('position-risk-start'));
+    await user.click(
+      within(within(card).getByTestId('position-risk-empty')).getByTestId('position-risk-start')
+    );
     await waitFor(() =>
       expect(requests(evaluationsPath, 'POST')).toEqual([
         { kind: 'job_position', jobPositionId: fitter.id },
