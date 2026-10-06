@@ -447,7 +447,8 @@ export type Database = {
           client_id: string;
           created_at: string;
           created_by: string | null;
-          first_decision_number: number;
+          document_group: Database['public']['Enums']['document_group'];
+          first_decision_number: number | null;
           id: string;
           issue_date: string;
           organization_id: string;
@@ -456,7 +457,8 @@ export type Database = {
           client_id: string;
           created_at?: string;
           created_by?: string | null;
-          first_decision_number?: number;
+          document_group?: Database['public']['Enums']['document_group'];
+          first_decision_number?: number | null;
           id?: string;
           issue_date: string;
           organization_id: string;
@@ -465,7 +467,8 @@ export type Database = {
           client_id?: string;
           created_at?: string;
           created_by?: string | null;
-          first_decision_number?: number;
+          document_group?: Database['public']['Enums']['document_group'];
+          first_decision_number?: number | null;
           id?: string;
           issue_date?: string;
           organization_id?: string;
@@ -2223,7 +2226,7 @@ export type Database = {
     };
     Enums: {
       client_stage: 'lead' | 'client';
-      document_group: 'documentation_set' | 'other';
+      document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
@@ -2361,7 +2364,7 @@ export const Constants = {
   public: {
     Enums: {
       client_stage: ['lead', 'client'],
-      document_group: ['documentation_set', 'other'],
+      document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       equipment_allocation: ['personal_inventory', 'section_inventory', 'consumable'],
