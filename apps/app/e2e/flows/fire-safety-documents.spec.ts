@@ -37,7 +37,15 @@ test('the fire-safety set asks for its technician alone, and is generated apart 
   await page.getByRole('link', { name: 'Documente PSI' }).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/fire-safety-documents$`));
 
-  await expect(page.getByTestId('documents-empty')).toBeVisible();
+  await expect(page.getByTestId('documents-hint')).toBeVisible();
+  await expect(page.getByTestId('documents-empty')).toHaveCount(0);
+  await expect(page.getByTestId('document-section')).toHaveCount(6);
+  await openDocumentSection(page, '1');
+  await expect(page.getByTestId('document-planned')).toHaveCount(10);
+  await expect(page.getByTestId('document-planned').first()).toContainText('În pregătire');
+  await openDocumentSection(page, '6');
+  await expect(page.getByTestId('document-not-generated')).toHaveCount(5);
+  await expect(page.getByTestId('document-row')).toHaveCount(0);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
   await expect(page.getByTestId('generate-missing-row')).toHaveText(/^Cadrul tehnic PSI/);
@@ -51,10 +59,12 @@ test('the fire-safety set asks for its technician alone, and is generated apart 
   await page.getByTestId('generate-submit').click();
   await expect(page.getByText('Au fost generate 5 documente.')).toBeVisible();
 
-  await expect(page.getByTestId('document-section')).toHaveCount(1);
+  await expect(page.getByTestId('document-section')).toHaveCount(6);
   await openDocumentSection(page, '6');
   const rows = page.getByTestId('document-row');
   await expect(rows).toHaveCount(5);
+  await expect(page.getByTestId('document-not-generated')).toHaveCount(0);
+  await expect(page.getByTestId('documents-hint')).toHaveCount(0);
   await expect(rows.nth(0)).toContainText('Copertă – Registrele de evidență');
   await expect(rows.nth(2)).toContainText('Permis de lucru cu foc');
   await expect(rows.nth(4)).toContainText('controlului stingătoarelor de incendiu');

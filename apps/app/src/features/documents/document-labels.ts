@@ -5,9 +5,21 @@ import { employeeCountLabel } from '@/features/job-positions/job-position-schema
 
 export type ClientDocument = ClientDocumentListResponse['items'][number];
 
-// The API names a document only once it exists; one that does not apply is named here.
+// The API names a document only once it exists; one that does not apply, and one of a set listed
+// whole that is not generated yet, are named here.
 export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
   decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
+};
+
+// The template titles, held to the fire-safety manifest by a test.
+export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
+  fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
+  fire_registers:
+    'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
+  fire_work_permit: 'Permis de lucru cu foc',
+  fire_installation_register:
+    'Registru de control pentru instalațiile de apărare împotriva incendiilor',
+  fire_extinguisher_register: 'Registru de evidență a controlului stingătoarelor de incendiu',
 };
 
 /** What the employee count means for decision 1.5, said where documents are generated. */
