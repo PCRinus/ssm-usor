@@ -1,0 +1,48 @@
+{
+  "templates": [
+    {
+      "number": "6.0",
+      "originals": ["7.1._Coperta_Registre"],
+      "stage": 1,
+      "typeKey": "fire_cover_registers",
+      "title": "Copertă – Registrele de evidență în domeniul situațiilor de urgență",
+      "file": "6.0_fire_cover_registers.docx"
+    },
+    {
+      "number": "6.1",
+      "originals": [
+        "6.1._Evidenta_aplicatiilor_si_exercitiilor",
+        "6.2._Evidenta_controale_interne_-_externe",
+        "6.3.1._Evidenta_permiselor_de_lucru_cu_foc_deschis"
+      ],
+      "stage": 1,
+      "typeKey": "fire_registers",
+      "title": "Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc",
+      "file": "6.1_fire_registers.docx"
+    },
+    {
+      "number": "6.2",
+      "originals": ["6.3.2._Permis_de_lucru_cu_foc_deschis"],
+      "stage": 1,
+      "typeKey": "fire_work_permit",
+      "title": "Permis de lucru cu foc",
+      "file": "6.2_fire_work_permit.docx"
+    },
+    {
+      "number": "6.3",
+      "originals": ["6.4._Evidenta_verificarilor_instalatiilor_psi"],
+      "stage": 1,
+      "typeKey": "fire_installation_register",
+      "title": "Registru de control pentru instalațiile de apărare împotriva incendiilor",
+      "file": "6.3_fire_installation_register.docx"
+    },
+    {
+      "number": "6.4",
+      "originals": [],
+      "stage": 1,
+      "typeKey": "fire_extinguisher_register",
+      "title": "Registru de evidență a controlului stingătoarelor de incendiu",
+      "file": "6.4_fire_extinguisher_register.docx"
+    }
+  ]
+}
