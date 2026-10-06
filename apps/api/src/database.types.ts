@@ -364,13 +364,7 @@ export type Database = {
           vat_payer: boolean;
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
-          client_since: string | null;
           current_employee_count: number | null;
-          documentation_generated_type_keys: string[] | null;
-          documentation_issued_count: number | null;
-          documentation_last_generated_at: string | null;
-          job_position_count: number | null;
-          job_positions_needing_work_count: number | null;
         };
         Insert: {
           address_line?: string | null;
@@ -2061,12 +2055,6 @@ export type Database = {
         };
         Returns: boolean;
       };
-      client_since: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.client_since with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
         Returns: number;
@@ -2108,24 +2096,6 @@ export type Database = {
         }[];
       };
       current_organization_id: { Args: never; Returns: string };
-      documentation_generated_type_keys: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.documentation_generated_type_keys with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
-      documentation_issued_count: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.documentation_issued_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
-      documentation_last_generated_at: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.documentation_last_generated_at with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
       effective_user_id: { Args: never; Returns: string };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
@@ -2149,18 +2119,6 @@ export type Database = {
           p_revision_id: string;
         };
         Returns: undefined;
-      };
-      job_position_count: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.job_position_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
-      job_positions_needing_work_count: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.job_positions_needing_work_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       lock_members_as_owner: { Args: never; Returns: string };
       my_open_invitations: {

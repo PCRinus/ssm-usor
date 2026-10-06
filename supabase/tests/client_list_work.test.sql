@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(12);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -74,25 +74,7 @@ returns void language sql as $$
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', '{"provider":"email"}'::jsonb)::text, true);
 $$;
 
-create or replace function pg_temp.list_matches_computed_fields(actor text)
-returns setof text language plpgsql as $$
-begin
-  return next results_eq(
-    'select id, current_employee_count, job_position_count, job_positions_needing_work_count,
-            documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at, client_since
-     from public.client_list order by id',
-    'select c.id, public.current_employee_count(c), public.job_position_count(c), public.job_positions_needing_work_count(c),
-            public.documentation_generated_type_keys(c), public.documentation_issued_count(c),
-            public.documentation_last_generated_at(c), public.client_since(c)
-     from public.clients c order by c.id',
-    actor || ': the list has the numbers of the computed fields, client by client'
-  );
-end;
-$$;
-
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
-
-select * from pg_temp.list_matches_computed_fields('a specialist');
 
 select results_eq(
   $$ select legal_name, current_employee_count from public.client_list order by legal_name $$,
@@ -101,39 +83,30 @@ select results_eq(
 );
 
 select results_eq(
-  $$ select public.job_position_count(c), public.job_positions_needing_work_count(c)
-     from public.clients c order by c.legal_name $$,
+  $$ select job_position_count, job_positions_needing_work_count from public.client_list order by legal_name $$,
   $$ values (0, 0), (4, 3) $$,
   'current positions, and those with a decision open or no evaluation'
 );
 
 select results_eq(
-  $$ select public.documentation_generated_type_keys(c) from public.clients c order by c.legal_name $$,
+  $$ select documentation_generated_type_keys from public.client_list order by legal_name $$,
   $$ values ('{}'::text[]), ('{cover_decisions,decision_training}'::text[]) $$,
   'the documents of the set with a revision, without the contract or a failed generation'
 );
 
 select results_eq(
-  $$ select public.documentation_issued_count(c) from public.clients c order by c.legal_name $$,
+  $$ select documentation_issued_count from public.client_list order by legal_name $$,
   $$ values (0), (1) $$,
   'issued documents of the set, without the contract'
 );
 
 select results_eq(
-  $$ select public.documentation_last_generated_at(c) from public.clients c order by c.legal_name $$,
+  $$ select documentation_last_generated_at from public.client_list order by legal_name $$,
   $$ values (null::timestamptz), ('2026-09-20 10:00+00'::timestamptz) $$,
   'the last generation, or null before the first'
 );
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
-
-select results_eq(
-  $$ select public.documentation_issued_count(c) from public.clients c where c.legal_name = 'Worked on' $$,
-  $$ values (1) $$,
-  'an owner, who also reads the contract, gets the same count'
-);
-
-select * from pg_temp.list_matches_computed_fields('an owner');
 
 select results_eq(
   $$ select legal_name, documentation_generated_type_keys, documentation_issued_count, client_since
@@ -147,11 +120,9 @@ select results_eq(
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
 
 select is_empty(
-  $$ select id from public.clients where organization_id = '11111111-0000-4000-8000-000000000001' $$,
+  $$ select id from public.client_list where id::text like 'c1c1c1c1-%' $$,
   'an owner of another organization lists none of these clients'
 );
-
-select * from pg_temp.list_matches_computed_fields('an owner of another organization');
 
 select results_eq(
   $$ select legal_name, current_employee_count, job_position_count, job_positions_needing_work_count,
@@ -161,32 +132,17 @@ select results_eq(
   'another organization lists only its own client, with its own numbers'
 );
 
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 reset role;
 
-create temporary table foreign_client on commit drop as
-  select c as client from public.clients c where id = 'c1c1c1c1-0000-4000-8000-000000000001';
-grant select on foreign_client to authenticated;
+update public.clients set stage = 'client' where legal_name = 'A lead';
 
-select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
-
-select results_eq(
-  $$ select public.job_position_count(f.client),
-            public.job_positions_needing_work_count(f.client),
-            public.documentation_issued_count(f.client)
-     from foreign_client f $$,
-  $$ values (0, 0, 0) $$,
-  'given another organization''s client row, the counts see none of its records'
+select ok(
+  (select l.client_since = c.promoted_at and l.client_since > l.created_at
+   from public.client_list l join public.clients c on c.id = l.id
+   where l.legal_name = 'A lead'),
+  'a former lead became a client when it was promoted'
 );
-
-select results_eq(
-  $$ select public.documentation_generated_type_keys(f.client),
-            public.documentation_last_generated_at(f.client)
-     from foreign_client f $$,
-  $$ values ('{}'::text[], null::timestamptz) $$,
-  'nor its documents or generations'
-);
-
-reset role;
 
 select ok(
   not has_table_privilege('anon', 'public.client_list', 'select')
@@ -200,18 +156,12 @@ select ok(
   'the list answers to the caller''s policies'
 );
 
-select is(
-  public.client_since(jsonb_populate_record(null::public.clients,
-    '{"created_at": "2026-08-01T00:00:00Z", "promoted_at": "2026-09-01T00:00:00Z"}')),
-  '2026-09-01 00:00+00'::timestamptz,
-  'a former lead became a client when it was promoted'
-);
-
-select is(
-  public.client_since(jsonb_populate_record(null::public.clients,
-    '{"created_at": "2026-08-01T00:00:00Z", "promoted_at": null}')),
-  '2026-08-01 00:00+00'::timestamptz,
-  'any other client when it was created'
+select is_empty(
+  $$ select proname from pg_proc
+     where pronamespace = 'public'::regnamespace
+       and proname in ('job_position_count', 'job_positions_needing_work_count', 'documentation_generated_type_keys',
+                       'documentation_issued_count', 'documentation_last_generated_at', 'client_since') $$,
+  'the computed fields the list replaced are gone'
 );
 
 select * from finish();

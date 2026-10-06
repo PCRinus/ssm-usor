@@ -73,16 +73,19 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 | `promoted_at`, `promoted_by`                     | Written by the trigger at promotion, never by hand; null for a lead.                                                                                                 |
 | `archived_at`                                    | Soft delete. There is no delete policy.                                                                                                                              |
 
-The list of clients reads more computed fields of `clients`, security invoker like
-`current_employee_count`, so they count only what the caller may see: `job_position_count`
-(positions not archived), `job_positions_needing_work_count` (of those, the ones with
-`needs_protective_equipment` or `needs_instructions` null, or without a risk evaluation),
-`documentation_generated_type_keys` (type keys of the documentation set that have a revision),
-`documentation_issued_count` (documents of the set with an issued revision, the sort of
-`sort=documentation`), and `documentation_last_generated_at` (the newest
-`document_generations.created_at`). The contract is `other`, so none of them count it.
-`client_since` is `coalesce(promoted_at, created_at)`, a computed field only because PostgREST
-orders by columns and computed fields, not by expressions.
+The list of clients reads the view `client_list`: the columns of `clients` the list shows, and
+what each client still needs, every count one grouped read: `current_employee_count`,
+`job_position_count` (positions not archived), `job_positions_needing_work_count` (of those,
+the ones with `needs_protective_equipment` or `needs_instructions` null, or without a risk
+evaluation), `documentation_generated_type_keys` (type keys of the documentation set that have
+a revision), `documentation_issued_count` (documents of the set with an issued revision, the
+sort of `sort=documentation`), `documentation_last_generated_at` (the newest
+`document_generations.created_at`) and `client_since` (`coalesce(promoted_at, created_at)`).
+The contract is `other`, so nothing counts it. The view is `security_invoker`, so each table
+inside answers to the caller's policies, and only `authenticated` selects from it. These were
+computed fields of `clients` at first, one query per client per column, which made the list
+slow; `current_employee_count(clients)` remains for the read of a single client and for the
+documents.
 
 Every member corrects a client's data, and only an owner archives or restores one: the update
 policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change
@@ -466,8 +469,10 @@ document that only an owner reaches, and a check constraint keeps a `service_con
 being anything else, whoever writes the row.
 
 `can_access_document(id)` is the one answer for every way to a document: the select and
-insert policies of `client_documents` carry the same condition, the four policies of
-`document_revisions` call it, `is_readable_document_path` makes the read policy of the
+insert policies of `client_documents` carry the same condition, the write policies of
+`document_revisions` call it and its read policy asks the same of `client_documents` in a
+subquery (a function call per row read was slow; the subquery runs under the caller's policy
+on `client_documents`, which is the same rule), `is_readable_document_path` makes the read policy of the
 `documents` bucket ask it (reading used to be by the organization's folder alone, which a
 specialist who learned the path of a contract would have passed), `is_draft_document_path`
 asks it before a file is written, and `issue_document_revision`, which runs past the
@@ -489,7 +494,8 @@ stored: they live in the file, where they are binding. The archived-client trigg
 `service_contract_sends` keeps each time an owner emailed an issued contract: `revision_id`,
 `sent_to`, the owner's `note`, the provider's message id, `sent_by`, `sent_at`. Rows are
 written once and never changed by members (no update or delete grant). Owners insert, and only
-for an issued revision of a document they can reach; they read through `can_access_document`.
+for an issued revision of a document they can reach; they read the sends of the documents
+their policy on `client_documents` lets them read.
 "Sent" is about the revision in force: a revision issued after the last send has none. The
 table has one foreign key to `document_revisions`, not also a composite one, because PostgREST
 embeds through it and two would make the relationship ambiguous.
@@ -512,7 +518,8 @@ beside the Word file and the PDF. `source` says who put it there, `owner` in the
 `client` through the return link, and `confirmed_at` with `confirmed_by` when an owner accepted
 it; a check keeps an owner's own copy confirmed from the start, so only a client's copy waits,
 as the **received copy** that does not yet make the contract signed. Whoever reaches the
-document reads, attaches, replaces, confirms and removes, through `can_access_document`, so a
+document reads, attaches, replaces, confirms and removes (reads through the caller's policy on
+`client_documents`, writes through `can_access_document`), so a
 contract's copy is its owners'. The
 archived-client trigger applies. Files follow the row as a draft's files do: the row first,
 then `is_signed_copy_path` lets the object in; `is_readable_document_path` reads the third
