@@ -13,41 +13,41 @@ const ranges = (sessions: number) =>
 
 describe('dealing the chapters of the common part', () => {
   it('gives one session everything', () => {
-    expect(ranges(1)).toEqual(['Art. 1 – 297']);
+    expect(ranges(1)).toEqual(['Art. 1 – 290']);
   });
 
   it('halves them for two sessions', () => {
-    expect(ranges(2)).toEqual(['Art. 1 – 94', 'Art. 95 – 297']);
+    expect(ranges(2)).toEqual(['Art. 1 – 95', 'Art. 96 – 290']);
   });
 
   it('gives four sessions three chapters each', () => {
-    expect(ranges(4)).toEqual(['Art. 1 – 45', 'Art. 46 – 94', 'Art. 95 – 202', 'Art. 203 – 297']);
+    expect(ranges(4)).toEqual(['Art. 1 – 46', 'Art. 47 – 95', 'Art. 96 – 194', 'Art. 195 – 290']);
   });
 
   it('puts the larger groups first', () => {
     expect(ranges(5)).toEqual([
-      'Art. 1 – 45',
-      'Art. 46 – 94',
-      'Art. 95 – 185',
-      'Art. 186 – 243',
-      'Art. 244 – 297',
+      'Art. 1 – 46',
+      'Art. 47 – 95',
+      'Art. 96 – 179',
+      'Art. 180 – 235',
+      'Art. 236 – 290',
     ]);
   });
 
   it('gives twelve sessions one chapter each', () => {
     expect(ranges(12)).toEqual([
       'Art. 1 – 9',
-      'Art. 10 – 43',
-      'Art. 44 – 45',
-      'Art. 46 – 55',
-      'Art. 56 – 62',
-      'Art. 63 – 94',
-      'Art. 95 – 165',
-      'Art. 166 – 185',
-      'Art. 186 – 202',
-      'Art. 203 – 243',
-      'Art. 244 – 263',
-      'Art. 264 – 297',
+      'Art. 10 – 44',
+      'Art. 45 – 46',
+      'Art. 47 – 56',
+      'Art. 57 – 63',
+      'Art. 64 – 95',
+      'Art. 96 – 159',
+      'Art. 160 – 179',
+      'Art. 180 – 194',
+      'Art. 195 – 235',
+      'Art. 236 – 255',
+      'Art. 256 – 290',
     ]);
   });
 
@@ -70,25 +70,25 @@ describe('the periodic sessions of a post', () => {
       {
         month: 'FEBRUARIE',
         content:
-          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a045; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a046; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'MAI',
         content:
-          'I.P.S.S.M. Art.\u00a046\u00a0–\u00a094; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a047\u00a0–\u00a095; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0202; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0194; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'NOIEMBRIE',
         content:
-          'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0297; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07; Testare.',
+          'I.P.S.S.M. Art.\u00a0195\u00a0–\u00a0290; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07; Testare.',
         duration: '120 min',
       },
     ]);
@@ -104,7 +104,7 @@ describe('the periodic sessions of a post', () => {
     expect(sessions).toEqual([
       {
         month: 'IULIE',
-        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0297; Testare.',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; Testare.',
         duration: '60 min',
       },
     ]);
@@ -120,12 +120,12 @@ describe('the periodic sessions of a post', () => {
     expect(sessions).toEqual([
       {
         month: 'MAI',
-        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a094',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a095',
         duration: '60 min',
       },
       {
         month: 'NOIEMBRIE',
-        content: 'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0297; Testare.',
+        content: 'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0290; Testare.',
         duration: '60 min',
       },
     ]);
@@ -139,7 +139,7 @@ describe('the periodic sessions of a post', () => {
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
     expect(session!.content).toBe(
-      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0297; I.P.S.S.M. Fără articole; Testare.'
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; I.P.S.S.M. Fără articole; Testare.'
     );
   });
 
@@ -166,13 +166,13 @@ describe('who trains a post', () => {
   };
 
   it('is the workplace manager for execution posts', () => {
-    expect(trainerOf('execution', names)).toBe('Ion POP – conducător loc\u00a0de\u00a0muncă');
+    expect(trainerOf('execution', names)).toBe('Ion POP – conducătorul locului\u00a0de\u00a0muncă');
   });
 
   it('is every workplace manager for execution posts, where there are several', () => {
     expect(
       trainerOf('execution', { ...names, workplaceManagers: ['Steliana GAL', 'Lucrețiu ANDREI'] })
-    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducători loc\u00a0de\u00a0muncă');
+    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducătorii locurilor\u00a0de\u00a0muncă');
   });
 
   it('is the provider and its specialist for technical-administrative posts', () => {

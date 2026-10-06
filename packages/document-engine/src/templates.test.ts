@@ -606,7 +606,7 @@ describe('decision_training', () => {
       'va fi instruit ANUAL, respectiv în luna februarie, în perioada (zilele) 2 – 7 ale lunii'
     );
     expect(text).toContain(
-      'pentru personalul tehnico-administrativ și pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L.: Ion MARIN, având funcția de Manager magazin în cadrul unității; Elena DUMITRU,'
+      'pentru personalul de conducere al locurilor de muncă din cadrul S.C. CLIENT DEMO S.R.L. și pentru personalul tehnico-administrativ. Personalul de conducere al locurilor de muncă: Ion MARIN, având funcția de Manager magazin în cadrul unității; Elena DUMITRU,'
     );
     expect(text).toContain(
       'Personalul de conducere al locurilor de muncă – Ion MARIN, având funcția de Manager magazin, și Elena DUMITRU, având funcția de Lucrător comercial – va efectua instruirea la locul de muncă și instruirea periodică pentru personalul de execuție din cadrul S.C. CLIENT DEMO S.R.L.'
@@ -840,7 +840,7 @@ describe('employer_briefing', () => {
       })
     );
     expect(text).toContain(
-      'Instructajul periodic durează 1 oră și 30 de minute și va avea frecvența stabilită prin instrucțiunile proprii ale unității.'
+      'Instruirea periodică durează 1 oră și 30 de minute și are periodicitatea stabilită prin programul de instruire-testare și prin instrucțiunile proprii ale unității.'
     );
     expect(text).not.toContain('1,30 ore');
   });
@@ -1006,18 +1006,18 @@ describe('training_themes', () => {
         [16, 27],
         [28, 80],
         [81, 96],
-        [97, 107],
-        [108, 119],
-        [120, 150],
-        [151, 209],
-        [210, 232],
-        [233, 264],
-        [265, 272],
-        [273, 285],
-        [286, 294],
-        [295, 319],
+        [97, 108],
+        [109, 120],
+        [121, 151],
+        [152, 210],
+        [211, 235],
+        [236, 267],
+        [268, 277],
+        [278, 290],
+        [291, 299],
+        [300, 324],
       ].map(([from, to]) => `MISSMIG Art. ${from} – ${to}`),
-      'MISSMIG Art. 320',
+      'MISSMIG Art. 325',
     ]);
   });
 
@@ -1025,17 +1025,17 @@ describe('training_themes', () => {
     expect(lines.filter((line) => line.startsWith('I.P.S.S.M. Art.'))).toEqual(
       [
         [1, 9],
-        [10, 43],
-        [44, 45],
-        [46, 55],
-        [56, 62],
-        [63, 94],
-        [95, 165],
-        [166, 185],
-        [186, 202],
-        [203, 233],
-        [234, 253],
-        [254, 287],
+        [10, 44],
+        [45, 46],
+        [47, 56],
+        [57, 63],
+        [64, 95],
+        [96, 159],
+        [160, 179],
+        [180, 194],
+        [195, 235],
+        [236, 255],
+        [256, 290],
       ].map(([from, to]) => `I.P.S.S.M. Art. ${from} – ${to}`)
     );
   });
@@ -1049,7 +1049,7 @@ describe('training_themes', () => {
     expect(text.match(/\{\{#themes\.positions\}\}/g)).toHaveLength(2);
     expect(text).toContain('{{#sessions}}{{month}}');
     expect(text).toContain(
-      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; {{#modules}}{{citation}}; {{/modules}}'
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; {{#modules}}{{citation}}; {{/modules}}'
     );
   });
 

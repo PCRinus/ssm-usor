@@ -557,8 +557,8 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
       intervalPhrase:
         client.administrativeTrainingIntervalMonths !== null &&
         client.workerTrainingIntervalMonths !== null
-          ? 'următoarele intervale de timp'
-          : 'următorul interval de timp',
+          ? 'se stabilesc următoarele intervale de timp'
+          : 'se stabilește următorul interval de timp',
       administrative: client.administrativeTrainingIntervalMonths !== null,
       worker: client.workerTrainingIntervalMonths !== null,
       ...(client.administrativeTrainingIntervalMonths === null
