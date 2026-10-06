@@ -1,9 +1,11 @@
+import type { DocumentSet } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { GenerateDocumentsRequest } from '@/api/generated/api';
 import { isoToDate } from '@/lib/dates';
 
-// Form values are strings so inputs stay controlled; the API request is derived on submit.
+// Form values are strings so inputs stay controlled; the API request is derived on submit. The
+// fire-safety set has no decisions yet, so its form keeps the default number and never sends it.
 export const generateDocumentsFormSchema = z.object({
   issueDate: z
     .string()
@@ -20,10 +22,10 @@ export const generateDocumentsFormSchema = z.object({
 export type GenerateDocumentsFormValues = z.infer<typeof generateDocumentsFormSchema>;
 
 export function toGenerateDocumentsRequest(
-  values: GenerateDocumentsFormValues
+  values: GenerateDocumentsFormValues,
+  set: DocumentSet
 ): GenerateDocumentsRequest {
-  return {
-    issueDate: values.issueDate,
-    firstDecisionNumber: Number(values.firstDecisionNumber),
-  };
+  return set === 'occupational_safety'
+    ? { issueDate: values.issueDate, firstDecisionNumber: Number(values.firstDecisionNumber) }
+    : { issueDate: values.issueDate };
 }

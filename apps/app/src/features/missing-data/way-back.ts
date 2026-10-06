@@ -12,7 +12,7 @@ export const wayBackLifetime = 60 * 60 * 1000;
 const wayBackSchema = z.object({
   userId: z.string(),
   clientId: z.uuid(),
-  to: z.enum(['documents', 'client-contract', 'lead-contract']),
+  to: z.enum(['documents', 'fire-safety-documents', 'client-contract', 'lead-contract']),
   startedAt: z.number(),
 });
 

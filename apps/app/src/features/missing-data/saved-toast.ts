@@ -7,13 +7,19 @@ import { currentWayBack, endWayBack, type WayBack } from './way-back';
 
 export const wayBackToastDuration = 10_000;
 
+const clientSection = {
+  documents: 'documents',
+  'fire-safety-documents': 'fire-safety-documents',
+  'client-contract': 'contract',
+} as const;
+
 // A same-page fix on the lead page needs no way back: the contract is right there.
 const fixedHere = (pathname: string, { to, clientId }: WayBack) =>
   pathname.startsWith('/organization') ||
   pathname.startsWith('/profile') ||
   (to !== 'lead-contract' &&
     pathname.startsWith(`/clients/${clientId}/`) &&
-    !pathname.startsWith(`/clients/${clientId}/${to === 'documents' ? 'documents' : 'contract'}`));
+    !pathname.startsWith(`/clients/${clientId}/${clientSection[to]}`));
 
 type ToastPosition = NonNullable<NonNullable<Parameters<typeof toast.success>[1]>['position']>;
 
@@ -37,6 +43,12 @@ export function useSavedToast() {
           to: '/clients/$clientId/contract',
           params: { clientId: wayBack.clientId },
         });
+      } else if (wayBack.to === 'fire-safety-documents') {
+        void navigate({
+          to: '/clients/$clientId/fire-safety-documents',
+          params: { clientId: wayBack.clientId },
+          search: { focus: 'generate' },
+        });
       } else {
         void navigate({
           to: '/clients/$clientId/documents',
@@ -49,7 +61,10 @@ export function useSavedToast() {
       position,
       duration: wayBackToastDuration,
       action: {
-        label: wayBack.to === 'documents' ? 'Înapoi la generare' : 'Înapoi la contract',
+        label:
+          wayBack.to === 'documents' || wayBack.to === 'fire-safety-documents'
+            ? 'Înapoi la generare'
+            : 'Înapoi la contract',
         onClick: back,
       },
     });

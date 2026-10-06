@@ -679,6 +679,7 @@ describe('client details', () => {
       'Posturi de lucru',
       'Instruire și responsabili',
       'Documente SSM',
+      'Documente PSI',
       'Contract',
       'Alte documente',
     ]);

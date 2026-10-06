@@ -140,6 +140,7 @@ describe('client document data', () => {
       'Posturi de lucru',
       'Instruire și responsabili',
       'Documente SSM',
+      'Documente PSI',
       'Alte documente',
     ]);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();

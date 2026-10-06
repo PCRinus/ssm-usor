@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { DocumentSet } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -38,6 +39,7 @@ import { startWayBack } from '@/features/missing-data/way-back';
 import { dateToIso } from '@/lib/dates';
 
 import { workersRepresentativesRule } from './document-labels';
+import { documentSetCopy, setParams } from './document-sets';
 import {
   generateDocumentsFormSchema,
   type GenerateDocumentsFormValues,
@@ -45,6 +47,7 @@ import {
 } from './generate-documents-schema';
 
 export function GenerateDocumentsDialog({
+  set,
   clientId,
   userId,
   open,
@@ -52,6 +55,7 @@ export function GenerateDocumentsDialog({
   workersRepresentativeDecisionGenerated,
   onClose,
 }: {
+  set: DocumentSet;
   clientId: string;
   userId: string;
   open: boolean;
@@ -63,6 +67,7 @@ export function GenerateDocumentsDialog({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       {open && (
         <GenerateDocumentsForm
+          set={set}
           clientId={clientId}
           userId={userId}
           lastGeneration={lastGeneration}
@@ -75,12 +80,14 @@ export function GenerateDocumentsDialog({
 }
 
 function GenerateDocumentsForm({
+  set,
   clientId,
   userId,
   lastGeneration,
   workersRepresentativeDecisionGenerated,
   onClose,
 }: {
+  set: DocumentSet;
   clientId: string;
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
@@ -89,10 +96,15 @@ function GenerateDocumentsForm({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   // Asked again every time the form opens: the data is filled in on other pages.
-  const readiness = useGetDocumentReadiness(clientId, undefined, {
+  const readiness = useGetDocumentReadiness(clientId, setParams(set), {
     request: apiRequest,
-    query: { queryKey: [...getGetDocumentReadinessQueryKey(clientId), userId], staleTime: 0 },
+    query: {
+      queryKey: [...getGetDocumentReadinessQueryKey(clientId, setParams(set)), userId],
+      staleTime: 0,
+    },
   });
+  const occupationalSafety = set === 'occupational_safety';
+  const { templatesUnavailable } = documentSetCopy[set];
   const generate = useGenerateClientDocuments({ request: apiRequest });
   // Only an owner can fill in the organization's details; a specialist is told whom to ask.
   const isOwner = useMe().data?.membership?.role === 'owner';
@@ -124,7 +136,8 @@ function GenerateDocumentsForm({
     try {
       const result = await generate.mutateAsync({
         clientId,
-        data: toGenerateDocumentsRequest(values),
+        data: toGenerateDocumentsRequest(values, set),
+        params: setParams(set),
       });
       await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
       toast.success(
@@ -146,7 +159,9 @@ function GenerateDocumentsForm({
             ? 'Clientul este arhivat, așa că nu i se mai generează documente.'
             : cause instanceof ApiHttpError && cause.status === 401
               ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut genera documentele. Verifică conexiunea și încearcă din nou.',
+              : cause instanceof ApiHttpError && cause.status === 503 && templatesUnavailable
+                ? templatesUnavailable
+                : 'Nu am putut genera documentele. Verifică conexiunea și încearcă din nou.',
       });
     }
   });
@@ -181,12 +196,14 @@ function GenerateDocumentsForm({
               Nu am putut verifica datele clientului.
             </Notice>
           ) : (
-            <Notice variant="info" data-testid="generate-headcount">
-              {workersRepresentativesRule(
-                readiness.data.currentEmployeeCount,
-                workersRepresentativeDecisionGenerated
-              )}
-            </Notice>
+            occupationalSafety && (
+              <Notice variant="info" data-testid="generate-headcount">
+                {workersRepresentativesRule(
+                  readiness.data.currentEmployeeCount,
+                  workersRepresentativeDecisionGenerated
+                )}
+              </Notice>
+            )
           )}
           {checking || !readiness.data ? null : !ready ? (
             <div data-testid="generate-missing" className="grid gap-4">
@@ -201,7 +218,13 @@ function GenerateDocumentsForm({
               <MissingDataList
                 groups={missing}
                 testId="generate-missing"
-                onFollow={() => startWayBack({ userId, clientId, to: 'documents' })}
+                onFollow={() =>
+                  startWayBack({
+                    userId,
+                    clientId,
+                    to: occupationalSafety ? 'documents' : 'fire-safety-documents',
+                  })
+                }
               />
             </div>
           ) : (
@@ -233,28 +256,30 @@ function GenerateDocumentsForm({
                   )}
                 />
               </Field>
-              <Field
-                id="generate-first-number"
-                label="Numărul primei decizii"
-                mark="required"
-                hint="Deciziile primesc numere consecutive."
-                error={errors.firstDecisionNumber}
-              >
-                <Input
+              {occupationalSafety && (
+                <Field
                   id="generate-first-number"
-                  data-testid="generate-first-number"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  disabled={busy}
-                  aria-invalid={Boolean(errors.firstDecisionNumber)}
-                  aria-describedby={
-                    errors.firstDecisionNumber
-                      ? 'generate-first-number-error'
-                      : 'generate-first-number-hint'
-                  }
-                  {...form.register('firstDecisionNumber')}
-                />
-              </Field>
+                  label="Numărul primei decizii"
+                  mark="required"
+                  hint="Deciziile primesc numere consecutive."
+                  error={errors.firstDecisionNumber}
+                >
+                  <Input
+                    id="generate-first-number"
+                    data-testid="generate-first-number"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.firstDecisionNumber)}
+                    aria-describedby={
+                      errors.firstDecisionNumber
+                        ? 'generate-first-number-error'
+                        : 'generate-first-number-hint'
+                    }
+                    {...form.register('firstDecisionNumber')}
+                  />
+                </Field>
+              )}
             </div>
           )}
           {errors.root?.server && (
