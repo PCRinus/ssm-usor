@@ -103,6 +103,13 @@ describe('API routes', () => {
     expect(init?.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it('reports how long the request and its token check took', async () => {
+    mockAccount(() => user);
+    const timings = (await requestMe('bearer test-access-token')).headers.get('Server-Timing');
+    expect(timings).toMatch(/\bauth;dur=[\d.]+/);
+    expect(timings).toMatch(/\btotal;dur=[\d.]+/);
+  });
+
   it('keeps identities isolated across requests', async () => {
     const secondUser = {
       ...user,

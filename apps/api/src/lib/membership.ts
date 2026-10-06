@@ -1,4 +1,5 @@
 import { createMiddleware } from 'hono/factory';
+import { endTime, startTime } from 'hono/timing';
 
 import type { Database } from '../database.types';
 import { createDataClient, fromDatabaseError } from './db';
@@ -16,7 +17,9 @@ export interface Membership {
 // API and the row-level security policies always agree on who the caller acts for.
 export const requireMembership = createMiddleware<ApiEnv>(async (c, next) => {
   const db = createDataClient(c);
+  startTime(c, 'membership');
   const { data, error } = await db.rpc('current_membership');
+  endTime(c, 'membership');
   if (error) throw fromDatabaseError(error, 'current_membership');
   const membership = data?.[0];
   if (!membership) {
