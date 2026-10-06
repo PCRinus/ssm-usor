@@ -1,3 +1,4 @@
+import { documentSets } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -8,20 +9,22 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { useQueries } from '@tanstack/react-query';
 import { useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
   getGetClientQueryKey,
   getListClientDocumentsQueryKey,
+  getListClientDocumentsQueryOptions,
   getListClientsQueryKey,
   useArchiveClient,
-  useListClientDocuments,
   useRestoreClient,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
+import { setParams } from '@/features/documents/document-sets';
 
 export interface ClientArchiveChange {
   // The stage words the dialog; a lead has no documents to warn about.
@@ -70,15 +73,26 @@ export function ClientArchiveDialog({
   const busy = archive.isPending || restore.isPending;
   const lead = change?.client.stage === 'lead';
   const archiving = change?.action === 'archive' && !lead ? change.client.id : null;
-  const documents = useListClientDocuments(archiving ?? '', undefined, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListClientDocumentsQueryKey(archiving ?? ''), session?.user.id],
-      enabled: Boolean(archiving && session && apiRequest.baseUrl),
-    },
+  const lists = useQueries({
+    queries: documentSets.map((set) =>
+      getListClientDocumentsQueryOptions(archiving ?? '', setParams(set), {
+        request: apiRequest,
+        query: {
+          queryKey: [
+            ...getListClientDocumentsQueryKey(archiving ?? '', setParams(set)),
+            session?.user.id,
+          ],
+          enabled: Boolean(archiving && session && apiRequest.baseUrl),
+        },
+      })
+    ),
   });
   const drafts = archiving
-    ? (documents.data?.items.filter((document) => document.draft).length ?? 0)
+    ? lists.reduce(
+        (total, documents) =>
+          total + (documents.data?.items.filter((document) => document.draft).length ?? 0),
+        0
+      )
     : 0;
 
   function close() {
