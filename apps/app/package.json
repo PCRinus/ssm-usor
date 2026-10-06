@@ -16,9 +16,9 @@
     "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
-    "@docx-editor.dev/core": "2.21.0",
-    "@docx-editor.dev/fonts": "2.21.0",
-    "@docx-editor.dev/react": "2.21.0",
+    "@docx-editor.dev/core": "catalog:",
+    "@docx-editor.dev/fonts": "catalog:",
+    "@docx-editor.dev/react": "catalog:",
     "@hookform/resolvers": "^5.9.1",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
