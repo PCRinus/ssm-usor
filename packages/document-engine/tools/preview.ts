@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { renderDocument } from '../src/render';
@@ -117,7 +117,8 @@ function sample(
   label: string,
   legalName: string,
   representativeName: string,
-  people: ReturnType<typeof person>[]
+  people: ReturnType<typeof person>[],
+  fireSafetyTechnician: string
 ) {
   return {
     label,
@@ -320,6 +321,7 @@ function sample(
         representativeRole: 'Administrator',
       },
       specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
+      fireSafetyTechnician: { name: fireSafetyTechnician },
       workplaceManagers: people,
       workplaceManagersText: described(people),
       workplaceManagersList: people.map(({ name, jobTitle }) => `${name}, ${jobTitle}`).join('; '),
@@ -356,9 +358,13 @@ function sample(
 }
 
 const samples = [
-  sample('short', 'S.C. PIPETECH S.R.L.', 'Florin Cristian TALOȘ', [
-    person('Florin Cristian TALOȘ', 'Administrator'),
-  ]),
+  sample(
+    'short',
+    'S.C. PIPETECH S.R.L.',
+    'Florin Cristian TALOȘ',
+    [person('Florin Cristian TALOȘ', 'Administrator')],
+    'Dan POP'
+  ),
   sample(
     'long',
     'S.C. INSTALAȚII TERMICE ȘI SANITARE BANAT CONSTRUCT S.R.L.',
@@ -367,14 +373,22 @@ const samples = [
       person('Alexandra-Ioana CONSTANTINESCU-MUNTEANU', 'Administrator'),
       person('Mihai POPESCU', 'Operator montaj linii automate'),
       person('Elena DUMITRU', 'Conducător antrepriză construcții-montaj'),
-    ]
+    ],
+    'Radu-Constantin MĂRGINEANU-ZAHARIA'
   ),
 ];
 
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
-for (const name of readdirSync(templates).filter((file) => file.endsWith('.docx'))) {
-  const template = new Uint8Array(readFileSync(`${templates}${name}`));
+const files = [templates, `${templates}fire/`]
+  .filter((folder) => existsSync(folder))
+  .flatMap((folder) =>
+    readdirSync(folder)
+      .filter((file) => file.endsWith('.docx'))
+      .map((name) => ({ folder, name }))
+  );
+for (const { folder, name } of files) {
+  const template = new Uint8Array(readFileSync(`${folder}${name}`));
   for (const { label, data } of samples) {
     writeFileSync(
       `${output}${name.replace(/\.docx$/, '')}.${label}.docx`,

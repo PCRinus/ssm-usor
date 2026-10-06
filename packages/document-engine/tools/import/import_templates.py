@@ -42,6 +42,9 @@ from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
 ROOT = '/work'
 PORT = 2002
+# One folder per documentation set (ADR 016), the same under `originals/` and `templates/`: a
+# spec in `originals/fire/` reads its original there and writes to `templates/fire/`.
+SET_FOLDERS = ('', 'fire')
 
 # The house style. Lengths are in 1/100 mm, as LibreOffice counts them; 35 is about a point.
 FONT = 'Arial'
@@ -109,6 +112,12 @@ HANDOVER = (
     (['Am primit un exemplar', 'Am luat la cunoștință'],
      '{{client.representativeName}}', '{{client.representativeRole}} al {{client.legalName}}'),
 )
+# Who signs for the provider, where a spec names someone other than the legal representative:
+# the fire-safety set is signed by the technician (ADR 016).
+PROVIDER_SIGNERS = {
+    'representative': ('{{provider.representativeName}}', '{{provider.representativeRole}} al {{provider.legalName}}'),
+    'fireSafetyTechnician': ('{{fireSafetyTechnician.name}}', 'Cadru tehnic PSI al {{provider.legalName}}'),
+}
 # Tables wider than this are set in the small print: a register with twenty columns does not
 # fit at 10 pt.
 WIDE_TABLE_COLUMNS = 6
@@ -564,14 +573,6 @@ def rebuild_table(document, definition, following=None):
         # A row of a few lines reads better moved to the next page than cut in two.
         for row in table.getRows():
             row.IsSplitAllowed = False
-    for row_number, height in definition.get('rowHeights', {}).items():
-        # One row taller than the rest: the blank space of a form.
-        padding = max(0, round((height * 100 - size * POINT * 1.2) / 2))
-        for cell_name in table.getCellNames():
-            if re.sub(r'^[A-Za-z]+', '', cell_name).split('.')[0] == row_number:
-                cell = table.getCellByName(cell_name)
-                cell.TopBorderDistance = padding
-                cell.BottomBorderDistance = padding
     if definition.get('rowHeight'):
         # Room to write by hand, as padding: a row's least height is not something the API
         # offers, and padding reads the same in every viewer.
@@ -582,6 +583,15 @@ def rebuild_table(document, definition, following=None):
             cell = table.getCellByName(cell_name)
             cell.TopBorderDistance = padding
             cell.BottomBorderDistance = padding
+    for row_number, height in definition.get('rowHeights', {}).items():
+        # After `rowHeight`, which it overrides for one row: the blank space of a form, or a
+        # line to write on.
+        padding = max(0, round((height * 100 - size * POINT * 1.2) / 2))
+        for cell_name in table.getCellNames():
+            if re.sub(r'^[A-Za-z]+', '', cell_name).split('.')[0] == row_number:
+                cell = table.getCellByName(cell_name)
+                cell.TopBorderDistance = padding
+                cell.BottomBorderDistance = padding
     return table
 
 
@@ -626,6 +636,7 @@ HEADER_COLUMNS = (2000, 5000, 8000)  # separators, out of 10000
 HEADER_PARTIES = {
     'provider': ['{{provider.legalName}}', '{{provider.representativeRole}}', '{{provider.representativeName}}'],
     'specialist': ['{{provider.legalName}}', '{{specialist.professionalTitle}}', '{{specialist.name}}'],
+    'fireSafetyTechnician': ['{{provider.legalName}}', 'Cadru tehnic PSI', '{{fireSafetyTechnician.name}}'],
     'client': ['{{client.legalName}}', '{{client.representativeRole}}', '{{client.representativeName}}'],
 }
 
@@ -884,9 +895,17 @@ def matches(text, patterns):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
-def typeset(document, kind, shrink_empty=False, subheadings=()):
-    rules = KINDS[kind]
+def kind_rules(spec):
+    """The rules of the spec's kind, with the patterns the spec adds to them."""
+    rules = dict(KINDS[spec.get('kind', 'decision')])
+    for key, plural in (('title', 'titles'), ('subtitle', 'subtitles'), ('headings', 'headings'),
+                        ('answers', 'answers')):
+        if plural in spec:
+            rules[key] = rules.get(key, []) + spec[plural]
+    return rules
 
+
+def typeset(document, rules, shrink_empty=False, subheadings=()):
     page_styles = document.StyleFamilies.getByName('PageStyles')
     # Every page style, not only the ones in use: an unused one still exports its footer.
     for name in page_styles.getElementNames():
@@ -1626,8 +1645,11 @@ def fill_section(document, marker, content):
         position = next(index for index, element in enumerate(flow)
                         if element.supportsService('com.sun.star.text.Paragraph')
                         and text.compareRegionStarts(element.getStart(), anchor.getStart()) == 0)
-        # The paragraph stays only between two tables, which Word would otherwise save as one.
-        if position + 1 < len(flow) and flow[position + 1].supportsService('com.sun.star.text.Paragraph'):
+        # The paragraph stays only between two tables, which Word would otherwise save as one;
+        # the next table may still be its marker, drawn on the next round.
+        following = flow[position + 1] if position + 1 < len(flow) else None
+        if following is not None and following.supportsService('com.sun.star.text.Paragraph') \
+                and not following.getString().startswith(f'{marker} table '):
             text.removeTextContent(anchor)
 
 
@@ -1641,18 +1663,44 @@ def reloaded(desktop, document, name):
     return desktop.loadComponentFromURL(uno.systemPathToFileUrl(path), '_blank', 0, (prop('Hidden', True),))
 
 
+def clear_properties(document):
+    """The author, company and title the original was saved with: the provider's staff and
+    whoever wrote the file before them."""
+    properties = document.DocumentProperties
+    for name in ('Author', 'ModifiedBy', 'Title', 'Subject', 'Description', 'Generator'):
+        setattr(properties, name, '')
+    properties.Keywords = ()
+    properties.Language = ROMANIAN
+    custom = properties.getUserDefinedProperties()
+    for item in custom.getPropertySetInfo().getProperties():
+        custom.removeProperty(item.Name)
+
+
+def draw_landscape(document):
+    style = document.StyleFamilies.getByName('PageStyles').getByName(
+        next(_elements(document.Text)).PageStyleName)
+    style.IsLandscape = True
+    style.Width, style.Height = 29700, 21000
+
+
 def import_template(desktop, spec_path, wording, output):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
     name = os.path.basename(spec_path)[: -len('.spec.json')]
+    folder = os.path.dirname(spec_path)
     # Without a source the document starts empty and the spec draws all of it: an original
     # laid out in text frames, which LibreOffice cannot read back as a table.
-    source = uno.systemPathToFileUrl(f'{ROOT}/originals/{spec["source"]}') if spec.get('source') \
+    source = uno.systemPathToFileUrl(f'{folder}/{spec["source"]}') if spec.get('source') \
         else 'private:factory/swriter'
     document = desktop.loadComponentFromURL(source, '_blank', 0, (prop('Hidden', True),))
     DRAWN_SIZES.clear()
     try:
         problems = []
+        if spec.get('content'):
+            document.Text.setString('@@content@@')
+            fill_section(document, '@@content@@', spec['content'])
+        if spec.get('landscape'):
+            draw_landscape(document)
         for replacement in spec['replacements']:
             count = apply(document, replacement)
             if count < replacement.get('min', 1):
@@ -1672,13 +1720,14 @@ def import_template(desktop, spec_path, wording, output):
         if spec.get('header'):
             build_header(document, spec['header'])
         strip_spacing(document)
-        if 'answers' in KINDS[spec.get('kind', 'decision')]:
-            join_typed_answers(document, KINDS[spec['kind']])
+        parts = kind_rules(spec)
+        if 'answers' in parts:
+            join_typed_answers(document, parts)
         for definition in spec.get('tables', []):
             rebuild_table(document, definition)
         rules = wording_replacements(wording, document_words(document))
         fixes = sum(apply(document, replacement) for replacement in rules)
-        removed = typeset(document, spec.get('kind', 'decision'), spec.get('emptyParagraphs') == 'shrink',
+        removed = typeset(document, parts, spec.get('emptyParagraphs') == 'shrink',
                           spec.get('subheadings', []))
         # A table that still does not fit at the small print, by its place in the body.
         body_tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
@@ -1698,10 +1747,14 @@ def import_template(desktop, spec_path, wording, output):
             # The same block under other words: "Am predat", "Am primit și aprobat".
             sides = tuple((spec['handover'].get(side, list(default[0])),) + default[1:]
                           for side, default in zip(('provider', 'client'), HANDOVER))
+            signer = spec['handover'].get('signer')
+            if signer:
+                sides = ((sides[0][0],) + PROVIDER_SIGNERS[signer], sides[1])
         if spec.get('handover') and not replace_handover(document, sides):
             problems.append('the hand-over block was not found')
         if problems:
             raise RuntimeError('; '.join(problems))
+        clear_properties(document)
         os.makedirs(f'{ROOT}/{output}', exist_ok=True)
         target = f'{ROOT}/{output}/{name}.docx'
         document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
@@ -1727,14 +1780,17 @@ def main():
         else:
             names.append(argument)
     if sweep_only:
-        for path in sorted(glob.glob(f'{ROOT}/{output}/*.docx')):
-            if not names or os.path.basename(path)[: -len('.docx')] in names:
-                sweep(path)
-                print(f'{os.path.basename(path)}: swept')
+        for set_folder in SET_FOLDERS:
+            for path in sorted(glob.glob(os.path.join(f'{ROOT}/{output}', set_folder, '*.docx'))):
+                if not names or os.path.basename(path)[: -len('.docx')] in names:
+                    sweep(path)
+                    print(f'{os.path.basename(path)}: swept')
         return
-    specs = sorted(glob.glob(f'{ROOT}/originals/*.spec.json'))
+    specs = [(set_folder, path) for set_folder in SET_FOLDERS
+             for path in sorted(glob.glob(os.path.join(f'{ROOT}/originals', set_folder, '*.spec.json')))]
     if names:
-        specs = [path for path in specs if os.path.basename(path)[: -len('.spec.json')] in names]
+        specs = [(set_folder, path) for set_folder, path in specs
+                 if os.path.basename(path)[: -len('.spec.json')] in names]
     if not specs:
         sys.exit('No specs in originals/. They live outside the repository; see docs/document-engine.md.')
     with open(f'{ROOT}/tools/import/wording.ro.json', encoding='utf8') as file:
@@ -1743,9 +1799,9 @@ def main():
     process, desktop = start_office()
     failed = False
     try:
-        for path in specs:
+        for set_folder, path in specs:
             try:
-                import_template(desktop, path, wording, output)
+                import_template(desktop, path, wording, os.path.join(output, set_folder).rstrip('/'))
             except Exception as error:  # noqa: BLE001 - report every document, then fail
                 failed = True
                 print(f'{os.path.basename(path)}: FAILED: {error!r}')
