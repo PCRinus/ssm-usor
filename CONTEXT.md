@@ -86,9 +86,21 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Received copy** (_exemplar primit_): a signed copy that came through the return link and that no owner has confirmed yet. Until an owner confirms it, the contract counts as not signed. Avoid: pending, unverified.
 
-**Template**: the Word file a document is merged from. Built-in templates live in the repository and are registered in versions.
+**Template**: the Word file a document is merged from. Built-in templates live in the repository and are registered in versions. A version carries a **note** for members and a **kind**: **legal**, a quoted or referred legal text changed; **correction**, the template's own content was fixed; **layout**, no words changed. Legal and correction versions prompt regeneration; layout versions do not. ADR 017.
 
 **Uploaded document type**: a document of the pack the app cannot write yet, which comes to exist by uploading a `.docx` written elsewhere. None is left since the risk assessment and the prevention plan are generated (ADR 015); a file can still replace the draft of any document.
+
+## Legislation
+
+**Legal act** (_act normativ_): a law, government decision or ministerial order a built-in template quotes or refers to, named by its number and year: "Legea 319/2006", "H.G. 1425/2006", "OMAI 163/2007". Avoid: law (when the kind matters), legislation entry, regulation.
+
+**Citation** (_citare_): one place in a built-in template that quotes or refers to a legal act. A **quoted article** (_preluare_) is a paragraph that opens "Preluare din" and reproduces the article's text; a **reference** (_trimitere_) is a sentence that names the act, with or without an article. Found in the templates, never written by hand. ADR 017. Avoid: legal basis, source.
+
+**Watched act** (_act urmărit_): a legal act the templates cite, followed on the Portal Legislativ: the consolidated form the templates were verified against and the newest one seen. Avoid: monitored law, tracked act.
+
+**Legal change** (_modificare legislativă_): a newer consolidated form of a watched act, with the act that produced it. **Open** (_în verificare_) until **resolved**: as **no impact** (_fără impact_) when no cited text differs, or by the template version that answers it. ADR 017. Avoid: amendment (which is the act that produced it), update, alert.
+
+**Behind** (_în urmă_): a document whose newest revision was generated from an older template version of a kind that prompts regeneration. Decided by the version alone, never by the document's edits. Avoid: outdated, stale (kept for a draft whose data changed).
 
 ## Product feedback
 
