@@ -234,6 +234,14 @@ Then **read the result**. `preview` renders every template twice, with one perso
 names and with three people and names long enough to test the layout, converts to PDF, and
 prints the page counts. No check replaces reading the pages.
 
+`src/editor-layout.test.ts` opens every template in the layout engine of the in-app editor, at
+the version the app uses (both take it from the `catalog` in `pnpm-workspace.yaml`), and fails
+when the editor refuses a file or a word of it is missing from the laid-out pages. The editor
+drops what a table cell cannot hold instead of growing the row: text set vertically never makes
+its row taller and needs room for a line across the cell's width, and a row of exact height
+loses the line that does not fit. The vertical headers of the risk assessment's Anexa 2 have
+side margins of 1.4 pt for this, in columns 19 pt wide.
+
 One thing can only be fixed when values are in: a company name ending in a full stop that
 closes a sentence gives "S.R.L..". `renderDocument` drops the second full stop after merging,
 across runs, and leaves an ellipsis alone.

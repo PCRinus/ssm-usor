@@ -98,12 +98,10 @@ test('a row leads to its field, and the toast of the save leads back to generati
   await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
 });
 
-test('a client gets its documentation, downloads a decision, issues it, and corrects it', async ({
-  page,
-}) => {
-  const owner = await createAccount('documents-owner', 'Dana Documente');
-  const organizationId = await createOrganization('Documente E2E', owner.id);
-  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT DOCUMENTE E2E S.R.L.');
+async function generateDocumentation(page: Page, account: string, client: string) {
+  const owner = await createAccount(account, 'Dana Documente');
+  const organizationId = await createOrganization(`Documente ${client}`, owner.id);
+  const clientId = await createClientCompany(organizationId, `S.C. ${client} S.R.L.`);
   await completeDocumentData(organizationId, owner.id, clientId);
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -114,8 +112,14 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
   await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
+  return page.getByTestId('document-row');
+}
 
-  const rows = page.getByTestId('document-row');
+test('a client gets its whole documentation, numbered and dated, and downloads a draft', async ({
+  page,
+}) => {
+  const rows = await generateDocumentation(page, 'documents-owner', 'CLIENT DOCUMENTE E2E');
+
   await expect(page.getByTestId('document-section')).toHaveCount(12);
   await openDocumentSection(page, '6');
   // The equipment list is generated from the positions and their entries (ADR 011).
@@ -135,8 +139,7 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
 
   const download = page.waitForEvent('download');
   await act(page, firstAid, 'document-download-draft');
-  const file = await download;
-  expect(file.suggestedFilename()).toBe(
+  expect((await download).suggestedFilename()).toBe(
     'Decizia privind responsabilii cu primul ajutor - rev. 1.docx'
   );
   // Diacritics survive the trip through the download link.
@@ -146,6 +149,14 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   expect((await coverDownload).suggestedFilename()).toBe(
     'Copertă - Deciziile interne - rev. 1.docx'
   );
+});
+
+test('a decision is issued with its PDF, and a new draft of it can be made and dropped', async ({
+  page,
+}) => {
+  const rows = await generateDocumentation(page, 'documents-issue', 'EMITERE DOCUMENTE E2E');
+  await openDocumentSection(page, '1');
+  const firstAid = rows.filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
 
   await act(page, firstAid, 'document-issue');
   await page.getByTestId('document-confirm').click();
@@ -175,6 +186,10 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await page.getByTestId('document-confirm').click();
   await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
   await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+});
+
+test('the training material is issued', async ({ page }) => {
+  await generateDocumentation(page, 'documents-training', 'INSTRUIRE DOCUMENTE E2E');
 
   // The training material's chapter of the unit's own risks prints the unacceptable factors
   // of the evaluations (ADR 015), so nothing is left to fill in by hand.
@@ -187,6 +202,12 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
     timeout: 30_000,
   });
+});
+
+test('the own instructions are issued with their annex, which opens in the editor', async ({
+  page,
+}) => {
+  await generateDocumentation(page, 'documents-instructions', 'INSTRUCȚIUNI DOCUMENTE E2E');
 
   // The own instructions annex the module the position applies (ADR 012): issuing converts
   // the common part and the module's file into the one PDF the revision keeps.
@@ -220,6 +241,10 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(page.getByTestId('editor-save')).toHaveCount(0);
   await page.getByTestId('editor-back').click();
   await expect(annex).toBeVisible();
+});
+
+test('the risk assessment is issued', async ({ page }) => {
+  const rows = await generateDocumentation(page, 'documents-risks', 'RISCURI DOCUMENTE E2E');
 
   await openDocumentSection(page, '9');
   const assessment = rows.filter({ hasText: 'Evaluarea riscurilor' });
@@ -229,10 +254,24 @@ test('a client gets its documentation, downloads a decision, issues it, and corr
   await expect(assessment.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
     timeout: 60_000,
   });
+});
+
+test('a Word file uploaded over a draft replaces it, and after issuing starts the next draft', async ({
+  page,
+}) => {
+  const rows = await generateDocumentation(page, 'documents-upload', 'ÎNCĂRCARE DOCUMENTE E2E');
 
   // Any Word file will do here.
+  await openDocumentSection(page, '1');
+  const download = page.waitForEvent('download');
+  await act(
+    page,
+    rows.filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' }),
+    'document-download-draft'
+  );
+  const wordFile = await (await download).path();
+
   await openDocumentSection(page, '10');
-  const wordFile = await file.path();
   const plan = rows.filter({ hasText: 'Planul de prevenire' });
   await expect(plan.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
   let chooser = page.waitForEvent('filechooser');

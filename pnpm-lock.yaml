@@ -4,6 +4,18 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@docx-editor.dev/core':
+      specifier: 2.26.0
+      version: 2.26.0
+    '@docx-editor.dev/fonts':
+      specifier: 2.26.0
+      version: 2.26.0
+    '@docx-editor.dev/react':
+      specifier: 2.26.0
+      version: 2.26.0
+
 importers:
 
   .:
@@ -106,14 +118,14 @@ importers:
   apps/app:
     dependencies:
       '@docx-editor.dev/core':
-        specifier: 2.21.0
-        version: 2.21.0
+        specifier: 'catalog:'
+        version: 2.26.0
       '@docx-editor.dev/fonts':
-        specifier: 2.21.0
-        version: 2.21.0
+        specifier: 'catalog:'
+        version: 2.26.0
       '@docx-editor.dev/react':
-        specifier: 2.21.0
-        version: 2.21.0(@docx-editor.dev/core@2.21.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: 'catalog:'
+        version: 2.26.0(@docx-editor.dev/core@2.26.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@hookform/resolvers':
         specifier: ^5.9.1
         version: 5.9.1(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.6.4)
@@ -338,6 +350,12 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0
     devDependencies:
+      '@docx-editor.dev/core':
+        specifier: 'catalog:'
+        version: 2.26.0
+      '@docx-editor.dev/fonts':
+        specifier: 'catalog:'
+        version: 2.26.0
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -940,8 +958,8 @@ packages:
   '@date-fns/tz@1.5.0':
     resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
-  '@docx-editor.dev/core@2.21.0':
-    resolution: {integrity: sha512-ePmHyP0BiQUcN2EKVoht4+rk22WqnEa6WAp65LRMDjuE7sO5y/jWsBTRryi9VOeYAc34PcrXLPsKl2+8Zk32Rw==}
+  '@docx-editor.dev/core@2.26.0':
+    resolution: {integrity: sha512-f/wKUB4vBmgRSFsaUc/2f3DP13W2kFjk6z2y0KugFM+zetpONpB+F//b62OwuOc8TzXvWEKyL4e1VSalo71tHQ==}
     engines: {node: ^20.16.0 || >=22.3.0}
     peerDependencies:
       pdf-lib: ^1.17.1
@@ -952,16 +970,16 @@ packages:
       yjs:
         optional: true
 
-  '@docx-editor.dev/fonts@2.21.0':
-    resolution: {integrity: sha512-/6cfKwQC1wqGzIAo8XW/TwG56NRRauly6eoBMWyDc1UKTd07Hl3aiILCBdX180vzkWJ1cyGyB04GNJblhF7A7Q==}
+  '@docx-editor.dev/fonts@2.26.0':
+    resolution: {integrity: sha512-G90SA6/YBTWEGG+DVQnd8XlmcRRbXWF+b96m2JMjnoJGtT3r3Sg06ruMa0OrEG/zb5GQlyUdsHnmbu38fceLlw==}
 
-  '@docx-editor.dev/i18n@2.21.0':
-    resolution: {integrity: sha512-Q9EZyPKLiaAuK8U7fObr3DMjJZxboNJM0MRdjY/2E3jVsL5ua3hh6Zf2WrFEwlBfuLyyPOJBX4TW94qrIuyI2w==}
+  '@docx-editor.dev/i18n@2.26.0':
+    resolution: {integrity: sha512-qzGopAOBrdlwaqA+CI4tc3wFI9y+lOzw4AzxkSQ1SoehFrpIC3jkdeFkPTtI4oGrv8W0k9mQYqvxW4/phMVkqQ==}
 
-  '@docx-editor.dev/react@2.21.0':
-    resolution: {integrity: sha512-xlDxrwfkA5fScpB+STmF7A9WzhrqSQi8eoCDQ94fn0xyO1BcP52lsdruVZjs+1rhfYYnyCIqJNsURucQe3lMXw==}
+  '@docx-editor.dev/react@2.26.0':
+    resolution: {integrity: sha512-l2fMZXyogZ2j7BO4fv9qeEquYt/uAeFnX6mcuW/xuE67ZO/Ss7gqq9j+em5zCTRuEQJmfM+YanZ7NZMoj1IK5Q==}
     peerDependencies:
-      '@docx-editor.dev/core': ~2.21.0
+      '@docx-editor.dev/core': ~2.26.0
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
     peerDependenciesMeta:
@@ -7811,9 +7829,9 @@ snapshots:
 
   '@date-fns/tz@1.5.0': {}
 
-  '@docx-editor.dev/core@2.21.0':
+  '@docx-editor.dev/core@2.26.0':
     dependencies:
-      '@docx-editor.dev/i18n': 2.21.0
+      '@docx-editor.dev/i18n': 2.26.0
       bidi-js: 1.1.0
       emf-converter: 2.0.2
       fast-xml-parser: 5.11.1
@@ -7826,14 +7844,14 @@ snapshots:
       prosemirror-view: 1.42.4
       utif2: 4.1.0
 
-  '@docx-editor.dev/fonts@2.21.0': {}
+  '@docx-editor.dev/fonts@2.26.0': {}
 
-  '@docx-editor.dev/i18n@2.21.0': {}
+  '@docx-editor.dev/i18n@2.26.0': {}
 
-  '@docx-editor.dev/react@2.21.0(@docx-editor.dev/core@2.21.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@docx-editor.dev/react@2.26.0(@docx-editor.dev/core@2.26.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@docx-editor.dev/core': 2.21.0
-      '@docx-editor.dev/i18n': 2.21.0
+      '@docx-editor.dev/core': 2.26.0
+      '@docx-editor.dev/i18n': 2.26.0
       '@radix-ui/react-select': 2.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       class-variance-authority: 0.7.1
       clsx: 2.1.1

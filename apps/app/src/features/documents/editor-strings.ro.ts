@@ -55,12 +55,38 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     open: 'Deschide',
     save: 'Salvează',
     print: 'Imprimă',
+    export: 'Exportă',
+    exportFailed: 'Exportul nu a reușit: {message}',
+    exportMarkdownMissing:
+      'Instalați @docx-editor.dev/docx-to-markdown și configurați menu.exporters.markdown.',
+    exportPdfMissing:
+      'Instalați @docx-editor.dev/docx-to-pdf pe serverul Node.js și configurați menu.exporters.pdf.',
+    exportingMarkdown: 'Se exportă în Markdown…',
+    exportingPdf: 'Se exportă în PDF…',
+    exportMarkdownFailed: 'Exportul în Markdown nu a reușit',
+    exportPdfFailed: 'Exportul în PDF nu a reușit',
+    exportDownloadHint:
+      'Descărcarea pornește când fișierul este gata. Puteți edita în continuare cât timp rulează exportul.',
+    exportContinueEditing: 'Continuă editarea',
+    printPreparing: 'Se pregătește imprimarea…',
+    printOpenPdf: 'Deschide PDF-ul',
+    printFailed: 'Imprimarea nu a reușit',
+    printFailedMessage: 'Imprimarea nu a reușit: {message}',
+    printLoadFailed:
+      'PDF-ul nu s-a încărcat pentru imprimare. Alegeți Deschide PDF-ul, apoi imprimați din vizualizatorul PDF.',
+    printRefused:
+      'Browserul nu a permis imprimarea din pagină. Alegeți Deschide PDF-ul, apoi imprimați din vizualizatorul PDF.',
+    printNoViewer:
+      'Acest browser nu poate imprima fișiere PDF din pagină. Alegeți Deschide PDF-ul, apoi imprimați din vizualizatorul PDF.',
+    printPdfMissing:
+      'Imprimarea folosește conversia în PDF. Instalați @docx-editor.dev/docx-to-pdf pe serverul Node.js și configurați menu.exporters.pdf.',
     pageSetup: 'Inițializare pagină',
     leftToRight: 'Text de la stânga la dreapta',
     rightToLeft: 'Text de la dreapta la stânga',
     image: 'Imagine',
     table: 'Tabel',
     insertTable: 'Inserează un tabel',
+    insertTextBox: 'Casetă text',
     break: 'Sfârșit',
     insertFootnote: 'Inserează o notă de subsol',
     insertEndnote: 'Inserează o notă de final',
@@ -77,7 +103,9 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     refreshPageNumbers: 'Actualizează numerele de pagină',
   },
   formattingBar: {
+    label: 'Comenzi de formatare',
     groups: {
+      direction: 'Direcția textului',
       history: 'Istoric',
       zoom: 'Mărire',
       styles: 'Stiluri',
@@ -341,6 +369,11 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       tabLeaderUnderscore: 'Subliniere',
       tabEmpty: 'Niciun tabulator setat.',
       tabRemoveAt: 'Șterge tabulatorul de la {position} inchi',
+      tabPositionLabel: '{position} inchi',
+      unitInches: 'inchi',
+      direction: 'Direcție',
+      directionLtr: 'De la stânga la dreapta',
+      directionRtl: 'De la dreapta la stânga',
       refused: 'Aceste valori nu pot fi aplicate aici.',
       tabMixed: 'Paragrafele selectate au tabulatori diferiți.',
       mixed: 'Diferite',
@@ -393,6 +426,14 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       single: 'La un rând',
       double: 'La două rânduri',
       auto: 'Automat',
+    },
+    structuralDetails: {
+      rowInsert: 'A inserat un rând de tabel',
+      rowDelete: 'A șters un rând de tabel',
+      cellInsert: 'A inserat o celulă de tabel',
+      cellDelete: 'A șters o celulă de tabel',
+      cellMerge: 'A modificat îmbinarea celulelor',
+      numberingInsert: 'A inserat o referință de numerotare',
     },
   },
   contextMenu: {
@@ -602,6 +643,8 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     description: 'Descriere',
   },
   editor: {
+    documentContent: 'Conținutul documentului',
+    documentViewport: 'Paginile documentului',
     showDocumentOutline: 'Arată schița documentului',
     linkCopied: 'Linkul a fost copiat',
     fontSubstitutionNotice:

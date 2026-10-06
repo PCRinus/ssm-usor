@@ -9,3 +9,8 @@ allowBuilds:
   lefthook: true
   sharp: true
   workerd: true
+
+catalog:
+  '@docx-editor.dev/core': 2.26.0
+  '@docx-editor.dev/fonts': 2.26.0
+  '@docx-editor.dev/react': 2.26.0
