@@ -642,7 +642,7 @@ describe('the training themes', () => {
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
+          'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0297; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
         duration: '120 min',
       },
     ]);

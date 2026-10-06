@@ -4,14 +4,14 @@ import { listed } from '../../lib/romanian';
 
 // Both lists are held to their templates by scripts/lib/theme-chapters.test.ts.
 export const ownInstructionsChapterStarts = [
-  1, 10, 44, 46, 56, 63, 95, 166, 186, 203, 234, 254,
+  1, 10, 44, 46, 56, 63, 95, 166, 186, 203, 244, 264,
 ] as const;
-export const ownInstructionsArticleCount = 287;
+export const ownInstructionsArticleCount = 297;
 
 export const generalTrainingChapterStarts = [
-  1, 7, 14, 16, 28, 81, 97, 108, 120, 151, 210, 233, 265, 273, 286, 295, 320,
+  1, 7, 14, 16, 28, 81, 97, 108, 120, 151, 210, 235, 267, 275, 288, 297, 322,
 ] as const;
-export const generalTrainingArticleCount = 320;
+export const generalTrainingArticleCount = 322;
 
 export const monthNames = [
   'ianuarie',

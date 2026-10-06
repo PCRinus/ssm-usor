@@ -1395,7 +1395,7 @@ describe('the training themes', () => {
             ],
             [
               'NOIEMBRIE',
-              'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0287; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014; Testare.',
+              'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0297; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014; Testare.',
             ],
           ].map(([month, content]) => ({ month, content, duration: '120 min' })),
         },

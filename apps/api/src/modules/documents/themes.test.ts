@@ -13,15 +13,15 @@ const ranges = (sessions: number) =>
 
 describe('dealing the chapters of the common part', () => {
   it('gives one session everything', () => {
-    expect(ranges(1)).toEqual(['Art. 1 – 287']);
+    expect(ranges(1)).toEqual(['Art. 1 – 297']);
   });
 
   it('halves them for two sessions', () => {
-    expect(ranges(2)).toEqual(['Art. 1 – 94', 'Art. 95 – 287']);
+    expect(ranges(2)).toEqual(['Art. 1 – 94', 'Art. 95 – 297']);
   });
 
   it('gives four sessions three chapters each', () => {
-    expect(ranges(4)).toEqual(['Art. 1 – 45', 'Art. 46 – 94', 'Art. 95 – 202', 'Art. 203 – 287']);
+    expect(ranges(4)).toEqual(['Art. 1 – 45', 'Art. 46 – 94', 'Art. 95 – 202', 'Art. 203 – 297']);
   });
 
   it('puts the larger groups first', () => {
@@ -29,8 +29,8 @@ describe('dealing the chapters of the common part', () => {
       'Art. 1 – 45',
       'Art. 46 – 94',
       'Art. 95 – 185',
-      'Art. 186 – 233',
-      'Art. 234 – 287',
+      'Art. 186 – 243',
+      'Art. 244 – 297',
     ]);
   });
 
@@ -45,9 +45,9 @@ describe('dealing the chapters of the common part', () => {
       'Art. 95 – 165',
       'Art. 166 – 185',
       'Art. 186 – 202',
-      'Art. 203 – 233',
-      'Art. 234 – 253',
-      'Art. 254 – 287',
+      'Art. 203 – 243',
+      'Art. 244 – 263',
+      'Art. 264 – 297',
     ]);
   });
 
@@ -88,7 +88,7 @@ describe('the periodic sessions of a post', () => {
       {
         month: 'NOIEMBRIE',
         content:
-          'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0287; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07; Testare.',
+          'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0297; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07; Testare.',
         duration: '120 min',
       },
     ]);
@@ -104,7 +104,7 @@ describe('the periodic sessions of a post', () => {
     expect(sessions).toEqual([
       {
         month: 'IULIE',
-        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; Testare.',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0297; Testare.',
         duration: '60 min',
       },
     ]);
@@ -125,7 +125,7 @@ describe('the periodic sessions of a post', () => {
       },
       {
         month: 'NOIEMBRIE',
-        content: 'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0287; Testare.',
+        content: 'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0297; Testare.',
         duration: '60 min',
       },
     ]);
@@ -139,7 +139,7 @@ describe('the periodic sessions of a post', () => {
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
     expect(session!.content).toBe(
-      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; I.P.S.S.M. Fără articole; Testare.'
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0297; I.P.S.S.M. Fără articole; Testare.'
     );
   });
 
