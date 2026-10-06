@@ -239,7 +239,6 @@ describe('clients list', () => {
     expect(within(working!).getByTestId('clients-documentation-progress').textContent).toBe(
       '18 din 24 emise'
     );
-    expect(within(working!).getByText('generată 20.09.2026')).toBeTruthy();
     expect(within(working!).getByTestId('clients-positions-work').textContent).toBe(
       '2 de completat'
     );

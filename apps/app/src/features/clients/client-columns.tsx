@@ -108,24 +108,17 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
         const documentation = row.original.documentation;
         if (!documentation) return null;
         return (
-          <>
-            <span className="flex items-center gap-2">
-              <DocumentationBadge state={documentation.state} />
-              {documentation.state !== 'none' && (
-                <span
-                  data-testid="clients-documentation-progress"
-                  className="text-xs text-muted-foreground tabular-nums"
-                >
-                  {`${documentation.issuedCount} din ${documentation.totalCount} ${documentation.issuedCount === 1 ? 'emis' : 'emise'}`}
-                </span>
-              )}
-            </span>
-            {documentation.lastGeneratedAt && (
-              <span className="mt-1 block text-xs text-muted-foreground tabular-nums">
-                generată {formatRoDate(documentation.lastGeneratedAt.slice(0, 10))}
+          <span className="flex items-center gap-2">
+            <DocumentationBadge state={documentation.state} />
+            {documentation.state !== 'none' && (
+              <span
+                data-testid="clients-documentation-progress"
+                className="text-xs text-muted-foreground tabular-nums"
+              >
+                {`${documentation.issuedCount} din ${documentation.totalCount} ${documentation.issuedCount === 1 ? 'emis' : 'emise'}`}
               </span>
             )}
-          </>
+          </span>
         );
       },
     }),
