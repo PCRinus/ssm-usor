@@ -366,7 +366,7 @@ mobile navigation link closes the Sheet.
   "N de completat" in the warning tone under it when some have the equipment or instructions
   undecided or no risk evaluation, and "de adăugat" when there are none), "Documentație"
   (`DocumentationBadge`: Negenerată and În lucru in the warning tone, Emisă calm, beside "18 din
-  23 emise", with "generată dd.mm.yyyy" under it; the state labels live in
+  23 emise"; the state labels live in
   `documentation-badge.tsx` alone). No contract column: most clients are imported from another
   system and never get a contract here. Last, "Adăugat": the day the company became a client
   (`clientSince`: its promotion for a former lead, otherwise its creation), muted; not
