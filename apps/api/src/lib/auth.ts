@@ -1,6 +1,7 @@
 import { currentUserSchema } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import { createMiddleware } from 'hono/factory';
+import { endTime, startTime } from 'hono/timing';
 
 import { requestFetch, supabaseConfig } from './db';
 import type { ApiEnv } from './env';
@@ -23,7 +24,9 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
     global: { fetch: requestFetch(c, 5_000) },
   });
 
+  startTime(c, 'auth');
   const { data, error } = await supabase.auth.getUser(token);
+  endTime(c, 'auth');
   if (error) {
     if (error.status === 401 || error.status === 403 || error.code === 'bad_jwt') {
       throw new ApiError('unauthorized');

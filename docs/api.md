@@ -759,6 +759,11 @@ with an optional `reason` where one status covers cases the client words differe
 Upstream error details are not returned to callers; database failures are logged by context
 only. Authentication failures include `WWW-Authenticate: Bearer`.
 
+Every response carries `Server-Timing`: `total` for the whole request, and `auth` and
+`membership` for the token and membership checks that run before a handler. What is left of
+`total` is the handler, which is mostly its database reads. The browser's network tab shows the
+values under a request's timing.
+
 `CORS_ORIGINS` is a comma-separated list of exact browser origins for every route except
 `/waitlist`, which allows only `MARKETING_ORIGIN`. Production defaults to
 `https://app.ssmusor.ro`; `.dev.vars` allows the local Vite origins instead. OPTIONS preflight

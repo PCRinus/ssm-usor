@@ -1,6 +1,7 @@
 import { Scalar } from '@scalar/hono-api-reference';
 import type { ApiErrorResponse } from '@ssm-usor/contracts';
 import { cors } from 'hono/cors';
+import { timing } from 'hono/timing';
 
 import { allowedOrigins, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus } from './lib/errors';
@@ -40,6 +41,9 @@ export function createApp() {
       `${c.req.method} ${c.req.path} answered ${c.res.status} after ${Date.now() - started} ms (ray ${c.req.header('cf-ray') ?? 'none'})`
     );
   });
+  // Server-Timing on every answer: the whole request, and the token and membership checks
+  // that precede every handler, so a slow page can be read apart in the browser's network tab.
+  app.use('*', timing());
   app.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
     await next();
