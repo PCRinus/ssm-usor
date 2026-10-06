@@ -29,6 +29,8 @@ export interface DataTableProps<TData extends RowData> {
   onPageChange: (page: number) => void;
   status: 'pending' | 'error' | 'success';
   isFetching?: boolean;
+  // The rows shown answer an earlier sort or page while the one asked for loads.
+  isPlaceholderData?: boolean;
   // Singular and plural of what is counted, for the pager summary.
   noun: readonly [string, string];
   label: string;
@@ -53,6 +55,7 @@ export function DataTable<TData extends RowData>({
   onPageChange,
   status,
   isFetching,
+  isPlaceholderData,
   noun,
   label,
   error,
@@ -85,7 +88,7 @@ export function DataTable<TData extends RowData>({
 
   return (
     <>
-      <Table data-testid={testId} aria-label={label}>
+      <Table data-testid={testId} aria-label={label} aria-busy={isPlaceholderData || undefined}>
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
@@ -132,7 +135,13 @@ export function DataTable<TData extends RowData>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
+        <TableBody
+          className={cn(
+            'transition-opacity duration-150',
+            // Delayed so a fast answer swaps the rows without a flicker.
+            isPlaceholderData && 'opacity-50 delay-150'
+          )}
+        >
           {status === 'error' ? (
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={columnCount} className="h-48 px-5 text-center whitespace-normal">
