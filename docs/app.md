@@ -175,6 +175,8 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the training schedule and the responsible persons the generated documents print.                                                                                               |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
+| `routes/_authenticated/clients/$clientId/fire-safety-documents/index.tsx`                  | `/clients/:id/fire-safety-documents`                        | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                            |
+| `routes/_authenticated/clients/$clientId/fire-safety-documents/$documentId.tsx`            | `/clients/:id/fire-safety-documents/:documentId`            | One fire-safety document in the in-app Word editor; a full page.                                                                                                                                            |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`                        | `/clients/:id/employees/:employeeId`                        | Employee record, the only page that can reveal the CNP.                                                                                                                                                     |
 | `routes/_authenticated/clients/$clientId/contract/index.tsx`                               | `/clients/:id/contract`                                     | "Contract", for owners: the client's service contract (ADR 007).                                                                                                                                            |
 | `routes/_authenticated/clients/$clientId/contract/edit.tsx`                                | `/clients/:id/contract/edit`                                | The client's contract in the editor; a full page.                                                                                                                                                           |
@@ -566,6 +568,18 @@ mobile navigation link closes the Sheet.
   "Modificat", which "Generează din nou" then names as what would be lost. An issued document
   opens for reading with "Modifică" in the title bar, which starts the same draft in place:
   the page loads the new revision and becomes editable.
+
+- `/clients/:clientId/fire-safety-documents`: the "Documente PSI" section, right after "Documente
+  SSM", for every client ([ADR 016](architecture/adr-016-fire-safety-documents.md)). It is the
+  same `DocumentsCard`, editor page and generation dialog, given the set: `document-sets.ts`
+  holds each set's copy and routes, and `setParams` leaves the occupational safety set's
+  requests and query keys as they were (`?set=fire_safety` for the other). Its sections are the
+  provider's binder, listed once one of their document types is built: today "6. Registre și
+  formulare PSI" alone, and "Alte documente PSI" for a type this build does not know. Its dialog
+  has no headcount notice and asks only the date; the four missing codes lead to their fields
+  as in the SSM dialog, and the toast of a save leads back to this tab's form. A `503` says that
+  the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
+  the clients list's "Documentație" counts the occupational safety set only.
 
 - `/leads`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
