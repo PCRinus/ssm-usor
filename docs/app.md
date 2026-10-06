@@ -394,7 +394,8 @@ mobile navigation link closes the Sheet.
   The table renders the header with sortable buttons (`aria-sort` on the column header, one
   sort at a time, never removed), the pending skeleton, the error and empty slots, the rows,
   and the `Pager` footer; the page owns the query and maps the table's sort and page
-  callbacks onto its search params.
+  callbacks onto its search params. While another sort or page loads, the rows of the earlier
+  one stay, dimmed, and the table is `aria-busy` (`isPlaceholderData`).
 - `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
   under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
   name and internal number, job title, contact, and hire date (plus the leave date for former

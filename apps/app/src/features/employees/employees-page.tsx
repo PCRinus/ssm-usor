@@ -123,6 +123,7 @@ export function EmployeesPage() {
           noun={['angajat', 'angajați']}
           status={!apiRequest.baseUrl ? 'error' : employees.status}
           isFetching={employees.isFetching}
+          isPlaceholderData={employees.isPlaceholderData}
           sort={{ sort, order }}
           onSortChange={(next) =>
             // Filter and sort changes replace the entry: back returns to the previous page.

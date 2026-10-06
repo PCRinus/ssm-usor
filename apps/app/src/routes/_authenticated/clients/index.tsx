@@ -128,6 +128,7 @@ function ClientsPage() {
           noun={['client', 'clienți']}
           status={!apiRequest.baseUrl ? 'error' : clients.status}
           isFetching={clients.isFetching}
+          isPlaceholderData={clients.isPlaceholderData}
           sort={{ sort, order }}
           onSortChange={(next) =>
             void navigate({

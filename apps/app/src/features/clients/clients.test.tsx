@@ -279,6 +279,30 @@ describe('clients list', () => {
     expect(query.get('order')).toBe('desc');
   });
 
+  it('dims the earlier rows while another sort loads', async () => {
+    let answerSorted: (response: Response) => void = () => {};
+    mockApi({
+      list: (_, url) =>
+        url.searchParams.get('sort') === 'cui'
+          ? new Promise<Response>((resolve) => {
+              answerSorted = resolve;
+            })
+          : Response.json(page([sampleClient])),
+    });
+    mountApp(authFixture(makeSession()).client, '/clients');
+    await screen.findByTestId('clients-row');
+    const table = screen.getByRole('table');
+    expect(table.getAttribute('aria-busy')).toBeNull();
+    await userEvent.setup().click(screen.getByTestId('sort-cui'));
+    await waitFor(() => expect(table.getAttribute('aria-busy')).toBe('true'));
+    expect(screen.getByTestId('clients-row').closest('tbody')?.className).toContain('opacity-50');
+    answerSorted(Response.json(page([sampleClient])));
+    await waitFor(() => expect(table.getAttribute('aria-busy')).toBeNull());
+    expect(screen.getByTestId('clients-row').closest('tbody')?.className).not.toContain(
+      'opacity-50'
+    );
+  });
+
   it('opens a client from anywhere on its row', async () => {
     mockApi({ list: () => Response.json(page([sampleClient])) });
     const runtime = mountApp(authFixture(makeSession()).client, '/clients');

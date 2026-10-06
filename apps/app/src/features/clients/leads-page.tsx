@@ -117,6 +117,7 @@ export function LeadsPage() {
           noun={['client potențial', 'clienți potențiali']}
           status={!apiRequest.baseUrl ? 'error' : leads.status}
           isFetching={leads.isFetching}
+          isPlaceholderData={leads.isPlaceholderData}
           sort={{ sort, order }}
           onSortChange={(next) =>
             void navigate({
