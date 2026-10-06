@@ -13,6 +13,7 @@ export const facts: DocumentFacts = {
     legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',
     representativeName: 'Ana IONESCU',
     representativeRole: 'Administrator',
+    fireSafetyTechnicianName: 'Radu STAN',
   },
   specialist: { fullName: 'Dan MARIN', professionalTitle: 'Evaluator de risc SSM' },
   client: {

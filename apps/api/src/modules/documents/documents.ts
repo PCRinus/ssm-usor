@@ -1,11 +1,14 @@
 import {
+  type BuiltInDocumentTypeKey,
   type ClientDocument,
   confirmSignedCopyConflictReason,
   type DocumentAnnex,
   type DocumentFileFormat,
   type DocumentRevision,
-  type DocumentTypeKey,
-  documentTypeKeys,
+  type DocumentSet,
+  documentSetGroups,
+  documentSetOf,
+  documentSetTypeKeys,
   type GenerateDocumentsRequest,
   type IssueDocumentRequest,
   type RegenerateDocumentRequest,
@@ -30,13 +33,12 @@ import {
   buildDocumentContext,
   decisionNumberOf,
   documentApplies,
-  type DocumentContext,
   documentData,
-  missingDataConcerns,
-  missingDocumentData,
   stableJson,
 } from './context';
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
+import { buildFireSafetyContext } from './fire-safety';
+import { setOfGroup, setRules } from './sets';
 import { annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
@@ -70,7 +72,12 @@ type DocumentRow = Pick<
 const documentColumns =
   'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
-const typeOrder = new Map<string, number>(documentTypeKeys.map((key, index) => [key, index]));
+const typeOrders = Object.fromEntries(
+  Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
+    set,
+    new Map<string, number>(typeKeys.map((key, index) => [key, index])),
+  ])
+) as Record<DocumentSet, Map<string, number>>;
 
 export type Actor = { userId: string; organizationId: string; createdBy: string };
 
@@ -84,31 +91,31 @@ function dataChanged(
   revision: RevisionRow,
   facts: StoredDocumentFacts | null
 ) {
+  const set = setOfGroup(document.document_group);
   if (
     !facts ||
+    !set ||
     revision.status !== 'draft' ||
     !revision.data_snapshot ||
     !revision.document_generations
   ) {
     return false;
   }
+  const rules = setRules[set];
   const input = {
     ...facts,
     issueDate: revision.document_generations.issue_date,
     firstDecisionNumber: 1,
   };
-  const missing = missingDocumentData(input, document.type_key);
-  if (missing.length > 0) {
-    return missing.some((code) => missingDataConcerns(code, document.type_key));
-  }
-  const current: Record<string, unknown> = documentData(
-    buildDocumentContext(input),
-    document.type_key,
-    document.decision_number
-  );
   // The snapshot holds what the document printed; the rest of the data is not its concern.
-  return Object.entries(revision.data_snapshot as Record<string, unknown>).some(
-    ([name, printed]) => stableJson(current[name]) !== stableJson(printed)
+  const printed = revision.data_snapshot as Record<string, unknown>;
+  const missing = rules.missing(input, document.type_key);
+  if (missing.length > 0) {
+    return missing.some((code) => rules.concerns(code, document.type_key, Object.keys(printed)));
+  }
+  const current = rules.data(input, document.type_key, document.decision_number);
+  return Object.entries(printed).some(
+    ([name, value]) => stableJson(current[name]) !== stableJson(value)
   );
 }
 
@@ -230,17 +237,20 @@ async function presentDocument(
 }
 
 // The pack's own order first, then anything a provider added, by title.
-const byPackOrder = (a: ClientDocument, b: ClientDocument) =>
-  (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
-  a.title.localeCompare(b.title, 'ro');
+const inSetOrder = (set: DocumentSet) => {
+  const typeOrder = typeOrders[set];
+  return (a: ClientDocument, b: ClientDocument) =>
+    (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
+    a.title.localeCompare(b.title, 'ro');
+};
 
-// The documentation set. The service contract has routes of its own (ADR 007).
-async function readDocuments(db: DataClient, clientId: string) {
+// The service contract has routes of its own (ADR 007).
+async function readDocuments(db: DataClient, clientId: string, set: DocumentSet) {
   const { data, error } = await db
     .from('client_documents')
     .select(documentColumns)
     .eq('client_id', clientId)
-    .eq('document_group', 'documentation_set')
+    .eq('document_group', documentSetGroups[set])
     .returns<DocumentRow[]>();
   if (error) throw fromDatabaseError(error, 'list client documents');
   return data;
@@ -271,27 +281,40 @@ export async function readServiceContractDocument(db: DataClient, clientId: stri
   };
 }
 
-export async function listClientDocuments(db: DataClient, actor: Actor, clientId: string) {
+function lastGeneration(db: DataClient, clientId: string, set: DocumentSet) {
+  return db
+    .from('document_generations')
+    .select('issue_date, first_decision_number')
+    .eq('client_id', clientId)
+    .eq('document_group', documentSetGroups[set])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+}
+
+export async function listClientDocuments(
+  db: DataClient,
+  actor: Actor,
+  clientId: string,
+  set: DocumentSet = 'occupational_safety'
+) {
   // Also answers 404 for a client of another organization.
   const facts = await loadDocumentFacts(db, clientId, actor.userId);
   const [documents, generation] = await Promise.all([
-    readDocuments(db, clientId),
-    db
-      .from('document_generations')
-      .select('issue_date, first_decision_number')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    readDocuments(db, clientId, set),
+    lastGeneration(db, clientId, set),
   ]);
   if (generation.error) throw fromDatabaseError(generation.error, 'last document generation');
   return {
-    items: (await presentDocuments(db, documents, facts)).sort(byPackOrder),
-    notApplicable: documentTypeKeys.filter(
-      (typeKey) =>
-        !documentApplies(facts, typeKey) &&
-        !documents.some((document) => document.type_key === typeKey)
-    ),
+    items: (await presentDocuments(db, documents, facts)).sort(inSetOrder(set)),
+    notApplicable:
+      set === 'occupational_safety'
+        ? documentSetTypeKeys.occupational_safety.filter(
+            (typeKey) =>
+              !documentApplies(facts, typeKey) &&
+              !documents.some((document) => document.type_key === typeKey)
+          )
+        : [],
     currentEmployeeCount: facts.currentEmployeeCount,
     lastGeneration: generation.data
       ? {
@@ -304,10 +327,7 @@ export async function listClientDocuments(db: DataClient, actor: Actor, clientId
 
 type Template = { typeKey: string; title: string; versionId: string; storagePath: string };
 
-async function builtInTemplates(
-  db: DataClient,
-  typeKeys: readonly string[] = documentTypeKeys
-): Promise<Template[]> {
+async function builtInTemplates(db: DataClient, typeKeys: readonly string[]): Promise<Template[]> {
   const { data, error } = await db
     .from('document_templates')
     .select('type_key, title, document_template_versions(id, version, storage_path)')
@@ -355,21 +375,22 @@ export function merge(template: Uint8Array, data: Record<string, unknown>, typeK
 
 /**
  * Documents that exist are left alone: generating one again is asked for one document at a
- * time, because it discards what was edited by hand.
+ * time, because it discards what was edited by hand. Only the set asked for is generated.
  */
 export async function generateClientDocuments(
   db: DataClient,
   files: FileStore,
   actor: Actor,
   clientId: string,
-  request: GenerateDocumentsRequest
+  request: GenerateDocumentsRequest,
+  set: DocumentSet = 'occupational_safety'
 ) {
   const facts = await loadDocumentFacts(db, clientId, actor.userId);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
   }
   const input = { ...facts, ...request };
-  const missing = missingDocumentData(input);
+  const missing = setRules[set].missing(input);
   if (missing.length > 0) {
     throw new ApiError(
       'conflict',
@@ -378,11 +399,10 @@ export async function generateClientDocuments(
       'missing_document_data'
     );
   }
-  const context = buildDocumentContext(input);
 
   const [templates, existing] = await Promise.all([
-    builtInTemplates(db),
-    readDocuments(db, clientId),
+    builtInTemplates(db, documentSetTypeKeys[set]),
+    readDocuments(db, clientId, set),
   ]);
   if (templates.length === 0) {
     console.error('No built-in templates are registered: run pnpm templates:register.');
@@ -393,7 +413,9 @@ export async function generateClientDocuments(
     existing.filter((document) => document.document_revisions.length > 0).map((d) => d.type_key)
   );
   const wanted = templates.filter(
-    (template) => !complete.has(template.typeKey) && documentApplies(facts, template.typeKey)
+    (template) =>
+      !complete.has(template.typeKey) &&
+      (set !== 'occupational_safety' || documentApplies(facts, template.typeKey))
   );
   if (wanted.length === 0) return { created: [], skipped: [...complete] };
 
@@ -402,51 +424,53 @@ export async function generateClientDocuments(
     .insert({
       organization_id: actor.organizationId,
       client_id: clientId,
+      document_group: documentSetGroups[set],
       issue_date: request.issueDate,
-      first_decision_number: request.firstDecisionNumber,
+      first_decision_number: set === 'occupational_safety' ? request.firstDecisionNumber : null,
       created_by: actor.createdBy,
     })
     .select('id')
     .single();
   if (generation.error) throw fromDatabaseError(generation.error, 'create document generation');
 
-  const existingId = (template: Template) =>
-    existing.find((document) => document.type_key === template.typeKey)?.id;
-  // The themes cite the own instructions revision this same run makes, so they come last.
-  const themes = wanted.find((template) => template.typeKey === 'training_themes');
-  const others = wanted.filter((template) => template !== themes);
-  // A few at a time: a Worker holds six connections open at once.
+  const create = (template: Template, merged: Merged) =>
+    createDocument(db, files, actor, clientId, generation.data.id, template, merged, {
+      existingId: existing.find((document) => document.type_key === template.typeKey)?.id,
+      set,
+    });
   const createdIds: string[] = [];
-  for (let start = 0; start < others.length; start += 4) {
-    const batch = others.slice(start, start + 4).map((template) =>
-      createDocument(db, files, actor, clientId, generation.data.id, template, context, {
-        existingId: existingId(template),
-      })
-    );
-    createdIds.push(...(await Promise.all(batch)));
-  }
   let current = facts;
-  if (themes) {
-    current = { ...facts, ownInstructions: await loadOwnInstructions(db, clientId) };
-    // Nothing to cite only when the own instructions are an uploaded file: the themes wait
-    // for them to be generated.
-    if (current.ownInstructions) {
-      const themesContext = buildDocumentContext({ ...current, ...request });
-      const themesId = await createDocument(
-        db,
-        files,
-        actor,
-        clientId,
-        generation.data.id,
-        themes,
-        themesContext,
-        { existingId: existingId(themes) }
-      );
-      createdIds.push(themesId);
+  if (set === 'fire_safety') {
+    const data = { ...buildFireSafetyContext(input) };
+    createdIds.push(
+      ...(await inBatches(wanted, (template) => create(template, { data, decisionNumber: null })))
+    );
+  } else {
+    const context = buildDocumentContext(input);
+    const fromContext = (built: typeof context, typeKey: string): Merged => {
+      const decisionNumber = decisionNumberOf(built, typeKey);
+      return { data: documentData(built, typeKey, decisionNumber), decisionNumber };
+    };
+    // The themes cite the own instructions revision this same run makes, so they come last.
+    const themes = wanted.find((template) => template.typeKey === 'training_themes');
+    const others = wanted.filter((template) => template !== themes);
+    createdIds.push(
+      ...(await inBatches(others, (template) =>
+        create(template, fromContext(context, template.typeKey))
+      ))
+    );
+    if (themes) {
+      current = { ...facts, ownInstructions: await loadOwnInstructions(db, clientId) };
+      // Nothing to cite only when the own instructions are an uploaded file: the themes wait
+      // for them to be generated.
+      if (current.ownInstructions) {
+        const themesContext = buildDocumentContext({ ...current, ...request });
+        createdIds.push(await create(themes, fromContext(themesContext, themes.typeKey)));
+      }
     }
   }
 
-  const documents = await readDocuments(db, clientId);
+  const documents = await readDocuments(db, clientId, set);
   return {
     created: (
       await presentDocuments(
@@ -454,10 +478,21 @@ export async function generateClientDocuments(
         documents.filter((document) => createdIds.includes(document.id)),
         current
       )
-    ).sort(byPackOrder),
+    ).sort(inSetOrder(set)),
     skipped: [...complete],
   };
 }
+
+// A few at a time: a Worker holds six connections open at once.
+async function inBatches<T>(items: T[], run: (item: T) => Promise<string>) {
+  const results: string[] = [];
+  for (let start = 0; start < items.length; start += 4) {
+    results.push(...(await Promise.all(items.slice(start, start + 4).map(run))));
+  }
+  return results;
+}
+
+type Merged = { data: Record<string, unknown>; decisionNumber: number | null };
 
 async function createDocument(
   db: DataClient,
@@ -466,11 +501,9 @@ async function createDocument(
   clientId: string,
   generationId: string,
   template: Template,
-  context: DocumentContext,
-  options: { existingId?: string }
+  { data, decisionNumber }: Merged,
+  options: { existingId?: string; set: DocumentSet }
 ) {
-  const decisionNumber = decisionNumberOf(context, template.typeKey);
-  const data = documentData(context, template.typeKey, decisionNumber);
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
     data,
@@ -487,6 +520,7 @@ async function createDocument(
         type_key: template.typeKey,
         title: template.title,
         decision_number: decisionNumber,
+        document_group: documentSetGroups[options.set],
         created_by: actor.createdBy,
       })
       .select('id')
@@ -677,10 +711,12 @@ export async function regenerateDocument(
   request: RegenerateDocumentRequest
 ) {
   const document = await readDocument(db, documentId);
-  if (document.document_group !== 'documentation_set') {
-    // It would be merged with the facts of the documentation set, which it does not print.
+  const set = setOfGroup(document.document_group);
+  if (!set) {
+    // It would be merged with the facts of a documentation set, which it does not print.
     throw new ApiError('conflict', 'This document is generated from its own page.');
   }
+  const rules = setRules[set];
   const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
@@ -694,7 +730,7 @@ export async function regenerateDocument(
     ]);
   }
   const input = { ...facts, issueDate, firstDecisionNumber: 1 };
-  const missing = missingDocumentData(input, document.type_key);
+  const missing = rules.missing(input, document.type_key);
   if (missing.length > 0) {
     throw new ApiError(
       'conflict',
@@ -707,33 +743,25 @@ export async function regenerateDocument(
   if (!template) {
     throw new ApiError('conflict', 'This document has no template to be generated from.');
   }
-  const data = documentData(
-    buildDocumentContext(input),
-    document.type_key,
-    document.decision_number
-  );
+  const data = rules.data(input, document.type_key, document.decision_number);
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
     data,
     document.type_key
   );
 
-  // The form is filled in again from the last generation, so its first number carries over.
-  const previous = await db
-    .from('document_generations')
-    .select('first_decision_number')
-    .eq('client_id', document.client_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // The form is filled in again from the set's last generation, so its first number carries over.
+  const previous = await lastGeneration(db, document.client_id, set);
   if (previous.error) throw fromDatabaseError(previous.error, 'last document generation');
   const generation = await db
     .from('document_generations')
     .insert({
       organization_id: actor.organizationId,
       client_id: document.client_id,
+      document_group: documentSetGroups[set],
       issue_date: issueDate,
-      first_decision_number: previous.data?.first_decision_number ?? 1,
+      first_decision_number:
+        previous.data?.first_decision_number ?? (set === 'occupational_safety' ? 1 : null),
       created_by: actor.createdBy,
     })
     .select('id')
@@ -901,7 +929,7 @@ export async function uploadDocumentFile(
   files: FileStore,
   actor: Actor,
   clientId: string,
-  typeKey: DocumentTypeKey,
+  typeKey: BuiltInDocumentTypeKey,
   bytes: Uint8Array
 ) {
   requireDocx(bytes);
@@ -909,7 +937,7 @@ export async function uploadDocumentFile(
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
   }
-  const existing = (await readDocuments(db, clientId)).find(
+  const existing = (await readDocuments(db, clientId, documentSetOf(typeKey))).find(
     (document) => document.type_key === typeKey
   );
   if (existing?.document_revisions.some((revision) => revision.status === 'draft')) {

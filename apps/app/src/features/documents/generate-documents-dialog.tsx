@@ -89,7 +89,7 @@ function GenerateDocumentsForm({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   // Asked again every time the form opens: the data is filled in on other pages.
-  const readiness = useGetDocumentReadiness(clientId, {
+  const readiness = useGetDocumentReadiness(clientId, undefined, {
     request: apiRequest,
     query: { queryKey: [...getGetDocumentReadinessQueryKey(clientId), userId], staleTime: 0 },
   });

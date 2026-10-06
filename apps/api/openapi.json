@@ -4303,6 +4303,7 @@
                 "provider.legalName",
                 "provider.representativeName",
                 "provider.representativeRole",
+                "provider.fireSafetyTechnician",
                 "specialist.name",
                 "specialist.professionalTitle",
                 "client.representativeName",
@@ -4707,6 +4708,7 @@
               },
               "firstDecisionNumber": {
                 "type": "integer",
+                "nullable": true,
                 "minimum": 1,
                 "maximum": 9999
               }
@@ -14749,8 +14751,8 @@
     "/clients/{clientId}/documents/readiness": {
       "get": {
         "operationId": "getDocumentReadiness",
-        "summary": "Whether a client's documentation can be generated, and what is missing",
-        "description": "Documents never leave a data field blank, so generating is refused until the list is empty. The specialist is the caller: their name and professional title come from their profile.",
+        "summary": "Whether one of a client's documentation sets can be generated, and what is missing",
+        "description": "Documents never leave a data field blank, so generating is refused until the list is empty. `set` picks the documentation set, the occupational safety one when left out; each set asks only what its own documents print, so one set's gaps never block the other. The specialist is the caller: their name and professional title come from their profile.",
         "security": [
           {
             "bearerAuth": []
@@ -14765,6 +14767,16 @@
             "required": true,
             "name": "clientId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["occupational_safety", "fire_safety"],
+              "default": "occupational_safety"
+            },
+            "required": false,
+            "name": "set",
+            "in": "query"
           }
         ],
         "responses": {
@@ -14844,8 +14856,8 @@
     "/clients/{clientId}/documents": {
       "get": {
         "operationId": "listClientDocuments",
-        "summary": "List a client's documents with their current draft and issued revisions",
-        "description": "In the order of the documentation set. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.",
+        "summary": "List the documents of one of a client's documentation sets, with their current draft and issued revisions",
+        "description": "The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.",
         "security": [
           {
             "bearerAuth": []
@@ -14860,6 +14872,16 @@
             "required": true,
             "name": "clientId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["occupational_safety", "fire_safety"],
+              "default": "occupational_safety"
+            },
+            "required": false,
+            "name": "set",
+            "in": "query"
           }
         ],
         "responses": {
@@ -14939,8 +14961,8 @@
     "/clients/{clientId}/documents/generate": {
       "post": {
         "operationId": "generateClientDocuments",
-        "summary": "Generate the documents a client's documentation does not have yet",
-        "description": "Every built-in document type the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`. Refused with the reason `missing_document_data` while the readiness list is not empty.",
+        "summary": "Generate the documents one of a client's documentation sets does not have yet",
+        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty. `firstDecisionNumber` is read for the occupational safety set only.",
         "security": [
           {
             "bearerAuth": []
@@ -14955,6 +14977,16 @@
             "required": true,
             "name": "clientId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["occupational_safety", "fire_safety"],
+              "default": "occupational_safety"
+            },
+            "required": false,
+            "name": "set",
+            "in": "query"
           }
         ],
         "requestBody": {
@@ -16181,7 +16213,12 @@
                 "prevention_plan",
                 "cover_employer_briefing",
                 "employer_briefing",
-                "control_regulation"
+                "control_regulation",
+                "fire_cover_registers",
+                "fire_registers",
+                "fire_work_permit",
+                "fire_installation_register",
+                "fire_extinguisher_register"
               ]
             },
             "required": true,

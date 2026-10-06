@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId/document
     const userId = auth.getSnapshot().session?.user.id;
     try {
       const { items } = await queryClient.ensureQueryData(
-        getListClientDocumentsQueryOptions(params.clientId, {
+        getListClientDocumentsQueryOptions(params.clientId, undefined, {
           request: apiRequest,
           query: { queryKey: [...getListClientDocumentsQueryKey(params.clientId), userId] },
         })

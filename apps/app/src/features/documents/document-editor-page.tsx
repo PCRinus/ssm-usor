@@ -55,7 +55,7 @@ export function DocumentEditorPage({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const backToList = useBackToList();
-  const documents = useListClientDocuments(clientId, {
+  const documents = useListClientDocuments(clientId, undefined, {
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
   });

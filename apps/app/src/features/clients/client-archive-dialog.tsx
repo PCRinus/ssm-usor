@@ -70,7 +70,7 @@ export function ClientArchiveDialog({
   const busy = archive.isPending || restore.isPending;
   const lead = change?.client.stage === 'lead';
   const archiving = change?.action === 'archive' && !lead ? change.client.id : null;
-  const documents = useListClientDocuments(archiving ?? '', {
+  const documents = useListClientDocuments(archiving ?? '', undefined, {
     request: apiRequest,
     query: {
       queryKey: [...getListClientDocumentsQueryKey(archiving ?? ''), session?.user.id],

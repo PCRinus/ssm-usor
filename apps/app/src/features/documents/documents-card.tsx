@@ -166,7 +166,7 @@ export function DocumentsCard({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
-  const documents = useListClientDocuments(clientId, {
+  const documents = useListClientDocuments(clientId, undefined, {
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
   });
