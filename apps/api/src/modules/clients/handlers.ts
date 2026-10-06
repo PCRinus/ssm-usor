@@ -137,7 +137,7 @@ const workColumns =
   'client_since, job_position_count, job_positions_needing_work_count, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at';
 
 type WorkRow = Pick<
-  ClientRow,
+  Database['public']['Views']['client_list']['Row'],
   | 'client_since'
   | 'job_position_count'
   | 'job_positions_needing_work_count'
@@ -146,13 +146,15 @@ type WorkRow = Pick<
   | 'documentation_last_generated_at'
 >;
 
+type ListedRow = SelectedClientRow & ContractDocuments & Partial<WorkRow>;
+
 // Each pair of tables is linked twice, by id and by id with organization, so the relationship
 // is named.
 const contractEmbed =
   'client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))';
 
-// The computed fields cannot tell the generated types that they are never null.
-function toClientListItem(row: SelectedClientRow & ContractDocuments & Partial<WorkRow>) {
+// The generated types make every column of a view nullable.
+function toClientListItem(row: ListedRow) {
   const item: ClientListItem = {
     ...toClient(row),
     clientSince: null,
@@ -181,23 +183,22 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
   const { page, pageSize, sort, order, status, stage } = c.req.valid('query');
   if (stage === 'lead') requireOwnerForLeads(c.get('membership').role);
   const db = createDataClient(c);
-  const listed = () => {
-    const clients = db
-      .from('clients')
-      // The contract of a lead is what says where the lead stands. Owners only, as leads are.
-      .select(
-        stage === 'lead'
-          ? `${clientColumns}, ${contractEmbed}`
-          : `${clientColumns}, ${workColumns}`,
-        { count: 'exact' }
-      )
-      .eq('stage', stage);
-    return (
-      status === 'archived'
-        ? clients.not('archived_at', 'is', null)
-        : clients.is('archived_at', null)
-    ).returns<(SelectedClientRow & ContractDocuments & Partial<WorkRow>)[]>();
-  };
+  const archived = status === 'archived' ? 'not.is' : 'is';
+  const listed = () =>
+    stage === 'lead'
+      ? // The contract of a lead is what says where the lead stands. Owners only, as leads are.
+        db
+          .from('clients')
+          .select(`${clientColumns}, ${contractEmbed}`, { count: 'exact' })
+          .eq('stage', stage)
+          .filter('archived_at', archived, null)
+          .returns<ListedRow[]>()
+      : db
+          .from('client_list')
+          .select(`${clientColumns}, ${workColumns}`, { count: 'exact' })
+          .eq('stage', stage)
+          .filter('archived_at', archived, null)
+          .returns<ListedRow[]>();
   let query = listed();
   for (const column of sortColumns[sort])
     query = query.order(column, { ascending: order === 'asc' });

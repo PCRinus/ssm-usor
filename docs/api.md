@@ -212,8 +212,8 @@ reason `client_is_lead`. `POST /clients/{clientId}/promote` turns an active lead
 `409` with `client_archived` and is restored first. The owners' notes, `…/owner-notes`, are one free text per client or
 lead, up to 5000 characters, never readable by a specialist, before or after promotion.
 
-Each client of `GET /clients` also says what is left to do, from computed fields of one read
-(no request per row): `jobPositionCount`, the positions not archived;
+Each client of `GET /clients` also says what is left to do, from the view `client_list` in one
+read (no request and no query per row): `jobPositionCount`, the positions not archived;
 `jobPositionsNeedingWorkCount`, those with the equipment or the instructions undecided or
 without a risk evaluation (whether an evaluation is complete is not asked: that needs the risk
 levels); and `documentation` with `state` (`none` while no document of the set has a revision,

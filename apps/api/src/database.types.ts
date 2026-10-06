@@ -45,6 +45,13 @@ export type Database = {
             foreignKeyName: 'client_documents_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -217,6 +224,13 @@ export type Database = {
             foreignKeyName: 'client_responsible_persons_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -291,6 +305,13 @@ export type Database = {
             foreignKeyName: 'client_workplaces_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -343,13 +364,7 @@ export type Database = {
           vat_payer: boolean;
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
-          client_since: string | null;
           current_employee_count: number | null;
-          documentation_generated_type_keys: string[] | null;
-          documentation_issued_count: number | null;
-          documentation_last_generated_at: string | null;
-          job_position_count: number | null;
-          job_positions_needing_work_count: number | null;
         };
         Insert: {
           address_line?: string | null;
@@ -456,6 +471,13 @@ export type Database = {
           organization_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'document_generations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'document_generations_client_id_fkey';
             columns: ['client_id'];
@@ -788,6 +810,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'employees_client_id_fkey';
             columns: ['client_id'];
@@ -1146,6 +1175,13 @@ export type Database = {
             foreignKeyName: 'job_position_equipment_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -1201,6 +1237,13 @@ export type Database = {
           organization_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'job_position_instructions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'job_position_instructions_client_id_fkey';
             columns: ['client_id'];
@@ -1288,6 +1331,13 @@ export type Database = {
           work_zone?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'job_positions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'job_positions_client_id_fkey';
             columns: ['client_id'];
@@ -1519,6 +1569,13 @@ export type Database = {
             foreignKeyName: 'prevention_measures_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'prevention_measures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -1629,6 +1686,13 @@ export type Database = {
             foreignKeyName: 'risk_evaluations_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -1717,6 +1781,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'risk_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'risk_factors_client_id_fkey';
             columns: ['client_id'];
@@ -1922,7 +1993,37 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      client_list: {
+        Row: {
+          address_line: string | null;
+          archived_at: string | null;
+          caen_code: string | null;
+          client_since: string | null;
+          contact_email: string | null;
+          contact_name: string | null;
+          contact_phone: string | null;
+          county_code: string | null;
+          created_at: string | null;
+          cui: string | null;
+          current_employee_count: number | null;
+          declared_employee_count: number | null;
+          documentation_generated_type_keys: string[] | null;
+          documentation_issued_count: number | null;
+          documentation_last_generated_at: string | null;
+          id: string | null;
+          job_position_count: number | null;
+          job_positions_needing_work_count: number | null;
+          legal_name: string | null;
+          legal_representative_name: string | null;
+          locality: string | null;
+          promoted_at: string | null;
+          stage: Database['public']['Enums']['client_stage'] | null;
+          trade_register_number: string | null;
+          updated_at: string | null;
+          vat_payer: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       accept_invitation_as: {
@@ -1953,12 +2054,6 @@ export type Database = {
           new_role: Database['public']['Enums']['organization_role'];
         };
         Returns: boolean;
-      };
-      client_since: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.client_since with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
@@ -2001,24 +2096,6 @@ export type Database = {
         }[];
       };
       current_organization_id: { Args: never; Returns: string };
-      documentation_generated_type_keys: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.documentation_generated_type_keys with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
-      documentation_issued_count: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.documentation_issued_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
-      documentation_last_generated_at: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.documentation_last_generated_at with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
       effective_user_id: { Args: never; Returns: string };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
@@ -2042,18 +2119,6 @@ export type Database = {
           p_revision_id: string;
         };
         Returns: undefined;
-      };
-      job_position_count: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.job_position_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
-      };
-      job_positions_needing_work_count: {
-        Args: { '': Database['public']['Tables']['clients']['Row'] };
-        Returns: {
-          error: true;
-        } & 'the function public.job_positions_needing_work_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       lock_members_as_owner: { Args: never; Returns: string };
       my_open_invitations: {
