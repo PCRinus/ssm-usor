@@ -573,9 +573,14 @@ mobile navigation link closes the Sheet.
   SSM", for every client ([ADR 016](architecture/adr-016-fire-safety-documents.md)). It is the
   same `DocumentsCard`, editor page and generation dialog, given the set: `document-sets.ts`
   holds each set's copy and routes, and `setParams` leaves the occupational safety set's
-  requests and query keys as they were (`?set=fire_safety` for the other). Its sections are the
-  provider's binder, listed once one of their document types is built: today "6. Registre și
-  formulare PSI" alone, and "Alte documente PSI" for a type this build does not know. Its dialog
+  requests and query keys as they were (`?set=fire_safety` for the other). It lists the whole
+  pack at all times, with no empty state: the six sections of the provider's binder under their
+  numbers (`fireSafetyDocumentSections`, whose ids are the route's `?section=`), each holding
+  its built type keys and its planned documents, and "Alte documente PSI" for a type this build
+  does not know. A built document the client does not have yet is a muted "Negenerat" row named
+  from `notGeneratedTitles` (held to the fire-safety manifest by a test); a planned one is a
+  muted "În pregătire" row; neither has a link or a menu, and planned rows never count as
+  missing. Until something is generated, a hint under the heading replaces the empty state. Its dialog
   has no headcount notice and asks only the date; the four missing codes lead to their fields
   as in the SSM dialog, and the toast of a save leads back to this tab's form. A `503` says that
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
