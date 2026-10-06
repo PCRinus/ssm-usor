@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { riskEvaluationKindSchema } from './risk-evaluations';
 
 /**
- * The built-in documents, in the order of the provider's pack. Mirrors the manifest of
- * `packages/document-engine/templates`.
+ * The built-in documents of the occupational safety set, in the order of the provider's pack.
+ * Mirrors the manifest of `packages/document-engine/templates`.
  */
 export const documentTypeKeys = [
   'cover_decisions',
@@ -37,6 +37,47 @@ export const documentTypeKeySchema = z.enum(documentTypeKeys);
 
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
+/** The built-in documents of the fire-safety set, in the order of the provider's binder. */
+export const fireSafetyDocumentTypeKeys = [
+  'fire_cover_registers',
+  'fire_registers',
+  'fire_work_permit',
+  'fire_installation_register',
+  'fire_extinguisher_register',
+] as const;
+
+export const fireSafetyDocumentTypeKeySchema = z.enum(fireSafetyDocumentTypeKeys);
+
+export type FireSafetyDocumentTypeKey = z.infer<typeof fireSafetyDocumentTypeKeySchema>;
+
+export const builtInDocumentTypeKeySchema = z.enum([
+  ...documentTypeKeys,
+  ...fireSafetyDocumentTypeKeys,
+]);
+
+export type BuiltInDocumentTypeKey = z.infer<typeof builtInDocumentTypeKeySchema>;
+
+export const documentSets = ['occupational_safety', 'fire_safety'] as const;
+
+export const documentSetSchema = z.enum(documentSets);
+
+export type DocumentSet = z.infer<typeof documentSetSchema>;
+
+export const documentSetTypeKeys = {
+  occupational_safety: documentTypeKeys,
+  fire_safety: fireSafetyDocumentTypeKeys,
+} as const satisfies Record<DocumentSet, readonly BuiltInDocumentTypeKey[]>;
+
+/** Fire-safety type keys start with `fire_` (ADR 016), so a type no list names has a set too. */
+export function documentSetOf(typeKey: string): DocumentSet {
+  return typeKey.startsWith('fire_') ? 'fire_safety' : 'occupational_safety';
+}
+
+/** Left out, the set is the occupational safety one, which was the only one before ADR 016. */
+export const documentSetQuerySchema = z.object({
+  set: documentSetSchema.default('occupational_safety'),
+});
+
 /** The decisions, in the order they are numbered from the first decision number. */
 export const decisionTypeKeys = [
   'decision_training',
@@ -49,12 +90,15 @@ export const decisionTypeKeys = [
 /**
  * What a client's documentation cannot be generated without, by where it is filled in: the
  * organization's legal details, the specialist's profile, the client's document details, and
- * the client's responsible persons, one entry per role nobody holds.
+ * the client's responsible persons, one entry per role nobody holds. Each set asks its own part
+ * of the list.
  */
 export const missingDocumentData = [
   'provider.legalName',
   'provider.representativeName',
   'provider.representativeRole',
+  // The same code as a service contract's: the name, kept with the organization's authorizations.
+  'provider.fireSafetyTechnician',
   'specialist.name',
   'specialist.professionalTitle',
   'client.representativeName',
@@ -85,6 +129,14 @@ export const missingDocumentDataSchema = z.enum(missingDocumentData);
 
 export type MissingDocumentData = z.infer<typeof missingDocumentDataSchema>;
 
+/** What the fire-safety set can be missing: what its documents print. */
+export const fireSafetyMissingDocumentData = [
+  'provider.legalName',
+  'provider.fireSafetyTechnician',
+  'client.representativeName',
+  'client.representativeRole',
+] as const satisfies readonly MissingDocumentData[];
+
 export const jobPositionDecisions = ['equipment', 'instructions'] as const;
 
 export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
@@ -97,6 +149,8 @@ export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
 
 export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
+// For the fire-safety set, only `missing` and `ready` say anything: the lists about positions,
+// evaluations and the workers' representative are empty.
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
@@ -187,9 +241,14 @@ export const documentRevisionSchema = z.object({
 export type DocumentRevision = z.infer<typeof documentRevisionSchema>;
 
 /** Mirrors the `document_group` enum in the database. */
-export const documentGroups = ['documentation_set', 'other'] as const;
+export const documentGroups = ['documentation_set', 'fire_safety_set', 'other'] as const;
 
 export type DocumentGroup = (typeof documentGroups)[number];
+
+export const documentSetGroups = {
+  occupational_safety: 'documentation_set',
+  fire_safety: 'fire_safety_set',
+} as const satisfies Record<DocumentSet, DocumentGroup>;
 
 export const clientDocumentSchema = z.object({
   id: z.uuid(),
@@ -205,14 +264,16 @@ export const clientDocumentSchema = z.object({
 
 export type ClientDocument = z.infer<typeof clientDocumentSchema>;
 
-/** In the order of the documentation set. A client has a few dozen at most: not paginated. */
+/** One set's documents, in its order. A client has a few dozen at most: not paginated. */
 export const clientDocumentListResponseSchema = z.object({
   items: z.array(clientDocumentSchema),
-  // What the last generation asked, to fill the form in again.
+  // What the set's last generation asked, to fill the form in again. The fire-safety set has
+  // no decisions yet, so no first number.
   lastGeneration: z
-    .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999) })
+    .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999).nullable() })
     .nullable(),
   // Documents of the set this client does not need, such as decision 1.5 under 10 employees.
+  // Always empty for the fire-safety set.
   notApplicable: z.array(documentTypeKeySchema),
   currentEmployeeCount: z.int().min(0),
 });
@@ -222,7 +283,7 @@ export type ClientDocumentListResponse = z.infer<typeof clientDocumentListRespon
 export const generateDocumentsRequestSchema = z.object({
   // The date the documents carry, usually the start of the contract.
   issueDate: z.iso.date(),
-  // Decisions are numbered from here: "Decizia nr. 1 SSM".
+  // Decisions are numbered from here: "Decizia nr. 1 SSM". Not read for the fire-safety set.
   firstDecisionNumber: z.int().min(1).max(9995).default(1),
 });
 

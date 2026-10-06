@@ -49,7 +49,9 @@ export async function loadDocumentFacts(
     // A member sees exactly one organization: their own.
     db
       .from('organizations')
-      .select('legal_name, legal_representative_name, legal_representative_role')
+      .select(
+        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name'
+      )
       .single(),
     db.rpc('organization_member_list'),
     db
@@ -136,6 +138,7 @@ export async function loadDocumentFacts(
       legalName: organization.data.legal_name,
       representativeName: organization.data.legal_representative_name,
       representativeRole: organization.data.legal_representative_role,
+      fireSafetyTechnicianName: organization.data.fire_safety_technician_name,
     },
     specialist: specialist
       ? { fullName: specialist.full_name, professionalTitle: specialist.professional_title }

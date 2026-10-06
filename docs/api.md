@@ -96,9 +96,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                                                      |
 | `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                                       |
 | `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                                                  |
-| `GET /clients/{clientId}/documents/readiness`                          | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating is waiting for                                                           |
-| `GET /clients/{clientId}/documents`                                    | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }`, in the order of the pack; not paginated                                           |
-| `POST /clients/{clientId}/documents/generate`                          | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
+| `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                   |
+| `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                            |
+| `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                    |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                |
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes the own instructions' modules                           |
@@ -297,8 +297,8 @@ links to either under a name that ends in "- semnat.pdf", and `DELETE` removes t
 then the row. These are
 routes of any document, reachable by whoever reaches it; the contract's is its owners'. A
 lead's `serviceContractState` becomes `signed` when the revision in force has a copy, ahead
-of `sent`. `GET /clients/{clientId}/documents` lists the documentation set only, and
-`POST /documents/{documentId}/regenerate` answers `409` for a document that is not part of it.
+of `sent`. `GET /clients/{clientId}/documents` lists one documentation set only, and
+`POST /documents/{documentId}/regenerate` answers `409` for a document that is in neither.
 
 Nothing under an archived client changes. The database refuses the write with `CLA01`, which
 `fromDatabaseError` turns into `409` with the reason `client_archived` for every route at
@@ -609,6 +609,16 @@ optionally an `employeeId`: an employee of another client is `400` with the issu
 The `documents` module generates a client's documentation from the built-in Word templates
 ([ADR 005](architecture/adr-005-document-generation.md), [the document engine](document-engine.md)).
 
+A client has two documentation sets ([ADR 016](architecture/adr-016-fire-safety-documents.md)):
+the occupational safety set and the fire-safety set. Readiness, the list and generation take
+`set=occupational_safety|fire_safety` in the query, the occupational safety one when left out,
+and answer for that set alone: one set's missing data never blocks the other, and generating
+one never creates documents of the other. A document says its set by its `document_group`
+(`documentation_set` or `fire_safety_set`), and a generation records the set it ran for, so
+`lastGeneration` is the set's own. The routes of one document (regenerate, issue, draft,
+file, print, download, signed copy, upload) work the same in both sets. What follows describes
+the occupational safety set unless it says otherwise.
+
 `GET …/documents/readiness` lists what is missing as codes grouped by where it is filled in:
 `provider.*`, `specialist.*` (the caller's own profile), `client.representativeName`,
 `client.representativeRole`, `client.trainingSchedule`, `responsible.<role>` for every
@@ -630,8 +640,19 @@ instructions revision to cite, `documents.own_instructions`
 ([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
 the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (default 1) and is `409` with the reason `missing_document_data` until that list is empty,
-`409` for an archived client, and `503` while no template is registered
+`409` for an archived client, and `503` while no template of the set is registered
 (`pnpm templates:register`).
+
+The fire-safety set asks only what its documents print: `provider.legalName`,
+`provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
+code a service contract covering fire safety uses), `client.representativeName` and
+`client.representativeRole`. Its readiness lists nothing else, and its `undecidedJobPositions`,
+`incompleteRiskEvaluations` and `workersRepresentativeClash` are empty. Its generation reads
+`issueDate` only: it has no decisions yet, so it records no first number and its
+`lastGeneration.firstDecisionNumber` is null. Its templates are merged with a context of their
+own, `client`, `provider`, `fireSafetyTechnician.name`, `issueDate` and `branding`, and never
+with the occupational safety set's names, so an edit to positions or equipment never marks a
+fire-safety draft. Its list has no `notApplicable` document.
 
 Generating creates every document type the client does not have yet as revision 1, in draft:
 the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private
@@ -687,8 +708,8 @@ and `edited_by`, which the list shows and "Generează din nou" warns about. `409
 document has no draft; an issued file cannot be written by anyone.
 
 `POST /clients/{clientId}/documents/{typeKey}/upload` takes a `.docx` written elsewhere, with
-the same checks. `typeKey` is one of the contracts' `documentTypeKeys`, the whole pack in its
-order. The file replaces the draft, or starts the next draft beside the issued revision,
+the same checks. `typeKey` is a built-in type of either set, `documentTypeKeys` or
+`fireSafetyDocumentTypeKeys`, and the document is looked for in that type's set. The file replaces the draft, or starts the next draft beside the issued revision,
 keeping the generation and so the date. An uploaded revision has no template and no data
 snapshot, so it never reports `dataChanged`. A document that does not exist yet answers `409`
 with the reason `not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,

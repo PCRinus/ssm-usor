@@ -2962,6 +2962,7 @@ export const DocumentReadinessResponseMissingItem = {
   providerlegalName: 'provider.legalName',
   providerrepresentativeName: 'provider.representativeName',
   providerrepresentativeRole: 'provider.representativeRole',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
   specialistname: 'specialist.name',
   specialistprofessionalTitle: 'specialist.professionalTitle',
   clientrepresentativeName: 'client.representativeName',
@@ -3199,8 +3200,9 @@ export type ClientDocumentListResponseLastGeneration = {
   /**
    * @minimum 1
    * @maximum 9999
+   * @nullable
    */
-  firstDecisionNumber: number;
+  firstDecisionNumber: number | null;
 } | null;
 
 export type ClientDocumentListResponseNotApplicableItem =
@@ -4416,6 +4418,42 @@ export const ListRiskFactorSuggestionsField = {
   deadline: 'deadline',
   responsiblePerson: 'responsiblePerson',
   observations: 'observations',
+} as const;
+
+export type GetDocumentReadinessParams = {
+  set?: GetDocumentReadinessSet;
+};
+
+export type GetDocumentReadinessSet =
+  (typeof GetDocumentReadinessSet)[keyof typeof GetDocumentReadinessSet];
+
+export const GetDocumentReadinessSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type ListClientDocumentsParams = {
+  set?: ListClientDocumentsSet;
+};
+
+export type ListClientDocumentsSet =
+  (typeof ListClientDocumentsSet)[keyof typeof ListClientDocumentsSet];
+
+export const ListClientDocumentsSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type GenerateClientDocumentsParams = {
+  set?: GenerateClientDocumentsSet;
+};
+
+export type GenerateClientDocumentsSet =
+  (typeof GenerateClientDocumentsSet)[keyof typeof GenerateClientDocumentsSet];
+
+export const GenerateClientDocumentsSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
 } as const;
 
 export type GetDocumentDownloadParams = {
@@ -13936,26 +13974,45 @@ export const useArchiveResponsiblePerson = <
   return useMutation(getArchiveResponsiblePersonMutationOptions(options), queryClient);
 };
 
-export const getGetDocumentReadinessUrl = (clientId: string) => {
-  return `/clients/${clientId}/documents/readiness`;
+export const getGetDocumentReadinessUrl = (
+  clientId: string,
+  params?: GetDocumentReadinessParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/documents/readiness?${stringifiedParams}`
+    : `/clients/${clientId}/documents/readiness`;
 };
 
 /**
- * Documents never leave a data field blank, so generating is refused until the list is empty. The specialist is the caller: their name and professional title come from their profile.
- * @summary Whether a client's documentation can be generated, and what is missing
+ * Documents never leave a data field blank, so generating is refused until the list is empty. `set` picks the documentation set, the occupational safety one when left out; each set asks only what its own documents print, so one set's gaps never block the other. The specialist is the caller: their name and professional title come from their profile.
+ * @summary Whether one of a client's documentation sets can be generated, and what is missing
  */
 export const getDocumentReadiness = async (
   clientId: string,
+  params?: GetDocumentReadinessParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<DocumentReadinessResponse> => {
-  return apiFetch<DocumentReadinessResponse>(getGetDocumentReadinessUrl(clientId), {
+  return apiFetch<DocumentReadinessResponse>(getGetDocumentReadinessUrl(clientId, params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getGetDocumentReadinessQueryKey = (clientId: string) => {
-  return [`/clients/${clientId}/documents/readiness`] as const;
+export const getGetDocumentReadinessQueryKey = (
+  clientId: string,
+  params?: GetDocumentReadinessParams
+) => {
+  return [`/clients/${clientId}/documents/readiness`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetDocumentReadinessQueryOptions = <
@@ -13963,6 +14020,7 @@ export const getGetDocumentReadinessQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: GetDocumentReadinessParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
@@ -13972,10 +14030,10 @@ export const getGetDocumentReadinessQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDocumentReadinessQueryKey(clientId);
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentReadinessQueryKey(clientId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentReadiness>>> = ({ signal }) =>
-    getDocumentReadiness(clientId, { signal, ...requestOptions });
+    getDocumentReadiness(clientId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -13997,6 +14055,7 @@ export function useGetDocumentReadiness<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params: undefined | GetDocumentReadinessParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
@@ -14018,6 +14077,7 @@ export function useGetDocumentReadiness<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: GetDocumentReadinessParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
@@ -14039,6 +14099,7 @@ export function useGetDocumentReadiness<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: GetDocumentReadinessParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
@@ -14048,7 +14109,7 @@ export function useGetDocumentReadiness<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Whether a client's documentation can be generated, and what is missing
+ * @summary Whether one of a client's documentation sets can be generated, and what is missing
  */
 
 export function useGetDocumentReadiness<
@@ -14056,6 +14117,7 @@ export function useGetDocumentReadiness<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: GetDocumentReadinessParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getDocumentReadiness>>, TError, TData>
@@ -14064,7 +14126,7 @@ export function useGetDocumentReadiness<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetDocumentReadinessQueryOptions(clientId, options);
+  const queryOptions = getGetDocumentReadinessQueryOptions(clientId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -14073,26 +14135,42 @@ export function useGetDocumentReadiness<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getListClientDocumentsUrl = (clientId: string) => {
-  return `/clients/${clientId}/documents`;
+export const getListClientDocumentsUrl = (clientId: string, params?: ListClientDocumentsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/documents?${stringifiedParams}`
+    : `/clients/${clientId}/documents`;
 };
 
 /**
- * In the order of the documentation set. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.
- * @summary List a client's documents with their current draft and issued revisions
+ * The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.
+ * @summary List the documents of one of a client's documentation sets, with their current draft and issued revisions
  */
 export const listClientDocuments = async (
   clientId: string,
+  params?: ListClientDocumentsParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientDocumentListResponse> => {
-  return apiFetch<ClientDocumentListResponse>(getListClientDocumentsUrl(clientId), {
+  return apiFetch<ClientDocumentListResponse>(getListClientDocumentsUrl(clientId, params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getListClientDocumentsQueryKey = (clientId: string) => {
-  return [`/clients/${clientId}/documents`] as const;
+export const getListClientDocumentsQueryKey = (
+  clientId: string,
+  params?: ListClientDocumentsParams
+) => {
+  return [`/clients/${clientId}/documents`, ...(params ? [params] : [])] as const;
 };
 
 export const getListClientDocumentsQueryOptions = <
@@ -14100,6 +14178,7 @@ export const getListClientDocumentsQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientDocumentsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
@@ -14109,10 +14188,10 @@ export const getListClientDocumentsQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListClientDocumentsQueryKey(clientId);
+  const queryKey = queryOptions?.queryKey ?? getListClientDocumentsQueryKey(clientId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientDocuments>>> = ({ signal }) =>
-    listClientDocuments(clientId, { signal, ...requestOptions });
+    listClientDocuments(clientId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -14134,6 +14213,7 @@ export function useListClientDocuments<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params: undefined | ListClientDocumentsParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
@@ -14155,6 +14235,7 @@ export function useListClientDocuments<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientDocumentsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
@@ -14176,6 +14257,7 @@ export function useListClientDocuments<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientDocumentsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
@@ -14185,7 +14267,7 @@ export function useListClientDocuments<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List a client's documents with their current draft and issued revisions
+ * @summary List the documents of one of a client's documentation sets, with their current draft and issued revisions
  */
 
 export function useListClientDocuments<
@@ -14193,6 +14275,7 @@ export function useListClientDocuments<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientDocumentsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listClientDocuments>>, TError, TData>
@@ -14201,7 +14284,7 @@ export function useListClientDocuments<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListClientDocumentsQueryOptions(clientId, options);
+  const queryOptions = getListClientDocumentsQueryOptions(clientId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -14210,17 +14293,33 @@ export function useListClientDocuments<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getGenerateClientDocumentsUrl = (clientId: string) => {
-  return `/clients/${clientId}/documents/generate`;
+export const getGenerateClientDocumentsUrl = (
+  clientId: string,
+  params?: GenerateClientDocumentsParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/documents/generate?${stringifiedParams}`
+    : `/clients/${clientId}/documents/generate`;
 };
 
 /**
- * Every built-in document type the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`. Refused with the reason `missing_document_data` while the readiness list is not empty.
- * @summary Generate the documents a client's documentation does not have yet
+ * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty. `firstDecisionNumber` is read for the occupational safety set only.
+ * @summary Generate the documents one of a client's documentation sets does not have yet
  */
 export const generateClientDocuments = async (
   clientId: string,
   generateDocumentsRequest: GenerateDocumentsRequest,
+  params?: GenerateClientDocumentsParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<GenerateDocumentsResponse> => {
   const getHeaders = (
@@ -14242,7 +14341,7 @@ export const generateClientDocuments = async (
     }
     return headers;
   };
-  return apiFetch<GenerateDocumentsResponse>(getGenerateClientDocumentsUrl(clientId), {
+  return apiFetch<GenerateDocumentsResponse>(getGenerateClientDocumentsUrl(clientId, params), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
@@ -14280,9 +14379,9 @@ export const getGenerateClientDocumentsMutationOptions = <
     Awaited<ReturnType<typeof generateClientDocuments>>,
     GenerateClientDocumentsMutationVariables
   > = (props) => {
-    const { clientId, data } = props ?? {};
+    const { clientId, data, params } = props ?? {};
 
-    return generateClientDocuments(clientId, data, requestOptions);
+    return generateClientDocuments(clientId, data, params, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14296,10 +14395,11 @@ export type GenerateClientDocumentsMutationError = ErrorType<ApiErrorResponse>;
 export type GenerateClientDocumentsMutationVariables = {
   clientId: string;
   data: GenerateDocumentsRequest;
+  params?: GenerateClientDocumentsParams;
 };
 
 /**
- * @summary Generate the documents a client's documentation does not have yet
+ * @summary Generate the documents one of a client's documentation sets does not have yet
  */
 export const useGenerateClientDocuments = <
   TError = ErrorType<ApiErrorResponse>,
@@ -15427,6 +15527,11 @@ export const getUploadClientDocumentUrl = (
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'fire_cover_registers'
+    | 'fire_registers'
+    | 'fire_work_permit'
+    | 'fire_installation_register'
+    | 'fire_extinguisher_register'
 ) => {
   return `/clients/${clientId}/documents/${typeKey}/upload`;
 };
@@ -15461,7 +15566,12 @@ export const uploadClientDocument = async (
     | 'prevention_plan'
     | 'cover_employer_briefing'
     | 'employer_briefing'
-    | 'control_regulation',
+    | 'control_regulation'
+    | 'fire_cover_registers'
+    | 'fire_registers'
+    | 'fire_work_permit'
+    | 'fire_installation_register'
+    | 'fire_extinguisher_register',
   uploadClientDocumentBody: Blob,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientDocumentResponse> => {
@@ -15564,7 +15674,12 @@ export type UploadClientDocumentMutationVariables = {
     | 'prevention_plan'
     | 'cover_employer_briefing'
     | 'employer_briefing'
-    | 'control_regulation';
+    | 'control_regulation'
+    | 'fire_cover_registers'
+    | 'fire_registers'
+    | 'fire_work_permit'
+    | 'fire_installation_register'
+    | 'fire_extinguisher_register';
   data: Blob;
 };
 

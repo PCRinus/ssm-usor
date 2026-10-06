@@ -200,6 +200,7 @@ describe('client documents', () => {
       'Posturi de lucru',
       'Instruire și responsabili',
       'Documente SSM',
+      'Documente PSI',
       'Alte documente',
     ]);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();

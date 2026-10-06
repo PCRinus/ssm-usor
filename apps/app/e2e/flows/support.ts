@@ -109,6 +109,15 @@ export async function completeProviderDetails(organizationId: string) {
   if (organization.error) throw organization.error;
 }
 
+// The provider's signer on the fire-safety set (ADR 016), the one fact it asks beyond the others'.
+export async function nameFireSafetyTechnician(organizationId: string) {
+  const organization = await admin
+    .from('organizations')
+    .update({ fire_safety_technician_name: 'Radu STAN' })
+    .eq('id', organizationId);
+  if (organization.error) throw organization.error;
+}
+
 // Everything the documents print, so that generating is not held back (ADR 005).
 export async function completeDocumentData(
   organizationId: string,

@@ -1,3 +1,4 @@
+import type { DocumentSet } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -19,6 +20,7 @@ import { Notice } from '@/components/notice';
 import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
 import { sectionOf } from './document-sections';
+import { documentSetCopy, documentsLink, setParams } from './document-sets';
 import { editorFrameClassName, saveAs } from './editor-frame';
 import { EditorPlaceholder } from './editor-placeholder';
 import { pdfOf, pdfOfRevision, usePrint } from './print';
@@ -43,11 +45,13 @@ export interface DocumentSource {
 
 // `readOnly` is an archived client.
 export function DocumentEditorPage({
+  set,
   clientId,
   documentId,
   userId,
   readOnly,
 }: {
+  set: DocumentSet;
   clientId: string;
   documentId: string;
   userId: string;
@@ -55,11 +59,12 @@ export function DocumentEditorPage({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const backToList = useBackToList();
-  const documents = useListClientDocuments(clientId, {
+  const documents = useListClientDocuments(clientId, setParams(set), {
     request: apiRequest,
-    query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
+    query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
   });
   const document = documents.data?.items.find((item) => item.id === documentId);
+  const copy = documentSetCopy[set];
   return (
     <DocumentEditorView
       readOnly={readOnly}
@@ -74,15 +79,13 @@ export function DocumentEditorPage({
         back: (
           <Button asChild variant="ghost" size="sm">
             <Link
-              to="/clients/$clientId/documents"
-              params={{ clientId }}
-              search={{ section: document && sectionOf(document.typeKey) }}
+              {...documentsLink(set, clientId, document && sectionOf(document.typeKey, set))}
               data-testid="editor-back"
               onClick={backToList}
-              aria-label="Înapoi la documentele SSM"
+              aria-label={copy.backLabel}
             >
               <ArrowLeft aria-hidden="true" />
-              <span className="hidden sm:inline">Documente SSM</span>
+              <span className="hidden sm:inline">{copy.tab}</span>
             </Link>
           </Button>
         ),

@@ -18,6 +18,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Certificate of authorization** (_certificat de abilitare_): what entitles an organization to act as an external prevention and protection service: a number, a date and the directorate that issued it. A service contract cites it and annexes a copy.
 
+**Fire-safety technician** (_cadru tehnic PSI_): the person who carries the organization's fire-safety duties for its clients and signs the fire-safety set for the provider, where the specialist and the legal representative sign the occupational safety one. A name and a certificate kept on the organization; not a member role. ADR 016. Avoid: PSI specialist, which collides with the member role, and _responsabil PSI_, which the old norms used.
+
 **Employee** (_angajat_): a person employed by a client. Avoid: worker, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.
@@ -66,7 +68,11 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 ## Documents
 
-**Document**: one document type, once, for a client, with its revisions. Part of the client's **documentation set**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+**Document**: one document type, once, for a client, with its revisions. Part of one of the client's two **documentation sets**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+
+**Documentation set** (_documentația_): the documents the app generates for a client in one field, with a tab, a generation and a readiness of its own. A client has two: the **occupational safety set** (_Documente SSM_) and the **fire-safety set** (_Documente PSI_). Every client has both; a lead has neither. "The set" on its own, in the ADRs before 016, is the occupational safety one. ADR 016. Avoid: pack and dossier (_dosar PSI_) as something users see, and SU (_situații de urgență_), which the source documents use for the field the interface calls PSI.
+
+**Fire-work permit** (_permis de lucru cu foc_): the form that allows one job with open flame for one day, in the model of the general fire-safety norms. The fire-safety set holds it blank. Avoid: hot-work permit, authorization.
 
 **Client file** (_fișier_): a file about a client that the app did not write: uploaded, named, downloaded, deleted. Has no revisions and no type. An owner can keep one **for owners only**. A lead has them too. ADR 013. Avoid: document, which the app generates and issues, and attachment.
 

@@ -1,4 +1,4 @@
-import type { DocumentTypeKey } from '@ssm-usor/contracts';
+import type { DocumentSet, DocumentTypeKey, FireSafetyDocumentTypeKey } from '@ssm-usor/contracts';
 
 import type { ClientDocument } from './document-labels';
 
@@ -86,21 +86,75 @@ export const documentSections = [
   typeKeys: readonly DocumentTypeKey[];
 }[];
 
+// The binder's chapters are decisions, own instructions, training themes, tests and the list of
+// fire-fighting means before the registers; each is listed once one of its documents is built.
+export const fireSafetyDocumentSections = [
+  {
+    id: 'registers',
+    number: '6',
+    title: 'Registre și formulare PSI',
+    typeKeys: [
+      'fire_cover_registers',
+      'fire_registers',
+      'fire_work_permit',
+      'fire_installation_register',
+      'fire_extinguisher_register',
+    ],
+  },
+] as const satisfies readonly {
+  id: string;
+  number: string;
+  title: string;
+  typeKeys: readonly FireSafetyDocumentTypeKey[];
+}[];
+
 // A document type the API knows before this build of the app does.
 export const otherSection = { id: 'other', title: 'Alte documente SSM' } as const;
 
+export const fireSafetyOtherSection = { id: 'other', title: 'Alte documente PSI' } as const;
+
 export type DocumentSectionId = (typeof documentSections)[number]['id'] | typeof otherSection.id;
+
+export type FireSafetyDocumentSectionId =
+  (typeof fireSafetyDocumentSections)[number]['id'] | typeof fireSafetyOtherSection.id;
 
 export const documentSectionIds: [DocumentSectionId, ...DocumentSectionId[]] = [
   otherSection.id,
   ...documentSections.map((section) => section.id),
 ];
 
-export function sectionOf(typeKey: string): DocumentSectionId {
-  return (
-    documentSections.find((section) => (section.typeKeys as readonly string[]).includes(typeKey))
-      ?.id ?? otherSection.id
-  );
+export const fireSafetyDocumentSectionIds: [
+  FireSafetyDocumentSectionId,
+  ...FireSafetyDocumentSectionId[],
+] = [fireSafetyOtherSection.id, ...fireSafetyDocumentSections.map((section) => section.id)];
+
+export type SectionIdOf<Set extends DocumentSet> = {
+  occupational_safety: DocumentSectionId;
+  fire_safety: FireSafetyDocumentSectionId;
+}[Set];
+
+type SectionList = readonly {
+  id: string;
+  number: string;
+  title: string;
+  typeKeys: readonly string[];
+}[];
+
+export const setSections: Record<
+  DocumentSet,
+  { sections: SectionList; other: { id: 'other'; title: string } }
+> = {
+  occupational_safety: { sections: documentSections, other: otherSection },
+  fire_safety: { sections: fireSafetyDocumentSections, other: fireSafetyOtherSection },
+};
+
+export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
+  typeKey: string,
+  set: Set = 'occupational_safety' as Set
+): SectionIdOf<Set> {
+  const { sections, other } = setSections[set];
+  return (sections.find((section) => section.typeKeys.includes(typeKey))?.id ??
+    other.id) as SectionIdOf<Set>;
 }
 
 const counted = (count: number, one: string, many: string) =>

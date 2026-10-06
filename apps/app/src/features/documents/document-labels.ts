@@ -1,4 +1,4 @@
-import { type DocumentTypeKey, requiredWorkersRepresentatives } from '@ssm-usor/contracts';
+import { type BuiltInDocumentTypeKey, requiredWorkersRepresentatives } from '@ssm-usor/contracts';
 
 import type { ClientDocumentListResponse } from '@/api/generated/api';
 import { employeeCountLabel } from '@/features/job-positions/job-position-schema';
@@ -6,7 +6,7 @@ import { employeeCountLabel } from '@/features/job-positions/job-position-schema
 export type ClientDocument = ClientDocumentListResponse['items'][number];
 
 // The API names a document only once it exists; one that does not apply is named here.
-export const notApplicableTitles: Partial<Record<DocumentTypeKey, string>> = {
+export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
   decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
 };
 

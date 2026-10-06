@@ -1,32 +1,23 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import {
-  getListClientDocumentsQueryKey,
-  getListClientDocumentsQueryOptions,
-} from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
+import { documentCrumb } from '@/features/documents/document-crumb';
 import { DocumentEditorPage } from '@/features/documents/document-editor-page';
 
-// The loader warms the list the page reads, under the same key, and names the document.
 // The editor uses the viewport layout instead of the normal page chrome.
 export const Route = createFileRoute('/_authenticated/clients/$clientId/documents/$documentId')({
   params: { parse: (params) => ({ documentId: z.uuid().parse(params.documentId) }) },
   staticData: { title: 'Document', fullPage: true, editorPage: true },
-  loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
-    try {
-      const { items } = await queryClient.ensureQueryData(
-        getListClientDocumentsQueryOptions(params.clientId, {
-          request: apiRequest,
-          query: { queryKey: [...getListClientDocumentsQueryKey(params.clientId), userId] },
-        })
-      );
-      return { crumb: items.find((item) => item.id === params.documentId)?.title };
-    } catch {
-      return { crumb: undefined };
-    }
-  },
+  loader: ({ params, context: { apiRequest, queryClient, auth } }) =>
+    documentCrumb({
+      clientId: params.clientId,
+      documentId: params.documentId,
+      set: 'occupational_safety',
+      userId: auth.getSnapshot().session?.user.id,
+      apiRequest,
+      queryClient,
+    }),
   component: DocumentRoute,
 });
 
@@ -40,6 +31,7 @@ function DocumentRoute() {
   if (!session) return null;
   return (
     <DocumentEditorPage
+      set="occupational_safety"
       clientId={client.id}
       documentId={documentId}
       userId={session.user.id}

@@ -48,6 +48,7 @@ import { Route as AuthenticatedClientsClientIdDocumentDataRouteImport } from './
 import { Route as AuthenticatedClientsClientIdDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/documents';
 import { Route as AuthenticatedClientsClientIdEditRouteImport } from './routes/_authenticated/clients/$clientId/edit';
 import { Route as AuthenticatedClientsClientIdEmployeesRouteImport } from './routes/_authenticated/clients/$clientId/employees';
+import { Route as AuthenticatedClientsClientIdFireSafetyDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/fire-safety-documents';
 import { Route as AuthenticatedClientsClientIdJobPositionsRouteImport } from './routes/_authenticated/clients/$clientId/job-positions';
 import { Route as AuthenticatedClientsClientIdOtherDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/other-documents';
 import { Route as AuthenticatedClientsClientIdTrainingRouteImport } from './routes/_authenticated/clients/$clientId/training';
@@ -61,6 +62,8 @@ import { Route as AuthenticatedClientsClientIdDocumentsDocumentIdRouteImport } f
 import { Route as AuthenticatedClientsClientIdEmployeesIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/index';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId';
 import { Route as AuthenticatedClientsClientIdEmployeesNewRouteImport } from './routes/_authenticated/clients/$clientId/employees/new';
+import { Route as AuthenticatedClientsClientIdFireSafetyDocumentsIndexRouteImport } from './routes/_authenticated/clients/$clientId/fire-safety-documents/index';
+import { Route as AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRouteImport } from './routes/_authenticated/clients/$clientId/fire-safety-documents/$documentId';
 import { Route as AuthenticatedClientsClientIdJobPositionsIndexRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/index';
 import { Route as AuthenticatedClientsClientIdJobPositionsJobPositionIdRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/$jobPositionId';
 import { Route as AuthenticatedClientsClientIdOtherDocumentsIndexRouteImport } from './routes/_authenticated/clients/$clientId/other-documents/index';
@@ -284,6 +287,12 @@ const AuthenticatedClientsClientIdEmployeesRoute =
     path: '/employees',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
+const AuthenticatedClientsClientIdFireSafetyDocumentsRoute =
+  AuthenticatedClientsClientIdFireSafetyDocumentsRouteImport.update({
+    id: '/fire-safety-documents',
+    path: '/fire-safety-documents',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
 const AuthenticatedClientsClientIdJobPositionsRoute =
   AuthenticatedClientsClientIdJobPositionsRouteImport.update({
     id: '/job-positions',
@@ -361,6 +370,18 @@ const AuthenticatedClientsClientIdEmployeesNewRoute =
     id: '/new',
     path: '/new',
     getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
+  } as any);
+const AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute =
+  AuthenticatedClientsClientIdFireSafetyDocumentsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedClientsClientIdFireSafetyDocumentsRoute,
+  } as any);
+const AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute =
+  AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRouteImport.update({
+    id: '/$documentId',
+    path: '/$documentId',
+    getParentRoute: () => AuthenticatedClientsClientIdFireSafetyDocumentsRoute,
   } as any);
 const AuthenticatedClientsClientIdJobPositionsIndexRoute =
   AuthenticatedClientsClientIdJobPositionsIndexRouteImport.update({
@@ -455,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
   '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
+  '/clients/$clientId/fire-safety-documents': typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
@@ -466,11 +488,13 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/clients/$clientId/fire-safety-documents/$documentId': typeof AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute;
   '/clients/$clientId/job-positions/$jobPositionId': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRouteWithChildren;
   '/clients/$clientId/other-documents/contract': typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
   '/clients/$clientId/contract/': typeof AuthenticatedClientsClientIdContractIndexRoute;
   '/clients/$clientId/documents/': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/clients/$clientId/fire-safety-documents/': typeof AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute;
   '/clients/$clientId/job-positions/': typeof AuthenticatedClientsClientIdJobPositionsIndexRoute;
   '/clients/$clientId/other-documents/': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
@@ -515,10 +539,12 @@ export interface FileRoutesByTo {
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/clients/$clientId/fire-safety-documents/$documentId': typeof AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute;
   '/clients/$clientId/other-documents/contract': typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
   '/clients/$clientId/contract': typeof AuthenticatedClientsClientIdContractIndexRoute;
   '/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/clients/$clientId/fire-safety-documents': typeof AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsIndexRoute;
   '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
@@ -566,6 +592,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/documents': typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
   '/_authenticated/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/_authenticated/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
+  '/_authenticated/clients/$clientId/fire-safety-documents': typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren;
   '/_authenticated/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/_authenticated/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   '/_authenticated/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
@@ -577,11 +604,13 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
   '/_authenticated/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
+  '/_authenticated/clients/$clientId/fire-safety-documents/$documentId': typeof AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute;
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRouteWithChildren;
   '/_authenticated/clients/$clientId/other-documents/contract': typeof AuthenticatedClientsClientIdOtherDocumentsContractRoute;
   '/_authenticated/clients/$clientId/contract/': typeof AuthenticatedClientsClientIdContractIndexRoute;
   '/_authenticated/clients/$clientId/documents/': typeof AuthenticatedClientsClientIdDocumentsIndexRoute;
   '/_authenticated/clients/$clientId/employees/': typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
+  '/_authenticated/clients/$clientId/fire-safety-documents/': typeof AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute;
   '/_authenticated/clients/$clientId/job-positions/': typeof AuthenticatedClientsClientIdJobPositionsIndexRoute;
   '/_authenticated/clients/$clientId/other-documents/': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId_/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
@@ -629,6 +658,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/documents'
     | '/clients/$clientId/edit'
     | '/clients/$clientId/employees'
+    | '/clients/$clientId/fire-safety-documents'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId/other-documents'
     | '/clients/$clientId/training'
@@ -640,11 +670,13 @@ export interface FileRouteTypes {
     | '/clients/$clientId/documents/$documentId'
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/employees/new'
+    | '/clients/$clientId/fire-safety-documents/$documentId'
     | '/clients/$clientId/job-positions/$jobPositionId'
     | '/clients/$clientId/other-documents/contract'
     | '/clients/$clientId/contract/'
     | '/clients/$clientId/documents/'
     | '/clients/$clientId/employees/'
+    | '/clients/$clientId/fire-safety-documents/'
     | '/clients/$clientId/job-positions/'
     | '/clients/$clientId/other-documents/'
     | '/clients/$clientId/employees/$employeeId/edit'
@@ -689,10 +721,12 @@ export interface FileRouteTypes {
     | '/clients/$clientId/documents/$documentId'
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/employees/new'
+    | '/clients/$clientId/fire-safety-documents/$documentId'
     | '/clients/$clientId/other-documents/contract'
     | '/clients/$clientId/contract'
     | '/clients/$clientId/documents'
     | '/clients/$clientId/employees'
+    | '/clients/$clientId/fire-safety-documents'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId/other-documents'
     | '/clients/$clientId/employees/$employeeId/edit'
@@ -739,6 +773,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/documents'
     | '/_authenticated/clients/$clientId/edit'
     | '/_authenticated/clients/$clientId/employees'
+    | '/_authenticated/clients/$clientId/fire-safety-documents'
     | '/_authenticated/clients/$clientId/job-positions'
     | '/_authenticated/clients/$clientId/other-documents'
     | '/_authenticated/clients/$clientId/training'
@@ -750,11 +785,13 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/documents/$documentId'
     | '/_authenticated/clients/$clientId/employees/$employeeId'
     | '/_authenticated/clients/$clientId/employees/new'
+    | '/_authenticated/clients/$clientId/fire-safety-documents/$documentId'
     | '/_authenticated/clients/$clientId/job-positions/$jobPositionId'
     | '/_authenticated/clients/$clientId/other-documents/contract'
     | '/_authenticated/clients/$clientId/contract/'
     | '/_authenticated/clients/$clientId/documents/'
     | '/_authenticated/clients/$clientId/employees/'
+    | '/_authenticated/clients/$clientId/fire-safety-documents/'
     | '/_authenticated/clients/$clientId/job-positions/'
     | '/_authenticated/clients/$clientId/other-documents/'
     | '/_authenticated/clients/$clientId/employees/$employeeId_/edit'
@@ -1051,6 +1088,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
+    '/_authenticated/clients/$clientId/fire-safety-documents': {
+      id: '/_authenticated/clients/$clientId/fire-safety-documents';
+      path: '/fire-safety-documents';
+      fullPath: '/clients/$clientId/fire-safety-documents';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
     '/_authenticated/clients/$clientId/job-positions': {
       id: '/_authenticated/clients/$clientId/job-positions';
       path: '/job-positions';
@@ -1141,6 +1185,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/$clientId/employees/new';
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesNewRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
+    };
+    '/_authenticated/clients/$clientId/fire-safety-documents/': {
+      id: '/_authenticated/clients/$clientId/fire-safety-documents/';
+      path: '/';
+      fullPath: '/clients/$clientId/fire-safety-documents/';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsIndexRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsRoute;
+    };
+    '/_authenticated/clients/$clientId/fire-safety-documents/$documentId': {
+      id: '/_authenticated/clients/$clientId/fire-safety-documents/$documentId';
+      path: '/$documentId';
+      fullPath: '/clients/$clientId/fire-safety-documents/$documentId';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsRoute;
     };
     '/_authenticated/clients/$clientId/job-positions/': {
       id: '/_authenticated/clients/$clientId/job-positions/';
@@ -1261,6 +1319,24 @@ const AuthenticatedClientsClientIdEmployeesRouteWithChildren =
     AuthenticatedClientsClientIdEmployeesRouteChildren,
   );
 
+interface AuthenticatedClientsClientIdFireSafetyDocumentsRouteChildren {
+  AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute;
+  AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute;
+}
+
+const AuthenticatedClientsClientIdFireSafetyDocumentsRouteChildren: AuthenticatedClientsClientIdFireSafetyDocumentsRouteChildren =
+  {
+    AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute:
+      AuthenticatedClientsClientIdFireSafetyDocumentsDocumentIdRoute,
+    AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute:
+      AuthenticatedClientsClientIdFireSafetyDocumentsIndexRoute,
+  };
+
+const AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren =
+  AuthenticatedClientsClientIdFireSafetyDocumentsRoute._addFileChildren(
+    AuthenticatedClientsClientIdFireSafetyDocumentsRouteChildren,
+  );
+
 interface AuthenticatedClientsClientIdJobPositionsJobPositionIdRouteChildren {
   AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute: typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute;
   AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute: typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
@@ -1326,6 +1402,7 @@ interface AuthenticatedClientsClientIdRouteChildren {
   AuthenticatedClientsClientIdDocumentsRoute: typeof AuthenticatedClientsClientIdDocumentsRouteWithChildren;
   AuthenticatedClientsClientIdEditRoute: typeof AuthenticatedClientsClientIdEditRoute;
   AuthenticatedClientsClientIdEmployeesRoute: typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
+  AuthenticatedClientsClientIdFireSafetyDocumentsRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren;
   AuthenticatedClientsClientIdJobPositionsRoute: typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   AuthenticatedClientsClientIdOtherDocumentsRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   AuthenticatedClientsClientIdTrainingRoute: typeof AuthenticatedClientsClientIdTrainingRoute;
@@ -1348,6 +1425,8 @@ const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRou
       AuthenticatedClientsClientIdEditRoute,
     AuthenticatedClientsClientIdEmployeesRoute:
       AuthenticatedClientsClientIdEmployeesRouteWithChildren,
+    AuthenticatedClientsClientIdFireSafetyDocumentsRoute:
+      AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren,
     AuthenticatedClientsClientIdJobPositionsRoute:
       AuthenticatedClientsClientIdJobPositionsRouteWithChildren,
     AuthenticatedClientsClientIdOtherDocumentsRoute:

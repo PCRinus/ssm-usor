@@ -1,0 +1,30 @@
+{
+  "folder": "fire",
+  "covers": [
+    {
+      "number": "6.0",
+      "typeKey": "fire_cover_registers",
+      "title": "REGISTRELE DE EVIDENȚĂ ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",
+      "subtitle": "pentru",
+      "itemsAfterClient": true,
+      "items": [
+        "Evidența exercițiilor de intervenție;",
+        "Evidența controalelor interne sau externe în domeniul situațiilor de urgență;",
+        "Evidența permiselor de lucru cu foc;",
+        "Permis de lucru cu foc;",
+        "Registru de control pentru instalațiile de detectare, semnalizare, alarmare, alertare, limitare și stingere a incendiilor;",
+        "Registru de evidență a situației constatate la stingătoarele de incendiu în urma controlului."
+      ]
+    }
+  ],
+  "handover": {
+    "heading": "PERSOANE IMPLICATE ÎN PROCESUL DE PREDARE / PRIMIRE A DOCUMENTULUI",
+    "client": ["Am luat la cunoștință", "Am primit un exemplar", "Aprob documentul"],
+    "provider": ["Am întocmit documentul", "Am informat angajatorul", "Am predat un exemplar"],
+    "date": "Data: ____________________",
+    "signer": {
+      "name": "{{fireSafetyTechnician.name}}",
+      "role": "Cadru tehnic PSI al {{provider.legalName}}"
+    }
+  }
+}

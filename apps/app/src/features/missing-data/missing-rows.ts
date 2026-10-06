@@ -165,6 +165,12 @@ export const documentMissingData: Record<
     label: 'Funcția reprezentantului legal',
     target: () => to.organizationCompany('representative-role'),
   },
+  'provider.fireSafetyTechnician': {
+    place: 'organization',
+    label: 'Cadrul tehnic PSI',
+    detail: 'Numele lui apare pe documentele PSI.',
+    target: () => to.authorizations('fire-safety-technician'),
+  },
   'specialist.name': {
     place: 'profile',
     label: 'Numele tău',

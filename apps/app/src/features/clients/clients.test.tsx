@@ -135,7 +135,10 @@ function mockApi(
     }
     if (url.pathname === `/clients/${sampleClient.id}/documents` && method === 'GET') {
       return Response.json({
-        items: [{ draft: { id: 'r1' } }, { draft: null }, { draft: { id: 'r2' } }],
+        items:
+          url.searchParams.get('set') === 'fire_safety'
+            ? [{ draft: { id: 'r3' } }, { draft: null }]
+            : [{ draft: { id: 'r1' } }, { draft: null }, { draft: { id: 'r2' } }],
         lastGeneration: null,
       });
     }
@@ -679,6 +682,7 @@ describe('client details', () => {
       'Posturi de lucru',
       'Instruire și responsabili',
       'Documente SSM',
+      'Documente PSI',
       'Contract',
       'Alte documente',
     ]);
@@ -879,7 +883,7 @@ describe('client details', () => {
 describe('client archiving', () => {
   const clientPath = `/clients/${sampleClient.id}`;
 
-  it('lets an owner archive from the list, after saying what happens to the drafts', async () => {
+  it('lets an owner archive from the list, after counting the drafts of both sets', async () => {
     let archived = false;
     mockApi({
       me: meAs('owner'),
@@ -896,7 +900,7 @@ describe('client archiving', () => {
     const dialog = await screen.findByTestId('client-archive-dialog');
     expect(dialog.textContent).toContain('OMV PETROM SA');
     expect((await screen.findByTestId('client-archive-drafts')).textContent).toContain(
-      '2 documente sunt încă ciorne'
+      '3 documente sunt încă ciorne'
     );
     await user.click(screen.getByTestId('client-archive-confirm'));
     expect(await screen.findByText('OMV PETROM SA a fost arhivat.')).toBeTruthy();

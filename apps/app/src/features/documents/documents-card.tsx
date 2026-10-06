@@ -1,7 +1,8 @@
 import {
+  type BuiltInDocumentTypeKey,
   type DocumentAnnex,
-  type DocumentTypeKey,
-  documentTypeKeys,
+  type DocumentSet,
+  documentSetTypeKeys,
   unfilledMark,
 } from '@ssm-usor/contracts';
 import {
@@ -68,12 +69,8 @@ import {
   notApplicableTitles,
   workersRepresentativesRule,
 } from './document-labels';
-import {
-  type DocumentSectionId,
-  documentSections,
-  otherSection,
-  sectionSummary,
-} from './document-sections';
+import { type SectionIdOf, sectionSummary, setSections } from './document-sections';
+import { documentLink, documentSetCopy, setParams } from './document-sets';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { pdfOfRevision, usePrint } from './print';
 
@@ -149,7 +146,8 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
 }
 
 // `readOnly` is an archived client: what exists can still be downloaded.
-export function DocumentsCard({
+export function DocumentsCard<Set extends DocumentSet>({
+  set,
   clientId,
   userId,
   readOnly,
@@ -157,18 +155,20 @@ export function DocumentsCard({
   onOpenSectionChange,
   focus,
 }: {
+  set: Set;
   clientId: string;
   userId: string;
   readOnly: boolean;
-  openSection: DocumentSectionId | undefined;
-  onOpenSectionChange: (section: DocumentSectionId | undefined) => void;
+  openSection: SectionIdOf<Set> | undefined;
+  onOpenSectionChange: (section: SectionIdOf<Set> | undefined) => void;
   focus?: 'generate';
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
-  const documents = useListClientDocuments(clientId, {
+  const copy = documentSetCopy[set];
+  const documents = useListClientDocuments(clientId, setParams(set), {
     request: apiRequest,
-    query: { queryKey: [...getListClientDocumentsQueryKey(clientId), userId] },
+    query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
   });
   const regenerate = useRegenerateDocument({ request: apiRequest });
   const issue = useIssueDocument({ request: apiRequest });
@@ -178,7 +178,7 @@ export function DocumentsCard({
   const { printing, print } = usePrint();
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
-  const uploadTarget = useRef<{ typeKey: DocumentTypeKey; title: string } | null>(null);
+  const uploadTarget = useRef<{ typeKey: BuiltInDocumentTypeKey; title: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | null>(null);
@@ -191,10 +191,9 @@ export function DocumentsCard({
 
   const items = documents.data?.items ?? [];
   const existing = new Set(items.map((item) => item.typeKey));
-  const notApplicable = new Set(documents.data?.notApplicable);
-  const lacking = documentTypeKeys.filter(
-    (key) => !existing.has(key) && !notApplicable.has(key)
-  ).length;
+  const notApplicable = new Set<string>(documents.data?.notApplicable);
+  const typeKeys: readonly BuiltInDocumentTypeKey[] = documentSetTypeKeys[set];
+  const lacking = typeKeys.filter((key) => !existing.has(key) && !notApplicable.has(key)).length;
   const canGenerate = !readOnly && documents.isSuccess && lacking > 0;
 
   function openGenerate() {
@@ -208,7 +207,7 @@ export function DocumentsCard({
     anchor: () => generateRef.current,
     open: canGenerate ? openGenerate : undefined,
   });
-  const packRows = documentTypeKeys.flatMap((typeKey): Row[] => {
+  const packRows = typeKeys.flatMap((typeKey): Row[] => {
     const document = items.find((item) => item.typeKey === typeKey);
     if (document) return [{ typeKey, title: document.title, document }];
     const notApplicableTitle = notApplicableTitles[typeKey];
@@ -216,21 +215,22 @@ export function DocumentsCard({
       ? [{ typeKey, title: notApplicableTitle, document: null }]
       : [];
   });
-  const known = new Set<string>(documentTypeKeys);
+  const known = new Set<string>(typeKeys);
   const otherRows = items
     .filter((item) => !known.has(item.typeKey))
     .map((document): Row => ({ typeKey: document.typeKey, title: document.title, document }));
+  const { sections: setSectionList, other } = setSections[set];
   const sections = [
-    ...documentSections.map((section) => ({
-      id: section.id as DocumentSectionId,
+    ...setSectionList.map((section) => ({
+      id: section.id,
       title: `${section.number}. ${section.title}`,
-      rows: packRows.filter((row) => (section.typeKeys as readonly string[]).includes(row.typeKey)),
+      rows: packRows.filter((row) => section.typeKeys.includes(row.typeKey)),
     })),
-    ...(otherRows.length > 0 ? [{ ...otherSection, rows: otherRows }] : []),
+    ...(otherRows.length > 0 ? [{ ...other, rows: otherRows }] : []),
   ];
 
   function chooseFile(typeKey: string, title: string) {
-    uploadTarget.current = { typeKey: typeKey as DocumentTypeKey, title };
+    uploadTarget.current = { typeKey: typeKey as BuiltInDocumentTypeKey, title };
     fileInput.current?.click();
   }
 
@@ -305,8 +305,7 @@ export function DocumentsCard({
     }
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
     await navigate({
-      to: '/clients/$clientId/documents/$documentId',
-      params: { clientId, documentId: document.id },
+      ...documentLink(set, clientId, document.id),
       state: { openedFromList: true },
     });
   }
@@ -362,7 +361,7 @@ export function DocumentsCard({
   return (
     <Card data-testid="documents-card">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Documentația SSM</h2>
+        <h2 className="text-lg font-semibold">{copy.heading}</h2>
         {canGenerate && (
           <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
             <Sparkles aria-hidden="true" />
@@ -400,7 +399,7 @@ export function DocumentsCard({
             <p className="max-w-md text-center text-sm text-muted-foreground">
               {readOnly
                 ? 'Clientul este arhivat, așa că nu i se mai generează documente.'
-                : 'Generează documentația ca să obții deciziile, materialele de instruire, testele, registrele și celelalte documente, completate cu datele clientului.'}
+                : copy.emptyHint}
             </p>
           </div>
         ) : (
@@ -410,7 +409,7 @@ export function DocumentsCard({
             collapsible
             value={openSection ?? ''}
             onValueChange={(value) =>
-              onOpenSectionChange((value || undefined) as DocumentSectionId | undefined)
+              onOpenSectionChange((value || undefined) as SectionIdOf<Set> | undefined)
             }
           >
             {sections.map((section) => (
@@ -477,16 +476,14 @@ export function DocumentsCard({
                                 {...rowClickProps(
                                   () =>
                                     void navigate({
-                                      to: '/clients/$clientId/documents/$documentId',
-                                      params: { clientId, documentId: document.id },
+                                      ...documentLink(set, clientId, document.id),
                                       state: { openedFromList: true },
                                     })
                                 )}
                               >
                                 <TableCell>
                                   <Link
-                                    to="/clients/$clientId/documents/$documentId"
-                                    params={{ clientId, documentId: document.id }}
+                                    {...documentLink(set, clientId, document.id)}
                                     state={{ openedFromList: true }}
                                     data-testid="document-title"
                                     className="font-medium underline-offset-4 hover:underline"
@@ -495,7 +492,7 @@ export function DocumentsCard({
                                   </Link>
                                   {document.decisionNumber !== null && (
                                     <span className="block text-xs text-muted-foreground">
-                                      Decizia nr. {document.decisionNumber} SSM
+                                      Decizia nr. {document.decisionNumber} {copy.decisionSuffix}
                                     </span>
                                   )}
                                 </TableCell>
@@ -548,10 +545,7 @@ export function DocumentsCard({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuItem asChild data-testid="document-open">
-                                        <Link
-                                          to="/clients/$clientId/documents/$documentId"
-                                          params={{ clientId, documentId: document.id }}
-                                        >
+                                        <Link {...documentLink(set, clientId, document.id)}>
                                           {document.draft && !readOnly
                                             ? 'Deschide și modifică'
                                             : 'Deschide'}
@@ -696,6 +690,7 @@ export function DocumentsCard({
         }}
       />
       <GenerateDocumentsDialog
+        set={set}
         clientId={clientId}
         userId={userId}
         open={generating}

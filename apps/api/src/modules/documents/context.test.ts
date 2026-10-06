@@ -23,9 +23,10 @@ describe('what is missing', () => {
       missingDocumentData({
         ...facts,
         organization: {
+          ...facts.organization,
           legalName: '  ',
           representativeName: null,
-          representativeRole: 'Administrator',
+          fireSafetyTechnicianName: null,
         },
         specialist: null,
         client: { ...facts.client, representativeRole: null, trainingDayTo: null },

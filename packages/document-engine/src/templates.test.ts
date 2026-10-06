@@ -21,6 +21,9 @@ const documentTextOf = (paragraph: string) =>
 const allTemplateFiles = readdirSync(fileURLToPath(templatesUrl)).filter((name) =>
   name.endsWith('.docx')
 );
+const fireFiles = readdirSync(fileURLToPath(new URL('fire/', templatesUrl)))
+  .filter((name) => name.endsWith('.docx'))
+  .map((name) => `fire/${name}`);
 
 // What the provider's originals printed. None of it may survive in a template. A date counts
 // from 2020 on: the laws the documents quote are dated too, and older.
@@ -30,7 +33,7 @@ const originals =
 // What only the decisions have: a signature block, an acknowledgement table, its wording.
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
 const templateFiles = allTemplateFiles;
-const typesetFiles = [...templateFiles, annexTitle];
+const typesetFiles = [...templateFiles, ...fireFiles, annexTitle];
 
 describe('built-in templates', () => {
   it.each(typesetFiles)('%s carries nothing of the client it was made from', (name) => {
@@ -72,6 +75,89 @@ describe('templates outside the pack', () => {
     for (const text of numbered) {
       expect(text).not.toMatch(/^\{\{[#/]/);
       expect(text).not.toMatch(/^[a-z]\) /);
+    }
+  });
+});
+
+// ADR 016: a set of its own, in its own folder, merged with the shared facts and the technician
+// only. A name of the occupational safety set would mark these drafts as changed when it does.
+describe('fire-safety set', () => {
+  const fireUrl = new URL('fire/', templatesUrl);
+  const manifest = JSON.parse(readFileSync(new URL('manifest.json', fireUrl), 'utf8')) as {
+    templates: { number: string; typeKey: string; title: string; file: string }[];
+  };
+  const allowed = [
+    'branding',
+    'client.legalName',
+    'client.representativeName',
+    'client.representativeRole',
+    'fireSafetyTechnician.name',
+    'provider.legalName',
+  ];
+  const data = {
+    branding: true,
+    client: {
+      legalName: 'S.C. CLIENT DEMO S.R.L.',
+      representativeName: 'Maria POPESCU',
+      representativeRole: 'Administrator',
+    },
+    provider: { legalName: 'S.C. SERVICIU EXTERN S.R.L.' },
+    fireSafetyTechnician: { name: 'Dan MARIN' },
+  };
+
+  it('are the files of their manifest, named after their numbers and their types', () => {
+    expect(manifest.templates.map((entry) => `fire/${entry.file}`).sort()).toEqual(
+      [...fireFiles].sort()
+    );
+    for (const entry of manifest.templates) {
+      expect(entry.file).toBe(`${entry.number}_${entry.typeKey}.docx`);
+      expect(entry.typeKey).toMatch(/^fire_[a-z0-9_]{1,54}$/);
+      expect(entry.title).toBeTruthy();
+    }
+    expect(new Set(manifest.templates.map((entry) => entry.typeKey)).size).toBe(
+      manifest.templates.length
+    );
+  });
+
+  it.each(fireFiles)('%s asks only for the shared facts and the technician', (name) => {
+    expect(
+      templatePlaceholders(read(name)).filter((placeholder) => !allowed.includes(placeholder))
+    ).toEqual([]);
+    expect(documentText(renderDocument(read(name), data))).not.toContain('{{');
+  });
+
+  it.each(fireFiles)('%s keeps no author, company or title of the original', (name) => {
+    const zip = new PizZip(read(name));
+    const core = zip.file('docProps/core.xml')?.asText() ?? '';
+    for (const tag of ['dc:creator', 'cp:lastModifiedBy', 'dc:title']) {
+      expect(new RegExp(`<${tag}>[^<]+</${tag}>`).test(core), tag).toBe(false);
+    }
+    expect(zip.file('docProps/app.xml')?.asText() ?? '').not.toMatch(/<(Company|Manager)>[^<]/);
+  });
+
+  it('has the technician sign the cover for the provider', () => {
+    const text = documentText(renderDocument(read('fire/6.0_fire_cover_registers.docx'), data));
+    expect(text).toContain('Dan MARIN\nCadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
+    expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
+  });
+
+  it('prints the checks of OMAI 135/2023 annex 2, each answered yes or no', () => {
+    const text = documentText(read('fire/6.4_fire_extinguisher_register.docx'));
+    expect(text.match(/^DA$/gm)).toHaveLength(8);
+    expect(text.match(/^NU$/gm)).toHaveLength(8);
+    for (const letter of 'abcdefgh') expect(text).toMatch(new RegExp(`^${letter}\\)`, 'm'));
+  });
+
+  it('prints the fifteen measures of the permit and who signs it', () => {
+    const text = documentText(read('fire/6.2_fire_work_permit.docx'));
+    for (let item = 1; item <= 15; item++) expect(text).toMatch(new RegExp(`^${item}\\. `, 'm'));
+    for (const signer of [
+      'Emitentul',
+      'Șeful sectorului în care se execută lucrările',
+      'Executanții lucrărilor cu foc',
+      'Serviciul public voluntar/privat pentru situații de urgență',
+    ]) {
+      expect(text).toContain(signer);
     }
   });
 });

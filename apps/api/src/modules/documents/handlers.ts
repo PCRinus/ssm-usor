@@ -5,7 +5,7 @@ import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
-import { missingDocumentData, undecidedJobPositions, workersRepresentativeClash } from './context';
+import { undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
   type Actor,
   attachSignedCopy,
@@ -40,6 +40,7 @@ import type {
   startDocumentDraftRoute,
   uploadClientDocumentRoute,
 } from './routes';
+import { setRules } from './sets';
 
 // During an impersonation the documents belong to the impersonated member's organization and
 // name them as the specialist, while `created_by` records the platform admin, as elsewhere.
@@ -53,13 +54,15 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
   c
 ) => {
   const { clientId } = c.req.valid('param');
+  const { set } = c.req.valid('query');
   const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership').userId);
   // The date and the first decision number are asked when generating; neither can be missing.
-  const missing = missingDocumentData({
+  const missing = setRules[set].missing({
     ...facts,
     issueDate: '2000-01-01',
     firstDecisionNumber: 1,
   });
+  const occupational = set === 'occupational_safety';
   return c.json(
     {
       ready: missing.length === 0,
@@ -70,11 +73,10 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
       )
         ? workersRepresentativeClash(facts)
         : null,
-      undecidedJobPositions: undecidedJobPositions(facts),
-      incompleteRiskEvaluations: incompleteRiskEvaluations(
-        facts.riskEvaluations,
-        facts.jobPositions
-      ),
+      undecidedJobPositions: occupational ? undecidedJobPositions(facts) : [],
+      incompleteRiskEvaluations: occupational
+        ? incompleteRiskEvaluations(facts.riskEvaluations, facts.jobPositions)
+        : [],
     },
     200
   );
@@ -84,7 +86,8 @@ export const listClientDocuments: RouteHandler<typeof listClientDocumentsRoute, 
   c
 ) => {
   const { clientId } = c.req.valid('param');
-  return c.json(await list(createDataClient(c), actorOf(c), clientId), 200);
+  const { set } = c.req.valid('query');
+  return c.json(await list(createDataClient(c), actorOf(c), clientId, set), 200);
 };
 
 export const generateClientDocuments: RouteHandler<
@@ -97,7 +100,8 @@ export const generateClientDocuments: RouteHandler<
     createFileStore(c),
     actorOf(c),
     clientId,
-    c.req.valid('json')
+    c.req.valid('json'),
+    c.req.valid('query').set
   );
   return c.json(result, 201);
 };

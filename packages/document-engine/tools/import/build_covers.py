@@ -1,11 +1,12 @@
-"""Builds the seven cover pages of a client's documentation (ADR 005).
+"""Builds the cover pages of a client's documentation (ADR 005).
 
-    pnpm --filter @ssm-usor/document-engine build-covers
+    pnpm --filter @ssm-usor/document-engine build-covers [number or type key ...]
 
 The provider's covers are text boxes on an empty page, with the provider's name pushed into
 place in the header by nine empty lines. LibreOffice cannot even read the boxes as text, and
 every cover is the same page with another title, so they are not imported: they are built here
-from `covers.ro.json`, to the house style, with the wording corrected.
+to the house style, with the wording corrected, from one definition per documentation set:
+`covers.ro.json` into `templates/`, `covers.fire.ro.json` into `templates/fire/` (ADR 016).
 """
 
 import json
@@ -27,6 +28,11 @@ TITLE = 16.0
 CLIENT = 14.0
 # The least room above the hand-over block, on the cover whose title and contents reach lowest.
 HANDOVER_GAP = 36
+DEFINITIONS = ('covers.ro.json', 'covers.fire.ro.json')
+REPRESENTATIVE = {
+    'name': '{{provider.representativeName}}',
+    'role': '{{provider.representativeRole}} al {{provider.legalName}}',
+}
 
 
 def paragraph(text, cursor, content, *, size=BODY, bold=False, italic=False, adjust=CENTER,
@@ -126,11 +132,11 @@ def compose(desktop, definition, cover, placing=None):
     for side in ('TopLine', 'BottomLine', 'LeftLine', 'RightLine', 'HorizontalLine', 'VerticalLine'):
         setattr(border, side, none)
     table.TableBorder2 = border
+    signer = cover.get('signer') or handover.get('signer') or REPRESENTATIVE
     sides = (
         ('A', handover['client'], '{{client.representativeName}}',
          '{{client.representativeRole}} al {{client.legalName}}'),
-        ('B', handover['provider'], '{{provider.representativeName}}',
-         '{{provider.representativeRole}} al {{provider.legalName}}'),
+        ('B', handover['provider'], signer['name'], signer['role']),
     )
     for column, lines, name, role in sides:
         cell = table.getCellByName(f'{column}1')
@@ -172,7 +178,8 @@ def build(desktop, definition, cover, placing):
     styles = document.StyleFamilies.getByName('PageStyles')
     for name in styles.getElementNames():
         add_branding(styles.getByName(name))
-    target = f'/work/templates/{cover["number"]}_{cover["typeKey"]}.docx'
+    folder = '/'.join(filter(None, ('/work/templates', definition.get('folder'))))
+    target = f'{folder}/{cover["number"]}_{cover["typeKey"]}.docx'
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
     sweep(target)
@@ -181,20 +188,21 @@ def build(desktop, definition, cover, placing):
 
 
 def main():
-    # build_covers.py [number ...]: only the covers named, by their number in the pack.
-    numbers = sys.argv[1:]
-    with open('/work/tools/import/covers.ro.json', encoding='utf8') as file:
-        definition = json.load(file)
+    # build_covers.py [number or type key ...]: only the covers named.
+    names = sys.argv[1:]
     process, desktop = start_office()
     try:
-        # Every cover is measured, also when only some are built: the lowest of them decides
-        # where the hand-over block sits on all.
-        measured = {cover['number']: measure(desktop, definition, cover) for cover in definition['covers']}
-        line = max(heading for heading, _ in measured.values()) + round(HANDOVER_GAP * POINT)
-        for cover in definition['covers']:
-            if not numbers or cover['number'] in numbers:
-                heading, items = measured[cover['number']]
-                build(desktop, definition, cover, {'above': line - heading, 'items': items})
+        for definition_file in DEFINITIONS:
+            with open(f'/work/tools/import/{definition_file}', encoding='utf8') as file:
+                definition = json.load(file)
+            # Every cover of a set is measured, also when only some are built: the lowest of
+            # them decides where the hand-over block sits on all the covers of that set.
+            measured = {cover['typeKey']: measure(desktop, definition, cover) for cover in definition['covers']}
+            line = max(heading for heading, _ in measured.values()) + round(HANDOVER_GAP * POINT)
+            for cover in definition['covers']:
+                if not names or cover['number'] in names or cover['typeKey'] in names:
+                    heading, items = measured[cover['typeKey']]
+                    build(desktop, definition, cover, {'above': line - heading, 'items': items})
     finally:
         try:
             desktop.terminate()

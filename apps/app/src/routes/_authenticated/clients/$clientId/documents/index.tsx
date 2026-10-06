@@ -29,6 +29,7 @@ function DocumentsPage() {
   return (
     <div data-testid="documents-page" className="grid gap-6">
       <DocumentsCard
+        set="occupational_safety"
         clientId={client.id}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}

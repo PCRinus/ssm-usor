@@ -1,11 +1,12 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  builtInDocumentTypeKeySchema,
   clientDocumentListResponseSchema,
   clientDocumentResponseSchema,
   documentDownloadQuerySchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
-  documentTypeKeySchema,
+  documentSetQuerySchema,
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
   issueDocumentRequestSchema,
@@ -18,7 +19,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 
 const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
-const uploadParams = z.object({ clientId: z.uuid(), typeKey: documentTypeKeySchema });
+const uploadParams = z.object({ clientId: z.uuid(), typeKey: builtInDocumentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 
 const noSuchClient = {
@@ -30,12 +31,12 @@ export const getDocumentReadinessRoute = createRoute({
   method: 'get',
   path: '/clients/{clientId}/documents/readiness',
   operationId: 'getDocumentReadiness',
-  summary: "Whether a client's documentation can be generated, and what is missing",
+  summary: "Whether one of a client's documentation sets can be generated, and what is missing",
   description:
-    'Documents never leave a data field blank, so generating is refused until the list is empty. The specialist is the caller: their name and professional title come from their profile.',
+    "Documents never leave a data field blank, so generating is refused until the list is empty. `set` picks the documentation set, the occupational safety one when left out; each set asks only what its own documents print, so one set's gaps never block the other. The specialist is the caller: their name and professional title come from their profile.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: clientParams },
+  request: { params: clientParams, query: documentSetQuerySchema },
   responses: {
     200: {
       description: 'What is missing, by where it is filled in',
@@ -55,12 +56,13 @@ export const listClientDocumentsRoute = createRoute({
   method: 'get',
   path: '/clients/{clientId}/documents',
   operationId: 'listClientDocuments',
-  summary: "List a client's documents with their current draft and issued revisions",
+  summary:
+    "List the documents of one of a client's documentation sets, with their current draft and issued revisions",
   description:
-    'In the order of the documentation set. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.',
+    'The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: clientParams },
+  request: { params: clientParams, query: documentSetQuerySchema },
   responses: {
     200: {
       description: 'The documents',
@@ -80,13 +82,14 @@ export const generateClientDocumentsRoute = createRoute({
   method: 'post',
   path: '/clients/{clientId}/documents/generate',
   operationId: 'generateClientDocuments',
-  summary: "Generate the documents a client's documentation does not have yet",
+  summary: "Generate the documents one of a client's documentation sets does not have yet",
   description:
-    'Every built-in document type the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`. Refused with the reason `missing_document_data` while the readiness list is not empty.',
+    "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty. `firstDecisionNumber` is read for the occupational safety set only.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
     params: clientParams,
+    query: documentSetQuerySchema,
     body: {
       required: true,
       content: {

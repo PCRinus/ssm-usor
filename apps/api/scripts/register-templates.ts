@@ -32,8 +32,9 @@ try {
     },
   });
 
-  // The provider's pack, then the templates that are not part of it (ADR 007), in `other/`.
-  const folders = [templatesUrl, new URL('other/', templatesUrl)];
+  // The provider's occupational safety pack, the templates that are not part of it (ADR 007),
+  // and the fire-safety set (ADR 016).
+  const folders = [templatesUrl, new URL('other/', templatesUrl), new URL('fire/', templatesUrl)];
   const manifest = {
     templates: folders.flatMap((folder) =>
       manifestSchema

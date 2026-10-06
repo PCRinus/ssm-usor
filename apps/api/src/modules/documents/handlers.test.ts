@@ -22,6 +22,8 @@ vi.mock('@ssm-usor/document-engine', () => {
     protective_equipment_list: ['positions', 'equippedPositions', 'unequippedPositionsText'],
     risk_assessment: ['positions', 'riskAssessment'],
     prevention_plan: ['riskAssessment'],
+    fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding'],
+    fire_registers: ['branding'],
   };
   return {
     TemplateError: class TemplateError extends Error {},
@@ -69,6 +71,7 @@ const organizationRow = {
   legal_name: 'S.C. SAFETY S.R.L.',
   legal_representative_name: 'Maria POPESCU',
   legal_representative_role: 'Administrator',
+  fire_safety_technician_name: 'Radu STAN',
 };
 const clientRow = {
   legal_name: 'S.C. PIPETECH S.R.L.',
@@ -343,8 +346,17 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.signedCopies?.(init, url) ?? new Response(null, { status: 201 });
       case '/rest/v1/rpc/issue_document_revision':
         return handlers.issue?.(init, url) ?? new Response(null, { status: 204 });
-      case '/rest/v1/document_templates':
-        return handlers.templates?.() ?? Response.json(templateRows);
+      case '/rest/v1/document_templates': {
+        const response = handlers.templates?.() ?? Response.json(templateRows);
+        // Only the types asked for, as PostgREST answers `type_key=in.(…)`.
+        const asked = url.searchParams
+          .get('type_key')
+          ?.match(/^in\.\((.*)\)$/)?.[1]
+          ?.split(',');
+        if (!asked || !response.ok) return response;
+        const rows = (await response.json()) as { type_key: string }[];
+        return Response.json(rows.filter((row) => asked.includes(row.type_key)));
+      }
       case '/rest/v1/document_revisions':
         if (method === 'GET' && url.searchParams.has('client_documents.type_key')) {
           return handlers.ownInstructions?.() ?? Response.json([]);
@@ -2256,5 +2268,348 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
     expect((await upload('prevention_plan')).status).toBe(409);
+  });
+});
+
+describe('the fire-safety set', () => {
+  const fireTemplateRows = [
+    {
+      type_key: 'fire_registers',
+      title: 'Registre PSI',
+      document_template_versions: [
+        { id: 'f2', version: 1, storage_path: 'built-in/fire_registers/one.docx' },
+      ],
+    },
+    {
+      type_key: 'fire_cover_registers',
+      title: 'Copertă – Registre PSI',
+      document_template_versions: [
+        { id: 'f1', version: 1, storage_path: 'built-in/fire_cover_registers/one.docx' },
+      ],
+    },
+  ];
+  const fireDocumentId = '6e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b';
+  const printedFireSafety = {
+    client: printedClient,
+    provider: printedProvider,
+    fireSafetyTechnician: { name: 'Radu STAN' },
+    branding: true,
+  };
+  const fireDocumentRow = {
+    ...documentRow,
+    id: fireDocumentId,
+    type_key: 'fire_cover_registers',
+    title: 'Copertă – Registre PSI',
+    decision_number: null,
+    document_group: 'fire_safety_set',
+    document_revisions: [
+      {
+        ...revisionRow,
+        docx_path: `${organizationId}/${clientId}/${fireDocumentId}/1.docx`,
+        data_snapshot: printedFireSafety,
+      },
+    ],
+  };
+  // The occupational safety set could not be generated from these: nobody holds a role, and
+  // there is no position.
+  const occupationalGaps: Partial<Record<Upstream, Handler>> = {
+    persons: () => Response.json([]),
+    positions: () => Response.json([]),
+    riskEvaluations: () => Response.json([]),
+  };
+  const withoutTechnician = () =>
+    Response.json({ ...organizationRow, fire_safety_technician_name: '  ' });
+  const generate = (set?: string, body: unknown = { issueDate: '2026-10-01' }) =>
+    request(`/clients/${clientId}/documents/generate${set ? `?set=${set}` : ''}`, 'POST', body);
+  const searchParam = (pathname: string, name: string, index = 0, method = 'GET') =>
+    new URL(String(calls(pathname, method)[index]![0])).searchParams.get(name);
+
+  it('is ready on what its documents print, whatever the occupational safety set lacks', async () => {
+    mockUpstream(occupationalGaps);
+    const response = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(response.status).toBe(200);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
+      ready: true,
+      missing: [],
+      currentEmployeeCount: 1,
+      workersRepresentativeClash: null,
+      undecidedJobPositions: [],
+      incompleteRiskEvaluations: [],
+    });
+  });
+
+  it('is the only set a missing technician blocks', async () => {
+    mockUpstream({
+      organizations: withoutTechnician,
+      clients: () => Response.json({ ...clientRow, legal_representative_role: null }),
+    });
+    const fire = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await fire.json())).toMatchObject({
+      ready: false,
+      missing: ['provider.fireSafetyTechnician', 'client.representativeRole'],
+    });
+    const occupational = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await occupational.json()).missing).toEqual([
+      'client.representativeRole',
+    ]);
+
+    mockUpstream({ organizations: withoutTechnician });
+    const refused = await generate('fire_safety');
+    expect(refused.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await refused.json()).reason).toBe('missing_document_data');
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+
+    mockUpstream({ organizations: withoutTechnician });
+    expect((await generate(undefined, { issueDate: '2026-10-01' })).status).toBe(201);
+  });
+
+  it('lists its own documents in the order of the binder, with its own last generation', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json([
+          { ...fireDocumentRow, id: crypto.randomUUID(), type_key: 'fire_registers' },
+          fireDocumentRow,
+        ]),
+      generations: () => Response.json({ issue_date: '2026-10-01', first_decision_number: null }),
+      employees: () => new Response(null, { headers: { 'content-range': '*/0' } }),
+    });
+    const response = await request(`/clients/${clientId}/documents?set=fire_safety`);
+    expect(response.status).toBe(200);
+    const body = clientDocumentListResponseSchema.parse(await response.json());
+    expect(body.items.map((item) => item.typeKey)).toEqual([
+      'fire_cover_registers',
+      'fire_registers',
+    ]);
+    expect(body.lastGeneration).toEqual({ issueDate: '2026-10-01', firstDecisionNumber: null });
+    expect(body.notApplicable).toEqual([]);
+    expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
+    expect(searchParam('/rest/v1/document_generations', 'document_group')).toBe(
+      'eq.fire_safety_set'
+    );
+
+    fetchMock.mockClear();
+    mockUpstream();
+    await request(`/clients/${clientId}/documents`);
+    expect(searchParam('/rest/v1/document_generations', 'document_group')).toBe(
+      'eq.documentation_set'
+    );
+  });
+
+  it('refuses a set it does not know', async () => {
+    mockUpstream();
+    expect((await request(`/clients/${clientId}/documents?set=other`)).status).toBe(400);
+    expect((await request(`/clients/${clientId}/documents/readiness?set=psi`)).status).toBe(400);
+    expect((await generate('documentation_set')).status).toBe(400);
+  });
+
+  it('is generated with the occupational safety set incomplete, and only its own templates', async () => {
+    let listed = 0;
+    mockUpstream({
+      ...occupationalGaps,
+      templates: () => Response.json([...templateRows, ...fireTemplateRows]),
+      documents: (init) => {
+        if (init?.method === 'POST') return Response.json({ id: fireDocumentId });
+        listed += 1;
+        return Response.json(listed === 1 ? [] : [fireDocumentRow]);
+      },
+    });
+    const response = await generate('fire_safety');
+    expect(response.status).toBe(201);
+    expect(
+      generateDocumentsResponseSchema
+        .parse(await response.json())
+        .created.map((item) => item.typeKey)
+    ).toEqual(['fire_cover_registers']);
+
+    expect(searchParam('/rest/v1/document_templates', 'type_key')).toBe(
+      'in.(fire_cover_registers,fire_registers,fire_work_permit,fire_installation_register,fire_extinguisher_register)'
+    );
+    expect(sentBody('/rest/v1/document_generations')).toMatchObject({
+      document_group: 'fire_safety_set',
+      issue_date: '2026-10-01',
+      first_decision_number: null,
+    });
+    const documents = [0, 1].map((index) => sentBody('/rest/v1/client_documents', index));
+    expect(documents.map((document) => document.type_key).sort()).toEqual([
+      'fire_cover_registers',
+      'fire_registers',
+    ]);
+    for (const document of documents) {
+      expect(document).toMatchObject({ document_group: 'fire_safety_set', decision_number: null });
+    }
+    const snapshots = [0, 1].map(
+      (index) => sentBody('/rest/v1/document_revisions', index).data_snapshot
+    );
+    expect(snapshots).toContainEqual(printedFireSafety);
+    expect(snapshots).toContainEqual({ client: printedClient, branding: true });
+  });
+
+  it('merges a context of its own, which holds nothing of the occupational safety set', async () => {
+    mockUpstream({
+      templates: () => Response.json(fireTemplateRows),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+    });
+    const merged: Record<string, unknown>[] = [];
+    const engine = await import('@ssm-usor/document-engine');
+    const render = vi.spyOn(engine, 'renderTemplate');
+    render.mockImplementation((_template, data) => {
+      merged.push(data);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: [] };
+    });
+    expect((await generate('fire_safety')).status).toBe(201);
+    expect(merged).toHaveLength(2);
+    expect(Object.keys(merged[0]!).sort()).toEqual([
+      'branding',
+      'client',
+      'fireSafetyTechnician',
+      'issueDate',
+      'provider',
+    ]);
+    expect(merged[0]).toMatchObject({ issueDate: '01.10.2026', ...printedFireSafety });
+  });
+
+  it('does not touch the other set when one is generated', async () => {
+    mockUpstream({
+      templates: () => Response.json([...templateRows, ...fireTemplateRows]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+    });
+    expect((await generate(undefined, { issueDate: '2026-10-01' })).status).toBe(201);
+    expect(searchParam('/rest/v1/document_templates', 'type_key')).not.toContain('fire_');
+    expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.documentation_set');
+    const documents = calls('/rest/v1/client_documents', 'POST').map((_, index) =>
+      sentBody('/rest/v1/client_documents', index)
+    );
+    expect(documents.map((document) => document.type_key).sort()).toEqual([
+      'control_report',
+      'decision_first_aid',
+    ]);
+    for (const document of documents) {
+      expect(document.document_group).toBe('documentation_set');
+    }
+    expect(sentBody('/rest/v1/document_generations')).toMatchObject({
+      document_group: 'documentation_set',
+      first_decision_number: 1,
+    });
+  });
+
+  it('says so when none of its templates is registered', async () => {
+    mockUpstream({ templates: () => Response.json(templateRows) });
+    expect((await generate('fire_safety')).status).toBe(503);
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+  });
+
+  it('regenerates a fire-safety draft from its own facts, as a generation of its set', async () => {
+    mockUpstream({
+      ...occupationalGaps,
+      templates: () => Response.json(fireTemplateRows),
+      documents: () => Response.json(fireDocumentRow),
+      generations: (init) =>
+        init?.method === 'POST'
+          ? Response.json({ id: generationId })
+          : Response.json({ issue_date: '2026-10-01', first_decision_number: null }),
+    });
+    const response = await request(`/documents/${fireDocumentId}/regenerate`, 'POST', {});
+    expect(response.status).toBe(200);
+    expect(searchParam('/rest/v1/document_generations', 'document_group')).toBe(
+      'eq.fire_safety_set'
+    );
+    expect(sentBody('/rest/v1/document_generations')).toMatchObject({
+      document_group: 'fire_safety_set',
+      issue_date: '2026-01-19',
+      first_decision_number: null,
+    });
+    expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH')).toMatchObject({
+      template_version_id: 'f1',
+      data_snapshot: printedFireSafety,
+    });
+  });
+
+  it('refuses to regenerate a fire-safety draft only for what the set itself lacks', async () => {
+    mockUpstream({
+      organizations: withoutTechnician,
+      templates: () => Response.json(fireTemplateRows),
+      documents: () => Response.json(fireDocumentRow),
+    });
+    const response = await request(`/documents/${fireDocumentId}/regenerate`, 'POST', {});
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'missing_document_data'
+    );
+  });
+
+  it('issues a fire-safety draft', async () => {
+    mockUpstream({ documents: () => Response.json(fireDocumentRow) });
+    const response = await request(`/documents/${fireDocumentId}/issue`, 'POST');
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/rpc/issue_document_revision').p_revision_id).toBe(revisionId);
+  });
+
+  it('marks a fire-safety draft for what it printed, and not for the occupational safety set', async () => {
+    const registers = {
+      ...fireDocumentRow,
+      id: crypto.randomUUID(),
+      type_key: 'fire_registers',
+      document_revisions: [
+        { ...fireDocumentRow.document_revisions[0]!, data_snapshot: { branding: true } },
+      ],
+    };
+    const changed = async (changes: Partial<Record<Upstream, Handler>>) => {
+      mockUpstream({ documents: () => Response.json([fireDocumentRow, registers]), ...changes });
+      const body = clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents?set=fire_safety`)).json()
+      );
+      return Object.fromEntries(body.items.map((item) => [item.typeKey, item.draft!.dataChanged]));
+    };
+    expect(await changed({})).toEqual({ fire_cover_registers: false, fire_registers: false });
+    expect(
+      await changed({
+        ...occupationalGaps,
+        positions: () => Response.json([{ ...positionRow, name: 'Lăcătuș' }]),
+      })
+    ).toEqual({ fire_cover_registers: false, fire_registers: false });
+    expect(
+      await changed({
+        organizations: () =>
+          Response.json({ ...organizationRow, fire_safety_technician_name: 'Ion VLAD' }),
+      })
+    ).toEqual({ fire_cover_registers: true, fire_registers: false });
+    expect(await changed({ organizations: withoutTechnician })).toEqual({
+      fire_cover_registers: true,
+      fire_registers: false,
+    });
+  });
+
+  it('takes an uploaded file as the draft of a fire-safety document', async () => {
+    mockUpstream({
+      documents: (init, url) =>
+        init?.method === 'POST'
+          ? Response.json({ id: fireDocumentId })
+          : url?.searchParams.has('id')
+            ? Response.json(fireDocumentRow)
+            : Response.json([fireDocumentRow]),
+    });
+    const response = await createApp().request(
+      `/clients/${clientId}/documents/fire_cover_registers/upload`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer test-access-token',
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+        body: new Uint8Array([
+          0x50,
+          0x4b,
+          0x03,
+          0x04,
+          ...new TextEncoder().encode('…word/document.xml…'),
+        ]),
+      },
+      env
+    );
+    expect(response.status).toBe(200);
+    expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
+    expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH').edited_by).toBe(user.id);
   });
 });

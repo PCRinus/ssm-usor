@@ -16,6 +16,7 @@ import {
   ClipboardList,
   FileSignature,
   FileText,
+  FireExtinguisher,
   FolderOpen,
   IdCard,
   UsersRound,
@@ -50,6 +51,12 @@ const sections = [
     ownerOnly: false,
   },
   { to: '/clients/$clientId/documents', label: 'Documente SSM', icon: FileText, ownerOnly: false },
+  {
+    to: '/clients/$clientId/fire-safety-documents',
+    label: 'Documente PSI',
+    icon: FireExtinguisher,
+    ownerOnly: false,
+  },
   {
     to: '/clients/$clientId/contract',
     label: 'Contract',

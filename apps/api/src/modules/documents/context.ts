@@ -46,6 +46,7 @@ export type DocumentFacts = {
     legalName: string | null;
     representativeName: string | null;
     representativeRole: string | null;
+    fireSafetyTechnicianName: string | null;
   };
   /** The member who prepares the documents, or null when there is none to name. */
   specialist: { fullName: string | null; professionalTitle: string | null } | null;

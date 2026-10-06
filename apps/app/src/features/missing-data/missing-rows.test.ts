@@ -31,6 +31,7 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'provider.legalName': '/organization/company?focus=legal-name',
   'provider.representativeName': '/organization/company?focus=representative-name',
   'provider.representativeRole': '/organization/company?focus=representative-role',
+  'provider.fireSafetyTechnician': '/organization/authorizations?focus=fire-safety-technician',
   'specialist.name': '/profile?focus=full-name',
   'specialist.professionalTitle': '/profile?focus=professional-title',
   'client.representativeName': `${details}legal-representative-name`,
