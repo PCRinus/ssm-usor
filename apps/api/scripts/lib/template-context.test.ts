@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { documentTypeKeys } from '@ssm-usor/contracts';
+import { documentTypeKeys, fireSafetyDocumentTypeKeys } from '@ssm-usor/contracts';
 import { annexTitlePage, documentText, renderDocument } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
@@ -8,6 +8,7 @@ import type { Json } from '../../src/database.types';
 import { buildDocumentContext, documentData } from '../../src/modules/documents/context';
 import { facts } from '../../src/modules/documents/context.fixture';
 import { merge } from '../../src/modules/documents/documents';
+import { buildFireSafetyContext } from '../../src/modules/documents/fire-safety';
 import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
 
 // Lives with the scripts because it reads the repository's files, which the Worker's own
@@ -574,4 +575,57 @@ describe('the risk assessment', () => {
       'Reprezentant al lucrătorilor cu răspunderi specifice în domeniul securității și sănătății lucrătorilor: Mihai POPESCU, Sudor.'
     );
   }, 30_000);
+});
+
+describe('the fire-safety templates', () => {
+  const fireUrl = new URL('fire/', templatesUrl);
+  const fireManifest = JSON.parse(readFileSync(new URL('manifest.json', fireUrl), 'utf8')) as {
+    templates: { typeKey: string; title: string; file: string }[];
+  };
+
+  it('are the fire-safety document types of the contracts, in the same order', () => {
+    expect(fireManifest.templates.map((entry) => entry.typeKey)).toEqual([
+      ...fireSafetyDocumentTypeKeys,
+    ]);
+  });
+
+  it.each(
+    fireManifest.templates.flatMap((entry) => [
+      [entry.typeKey, 'the fixture', entry.file, facts] as const,
+      [entry.typeKey, 'no branding', entry.file, { ...facts, branding: false }] as const,
+    ])
+  )(
+    '%s renders from %s with nothing missing',
+    (_typeKey, _, file, variant) => {
+      const data = { ...buildFireSafetyContext(variant) };
+      const text = documentText(renderDocument(readFileSync(new URL(file, fireUrl)), data));
+      expect(text).not.toContain('{{');
+      expect(text).toContain('PIPETECH');
+      expect(text.includes('Document generat cu SSM Ușor')).toBe(variant.branding);
+    },
+    30_000
+  );
+
+  it('print only names the fire-safety context holds, so no other set can change a draft', () => {
+    const names = Object.keys(buildFireSafetyContext(facts));
+    for (const entry of fireManifest.templates) {
+      const { snapshot } = merge(
+        readFileSync(new URL(entry.file, fireUrl)),
+        { ...buildFireSafetyContext(facts) },
+        entry.typeKey
+      );
+      expect(names).toEqual(expect.arrayContaining(Object.keys(snapshot as object)));
+    }
+  });
+
+  it('name the fire-safety technician on the cover, not the legal representative', () => {
+    const cover = fireManifest.templates.find((entry) => entry.typeKey === 'fire_cover_registers')!;
+    const text = documentText(
+      renderDocument(readFileSync(new URL(cover.file, fireUrl)), {
+        ...buildFireSafetyContext(facts),
+      })
+    );
+    expect(text).toContain('Radu STAN');
+    expect(text).toContain('Cadru tehnic PSI al S.C. SERVICIU EXTERN DEMO S.R.L.');
+  });
 });
