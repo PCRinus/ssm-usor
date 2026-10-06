@@ -86,9 +86,94 @@ export const documentSections = [
   typeKeys: readonly DocumentTypeKey[];
 }[];
 
-// The binder's chapters are decisions, own instructions, training themes, tests and the list of
-// fire-fighting means before the registers; each is listed once one of its documents is built.
+type PlannedDocument = { id: string; title: string };
+
+// The whole binder, so a specialist sees what the documentation will hold. A document the app
+// cannot write yet is planned; once it is built, its entry moves to the type keys.
 export const fireSafetyDocumentSections = [
+  {
+    id: 'decisions',
+    number: '1',
+    title: 'Decizii interne',
+    typeKeys: [],
+    planned: [
+      {
+        id: 'cover-decisions',
+        title: 'Copertă – Deciziile interne în domeniul situațiilor de urgență',
+      },
+      {
+        id: 'decision-organization',
+        title: 'Decizia privind organizarea apărării împotriva incendiilor',
+      },
+      {
+        id: 'decision-training',
+        title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
+      },
+      { id: 'decision-open-fire', title: 'Decizia privind lucrul cu foc deschis' },
+      { id: 'decision-smoking', title: 'Decizia privind fumatul' },
+      { id: 'decision-seasons', title: 'Decizia privind perioadele caniculare și sezonul rece' },
+      { id: 'decision-technician', title: 'Decizia privind cadrul tehnic PSI' },
+      {
+        id: 'decision-instructions',
+        title: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
+      },
+      { id: 'decision-waste', title: 'Decizia privind colectarea deșeurilor' },
+      { id: 'decision-control', title: 'Decizia privind controlul propriu' },
+    ],
+  },
+  {
+    id: 'own-instructions',
+    number: '2',
+    title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+    typeKeys: [],
+    planned: [
+      {
+        id: 'cover-own-instructions',
+        title: 'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+      },
+      { id: 'own-instructions', title: 'Instrucțiuni proprii în domeniul situațiilor de urgență' },
+    ],
+  },
+  {
+    id: 'training-themes',
+    number: '3',
+    title: 'Tematica de instruire',
+    typeKeys: [],
+    planned: [
+      {
+        id: 'cover-training-themes',
+        title: 'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+      },
+      {
+        id: 'training-themes',
+        title: 'Tematica de instruire în domeniul situațiilor de urgență',
+      },
+    ],
+  },
+  {
+    id: 'tests',
+    number: '4',
+    title: 'Teste de verificare a cunoștințelor',
+    typeKeys: [],
+    planned: [
+      { id: 'cover-tests', title: 'Copertă – Testele de verificare a cunoștințelor' },
+      { id: 'test-hiring', title: 'Test la angajare' },
+      { id: 'test-annual', title: 'Test anual' },
+    ],
+  },
+  {
+    id: 'means',
+    number: '5',
+    title: 'Mijloace de apărare și organizarea la locul de muncă',
+    typeKeys: [],
+    planned: [
+      { id: 'means-list', title: 'Lista mijloacelor de apărare împotriva incendiilor' },
+      {
+        id: 'workplace-organization',
+        title: 'Organizarea apărării împotriva incendiilor la locul de muncă',
+      },
+    ],
+  },
   {
     id: 'registers',
     number: '6',
@@ -100,12 +185,14 @@ export const fireSafetyDocumentSections = [
       'fire_installation_register',
       'fire_extinguisher_register',
     ],
+    planned: [],
   },
 ] as const satisfies readonly {
   id: string;
   number: string;
   title: string;
   typeKeys: readonly FireSafetyDocumentTypeKey[];
+  planned: readonly PlannedDocument[];
 }[];
 
 // A document type the API knows before this build of the app does.
@@ -138,14 +225,21 @@ type SectionList = readonly {
   number: string;
   title: string;
   typeKeys: readonly string[];
+  planned?: readonly PlannedDocument[];
 }[];
 
+// `listsWholePack`: every document of the set is listed, existing or not, and nothing
+// generated yet is no reason for an empty state.
 export const setSections: Record<
   DocumentSet,
-  { sections: SectionList; other: { id: 'other'; title: string } }
+  { sections: SectionList; other: { id: 'other'; title: string }; listsWholePack: boolean }
 > = {
-  occupational_safety: { sections: documentSections, other: otherSection },
-  fire_safety: { sections: fireSafetyDocumentSections, other: fireSafetyOtherSection },
+  occupational_safety: { sections: documentSections, other: otherSection, listsWholePack: false },
+  fire_safety: {
+    sections: fireSafetyDocumentSections,
+    other: fireSafetyOtherSection,
+    listsWholePack: true,
+  },
 };
 
 export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
@@ -160,17 +254,31 @@ export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
 const counted = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
-// A row without a document is one that does not apply to the client.
-export function sectionSummary(rows: readonly { document: ClientDocument | null }[]) {
-  if (rows.length === 0) return 'negenerat';
+export type SectionRow =
+  | { kind: 'document'; key: string; title: string; document: ClientDocument }
+  | {
+      kind: 'notApplicable' | 'notGenerated' | 'planned';
+      key: string;
+      title: string;
+      document: null;
+    };
+
+export function sectionSummary(rows: readonly Pick<SectionRow, 'kind' | 'document'>[]) {
   const documents = rows.flatMap((row) => (row.document ? [row.document] : []));
+  const missing = rows.filter((row) => row.kind === 'notGenerated').length;
+  if (documents.length === 0) {
+    if (rows.length === 0 || missing > 0) return 'negenerat';
+    return rows.every((row) => row.kind === 'planned') ? 'în pregătire' : 'nu se aplică';
+  }
   const issued = documents.filter((document) => document.issued).length;
   const drafts = documents.filter((document) => document.draft).length;
   const dataChanged = documents.filter((document) => document.draft?.dataChanged).length;
-  const parts = [
+  return [
     issued > 0 && counted(issued, 'emis', 'emise'),
     drafts > 0 && counted(drafts, 'ciornă', 'ciorne'),
     dataChanged > 0 && `${dataChanged} cu date modificate`,
-  ].filter((part) => part !== false);
-  return parts.length > 0 ? parts.join(' · ') : 'nu se aplică';
+    missing > 0 && counted(missing, 'negenerat', 'negenerate'),
+  ]
+    .filter((part) => part !== false)
+    .join(' · ');
 }

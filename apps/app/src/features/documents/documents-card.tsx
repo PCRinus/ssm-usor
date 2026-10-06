@@ -67,25 +67,27 @@ import { AnnexRow } from './annex-row';
 import {
   type ClientDocument,
   notApplicableTitles,
+  notGeneratedTitles,
   workersRepresentativesRule,
 } from './document-labels';
-import { type SectionIdOf, sectionSummary, setSections } from './document-sections';
+import {
+  type SectionIdOf,
+  type SectionRow,
+  sectionSummary,
+  setSections,
+} from './document-sections';
 import { documentLink, documentSetCopy, setParams } from './document-sets';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { pdfOfRevision, usePrint } from './print';
 
 type Revision = NonNullable<ClientDocument['draft']>;
-// A document, or null in the place of one that does not apply to the client.
-type Row = {
-  typeKey: string;
-  title: string;
-  document: ClientDocument | null;
-};
 type Confirming = {
   // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
   action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
   document: ClientDocument;
 } | null;
+
+const archivedHint = 'Clientul este arhivat, așa că nu i se mai generează documente.';
 
 const confirmations = {
   regenerate: {
@@ -207,24 +209,41 @@ export function DocumentsCard<Set extends DocumentSet>({
     anchor: () => generateRef.current,
     open: canGenerate ? openGenerate : undefined,
   });
-  const packRows = typeKeys.flatMap((typeKey): Row[] => {
+  const { sections: setSectionList, other, listsWholePack } = setSections[set];
+  const packRows = typeKeys.flatMap((typeKey): SectionRow[] => {
     const document = items.find((item) => item.typeKey === typeKey);
-    if (document) return [{ typeKey, title: document.title, document }];
+    if (document) return [{ kind: 'document', key: typeKey, title: document.title, document }];
     const notApplicableTitle = notApplicableTitles[typeKey];
-    return notApplicable.has(typeKey) && notApplicableTitle
-      ? [{ typeKey, title: notApplicableTitle, document: null }]
+    if (notApplicable.has(typeKey) && notApplicableTitle) {
+      return [{ kind: 'notApplicable', key: typeKey, title: notApplicableTitle, document: null }];
+    }
+    const notGeneratedTitle = listsWholePack ? notGeneratedTitles[typeKey] : undefined;
+    return notGeneratedTitle
+      ? [{ kind: 'notGenerated', key: typeKey, title: notGeneratedTitle, document: null }]
       : [];
   });
   const known = new Set<string>(typeKeys);
   const otherRows = items
     .filter((item) => !known.has(item.typeKey))
-    .map((document): Row => ({ typeKey: document.typeKey, title: document.title, document }));
-  const { sections: setSectionList, other } = setSections[set];
+    .map((document): SectionRow => ({
+      kind: 'document',
+      key: document.typeKey,
+      title: document.title,
+      document,
+    }));
   const sections = [
     ...setSectionList.map((section) => ({
       id: section.id,
       title: `${section.number}. ${section.title}`,
-      rows: packRows.filter((row) => section.typeKeys.includes(row.typeKey)),
+      rows: [
+        ...packRows.filter((row) => section.typeKeys.includes(row.key)),
+        ...(section.planned ?? []).map((planned): SectionRow => ({
+          kind: 'planned',
+          key: planned.id,
+          title: planned.title,
+          document: null,
+        })),
+      ],
     })),
     ...(otherRows.length > 0 ? [{ ...other, rows: otherRows }] : []),
   ];
@@ -361,7 +380,14 @@ export function DocumentsCard<Set extends DocumentSet>({
   return (
     <Card data-testid="documents-card">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">{copy.heading}</h2>
+        <div className="grid gap-1">
+          <h2 className="text-lg font-semibold">{copy.heading}</h2>
+          {listsWholePack && documents.isSuccess && items.length === 0 && (
+            <p data-testid="documents-hint" className="max-w-prose text-sm text-muted-foreground">
+              {readOnly ? archivedHint : copy.emptyHint}
+            </p>
+          )}
+        </div>
         {canGenerate && (
           <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
             <Sparkles aria-hidden="true" />
@@ -392,14 +418,12 @@ export function DocumentsCard<Set extends DocumentSet>({
           >
             Nu am putut încărca documentele.
           </Notice>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && !listsWholePack ? (
           <div data-testid="documents-empty" className="grid justify-items-center gap-2 py-10">
             <FileText className="size-8 text-muted-foreground" aria-hidden="true" />
             <p className="text-sm font-medium">Niciun document încă</p>
             <p className="max-w-md text-center text-sm text-muted-foreground">
-              {readOnly
-                ? 'Clientul este arhivat, așa că nu i se mai generează documente.'
-                : copy.emptyHint}
+              {readOnly ? archivedHint : copy.emptyHint}
             </p>
           </div>
         ) : (
@@ -443,10 +467,41 @@ export function DocumentsCard<Set extends DocumentSet>({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {section.rows.map(({ typeKey, title, document }) => {
+                        {section.rows.map(({ kind, key, title, document }) => {
+                          if (kind === 'notGenerated') {
+                            return (
+                              <TableRow key={key} data-testid="document-not-generated">
+                                <TableCell className="font-medium text-muted-foreground">
+                                  {title}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">Negenerat</TableCell>
+                                <TableCell />
+                                <TableCell />
+                              </TableRow>
+                            );
+                          }
+                          if (kind === 'planned') {
+                            return (
+                              <TableRow key={key} data-testid="document-planned">
+                                <TableCell className="font-medium text-muted-foreground">
+                                  {title}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    title="Aplicația nu poate genera încă acest document."
+                                  >
+                                    În pregătire
+                                  </Badge>
+                                </TableCell>
+                                <TableCell />
+                                <TableCell />
+                              </TableRow>
+                            );
+                          }
                           if (!document) {
                             return (
-                              <TableRow key={typeKey} data-testid="document-not-applicable">
+                              <TableRow key={key} data-testid="document-not-applicable">
                                 <TableCell className="font-medium text-muted-foreground">
                                   {title}
                                 </TableCell>
