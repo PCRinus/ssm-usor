@@ -77,11 +77,12 @@ The list of clients reads the view `client_list`: the columns of `clients` the l
 what each client still needs, every count one grouped read: `current_employee_count`,
 `job_position_count` (positions not archived), `job_positions_needing_work_count` (of those,
 the ones with `needs_protective_equipment` or `needs_instructions` null, or without a risk
-evaluation), `documentation_generated_type_keys` (type keys of the documentation set that have
-a revision), `documentation_issued_count` (documents of the set with an issued revision, the
-sort of `sort=documentation`), `documentation_last_generated_at` (the newest
-`document_generations.created_at`) and `client_since` (`coalesce(promoted_at, created_at)`).
-The contract is `other`, so nothing counts it. The view is `security_invoker`, so each table
+evaluation), `documentation_generated_type_keys` (type keys of the occupational safety set
+that have a revision), `documentation_issued_count` (documents of that set with an issued
+revision, the sort of `sort=documentation`), `documentation_last_generated_at` (the newest
+`document_generations.created_at` of that set) and `client_since`
+(`coalesce(promoted_at, created_at)`). The contract is `other` and the fire-safety set is
+`fire_safety_set`, so neither counts (ADR 016). The view is `security_invoker`, so each table
 inside answers to the caller's policies, and only `authenticated` selects from it. These were
 computed fields of `clients` at first, one query per client per column, which made the list
 slow; `current_employee_count(clients)` remains for the read of a single client and for the
@@ -187,7 +188,8 @@ key to the client, the same three policies, new rows only for an active client, 
 upper case, with a check of its shape (the API validates the check digits) and `bank_name`;
 `authorization_certificate_number`, `_date` and `_issuer`, the _certificat de abilitare_;
 `vat_payer`; `fire_safety_technician_name` and `_certificate`, as text, because that person
-may not be a member. The owners' update policy covers them, and they are added to the list of
+may not be a member. The name is also what the fire-safety set prints for the provider
+(ADR 016). The owners' update policy covers them, and they are added to the list of
 columns a member may write, which still leaves out `name` and the accepted terms.
 
 ## Employees
@@ -423,11 +425,15 @@ hash)`, reachable only with the secret key, registers one and is idempotent: the
 is the version it already is, a new hash becomes the next version. Members read templates
 and have no write policy.
 
-**Documents.** Each client has one documentation set. `client_documents` holds a document
-type once per client (a unique constraint), with its title and, for decisions, the
+**Documents.** Each client has two documentation sets, the occupational safety set and the
+fire-safety set (ADR 016). `client_documents` holds a document type once per client (a
+unique constraint), with its title, its set in `document_group`, and, for decisions, the
 `decision_number`, which stays the same across revisions. `document_generations` records
-what was asked when generating: the `issue_date` and the `first_decision_number`. Users never
-see it; it keeps the inputs that are not facts about the client.
+what was asked when generating: the set in `document_group` (`documentation_set`, the
+default, or `fire_safety_set`, never `other`), the `issue_date` and the
+`first_decision_number`, which the occupational safety set always has and the fire-safety set,
+without decisions yet, leaves null. Users never see it; it keeps the inputs that are not facts
+about the client.
 
 **Revisions.** `document_revisions` holds a document's content over time:
 
@@ -462,8 +468,9 @@ rows but not the files (issue #77).
 
 ### The service contract's group, and documents for owners only
 
-`client_documents.document_group` is `documentation_set`, the default, or `other` (ADR 007),
-which holds the service contract. The value predates client files, which are the "other
+`client_documents.document_group` is `documentation_set`, the default, which is the
+occupational safety set, `fire_safety_set` (ADR 016), or `other` (ADR 007), which holds the
+service contract. The value predates client files, which are the "other
 documents" of the app (ADR 013) and live in a table of their own. `owners_only` marks a
 document that only an owner reaches, and a check constraint keeps a `service_contract` from
 being anything else, whoever writes the row.
@@ -476,8 +483,10 @@ on `client_documents`, which is the same rule), `is_readable_document_path` make
 `documents` bucket ask it (reading used to be by the organization's folder alone, which a
 specialist who learned the path of a contract would have passed), `is_draft_document_path`
 asks it before a file is written, and `issue_document_revision`, which runs past the
-policies, answers `DOC01` for a document the caller cannot reach. The lead trigger on
-`client_documents` refuses the documentation set only, so a lead has its contract.
+policies, answers `DOC01` for a document the caller cannot reach. None of these, nor the
+freeze under an archived client, looks at the group, so the fire-safety set is read, written
+and frozen as the occupational safety set is. The lead trigger on `client_documents` refuses
+both sets and nothing `other`, so a lead has its contract.
 
 ### Service contracts
 
