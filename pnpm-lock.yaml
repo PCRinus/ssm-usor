@@ -49,7 +49,7 @@ importers:
         version: 2.1.14
       orval:
         specifier: ^8.33.0
-        version: 8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@3.25.76))(@tanstack/react-query@5.102.8(react@19.3.0))(prettier@3.9.9)(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)
+        version: 8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.32.1(supports-color@10.2.2)(zod@3.25.76))(@tanstack/react-query@5.102.8(react@19.3.0))(prettier@3.9.9)(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
@@ -1736,8 +1736,8 @@ packages:
     peerDependencies:
       solid-js: ^1.8.8
 
-  '@modelcontextprotocol/sdk@1.30.0':
-    resolution: {integrity: sha512-xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA==}
+  '@modelcontextprotocol/sdk@1.32.1':
+    resolution: {integrity: sha512-2DdE+SJDtzLEEWzY1ZjY7Q+VcPhcV1KisD3zI4u0XZyktsjHum1mwbMI+JaulUBi2OZk+KJAi2uPXzxichPkdw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -8363,7 +8363,7 @@ snapshots:
       '@solid-primitives/utils': 6.4.1(solid-js@1.9.15)
       solid-js: 1.9.15
 
-  '@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.32.1(supports-color@10.2.2)(zod@3.25.76)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.7)
       ajv: 8.20.0
@@ -8514,13 +8514,13 @@ snapshots:
       - supports-color
       - zod
 
-  '@orval/mcp@8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@3.25.76))(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)':
+  '@orval/mcp@8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.32.1(supports-color@10.2.2)(zod@3.25.76))(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       '@orval/core': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@orval/fetch': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@orval/zod': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.30.0(supports-color@10.2.2)(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.32.1(supports-color@10.2.2)(zod@3.25.76)
     transitivePeerDependencies:
       - '@faker-js/faker'
       - supports-color
@@ -12319,7 +12319,7 @@ snapshots:
 
   orderedmap@2.1.1: {}
 
-  orval@8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@3.25.76))(@tanstack/react-query@5.102.8(react@19.3.0))(prettier@3.9.9)(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76):
+  orval@8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.32.1(supports-color@10.2.2)(zod@3.25.76))(@tanstack/react-query@5.102.8(react@19.3.0))(prettier@3.9.9)(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       '@commander-js/extra-typings': 15.0.0(commander@15.0.0)
       '@orval/angular': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
@@ -12328,7 +12328,7 @@ snapshots:
       '@orval/effect': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@orval/fetch': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@orval/hono': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)
-      '@orval/mcp': 8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@3.25.76))(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)
+      '@orval/mcp': 8.33.0(@faker-js/faker@10.6.0)(@modelcontextprotocol/sdk@1.32.1(supports-color@10.2.2)(zod@3.25.76))(supports-color@10.2.2)(typescript@6.0.3)(zod@3.25.76)
       '@orval/mock': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@orval/pinia-colada': 8.33.0(@faker-js/faker@10.6.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@orval/query': 8.33.0(@faker-js/faker@10.6.0)(@tanstack/react-query@5.102.8(react@19.3.0))(supports-color@10.2.2)(typescript@6.0.3)
@@ -13018,7 +13018,7 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       '@dotenvx/dotenvx': 1.75.1
-      '@modelcontextprotocol/sdk': 1.30.0(supports-color@10.2.2)(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.32.1(supports-color@10.2.2)(zod@3.25.76)
       '@types/validate-npm-package-name': 4.0.2
       browserslist: 4.28.8
       cn: 0.2.6
