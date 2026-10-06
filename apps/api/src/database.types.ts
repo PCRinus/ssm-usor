@@ -45,6 +45,13 @@ export type Database = {
             foreignKeyName: 'client_documents_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -217,6 +224,13 @@ export type Database = {
             foreignKeyName: 'client_responsible_persons_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -287,6 +301,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'client_workplaces_client_id_fkey';
             columns: ['client_id'];
@@ -456,6 +477,13 @@ export type Database = {
           organization_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'document_generations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'document_generations_client_id_fkey';
             columns: ['client_id'];
@@ -788,6 +816,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'employees_client_id_fkey';
             columns: ['client_id'];
@@ -1146,6 +1181,13 @@ export type Database = {
             foreignKeyName: 'job_position_equipment_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -1201,6 +1243,13 @@ export type Database = {
           organization_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'job_position_instructions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'job_position_instructions_client_id_fkey';
             columns: ['client_id'];
@@ -1288,6 +1337,13 @@ export type Database = {
           work_zone?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'job_positions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'job_positions_client_id_fkey';
             columns: ['client_id'];
@@ -1519,6 +1575,13 @@ export type Database = {
             foreignKeyName: 'prevention_measures_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'prevention_measures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -1629,6 +1692,13 @@ export type Database = {
             foreignKeyName: 'risk_evaluations_client_id_fkey';
             columns: ['client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id'];
           },
@@ -1717,6 +1787,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'risk_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'risk_factors_client_id_fkey';
             columns: ['client_id'];
@@ -1922,7 +1999,37 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      client_list: {
+        Row: {
+          address_line: string | null;
+          archived_at: string | null;
+          caen_code: string | null;
+          client_since: string | null;
+          contact_email: string | null;
+          contact_name: string | null;
+          contact_phone: string | null;
+          county_code: string | null;
+          created_at: string | null;
+          cui: string | null;
+          current_employee_count: number | null;
+          declared_employee_count: number | null;
+          documentation_generated_type_keys: string[] | null;
+          documentation_issued_count: number | null;
+          documentation_last_generated_at: string | null;
+          id: string | null;
+          job_position_count: number | null;
+          job_positions_needing_work_count: number | null;
+          legal_name: string | null;
+          legal_representative_name: string | null;
+          locality: string | null;
+          promoted_at: string | null;
+          stage: Database['public']['Enums']['client_stage'] | null;
+          trade_register_number: string | null;
+          updated_at: string | null;
+          vat_payer: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       accept_invitation_as: {

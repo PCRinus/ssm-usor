@@ -79,7 +79,7 @@ function mockUpstream(
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return handlers.membership?.(init) ?? Response.json([membership]);
     }
-    if (url.pathname === '/rest/v1/clients') {
+    if (url.pathname === '/rest/v1/clients' || url.pathname === '/rest/v1/client_list') {
       return (
         handlers.clients?.(init) ??
         Response.json([clientRow], { headers: { 'Content-Range': '0-0/1' } })
@@ -174,7 +174,7 @@ describe('GET /clients', () => {
     expect(new URL(String(rpcUrl)).origin).toBe('https://example.supabase.co');
     expect(new Headers(rpcInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
     expect(new Headers(rpcInit?.headers).get('apikey')).toBe(env.SUPABASE_PUBLISHABLE_KEY);
-    const [listUrl, listInit] = calls('/rest/v1/clients')[0]!;
+    const [listUrl, listInit] = calls('/rest/v1/client_list')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('stage')).toBe('eq.client');
@@ -194,7 +194,7 @@ describe('GET /clients', () => {
     const response = await request('/clients?page=2&sort=currentEmployeeCount&order=desc');
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ page: 2, pageSize: 25, total: 26 });
-    const [listUrl] = calls('/rest/v1/clients')[0]!;
+    const [listUrl] = calls('/rest/v1/client_list')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('order')).toBe('current_employee_count.desc,legal_name.desc,id.asc');
     expect(query.get('offset')).toBe('25');
@@ -208,7 +208,7 @@ describe('GET /clients', () => {
   ])('sorts by %s %s through the computed fields', async (sort, order, expected) => {
     mockUpstream({});
     expect((await request(`/clients?sort=${sort}&order=${order}`)).status).toBe(200);
-    const [listUrl] = calls('/rest/v1/clients')[0]!;
+    const [listUrl] = calls('/rest/v1/client_list')[0]!;
     expect(new URL(String(listUrl)).searchParams.get('order')).toBe(expected);
   });
 
@@ -273,10 +273,27 @@ describe('GET /clients', () => {
     ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
   });
 
+  it('answers a page past the end with no rows and the real total', async () => {
+    let call = 0;
+    mockUpstream({
+      clients: () =>
+        call++ === 0
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              { status: 416 }
+            )
+          : Response.json([clientRow], { headers: { 'Content-Range': '0-0/3' } }),
+    });
+    const response = await request('/clients?page=9');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+    expect(calls('/rest/v1/client_list')).toHaveLength(2);
+  });
+
   it('reads no contract for a client', async () => {
     mockUpstream({});
     await request('/clients');
-    const select = new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select');
+    const select = new URL(String(calls('/rest/v1/client_list')[0]![0])).searchParams.get('select');
     expect(select).toContain('job_positions_needing_work_count');
     expect(select).not.toContain('client_documents');
   });
@@ -309,13 +326,14 @@ describe('GET /clients', () => {
       mockUpstream({});
       expect((await request(`/clients?${search}`)).status).toBe(400);
       expect(calls('/rest/v1/clients')).toHaveLength(0);
+      expect(calls('/rest/v1/client_list')).toHaveLength(0);
     }
   );
 
   it('lists the archived clients instead when asked', async () => {
     mockUpstream({});
     expect((await request('/clients?status=archived')).status).toBe(200);
-    const [url] = calls('/rest/v1/clients')[0]!;
+    const [url] = calls('/rest/v1/client_list')[0]!;
     expect(new URL(String(url)).searchParams.get('archived_at')).toBe('not.is.null');
     expect((await request('/clients?status=all')).status).toBe(400);
   });
@@ -329,6 +347,7 @@ describe('GET /clients', () => {
     expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')).toContain(
       'client_documents!client_documents_client_in_organization(type_key'
     );
+    expect(calls('/rest/v1/client_list')).toHaveLength(0);
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
@@ -415,6 +434,7 @@ describe('GET /clients', () => {
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(calls('/rest/v1/client_list')).toHaveLength(0);
   });
 
   it('reports a database outage as unavailable without details', async () => {
