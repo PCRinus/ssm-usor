@@ -42,6 +42,8 @@
     "seed:local": "pnpm --filter @ssm-usor/api seed:local",
     "templates:register": "pnpm --filter @ssm-usor/api templates:register",
     "templates:register:local": "pnpm --filter @ssm-usor/api templates:register:local",
+    "legislation:check": "pnpm --filter @ssm-usor/api legislation:check",
+    "legislation:check:local": "pnpm --filter @ssm-usor/api legislation:check:local",
     "generate:db": "supabase gen types typescript --local --schema public > apps/api/src/database.types.ts && prettier --write apps/api/src/database.types.ts",
     "supabase:test": "supabase test db",
     "supabase:start": "supabase start",

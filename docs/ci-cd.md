@@ -12,6 +12,12 @@ that has nothing to do, and no run that a newer run makes pointless. A composite
 shares steps inside one job; a reusable workflow would have added jobs.
 A separate manual **Seed database** workflow seeds the hosted project on demand; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project).
+A scheduled **Check legislation** workflow (`.github/workflows/legislation.yml`) runs
+`pnpm legislation:check` against the hosted project every morning at 03:17 UTC, with the
+`production` environment's `VITE_SUPABASE_URL` and `SUPABASE_SECRET_KEY`, and can be started
+by hand. It reads every watched act on the Portal Legislativ and records newer consolidated
+forms ([data model](data-model.md#legislation)). A page it could not read fails the run after
+the other acts are saved; that failure is the alert, and nothing else notifies anyone.
 
 ## Change selection
 

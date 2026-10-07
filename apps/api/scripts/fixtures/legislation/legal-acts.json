@@ -1,0 +1,31 @@
+{
+  "acts": [
+    {
+      "id": "lege-319-2006",
+      "kind": "lege",
+      "number": 319,
+      "year": 2006,
+      "name": "Legea 319/2006",
+      "title": "a securității și sănătății în muncă",
+      "portalId": 73772
+    },
+    {
+      "id": "hg-1425-2006",
+      "kind": "hg",
+      "number": 1425,
+      "year": 2006,
+      "name": "H.G. 1425/2006",
+      "title": "pentru aprobarea Normelor metodologice de aplicare a prevederilor Legii securității și sănătății în muncă nr. 319/2006",
+      "portalId": 76337
+    },
+    {
+      "id": "omai-163-2007",
+      "kind": "omai",
+      "number": 163,
+      "year": 2007,
+      "name": "OMAI 163/2007",
+      "title": null,
+      "portalId": null
+    }
+  ]
+}

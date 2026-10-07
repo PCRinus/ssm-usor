@@ -15,7 +15,9 @@
     "seed": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts",
     "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local",
     "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",
-    "templates:register:local": "node --import tsx scripts/register-templates.ts --local"
+    "templates:register:local": "node --import tsx scripts/register-templates.ts --local",
+    "legislation:check": "node --env-file-if-exists=.env.seed --import tsx scripts/check-legislation.ts",
+    "legislation:check:local": "node --import tsx scripts/check-legislation.ts --local"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

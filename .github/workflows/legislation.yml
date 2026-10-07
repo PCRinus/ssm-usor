@@ -1,0 +1,39 @@
+name: Check legislation
+
+# A portal page that could not be read fails the run. The failed run is the alert (ADR 017);
+# there is no other notification.
+on:
+  schedule:
+    # 03:17 UTC: 05:17 in Bucharest in winter, 06:17 in summer. Off the hour, when GitHub's
+    # scheduler is busiest and delays or drops runs.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-legislation
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check the watched acts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - name: Check legislation settings
+        shell: bash
+        run: |
+          : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
+          : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Read the portal and record what changed
+        run: pnpm legislation:check
