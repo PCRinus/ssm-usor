@@ -52,13 +52,29 @@ can use these permissions:
 - **Account → Workers Scripts → Edit** for the one project account;
 - **Account → Account Settings → Read** for that account;
 - **Zone → Workers Routes → Edit** for `ssmusor.ro`, required when Wrangler creates the custom
-  Worker hostname.
+  Worker hostname;
+- **Account → Queues → Edit** for that account, required by the API deployment, which creates
+  the `ssm-usor-regeneration` queue when it is missing (see below).
 
 The official template also grants **User Details → Read** and **Memberships → Read**, which improve
 Wrangler's account discovery and diagnostics. Because this workflow passes an explicit account ID,
 start without those user scopes and add them only if Wrangler reports an account-discovery error.
 
 The marketing site does not currently need Workers KV, R2, D1, DNS Edit, or Zone Settings Edit.
+The API needs one Cloudflare Queue, `ssm-usor-regeneration`, which it both sends to and consumes
+for bulk regeneration ([ADR 017](architecture/adr-017-legislation-monitoring.md)). `wrangler
+deploy` refuses a Worker bound to a queue that does not exist, so the API deployment job looks
+the queue up and creates it first when it is missing; on a new account the first API deployment
+creates it. To create it by hand instead:
+
+```bash
+pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-regeneration
+```
+
+The consumer takes up to 4 messages per batch, runs at most 3 batches at once, and retries a
+failed message 3 times, 30 seconds apart; there is no dead-letter queue, since the last
+delivery records the client as failed itself. `wrangler dev` runs the queue locally, so
+`pnpm dev` and `pnpm dev:local` need nothing more.
 Start with the official template if the custom-token UI or the first deployment rejects the minimal
 set, then tighten the token after deployment is working.
 

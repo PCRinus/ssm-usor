@@ -12,6 +12,8 @@ const template = {
   typeKey: 'decision_first_aid',
   title: 'Decizia',
   bytes: new Uint8Array([1, 2, 3]),
+  kind: 'correction' as const,
+  note: 'Versiunea inițială.',
 };
 
 function fixture() {
@@ -46,6 +48,8 @@ describe('registering built-in templates', () => {
       p_title: 'Decizia',
       p_storage_path: `built-in/decision_first_aid/${sha256}.docx`,
       p_sha256: sha256,
+      p_kind: 'correction',
+      p_note: 'Versiunea inițială.',
     });
   });
 

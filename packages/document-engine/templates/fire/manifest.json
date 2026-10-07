@@ -6,7 +6,11 @@
       "stage": 1,
       "typeKey": "fire_cover_registers",
       "title": "Copertă – Registrele de evidență în domeniul situațiilor de urgență",
-      "file": "6.0_fire_cover_registers.docx"
+      "file": "6.0_fire_cover_registers.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
     },
     {
       "number": "6.1",
@@ -18,7 +22,11 @@
       "stage": 1,
       "typeKey": "fire_registers",
       "title": "Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc",
-      "file": "6.1_fire_registers.docx"
+      "file": "6.1_fire_registers.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
     },
     {
       "number": "6.2",
@@ -26,7 +34,11 @@
       "stage": 1,
       "typeKey": "fire_work_permit",
       "title": "Permis de lucru cu foc",
-      "file": "6.2_fire_work_permit.docx"
+      "file": "6.2_fire_work_permit.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
     },
     {
       "number": "6.3",
@@ -34,7 +46,11 @@
       "stage": 1,
       "typeKey": "fire_installation_register",
       "title": "Registru de control pentru instalațiile de apărare împotriva incendiilor",
-      "file": "6.3_fire_installation_register.docx"
+      "file": "6.3_fire_installation_register.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
     },
     {
       "number": "6.4",
@@ -42,7 +58,11 @@
       "stage": 1,
       "typeKey": "fire_extinguisher_register",
       "title": "Registru de evidență a controlului stingătoarelor de incendiu",
-      "file": "6.4_fire_extinguisher_register.docx"
+      "file": "6.4_fire_extinguisher_register.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
     }
   ]
 }

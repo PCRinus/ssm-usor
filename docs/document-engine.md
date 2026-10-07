@@ -450,6 +450,13 @@ holds the hash, so a file that is already there is not sent again, and a hash th
 registered stays the version it was. A changed file becomes the next version; revisions
 generated from the earlier one keep pointing at it.
 
+Each manifest entry carries a `change`: the `kind` (`legal`, `correction` or `layout`) and
+the `note` members read for the newest version of that file
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). Change it in the same commit as
+the file: a changed file registered under the old `change` tells members about the earlier
+change. A file already registered keeps the note it came with, so editing only the note
+changes nothing in the database. The script prints the kind of each version it creates.
+
 On `main`, the job "Register document templates" runs the same script after the migrations
 when a template, the script or a migration changed since the last deployment. The deployment
 workflow compares with the last run that succeeded, so a run that is superseded hands its

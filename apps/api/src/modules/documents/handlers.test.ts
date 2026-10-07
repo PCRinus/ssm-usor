@@ -87,13 +87,9 @@ const clientRow = {
   training_day_to: 7,
   archived_at: null,
 };
-const memberRow = {
-  user_id: user.id,
-  email: user.email,
+const profileRow = {
   full_name: 'Maria POPESCU',
   professional_title: 'Evaluator de risc SSM',
-  role: 'owner',
-  joined_at: '2026-09-01T00:00:00+00:00',
 };
 const personRow = {
   full_name: 'Florin TALOȘ',
@@ -120,6 +116,11 @@ const revisionRow = {
   pdf_path: null,
   created_at: '2026-09-19T10:00:00+00:00',
   document_generations: { issue_date: '2026-01-19' },
+  document_template_versions: {
+    version: 2,
+    kind: 'correction',
+    note: 'Clientul este numit „unitatea”, nu „societatea”.',
+  },
 };
 const positionRow = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
@@ -250,7 +251,8 @@ type Handler = (init?: RequestInit, url?: URL) => Response;
 type Upstream =
   | 'organizations'
   | 'clients'
-  | 'members'
+  | 'profile'
+  | 'membership'
   | 'persons'
   | 'employees'
   | 'positions'
@@ -307,8 +309,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.organizations?.() ?? Response.json(organizationRow);
       case '/rest/v1/clients':
         return handlers.clients?.() ?? Response.json(clientRow);
-      case '/rest/v1/rpc/organization_member_list':
-        return handlers.members?.() ?? Response.json([memberRow]);
+      case '/rest/v1/organization_members':
+        return handlers.membership?.() ?? Response.json({ user_id: user.id });
+      case '/rest/v1/profiles':
+        return handlers.profile?.() ?? Response.json(profileRow);
       case '/rest/v1/client_responsible_persons':
         return handlers.persons?.() ?? Response.json([personRow]);
       case '/rest/v1/employees':
@@ -441,13 +445,30 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       .find((url) => url.pathname === '/rest/v1/client_responsible_persons')!;
     expect(persons.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(persons.searchParams.get('archived_at')).toBe('is.null');
+    const read = (pathname: string) =>
+      fetchMock.mock.calls
+        .map(([input]) => new URL(String(input)))
+        .find((url) => url.pathname === pathname)!;
+    expect(read('/rest/v1/organizations').searchParams.get('id')).toBe(`eq.${organizationId}`);
+    const specialist = read('/rest/v1/organization_members').searchParams;
+    expect(specialist.get('organization_id')).toBe(`eq.${organizationId}`);
+    expect(specialist.get('user_id')).toBe(`eq.${user.id}`);
+  });
+
+  it('has no specialist when the preparer is not a member of the organization', async () => {
+    mockUpstream({ membership: () => Response.json([]) });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json()).missing).toEqual([
+      'specialist.name',
+      'specialist.professionalTitle',
+    ]);
   });
 
   it('lists what is missing, from each place it is filled in', async () => {
     mockUpstream({
       organizations: () => Response.json({ ...organizationRow, legal_name: null }),
       clients: () => Response.json({ ...clientRow, training_first_month: null }),
-      members: () => Response.json([{ ...memberRow, professional_title: null }]),
+      profile: () => Response.json({ ...profileRow, professional_title: null }),
       persons: () => Response.json([{ ...personRow, roles: ['first_aid'] }]),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);
@@ -704,6 +725,37 @@ describe('GET /clients/{clientId}/documents', () => {
     );
     expect(body.items[0]!.draft!.annexes).toEqual([]);
     expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
+  });
+
+  it('says which template version a revision was generated from, and none for an uploaded file', async () => {
+    mockUpstream();
+    const generated = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(generated.items[0]!.draft!.templateVersion).toEqual({
+      version: 2,
+      kind: 'correction',
+      note: 'Clientul este numit „unitatea”, nu „societatea”.',
+    });
+    expect(
+      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('select')
+    ).toContain('document_template_versions(version,kind,note)');
+
+    mockUpstream({
+      documents: () =>
+        Response.json([
+          {
+            ...documentRow,
+            document_revisions: [
+              { ...revisionRow, document_generations: null, document_template_versions: null },
+            ],
+          },
+        ]),
+    });
+    const uploaded = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(uploaded.items[0]!.draft!.templateVersion).toBeNull();
   });
 
   it('marks a draft whose printed data has changed since', async () => {

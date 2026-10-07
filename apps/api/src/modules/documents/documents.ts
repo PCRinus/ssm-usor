@@ -14,6 +14,7 @@ import {
   type RegenerateDocumentRequest,
   serviceContractTitle,
   serviceContractTypeKey,
+  type TemplateVersionKind,
   unfilledMark,
 } from '@ssm-usor/contracts';
 import {
@@ -56,6 +57,10 @@ type RevisionRow = Pick<
   | 'created_at'
 > & {
   document_generations: { issue_date: string } | null;
+  document_template_versions: Pick<
+    Tables['document_template_versions']['Row'],
+    'version' | 'kind' | 'note'
+  > | null;
   // One to one, so PostgREST embeds an object, or null where nothing was attached.
   document_signed_copies?: {
     revision_id: string;
@@ -70,7 +75,7 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
 const typeOrders = Object.fromEntries(
   Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
@@ -192,6 +197,11 @@ function toRevision(
       revision.document_signed_copies && !revision.document_signed_copies.confirmed_at
         ? { uploadedAt: revision.document_signed_copies.uploaded_at }
         : null,
+    templateVersion: revision.document_template_versions && {
+      version: revision.document_template_versions.version,
+      kind: revision.document_template_versions.kind as TemplateVersionKind,
+      note: revision.document_template_versions.note,
+    },
     annexes: toAnnexes(revision, lookup),
     createdAt: revision.created_at,
   };
@@ -299,7 +309,7 @@ export async function listClientDocuments(
   set: DocumentSet = 'occupational_safety'
 ) {
   // Also answers 404 for a client of another organization.
-  const facts = await loadDocumentFacts(db, clientId, actor.userId);
+  const facts = await loadDocumentFacts(db, clientId, actor);
   const [documents, generation] = await Promise.all([
     readDocuments(db, clientId, set),
     lastGeneration(db, clientId, set),
@@ -385,7 +395,7 @@ export async function generateClientDocuments(
   request: GenerateDocumentsRequest,
   set: DocumentSet = 'occupational_safety'
 ) {
-  const facts = await loadDocumentFacts(db, clientId, actor.userId);
+  const facts = await loadDocumentFacts(db, clientId, actor);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
   }
@@ -717,7 +727,7 @@ export async function regenerateDocument(
     throw new ApiError('conflict', 'This document is generated from its own page.');
   }
   const rules = setRules[set];
-  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
   }
@@ -841,7 +851,7 @@ export async function issueDocument(
   if (error?.code === 'DOC01') throw new ApiError('not_found', 'This draft no longer exists.');
   if (error?.code === 'DOC02') throw new ApiError('conflict', 'This draft was already issued.');
   if (error) throw fromDatabaseError(error, 'issue document revision');
-  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor);
   return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
@@ -915,7 +925,7 @@ export async function saveDraftFile(
     .update({ edited_at: new Date().toISOString(), edited_by: actor.createdBy })
     .eq('id', draft.id);
   if (updated.error) throw fromDatabaseError(updated.error, 'mark document revision edited');
-  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor);
   return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
@@ -933,7 +943,7 @@ export async function uploadDocumentFile(
   bytes: Uint8Array
 ) {
   requireDocx(bytes);
-  const facts = await loadDocumentFacts(db, clientId, actor.userId);
+  const facts = await loadDocumentFacts(db, clientId, actor);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
   }
@@ -1040,7 +1050,7 @@ export async function startDraftFromIssued(
     await db.from('document_revisions').delete().eq('id', revision.data.id);
     throw error;
   }
-  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor);
   return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
@@ -1118,7 +1128,7 @@ export async function attachSignedCopy(
     }
     throw error;
   }
-  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor);
   return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
@@ -1140,7 +1150,7 @@ export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId
     .update({ confirmed_at: new Date().toISOString(), confirmed_by: actor.createdBy })
     .eq('revision_id', issued.id);
   if (error) throw fromDatabaseError(error, 'confirm signed copy');
-  const facts = await loadDocumentFacts(db, document.client_id, actor.userId);
+  const facts = await loadDocumentFacts(db, document.client_id, actor);
   return presentDocument(db, await readDocument(db, documentId), facts);
 }
 

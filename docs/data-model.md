@@ -419,11 +419,18 @@ which file is which; the files live in Supabase Storage.
 **Templates.** `document_templates` holds one row per document type (`type_key`, for example
 `decision_training`), with `organization_id` null for the built-in set. A provider's own
 templates will carry their organization. `document_template_versions` holds the files: a
-version number, the Storage path, and the SHA-256 of the file. The master copies of the
-built-in set live in the repository; `register_built_in_template_version(type, title, path,
-hash)`, reachable only with the secret key, registers one and is idempotent: the same hash
-is the version it already is, a new hash becomes the next version. Members read templates
-and have no write policy.
+version number, the Storage path, the SHA-256 of the file, and why the version exists
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). Its `kind` is `legal` when a
+quoted or referred legal text changed, `correction` when the template's own content was
+fixed, and `layout` when no words changed; legal and correction versions prompt
+regeneration, layout versions do not. Its `note` says what changed, in Romanian, for
+members, at most 500 characters; it is null for the versions registered before ADR 017,
+which all count as corrections. The master copies of the built-in set live in the
+repository, with the kind and note of each file's latest change in its manifest;
+`register_built_in_template_version(type, title, path, hash, kind, note)`, reachable only
+with the secret key, registers one and is idempotent: the same hash is the version it
+already is, with the kind and note it was first registered with, and a new hash becomes the
+next version. Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
 fire-safety set (ADR 016). `client_documents` holds a document type once per client (a
@@ -465,6 +472,36 @@ says it lives (`is_draft_document_path`). Issuing a revision therefore locks its
 well as its row, and tenancy and impersonation apply to files exactly as they do to rows,
 because the policies use `current_organization_id()`. Supabase's database backups cover these
 rows but not the files (issue #77).
+
+### Documents behind and regeneration jobs
+
+`documents_behind` is a view, security invoker, so every table in it answers to the caller's
+policies: one row per document of an active client (not archived, stage `client`) whose newest
+revision, by number, was generated from a template version older than a `legal` or
+`correction` version of the same template ([ADR 017](architecture/adr-017-legislation-monitoring.md)).
+It carries the document, the client's name, the version the revision came from
+(`revision_version`), the template's newest version with its kind and note, and
+`edited_draft`, set when that revision is a draft saved by hand since it was generated. An
+uploaded revision has no template version and is never in it; neither is the service
+contract (group `other`), which is regenerated from its own page.
+
+`regeneration_jobs` holds one document type regenerated for every client behind it: the
+organization, `type_key`, `requested_by` (the member the documents name as their specialist),
+`requested_at`, `total_count`, `done_count`, `skipped_count`, `failed_count`, and
+`finished_at`, which checks keep set exactly when the three counts add up to the total. A
+partial unique index allows one unfinished job per organization and type.
+`regeneration_job_items` holds one row per client of a job (`job_id`, `client_id`), with a
+`status` of `queued`, `done`, `skipped` or `failed` and a `detail` in Romanian for members.
+
+Members read their organization's jobs, and the items of the jobs they can read; nobody writes
+them but the secret key, through two functions granted only to it.
+`start_regeneration_job(organization, type, requested_by, clients)` opens a job with the
+clients of that organization among those given, each once; one still running raises
+`23505`, and one unfinished after an hour is closed first, its queued clients failed, since a
+message the queue gave up on would otherwise hold the type.
+`record_regeneration_item(job, client, status, detail)` records what became of a client only
+while it is `queued`, so a message delivered twice counts once, and finishes the job with the
+last one.
 
 ### The service contract's group, and documents for owners only
 

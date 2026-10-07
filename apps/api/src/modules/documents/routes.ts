@@ -6,11 +6,14 @@ import {
   documentDownloadQuerySchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
+  documentsBehindResponseSchema,
   documentSetQuerySchema,
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
   issueDocumentRequestSchema,
   regenerateDocumentRequestSchema,
+  regenerationJobResponseSchema,
+  startRegenerationRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -21,6 +24,7 @@ const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
 const uploadParams = z.object({ clientId: z.uuid(), typeKey: builtInDocumentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
+const jobParams = z.object({ jobId: z.uuid() });
 
 const noSuchClient = {
   description: 'The client does not exist in the organization',
@@ -436,6 +440,85 @@ export const uploadClientDocumentRoute = createRoute({
     404: noSuchClient,
     409: {
       description: 'The client is archived, or the document has to be generated first',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const listDocumentsBehindRoute = createRoute({
+  method: 'get',
+  path: '/documents/behind',
+  operationId: 'listDocumentsBehind',
+  summary: "List the organization's documents behind their template, by document type",
+  description:
+    "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from and whether it is a draft edited by hand. Types with nobody behind are left out.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  responses: {
+    200: {
+      description: 'The documents behind, by type',
+      content: {
+        'application/json': {
+          schema: documentsBehindResponseSchema.meta({ id: 'DocumentsBehindResponse' }),
+        },
+      },
+    },
+    ...membershipErrors,
+  },
+});
+
+const regenerationJobContent = {
+  'application/json': {
+    schema: regenerationJobResponseSchema.meta({ id: 'RegenerationJobResponse' }),
+  },
+};
+
+export const startDocumentRegenerationRoute = createRoute({
+  method: 'post',
+  path: '/documents/behind/regenerate',
+  operationId: 'startDocumentRegeneration',
+  summary: 'Regenerate one document type for every client behind its template',
+  description:
+    'Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: startRegenerationRequestSchema.meta({ id: 'StartRegenerationRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: { description: 'The job, with every client queued', content: regenerationJobContent },
+    400: { description: 'Invalid body', content: errorContent },
+    409: {
+      description: 'No client is behind, or a job of the same type is under way',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const getRegenerationJobRoute = createRoute({
+  method: 'get',
+  path: '/documents/regeneration-jobs/{jobId}',
+  operationId: 'getRegenerationJob',
+  summary: 'Get a regeneration job, with its counts and what became of each client',
+  description:
+    'Each client is `queued`, `done`, `skipped` or `failed`, with a `detail` in Romanian for the last two. `finishedAt` is set once no client is queued.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: jobParams },
+  responses: {
+    200: { description: 'The job', content: regenerationJobContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: 'The job does not exist in the organization',
       content: errorContent,
     },
     ...membershipErrors,

@@ -196,6 +196,26 @@ describe('manifest', () => {
   });
 });
 
+// The database's bounds for a version's note (ADR 017): a note out of them would fail only
+// when the templates are registered, after the merge.
+describe.each(['', 'other/', 'fire/'])(
+  'the change of each template in %smanifest.json',
+  (folder) => {
+    const manifest = JSON.parse(
+      readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')
+    ) as { templates: { typeKey: string; change?: { kind?: string; note?: string } }[] };
+
+    it.each(manifest.templates.map((entry) => [entry.typeKey, entry.change] as const))(
+      '%s says what kind of change it was, in a note',
+      (_typeKey, change) => {
+        expect(['legal', 'correction', 'layout']).toContain(change?.kind);
+        expect(change?.note?.trim().length).toBeGreaterThanOrEqual(2);
+        expect(change?.note?.trim().length).toBeLessThanOrEqual(500);
+      }
+    );
+  }
+);
+
 const bodyOf = (name: string) => new PizZip(read(name)).file('word/document.xml')!.asText();
 
 // The house style the import script typesets every template to.

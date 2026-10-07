@@ -4289,6 +4289,195 @@
         },
         "required": ["fullName", "jobTitle", "roles"]
       },
+      "DocumentsBehindResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "typeKey": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "newestVersion": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": ["legal", "correction", "layout"]
+                    },
+                    "note": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": ["version", "kind", "note"]
+                },
+                "runningJobId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "clients": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "documentId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "clientId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "clientName": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "editedDraft": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["documentId", "clientId", "clientName", "version", "editedDraft"]
+                  }
+                }
+              },
+              "required": ["typeKey", "title", "newestVersion", "runningJobId", "clients"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "RegenerationJobResponse": {
+        "type": "object",
+        "properties": {
+          "job": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "typeKey": {
+                "type": "string"
+              },
+              "requestedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "finishedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "done": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clientName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["queued", "done", "skipped", "failed"]
+                    },
+                    "detail": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": ["clientId", "clientName", "status", "detail"]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "typeKey",
+              "requestedAt",
+              "finishedAt",
+              "total",
+              "done",
+              "skipped",
+              "failed",
+              "items"
+            ]
+          }
+        },
+        "required": ["job"]
+      },
+      "StartRegenerationRequest": {
+        "type": "object",
+        "properties": {
+          "typeKey": {
+            "type": "string",
+            "enum": [
+              "cover_decisions",
+              "decision_training",
+              "decision_risk_evaluation_team",
+              "decision_first_aid",
+              "decision_imminent_danger",
+              "decision_workers_representative",
+              "cover_general_training_material",
+              "general_training_material",
+              "cover_own_instructions",
+              "own_instructions",
+              "cover_training_themes",
+              "training_themes",
+              "cover_tests",
+              "test_hiring",
+              "test_periodic",
+              "protective_equipment_list",
+              "cover_event_registers",
+              "event_registers",
+              "control_report",
+              "risk_assessment",
+              "prevention_plan",
+              "cover_employer_briefing",
+              "employer_briefing",
+              "control_regulation",
+              "fire_cover_registers",
+              "fire_registers",
+              "fire_work_permit",
+              "fire_installation_register",
+              "fire_extinguisher_register"
+            ]
+          }
+        },
+        "required": ["typeKey"]
+      },
       "DocumentReadinessResponse": {
         "type": "object",
         "properties": {
@@ -4489,6 +4678,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -4558,6 +4766,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -4613,6 +4822,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -4682,6 +4910,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -4831,6 +5060,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -4900,6 +5148,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -4955,6 +5204,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -5024,6 +5292,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -5156,6 +5425,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5225,6 +5513,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -5280,6 +5569,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5349,6 +5657,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -5772,6 +6081,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5841,6 +6169,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -5896,6 +6225,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5965,6 +6313,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -14717,6 +15066,259 @@
           },
           "404": {
             "description": "The responsible person does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/behind": {
+      "get": {
+        "operationId": "listDocumentsBehind",
+        "summary": "List the organization's documents behind their template, by document type",
+        "description": "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from and whether it is a draft edited by hand. Types with nobody behind are left out.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The documents behind, by type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentsBehindResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/behind/regenerate": {
+      "post": {
+        "operationId": "startDocumentRegeneration",
+        "summary": "Regenerate one document type for every client behind its template",
+        "description": "Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRegenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The job, with every client queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegenerationJobResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No client is behind, or a job of the same type is under way",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/regeneration-jobs/{jobId}": {
+      "get": {
+        "operationId": "getRegenerationJob",
+        "summary": "Get a regeneration job, with its counts and what became of each client",
+        "description": "Each client is `queued`, `done`, `skipped` or `failed`, with a `detail` in Romanian for the last two. `finishedAt` is set once no client is queued.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "jobId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegenerationJobResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The job does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {

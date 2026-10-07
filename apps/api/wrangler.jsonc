@@ -19,6 +19,25 @@
     // apps/pdf has no routes either.
     { "binding": "PDF", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
   ],
+  // Bulk regeneration (ADR 017): this Worker sends one message per client and consumes them.
+  // `wrangler deploy` fails while the queue does not exist; the deploy workflow creates it.
+  "queues": {
+    "producers": [{ "binding": "REGENERATION_QUEUE", "queue": "ssm-usor-regeneration" }],
+    "consumers": [
+      {
+        "queue": "ssm-usor-regeneration",
+        // Each message merges a document and reads a dozen tables; a few per invocation, and a
+        // few invocations at once, keep the database's connections for the people using the app.
+        "max_batch_size": 4,
+        "max_batch_timeout": 5,
+        "max_concurrency": 3,
+        // regeneration-queue.ts records the item as failed on the last delivery: lastDelivery
+        // there is this plus one.
+        "max_retries": 3,
+        "retry_delay": 30,
+      },
+    ],
+  },
   "observability": {
     "enabled": true,
   },

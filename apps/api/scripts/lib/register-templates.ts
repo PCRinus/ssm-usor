@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { type TemplateVersionKind, templateVersionKindSchema } from '@ssm-usor/contracts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
@@ -18,11 +19,21 @@ export const manifestSchema = z.object({
       typeKey: z.string().regex(/^[a-z][a-z0-9_]{1,59}$/),
       title: z.string().min(2).max(200),
       file: z.string().endsWith('.docx'),
+      change: z.object({
+        kind: templateVersionKindSchema,
+        note: z.string().trim().min(2).max(500),
+      }),
     })
   ),
 });
 
-export type TemplateFile = { typeKey: string; title: string; bytes: Uint8Array };
+export type TemplateFile = {
+  typeKey: string;
+  title: string;
+  bytes: Uint8Array;
+  kind: TemplateVersionKind;
+  note: string;
+};
 
 export function builtInTemplatePath(typeKey: string, sha256: string) {
   return `built-in/${typeKey}/${sha256}.docx`;
@@ -50,6 +61,8 @@ export async function registerTemplates(db: SupabaseClient<Database>, templates:
       p_title: template.title,
       p_storage_path: path,
       p_sha256: sha256,
+      p_kind: template.kind,
+      p_note: template.note,
     });
     const row = registered.data?.[0];
     if (registered.error || !row) {

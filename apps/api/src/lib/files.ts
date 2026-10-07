@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 
 import type { Database } from '../database.types';
-import { requestFetch, supabaseConfig } from './db';
+import { supabaseConfigOf, timedFetch } from './db';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';
 
@@ -18,32 +18,47 @@ const clientFilesBucket = 'client-files';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export function createFileStore(c: Context<ApiEnv>) {
-  const config = supabaseConfig(c);
-  return fileStore(c, config.SUPABASE_PUBLISHABLE_KEY, `Bearer ${c.get('accessToken')}`);
+  const config = supabaseConfigOf(c.env);
+  return fileStore(
+    c.env,
+    c.req.raw.signal,
+    config.SUPABASE_PUBLISHABLE_KEY,
+    `Bearer ${c.get('accessToken')}`
+  );
 }
 
 const secretKeySchema = z.string().startsWith('sb_secret_').min(16);
 
 // The policies do not apply to the secret key: for the return link, where nobody is signed
-// in, and where every path comes from the token's own send.
+// in, and where every path comes from the token's own send; for the queue consumer, where
+// every path comes from a document of the job's own organization.
 export function createAdminFileStore(c: Context<ApiEnv>) {
-  const secretKey = secretKeySchema.safeParse(c.env.SUPABASE_SECRET_KEY);
-  if (!secretKey.success) throw new ApiError('service_unavailable');
-  return fileStore(c, secretKey.data, `Bearer ${secretKey.data}`);
+  return adminFileStore(c.env, c.req.raw.signal);
 }
 
-function fileStore(c: Context<ApiEnv>, key: string, authorization: string) {
-  const config = supabaseConfig(c);
+export function adminFileStore(env: ApiEnv['Bindings'], signal?: AbortSignal) {
+  const secretKey = secretKeySchema.safeParse(env.SUPABASE_SECRET_KEY);
+  if (!secretKey.success) throw new ApiError('service_unavailable');
+  return fileStore(env, signal, secretKey.data, `Bearer ${secretKey.data}`);
+}
+
+function fileStore(
+  env: ApiEnv['Bindings'],
+  signal: AbortSignal | undefined,
+  key: string,
+  authorization: string
+) {
+  const config = supabaseConfigOf(env);
   const storage = createClient<Database>(config.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
       headers: { Authorization: authorization },
       // Files are larger than rows: the biggest template is about a megabyte.
-      fetch: requestFetch(c, 20_000),
+      fetch: timedFetch(20_000, signal),
     },
   }).storage;
 
-  const fetchFile = requestFetch(c, 20_000);
+  const fetchFile = timedFetch(20_000, signal);
 
   // Not `download()`: that reads the object by its path, and the CDN in front of Storage
   // keeps such a read for up to an hour, invalidating it up to a minute after the object
