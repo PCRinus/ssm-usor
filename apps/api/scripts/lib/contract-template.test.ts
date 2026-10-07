@@ -154,13 +154,13 @@ describe('the starter contract', () => {
 
   it('prints the fire-safety chapters only for a contract that covers fire safety', () => {
     const without = merged();
-    expect(without).not.toContain('Legii nr. 307/2006');
+    expect(without).not.toContain('Legii 307/2006');
     expect(without).not.toContain('Ion IONESCU');
     expect(without).not.toContain(
       'Obiectul contractului în domeniul apărării împotriva incendiilor'
     );
     const withIt = merged({ coversFireSafety: true });
-    expect(withIt).toContain('Legii nr. 307/2006');
+    expect(withIt).toContain('Legii 307/2006');
     expect(withIt).toContain('de Ion IONESCU, certificat seria CT nr. 1234');
     expect(withIt).toContain(
       'În domeniul apărării împotriva incendiilor, beneficiarul asigură și:'
@@ -173,7 +173,7 @@ describe('the starter contract', () => {
     expect(text).not.toContain(
       'Obiectul contractului în domeniul securității și sănătății în muncă'
     );
-    expect(text).toContain('Legii nr. 307/2006');
+    expect(text).toContain('Legii 307/2006');
   });
 
   it('says the right thing about VAT and about the renewal', () => {

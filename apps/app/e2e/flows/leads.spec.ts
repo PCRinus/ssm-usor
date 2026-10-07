@@ -179,7 +179,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   ).toBeVisible();
   await expect(frame.getByText('Art. 1.')).toBeVisible();
   // Fire safety is not sold, so its chapters are not there.
-  await expect(frame.getByText('Legii nr. 307/2006')).toHaveCount(0);
+  await expect(frame.getByText('Legii 307/2006')).toHaveCount(0);
 
   // The button selects the next mark, so what is typed takes its place.
   const unfilled = page.getByTestId('editor-unfilled');

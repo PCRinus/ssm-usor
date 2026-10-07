@@ -455,6 +455,34 @@ when a template, the script or a migration changed since the last deployment. Th
 workflow compares with the last run that succeeded, so a run that is superseded hands its
 templates on to the next. A wiped environment gets everything back from the migrations and this one command.
 
+## Citations
+
+The legal acts the templates quote or refer to are indexed from their text
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). `src/citations.ts` reads every
+paragraph of `word/document.xml` and finds two forms. A **quoted article** opens with the
+marker `(Preluare din <act> – <article>)`, exactly so: `Legea 319/2006`, `H.G. 1425/2006`,
+`O.U.G. 158/2005`, `O.G. 1/2000`, `Ordinul 427/2002`, `OMAI 163/2007`, then `Art. 7`,
+`Art. 7 alin. (1) lit. c)` (a marker that ends in a letter closes twice), `Anexa 2` or `pct. 5`,
+and at most one tail naming the act that amended the article, `– conf. H.G. 767/2016 – pct. 6`.
+The quotation runs on over the paragraphs that open with an alineat or a letter, `(2)` or `b)`,
+and over the list items a line ending in `:` or `;` introduces, and stops at an empty paragraph,
+a table, a chapter heading, the next marker or the next article of the document's own
+numbering. A **reference** is any other mention of an act by number and year; its article is the
+one after ` – art.` or the `art. N … din` just before it. Each citation records its template,
+paragraph and the innermost `{{#…}}` or `{{^…}}` section it sits in.
+
+```bash
+pnpm --filter @ssm-usor/document-engine citations   # rewrites templates/citations.json
+```
+
+`templates/citations.json` is generated and committed; a test fails when it differs from a fresh
+parse, and `pnpm check:generated` regenerates it. `templates/legal-acts.json` is curated: every
+act the index names, with its title and the id of its page on legislatie.just.ro
+(`/Public/DetaliiDocument/<portalId>`). The portal's search matches the year of publication,
+not of the act, so an id is taken only when the page's title carries the act's number and
+year. A template that names an act missing from the list fails the tests until it is added.
+The API can bundle both through `@ssm-usor/document-engine/citations`.
+
 ## The merge context
 
 The API builds the data once per generation and merges every template with it

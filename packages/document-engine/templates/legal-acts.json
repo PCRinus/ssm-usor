@@ -1,0 +1,454 @@
+{
+  "acts": [
+    {
+      "id": "lege-126-1995",
+      "kind": "lege",
+      "number": "126",
+      "year": 1995,
+      "name": "Legea 126/1995",
+      "title": "Legea nr. 126 din 27 decembrie 1995 privind regimul materiilor explozive",
+      "portalId": 6350
+    },
+    {
+      "id": "lege-459-2001",
+      "kind": "lege",
+      "number": "459",
+      "year": 2001,
+      "name": "Legea 459/2001",
+      "title": "Legea nr. 459 din 18 iulie 2001 pentru aprobarea Ordonanței Guvernului nr. 1/2000 privind organizarea activității și funcționarea instituțiilor de medicină legală",
+      "portalId": 29843
+    },
+    {
+      "id": "lege-90-2002",
+      "kind": "lege",
+      "number": "90",
+      "year": 2002,
+      "name": "Legea 90/2002",
+      "title": "Legea nr. 90 din 26 februarie 2002 privind aprobarea Ordonanței de urgență a Guvernului nr. 150/2001 pentru aprobarea Amendamentului convenit prin scrisoarea semnată la 10 august 2001 la Luxemburg și la 10 septembrie 2001 la București și modificarea Ordonanței Guvernului nr. 97/2000 pentru ratificarea Contractului de finanțare dintre România și Banca Europeană de Investiții în vederea finanțării Proiectului de reconstrucție pentru eliminarea efectelor inundațiilor, semnat la Luxemburg la 4 august 2000 și la București la 9 august 2000",
+      "portalId": 34351
+    },
+    {
+      "id": "lege-202-2002",
+      "kind": "lege",
+      "number": "202",
+      "year": 2002,
+      "name": "Legea 202/2002",
+      "title": "Legea nr. 202 din 19 aprilie 2002 privind egalitatea de șanse și de tratament între femei și bărbați",
+      "portalId": 35778
+    },
+    {
+      "id": "lege-346-2002",
+      "kind": "lege",
+      "number": "346",
+      "year": 2002,
+      "name": "Legea 346/2002",
+      "title": "Legea nr. 346 din 5 iunie 2002 privind asigurarea pentru accidente de muncă și boli profesionale",
+      "portalId": 36905
+    },
+    {
+      "id": "lege-363-2002",
+      "kind": "lege",
+      "number": "363",
+      "year": 2002,
+      "name": "Legea 363/2002",
+      "title": "Legea nr. 363 din 7 iunie 2002 pentru aprobarea Ordonanței Guvernului nr. 88/2001 privind înființarea, organizarea și funcționarea serviciilor publice comunitare pentru situații de urgență",
+      "portalId": 36859
+    },
+    {
+      "id": "lege-46-2003",
+      "kind": "lege",
+      "number": "46",
+      "year": 2003,
+      "name": "Legea 46/2003",
+      "title": "Legea drepturilor pacientului nr. 46 din 21 ianuarie 2003",
+      "portalId": 41483
+    },
+    {
+      "id": "lege-53-2003",
+      "kind": "lege",
+      "number": "53",
+      "year": 2003,
+      "name": "Legea 53/2003",
+      "title": "Legea nr. 53 din 24 ianuarie 2003 – Codul muncii",
+      "portalId": 41625
+    },
+    {
+      "id": "lege-25-2004",
+      "kind": "lege",
+      "number": "25",
+      "year": 2004,
+      "name": "Legea 25/2004",
+      "title": "Legea nr. 25 din 5 martie 2004 pentru aprobarea Ordonanței de urgență a Guvernului nr. 96/2003 privind protecția maternității la locurile de muncă",
+      "portalId": 50294
+    },
+    {
+      "id": "lege-95-2006",
+      "kind": "lege",
+      "number": "95",
+      "year": 2006,
+      "name": "Legea 95/2006",
+      "title": "Legea nr. 95 din 14 aprilie 2006 privind reforma în domeniul sănătății",
+      "portalId": 71139
+    },
+    {
+      "id": "lege-307-2006",
+      "kind": "lege",
+      "number": "307",
+      "year": 2006,
+      "name": "Legea 307/2006",
+      "title": "Legea nr. 307 din 12 iulie 2006 privind apărarea împotriva incendiilor",
+      "portalId": 73657
+    },
+    {
+      "id": "lege-319-2006",
+      "kind": "lege",
+      "number": "319",
+      "year": 2006,
+      "name": "Legea 319/2006",
+      "title": "Legea nr. 319 din 14 iulie 2006 a securității și sănătății în muncă",
+      "portalId": 73772
+    },
+    {
+      "id": "lege-399-2006",
+      "kind": "lege",
+      "number": "399",
+      "year": 2006,
+      "name": "Legea 399/2006",
+      "title": "Legea nr. 399 din 30 octombrie 2006 pentru aprobarea Ordonanței de urgență a Guvernului nr. 158/2005 privind concediile și indemnizațiile de asigurări sociale de sănătate",
+      "portalId": 76513
+    },
+    {
+      "id": "lege-286-2009",
+      "kind": "lege",
+      "number": "286",
+      "year": 2009,
+      "name": "Legea 286/2009",
+      "title": "Legea nr. 286 din 17 iulie 2009 privind Codul penal",
+      "portalId": 109854
+    },
+    {
+      "id": "lege-187-2012",
+      "kind": "lege",
+      "number": "187",
+      "year": 2012,
+      "name": "Legea 187/2012",
+      "title": "Legea nr. 187 din 24 octombrie 2012 pentru punerea în aplicare a Legii nr. 286/2009 privind Codul penal",
+      "portalId": 142722
+    },
+    {
+      "id": "lege-227-2015",
+      "kind": "lege",
+      "number": "227",
+      "year": 2015,
+      "name": "Legea 227/2015",
+      "title": "Legea nr. 227 din 8 septembrie 2015 privind Codul fiscal",
+      "portalId": 171280
+    },
+    {
+      "id": "oug-99-2000",
+      "kind": "oug",
+      "number": "99",
+      "year": 2000,
+      "name": "O.U.G. 99/2000",
+      "title": "Ordonanța de urgență a Guvernului nr. 99 din 29 iunie 2000 privind măsurile ce pot fi aplicate în perioadele cu temperaturi extreme pentru protecția persoanelor încadrate în muncă",
+      "portalId": 23101
+    },
+    {
+      "id": "oug-195-2002",
+      "kind": "oug",
+      "number": "195",
+      "year": 2002,
+      "name": "O.U.G. 195/2002",
+      "title": "Ordonanța de urgență a Guvernului nr. 195 din 12 decembrie 2002 privind circulația pe drumurile publice",
+      "portalId": 41006
+    },
+    {
+      "id": "oug-96-2003",
+      "kind": "oug",
+      "number": "96",
+      "year": 2003,
+      "name": "O.U.G. 96/2003",
+      "title": "Ordonanța de urgență a Guvernului nr. 96 din 14 octombrie 2003 privind protecția maternității la locurile de muncă",
+      "portalId": 47216
+    },
+    {
+      "id": "oug-158-2005",
+      "kind": "oug",
+      "number": "158",
+      "year": 2005,
+      "name": "O.U.G. 158/2005",
+      "title": "Ordonanța de urgență a Guvernului nr. 158 din 17 noiembrie 2005 privind concediile și indemnizațiile de asigurări sociale de sănătate",
+      "portalId": 66305
+    },
+    {
+      "id": "og-1-2000",
+      "kind": "og",
+      "number": "1",
+      "year": 2000,
+      "name": "O.G. 1/2000",
+      "title": "Ordonanța Guvernului nr. 1 din 20 ianuarie 2000 privind organizarea activității și funcționarea instituțiilor de medicină legală",
+      "portalId": 20639
+    },
+    {
+      "id": "og-88-2001",
+      "kind": "og",
+      "number": "88",
+      "year": 2001,
+      "name": "O.G. 88/2001",
+      "title": "Ordonanța Guvernului nr. 88 din 30 august 2001 privind înființarea, organizarea și funcționarea serviciilor publice comunitare pentru situații de urgență",
+      "portalId": 30372
+    },
+    {
+      "id": "hg-1875-2005",
+      "kind": "hg",
+      "number": "1875",
+      "year": 2005,
+      "name": "H.G. 1875/2005",
+      "title": "Hotărârea Guvernului nr. 1875 din 22 decembrie 2005 privind protecția sănătății și securității lucrătorilor față de riscurile datorate expunerii la azbest",
+      "portalId": 68178
+    },
+    {
+      "id": "hg-1876-2005",
+      "kind": "hg",
+      "number": "1876",
+      "year": 2005,
+      "name": "H.G. 1876/2005",
+      "title": "Hotărârea Guvernului nr. 1876 din 22 decembrie 2005 privind cerințele minime de securitate și sănătate referitoare la expunerea lucrătorilor la riscurile generate de vibrații",
+      "portalId": 68307
+    },
+    {
+      "id": "hg-300-2006",
+      "kind": "hg",
+      "number": "300",
+      "year": 2006,
+      "name": "H.G. 300/2006",
+      "title": "Hotărârea Guvernului nr. 300 din 2 martie 2006 privind cerințele minime de securitate și sănătate pentru șantierele temporare sau mobile",
+      "portalId": 69995
+    },
+    {
+      "id": "hg-493-2006",
+      "kind": "hg",
+      "number": "493",
+      "year": 2006,
+      "name": "H.G. 493/2006",
+      "title": "Hotărârea Guvernului nr. 493 din 12 aprilie 2006 privind cerințele minime de securitate și sănătate referitoare la expunerea lucrătorilor la riscurile generate de zgomot",
+      "portalId": 71198
+    },
+    {
+      "id": "hg-971-2006",
+      "kind": "hg",
+      "number": "971",
+      "year": 2006,
+      "name": "H.G. 971/2006",
+      "title": "Hotărârea Guvernului nr. 971 din 26 iulie 2006 privind cerințele minime pentru semnalizarea de securitate și/sau de sănătate la locul de muncă",
+      "portalId": 74127
+    },
+    {
+      "id": "hg-1028-2006",
+      "kind": "hg",
+      "number": "1028",
+      "year": 2006,
+      "name": "H.G. 1028/2006",
+      "title": "Hotărârea Guvernului nr. 1028 din 9 august 2006 privind cerințele minime de securitate și sănătate în muncă referitoare la utilizarea echipamentelor cu ecran de vizualizare",
+      "portalId": 74360
+    },
+    {
+      "id": "hg-1048-2006",
+      "kind": "hg",
+      "number": "1048",
+      "year": 2006,
+      "name": "H.G. 1048/2006",
+      "title": "Hotărârea Guvernului nr. 1048 din 9 august 2006 privind cerințele minime de securitate și sănătate pentru utilizarea de către lucrători a echipamentelor individuale de protecție la locul de muncă",
+      "portalId": 74559
+    },
+    {
+      "id": "hg-1049-2006",
+      "kind": "hg",
+      "number": "1049",
+      "year": 2006,
+      "name": "H.G. 1049/2006",
+      "title": "Hotărârea Guvernului nr. 1049 din 9 august 2006 privind cerințele minime pentru asigurarea securității și sănătății lucrătorilor din industria extractivă de suprafață sau subteran",
+      "portalId": 74627
+    },
+    {
+      "id": "hg-1051-2006",
+      "kind": "hg",
+      "number": "1051",
+      "year": 2006,
+      "name": "H.G. 1051/2006",
+      "title": "Hotărârea Guvernului nr. 1051 din 9 august 2006 privind cerințele minime de securitate și sănătate pentru manipularea manuală a maselor care prezintă riscuri pentru lucrători, în special de afecțiuni dorsolombare",
+      "portalId": 74429
+    },
+    {
+      "id": "hg-1058-2006",
+      "kind": "hg",
+      "number": "1058",
+      "year": 2006,
+      "name": "H.G. 1058/2006",
+      "title": "Hotărârea Guvernului nr. 1058 din 9 august 2006 privind cerințele minime pentru îmbunătățirea securității și protecția sănătății lucrătorilor care pot fi expuși unui potențial risc datorat atmosferelor explozive",
+      "portalId": 74664
+    },
+    {
+      "id": "hg-1091-2006",
+      "kind": "hg",
+      "number": "1091",
+      "year": 2006,
+      "name": "H.G. 1091/2006",
+      "title": "Hotărârea Guvernului nr. 1091 din 16 august 2006 privind cerințele minime de securitate și sănătate pentru locul de muncă",
+      "portalId": 74708
+    },
+    {
+      "id": "hg-1092-2006",
+      "kind": "hg",
+      "number": "1092",
+      "year": 2006,
+      "name": "H.G. 1092/2006",
+      "title": "Hotărârea Guvernului nr. 1092 din 16 august 2006 privind protecția lucrătorilor împotriva riscurilor legate de expunerea la agenți biologici în muncă",
+      "portalId": 74917
+    },
+    {
+      "id": "hg-1093-2006",
+      "kind": "hg",
+      "number": "1093",
+      "year": 2006,
+      "name": "H.G. 1093/2006",
+      "title": "Hotărârea Guvernului nr. 1093 din 16 august 2006 privind stabilirea cerințelor minime de securitate și sănătate pentru protecția lucrătorilor împotriva riscurilor legate de expunerea la locul de muncă la agenți cancerigeni sau mutageni ori la substanțe toxice pentru reproducere",
+      "portalId": 74889
+    },
+    {
+      "id": "hg-1146-2006",
+      "kind": "hg",
+      "number": "1146",
+      "year": 2006,
+      "name": "H.G. 1146/2006",
+      "title": "Hotărârea Guvernului nr. 1146 din 30 august 2006 privind cerințele minime de securitate și sănătate pentru utilizarea în muncă de către lucrători a echipamentelor de muncă",
+      "portalId": 75585
+    },
+    {
+      "id": "hg-1218-2006",
+      "kind": "hg",
+      "number": "1218",
+      "year": 2006,
+      "name": "H.G. 1218/2006",
+      "title": "Hotărârea Guvernului nr. 1218 din 6 septembrie 2006 privind stabilirea cerințelor minime de securitate și sănătate în muncă pentru asigurarea protecției lucrătorilor împotriva riscurilor legate de prezența agenților chimici",
+      "portalId": 75978
+    },
+    {
+      "id": "hg-1425-2006",
+      "kind": "hg",
+      "number": "1425",
+      "year": 2006,
+      "name": "H.G. 1425/2006",
+      "title": "Hotărârea Guvernului nr. 1425 din 11 octombrie 2006 pentru aprobarea Normelor metodologice de aplicare a prevederilor Legii securității și sănătății în muncă nr. 319/2006",
+      "portalId": 76337
+    },
+    {
+      "id": "hg-355-2007",
+      "kind": "hg",
+      "number": "355",
+      "year": 2007,
+      "name": "H.G. 355/2007",
+      "title": "Hotărârea Guvernului nr. 355 din 11 aprilie 2007 privind supravegherea sănătății lucrătorilor",
+      "portalId": 82130
+    },
+    {
+      "id": "hg-557-2007",
+      "kind": "hg",
+      "number": "557",
+      "year": 2007,
+      "name": "H.G. 557/2007",
+      "title": "Hotărârea Guvernului nr. 557 din 6 iunie 2007 privind completarea măsurilor destinate să promoveze îmbunătățirea securității și sănătății la locul de muncă pentru salariații încadrați în baza unui contract individual de muncă pe durată determinată și pentru salariații temporari încadrați la agenți de muncă temporară",
+      "portalId": 82920
+    },
+    {
+      "id": "hg-600-2007",
+      "kind": "hg",
+      "number": "600",
+      "year": 2007,
+      "name": "H.G. 600/2007",
+      "title": "Hotărârea Guvernului nr. 600 din 13 iunie 2007 privind protecția tinerilor la locul de muncă",
+      "portalId": 83571
+    },
+    {
+      "id": "hg-955-2010",
+      "kind": "hg",
+      "number": "955",
+      "year": 2010,
+      "name": "H.G. 955/2010",
+      "title": "Hotărârea Guvernului nr. 955 din 8 septembrie 2010 pentru modificarea și completarea Normelor metodologice de aplicare a prevederilor Legii securității și sănătății în muncă nr. 319/2006, aprobate prin Hotărârea Guvernului nr. 1425/2006",
+      "portalId": 122404
+    },
+    {
+      "id": "hg-520-2016",
+      "kind": "hg",
+      "number": "520",
+      "year": 2016,
+      "name": "H.G. 520/2016",
+      "title": "Hotărârea Guvernului nr. 520 din 20 iulie 2016 privind cerințele minime de securitate și sănătate referitoare la expunerea lucrătorilor la riscuri generate de câmpuri electromagnetice",
+      "portalId": 180509
+    },
+    {
+      "id": "hg-767-2016",
+      "kind": "hg",
+      "number": "767",
+      "year": 2016,
+      "name": "H.G. 767/2016",
+      "title": "Hotărârea Guvernului nr. 767 din 19 octombrie 2016 pentru modificarea și completarea unor acte normative din domeniul sistemului asigurărilor pentru șomaj și stimularea ocupării forței de muncă și al securității și sănătății în muncă",
+      "portalId": 182836
+    },
+    {
+      "id": "hg-259-2022",
+      "kind": "hg",
+      "number": "259",
+      "year": 2022,
+      "name": "H.G. 259/2022",
+      "title": "Hotărârea Guvernului nr. 259 din 23 februarie 2022 pentru modificarea și completarea Normelor metodologice de aplicare a prevederilor Legii securității și sănătății în muncă nr. 319/2006, aprobate prin Hotărârea Guvernului nr. 1425/2006",
+      "portalId": 252418
+    },
+    {
+      "id": "ordin-427-2002",
+      "kind": "ordin",
+      "number": "427",
+      "year": 2002,
+      "name": "Ordinul 427/2002",
+      "title": "Ordinul nr. 427 din 14 iunie 2002 pentru aprobarea componenței trusei sanitare și a baremului de materiale, ce intră în dotarea posturilor de prim ajutor fără cadre medicale",
+      "portalId": 37502
+    },
+    {
+      "id": "ordin-450-825-2006",
+      "kind": "ordin",
+      "number": "450/825",
+      "year": 2006,
+      "name": "Ordinul 450/825/2006",
+      "title": "Ordinul ministrului muncii, solidarității sociale și familiei nr. 450 din 6 iunie 2006 și al ministrului sănătății publice nr. 825 din 5 iulie 2006 pentru aprobarea Normelor metodologice de aplicare a Legii nr. 346/2002 privind asigurarea pentru accidente de muncă și boli profesionale, cu modificările și completările ulterioare",
+      "portalId": 74362
+    },
+    {
+      "id": "omai-712-2005",
+      "kind": "omai",
+      "number": "712",
+      "year": 2005,
+      "name": "OMAI 712/2005",
+      "title": "Ordinul ministrului administrației și internelor nr. 712 din 23 iunie 2005 pentru aprobarea Dispozițiilor generale privind instruirea salariaților în domeniul prevenirii și stingerii incendiilor și instruirea în domeniul protecției civile",
+      "portalId": 63056
+    },
+    {
+      "id": "omai-106-2007",
+      "kind": "omai",
+      "number": "106",
+      "year": 2007,
+      "name": "OMAI 106/2007",
+      "title": "Ordinul ministrului administrației și internelor nr. 106 din 9 ianuarie 2007 pentru aprobarea Criteriilor de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor",
+      "portalId": 78704
+    },
+    {
+      "id": "omai-163-2007",
+      "kind": "omai",
+      "number": "163",
+      "year": 2007,
+      "name": "OMAI 163/2007",
+      "title": "Ordinul ministrului administrației și internelor nr. 163 din 28 februarie 2007 pentru aprobarea Normelor generale de apărare împotriva incendiilor",
+      "portalId": 80730
+    }
+  ]
+}

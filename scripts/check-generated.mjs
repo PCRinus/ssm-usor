@@ -9,6 +9,7 @@ const paths = [
   'apps/api/openapi.json',
   'apps/app/src/api/generated',
   'apps/app/src/routeTree.gen.ts',
+  'packages/document-engine/templates/citations.json',
 ];
 function snapshot() {
   const files = new Map();
@@ -27,13 +28,14 @@ function snapshot() {
 const before = snapshot();
 execFileSync('pnpm', ['generate:api'], { stdio: 'inherit' });
 execFileSync('pnpm', ['generate:routes'], { stdio: 'inherit' });
+execFileSync('pnpm', ['--filter', '@ssm-usor/document-engine', 'citations'], { stdio: 'inherit' });
 const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(
   (path) => before.get(path) !== after.get(path)
 );
 if (changed.length) {
   console.error(
-    `Generated API files were stale:\n${changed.join('\n')}\nReview and commit the regenerated files.`
+    `Generated files were stale:\n${changed.join('\n')}\nReview and commit the regenerated files.`
   );
   process.exitCode = 1;
 }

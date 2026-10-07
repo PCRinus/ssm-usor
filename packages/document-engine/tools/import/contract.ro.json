@@ -21,15 +21,15 @@
       "articles": [
         {
           "condition": "contract.coversOccupationalSafety",
-          "lead": "Contractul se încheie în temeiul Legii securității și sănătății în muncă nr. 319/2006, art. 8 alin. (4), privind recurgerea la servicii externe de prevenire și protecție, și al Normelor metodologice de aplicare a acesteia, aprobate prin H.G. nr. 1425/2006."
+          "lead": "Contractul se încheie în temeiul Legii 319/2006 – art. 8 alin. (4), privind recurgerea la servicii externe de prevenire și protecție, și al Normelor metodologice de aplicare a acesteia, aprobate prin H.G. 1425/2006."
         },
         {
           "condition": "contract.coversOccupationalSafety",
-          "lead": "Prestatorul este serviciu extern de prevenire și protecție în sensul Legii nr. 319/2006, art. 5 lit. p), și își desfășoară activitatea în baza Certificatului de abilitare nr. {{provider.authorization.number}} din {{provider.authorization.date}}, emis de {{provider.authorization.issuer}}, a cărui copie este anexată prezentului contract."
+          "lead": "Prestatorul este serviciu extern de prevenire și protecție în sensul Legii 319/2006 – art. 5 lit. p), și își desfășoară activitatea în baza Certificatului de abilitare nr. {{provider.authorization.number}} din {{provider.authorization.date}}, emis de {{provider.authorization.issuer}}, a cărui copie este anexată prezentului contract."
         },
         {
           "condition": "contract.coversFireSafety",
-          "lead": "În domeniul apărării împotriva incendiilor, contractul se încheie în temeiul Legii nr. 307/2006 privind apărarea împotriva incendiilor, art. 12 alin. (1) și (2) și art. 27, al Normelor generale de apărare împotriva incendiilor, aprobate prin Ordinul M.A.I. nr. 163/2007, art. 6 alin. (2), și al Ordinului M.A.I. nr. 106/2007 privind criteriile de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor."
+          "lead": "În domeniul apărării împotriva incendiilor, contractul se încheie în temeiul Legii 307/2006 privind apărarea împotriva incendiilor, art. 12 alin. (1) și (2) și art. 27, al Normelor generale de apărare împotriva incendiilor, aprobate prin OMAI 163/2007 – art. 6 alin. (2), și al OMAI 106/2007 privind criteriile de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor."
         },
         {
           "condition": "contract.coversFireSafety",
@@ -42,25 +42,25 @@
       "condition": "contract.coversOccupationalSafety",
       "articles": [
         {
-          "lead": "Prestatorul desfășoară pentru beneficiar activitățile de prevenire și protecție prevăzute de H.G. nr. 1425/2006, art. 15 alin. (1), în limitele stabilite de prezentul contract."
+          "lead": "Prestatorul desfășoară pentru beneficiar activitățile de prevenire și protecție prevăzute de H.G. 1425/2006 – art. 15 alin. (1), în limitele stabilite de prezentul contract."
         },
         {
           "lead": "Pe baza documentelor și a informațiilor puse la dispoziție de beneficiar, prestatorul:",
           "items": [
-            "identifică pericolele și evaluează riscurile pentru fiecare componentă a sistemului de muncă (executant, sarcină de muncă, mijloace de muncă și mediu de muncă), pe locuri de muncă și posturi de lucru (H.G. nr. 1425/2006, art. 15 alin. (1) pct. 1);",
+            "identifică pericolele și evaluează riscurile pentru fiecare componentă a sistemului de muncă (executant, sarcină de muncă, mijloace de muncă și mediu de muncă), pe locuri de muncă și posturi de lucru (H.G. 1425/2006 – art. 15 alin. (1) pct. 1);",
             "elaborează și actualizează planul de prevenire și protecție, ori de câte ori se modifică condițiile de muncă, apar riscuri noi sau se reface evaluarea riscurilor (pct. 2);",
             "elaborează instrucțiuni proprii pentru completarea și aplicarea reglementărilor de securitate și sănătate în muncă, ținând seama de particularitățile activităților, ale unității și ale posturilor de lucru (pct. 3);",
             "propune, în scris, atribuțiile și răspunderile în domeniul securității și sănătății în muncă ce revin lucrătorilor, corespunzător funcțiilor exercitate, pentru a fi consemnate în fișa postului (pct. 4);",
             "întocmește necesarul de documentații cu caracter tehnic de informare și instruire a lucrătorilor și necesarul de mijloace materiale în domeniu (pct. 6 și 31);",
             "elaborează tematica pentru toate fazele de instruire și propune periodicitatea instruirii și a verificării cunoștințelor pentru fiecare loc de muncă (pct. 7);",
             "elaborează programul de instruire-testare la nivelul unității și întocmește testele pentru instruirea la angajare și pentru cea periodică (pct. 8);",
-            "identifică echipamentele individuale de protecție necesare pentru posturile de lucru și întocmește necesarul de dotare a lucrătorilor, conform H.G. nr. 1048/2006 (pct. 20);",
+            "identifică echipamentele individuale de protecție necesare pentru posturile de lucru și întocmește necesarul de dotare a lucrătorilor, conform H.G. 1048/2006 (pct. 20);",
             "întocmește pentru angajator deciziile prin care se organizează activitățile de prevenire și protecție: instruirea lucrătorilor, primul ajutor, stingerea incendiilor și evacuarea lucrătorilor, pericolul grav și iminent, cercetarea evenimentelor;",
             "efectuează instruirea introductiv-generală a personalului nou angajat și verifică însușirea informațiilor primite (pct. 7);",
             "oferă sprijin de specialitate la instruirea periodică și la cea suplimentară, efectuate de conducătorii locurilor de muncă, și verifică anual, prin sondaj, cunoștințele lucrătorilor;",
             "completează fișele individuale de instruire cu materialul predat, datele lucrătorului și rezultatul verificării cunoștințelor;",
             "efectuează controale interne la locurile de muncă și informează în scris beneficiarul asupra deficiențelor constatate și a măsurilor propuse (pct. 17);",
-            "participă la cercetarea evenimentelor, potrivit competențelor prevăzute de H.G. nr. 1425/2006, art. 108–177 (pct. 22);",
+            "participă la cercetarea evenimentelor, potrivit competențelor prevăzute de H.G. 1425/2006 – art. 108–177 (pct. 22);",
             "urmărește realizarea măsurilor dispuse de inspectorii de muncă cu prilejul vizitelor de control și al cercetării evenimentelor (pct. 25);",
             "întocmește convențiile prin care se stabilește colaborarea cu alți angajatori, atunci când aceștia își desfășoară activitatea în locurile de muncă ale beneficiarului (pct. 27);",
             "informează în scris beneficiarul ori de câte ori este necesară actualizarea planului de prevenire și protecție și a planului de evacuare (pct. 28);",
@@ -187,7 +187,7 @@
           "lead": "Prestatorul răspunde pentru neîndeplinirea sau îndeplinirea necorespunzătoare a obligațiilor asumate prin prezentul contract."
         },
         {
-          "lead": "Beneficiarul răspunde, potrivit legii, pentru asigurarea securității și sănătății lucrătorilor în toate aspectele legate de muncă. Încheierea prezentului contract nu îl exonerează de această răspundere (Legea nr. 319/2006, art. 6 alin. (2))."
+          "lead": "Beneficiarul răspunde, potrivit legii, pentru asigurarea securității și sănătății lucrătorilor în toate aspectele legate de muncă. Încheierea prezentului contract nu îl exonerează de această răspundere (Legea 319/2006 – art. 6 alin. (2))."
         },
         {
           "lead": "Prestatorul nu răspunde pentru consecințele informațiilor incomplete sau inexacte primite de la beneficiar și nici pentru cele ale schimbărilor de personal, de echipamente sau de locuri de muncă despre care nu a fost anunțat în scris."

@@ -357,7 +357,7 @@ describe('the employer briefing', () => {
   it('names decision 1.5 as how the representatives are designated, when the pack has it', () => {
     const without = renderWith('employer_briefing', facts);
     expect(without).toContain(
-      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece unitatea are sub 10 lucrători (H.G. 1425/ 2006, art. 53 alin. (2)).'
+      'Numărul de reprezentanți ai lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă pentru S.C. PIPETECH S.R.L. nu este stabilit, deoarece unitatea are sub 10 lucrători (H.G. 1425/2006 – art. 53 alin. (2)).'
     );
     expect(without).not.toContain('sunt desemnați prin decizia internă');
 
