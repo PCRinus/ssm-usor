@@ -664,6 +664,36 @@ both `anon` and `authenticated` are revoked, so only the API's secret key reache
 | `confirmation_sent_at`    | When the latest confirmation email was handed to the provider; throttles more.   |
 | `confirmed_at`            | Set when the emailed link is followed. Only confirmed rows get the launch email. |
 
+## Legislation
+
+The legal acts the built-in templates cite are watched on the Portal Legislativ
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). Both tables belong to no
+organization: every member reads every row, nobody signed in writes, and the scheduled
+**Check legislation** workflow writes with the secret key ([CI](ci-cd.md)).
+
+`legal_acts` holds one row per act in `packages/document-engine/templates/legal-acts.json`,
+keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` and
+`portal_id` from the file, then what it read on the portal:
+
+| Column                     | Notes                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                   |
+| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                          |
+| `verified_consolidated_on` | The consolidated form the templates were verified against. Set by hand; the job never writes it.        |
+| `last_consolidated_on`     | The newest consolidated form seen.                                                                      |
+| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`). |
+| `last_checked_at`          | The last time the page was read.                                                                        |
+| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                        |
+
+`legal_changes` holds a **legal change**: a consolidated form newer than the last one seen, or
+newer than `verified_consolidated_on`, which is how the first run reports drift instead of
+taking today's form as the baseline. Without either date the first form seen is the baseline.
+A form is recorded once per act (unique `act_id`, `consolidated_on`), so the daily run can
+see it again without repeating it. `resolution` is `open` until it is `no_impact` or
+`template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
+says why. `document_template_versions.resolves_legal_change_id` names the change a template
+version answers.
+
 ## Working with the schema
 
 ```bash

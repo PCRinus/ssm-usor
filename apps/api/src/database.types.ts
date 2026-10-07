@@ -683,6 +683,7 @@ export type Database = {
           id: string;
           kind: string;
           note: string | null;
+          resolves_legal_change_id: string | null;
           sha256: string;
           storage_path: string;
           template_id: string;
@@ -693,6 +694,7 @@ export type Database = {
           id?: string;
           kind: string;
           note?: string | null;
+          resolves_legal_change_id?: string | null;
           sha256: string;
           storage_path: string;
           template_id: string;
@@ -703,12 +705,20 @@ export type Database = {
           id?: string;
           kind?: string;
           note?: string | null;
+          resolves_legal_change_id?: string | null;
           sha256?: string;
           storage_path?: string;
           template_id?: string;
           version?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: 'document_template_versions_resolves_legal_change_id_fkey';
+            columns: ['resolves_legal_change_id'];
+            isOneToOne: false;
+            referencedRelation: 'legal_changes';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'document_template_versions_template_id_fkey';
             columns: ['template_id'];
@@ -1380,6 +1390,89 @@ export type Database = {
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      legal_acts: {
+        Row: {
+          checked_by_hand_on: string | null;
+          created_at: string;
+          id: string;
+          last_amending_act: string | null;
+          last_checked_at: string | null;
+          last_consolidated_on: string | null;
+          name: string;
+          portal_id: number | null;
+          portal_status: string | null;
+          updated_at: string;
+          verified_consolidated_on: string | null;
+        };
+        Insert: {
+          checked_by_hand_on?: string | null;
+          created_at?: string;
+          id: string;
+          last_amending_act?: string | null;
+          last_checked_at?: string | null;
+          last_consolidated_on?: string | null;
+          name: string;
+          portal_id?: number | null;
+          portal_status?: string | null;
+          updated_at?: string;
+          verified_consolidated_on?: string | null;
+        };
+        Update: {
+          checked_by_hand_on?: string | null;
+          created_at?: string;
+          id?: string;
+          last_amending_act?: string | null;
+          last_checked_at?: string | null;
+          last_consolidated_on?: string | null;
+          name?: string;
+          portal_id?: number | null;
+          portal_status?: string | null;
+          updated_at?: string;
+          verified_consolidated_on?: string | null;
+        };
+        Relationships: [];
+      };
+      legal_changes: {
+        Row: {
+          act_id: string;
+          amending_act: string | null;
+          consolidated_on: string;
+          id: string;
+          resolution: string;
+          resolved_at: string | null;
+          resolved_by_note: string | null;
+          seen_at: string;
+        };
+        Insert: {
+          act_id: string;
+          amending_act?: string | null;
+          consolidated_on: string;
+          id?: string;
+          resolution?: string;
+          resolved_at?: string | null;
+          resolved_by_note?: string | null;
+          seen_at?: string;
+        };
+        Update: {
+          act_id?: string;
+          amending_act?: string | null;
+          consolidated_on?: string;
+          id?: string;
+          resolution?: string;
+          resolved_at?: string | null;
+          resolved_by_note?: string | null;
+          seen_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'legal_changes_act_id_fkey';
+            columns: ['act_id'];
+            isOneToOne: false;
+            referencedRelation: 'legal_acts';
             referencedColumns: ['id'];
           },
         ];
