@@ -360,6 +360,38 @@ export async function createEmployee(
   if (employee.error) throw employee.error;
 }
 
+// Moves one document back a template version rather than registering a new version, which
+// would put every client of the local stack behind (ADR 017).
+export async function putBehindItsTemplate(clientId: string, typeKey: string) {
+  const document = await admin
+    .from('client_documents')
+    .select('id, document_revisions(id, revision, template_version_id)')
+    .eq('client_id', clientId)
+    .eq('type_key', typeKey)
+    .single();
+  if (document.error) throw document.error;
+  const newest = document.data.document_revisions.sort((a, b) => b.revision - a.revision)[0]!;
+  const current = await admin
+    .from('document_template_versions')
+    .select('template_id, version')
+    .eq('id', newest.template_version_id)
+    .single();
+  if (current.error) throw current.error;
+  const older = await admin
+    .from('document_template_versions')
+    .select('id, version')
+    .eq('template_id', current.data.template_id)
+    .eq('version', current.data.version - 1)
+    .single();
+  if (older.error) throw older.error;
+  const moved = await admin
+    .from('document_revisions')
+    .update({ template_version_id: older.data.id })
+    .eq('id', newest.id);
+  if (moved.error) throw moved.error;
+  return older.data.version;
+}
+
 // What the recovery email would carry, without sending one.
 export async function recoveryTokenHash(email: string) {
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
@@ -407,6 +439,7 @@ export async function cleanUp() {
     const signedPaths = (signed.data ?? []).map((copy) => copy.storage_path as string);
     if (signedPaths.length > 0) await admin.storage.from('documents').remove(signedPaths);
     await admin.from('document_signed_copies').delete().eq('organization_id', id);
+    await admin.from('regeneration_jobs').delete().eq('organization_id', id);
     await admin.from('service_contract_sends').delete().eq('organization_id', id);
     await admin.from('document_revisions').delete().eq('organization_id', id);
     await admin.from('client_documents').delete().eq('organization_id', id);
