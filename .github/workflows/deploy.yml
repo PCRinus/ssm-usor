@@ -314,6 +314,11 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
+      # The script validates each manifest entry with the contracts package, which resolves to
+      # its built output.
+      - name: Build the contracts package
+        run: pnpm --filter @ssm-usor/contracts build
+
       # A file already in Storage is not sent again, and a hash already registered stays the
       # version it was, so this does nothing when no template changed.
       - name: Upload and register the built-in templates
