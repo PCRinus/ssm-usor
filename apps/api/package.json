@@ -24,6 +24,7 @@
     "@scalar/hono-api-reference": "^0.12.2",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
+    "@ssm-usor/legislation-check": "workspace:*",
     "@supabase/supabase-js": "^2.117.2",
     "hono": "^4.13.7",
     "zod": "^4.6.4"

@@ -1,9 +1,11 @@
-import { setTimeout as sleep } from 'node:timers/promises';
-
 export const portalOrigin = 'https://legislatie.just.ro';
 export const portalUserAgent =
   'ssm-usor-legislation-check/1.0 (+https://github.com/PCRinus/ssm-usor)';
 export const portalPauseMs = 2_000;
+
+// Wall time, not CPU time: a Worker's cron handler may wait minutes in all, while its CPU limit
+// counts only the parsing.
+export const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export type PortalStatus = 'in_force' | 'repealed';
 
@@ -181,7 +183,7 @@ export async function fetchPortalAct(portalId: number, options: PortalOptions = 
   const pageUrl = `${portalOrigin}/Public/DetaliiDocument/${portalId}`;
   const page = parseActPage(await (await request(pageUrl, {}, fetchImpl)).text(), portalId);
   // A government site with no API: one request at a time, with a pause between them.
-  await sleep(options.pauseMs ?? portalPauseMs);
+  await pause(options.pauseMs ?? portalPauseMs);
   const actionsUrl = `${portalOrigin}/Public/actiuniSuferite`;
   const response = await request(
     actionsUrl,

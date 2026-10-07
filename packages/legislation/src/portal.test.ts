@@ -12,7 +12,7 @@ import {
 } from './portal';
 
 const fixture = (name: string) =>
-  readFileSync(new URL(`../../fixtures/legislation/${name}`, import.meta.url), 'utf8');
+  readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8');
 
 const lawPage = fixture('lege-319-2006.html');
 const lawActions = JSON.parse(fixture('lege-319-2006-actions.json')) as unknown;

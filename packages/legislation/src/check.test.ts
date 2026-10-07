@@ -3,14 +3,12 @@ import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Database } from '../../../src/database.types';
 import { checkLegislation, isNewer, legalActsSchema, summarize } from './check';
+import type { LegislationDatabase } from './database';
 import type { PortalAct } from './portal';
 
 const { acts } = legalActsSchema.parse(
-  JSON.parse(
-    readFileSync(new URL('../../fixtures/legislation/legal-acts.json', import.meta.url), 'utf8')
-  )
+  JSON.parse(readFileSync(new URL('../fixtures/legal-acts.json', import.meta.url), 'utf8'))
 );
 const [law, norms, order] = acts as [(typeof acts)[0], (typeof acts)[0], (typeof acts)[0]];
 
@@ -43,7 +41,7 @@ function database(rows: Row[], options: { changeExists?: boolean } = {}) {
     }
     throw new Error(`Unexpected request: ${method} ${url}`);
   });
-  const db = createClient<Database>('https://example.supabase.co', 'sb_secret_test', {
+  const db = createClient<LegislationDatabase>('https://example.supabase.co', 'sb_secret_test', {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: fetchMock },
   });
@@ -173,7 +171,7 @@ describe('checking the watched acts', () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ message: 'permission denied' }, { status: 401 }));
-    const db = createClient<Database>('https://example.supabase.co', 'sb_secret_test', {
+    const db = createClient<LegislationDatabase>('https://example.supabase.co', 'sb_secret_test', {
       global: { fetch: fetchMock },
       auth: { persistSession: false },
     });

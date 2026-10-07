@@ -4,22 +4,31 @@ import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
-import { createClient } from '@supabase/supabase-js';
+import { legalActs } from '@ssm-usor/document-engine/citations';
+import {
+  createLegislationClient,
+  describeRun,
+  legalActsSchema,
+  type LegislationTables,
+  runLegislationCheck,
+} from '@ssm-usor/legislation-check';
 import { z } from 'zod';
 
 import type { Database } from '../src/database.types';
-import { checkLegislation, legalActsSchema, summarize } from './lib/legislation/check';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
-// Run daily by .github/workflows/legislation.yml, or by hand:
+// apps/legislation runs the same check every morning. By hand:
 //   pnpm legislation:check          hosted project from SUPABASE_URL (apps/api/.env.seed)
 //   pnpm legislation:check:local    local Docker stack
 // Either takes --acts <file.json>, another act list in the shape of legal-acts.json.
 
-const actsUrl = new URL(
-  '../../../packages/document-engine/templates/legal-acts.json',
-  import.meta.url
-);
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+// The package keeps its own copy of these tables' types; this fails when they drift apart.
+const tablesMatch: Same<
+  Pick<Database['public']['Tables'], keyof LegislationTables>,
+  LegislationTables
+> = true;
+void tablesMatch;
 
 try {
   const { values } = parseArgs({
@@ -31,22 +40,18 @@ try {
         .object({ SUPABASE_URL: z.url(), SUPABASE_SECRET_KEY: z.string().min(1).optional() })
         .transform((value) => ({ url: value.SUPABASE_URL, secret: value.SUPABASE_SECRET_KEY }))
         .parse(process.env);
-  const secret = config.secret ?? secretFromCli(config.url);
-  // The secret key bypasses row-level security; it is used only here, never in the Worker.
-  const client = createClient<Database>(config.url, secret, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: {
-      fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }),
-    },
-  });
+  const client = createLegislationClient(config.url, config.secret ?? secretFromCli(config.url));
 
-  const source = values.acts ? path.resolve(process.env.INIT_CWD ?? '.', values.acts) : actsUrl;
-  const { acts } = legalActsSchema.parse(JSON.parse(readFileSync(source, 'utf8')));
-  const outcomes = await checkLegislation(client, acts);
-  console.log(summarize(outcomes));
+  const { acts } = legalActsSchema.parse(
+    values.acts
+      ? JSON.parse(readFileSync(path.resolve(process.env.INIT_CWD ?? '.', values.acts), 'utf8'))
+      : { acts: legalActs() }
+  );
+  const run = await runLegislationCheck(client, acts);
+  console.log(describeRun(run));
   console.log(`Checked against ${new URL(config.url).hostname}.`);
   // A page that could not be read fails the run, which is the alert; the others are saved.
-  if (outcomes.some((outcome) => outcome.result === 'failed')) process.exitCode = 1;
+  if (run.status === 'failed') process.exitCode = 1;
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'Checking the legislation failed.');
   process.exitCode = 1;

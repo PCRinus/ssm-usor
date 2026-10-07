@@ -1,10 +1,7 @@
-import { setTimeout as sleep } from 'node:timers/promises';
-
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-import type { Database } from '../../../src/database.types';
-import { fetchPortalAct, type PortalAct, portalPauseMs } from './portal';
+import type { LegislationClient, LegislationTables } from './database';
+import { fetchPortalAct, pause, type PortalAct, portalPauseMs } from './portal';
 
 export const legalActsSchema = z.object({
   acts: z.array(
@@ -23,7 +20,7 @@ export const legalActsSchema = z.object({
 export type LegalAct = z.infer<typeof legalActsSchema>['acts'][number];
 
 type ActRow = Pick<
-  Database['public']['Tables']['legal_acts']['Row'],
+  LegislationTables['legal_acts']['Row'],
   'id' | 'last_consolidated_on' | 'verified_consolidated_on'
 >;
 
@@ -47,10 +44,10 @@ export function isNewer(newest: string | null, row: ActRow) {
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-type CheckOptions = { readAct?: (portalId: number) => Promise<PortalAct>; pauseMs?: number };
+export type CheckOptions = { readAct?: (portalId: number) => Promise<PortalAct>; pauseMs?: number };
 
 export async function checkLegislation(
-  db: SupabaseClient<Database>,
+  db: LegislationClient,
   acts: LegalAct[],
   options: CheckOptions = {}
 ) {
@@ -75,7 +72,7 @@ export async function checkLegislation(
       continue;
     }
     // A government site with no API: one act at a time, with a pause between them.
-    if (!first) await sleep(options.pauseMs ?? portalPauseMs);
+    if (!first) await pause(options.pauseMs ?? portalPauseMs);
     first = false;
     try {
       outcomes.push(await checkAct(db, act, row, await readAct(act.portalId)));
@@ -87,7 +84,7 @@ export async function checkLegislation(
 }
 
 async function checkAct(
-  db: SupabaseClient<Database>,
+  db: LegislationClient,
   act: LegalAct,
   row: ActRow,
   portal: PortalAct
