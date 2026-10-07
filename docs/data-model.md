@@ -667,9 +667,10 @@ both `anon` and `authenticated` are revoked, so only the API's secret key reache
 ## Legislation
 
 The legal acts the built-in templates cite are watched on the Portal Legislativ
-([ADR 017](architecture/adr-017-legislation-monitoring.md)). Both tables belong to no
-organization: every member reads every row, nobody signed in writes, and the scheduled
-**Check legislation** workflow writes with the secret key ([CI](ci-cd.md)).
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). The three tables belong to no
+organization: every member reads every row, nobody signed in writes, and the daily check
+writes with the secret key, run by the cron of the legislation Worker
+([deployment](deployment.md#legislation-worker)) or by `pnpm legislation:check`.
 
 `legal_acts` holds one row per act in `packages/document-engine/templates/legal-acts.json`,
 keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` and
@@ -693,6 +694,21 @@ see it again without repeating it. `resolution` is `open` until it is `no_impact
 `template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
 says why. `document_template_versions.resolves_legal_change_id` names the change a template
 version answers.
+
+`legal_check_runs` logs every run of the check, because a cron that fails tells nobody. A run
+inserts its row as `running` when it starts and updates it when it ends, even when the check
+throws, so the Legislație page can warn when the latest run failed or is too old:
+
+| Column          | Notes                                                                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`        | `running`, `succeeded` or `failed`. `finished_at` is set exactly when it is not `running`; a row left `running` was cut off.                   |
+| `acts_checked`  | Acts whose page was read.                                                                                                                      |
+| `changes_found` | Legal changes this run recorded; a change seen again on a later day is not counted again.                                                      |
+| `acts_skipped`  | Acts without a portal id.                                                                                                                      |
+| `errors`        | Null when nothing failed; otherwise `[{ "act", "message" }]`, one per act whose page could not be read, `act` null when the run itself failed. |
+
+A run that read some pages and not others is `failed`; the acts it did read are saved all the
+same.
 
 ## Working with the schema
 

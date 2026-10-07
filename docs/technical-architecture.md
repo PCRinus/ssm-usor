@@ -134,6 +134,8 @@ The full product backend will eventually need capabilities that do not belong in
 
 Model these as background jobs with durable retries and audit records. Cloudflare Queues or Workflows may orchestrate them. Because document conversion libraries and workers commonly require a normal server runtime, CPU-intensive or native conversion may run in a separately deployed EU-hosted Node.js/container worker.
 
+The first scheduled job is the daily legislation check ([ADR 017](architecture/adr-017-legislation-monitoring.md)): `apps/legislation`, a Worker with no routes whose only entry is a cron trigger. It reads every watched act on the Portal Legislativ and records what changed in Supabase with the secret key. The check itself, the portal client and the act-list schema live in `packages/legislation` (`@ssm-usor/legislation-check`), which is runtime-neutral (Web `fetch`, no Node APIs), so the Worker and the `pnpm legislation:check` script for a laptop share it; the act list comes from the document engine's `@ssm-usor/document-engine/citations` entry. Every run is logged in `legal_check_runs`, because a cron that fails is otherwise silent. A Cloudflare cron was chosen over a scheduled GitHub Action, which GitHub delays and drops, and the later resolution steps of ADR 017 are meant to live in the same Worker.
+
 ## Shared-code rules
 
 - `packages/contracts` contains schemas, identifiers, API payloads, and generated or hand-maintained client types. It cannot import database or Node-only code.
@@ -151,6 +153,7 @@ Keep the deployment units separate even though the source is in one repository:
 www.<domain> / <domain>  -> apps/marketing -> Cloudflare Workers Static Assets
 app.<domain>             -> apps/app -> Cloudflare Workers Static Assets
 api.<domain>             -> apps/api       -> Cloudflare Worker
+(no route, cron)         -> apps/legislation -> Cloudflare Worker, daily legislation check
 background jobs          -> queues/workflows -> portable processing workers
 ```
 

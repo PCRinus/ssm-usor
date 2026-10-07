@@ -118,6 +118,7 @@ The marketing site does not need Supabase settings.
 | React SPA         | http://localhost:5173  |
 | Hono API          | http://localhost:8787  |
 | Mail Worker       | http://localhost:8790  |
+| Legislation cron  | http://localhost:8792  |
 | Marketing         | http://localhost:4321  |
 | Supabase API/Auth | http://127.0.0.1:54321 |
 | Supabase Studio   | http://127.0.0.1:54323 |
@@ -143,6 +144,40 @@ To receive them from your own `pnpm dev` instead, point the `uri` in `supabase/c
 at port 8787, restart the stack (`pnpm supabase:stop`, `pnpm supabase:start`), and give the API
 the `SUPABASE_AUTH_HOOK_SECRET` from `apps/api/.dev.vars.example`. The mail Worker then logs
 the email, or sends it when it holds a Resend key. Do not commit that change.
+
+## Legislation check
+
+The daily check of the watched acts ([deployment](deployment.md#legislation-worker)) runs
+against the local stack in two ways. Both read the real Portal Legislativ, one act every few
+seconds, so a full run takes about four minutes, and both log the run in `legal_check_runs`.
+The tables come from the migrations, so a stack started before them needs
+`supabase migration up --local` first.
+
+The script, from Node:
+
+```bash
+pnpm legislation:check:local
+pnpm legislation:check:local --acts packages/legislation/fixtures/legal-acts.json
+```
+
+`--acts` takes another act list in the shape of the engine's `legal-acts.json`; the fixture
+above holds three acts and runs in seconds. `pnpm legislation:check` does the same against
+the hosted project, from `SUPABASE_URL` in `apps/api/.env.seed`.
+
+The Worker's cron, in `wrangler dev`: copy `apps/legislation/.dev.vars.example` to `.dev.vars`
+and put in the local secret key from `pnpm supabase:status`, build the packages it imports, and
+start it with scheduled events exposed over HTTP:
+
+```bash
+pnpm --filter @ssm-usor/document-engine --filter @ssm-usor/legislation-check build
+pnpm legislation:cron
+curl "http://localhost:8792/__scheduled?cron=17+3+*+*+*"
+```
+
+`pnpm legislation:cron` runs `wrangler dev --test-scheduled` on port 8792. The `curl` returns
+when the run ends; the Worker's terminal prints a line per act and the run's outcome, and a
+failed run answers `500`, as Cloudflare marks the invocation failed. It is not part of
+`pnpm dev`. Never put the hosted secret key in `.dev.vars`.
 
 ## Stop or switch back
 
