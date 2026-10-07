@@ -664,6 +664,52 @@ both `anon` and `authenticated` are revoked, so only the API's secret key reache
 | `confirmation_sent_at`    | When the latest confirmation email was handed to the provider; throttles more.   |
 | `confirmed_at`            | Set when the emailed link is followed. Only confirmed rows get the launch email. |
 
+## Legislation
+
+The legal acts the built-in templates cite are watched on the Portal Legislativ
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). The three tables belong to no
+organization: every member reads every row, nobody signed in writes, and the daily check
+writes with the secret key, run by the cron of the legislation Worker
+([deployment](deployment.md#legislation-worker)) or by `pnpm legislation:check`.
+
+`legal_acts` holds one row per act in `packages/document-engine/templates/legal-acts.json`,
+keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` and
+`portal_id` from the file, then what it read on the portal:
+
+| Column                     | Notes                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                   |
+| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                          |
+| `verified_consolidated_on` | The consolidated form the templates were verified against. Set by hand; the job never writes it.        |
+| `last_consolidated_on`     | The newest consolidated form seen.                                                                      |
+| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`). |
+| `last_checked_at`          | The last time the page was read.                                                                        |
+| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                        |
+
+`legal_changes` holds a **legal change**: a consolidated form newer than the last one seen, or
+newer than `verified_consolidated_on`, which is how the first run reports drift instead of
+taking today's form as the baseline. Without either date the first form seen is the baseline.
+A form is recorded once per act (unique `act_id`, `consolidated_on`), so the daily run can
+see it again without repeating it. `resolution` is `open` until it is `no_impact` or
+`template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
+says why. `document_template_versions.resolves_legal_change_id` names the change a template
+version answers.
+
+`legal_check_runs` logs every run of the check, because a cron that fails tells nobody. A run
+inserts its row as `running` when it starts and updates it when it ends, even when the check
+throws, so the Legislație page can warn when the latest run failed or is too old:
+
+| Column          | Notes                                                                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`        | `running`, `succeeded` or `failed`. `finished_at` is set exactly when it is not `running`; a row left `running` was cut off.                   |
+| `acts_checked`  | Acts whose page was read.                                                                                                                      |
+| `changes_found` | Legal changes this run recorded; a change seen again on a later day is not counted again.                                                      |
+| `acts_skipped`  | Acts without a portal id.                                                                                                                      |
+| `errors`        | Null when nothing failed; otherwise `[{ "act", "message" }]`, one per act whose page could not be read, `act` null when the run itself failed. |
+
+A run that read some pages and not others is `failed`; the acts it did read are saved all the
+same.
+
 ## Working with the schema
 
 ```bash

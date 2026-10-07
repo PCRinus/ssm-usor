@@ -12,6 +12,10 @@ that has nothing to do, and no run that a newer run makes pointless. A composite
 shares steps inside one job; a reusable workflow would have added jobs.
 A separate manual **Seed database** workflow seeds the hosted project on demand; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project).
+The daily legislation check is not a workflow: it is the cron trigger of the
+`ssm-usor-legislation` Worker (`apps/legislation`), which this workflow deploys like the mail
+Worker. A scheduled Action ran it at first and was dropped, because GitHub's scheduler delays
+and skips runs where Cloudflare's fires on time.
 
 ## Change selection
 
@@ -28,16 +32,17 @@ available as a required PR check, including on documentation-only changes.
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                          |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
+| `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
 | `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                                    |
 | `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker                            |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
 | `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)       |
-| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All four                                             |
+| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All of them                                          |
 | Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs                 |
 
 Rules are intentionally conservative: an application-local test or configuration change also
-selects that application. A lockfile change selects all four; we do not maintain custom
+selects that application. A lockfile change selects all of them; we do not maintain custom
 lockfile dependency analysis. Add shared build inputs to both the filters and Turbo's cache
 inputs when introducing them. Generated API files must still be committed and pass
 `pnpm check:generated`.
@@ -67,7 +72,7 @@ dry-run task depends on that build.
 
 Each production build uploads a `release-<application>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`
-assets. Deployment jobs download their matching artifact. API, mail, and marketing upload the
+assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, and marketing upload the
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
@@ -81,6 +86,10 @@ and consumes, and creates it when it is missing, because `wrangler deploy` refus
 a queue that does not exist; the deployment token needs **Queues → Edit** for that
 ([deployment guide](deployment.md#create-the-cloudflare-api-token)). The step can be repeated:
 an existing queue is left as it is.
+The legislation Worker deploys after the migrations, since its cron writes to a table they
+create, with the production `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
+as a secret. Unlike the API, it fails without either, because the cron could not even
+record that it ran.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the hosted
 project with `supabase config push`, after the API, because the Send Email hook it declares

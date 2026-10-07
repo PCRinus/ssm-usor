@@ -20,6 +20,7 @@ import { healthRouter } from './modules/health';
 import { instructionModulesRouter } from './modules/instruction-modules';
 import { invitationsRouter } from './modules/invitations';
 import { jobPositionsRouter } from './modules/job-positions';
+import { legislationRouter } from './modules/legislation';
 import { meRouter } from './modules/me';
 import { organizationRouter } from './modules/organization';
 import { protectiveEquipmentRouter } from './modules/protective-equipment';
@@ -76,6 +77,7 @@ export function createApp() {
   app.route('/', serviceContractsRouter);
   app.route('/', contractReturnsRouter);
   app.route('/', organizationRouter);
+  app.route('/', legislationRouter);
   app.route('/', invitationsRouter);
   app.route('/', waitlistRouter);
   app.route('/', authHooksRouter);

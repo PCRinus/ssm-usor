@@ -17,7 +17,11 @@ import { createServer } from 'node:http';
 import type { MailService } from '@ssm-usor/contracts';
 
 import { createApp } from '../src/app';
-import type { ApiEnv } from '../src/lib/env';
+import type { ApiEnv, RegenerationQueue } from '../src/lib/env';
+import {
+  consumeRegenerationBatch,
+  lastDelivery,
+} from '../src/modules/documents/regeneration-queue';
 
 const supabaseUrl = process.env.SUPABASE_URL ?? '';
 if (!/^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(supabaseUrl)) {
@@ -46,6 +50,23 @@ const mail: MailService = {
   sendSignedCopyReceived: ({ to, leadUrl }) => record('signed-copy-received', to, leadUrl),
 };
 
+// Every message arrives as its last delivery: an error fails its item instead of waiting for a
+// retry this queue never makes.
+const regenerationQueue: RegenerationQueue = {
+  sendBatch(messages) {
+    const batch = {
+      messages: [...messages].map(({ body }) => ({
+        body,
+        attempts: lastDelivery,
+        ack() {},
+        retry() {},
+      })),
+    };
+    setTimeout(() => void consumeRegenerationBatch(batch, env), 200);
+    return Promise.resolve();
+  },
+};
+
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: supabaseUrl,
   SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
@@ -55,6 +76,7 @@ const env: ApiEnv['Bindings'] = {
   APP_ORIGIN: process.env.APP_ORIGIN,
   GOTENBERG_URL: process.env.GOTENBERG_URL || undefined,
   MAIL: mail,
+  REGENERATION_QUEUE: regenerationQueue,
 };
 
 const app = createApp();

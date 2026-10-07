@@ -22,7 +22,11 @@ export const password = 'Parola-e2e-1';
 const run = `${Date.now().toString(36)}w${process.env.TEST_WORKER_INDEX ?? ''}`;
 export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
 
-const created = { users: [] as string[], organizations: [] as string[] };
+const created = {
+  users: [] as string[],
+  organizations: [] as string[],
+  templateVersions: [] as { id: string; storagePath: string }[],
+};
 
 export async function createAccount(name: string, fullName?: string) {
   const email = addressOf(name);
@@ -360,6 +364,57 @@ export async function createEmployee(
   if (employee.error) throw employee.error;
 }
 
+// A newer version, because a fresh stack has no older one to move the document back to. Until
+// `cleanUp`, every document of the type in the stack is behind with this one.
+export async function putBehindItsTemplate(clientId: string, typeKey: string) {
+  const document = await admin
+    .from('client_documents')
+    .select('document_revisions(revision, template_version_id)')
+    .eq('client_id', clientId)
+    .eq('type_key', typeKey)
+    .single();
+  if (document.error) throw document.error;
+  const newest = document.data.document_revisions.sort((a, b) => b.revision - a.revision)[0]!;
+  const generatedFrom = await admin
+    .from('document_template_versions')
+    .select('template_id, version')
+    .eq('id', newest.template_version_id)
+    .single();
+  if (generatedFrom.error) throw generatedFrom.error;
+  const latest = await admin
+    .from('document_template_versions')
+    .select('version, storage_path, sha256')
+    .eq('template_id', generatedFrom.data.template_id)
+    .order('version', { ascending: false })
+    .limit(1)
+    .single();
+  if (latest.error) throw latest.error;
+  const sha256 = createHash('sha256').update(`${latest.data.sha256} ${run}`).digest('hex');
+  const storagePath = `built-in/${typeKey}/${sha256}.docx`;
+  const copied = await admin.storage
+    .from('document-templates')
+    .copy(latest.data.storage_path, storagePath);
+  if (copied.error) throw copied.error;
+  const version = await admin
+    .from('document_template_versions')
+    .insert({
+      template_id: generatedFrom.data.template_id,
+      version: latest.data.version + 1,
+      storage_path: storagePath,
+      sha256,
+      kind: 'correction',
+      note: 'Versiune adăugată de testele E2E.',
+    })
+    .select('id')
+    .single();
+  if (version.error) {
+    await admin.storage.from('document-templates').remove([storagePath]);
+    throw version.error;
+  }
+  created.templateVersions.push({ id: version.data.id, storagePath });
+  return generatedFrom.data.version;
+}
+
 // What the recovery email would carry, without sending one.
 export async function recoveryTokenHash(email: string) {
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
@@ -407,6 +462,7 @@ export async function cleanUp() {
     const signedPaths = (signed.data ?? []).map((copy) => copy.storage_path as string);
     if (signedPaths.length > 0) await admin.storage.from('documents').remove(signedPaths);
     await admin.from('document_signed_copies').delete().eq('organization_id', id);
+    await admin.from('regeneration_jobs').delete().eq('organization_id', id);
     await admin.from('service_contract_sends').delete().eq('organization_id', id);
     await admin.from('document_revisions').delete().eq('organization_id', id);
     await admin.from('client_documents').delete().eq('organization_id', id);
@@ -427,6 +483,13 @@ export async function cleanUp() {
     await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
+  }
+  for (const version of created.templateVersions) {
+    const removed = await admin.from('document_template_versions').delete().eq('id', version.id);
+    // A test running beside this one generated a document from it, which keeps it in place.
+    if (removed.error?.code === '23503') continue;
+    if (removed.error) throw removed.error;
+    await admin.storage.from('document-templates').remove([version.storagePath]);
   }
 }
 

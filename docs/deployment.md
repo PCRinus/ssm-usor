@@ -84,8 +84,8 @@ Worker bundle and static assets instead of rebuilding. See [CI/CD](ci-cd.md) for
 caching, and failed-release recovery.
 
 Each deployment is annotated with the sanitized commit subject and short commit SHA in its
-message, built by the shared `.github/actions/deployment-message` action that the mail, API,
-and SPA deployments use too. The version tag is the full commit SHA on all four Workers.
+message, built by the shared `.github/actions/deployment-message` action that every Worker
+deployment uses. The version tag is the full commit SHA on all of them.
 A version that only uploads a secret carries no message; the dashboard lists it next to the
 annotated one.
 
@@ -147,6 +147,36 @@ which always passes and pairs with the test secret in `apps/api/.dev.vars.exampl
 mail Worker. The pages under `/abonare/` are where that link lands; they are `noindex` and
 left out of the sitemap. When the consent sentence changes, bump `waitlist.consentVersion` in
 `copy.ts`, because the version is stored with every subscription.
+
+## Legislation Worker
+
+The daily legislation check ([ADR 017](architecture/adr-017-legislation-monitoring.md)) is the
+`ssm-usor-legislation` Worker in `apps/legislation`. It has no routes and no `workers.dev`
+address; its only entry is a cron trigger, `17 3 * * *` in `wrangler.jsonc`: 03:17 UTC, 05:17
+in Bucharest in winter and 06:17 in summer. To change the time, change the file and deploy.
+
+It reads every watched act on the Portal Legislativ, records newer consolidated forms, and
+logs each run in `legal_check_runs` ([data model](data-model.md#legislation)). It needs two
+values, both set by the **Deploy legislation Worker** job from the `production` environment:
+
+| Worker value          | Kind     | From                                                                      |
+| --------------------- | -------- | ------------------------------------------------------------------------- |
+| `SUPABASE_URL`        | Variable | The `VITE_SUPABASE_URL` variable, as for the API                          |
+| `SUPABASE_SECRET_KEY` | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security |
+
+The job fails when either is missing. A run takes about four minutes, most of it the two-second
+pause between requests to the portal; that is wall time, which a cron invocation may spend up
+to fifteen minutes of, while the 30-second CPU limit counts only the parsing. It makes about two
+hundred subrequests, within the Workers Paid limit.
+
+A failed run shows three ways: the row in `legal_check_runs` says `failed`, with one error per
+act it could not read; the invocation is marked failed under the Worker's **Cron Events** in
+the Cloudflare dashboard; and its log, with one line per act, is in the Worker's
+observability logs. A row left `running` is a run that was cut off.
+
+To run the check without waiting for the morning, run `pnpm legislation:check` from a laptop
+([local development](local-development.md#legislation-check)); it does the same work and logs
+its run in the same table.
 
 ## Local development and preview
 

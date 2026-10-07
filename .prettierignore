@@ -20,3 +20,7 @@ apps/app/src/routeTree.gen.ts
 
 # The provider's originals and their specs; git ignores them too.
 packages/document-engine/originals/
+
+# Answers of legislatie.just.ro kept byte for byte, for the portal parser's tests.
+packages/legislation/fixtures/*.html
+packages/legislation/fixtures/*-actions.json

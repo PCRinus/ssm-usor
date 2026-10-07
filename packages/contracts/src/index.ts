@@ -17,6 +17,7 @@ export * from './iban';
 export * from './instruction-modules';
 export * from './invitations';
 export * from './job-positions';
+export * from './legislation';
 export * from './list';
 export * from './mail';
 export * from './organizations';

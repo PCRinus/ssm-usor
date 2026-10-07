@@ -6582,6 +6582,211 @@
         },
         "required": ["role"]
       },
+      "LegalActListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "portalId": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 0,
+                  "exclusiveMinimum": true
+                },
+                "portalStatus": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["in_force", "repealed", null]
+                },
+                "verifiedConsolidatedOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "lastConsolidatedOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "lastAmendingAct": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "lastCheckedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "checkedByHandOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "portalId",
+                "portalStatus",
+                "verifiedConsolidatedOn",
+                "lastConsolidatedOn",
+                "lastAmendingAct",
+                "lastCheckedAt",
+                "checkedByHandOn"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "LegalChangeListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "act": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "portalId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    }
+                  },
+                  "required": ["id", "name", "portalId"]
+                },
+                "seenAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "consolidatedOn": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "amendingAct": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "resolution": {
+                  "type": "string",
+                  "enum": ["open", "no_impact", "template_version"]
+                },
+                "resolvedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "resolvedByNote": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "act",
+                "seenAt",
+                "consolidatedOn",
+                "amendingAct",
+                "resolution",
+                "resolvedAt",
+                "resolvedByNote"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "LatestLegalCheckRunResponse": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "finishedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["running", "succeeded", "failed"]
+              },
+              "actsChecked": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "changesFound": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "actsSkipped": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "errors": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "act": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["act", "message"]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "startedAt",
+              "finishedAt",
+              "status",
+              "actsChecked",
+              "changesFound",
+              "actsSkipped",
+              "errors"
+            ]
+          }
+        },
+        "required": ["run"]
+      },
       "InvitationListResponse": {
         "type": "object",
         "properties": {
@@ -18675,6 +18880,198 @@
           },
           "409": {
             "description": "The caller's own membership; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legislation/acts": {
+      "get": {
+        "operationId": "listLegalActs",
+        "summary": "List the watched legal acts",
+        "description": "The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017). The same for every organization; not paginated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The watched acts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalActListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legislation/changes": {
+      "get": {
+        "operationId": "listLegalChanges",
+        "summary": "List the legal changes",
+        "description": "Newer consolidated forms of the watched acts, newest first, each with its act and how it was resolved. The same for every organization; not paginated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The legal changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalChangeListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legislation/runs/latest": {
+      "get": {
+        "operationId": "getLatestLegalCheckRun",
+        "summary": "Get the latest run of the legislation check",
+        "description": "The run of the daily check that started last, or null before the first. A run still \"running\" long after it started was cut off. The same for every organization.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The latest run, or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestLegalCheckRunResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
             "content": {
               "application/json": {
                 "schema": {

@@ -96,6 +96,7 @@ function mockApi({
     Response.json({ created: [firstAid, report], skipped: [] }, { status: 201 })) as Route,
   action = (() => Response.json({ document: firstAid })) as Route,
   upload = (() => Response.json({ document: firstAid })) as Route,
+  behind = [] as unknown[],
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -111,6 +112,7 @@ function mockApi({
       });
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === '/documents/behind') return Response.json({ items: behind });
     if (pathname === `/clients/${clientId}/documents`) {
       return Response.json({ items, lastGeneration, notApplicable, currentEmployeeCount });
     }
@@ -549,6 +551,64 @@ describe('client documents', () => {
       'între 1 și 9995'
     );
     expect(requests('/documents/generate', 'POST')).toHaveLength(0);
+  });
+
+  it('marks a document generated from an older template version than the newest', async () => {
+    const newestVersion = {
+      version: 4,
+      kind: 'correction',
+      note: 'Diacriticele din antet sunt corectate.',
+    };
+    mockApi({
+      items: [firstAid, report],
+      behind: [
+        {
+          typeKey: 'decision_first_aid',
+          title: firstAid.title,
+          newestVersion,
+          runningJobId: null,
+          clients: [
+            {
+              documentId: firstAidId,
+              clientId,
+              clientName: sampleClient.legalName,
+              version: 3,
+              editedDraft: false,
+            },
+          ],
+        },
+        {
+          typeKey: 'control_report',
+          title: report.title,
+          newestVersion,
+          runningJobId: null,
+          clients: [
+            {
+              documentId: '0d1e2f3a-4b5c-4d6e-8f70-8192a3b4c5d6',
+              clientId: '6f1e2d3c-4b5a-4968-8776-655443322110',
+              clientName: 'ALT CLIENT SRL',
+              version: 3,
+              editedDraft: false,
+            },
+          ],
+        },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '1');
+    const [decision] = await screen.findAllByTestId('document-row');
+    const badge = await within(decision!).findByTestId('document-behind');
+    expect(badge.textContent).toBe('Șablon actualizat');
+    expect(badge.getAttribute('title')).toBe(
+      'Versiunea 4 a șablonului: Diacriticele din antet sunt corectate. Generează documentul din nou ca să o preia.'
+    );
+
+    await openSection(user, '8');
+    await waitFor(() => expect(screen.getAllByTestId('document-row')).toHaveLength(1));
+    expect(within(screen.getByTestId('document-row')).queryByTestId('document-behind')).toBeNull();
+    expect(requests('/documents/behind', 'GET')).toHaveLength(1);
   });
 
   it('lists documents in the sections of the binder, one section open at a time', async () => {

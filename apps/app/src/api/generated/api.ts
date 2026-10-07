@@ -4364,6 +4364,120 @@ export interface ChangeMemberRoleRequest {
   role: ChangeMemberRoleRequestRole;
 }
 
+/**
+ * @nullable
+ */
+export type LegalActListResponseItemsItemPortalStatus =
+  | (typeof LegalActListResponseItemsItemPortalStatus)[keyof typeof LegalActListResponseItemsItemPortalStatus]
+  | null;
+
+export const LegalActListResponseItemsItemPortalStatus = {
+  in_force: 'in_force',
+  repealed: 'repealed',
+} as const;
+
+export type LegalActListResponseItemsItem = {
+  id: string;
+  name: string;
+  /**
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  portalId: number | null;
+  /** @nullable */
+  portalStatus: LegalActListResponseItemsItemPortalStatus;
+  /** @nullable */
+  verifiedConsolidatedOn: string | null;
+  /** @nullable */
+  lastConsolidatedOn: string | null;
+  /** @nullable */
+  lastAmendingAct: string | null;
+  /** @nullable */
+  lastCheckedAt: string | null;
+  /** @nullable */
+  checkedByHandOn: string | null;
+};
+
+export interface LegalActListResponse {
+  items: LegalActListResponseItemsItem[];
+}
+
+export type LegalChangeListResponseItemsItemAct = {
+  id: string;
+  name: string;
+  /**
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  portalId: number | null;
+};
+
+export type LegalChangeListResponseItemsItemResolution =
+  (typeof LegalChangeListResponseItemsItemResolution)[keyof typeof LegalChangeListResponseItemsItemResolution];
+
+export const LegalChangeListResponseItemsItemResolution = {
+  open: 'open',
+  no_impact: 'no_impact',
+  template_version: 'template_version',
+} as const;
+
+export type LegalChangeListResponseItemsItem = {
+  id: string;
+  act: LegalChangeListResponseItemsItemAct;
+  seenAt: string;
+  consolidatedOn: string;
+  /** @nullable */
+  amendingAct: string | null;
+  resolution: LegalChangeListResponseItemsItemResolution;
+  /** @nullable */
+  resolvedAt: string | null;
+  /** @nullable */
+  resolvedByNote: string | null;
+};
+
+export interface LegalChangeListResponse {
+  items: LegalChangeListResponseItemsItem[];
+}
+
+export type LatestLegalCheckRunResponseRunStatus =
+  (typeof LatestLegalCheckRunResponseRunStatus)[keyof typeof LatestLegalCheckRunResponseRunStatus];
+
+export const LatestLegalCheckRunResponseRunStatus = {
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+} as const;
+
+export type LatestLegalCheckRunResponseRunErrorsItem = {
+  /** @nullable */
+  act: string | null;
+  message: string;
+};
+
+/**
+ * @nullable
+ */
+export type LatestLegalCheckRunResponseRun = {
+  id: string;
+  startedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  status: LatestLegalCheckRunResponseRunStatus;
+  /** @minimum 0 */
+  actsChecked: number;
+  /** @minimum 0 */
+  changesFound: number;
+  /** @minimum 0 */
+  actsSkipped: number;
+  /** @nullable */
+  errors: LatestLegalCheckRunResponseRunErrorsItem[] | null;
+} | null;
+
+export interface LatestLegalCheckRunResponse {
+  /** @nullable */
+  run: LatestLegalCheckRunResponseRun;
+}
+
 export type InvitationListResponseItemsItemRole =
   (typeof InvitationListResponseItemsItemRole)[keyof typeof InvitationListResponseItemsItemRole];
 
@@ -18373,6 +18487,360 @@ export const useRemoveMember = <TError = ErrorType<ApiErrorResponse>, TContext =
 > => {
   return useMutation(getRemoveMemberMutationOptions(options), queryClient);
 };
+
+export const getListLegalActsUrl = () => {
+  return `/legislation/acts`;
+};
+
+/**
+ * The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017). The same for every organization; not paginated.
+ * @summary List the watched legal acts
+ */
+export const listLegalActs = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<LegalActListResponse> => {
+  return apiFetch<LegalActListResponse>(getListLegalActsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListLegalActsQueryKey = () => {
+  return [`/legislation/acts`] as const;
+};
+
+export const getListLegalActsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLegalActs>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalActs>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListLegalActsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLegalActs>>> = ({ signal }) =>
+    listLegalActs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalActs>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListLegalActsQueryResult = NonNullable<Awaited<ReturnType<typeof listLegalActs>>>;
+export type ListLegalActsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListLegalActs<
+  TData = Awaited<ReturnType<typeof listLegalActs>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalActs>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listLegalActs>>,
+          TError,
+          Awaited<ReturnType<typeof listLegalActs>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListLegalActs<
+  TData = Awaited<ReturnType<typeof listLegalActs>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalActs>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listLegalActs>>,
+          TError,
+          Awaited<ReturnType<typeof listLegalActs>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListLegalActs<
+  TData = Awaited<ReturnType<typeof listLegalActs>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalActs>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the watched legal acts
+ */
+
+export function useListLegalActs<
+  TData = Awaited<ReturnType<typeof listLegalActs>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalActs>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListLegalActsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListLegalChangesUrl = () => {
+  return `/legislation/changes`;
+};
+
+/**
+ * Newer consolidated forms of the watched acts, newest first, each with its act and how it was resolved. The same for every organization; not paginated.
+ * @summary List the legal changes
+ */
+export const listLegalChanges = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<LegalChangeListResponse> => {
+  return apiFetch<LegalChangeListResponse>(getListLegalChangesUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListLegalChangesQueryKey = () => {
+  return [`/legislation/changes`] as const;
+};
+
+export const getListLegalChangesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListLegalChangesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLegalChanges>>> = ({ signal }) =>
+    listLegalChanges({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalChanges>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListLegalChangesQueryResult = NonNullable<Awaited<ReturnType<typeof listLegalChanges>>>;
+export type ListLegalChangesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListLegalChanges<
+  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listLegalChanges>>,
+          TError,
+          Awaited<ReturnType<typeof listLegalChanges>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListLegalChanges<
+  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listLegalChanges>>,
+          TError,
+          Awaited<ReturnType<typeof listLegalChanges>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListLegalChanges<
+  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the legal changes
+ */
+
+export function useListLegalChanges<
+  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListLegalChangesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetLatestLegalCheckRunUrl = () => {
+  return `/legislation/runs/latest`;
+};
+
+/**
+ * The run of the daily check that started last, or null before the first. A run still "running" long after it started was cut off. The same for every organization.
+ * @summary Get the latest run of the legislation check
+ */
+export const getLatestLegalCheckRun = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<LatestLegalCheckRunResponse> => {
+  return apiFetch<LatestLegalCheckRunResponse>(getGetLatestLegalCheckRunUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetLatestLegalCheckRunQueryKey = () => {
+  return [`/legislation/runs/latest`] as const;
+};
+
+export const getGetLatestLegalCheckRunQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLatestLegalCheckRunQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLatestLegalCheckRun>>> = ({ signal }) =>
+    getLatestLegalCheckRun({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetLatestLegalCheckRunQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLatestLegalCheckRun>>
+>;
+export type GetLatestLegalCheckRunQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+          TError,
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+          TError,
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the latest run of the legislation check
+ */
+
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetLatestLegalCheckRunQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListInvitationsUrl = () => {
   return `/organization/invitations`;

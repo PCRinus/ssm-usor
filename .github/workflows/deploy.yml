@@ -35,6 +35,7 @@ jobs:
       app: ${{ steps.select.outputs.app }}
       mail: ${{ steps.select.outputs.mail }}
       pdf: ${{ steps.select.outputs.pdf }}
+      legislation: ${{ steps.select.outputs.legislation }}
       marketing: ${{ steps.select.outputs.marketing }}
       database: ${{ steps.select.outputs.database }}
       templates: ${{ steps.select.outputs.templates }}
@@ -83,12 +84,12 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
         run: |
-          all='["api","app","mail","pdf","marketing","database","templates"]'
+          all='["api","app","mail","pdf","legislation","marketing","database","templates"]'
           if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
           for name in $(jq -r '.[]' <<< "$all"); do
             echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
           done
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "mail", "pdf", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "mail", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -179,7 +180,7 @@ jobs:
           for project in $(jq -r '.[]' <<< "$PROJECTS"); do
             mkdir -p "$RUNNER_TEMP/release-$project"
             cp -R "apps/$project/.wrangler/deploy" "$RUNNER_TEMP/release-$project/worker"
-            if [[ "$project" != api && "$project" != mail && "$project" != pdf ]]; then
+            if [[ "$project" != api && "$project" != mail && "$project" != pdf && "$project" != legislation ]]; then
               cp -R "apps/$project/dist" "$RUNNER_TEMP/release-$project/dist"
             fi
           done
@@ -223,6 +224,17 @@ jobs:
         with:
           name: release-pdf-${{ github.sha }}
           path: ${{ runner.temp }}/release-pdf/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated legislation release
+        if: needs.changes.outputs.legislation == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-legislation-${{ github.sha }}
+          path: ${{ runner.temp }}/release-legislation/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -410,6 +422,66 @@ jobs:
             --message "${{ steps.metadata.outputs.message }}"
           # Uploaded only once the key exists, so the Worker can ship before the Resend account does.
           secrets: ${{ env.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
+
+  deploy-legislation:
+    name: Deploy legislation Worker
+    needs: [changes, validate, build, deploy-database]
+    # After the migrations: the check records every run in a table one of them creates. A
+    # skipped migration job is fine only when the database was not selected.
+    if: >-
+      !cancelled() &&
+      needs.changes.outputs.legislation == 'true' &&
+      needs.validate.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.deploy-database.result == 'success' ||
+        (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
+    runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-legislation
+      cancel-in-progress: false
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      # Without them the cron fails every morning before it can record a run.
+      - name: Check legislation settings
+        shell: bash
+        run: |
+          : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
+          : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-legislation-${{ github.sha }}
+          path: apps/legislation/.wrangler/release
+
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
+      - name: Deploy validated legislation bundle
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/legislation
+          packageManager: pnpm
+          command: >-
+            deploy .wrangler/release/worker/index.js --no-bundle
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
+          vars: |
+            SUPABASE_URL
+          secrets: |
+            SUPABASE_SECRET_KEY
 
   deploy-api:
     name: Deploy API

@@ -35,6 +35,12 @@ pdf:
   - *shared
   - 'apps/pdf/**'
   - 'packages/contracts/src/pdf.ts'
+# The Worker bundles the act list from the engine.
+legislation:
+  - *shared
+  - 'apps/legislation/**'
+  - 'packages/legislation/**'
+  - 'packages/document-engine/**'
 marketing:
   - *shared
   - *ui

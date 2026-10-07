@@ -48,9 +48,11 @@ import {
   getDocumentDownload,
   getInstructionModuleFileLink,
   getListClientDocumentsQueryKey,
+  getListDocumentsBehindQueryKey,
   useDeleteDocumentDraft,
   useIssueDocument,
   useListClientDocuments,
+  useListDocumentsBehind,
   useRegenerateDocument,
   useStartDocumentDraft,
   useUploadClientDocument,
@@ -147,6 +149,11 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
     : 'Se creează o ciornă nouă din șablon, completată cu datele de acum ale clientului, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”. Revizia emisă rămâne în vigoare până când emiți ciorna.';
 }
 
+function newerTemplateHint({ version, note }: { version: number; note: string | null }) {
+  const change = note ? `: ${note.replace(/[.!]?$/, '.')}` : '.';
+  return `Versiunea ${version} a șablonului${change} Generează documentul din nou ca să o preia.`;
+}
+
 // `readOnly` is an archived client: what exists can still be downloaded.
 export function DocumentsCard<Set extends DocumentSet>({
   set,
@@ -172,6 +179,10 @@ export function DocumentsCard<Set extends DocumentSet>({
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
   });
+  const behind = useListDocumentsBehind({
+    request: apiRequest,
+    query: { queryKey: [...getListDocumentsBehindQueryKey(), userId], enabled: !readOnly },
+  });
   const regenerate = useRegenerateDocument({ request: apiRequest });
   const issue = useIssueDocument({ request: apiRequest });
   const remove = useDeleteDocumentDraft({ request: apiRequest });
@@ -192,6 +203,13 @@ export function DocumentsCard<Set extends DocumentSet>({
     startDraft.isPending;
 
   const items = documents.data?.items ?? [];
+  const newerTemplate = new Map(
+    (behind.data?.items ?? []).flatMap((type) =>
+      type.clients
+        .filter((client) => client.clientId === clientId)
+        .map((client) => [client.documentId, type.newestVersion] as const)
+    )
+  );
   const existing = new Set(items.map((item) => item.typeKey));
   const notApplicable = new Set<string>(documents.data?.notApplicable);
   const typeKeys: readonly BuiltInDocumentTypeKey[] = documentSetTypeKeys[set];
@@ -269,6 +287,7 @@ export function DocumentsCard<Set extends DocumentSet>({
             : `Nu am putut încărca fișierul pentru „${target.title}”. Verifică conexiunea și încearcă din nou.`
       );
     }
+    void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
@@ -374,6 +393,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     }
     setConfirming(null);
     // Also after a failure: a 404 or a 409 means the list on screen is out of date.
+    void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
@@ -579,6 +599,15 @@ export function DocumentsCard<Set extends DocumentSet>({
                                         title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
                                       >
                                         Date modificate
+                                      </Badge>
+                                    )}
+                                    {newerTemplate.has(document.id) && (
+                                      <Badge
+                                        variant="outline"
+                                        data-testid="document-behind"
+                                        title={newerTemplateHint(newerTemplate.get(document.id)!)}
+                                      >
+                                        Șablon actualizat
                                       </Badge>
                                     )}
                                   </span>
