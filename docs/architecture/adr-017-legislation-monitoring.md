@@ -35,9 +35,11 @@ The verification date makes the first run meaningful. When the content issues th
 
 The Monitorul Oficial's table of contents, where an amendment appears weeks before the portal consolidates it, was considered as a second signal and left for later. A subscription to a legal database's alerts was rejected: the signal is a list of dates on a public page, and the subscription would add a monthly cost and a dependency on a vendor's email format.
 
-### Changes are resolved in the repository, by a scheduled job, through a pull request
+### Changes are resolved by a scheduled Worker, through a pull request
 
-The job that watches the acts runs as a scheduled GitHub Action, not in the API Worker, and the same job resolves what it finds. The reason is where templates live: a fix is a new template file, and that file has to pass the template tests, be reviewed and merge before `templates:register` publishes it, or the repository would hold the old file and the next deploy would publish it back. The Action has the checked-out repository, Node, the test suite, the engine's own Word helpers and a GitHub token; a Worker would have to rebuild the Word tooling without a filesystem to open the same pull request. Running the pipeline in Cloudflare's AI Worker was rejected for that reason, not for the model. The Action writes the watched acts and changes to the database the way the register script does, with the secret key.
+The job that watches the acts and resolves what it finds runs in a Worker of its own, `apps/legislation`, on a Cloudflare cron trigger, beside the mail and PDF Workers. It writes the watched acts, the changes and a log of its own runs to the database with the secret key. A fix is still a new template file that passes the template tests and merges before `templates:register` publishes it, or the repository would hold the old file and the next deploy would publish it back; the Worker opens that pull request through the GitHub API, binary files included, and the pull request's own CI runs the tests.
+
+(Amended 2026-10-07. The first draft of this section put the job in a scheduled GitHub Action, on the grounds that only a checked-out repository could edit Word files and run the template tests before opening a pull request. The first ground was wrong: the engine edits Word XML inside the API Worker at every rendering, and the citation parser runs on the same helpers. The second is worth little: a text-only edit of a run leaves every other part of the file untouched, as the citation wording pass showed, and the pull request's CI runs the tests anyway. What tipped it: Cloudflare's cron fires on time where GitHub's scheduler delays and drops runs; the model is a binding in a Worker, where an Action would call it over HTTP; and either home needs a GitHub App or token, since a pull request opened with an Action's own token triggers no CI. One thing the Action gave for free is lost, the email on a failed run; in its place the Worker records every run in `legal_check_runs`, and the Legislație page warns when the last run failed or is older than two days, which also keeps the alert in the app. The check script remains for manual runs from a laptop.)
 
 On a change the job works in this order:
 
@@ -76,7 +78,7 @@ Regenerating a document type for every client behind it is one action on the pag
 
 - The templates get machine-checked for how they cite the law. A template that quotes an act the index does not know, or that the portal has repealed, fails the build, and every act's spelling is one.
 - The product depends on a government site's HTML. The dependency is contained to one job whose failure is visible, and the feature falls back to a manual check with a recorded date rather than to a stale "checked" state.
-- The repository gains a scheduled Action that writes to the database and opens pull requests, with a model API key and the database's secret key among its secrets. The API gains its first queue.
+- A third sibling Worker joins mail and PDF, with a cron trigger, the database's secret key, a GitHub token and a model gateway among its secrets, and it opens pull requests. The API gains its first queue.
 - Template versions become meaningful to users: release notes per template, with a kind that decides whether anyone is asked to act.
 - The provider's sign-off stays the gate on legal content, as a merge, and the whole pipeline before it is automatic.
 - "Resolving" a change has no screen and no role: it happens in the repository, in a pull request and the registration that follows its merge. Members read; nobody in the app writes to the legislation data.
@@ -85,12 +87,12 @@ Regenerating a document type for every client behind it is one action on the pag
 
 1. This ADR and the glossary in `CONTEXT.md`.
 2. The citation wording pass on the templates: one spelling per act, one separator before the article.
-3. The parser, the index file, the hygiene test and the act list with portal ids; the spike that fetches a portal page from an Action and reads the portal's robots.txt.
+3. The parser, the index file, the hygiene test and the act list with portal ids; the spike that fetches a portal page from a Worker and reads the portal's robots.txt.
 4. The note, kind and resolved change on template versions, in the database function, the manifests and `templates:register`.
-5. The watched acts and legal changes in the database; the scheduled Action's detection step, with its failure as the alert; the verification dates once the content issues close.
+5. The watched acts, legal changes and run log in the database; the legislation Worker's daily check, with the run log as its alert; the verification dates once the content issues close.
 6. The Legislație page, read-only, with the documents behind.
 7. The queue and bulk regeneration from the page.
-8. The resolution steps of the Action: the text comparison, the model's proposal, the pull request and the issue it falls back to.
+8. The resolution steps of the Worker: the text comparison, the model's proposal, the pull request and the issue it falls back to.
 
 ## Open
 
