@@ -6719,6 +6719,74 @@
         },
         "required": ["items"]
       },
+      "LatestLegalCheckRunResponse": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "finishedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["running", "succeeded", "failed"]
+              },
+              "actsChecked": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "changesFound": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "actsSkipped": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "errors": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "act": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["act", "message"]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "startedAt",
+              "finishedAt",
+              "status",
+              "actsChecked",
+              "changesFound",
+              "actsSkipped",
+              "errors"
+            ]
+          }
+        },
+        "required": ["run"]
+      },
       "InvitationListResponse": {
         "type": "object",
         "properties": {
@@ -18924,6 +18992,70 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LegalChangeListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legislation/runs/latest": {
+      "get": {
+        "operationId": "getLatestLegalCheckRun",
+        "summary": "Get the latest run of the legislation check",
+        "description": "The run of the daily check that started last, or null before the first. A run still \"running\" long after it started was cut off. The same for every organization.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The latest run, or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestLegalCheckRunResponse"
                 }
               }
             }

@@ -1,5 +1,9 @@
 import { createRoute } from '@hono/zod-openapi';
-import { legalActListResponseSchema, legalChangeListResponseSchema } from '@ssm-usor/contracts';
+import {
+  latestLegalCheckRunResponseSchema,
+  legalActListResponseSchema,
+  legalChangeListResponseSchema,
+} from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
@@ -42,6 +46,28 @@ export const listLegalChangesRoute = createRoute({
       content: {
         'application/json': {
           schema: legalChangeListResponseSchema.meta({ id: 'LegalChangeListResponse' }),
+        },
+      },
+    },
+    ...membershipErrors,
+  },
+});
+
+export const getLatestLegalCheckRunRoute = createRoute({
+  method: 'get',
+  path: '/legislation/runs/latest',
+  operationId: 'getLatestLegalCheckRun',
+  summary: 'Get the latest run of the legislation check',
+  description:
+    'The run of the daily check that started last, or null before the first. A run still "running" long after it started was cut off. The same for every organization.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  responses: {
+    200: {
+      description: 'The latest run, or null',
+      content: {
+        'application/json': {
+          schema: latestLegalCheckRunResponseSchema.meta({ id: 'LatestLegalCheckRunResponse' }),
         },
       },
     },

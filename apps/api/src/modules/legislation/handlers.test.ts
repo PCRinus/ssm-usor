@@ -1,5 +1,6 @@
 import {
   apiErrorResponseSchema,
+  latestLegalCheckRunResponseSchema,
   legalActListResponseSchema,
   legalChangeListResponseSchema,
 } from '@ssm-usor/contracts';
@@ -162,5 +163,46 @@ describe('GET /legislation/changes', () => {
     const response = await createApp().request('/legislation/changes', {}, env);
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /legislation/runs/latest', () => {
+  const failedRun = {
+    id: 'e1e1e1e1-0000-4000-8000-000000000001',
+    started_at: '2026-10-07T03:17:01+00:00',
+    finished_at: '2026-10-07T03:21:40+00:00',
+    status: 'failed',
+    acts_checked: 49,
+    changes_found: 0,
+    acts_skipped: 0,
+    errors: [{ act: 'hg-1425-2006', message: 'Page 76337 answered 503.' }],
+  };
+
+  it('returns the run that started last', async () => {
+    mockUpstream({ legal_check_runs: () => Response.json([failedRun]) });
+    const response = await request('/legislation/runs/latest');
+    expect(response.status).toBe(200);
+    expect(latestLegalCheckRunResponseSchema.parse(await response.json())).toEqual({
+      run: {
+        id: 'e1e1e1e1-0000-4000-8000-000000000001',
+        startedAt: '2026-10-07T03:17:01+00:00',
+        finishedAt: '2026-10-07T03:21:40+00:00',
+        status: 'failed',
+        actsChecked: 49,
+        changesFound: 0,
+        actsSkipped: 0,
+        errors: [{ act: 'hg-1425-2006', message: 'Page 76337 answered 503.' }],
+      },
+    });
+    const [query] = searchParams('legal_check_runs');
+    expect(query!.get('order')).toBe('started_at.desc,id.asc');
+    expect(query!.get('limit')).toBe('1');
+  });
+
+  it('returns null before the first run', async () => {
+    mockUpstream({ legal_check_runs: () => Response.json([]) });
+    const response = await request('/legislation/runs/latest');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ run: null });
   });
 });

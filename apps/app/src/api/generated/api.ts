@@ -4439,6 +4439,45 @@ export interface LegalChangeListResponse {
   items: LegalChangeListResponseItemsItem[];
 }
 
+export type LatestLegalCheckRunResponseRunStatus =
+  (typeof LatestLegalCheckRunResponseRunStatus)[keyof typeof LatestLegalCheckRunResponseRunStatus];
+
+export const LatestLegalCheckRunResponseRunStatus = {
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+} as const;
+
+export type LatestLegalCheckRunResponseRunErrorsItem = {
+  /** @nullable */
+  act: string | null;
+  message: string;
+};
+
+/**
+ * @nullable
+ */
+export type LatestLegalCheckRunResponseRun = {
+  id: string;
+  startedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  status: LatestLegalCheckRunResponseRunStatus;
+  /** @minimum 0 */
+  actsChecked: number;
+  /** @minimum 0 */
+  changesFound: number;
+  /** @minimum 0 */
+  actsSkipped: number;
+  /** @nullable */
+  errors: LatestLegalCheckRunResponseRunErrorsItem[] | null;
+} | null;
+
+export interface LatestLegalCheckRunResponse {
+  /** @nullable */
+  run: LatestLegalCheckRunResponseRun;
+}
+
 export type InvitationListResponseItemsItemRole =
   (typeof InvitationListResponseItemsItemRole)[keyof typeof InvitationListResponseItemsItemRole];
 
@@ -18669,6 +18708,132 @@ export function useListLegalChanges<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListLegalChangesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetLatestLegalCheckRunUrl = () => {
+  return `/legislation/runs/latest`;
+};
+
+/**
+ * The run of the daily check that started last, or null before the first. A run still "running" long after it started was cut off. The same for every organization.
+ * @summary Get the latest run of the legislation check
+ */
+export const getLatestLegalCheckRun = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<LatestLegalCheckRunResponse> => {
+  return apiFetch<LatestLegalCheckRunResponse>(getGetLatestLegalCheckRunUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetLatestLegalCheckRunQueryKey = () => {
+  return [`/legislation/runs/latest`] as const;
+};
+
+export const getGetLatestLegalCheckRunQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLatestLegalCheckRunQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLatestLegalCheckRun>>> = ({ signal }) =>
+    getLatestLegalCheckRun({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetLatestLegalCheckRunQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLatestLegalCheckRun>>
+>;
+export type GetLatestLegalCheckRunQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+          TError,
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+          TError,
+          Awaited<ReturnType<typeof getLatestLegalCheckRun>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the latest run of the legislation check
+ */
+
+export function useGetLatestLegalCheckRun<
+  TData = Awaited<ReturnType<typeof getLatestLegalCheckRun>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getLatestLegalCheckRun>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetLatestLegalCheckRunQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

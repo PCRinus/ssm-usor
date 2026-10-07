@@ -50,3 +50,33 @@ export type LegalChange = z.infer<typeof legalChangeSchema>;
 export const legalChangeListResponseSchema = z.object({ items: z.array(legalChangeSchema) });
 
 export type LegalChangeListResponse = z.infer<typeof legalChangeListResponseSchema>;
+
+export const legalCheckRunStatuses = ['running', 'succeeded', 'failed'] as const;
+
+export const legalCheckRunStatusSchema = z.enum(legalCheckRunStatuses);
+
+export type LegalCheckRunStatus = z.infer<typeof legalCheckRunStatusSchema>;
+
+export const legalCheckRunErrorSchema = z.object({
+  // Null when the run itself failed, not one act's page.
+  act: z.string().nullable(),
+  message: z.string(),
+});
+
+export const legalCheckRunSchema = z.object({
+  id: z.uuid(),
+  startedAt: z.iso.datetime({ offset: true }),
+  // Null while the run goes on, and for good when it was cut off.
+  finishedAt: z.iso.datetime({ offset: true }).nullable(),
+  status: legalCheckRunStatusSchema,
+  actsChecked: z.int().nonnegative(),
+  changesFound: z.int().nonnegative(),
+  actsSkipped: z.int().nonnegative(),
+  errors: z.array(legalCheckRunErrorSchema).nullable(),
+});
+
+export type LegalCheckRun = z.infer<typeof legalCheckRunSchema>;
+
+export const latestLegalCheckRunResponseSchema = z.object({ run: legalCheckRunSchema.nullable() });
+
+export type LatestLegalCheckRunResponse = z.infer<typeof latestLegalCheckRunResponseSchema>;

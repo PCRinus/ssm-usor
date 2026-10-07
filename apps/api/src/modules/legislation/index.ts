@@ -1,7 +1,8 @@
 import { createRouter } from '../../router';
-import { listLegalActs, listLegalChanges } from './handlers';
-import { listLegalActsRoute, listLegalChangesRoute } from './routes';
+import { getLatestLegalCheckRun, listLegalActs, listLegalChanges } from './handlers';
+import { getLatestLegalCheckRunRoute, listLegalActsRoute, listLegalChangesRoute } from './routes';
 
 export const legislationRouter = createRouter()
   .openapi(listLegalActsRoute, listLegalActs)
-  .openapi(listLegalChangesRoute, listLegalChanges);
+  .openapi(listLegalChangesRoute, listLegalChanges)
+  .openapi(getLatestLegalCheckRunRoute, getLatestLegalCheckRun);
