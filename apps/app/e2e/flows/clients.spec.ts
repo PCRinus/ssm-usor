@@ -46,6 +46,9 @@ test('an owner archives a client, finds it among the archived, and restores it',
   await page.goto('/clients');
   await expect(page.getByTestId('clients-documentation')).toHaveText('Negenerată');
   await expect(page.getByTestId('clients-positions-work')).toHaveText('de adăugat');
+  // The archive action waits for /me to say this is an owner, and the row menu is rebuilt then,
+  // closing it if it is already open.
+  await expect(page.getByTestId('account-organization')).toHaveText('Arhivă E2E');
 
   await page.getByTestId('clients-row-menu').click();
   await page.getByTestId('clients-archive').click();
