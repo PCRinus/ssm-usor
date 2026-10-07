@@ -3065,6 +3065,26 @@ export type ClientDocumentListResponseItemsItemDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type ClientDocumentListResponseItemsItemDraftTemplateVersionKind =
+  (typeof ClientDocumentListResponseItemsItemDraftTemplateVersionKind)[keyof typeof ClientDocumentListResponseItemsItemDraftTemplateVersionKind];
+
+export const ClientDocumentListResponseItemsItemDraftTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemDraftTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: ClientDocumentListResponseItemsItemDraftTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
+} | null;
+
 export type ClientDocumentListResponseItemsItemDraftAnnexesItemVersion = {
   id: string;
   /** @minimum 1 */
@@ -3110,6 +3130,8 @@ export type ClientDocumentListResponseItemsItemDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentListResponseItemsItemDraftReceivedCopy;
+  /** @nullable */
+  templateVersion: ClientDocumentListResponseItemsItemDraftTemplateVersion;
   annexes: ClientDocumentListResponseItemsItemDraftAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3128,6 +3150,26 @@ export const ClientDocumentListResponseItemsItemIssuedStatus = {
  */
 export type ClientDocumentListResponseItemsItemIssuedReceivedCopy = {
   uploadedAt: string;
+} | null;
+
+export type ClientDocumentListResponseItemsItemIssuedTemplateVersionKind =
+  (typeof ClientDocumentListResponseItemsItemIssuedTemplateVersionKind)[keyof typeof ClientDocumentListResponseItemsItemIssuedTemplateVersionKind];
+
+export const ClientDocumentListResponseItemsItemIssuedTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentListResponseItemsItemIssuedTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: ClientDocumentListResponseItemsItemIssuedTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
 } | null;
 
 export type ClientDocumentListResponseItemsItemIssuedAnnexesItemVersion = {
@@ -3175,6 +3217,8 @@ export type ClientDocumentListResponseItemsItemIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentListResponseItemsItemIssuedReceivedCopy;
+  /** @nullable */
+  templateVersion: ClientDocumentListResponseItemsItemIssuedTemplateVersion;
   annexes: ClientDocumentListResponseItemsItemIssuedAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3260,6 +3304,26 @@ export type GenerateDocumentsResponseCreatedItemDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type GenerateDocumentsResponseCreatedItemDraftTemplateVersionKind =
+  (typeof GenerateDocumentsResponseCreatedItemDraftTemplateVersionKind)[keyof typeof GenerateDocumentsResponseCreatedItemDraftTemplateVersionKind];
+
+export const GenerateDocumentsResponseCreatedItemDraftTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemDraftTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: GenerateDocumentsResponseCreatedItemDraftTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
+} | null;
+
 export type GenerateDocumentsResponseCreatedItemDraftAnnexesItemVersion = {
   id: string;
   /** @minimum 1 */
@@ -3305,6 +3369,8 @@ export type GenerateDocumentsResponseCreatedItemDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: GenerateDocumentsResponseCreatedItemDraftReceivedCopy;
+  /** @nullable */
+  templateVersion: GenerateDocumentsResponseCreatedItemDraftTemplateVersion;
   annexes: GenerateDocumentsResponseCreatedItemDraftAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3323,6 +3389,26 @@ export const GenerateDocumentsResponseCreatedItemIssuedStatus = {
  */
 export type GenerateDocumentsResponseCreatedItemIssuedReceivedCopy = {
   uploadedAt: string;
+} | null;
+
+export type GenerateDocumentsResponseCreatedItemIssuedTemplateVersionKind =
+  (typeof GenerateDocumentsResponseCreatedItemIssuedTemplateVersionKind)[keyof typeof GenerateDocumentsResponseCreatedItemIssuedTemplateVersionKind];
+
+export const GenerateDocumentsResponseCreatedItemIssuedTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GenerateDocumentsResponseCreatedItemIssuedTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: GenerateDocumentsResponseCreatedItemIssuedTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
 } | null;
 
 export type GenerateDocumentsResponseCreatedItemIssuedAnnexesItemVersion = {
@@ -3370,6 +3456,8 @@ export type GenerateDocumentsResponseCreatedItemIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: GenerateDocumentsResponseCreatedItemIssuedReceivedCopy;
+  /** @nullable */
+  templateVersion: GenerateDocumentsResponseCreatedItemIssuedTemplateVersion;
   annexes: GenerateDocumentsResponseCreatedItemIssuedAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3423,6 +3511,26 @@ export type ClientDocumentResponseDocumentDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type ClientDocumentResponseDocumentDraftTemplateVersionKind =
+  (typeof ClientDocumentResponseDocumentDraftTemplateVersionKind)[keyof typeof ClientDocumentResponseDocumentDraftTemplateVersionKind];
+
+export const ClientDocumentResponseDocumentDraftTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentDraftTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: ClientDocumentResponseDocumentDraftTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
+} | null;
+
 export type ClientDocumentResponseDocumentDraftAnnexesItemVersion = {
   id: string;
   /** @minimum 1 */
@@ -3468,6 +3576,8 @@ export type ClientDocumentResponseDocumentDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentResponseDocumentDraftReceivedCopy;
+  /** @nullable */
+  templateVersion: ClientDocumentResponseDocumentDraftTemplateVersion;
   annexes: ClientDocumentResponseDocumentDraftAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3486,6 +3596,26 @@ export const ClientDocumentResponseDocumentIssuedStatus = {
  */
 export type ClientDocumentResponseDocumentIssuedReceivedCopy = {
   uploadedAt: string;
+} | null;
+
+export type ClientDocumentResponseDocumentIssuedTemplateVersionKind =
+  (typeof ClientDocumentResponseDocumentIssuedTemplateVersionKind)[keyof typeof ClientDocumentResponseDocumentIssuedTemplateVersionKind];
+
+export const ClientDocumentResponseDocumentIssuedTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientDocumentResponseDocumentIssuedTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: ClientDocumentResponseDocumentIssuedTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
 } | null;
 
 export type ClientDocumentResponseDocumentIssuedAnnexesItemVersion = {
@@ -3533,6 +3663,8 @@ export type ClientDocumentResponseDocumentIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ClientDocumentResponseDocumentIssuedReceivedCopy;
+  /** @nullable */
+  templateVersion: ClientDocumentResponseDocumentIssuedTemplateVersion;
   annexes: ClientDocumentResponseDocumentIssuedAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3759,6 +3891,26 @@ export type ServiceContractResponseDocumentDraftReceivedCopy = {
   uploadedAt: string;
 } | null;
 
+export type ServiceContractResponseDocumentDraftTemplateVersionKind =
+  (typeof ServiceContractResponseDocumentDraftTemplateVersionKind)[keyof typeof ServiceContractResponseDocumentDraftTemplateVersionKind];
+
+export const ServiceContractResponseDocumentDraftTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentDraftTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: ServiceContractResponseDocumentDraftTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
+} | null;
+
 export type ServiceContractResponseDocumentDraftAnnexesItemVersion = {
   id: string;
   /** @minimum 1 */
@@ -3804,6 +3956,8 @@ export type ServiceContractResponseDocumentDraft = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ServiceContractResponseDocumentDraftReceivedCopy;
+  /** @nullable */
+  templateVersion: ServiceContractResponseDocumentDraftTemplateVersion;
   annexes: ServiceContractResponseDocumentDraftAnnexesItem[];
   createdAt: string;
 } | null;
@@ -3822,6 +3976,26 @@ export const ServiceContractResponseDocumentIssuedStatus = {
  */
 export type ServiceContractResponseDocumentIssuedReceivedCopy = {
   uploadedAt: string;
+} | null;
+
+export type ServiceContractResponseDocumentIssuedTemplateVersionKind =
+  (typeof ServiceContractResponseDocumentIssuedTemplateVersionKind)[keyof typeof ServiceContractResponseDocumentIssuedTemplateVersionKind];
+
+export const ServiceContractResponseDocumentIssuedTemplateVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ServiceContractResponseDocumentIssuedTemplateVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: ServiceContractResponseDocumentIssuedTemplateVersionKind;
+  /** @nullable */
+  note: string | null;
 } | null;
 
 export type ServiceContractResponseDocumentIssuedAnnexesItemVersion = {
@@ -3869,6 +4043,8 @@ export type ServiceContractResponseDocumentIssued = {
   hasSignedCopy: boolean;
   /** @nullable */
   receivedCopy: ServiceContractResponseDocumentIssuedReceivedCopy;
+  /** @nullable */
+  templateVersion: ServiceContractResponseDocumentIssuedTemplateVersion;
   annexes: ServiceContractResponseDocumentIssuedAnnexesItem[];
   createdAt: string;
 } | null;

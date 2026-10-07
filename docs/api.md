@@ -666,6 +666,10 @@ instructions revision the run just made; when the client's own instructions are 
 file there is nothing to cite, and the themes are left out until the own instructions are
 generated.
 
+A revision names the template version it was generated from in `templateVersion`, with its
+`version`, `kind` and `note` (ADR 017), or null for an uploaded file; a draft started from an
+issued revision keeps that revision's.
+
 Each revision keeps the part of the data its template printed. The list compares it with the
 stored facts and sets `dataChanged` on a draft that would now print differently: a new
 first-aider marks the first aid decision, not the whole set. While data is missing there is

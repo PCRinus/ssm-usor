@@ -4489,6 +4489,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -4558,6 +4577,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -4613,6 +4633,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -4682,6 +4721,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -4831,6 +4871,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -4900,6 +4959,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -4955,6 +5015,25 @@
                       },
                       "required": ["uploadedAt"]
                     },
+                    "templateVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": ["legal", "correction", "layout"]
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["version", "kind", "note"]
+                    },
                     "annexes": {
                       "type": "array",
                       "items": {
@@ -5024,6 +5103,7 @@
                     "hasPdf",
                     "hasSignedCopy",
                     "receivedCopy",
+                    "templateVersion",
                     "annexes",
                     "createdAt"
                   ]
@@ -5156,6 +5236,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5225,6 +5324,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -5280,6 +5380,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5349,6 +5468,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -5772,6 +5892,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5841,6 +5980,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]
@@ -5896,6 +6036,25 @@
                     },
                     "required": ["uploadedAt"]
                   },
+                  "templateVersion": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": ["legal", "correction", "layout"]
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["version", "kind", "note"]
+                  },
                   "annexes": {
                     "type": "array",
                     "items": {
@@ -5965,6 +6124,7 @@
                   "hasPdf",
                   "hasSignedCopy",
                   "receivedCopy",
+                  "templateVersion",
                   "annexes",
                   "createdAt"
                 ]

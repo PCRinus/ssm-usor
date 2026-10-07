@@ -102,6 +102,7 @@ const draftRow = {
   issued_at: null,
   created_at: '2026-09-21T10:00:00+00:00',
   document_generations: null,
+  document_template_versions: { version: 1, kind: 'correction', note: 'Versiunea inițială.' },
 };
 const documentRow = {
   id: documentId,

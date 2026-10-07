@@ -14,6 +14,7 @@ import {
   type RegenerateDocumentRequest,
   serviceContractTitle,
   serviceContractTypeKey,
+  type TemplateVersionKind,
   unfilledMark,
 } from '@ssm-usor/contracts';
 import {
@@ -56,6 +57,10 @@ type RevisionRow = Pick<
   | 'created_at'
 > & {
   document_generations: { issue_date: string } | null;
+  document_template_versions: Pick<
+    Tables['document_template_versions']['Row'],
+    'version' | 'kind' | 'note'
+  > | null;
   // One to one, so PostgREST embeds an object, or null where nothing was attached.
   document_signed_copies?: {
     revision_id: string;
@@ -70,7 +75,7 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
 const typeOrders = Object.fromEntries(
   Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
@@ -192,6 +197,11 @@ function toRevision(
       revision.document_signed_copies && !revision.document_signed_copies.confirmed_at
         ? { uploadedAt: revision.document_signed_copies.uploaded_at }
         : null,
+    templateVersion: revision.document_template_versions && {
+      version: revision.document_template_versions.version,
+      kind: revision.document_template_versions.kind as TemplateVersionKind,
+      note: revision.document_template_versions.note,
+    },
     annexes: toAnnexes(revision, lookup),
     createdAt: revision.created_at,
   };

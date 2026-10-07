@@ -120,6 +120,11 @@ const revisionRow = {
   pdf_path: null,
   created_at: '2026-09-19T10:00:00+00:00',
   document_generations: { issue_date: '2026-01-19' },
+  document_template_versions: {
+    version: 2,
+    kind: 'correction',
+    note: 'Clientul este numit „unitatea”, nu „societatea”.',
+  },
 };
 const positionRow = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
@@ -704,6 +709,37 @@ describe('GET /clients/{clientId}/documents', () => {
     );
     expect(body.items[0]!.draft!.annexes).toEqual([]);
     expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
+  });
+
+  it('says which template version a revision was generated from, and none for an uploaded file', async () => {
+    mockUpstream();
+    const generated = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(generated.items[0]!.draft!.templateVersion).toEqual({
+      version: 2,
+      kind: 'correction',
+      note: 'Clientul este numit „unitatea”, nu „societatea”.',
+    });
+    expect(
+      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('select')
+    ).toContain('document_template_versions(version,kind,note)');
+
+    mockUpstream({
+      documents: () =>
+        Response.json([
+          {
+            ...documentRow,
+            document_revisions: [
+              { ...revisionRow, document_generations: null, document_template_versions: null },
+            ],
+          },
+        ]),
+    });
+    const uploaded = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(uploaded.items[0]!.draft!.templateVersion).toBeNull();
   });
 
   it('marks a draft whose printed data has changed since', async () => {
