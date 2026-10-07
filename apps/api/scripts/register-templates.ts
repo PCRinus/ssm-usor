@@ -42,16 +42,18 @@ try {
         .templates.map((entry) => ({ ...entry, folder }))
     ),
   };
-  const results = await registerTemplates(
-    client,
-    manifest.templates.map((entry) => ({
-      typeKey: entry.typeKey,
-      title: entry.title,
-      bytes: readFileSync(new URL(entry.file, entry.folder)),
-    }))
-  );
+  const templates = manifest.templates.map((entry) => ({
+    typeKey: entry.typeKey,
+    title: entry.title,
+    bytes: readFileSync(new URL(entry.file, entry.folder)),
+    kind: entry.change.kind,
+    note: entry.change.note,
+  }));
+  const kinds = new Map(templates.map((template) => [template.typeKey, template.kind]));
+  const results = await registerTemplates(client, templates);
   for (const result of results) {
-    console.log(`${result.typeKey}: version ${result.version}${result.created ? ' (new)' : ''}`);
+    const created = result.created ? ` (new, ${kinds.get(result.typeKey)})` : '';
+    console.log(`${result.typeKey}: version ${result.version}${created}`);
   }
   const added = results.filter((result) => result.created).length;
   console.log(

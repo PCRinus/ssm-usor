@@ -213,6 +213,22 @@ export const documentAnnexSchema = z.object({
 
 export type DocumentAnnex = z.infer<typeof documentAnnexSchema>;
 
+/** Mirrors the check on `document_template_versions.kind` (ADR 017). */
+export const templateVersionKinds = ['legal', 'correction', 'layout'] as const;
+
+export const templateVersionKindSchema = z.enum(templateVersionKinds);
+
+export type TemplateVersionKind = z.infer<typeof templateVersionKindSchema>;
+
+export const templateVersionSchema = z.object({
+  version: z.int().min(1),
+  kind: templateVersionKindSchema,
+  // Null for the versions registered before notes existed.
+  note: z.string().nullable(),
+});
+
+export type TemplateVersion = z.infer<typeof templateVersionSchema>;
+
 export const documentRevisionSchema = z.object({
   id: z.uuid(),
   revision: z.int().min(1),
@@ -233,6 +249,8 @@ export const documentRevisionSchema = z.object({
   // A copy that came through the return link and that no owner has confirmed yet; the
   // contract is not signed by it. Null once confirmed, when `hasSignedCopy` takes over.
   receivedCopy: z.object({ uploadedAt: z.iso.datetime({ offset: true }) }).nullable(),
+  // The template version it was generated from; null for a file that was uploaded instead.
+  templateVersion: templateVersionSchema.nullable(),
   // Empty for every document but the own instructions.
   annexes: z.array(documentAnnexSchema),
   createdAt: z.iso.datetime({ offset: true }),

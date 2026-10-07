@@ -419,11 +419,18 @@ which file is which; the files live in Supabase Storage.
 **Templates.** `document_templates` holds one row per document type (`type_key`, for example
 `decision_training`), with `organization_id` null for the built-in set. A provider's own
 templates will carry their organization. `document_template_versions` holds the files: a
-version number, the Storage path, and the SHA-256 of the file. The master copies of the
-built-in set live in the repository; `register_built_in_template_version(type, title, path,
-hash)`, reachable only with the secret key, registers one and is idempotent: the same hash
-is the version it already is, a new hash becomes the next version. Members read templates
-and have no write policy.
+version number, the Storage path, the SHA-256 of the file, and why the version exists
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). Its `kind` is `legal` when a
+quoted or referred legal text changed, `correction` when the template's own content was
+fixed, and `layout` when no words changed; legal and correction versions prompt
+regeneration, layout versions do not. Its `note` says what changed, in Romanian, for
+members, at most 500 characters; it is null for the versions registered before ADR 017,
+which all count as corrections. The master copies of the built-in set live in the
+repository, with the kind and note of each file's latest change in its manifest;
+`register_built_in_template_version(type, title, path, hash, kind, note)`, reachable only
+with the secret key, registers one and is idempotent: the same hash is the version it
+already is, with the kind and note it was first registered with, and a new hash becomes the
+next version. Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
 fire-safety set (ADR 016). `client_documents` holds a document type once per client (a

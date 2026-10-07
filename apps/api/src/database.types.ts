@@ -667,6 +667,8 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
+          kind: string;
+          note: string | null;
           sha256: string;
           storage_path: string;
           template_id: string;
@@ -675,6 +677,8 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          kind: string;
+          note?: string | null;
           sha256: string;
           storage_path: string;
           template_id: string;
@@ -683,6 +687,8 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          kind?: string;
+          note?: string | null;
           sha256?: string;
           storage_path?: string;
           template_id?: string;
@@ -2162,6 +2168,8 @@ export type Database = {
       };
       register_built_in_template_version: {
         Args: {
+          p_kind: string;
+          p_note: string;
           p_sha256: string;
           p_storage_path: string;
           p_title: string;

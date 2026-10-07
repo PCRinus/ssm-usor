@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(38);
 
 -- Fixtures: organizations A and B with one member and one client each, an archived client
 -- in A, a document in each organization, and a draft revision in each.
@@ -47,23 +47,42 @@ $$;
 
 select results_eq(
   $$ select version, created from public.register_built_in_template_version(
-       'decision_training', 'Decizia privind instruirea', 'built-in/decision_training/aaa.docx', repeat('a', 64)) $$,
+       'decision_training', 'Decizia privind instruirea', 'built-in/decision_training/aaa.docx', repeat('a', 64),
+       'correction', 'Versiunea inițială') $$,
   $$ values (1, true) $$,
   'the first file of a built-in template is version 1'
 );
 
 select results_eq(
   $$ select version, created from public.register_built_in_template_version(
-       'decision_training', 'Decizia privind instruirea', 'built-in/decision_training/aaa.docx', repeat('a', 64)) $$,
+       'decision_training', 'Decizia privind instruirea', 'built-in/decision_training/aaa.docx', repeat('a', 64),
+       'layout', 'Altă notă') $$,
   $$ values (1, false) $$,
   'registering the same file again changes nothing'
 );
 
 select results_eq(
   $$ select version, created from public.register_built_in_template_version(
-       'decision_training', 'Decizia privind responsabilii cu instruirea', 'built-in/decision_training/bbb.docx', repeat('b', 64)) $$,
+       'decision_training', 'Decizia privind responsabilii cu instruirea', 'built-in/decision_training/bbb.docx', repeat('b', 64),
+       'legal', 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.') $$,
   $$ values (2, true) $$,
   'a file with a new hash becomes the next version'
+);
+
+select results_eq(
+  $$ select kind, note from public.document_template_versions
+     where sha256 in (repeat('a', 64), repeat('b', 64)) order by sha256 $$,
+  $$ values ('correction', 'Versiunea inițială'), ('legal', 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.') $$,
+  'a version keeps the kind and note it was first registered with'
+);
+
+select throws_ok(
+  $$ select * from public.register_built_in_template_version(
+       'decision_training', 'Decizia privind instruirea', 'built-in/decision_training/ccc.docx', repeat('c', 64),
+       'cosmetic', 'Spațiere') $$,
+  '23514',
+  null,
+  'a version is legal, a correction or layout'
 );
 
 select is(
