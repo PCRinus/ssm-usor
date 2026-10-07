@@ -467,6 +467,21 @@ jobs:
         id: metadata
         uses: ./.github/actions/deployment-message
 
+      # `wrangler deploy` refuses a Worker bound to a queue that does not exist. When the lookup
+      # fails for another reason, creating fails too, and says why.
+      - name: Create the regeneration queue if it is missing
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          if pnpm exec wrangler queues info ssm-usor-regeneration > /dev/null 2>&1; then
+            echo "The queue ssm-usor-regeneration exists."
+          else
+            pnpm exec wrangler queues create ssm-usor-regeneration
+          fi
+
       - name: Deploy validated API bundle
         uses: cloudflare/wrangler-action@v4
         env:

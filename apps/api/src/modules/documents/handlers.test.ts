@@ -87,13 +87,9 @@ const clientRow = {
   training_day_to: 7,
   archived_at: null,
 };
-const memberRow = {
-  user_id: user.id,
-  email: user.email,
+const profileRow = {
   full_name: 'Maria POPESCU',
   professional_title: 'Evaluator de risc SSM',
-  role: 'owner',
-  joined_at: '2026-09-01T00:00:00+00:00',
 };
 const personRow = {
   full_name: 'Florin TALOȘ',
@@ -255,7 +251,8 @@ type Handler = (init?: RequestInit, url?: URL) => Response;
 type Upstream =
   | 'organizations'
   | 'clients'
-  | 'members'
+  | 'profile'
+  | 'membership'
   | 'persons'
   | 'employees'
   | 'positions'
@@ -312,8 +309,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.organizations?.() ?? Response.json(organizationRow);
       case '/rest/v1/clients':
         return handlers.clients?.() ?? Response.json(clientRow);
-      case '/rest/v1/rpc/organization_member_list':
-        return handlers.members?.() ?? Response.json([memberRow]);
+      case '/rest/v1/organization_members':
+        return handlers.membership?.() ?? Response.json({ user_id: user.id });
+      case '/rest/v1/profiles':
+        return handlers.profile?.() ?? Response.json(profileRow);
       case '/rest/v1/client_responsible_persons':
         return handlers.persons?.() ?? Response.json([personRow]);
       case '/rest/v1/employees':
@@ -446,13 +445,30 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       .find((url) => url.pathname === '/rest/v1/client_responsible_persons')!;
     expect(persons.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(persons.searchParams.get('archived_at')).toBe('is.null');
+    const read = (pathname: string) =>
+      fetchMock.mock.calls
+        .map(([input]) => new URL(String(input)))
+        .find((url) => url.pathname === pathname)!;
+    expect(read('/rest/v1/organizations').searchParams.get('id')).toBe(`eq.${organizationId}`);
+    const specialist = read('/rest/v1/organization_members').searchParams;
+    expect(specialist.get('organization_id')).toBe(`eq.${organizationId}`);
+    expect(specialist.get('user_id')).toBe(`eq.${user.id}`);
+  });
+
+  it('has no specialist when the preparer is not a member of the organization', async () => {
+    mockUpstream({ membership: () => Response.json([]) });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json()).missing).toEqual([
+      'specialist.name',
+      'specialist.professionalTitle',
+    ]);
   });
 
   it('lists what is missing, from each place it is filled in', async () => {
     mockUpstream({
       organizations: () => Response.json({ ...organizationRow, legal_name: null }),
       clients: () => Response.json({ ...clientRow, training_first_month: null }),
-      members: () => Response.json([{ ...memberRow, professional_title: null }]),
+      profile: () => Response.json({ ...profileRow, professional_title: null }),
       persons: () => Response.json([{ ...personRow, roles: ['first_aid'] }]),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);

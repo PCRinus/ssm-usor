@@ -8,16 +8,21 @@ import { ApiError } from './errors';
 
 const slowRequestMs = 2_000;
 
+export function requestFetch(c: Context<ApiEnv>, timeoutMs: number): typeof fetch {
+  return timedFetch(timeoutMs, c.req.raw.signal);
+}
+
 // Slow requests are logged whether or not they succeed: an upstream that wakes slowly after a
 // quiet spell shows here before its requests start to time out.
-export function requestFetch(c: Context<ApiEnv>, timeoutMs: number): typeof fetch {
+export function timedFetch(timeoutMs: number, signal?: AbortSignal): typeof fetch {
   return async (input, init) => {
     const started = Date.now();
     let outcome = 'no response';
     try {
+      const timeout = AbortSignal.timeout(timeoutMs);
       const response = await fetch(input, {
         ...init,
-        signal: AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(timeoutMs)]),
+        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       });
       outcome = `status ${response.status}`;
       return response;
@@ -37,7 +42,11 @@ function upstream(input: RequestInfo | URL) {
 }
 
 export function supabaseConfig(c: Context<ApiEnv>) {
-  const config = supabaseConfigSchema.safeParse(c.env);
+  return supabaseConfigOf(c.env);
+}
+
+export function supabaseConfigOf(env: ApiEnv['Bindings']) {
+  const config = supabaseConfigSchema.safeParse(env);
   if (!config.success) throw new ApiError('service_unavailable');
   return config.data;
 }

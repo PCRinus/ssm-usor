@@ -2955,6 +2955,123 @@ export interface ResponsiblePersonRequest {
   roles: ResponsiblePersonRequestRolesItem[];
 }
 
+export type DocumentsBehindResponseItemsItemNewestVersionKind =
+  (typeof DocumentsBehindResponseItemsItemNewestVersionKind)[keyof typeof DocumentsBehindResponseItemsItemNewestVersionKind];
+
+export const DocumentsBehindResponseItemsItemNewestVersionKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+export type DocumentsBehindResponseItemsItemNewestVersion = {
+  /** @minimum 1 */
+  version: number;
+  kind: DocumentsBehindResponseItemsItemNewestVersionKind;
+  /** @nullable */
+  note: string | null;
+};
+
+export type DocumentsBehindResponseItemsItemClientsItem = {
+  documentId: string;
+  clientId: string;
+  clientName: string;
+  /** @minimum 1 */
+  version: number;
+  editedDraft: boolean;
+};
+
+export type DocumentsBehindResponseItemsItem = {
+  typeKey: string;
+  title: string;
+  newestVersion: DocumentsBehindResponseItemsItemNewestVersion;
+  /** @nullable */
+  runningJobId: string | null;
+  clients: DocumentsBehindResponseItemsItemClientsItem[];
+};
+
+export interface DocumentsBehindResponse {
+  items: DocumentsBehindResponseItemsItem[];
+}
+
+export type RegenerationJobResponseJobItemsItemStatus =
+  (typeof RegenerationJobResponseJobItemsItemStatus)[keyof typeof RegenerationJobResponseJobItemsItemStatus];
+
+export const RegenerationJobResponseJobItemsItemStatus = {
+  queued: 'queued',
+  done: 'done',
+  skipped: 'skipped',
+  failed: 'failed',
+} as const;
+
+export type RegenerationJobResponseJobItemsItem = {
+  clientId: string;
+  clientName: string;
+  status: RegenerationJobResponseJobItemsItemStatus;
+  /** @nullable */
+  detail: string | null;
+};
+
+export type RegenerationJobResponseJob = {
+  id: string;
+  typeKey: string;
+  requestedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  /** @minimum 1 */
+  total: number;
+  /** @minimum 0 */
+  done: number;
+  /** @minimum 0 */
+  skipped: number;
+  /** @minimum 0 */
+  failed: number;
+  items: RegenerationJobResponseJobItemsItem[];
+};
+
+export interface RegenerationJobResponse {
+  job: RegenerationJobResponseJob;
+}
+
+export type StartRegenerationRequestTypeKey =
+  (typeof StartRegenerationRequestTypeKey)[keyof typeof StartRegenerationRequestTypeKey];
+
+export const StartRegenerationRequestTypeKey = {
+  cover_decisions: 'cover_decisions',
+  decision_training: 'decision_training',
+  decision_risk_evaluation_team: 'decision_risk_evaluation_team',
+  decision_first_aid: 'decision_first_aid',
+  decision_imminent_danger: 'decision_imminent_danger',
+  decision_workers_representative: 'decision_workers_representative',
+  cover_general_training_material: 'cover_general_training_material',
+  general_training_material: 'general_training_material',
+  cover_own_instructions: 'cover_own_instructions',
+  own_instructions: 'own_instructions',
+  cover_training_themes: 'cover_training_themes',
+  training_themes: 'training_themes',
+  cover_tests: 'cover_tests',
+  test_hiring: 'test_hiring',
+  test_periodic: 'test_periodic',
+  protective_equipment_list: 'protective_equipment_list',
+  cover_event_registers: 'cover_event_registers',
+  event_registers: 'event_registers',
+  control_report: 'control_report',
+  risk_assessment: 'risk_assessment',
+  prevention_plan: 'prevention_plan',
+  cover_employer_briefing: 'cover_employer_briefing',
+  employer_briefing: 'employer_briefing',
+  control_regulation: 'control_regulation',
+  fire_cover_registers: 'fire_cover_registers',
+  fire_registers: 'fire_registers',
+  fire_work_permit: 'fire_work_permit',
+  fire_installation_register: 'fire_installation_register',
+  fire_extinguisher_register: 'fire_extinguisher_register',
+} as const;
+
+export interface StartRegenerationRequest {
+  typeKey: StartRegenerationRequestTypeKey;
+}
+
 export type DocumentReadinessResponseMissingItem =
   (typeof DocumentReadinessResponseMissingItem)[keyof typeof DocumentReadinessResponseMissingItem];
 
@@ -14149,6 +14266,369 @@ export const useArchiveResponsiblePerson = <
 > => {
   return useMutation(getArchiveResponsiblePersonMutationOptions(options), queryClient);
 };
+
+export const getListDocumentsBehindUrl = () => {
+  return `/documents/behind`;
+};
+
+/**
+ * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from and whether it is a draft edited by hand. Types with nobody behind are left out.
+ * @summary List the organization's documents behind their template, by document type
+ */
+export const listDocumentsBehind = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DocumentsBehindResponse> => {
+  return apiFetch<DocumentsBehindResponse>(getListDocumentsBehindUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListDocumentsBehindQueryKey = () => {
+  return [`/documents/behind`] as const;
+};
+
+export const getListDocumentsBehindQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDocumentsBehind>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listDocumentsBehind>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDocumentsBehindQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentsBehind>>> = ({ signal }) =>
+    listDocumentsBehind({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDocumentsBehind>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListDocumentsBehindQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDocumentsBehind>>
+>;
+export type ListDocumentsBehindQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListDocumentsBehind<
+  TData = Awaited<ReturnType<typeof listDocumentsBehind>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDocumentsBehind>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDocumentsBehind>>,
+          TError,
+          Awaited<ReturnType<typeof listDocumentsBehind>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDocumentsBehind<
+  TData = Awaited<ReturnType<typeof listDocumentsBehind>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDocumentsBehind>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDocumentsBehind>>,
+          TError,
+          Awaited<ReturnType<typeof listDocumentsBehind>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDocumentsBehind<
+  TData = Awaited<ReturnType<typeof listDocumentsBehind>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDocumentsBehind>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's documents behind their template, by document type
+ */
+
+export function useListDocumentsBehind<
+  TData = Awaited<ReturnType<typeof listDocumentsBehind>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDocumentsBehind>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListDocumentsBehindQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getStartDocumentRegenerationUrl = () => {
+  return `/documents/behind/regenerate`;
+};
+
+/**
+ * Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.
+ * @summary Regenerate one document type for every client behind its template
+ */
+export const startDocumentRegeneration = async (
+  startRegenerationRequest: StartRegenerationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RegenerationJobResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RegenerationJobResponse>(getStartDocumentRegenerationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startRegenerationRequest),
+  });
+};
+
+export const getStartDocumentRegenerationMutationKey = () => ['startDocumentRegeneration'] as const;
+
+export const getStartDocumentRegenerationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startDocumentRegeneration>>,
+    TError,
+    StartDocumentRegenerationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startDocumentRegeneration>>,
+  TError,
+  StartDocumentRegenerationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getStartDocumentRegenerationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startDocumentRegeneration>>,
+    StartDocumentRegenerationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startDocumentRegeneration(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartDocumentRegenerationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startDocumentRegeneration>>
+>;
+export type StartDocumentRegenerationMutationBody = StartRegenerationRequest;
+export type StartDocumentRegenerationMutationError = ErrorType<ApiErrorResponse>;
+export type StartDocumentRegenerationMutationVariables = { data: StartRegenerationRequest };
+
+/**
+ * @summary Regenerate one document type for every client behind its template
+ */
+export const useStartDocumentRegeneration = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof startDocumentRegeneration>>,
+      TError,
+      StartDocumentRegenerationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof startDocumentRegeneration>>,
+  TError,
+  StartDocumentRegenerationMutationVariables,
+  TContext
+> => {
+  return useMutation(getStartDocumentRegenerationMutationOptions(options), queryClient);
+};
+
+export const getGetRegenerationJobUrl = (jobId: string) => {
+  return `/documents/regeneration-jobs/${jobId}`;
+};
+
+/**
+ * Each client is `queued`, `done`, `skipped` or `failed`, with a `detail` in Romanian for the last two. `finishedAt` is set once no client is queued.
+ * @summary Get a regeneration job, with its counts and what became of each client
+ */
+export const getRegenerationJob = async (
+  jobId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RegenerationJobResponse> => {
+  return apiFetch<RegenerationJobResponse>(getGetRegenerationJobUrl(jobId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetRegenerationJobQueryKey = (jobId: string) => {
+  return [`/documents/regeneration-jobs/${jobId}`] as const;
+};
+
+export const getGetRegenerationJobQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRegenerationJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  jobId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRegenerationJob>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRegenerationJobQueryKey(jobId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRegenerationJob>>> = ({ signal }) =>
+    getRegenerationJob(jobId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: jobId !== null && jobId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getRegenerationJob>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetRegenerationJobQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRegenerationJob>>
+>;
+export type GetRegenerationJobQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetRegenerationJob<
+  TData = Awaited<ReturnType<typeof getRegenerationJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  jobId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRegenerationJob>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRegenerationJob>>,
+          TError,
+          Awaited<ReturnType<typeof getRegenerationJob>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRegenerationJob<
+  TData = Awaited<ReturnType<typeof getRegenerationJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  jobId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getRegenerationJob>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRegenerationJob>>,
+          TError,
+          Awaited<ReturnType<typeof getRegenerationJob>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRegenerationJob<
+  TData = Awaited<ReturnType<typeof getRegenerationJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  jobId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRegenerationJob>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get a regeneration job, with its counts and what became of each client
+ */
+
+export function useGetRegenerationJob<
+  TData = Awaited<ReturnType<typeof getRegenerationJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  jobId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRegenerationJob>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetRegenerationJobQueryOptions(jobId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetDocumentReadinessUrl = (
   clientId: string,

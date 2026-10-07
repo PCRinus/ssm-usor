@@ -3,6 +3,13 @@ import { z } from 'zod';
 
 import type { Membership } from './membership';
 
+export type RegenerationMessage = { jobId: string; clientId: string };
+
+// Not the Workers `Queue` type: the Node scripts that import this file do not know it.
+export type RegenerationQueue = {
+  sendBatch(messages: Iterable<{ body: RegenerationMessage }>): Promise<unknown>;
+};
+
 export type ApiEnv = {
   Bindings: {
     SUPABASE_URL?: string;
@@ -26,6 +33,8 @@ export type ApiEnv = {
     PDF_CONVERSION?: string;
     // A Gotenberg reached by URL instead, for local development and the flow tests.
     GOTENBERG_URL?: string;
+    // Bulk regeneration (ADR 017), consumed by this same Worker.
+    REGENERATION_QUEUE?: RegenerationQueue;
   };
   Variables: { user: CurrentUser; accessToken: string; membership: Membership };
 };

@@ -10,7 +10,8 @@ import type { DocumentFacts } from './context';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { snapshotAnnexes } from './snapshot';
 
-// Row-level security scopes every query to the caller's organization.
+// Row-level security scopes every query to the caller's organization. With the secret key
+// nothing does but the ids: the client's must already be known to be the preparer's.
 
 export type StoredDocumentFacts = Omit<DocumentFacts, 'issueDate' | 'firstDecisionNumber'> & {
   clientArchived: boolean;
@@ -19,17 +20,23 @@ export type StoredDocumentFacts = Omit<DocumentFacts, 'issueDate' | 'firstDecisi
 const moduleVersionsPath =
   'job_position_instructions.instruction_modules.instruction_module_versions';
 
+/**
+ * The member who prepares the documents, whoever generates them unless told otherwise, and
+ * their organization, named because the secret key the queue consumer reads with has none.
+ */
+export type Preparer = { userId: string; organizationId: string };
+
 export async function loadDocumentFacts(
   db: DataClient,
   clientId: string,
-  // The member who prepares the documents: whoever generates them, unless told otherwise.
-  specialistUserId: string
+  preparer: Preparer
 ): Promise<StoredDocumentFacts> {
   const categories: StaffCategory[] = ['technical_administrative', 'execution'];
   const [
     client,
     organization,
-    members,
+    membership,
+    profile,
     persons,
     headcount,
     generatedDecision,
@@ -46,14 +53,24 @@ export async function loadDocumentFacts(
       )
       .eq('id', clientId)
       .maybeSingle(),
-    // A member sees exactly one organization: their own.
     db
       .from('organizations')
       .select(
         'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name'
       )
+      .eq('id', preparer.organizationId)
       .single(),
-    db.rpc('organization_member_list'),
+    db
+      .from('organization_members')
+      .select('user_id')
+      .eq('organization_id', preparer.organizationId)
+      .eq('user_id', preparer.userId)
+      .maybeSingle(),
+    db
+      .from('profiles')
+      .select('full_name, professional_title')
+      .eq('user_id', preparer.userId)
+      .maybeSingle(),
     db
       .from('client_responsible_persons')
       .select('full_name, job_title, roles, employees(status, archived_at)')
@@ -117,7 +134,8 @@ export async function loadDocumentFacts(
   }
   if (organization.error)
     throw fromDatabaseError(organization.error, 'document facts: organization');
-  if (members.error) throw fromDatabaseError(members.error, 'document facts: members');
+  if (membership.error) throw fromDatabaseError(membership.error, 'document facts: membership');
+  if (profile.error) throw fromDatabaseError(profile.error, 'document facts: profile');
   if (persons.error) throw fromDatabaseError(persons.error, 'document facts: responsible persons');
   if (headcount.error) throw fromDatabaseError(headcount.error, 'document facts: employee count');
   if (generatedDecision.error) {
@@ -129,7 +147,6 @@ export async function loadDocumentFacts(
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
   }
 
-  const specialist = members.data.find((member) => member.user_id === specialistUserId);
   return {
     // Every plan carries the line for now; the switch arrives with billing (docs/document-branding.md).
     branding: true,
@@ -140,8 +157,11 @@ export async function loadDocumentFacts(
       representativeRole: organization.data.legal_representative_role,
       fireSafetyTechnicianName: organization.data.fire_safety_technician_name,
     },
-    specialist: specialist
-      ? { fullName: specialist.full_name, professionalTitle: specialist.professional_title }
+    specialist: membership.data
+      ? {
+          fullName: profile.data?.full_name ?? null,
+          professionalTitle: profile.data?.professional_title ?? null,
+        }
       : null,
     client: {
       legalName: client.data.legal_name,

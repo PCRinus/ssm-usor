@@ -356,6 +356,8 @@ export const documentErrorReasons = [
   'not_generated_yet',
   'pdf_unavailable',
   'not_issued',
+  'nothing_behind',
+  'regeneration_running',
 ] as const;
 
 export const issueDocumentRequestSchema = z.object({
@@ -364,3 +366,71 @@ export const issueDocumentRequestSchema = z.object({
 });
 
 export type IssueDocumentRequest = z.infer<typeof issueDocumentRequestSchema>;
+
+export const documentsBehindClientSchema = z.object({
+  documentId: z.uuid(),
+  clientId: z.uuid(),
+  clientName: z.string(),
+  // The template version the document's newest revision was generated from.
+  version: z.int().min(1),
+  // That revision is a draft edited by hand, which regenerating for every client skips.
+  editedDraft: z.boolean(),
+});
+
+export type DocumentsBehindClient = z.infer<typeof documentsBehindClientSchema>;
+
+export const documentsBehindTypeSchema = z.object({
+  typeKey: z.string(),
+  title: z.string(),
+  newestVersion: templateVersionSchema,
+  // Null unless a regeneration of this type is under way.
+  runningJobId: z.uuid().nullable(),
+  clients: z.array(documentsBehindClientSchema),
+});
+
+export type DocumentsBehindType = z.infer<typeof documentsBehindTypeSchema>;
+
+export const documentsBehindResponseSchema = z.object({
+  items: z.array(documentsBehindTypeSchema),
+});
+
+export type DocumentsBehindResponse = z.infer<typeof documentsBehindResponseSchema>;
+
+export const startRegenerationRequestSchema = z.object({ typeKey: builtInDocumentTypeKeySchema });
+
+export type StartRegenerationRequest = z.infer<typeof startRegenerationRequestSchema>;
+
+export const regenerationItemStatuses = ['queued', 'done', 'skipped', 'failed'] as const;
+
+export const regenerationItemStatusSchema = z.enum(regenerationItemStatuses);
+
+export type RegenerationItemStatus = z.infer<typeof regenerationItemStatusSchema>;
+
+export const regenerationJobItemSchema = z.object({
+  clientId: z.uuid(),
+  clientName: z.string(),
+  status: regenerationItemStatusSchema,
+  // Why the client was skipped or failed, in Romanian; null otherwise.
+  detail: z.string().nullable(),
+});
+
+export type RegenerationJobItem = z.infer<typeof regenerationJobItemSchema>;
+
+export const regenerationJobSchema = z.object({
+  id: z.uuid(),
+  typeKey: z.string(),
+  requestedAt: z.iso.datetime({ offset: true }),
+  // Null while a client is still queued.
+  finishedAt: z.iso.datetime({ offset: true }).nullable(),
+  total: z.int().min(1),
+  done: z.int().min(0),
+  skipped: z.int().min(0),
+  failed: z.int().min(0),
+  items: z.array(regenerationJobItemSchema),
+});
+
+export type RegenerationJob = z.infer<typeof regenerationJobSchema>;
+
+export const regenerationJobResponseSchema = z.object({ job: regenerationJobSchema });
+
+export type RegenerationJobResponse = z.infer<typeof regenerationJobResponseSchema>;

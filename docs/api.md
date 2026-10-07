@@ -722,6 +722,47 @@ downloading and the editor work on an uploaded document as on any other.
 The whole set, 18 documents, merges and uploads in under a second against the local stack,
 inside `workerd` as well as in Node.
 
+### Documents behind, and regenerating them for every client
+
+A document is **behind** when its newest revision was generated from a template version older
+than a `legal` or `correction` version of the same template
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). A `layout` version alone prompts
+nothing, an uploaded file is never behind, and a hand edit changes nothing about it. Only
+active clients count (not archived, not leads), and the service contract never does: its data
+comes from its own page. The database view `documents_behind` decides it, under the caller's
+policies.
+
+`GET /documents/behind` lists the organization's documents behind by type, in the pack's
+order: the template's `title`, its `newestVersion` (`version`, `kind`, `note`), the
+`runningJobId` of a regeneration of that type still under way, or null, and the `clients`
+behind, by name, each with its `documentId`, the `version` its newest revision came from, and
+`editedDraft` when that revision is a draft edited by hand. A type nobody is behind on is left
+out.
+
+`POST /documents/behind/regenerate` takes `{ typeKey }`, a built-in type of either set, and
+starts a **regeneration job**: one item per client behind, read with the caller's token, and
+one message per client on the Cloudflare Queue `ssm-usor-regeneration`, which the API Worker
+also consumes. It answers `201` with the job, every client `queued`; `409` with the reason
+`nothing_behind` when no client is behind, and with `regeneration_running` while a job of the
+same type is under way (a job unfinished after an hour no longer counts: the next one closes it
+and fails the clients it left queued); `503` where no queue is bound or the messages could not
+be sent, in which case the job is taken back. `GET /documents/regeneration-jobs/{jobId}`
+returns the job with `total`, `done`, `skipped` and `failed`, `finishedAt` once no client is
+queued, and the `items`, by client name, each with its `status` and, when skipped or failed, a
+`detail` in Romanian.
+
+The consumer (`queue` in `src/index.ts`, `modules/documents/regeneration-queue.ts`) handles one
+client per message, with the secret key, since nobody is signed in. It asks again whether the
+document is behind: one regenerated since is `skipped` as no longer behind, which also covers a
+message delivered twice, and an item that is no longer `queued` is not touched again. A draft
+edited by hand is `skipped`, because regenerating would discard the edits; the specialist does
+those one at a time. Everything else goes through the same `regenerateDocument` as
+`POST /documents/{documentId}/regenerate`, as the member who started the job: a draft is
+overwritten, and an issued document gets a new draft and stays in force until someone issues
+it, client by client. Missing data or a refused document fails the item at once; an unreachable
+database or Storage is retried, 30 seconds apart, and fails the item on the last delivery.
+Without the secret key there is nothing to read with, and the queue retries.
+
 ## Supabase Auth emails
 
 Supabase Auth does not send email itself: its Send Email hook posts every email it would send
@@ -755,6 +796,7 @@ and applied to the hosted project by CI; see [CI/CD](ci-cd.md).
 
 ```text
 src/
+  index.ts             the Worker: the app's fetch, and the queue consumer for bulk regeneration
   app.ts               cross-cutting: headers, CORS, module mounting, OpenAPI document, errors
   router.ts            createRouter(): an OpenAPIHono with the shared validation error hook
   lib/                 auth, db, admin-db, tokens, turnstile, env, errors, membership, shared OpenAPI pieces

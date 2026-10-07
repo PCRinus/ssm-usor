@@ -76,6 +76,11 @@ credentials. Mail and marketing deploy independently; the API waits for the mail
 both are selected, because its service binding needs that Worker to exist. The mail deployment uploads
 `RESEND_API_KEY` when the `production` environment has it and warns when it does not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
+Before uploading, the API job looks up the `ssm-usor-regeneration` queue the Worker sends to
+and consumes, and creates it when it is missing, because `wrangler deploy` refuses a binding to
+a queue that does not exist; the deployment token needs **Queues → Edit** for that
+([deployment guide](deployment.md#create-the-cloudflare-api-token)). The step can be repeated:
+an existing queue is left as it is.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the hosted
 project with `supabase config push`, after the API, because the Send Email hook it declares

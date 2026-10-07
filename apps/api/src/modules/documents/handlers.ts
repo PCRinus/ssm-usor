@@ -1,6 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 
+import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
@@ -23,6 +24,11 @@ import {
   uploadDocumentFile as upload,
 } from './documents';
 import { loadDocumentFacts } from './facts';
+import {
+  listDocumentsBehind as listBehind,
+  readRegenerationJob,
+  startRegeneration,
+} from './regeneration';
 import { incompleteRiskEvaluations } from './risk-assessment';
 import type {
   attachDocumentSignedCopyRoute,
@@ -31,13 +37,16 @@ import type {
   generateClientDocumentsRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
+  getRegenerationJobRoute,
   issueDocumentRoute,
   listClientDocumentsRoute,
+  listDocumentsBehindRoute,
   printDocumentRoute,
   regenerateDocumentRoute,
   removeDocumentSignedCopyRoute,
   saveDocumentDraftFileRoute,
   startDocumentDraftRoute,
+  startDocumentRegenerationRoute,
   uploadClientDocumentRoute,
 } from './routes';
 import { setRules } from './sets';
@@ -55,7 +64,7 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
 ) => {
   const { clientId } = c.req.valid('param');
   const { set } = c.req.valid('query');
-  const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership').userId);
+  const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership'));
   // The date and the first decision number are asked when generating; neither can be missing.
   const missing = setRules[set].missing({
     ...facts,
@@ -248,4 +257,32 @@ export const removeDocumentSignedCopy: RouteHandler<
   const { documentId } = c.req.valid('param');
   await removeSignedCopy(createDataClient(c), createFileStore(c), documentId);
   return c.body(null, 204);
+};
+
+export const listDocumentsBehind: RouteHandler<typeof listDocumentsBehindRoute, ApiEnv> = async (
+  c
+) => {
+  const items = await listBehind(createDataClient(c), c.get('membership').organizationId);
+  return c.json({ items }, 200);
+};
+
+export const startDocumentRegeneration: RouteHandler<
+  typeof startDocumentRegenerationRoute,
+  ApiEnv
+> = async (c) => {
+  const job = await startRegeneration(
+    createDataClient(c),
+    createAdminClient(c),
+    c.env.REGENERATION_QUEUE,
+    actorOf(c),
+    c.req.valid('json').typeKey
+  );
+  return c.json({ job }, 201);
+};
+
+export const getRegenerationJob: RouteHandler<typeof getRegenerationJobRoute, ApiEnv> = async (
+  c
+) => {
+  const job = await readRegenerationJob(createDataClient(c), c.req.valid('param').jobId);
+  return c.json({ job }, 200);
 };
