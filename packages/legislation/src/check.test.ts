@@ -175,6 +175,19 @@ describe('checking the watched acts', () => {
     );
   });
 
+  it('fails an act whose page stops listing the consolidated forms it listed before', async () => {
+    const { db, sent } = database([row(law.id, '2021-07-25')]);
+    const outcomes = await checkLegislation(db, [law], {
+      readAct: async (portalId) => portalAct(portalId, null),
+      pauseMs: 0,
+    });
+    expect(outcomes[0]).toMatchObject({
+      result: 'failed',
+      error: 'The page lists no consolidated form, where 2021-07-25 was seen before.',
+    });
+    expect(sent('legal_acts', 'PATCH')).toHaveLength(0);
+  });
+
   it('stops before reading any page when the acts cannot be saved', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

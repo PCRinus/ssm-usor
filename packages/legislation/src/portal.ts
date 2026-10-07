@@ -67,8 +67,9 @@ function isoDate(day: string, month: string, year: string) {
 }
 
 export function parseActPage(html: string, portalId: number): PortalPage {
-  if (!/<span>\s*Forme act\s*<\/span>/.test(html)) {
-    throw new PortalError(`Page ${portalId} has no "Forme act" section.`);
+  // An act never amended has no "Forme act" section; its "Fișă act" still marks an act page.
+  if (!/<span>\s*Forme act\s*<\/span>/.test(html) && !html.includes('id="label_fisaact"')) {
+    throw new PortalError(`Page ${portalId} has neither a "Forme act" nor a "Fișă act" section.`);
   }
   const heading = html.match(
     /<span class="S_DEN">([^<]*)<\/span>(?:\s*<span class="S_HDR">([\s\S]*?)<\/span>)?/

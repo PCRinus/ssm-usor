@@ -39,7 +39,14 @@ describe('reading an act page of the Portal Legislativ', () => {
     expect(page.consolidations).toEqual(['2022-03-07', '2016-10-21', '2011-12-27', '2010-09-27']);
   });
 
-  it('fails on a page without the "Forme act" section', () => {
+  it('reads an act never consolidated, whose page has no "Forme act" section', () => {
+    expect(parseActPage(fixture('lege-459-2001.html'), 29843)).toEqual({
+      title: 'LEGE nr. 459 din 18 iulie 2001',
+      consolidations: [],
+    });
+  });
+
+  it('fails on a page that is not an act page', () => {
     expect(() => parseActPage('<html><body>Mentenanță</body></html>', 73772)).toThrow(PortalError);
   });
 

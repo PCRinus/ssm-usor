@@ -76,7 +76,13 @@ export async function checkLegislation(
     if (!first) await pause(options.pauseMs ?? portalPauseMs);
     first = false;
     try {
-      outcomes.push(await checkAct(db, act, row, await readAct(act.portalId)));
+      const portal = await readAct(act.portalId);
+      if (portal.newestConsolidation === null && row.last_consolidated_on !== null) {
+        throw new Error(
+          `The page lists no consolidated form, where ${row.last_consolidated_on} was seen before.`
+        );
+      }
+      outcomes.push(await checkAct(db, act, row, portal));
     } catch (error) {
       outcomes.push({ act, result: 'failed', error: message(error) });
     }
