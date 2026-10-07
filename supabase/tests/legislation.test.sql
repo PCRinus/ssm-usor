@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -21,6 +21,10 @@ insert into public.legal_acts (id, name, portal_id, portal_status, last_consolid
 
 insert into public.legal_changes (id, act_id, consolidated_on, amending_act) values
   ('d1d1d1d1-0000-4000-8000-000000000001', 'lege-319-2006', '2021-07-25', 'LEGE 208 21/07/2021');
+
+insert into public.legal_check_runs (id, started_at, finished_at, status, acts_checked, changes_found, acts_skipped, errors) values
+  ('e1e1e1e1-0000-4000-8000-000000000001', '2026-10-07 03:17:00+00', '2026-10-07 03:21:00+00', 'failed', 1, 1, 1,
+   '[{"act": "hg-1425-2006", "message": "Page 76337 has no \"Forme act\" section."}]');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -62,7 +66,48 @@ select fk_ok(
   'a template version can name the change it answers'
 );
 
+select throws_ok(
+  $$ insert into public.legal_check_runs (status) values ('crashed') $$,
+  '23514',
+  null,
+  'a run is running, succeeded or failed'
+);
+
+select throws_ok(
+  $$ insert into public.legal_check_runs (status) values ('succeeded') $$,
+  '23514',
+  null,
+  'a finished run has the time it finished'
+);
+
+select throws_ok(
+  $$ insert into public.legal_check_runs (errors) values ('{"act": "lege-319-2006"}') $$,
+  '23514',
+  null,
+  'the errors of a run are a list'
+);
+
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
+
+select is(
+  (select status from public.legal_check_runs),
+  'failed',
+  'a member reads the runs of the check'
+);
+
+select throws_ok(
+  $$ insert into public.legal_check_runs default values $$,
+  '42501',
+  null,
+  'a member cannot start a run'
+);
+
+select throws_ok(
+  $$ update public.legal_check_runs set status = 'succeeded' $$,
+  '42501',
+  null,
+  'a member cannot change a run'
+);
 
 select is((select count(*) from public.legal_acts), 2::bigint, 'a member reads every watched act');
 select is((select count(*) from public.legal_changes), 1::bigint, 'a member reads the legal changes');
@@ -103,6 +148,7 @@ select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003');
 
 select is((select count(*) from public.legal_acts), 0::bigint, 'an account without an organization reads no act');
 select is((select count(*) from public.legal_changes), 0::bigint, 'an account without an organization reads no change');
+select is((select count(*) from public.legal_check_runs), 0::bigint, 'an account without an organization reads no run');
 
 reset role;
 set local role anon;
@@ -114,8 +160,26 @@ select throws_ok(
   'anonymous callers cannot read the watched acts'
 );
 
+select throws_ok(
+  $$ select count(*) from public.legal_check_runs $$,
+  '42501',
+  null,
+  'anonymous callers cannot read the runs'
+);
+
 reset role;
 set local role service_role;
+
+select lives_ok(
+  $$ insert into public.legal_check_runs (id) values ('e1e1e1e1-0000-4000-8000-000000000002') $$,
+  'the secret key starts a run'
+);
+
+select lives_ok(
+  $$ update public.legal_check_runs set status = 'succeeded', finished_at = now(), acts_checked = 50
+     where id = 'e1e1e1e1-0000-4000-8000-000000000002' $$,
+  'the secret key ends a run'
+);
 
 select lives_ok(
   $$ update public.legal_changes set resolution = 'no_impact', resolved_at = now(), resolved_by_note = 'Nicio citare atinsă.'

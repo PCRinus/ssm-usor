@@ -1477,6 +1477,39 @@ export type Database = {
           },
         ];
       };
+      legal_check_runs: {
+        Row: {
+          acts_checked: number;
+          acts_skipped: number;
+          changes_found: number;
+          errors: Json | null;
+          finished_at: string | null;
+          id: string;
+          started_at: string;
+          status: string;
+        };
+        Insert: {
+          acts_checked?: number;
+          acts_skipped?: number;
+          changes_found?: number;
+          errors?: Json | null;
+          finished_at?: string | null;
+          id?: string;
+          started_at?: string;
+          status?: string;
+        };
+        Update: {
+          acts_checked?: number;
+          acts_skipped?: number;
+          changes_found?: number;
+          errors?: Json | null;
+          finished_at?: string | null;
+          id?: string;
+          started_at?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
       organization_invitations: {
         Row: {
           accepted_at: string | null;
