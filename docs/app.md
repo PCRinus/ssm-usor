@@ -171,6 +171,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni".                                                                                                                     |
 | `routes/_authenticated/risks/index.tsx`                                                    | `/risks`                                                    | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                          |
 | `routes/_authenticated/risks/$profileId.tsx`                                               | `/risks/:profileId`                                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                          |
+| `routes/_authenticated/legislatie.tsx`                                                     | `/legislatie`                                               | "Legislație" (ADR 017): the last check of the acts, the documents behind with bulk regeneration, the legal changes and the watched acts.                                                                    |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the training schedule and the responsible persons the generated documents print.                                                                                               |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
@@ -505,8 +506,10 @@ mobile navigation link closes the Sheet.
 - `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
   pack: title, the decision's number, badges for the issued revision and the draft, the
-  date the document carries, and "Date modificate" on a draft whose printed data has changed
-  since. "Generează documentația" (or "Generează documentele lipsă" when some exist) shows
+  date the document carries, "Date modificate" on a draft whose printed data has changed
+  since, and "Șablon actualizat" on a document that is behind its template (ADR 017), with the
+  newest version's note in its tooltip. The card reads `GET /documents/behind` once for the
+  whole organization and picks its own client's documents from it. "Generează documentația" (or "Generează documentele lipsă" when some exist) shows
   while a built-in type from the contracts' `documentTypeKeys` is missing. Its dialog asks
   `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
   what is missing, grouped by the page it is filled in on with a link to each (the
@@ -807,6 +810,28 @@ mobile navigation link closes the Sheet.
   each evaluation with a link and how many of its factors are in the profile, archived clients
   marked. Renaming or deleting the profile, or deleting one of its factors, refreshes every
   evaluation read, since their links and names change.
+- `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),
+  in `src/features/legislation/`, the sidebar entry after "Riscuri" for owners and specialists
+  alike. Under the title, the last check: a quiet line with when the acts were read and what it
+  found while the last run succeeded within two days, and a warning otherwise: "Verificarea nu
+  a rulat încă" when there is no run, the acts it could not read with their messages when it
+  failed, and the date of the last reading when that is older than two days. The run comes
+  from `GET /legislation/runs/latest` through `latest-check-run.ts`, a typed fetch of its own
+  until the route reaches the OpenAPI document. Then three sections. "Documente în urmă"
+  lists `GET /documents/behind` by type: the newest version's kind and note, the clients
+  behind with the version they are on (each a link to the client's documents) and the drafts
+  edited by hand marked as skipped, and "Regenerează pentru toți clienții (N)". After a
+  confirmation it posts `POST /documents/behind/regenerate` and polls
+  `GET /documents/regeneration-jobs/{jobId}` every two seconds until `finishedAt`: a bar with
+  how many are regenerated, skipped and failed, then the result with each client skipped or
+  failed and why. A job already running when the page opens is picked up from `runningJobId`;
+  a `409` or `503` shows the API's own message. A type whose clients all caught up keeps its
+  place with the result. "Modificări legislative" lists `GET /legislation/changes` newest
+  first, each "În verificare", "Fără impact asupra documentelor" or "Șablon actualizat" with
+  the version's note. "Acte urmărite" is `GET /legislation/acts` as a table by name: the act
+  linked to its page on the Portal Legislativ, "în vigoare", "abrogat" or "neverificat", the
+  newest consolidated form, the form the templates were verified against, and when it was
+  last read. These dates appear on this page and nowhere else.
 - `/profile`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
