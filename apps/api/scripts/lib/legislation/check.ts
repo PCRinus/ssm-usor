@@ -11,7 +11,7 @@ export const legalActsSchema = z.object({
     z.object({
       id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)+$/),
       kind: z.string(),
-      number: z.int().positive(),
+      number: z.union([z.int().positive(), z.string().regex(/^[1-9][0-9]*$/)]),
       year: z.int().min(1800).max(2100),
       name: z.string().min(2).max(120),
       title: z.string().nullable(),
