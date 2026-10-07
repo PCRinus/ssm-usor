@@ -580,6 +580,13 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'document_revisions_document_in_organization';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'documents_behind';
+            referencedColumns: ['document_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'document_revisions_generation_id_fkey';
             columns: ['generation_id'];
             isOneToOne: false;
@@ -646,6 +653,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'client_documents';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_signed_copies_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'documents_behind';
+            referencedColumns: ['document_id', 'organization_id'];
           },
           {
             foreignKeyName: 'document_signed_copies_organization_id_fkey';
@@ -1641,6 +1655,99 @@ export type Database = {
         };
         Relationships: [];
       };
+      regeneration_job_items: {
+        Row: {
+          client_id: string;
+          detail: string | null;
+          job_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          client_id: string;
+          detail?: string | null;
+          job_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          client_id?: string;
+          detail?: string | null;
+          job_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'regeneration_job_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'regeneration_job_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'regeneration_job_items_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'regeneration_jobs';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      regeneration_jobs: {
+        Row: {
+          done_count: number;
+          failed_count: number;
+          finished_at: string | null;
+          id: string;
+          organization_id: string;
+          requested_at: string;
+          requested_by: string | null;
+          skipped_count: number;
+          total_count: number;
+          type_key: string;
+        };
+        Insert: {
+          done_count?: number;
+          failed_count?: number;
+          finished_at?: string | null;
+          id?: string;
+          organization_id: string;
+          requested_at?: string;
+          requested_by?: string | null;
+          skipped_count?: number;
+          total_count: number;
+          type_key: string;
+        };
+        Update: {
+          done_count?: number;
+          failed_count?: number;
+          finished_at?: string | null;
+          id?: string;
+          organization_id?: string;
+          requested_at?: string;
+          requested_by?: string | null;
+          skipped_count?: number;
+          total_count?: number;
+          type_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'regeneration_jobs_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       risk_evaluations: {
         Row: {
           client_id: string;
@@ -1886,6 +1993,13 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'service_contract_sends_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'documents_behind';
+            referencedColumns: ['document_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'service_contract_sends_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
@@ -2033,6 +2147,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      documents_behind: {
+        Row: {
+          client_id: string | null;
+          client_name: string | null;
+          document_id: string | null;
+          edited_draft: boolean | null;
+          newest_kind: string | null;
+          newest_note: string | null;
+          newest_version: number | null;
+          organization_id: string | null;
+          revision_version: number | null;
+          template_title: string | null;
+          type_key: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_documents_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Functions: {
       accept_invitation_as: {
@@ -2162,6 +2321,15 @@ export type Database = {
           user_id: string;
         }[];
       };
+      record_regeneration_item: {
+        Args: {
+          p_client_id: string;
+          p_detail: string;
+          p_job_id: string;
+          p_status: string;
+        };
+        Returns: boolean;
+      };
       refuse_archived_client: {
         Args: { p_client_id: string };
         Returns: undefined;
@@ -2230,6 +2398,32 @@ export type Database = {
           p_responsible_person?: string;
         };
         Returns: string;
+      };
+      start_regeneration_job: {
+        Args: {
+          p_client_ids: string[];
+          p_organization_id: string;
+          p_requested_by: string;
+          p_type_key: string;
+        };
+        Returns: {
+          done_count: number;
+          failed_count: number;
+          finished_at: string | null;
+          id: string;
+          organization_id: string;
+          requested_at: string;
+          requested_by: string | null;
+          skipped_count: number;
+          total_count: number;
+          type_key: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'regeneration_jobs';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
     };
     Enums: {
