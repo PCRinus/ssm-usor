@@ -1,16 +1,21 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { useRouteContext } from '@tanstack/react-router';
 import { CircleCheck, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 
+import {
+  getGetLatestLegalCheckRunQueryKey,
+  type LatestLegalCheckRunResponseRun,
+  useGetLatestLegalCheckRun,
+} from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
-import { type LatestCheckRun, useLatestCheckRun } from './latest-check-run';
 import { countOf, formatMoment } from './legislation-labels';
 
 const staleAfterMs = 2 * 24 * 60 * 60 * 1000;
 
-function summary(run: LatestCheckRun) {
+function summary(run: NonNullable<LatestLegalCheckRunResponseRun>) {
   const parts = [countOf(run.actsChecked, 'act citit', 'acte citite')];
   parts.push(
     run.changesFound === 0
@@ -30,7 +35,11 @@ export function LastCheck({
   userId: string;
   actNames: ReadonlyMap<string, string>;
 }) {
-  const latest = useLatestCheckRun(userId);
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const latest = useGetLatestLegalCheckRun({
+    request: apiRequest,
+    query: { queryKey: [...getGetLatestLegalCheckRunQueryKey(), userId] },
+  });
   const [openedAt] = useState(() => Date.now());
 
   if (latest.isPending) return <Skeleton className="h-5 w-80 max-w-full" />;
@@ -54,7 +63,7 @@ export function LastCheck({
     );
   }
 
-  const run = latest.data;
+  const { run } = latest.data;
   if (!run) {
     return (
       <Notice variant="warning" data-testid="last-check-never" title="Verificarea nu a rulat încă">
@@ -77,9 +86,14 @@ export function LastCheck({
         </p>
         {run.errors && run.errors.length > 0 && (
           <ul className="mt-2 grid gap-1">
-            {run.errors.map((error) => (
-              <li key={error.actId} data-testid="last-check-failed-act">
-                <span className="font-medium">{actNames.get(error.actId) ?? error.actId}</span>:{' '}
+            {run.errors.map((error, index) => (
+              <li key={error.act ?? `run-${index}`} data-testid="last-check-failed-act">
+                {error.act && (
+                  <>
+                    <span className="font-medium">{actNames.get(error.act) ?? error.act}</span>
+                    :{' '}
+                  </>
+                )}
                 {error.message}
               </li>
             ))}

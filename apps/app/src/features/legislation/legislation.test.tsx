@@ -2,10 +2,10 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { LatestLegalCheckRunResponseRun } from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
-import type { LatestCheckRun } from './latest-check-run';
 import { pollIntervalMs } from './regeneration-job';
 
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
@@ -79,7 +79,7 @@ const changes = [
   },
 ];
 
-const succeeded: LatestCheckRun = {
+const succeeded: NonNullable<LatestLegalCheckRunResponseRun> = {
   id: '7c3a2d4b-9e5f-4f40-8b62-5d4e3f2a1b0c',
   startedAt: hoursAgo(3),
   finishedAt: hoursAgo(3),
@@ -165,7 +165,7 @@ const finishedJob = job({
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi({
-  run = succeeded as LatestCheckRun | null,
+  run = succeeded as LatestLegalCheckRunResponseRun,
   behind = [] as unknown[],
   afterJob = [] as unknown[],
   start = (() => Response.json(job(), { status: 201 })) as () => Response,
@@ -188,7 +188,7 @@ function mockApi({
     }
     if (pathname === '/legislation/acts') return Response.json({ items: acts });
     if (pathname === '/legislation/changes') return Response.json({ items: changes });
-    if (pathname === '/legislation/runs/latest') return Response.json(run);
+    if (pathname === '/legislation/runs/latest') return Response.json({ run });
     if (pathname === '/documents/behind') {
       return Response.json({ items: jobDone ? afterJob : behind });
     }
@@ -260,8 +260,9 @@ describe('the Legislație page', () => {
         ...succeeded,
         status: 'failed',
         errors: [
-          { actId: 'hg-1425-2006', message: 'Pagina nu a putut fi citită (HTTP 503).' },
-          { actId: 'lege-unknown-2001', message: 'Data formei consolidate lipsește.' },
+          { act: 'hg-1425-2006', message: 'Pagina nu a putut fi citită (HTTP 503).' },
+          { act: 'lege-unknown-2001', message: 'Data formei consolidate lipsește.' },
+          { act: null, message: 'Verificarea s-a oprit după 15 minute.' },
         ],
       },
     });
@@ -275,6 +276,7 @@ describe('the Legislație page', () => {
       ).toEqual([
         'H.G. 1425/2006: Pagina nu a putut fi citită (HTTP 503).',
         'lege-unknown-2001: Data formei consolidate lipsește.',
+        'Verificarea s-a oprit după 15 minute.',
       ])
     );
   });

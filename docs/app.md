@@ -815,9 +815,9 @@ mobile navigation link closes the Sheet.
   alike. Under the title, the last check: a quiet line with when the acts were read and what it
   found while the last run succeeded within two days, and a warning otherwise: "Verificarea nu
   a rulat încă" when there is no run, the acts it could not read with their messages when it
-  failed, and the date of the last reading when that is older than two days. The run comes
-  from `GET /legislation/runs/latest` through `latest-check-run.ts`, a typed fetch of its own
-  until the route reaches the OpenAPI document. Then three sections. "Documente în urmă"
+  failed (a run that failed as a whole has one message without an act), and the date of the
+  last reading when that is older than two days. The run comes from
+  `GET /legislation/runs/latest`. Then three sections. "Documente în urmă"
   lists `GET /documents/behind` by type: the newest version's kind and note, the clients
   behind with the version they are on (each a link to the client's documents) and the drafts
   edited by hand marked as skipped, and "Regenerează pentru toți clienții (N)". After a
