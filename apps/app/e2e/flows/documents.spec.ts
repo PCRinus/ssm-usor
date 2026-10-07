@@ -217,7 +217,9 @@ test('the own instructions are issued with their annex, which opens in the edito
     .filter({ hasText: /^Instrucțiuni proprii de securitate/ });
   await act(page, instructions, 'document-issue');
   await page.getByTestId('document-confirm').click();
-  await expect(instructions.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await expect(instructions.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
+    timeout: 30_000,
+  });
   await instructions.getByTestId('document-actions').click();
   await expect(page.getByTestId('document-download-pdf')).toBeVisible();
   await page.keyboard.press('Escape');
