@@ -23,6 +23,7 @@ import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
 import { Route as AuthenticatedInstructionsRouteImport } from './routes/_authenticated/instructions';
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads';
+import { Route as AuthenticatedLegislatieRouteImport } from './routes/_authenticated/legislatie';
 import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization';
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile';
 import { Route as AuthenticatedRisksRouteImport } from './routes/_authenticated/risks';
@@ -141,6 +142,11 @@ const AuthenticatedInstructionsRoute =
 const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedLegislatieRoute = AuthenticatedLegislatieRouteImport.update({
+  id: '/legislatie',
+  path: '/legislatie',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedOrganizationRoute =
@@ -452,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
   '/leads': typeof AuthenticatedLeadsRouteWithChildren;
+  '/legislatie': typeof AuthenticatedLegislatieRoute;
   '/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/profile': typeof AuthenticatedProfileRoute;
   '/risks': typeof AuthenticatedRisksRouteWithChildren;
@@ -513,6 +520,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
+  '/legislatie': typeof AuthenticatedLegislatieRoute;
   '/profile': typeof AuthenticatedProfileRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
@@ -568,6 +576,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
   '/_authenticated/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
   '/_authenticated/leads': typeof AuthenticatedLeadsRouteWithChildren;
+  '/_authenticated/legislatie': typeof AuthenticatedLegislatieRoute;
   '/_authenticated/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/_authenticated/profile': typeof AuthenticatedProfileRoute;
   '/_authenticated/risks': typeof AuthenticatedRisksRouteWithChildren;
@@ -634,6 +643,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/instructions'
     | '/leads'
+    | '/legislatie'
     | '/organization'
     | '/profile'
     | '/risks'
@@ -695,6 +705,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/dashboard'
+    | '/legislatie'
     | '/profile'
     | '/clients/new'
     | '/instructions/$moduleId'
@@ -749,6 +760,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/instructions'
     | '/_authenticated/leads'
+    | '/_authenticated/legislatie'
     | '/_authenticated/organization'
     | '/_authenticated/profile'
     | '/_authenticated/risks'
@@ -911,6 +923,13 @@ declare module '@tanstack/react-router' {
       path: '/leads';
       fullPath: '/leads';
       preLoaderRoute: typeof AuthenticatedLeadsRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    '/_authenticated/legislatie': {
+      id: '/_authenticated/legislatie';
+      path: '/legislatie';
+      fullPath: '/legislatie';
+      preLoaderRoute: typeof AuthenticatedLegislatieRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/organization': {
@@ -1549,6 +1568,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
   AuthenticatedInstructionsRoute: typeof AuthenticatedInstructionsRouteWithChildren;
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRouteWithChildren;
+  AuthenticatedLegislatieRoute: typeof AuthenticatedLegislatieRoute;
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren;
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
   AuthenticatedRisksRoute: typeof AuthenticatedRisksRouteWithChildren;
@@ -1559,6 +1579,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInstructionsRoute: AuthenticatedInstructionsRouteWithChildren,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRouteWithChildren,
+  AuthenticatedLegislatieRoute: AuthenticatedLegislatieRoute,
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRisksRoute: AuthenticatedRisksRouteWithChildren,

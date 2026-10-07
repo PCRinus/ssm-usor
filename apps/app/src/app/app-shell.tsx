@@ -40,6 +40,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquareWarning,
+  Scale,
   ShieldAlert,
   UserRound,
   Users,
@@ -63,6 +64,7 @@ const navigation = [
   { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
   { to: '/instructions', label: 'Instrucțiuni', icon: BookOpenText, ownerOnly: false },
   { to: '/risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
+  { to: '/legislatie', label: 'Legislație', icon: Scale, ownerOnly: false },
   { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
 ] as const;
 
