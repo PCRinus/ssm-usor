@@ -352,7 +352,7 @@ describe('the merge context', () => {
   it('words the training schedule', () => {
     expect(context.training).toEqual({
       periodicDuration: '2\u00a0ore',
-      intervalPhrase: 'următoarele intervale de timp',
+      intervalPhrase: 'se stabilesc următoarele intervale de timp',
       administrative: true,
       worker: true,
       administrativeFrequency: 'SEMESTRIAL',
@@ -404,7 +404,9 @@ describe('the merge context', () => {
       },
     });
     expect(administrativeOnly.training.worker).toBe(false);
-    expect(administrativeOnly.training.intervalPhrase).toBe('următorul interval de timp');
+    expect(administrativeOnly.training.intervalPhrase).toBe(
+      'se stabilește următorul interval de timp'
+    );
     expect(administrativeOnly.training).not.toHaveProperty('workerFrequency');
 
     const workerOnly = buildDocumentContext({
@@ -623,7 +625,7 @@ describe('the training themes', () => {
       },
       {
         name: 'SUDOR',
-        trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducători loc\u00a0de\u00a0muncă',
+        trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă',
         modules: [
           { citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' },
           { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031' },
@@ -636,13 +638,13 @@ describe('the training themes', () => {
       {
         month: 'FEBRUARIE',
         content:
-          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a094; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012',
+          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a095; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
+          'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0290; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
         duration: '120 min',
       },
     ]);

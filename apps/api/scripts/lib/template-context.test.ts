@@ -97,15 +97,15 @@ describe('the training themes', () => {
       )
     );
     expect(text).toContain(
-      'Florin Cristian TALOȘ și Ioana PETRE – conducători loc\u00a0de\u00a0muncă'
+      'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă'
     );
     expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
     expect(text).toContain(
-      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031;'
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031;'
     );
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
     expect(text.match(/Testare\.$/gm)).toHaveLength(2);
-    expect(text).toContain('I.P.S.S.M. Art.\u00a0234\u00a0–\u00a0287;');
+    expect(text).toContain('I.P.S.S.M. Art.\u00a0236\u00a0–\u00a0290;');
   }, 30_000);
 });
 
@@ -308,7 +308,7 @@ describe('the employer briefing', () => {
     (minutes, duration) => {
       const variant = { ...facts, client: { ...facts.client, periodicTrainingMinutes: minutes } };
       expect(renderWith('employer_briefing', variant)).toContain(
-        `Instructajul periodic durează ${duration} și va avea frecvența stabilită prin instrucțiunile proprii ale unității.`
+        `Instruirea periodică durează ${duration} și are periodicitatea stabilită prin programul de instruire-testare și prin instrucțiunile proprii ale unității.`
       );
       expect(renderWith('decision_training', variant)).toContain(
         `durata instruirii periodice va fi de ${duration};`
@@ -346,7 +346,7 @@ describe('the protective equipment list', () => {
     });
     expect(text).not.toContain('POST DE LUCRU:');
     expect(text).toMatch(
-      /prelucrarea materialelor de acoperire\.\nPentru posturile de lucru Contabil și Sudor nu este necesară dotarea cu echipament individual de protecție\./
+      /dispozițiile din prezenta hotărâre\.\nPentru posturile de lucru Contabil și Sudor nu este necesară dotarea cu echipament individual de protecție\./
     );
     expect(text.match(/nu este necesară dotarea/g)).toHaveLength(1);
     expect(text).not.toContain('Observații:');

@@ -4,14 +4,14 @@ import { listed } from '../../lib/romanian';
 
 // Both lists are held to their templates by scripts/lib/theme-chapters.test.ts.
 export const ownInstructionsChapterStarts = [
-  1, 10, 44, 46, 56, 63, 95, 166, 186, 203, 234, 254,
+  1, 10, 45, 47, 57, 64, 96, 160, 180, 195, 236, 256,
 ] as const;
-export const ownInstructionsArticleCount = 287;
+export const ownInstructionsArticleCount = 290;
 
 export const generalTrainingChapterStarts = [
-  1, 7, 14, 16, 28, 81, 97, 108, 120, 151, 210, 233, 265, 273, 286, 295, 320,
+  1, 7, 14, 16, 28, 81, 97, 109, 121, 152, 211, 236, 268, 278, 291, 300, 325,
 ] as const;
-export const generalTrainingArticleCount = 320;
+export const generalTrainingArticleCount = 325;
 
 export const monthNames = [
   'ianuarie',
@@ -102,8 +102,8 @@ export type TrainerNames = {
 export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
   if (staffCategory !== 'execution') return `${names.provider} – ${names.specialist}`;
   return names.workplaceManagers.length === 1
-    ? `${names.workplaceManagers[0]} – conducător loc\u00a0de\u00a0muncă`
-    : `${listed(names.workplaceManagers)} – conducători loc\u00a0de\u00a0muncă`;
+    ? `${names.workplaceManagers[0]} – conducătorul locului\u00a0de\u00a0muncă`
+    : `${listed(names.workplaceManagers)} – conducătorii locurilor\u00a0de\u00a0muncă`;
 }
 
 export function themeIntervalLabel(months: number | null) {

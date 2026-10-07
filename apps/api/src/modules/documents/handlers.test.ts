@@ -1377,25 +1377,25 @@ describe('the training themes', () => {
       positions: [
         {
           name: 'SUDOR',
-          trainer: 'Florin TALOȘ – conducător loc\u00a0de\u00a0muncă',
+          trainer: 'Florin TALOȘ – conducătorul locului\u00a0de\u00a0muncă',
           modules: [{ citation: 'I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014' }],
           intervalLabel: '3 LUNI',
           sessions: [
             [
               'FEBRUARIE',
-              'I.P.S.S.M. Art.\u00a01\u00a0–\u00a045; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a01\u00a0–\u00a046; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
             [
               'MAI',
-              'I.P.S.S.M. Art.\u00a046\u00a0–\u00a094; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a047\u00a0–\u00a095; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
             [
               'AUGUST',
-              'I.P.S.S.M. Art.\u00a095\u00a0–\u00a0202; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0194; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
             [
               'NOIEMBRIE',
-              'I.P.S.S.M. Art.\u00a0203\u00a0–\u00a0287; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014; Testare.',
+              'I.P.S.S.M. Art.\u00a0195\u00a0–\u00a0290; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014; Testare.',
             ],
           ].map(([month, content]) => ({ month, content, duration: '120 min' })),
         },

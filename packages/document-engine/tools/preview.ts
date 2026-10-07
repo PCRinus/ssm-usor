@@ -283,11 +283,13 @@ function sample(
             name: jobTitle.toUpperCase(),
             trainer:
               people.length === 1
-                ? `${name} – conducător loc\u00a0de\u00a0muncă`
+                ? `${name} – conducătorul locului\u00a0de\u00a0muncă`
                 : `${people
                     .slice(0, -1)
                     .map((manager) => manager.name)
-                    .join(', ')} și ${people.at(-1)!.name} – conducători loc\u00a0de\u00a0muncă`,
+                    .join(
+                      ', '
+                    )} și ${people.at(-1)!.name} – conducătorii locurilor\u00a0de\u00a0muncă`,
             modules: [
               { citation: 'I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012' },
               { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },
@@ -343,7 +345,7 @@ function sample(
       workersRepresentativesLead: people.length === 1 ? 'următorul angajat' : 'următorii angajați',
       training: {
         periodicDuration: '2\u00a0ore',
-        intervalPhrase: 'următoarele intervale de timp',
+        intervalPhrase: 'se stabilesc următoarele intervale de timp',
         administrative: true,
         worker: true,
         administrativeFrequency: 'SEMESTRIAL',
