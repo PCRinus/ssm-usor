@@ -74,18 +74,31 @@ export function replaceText(xml: string, pattern: RegExp, replace: string) {
   );
 }
 
+export interface Paragraph {
+  xml: string;
+  text: string;
+  offset: number;
+}
+
+/** Every `<w:p>` of a part in order, empty ones included, with its text as a reader sees it. */
+export function paragraphsOf(xml: string): Paragraph[] {
+  return [...xml.matchAll(paragraphPattern)].map((match) => {
+    let text = '';
+    match[0].replace(textPattern, (_, __, run: string) => {
+      text += decode(run);
+      return '';
+    });
+    return { xml: match[0], text, offset: match.index };
+  });
+}
+
 /** The text of a `.docx` as a reader sees it, one line per paragraph. */
 export function documentText(source: Uint8Array): string {
   const zip = new PizZip(source);
   const lines: string[] = [];
   for (const name of Object.keys(zip.files).filter(isTextPart).sort()) {
-    for (const paragraph of zip.file(name)!.asText().match(paragraphPattern) ?? []) {
-      let line = '';
-      paragraph.replace(textPattern, (_, __, text: string) => {
-        line += decode(text);
-        return '';
-      });
-      if (line.trim()) lines.push(line);
+    for (const { text } of paragraphsOf(zip.file(name)!.asText())) {
+      if (text.trim()) lines.push(text);
     }
   }
   return lines.join('\n');

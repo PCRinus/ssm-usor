@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./citations": {
+      "types": "./dist/citation-index.d.ts",
+      "import": "./dist/citation-index.js"
     }
   },
   "scripts": {
@@ -16,6 +20,7 @@
     "test": "vitest run",
     "import-templates": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/import_templates.py",
     "preview": "tsx tools/preview.ts",
+    "citations": "tsx tools/citations.ts",
     "build-covers": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_covers.py",
     "build-contract": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_contract.py",
     "build-annex-title": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_annex_title.py",
