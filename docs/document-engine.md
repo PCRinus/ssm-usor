@@ -476,8 +476,12 @@ pnpm --filter @ssm-usor/document-engine citations   # rewrites templates/citatio
 ```
 
 `templates/citations.json` is generated and committed; a test fails when it differs from a fresh
-parse, and `pnpm check:generated` regenerates it. The API can bundle it through
-`@ssm-usor/document-engine/citations`.
+parse, and `pnpm check:generated` regenerates it. `templates/legal-acts.json` is curated: every
+act the index names, with its title and the id of its page on legislatie.just.ro
+(`/Public/DetaliiDocument/<portalId>`). The portal's search matches the year of publication,
+not of the act, so an id is taken only when the page's title carries the act's number and
+year. A template that names an act missing from the list fails the tests until it is added.
+The API can bundle both through `@ssm-usor/document-engine/citations`.
 
 ## The merge context
 

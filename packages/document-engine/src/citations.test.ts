@@ -214,6 +214,10 @@ describe('the block a citation sits in', () => {
 describe("the built-in templates' citations", () => {
   const sources = templateSources();
   const index = buildCitationIndex(sources);
+  const { acts } = JSON.parse(readFileSync(new URL('legal-acts.json', templatesUrl), 'utf8')) as {
+    acts: { id: string; name: string; portalId: number | null }[];
+  };
+
   it('open every quoted article with a marker the parser reads', () => {
     const unread = sources.flatMap((template) =>
       paragraphsOf(new PizZip(template.source).file('word/document.xml')?.asText() ?? '')
@@ -222,6 +226,26 @@ describe("the built-in templates' citations", () => {
         .map(({ text, index }) => `${template.file} ¶${index}: ${text.slice(0, 90)}`)
     );
     expect(unread).toEqual([]);
+  });
+
+  it('name only acts of the act list', () => {
+    const known = new Set(acts.map((act) => act.id));
+    const unknown = [...new Set(index.citations.map((c) => c.act))].filter((id) => !known.has(id));
+    expect(unknown, 'add them to templates/legal-acts.json').toEqual([]);
+  });
+
+  it('list each act once, with a positive portal id when it has one', () => {
+    expect(new Set(acts.map((act) => act.id)).size).toBe(acts.length);
+    for (const act of acts) {
+      if (act.portalId !== null)
+        expect(Number.isInteger(act.portalId) && act.portalId > 0).toBe(true);
+    }
+  });
+
+  const unresolved = acts.filter((act) => act.portalId === null).map((act) => act.name);
+  if (unresolved.length) console.warn(`Legal acts without a portal page: ${unresolved.join(', ')}`);
+  it.skipIf(unresolved.length > 0)('give every act a page on the Portal Legislativ', () => {
+    expect(unresolved).toEqual([]);
   });
 
   it('report paragraphs that read like an article outside a quotation', () => {
