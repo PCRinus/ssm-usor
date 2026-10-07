@@ -64,6 +64,14 @@ const row = (id: string, last: string | null = null, verified: string | null = n
   verified_consolidated_on: verified,
 });
 
+describe('reading the act list', () => {
+  it('takes a number as the index writes it, a joint order with both of its numbers', () => {
+    const act = { ...law, number: '450/825' };
+    expect(legalActsSchema.parse({ acts: [act] }).acts[0]!.number).toBe('450/825');
+    expect(() => legalActsSchema.parse({ acts: [{ ...law, number: '450/' }] })).toThrow();
+  });
+});
+
 describe('deciding whether a form is a change', () => {
   it('takes the first form seen as the baseline', () => {
     expect(isNewer('2021-07-25', row('a'))).toBe(false);
