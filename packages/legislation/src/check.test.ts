@@ -188,6 +188,21 @@ describe('checking the watched acts', () => {
     expect(sent('legal_acts', 'PATCH')).toHaveLength(0);
   });
 
+  it('reads the portal with the options it is given', async () => {
+    const { db } = database([row(law.id)]);
+    const portalFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 302, headers: { Location: '/Error' } }));
+    const outcomes = await checkLegislation(db, [law], {
+      pauseMs: 0,
+      portal: { fetch: portalFetch, pauseMs: 0, origin: 'https://relay.example.com' },
+    });
+    expect(outcomes[0]).toMatchObject({ result: 'failed', error: expect.stringMatching(/302/) });
+    expect(portalFetch.mock.calls[0]![0]).toBe(
+      'https://relay.example.com/Public/DetaliiDocument/73772'
+    );
+  });
+
   it('stops before reading any page when the acts cannot be saved', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

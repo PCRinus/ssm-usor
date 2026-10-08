@@ -10,6 +10,12 @@
     // 03:17 UTC: 05:17 in Bucharest in winter, 06:17 in summer.
     "crons": ["17 3 * * *"],
   },
+  // The portal refuses Cloudflare's network; the relay on Mircea's home server fetches it
+  // (ADR 017). keep_vars below keeps a deployed var that leaves this list: to go direct, set
+  // the portal's own address here rather than deleting the line.
+  "vars": {
+    "PORTAL_ORIGIN": "https://legislation-relay.home-server.me",
+  },
   // Preserve SUPABASE_URL, supplied by the deployment workflow.
   "keep_vars": true,
   "observability": {

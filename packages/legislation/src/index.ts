@@ -19,7 +19,10 @@ export {
   fetchPortalAct,
   type PortalAct,
   type PortalAction,
+  type PortalEnv,
   PortalError,
+  type PortalOptions,
+  portalOptionsFromEnv,
   type PortalPage,
   type PortalStatus,
 } from './portal';

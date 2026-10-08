@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { LegislationClient, LegislationTables } from './database';
-import { fetchPortalAct, pause, type PortalAct, portalPauseMs } from './portal';
+import { fetchPortalAct, pause, type PortalAct, type PortalOptions, portalPauseMs } from './portal';
 
 export const legalActsSchema = z.object({
   acts: z.array(
@@ -45,14 +45,19 @@ export function isNewer(newest: string | null, row: ActRow) {
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-export type CheckOptions = { readAct?: (portalId: number) => Promise<PortalAct>; pauseMs?: number };
+export type CheckOptions = {
+  readAct?: (portalId: number) => Promise<PortalAct>;
+  pauseMs?: number;
+  portal?: PortalOptions;
+};
 
 export async function checkLegislation(
   db: LegislationClient,
   acts: LegalAct[],
   options: CheckOptions = {}
 ) {
-  const readAct = options.readAct ?? ((portalId: number) => fetchPortalAct(portalId));
+  const readAct =
+    options.readAct ?? ((portalId: number) => fetchPortalAct(portalId, options.portal));
   const upserted = await db
     .from('legal_acts')
     .upsert(acts.map((act) => ({ id: act.id, name: act.name, portal_id: act.portalId })))

@@ -8,6 +8,7 @@ import {
   parseActions,
   parseActPage,
   PortalError,
+  portalOptionsFromEnv,
   portalUserAgent,
 } from './portal';
 
@@ -157,6 +158,36 @@ describe('fetching an act from the portal', () => {
     expect(actionsUrl).toBe('https://legislatie.just.ro/Public/actiuniSuferite');
     expect(actionsInit?.method).toBe('POST');
     expect(actionsInit?.body).toBe('contor=73772');
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(new Headers(init?.headers).has('CF-Access-Client-Id')).toBe(false);
+    }
+  });
+
+  it('reads through a relay, with its headers on every request', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(lawPage, { status: 200 }))
+      .mockResolvedValueOnce(Response.json(lawActions));
+    await fetchPortalAct(73772, {
+      fetch: fetchMock,
+      pauseMs: 0,
+      origin: 'https://relay.example.com',
+      headers: { 'CF-Access-Client-Id': 'id.access', 'CF-Access-Client-Secret': 'secret' },
+    });
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      'https://relay.example.com/Public/DetaliiDocument/73772',
+      'https://relay.example.com/Public/actiuniSuferite',
+    ]);
+    for (const [, init] of fetchMock.mock.calls) {
+      const headers = new Headers(init?.headers);
+      expect(headers.get('CF-Access-Client-Id')).toBe('id.access');
+      expect(headers.get('CF-Access-Client-Secret')).toBe('secret');
+      expect(headers.get('User-Agent')).toBe(portalUserAgent);
+    }
+    expect(new Headers(fetchMock.mock.calls[1]![1]?.headers).get('Content-Type')).toMatch(
+      /^application\/x-www-form-urlencoded/
+    );
   });
 
   it('fails on the redirect the portal answers a missing page with', async () => {
@@ -184,5 +215,42 @@ describe('fetching an act from the portal', () => {
     await expect(fetchPortalAct(73772, { fetch: fetchMock, pauseMs: 0 })).rejects.toThrow(
       /not JSON/
     );
+  });
+});
+
+describe('choosing the way to the portal from the environment', () => {
+  const relay = {
+    PORTAL_ORIGIN: 'https://relay.example.com',
+    PORTAL_ACCESS_CLIENT_ID: 'id.access',
+    PORTAL_ACCESS_CLIENT_SECRET: 'secret',
+  };
+
+  it('goes straight to the portal when nothing is set', () => {
+    expect(portalOptionsFromEnv({})).toEqual({ origin: undefined });
+    expect(portalOptionsFromEnv({ PORTAL_ORIGIN: '', PORTAL_ACCESS_CLIENT_ID: '' })).toEqual({
+      origin: undefined,
+    });
+  });
+
+  it('goes through the relay with the Access service token', () => {
+    expect(portalOptionsFromEnv(relay)).toEqual({
+      origin: 'https://relay.example.com',
+      headers: { 'CF-Access-Client-Id': 'id.access', 'CF-Access-Client-Secret': 'secret' },
+    });
+  });
+
+  it('refuses half a token', () => {
+    expect(() => portalOptionsFromEnv({ ...relay, PORTAL_ACCESS_CLIENT_SECRET: '' })).toThrow(
+      /both PORTAL_ACCESS_CLIENT_ID and PORTAL_ACCESS_CLIENT_SECRET/
+    );
+  });
+
+  it('never sends the token to the portal itself', () => {
+    expect(() => portalOptionsFromEnv({ ...relay, PORTAL_ORIGIN: undefined })).toThrow(
+      /set PORTAL_ORIGIN/
+    );
+    expect(() =>
+      portalOptionsFromEnv({ ...relay, PORTAL_ORIGIN: 'https://legislatie.just.ro/' })
+    ).toThrow(/set PORTAL_ORIGIN/);
   });
 });
