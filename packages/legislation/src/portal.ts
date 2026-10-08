@@ -162,25 +162,27 @@ export type PortalOptions = {
 };
 
 export type PortalEnv = {
-  PORTAL_ORIGIN?: string;
-  PORTAL_ACCESS_CLIENT_ID?: string;
-  PORTAL_ACCESS_CLIENT_SECRET?: string;
+  LEGISLATION_RELAY_ORIGIN?: string;
+  LEGISLATION_RELAY_CLIENT_ID?: string;
+  LEGISLATION_RELAY_CLIENT_SECRET?: string;
 };
 
 // The portal refuses Cloudflare's and GitHub's networks, so a hosted check goes through a relay
 // behind Cloudflare Access (ADR 017).
 export function portalOptionsFromEnv(env: PortalEnv): Pick<PortalOptions, 'origin' | 'headers'> {
-  const origin = env.PORTAL_ORIGIN || undefined;
-  const clientId = env.PORTAL_ACCESS_CLIENT_ID || undefined;
-  const clientSecret = env.PORTAL_ACCESS_CLIENT_SECRET || undefined;
+  const origin = env.LEGISLATION_RELAY_ORIGIN || undefined;
+  const clientId = env.LEGISLATION_RELAY_CLIENT_ID || undefined;
+  const clientSecret = env.LEGISLATION_RELAY_CLIENT_SECRET || undefined;
   if (!clientId !== !clientSecret) {
     throw new Error(
-      'Set both PORTAL_ACCESS_CLIENT_ID and PORTAL_ACCESS_CLIENT_SECRET, or neither.'
+      'Set both LEGISLATION_RELAY_CLIENT_ID and LEGISLATION_RELAY_CLIENT_SECRET, or neither.'
     );
   }
   if (!clientId || !clientSecret) return { origin };
   if (!origin || new URL(origin).origin === portalOrigin) {
-    throw new Error('The Access token is only sent to a relay: set PORTAL_ORIGIN to its address.');
+    throw new Error(
+      'The Access token is only sent to a relay: set LEGISLATION_RELAY_ORIGIN to its address.'
+    );
   }
   return {
     origin,

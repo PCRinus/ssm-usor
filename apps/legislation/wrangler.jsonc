@@ -14,7 +14,7 @@
   // (ADR 017). keep_vars below keeps a deployed var that leaves this list: to go direct, set
   // the portal's own address here rather than deleting the line.
   "vars": {
-    "PORTAL_ORIGIN": "https://legislation-relay.home-server.me",
+    "LEGISLATION_RELAY_ORIGIN": "https://legislation-relay.home-server.me",
   },
   // Preserve SUPABASE_URL, supplied by the deployment workflow.
   "keep_vars": true,

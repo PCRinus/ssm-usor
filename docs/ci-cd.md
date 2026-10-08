@@ -88,7 +88,7 @@ a queue that does not exist; the deployment token needs **Queues → Edit** for 
 an existing queue is left as it is.
 The legislation Worker deploys after the migrations, since its cron writes to a table they
 create, with the production `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
-as a secret, beside `PORTAL_ACCESS_CLIENT_ID` and `PORTAL_ACCESS_CLIENT_SECRET`, the Access
+as a secret, beside `LEGISLATION_RELAY_CLIENT_ID` and `LEGISLATION_RELAY_CLIENT_SECRET`, the Access
 service token of the relay it reads the portal through
 ([deployment guide](deployment.md#legislation-worker)). Unlike the API, it fails when any of
 them is missing: without the first two the cron could not even record that it ran, and

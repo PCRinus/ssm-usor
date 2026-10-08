@@ -220,14 +220,16 @@ describe('fetching an act from the portal', () => {
 
 describe('choosing the way to the portal from the environment', () => {
   const relay = {
-    PORTAL_ORIGIN: 'https://relay.example.com',
-    PORTAL_ACCESS_CLIENT_ID: 'id.access',
-    PORTAL_ACCESS_CLIENT_SECRET: 'secret',
+    LEGISLATION_RELAY_ORIGIN: 'https://relay.example.com',
+    LEGISLATION_RELAY_CLIENT_ID: 'id.access',
+    LEGISLATION_RELAY_CLIENT_SECRET: 'secret',
   };
 
   it('goes straight to the portal when nothing is set', () => {
     expect(portalOptionsFromEnv({})).toEqual({ origin: undefined });
-    expect(portalOptionsFromEnv({ PORTAL_ORIGIN: '', PORTAL_ACCESS_CLIENT_ID: '' })).toEqual({
+    expect(
+      portalOptionsFromEnv({ LEGISLATION_RELAY_ORIGIN: '', LEGISLATION_RELAY_CLIENT_ID: '' })
+    ).toEqual({
       origin: undefined,
     });
   });
@@ -240,17 +242,17 @@ describe('choosing the way to the portal from the environment', () => {
   });
 
   it('refuses half a token', () => {
-    expect(() => portalOptionsFromEnv({ ...relay, PORTAL_ACCESS_CLIENT_SECRET: '' })).toThrow(
-      /both PORTAL_ACCESS_CLIENT_ID and PORTAL_ACCESS_CLIENT_SECRET/
+    expect(() => portalOptionsFromEnv({ ...relay, LEGISLATION_RELAY_CLIENT_SECRET: '' })).toThrow(
+      /both LEGISLATION_RELAY_CLIENT_ID and LEGISLATION_RELAY_CLIENT_SECRET/
     );
   });
 
   it('never sends the token to the portal itself', () => {
-    expect(() => portalOptionsFromEnv({ ...relay, PORTAL_ORIGIN: undefined })).toThrow(
-      /set PORTAL_ORIGIN/
+    expect(() => portalOptionsFromEnv({ ...relay, LEGISLATION_RELAY_ORIGIN: undefined })).toThrow(
+      /set LEGISLATION_RELAY_ORIGIN/
     );
     expect(() =>
-      portalOptionsFromEnv({ ...relay, PORTAL_ORIGIN: 'https://legislatie.just.ro/' })
-    ).toThrow(/set PORTAL_ORIGIN/);
+      portalOptionsFromEnv({ ...relay, LEGISLATION_RELAY_ORIGIN: 'https://legislatie.just.ro/' })
+    ).toThrow(/set LEGISLATION_RELAY_ORIGIN/);
   });
 });

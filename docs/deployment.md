@@ -161,15 +161,15 @@ refuses requests from Cloudflare's network, so the Worker reads it through a rel
 Mircea's home server, reached through his Cloudflare Tunnel at
 `https://legislation-relay.home-server.me` and guarded by a Cloudflare Access service token.
 The relay passes each request on to the portal and its answer back unchanged; it holds no
-secrets. Its address is `PORTAL_ORIGIN` in `wrangler.jsonc`. The other values are set by the
+secrets. Its address is `LEGISLATION_RELAY_ORIGIN` in `wrangler.jsonc`. The other values are set by the
 **Deploy legislation Worker** job from the `production` environment:
 
-| Worker value                  | Kind     | From                                                                                     |
-| ----------------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`                | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                         |
-| `SUPABASE_SECRET_KEY`         | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                |
-| `PORTAL_ACCESS_CLIENT_ID`     | Secret   | The `PORTAL_ACCESS_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`         |
-| `PORTAL_ACCESS_CLIENT_SECRET` | Secret   | The `PORTAL_ACCESS_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret` |
+| Worker value                      | Kind     | From                                                                                         |
+| --------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                    | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                             |
+| `SUPABASE_SECRET_KEY`             | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                    |
+| `LEGISLATION_RELAY_CLIENT_ID`     | Secret   | The `LEGISLATION_RELAY_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`         |
+| `LEGISLATION_RELAY_CLIENT_SECRET` | Secret   | The `LEGISLATION_RELAY_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret` |
 
 The job fails when any of them is missing. The service token is created by the homelab
 repository's Terraform, which also sets up the tunnel route and the Access application; copy
@@ -181,7 +181,7 @@ terraform output -raw legislation_relay_client_secret
 ```
 
 When the token is rotated there, update both secrets and redeploy. When the relay is down,
-every act fails and the run says so. Because of `keep_vars`, deleting `PORTAL_ORIGIN` from
+every act fails and the run says so. Because of `keep_vars`, deleting `LEGISLATION_RELAY_ORIGIN` from
 `wrangler.jsonc` would leave the deployed value in place: going back to direct reads means
 setting it to `https://legislatie.just.ro` and dropping the token from the job and the Worker,
 since the Worker refuses to send the token to the portal itself.

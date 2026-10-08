@@ -22,7 +22,7 @@ import { localSupabase, secretFromCli } from './lib/supabase-cli';
 //   pnpm legislation:check          hosted project from SUPABASE_URL (apps/api/.env.seed)
 //   pnpm legislation:check:local    local Docker stack
 // Either takes --acts <file.json>, another act list in the shape of legal-acts.json, and reads
-// the portal directly unless PORTAL_ORIGIN and the PORTAL_ACCESS_CLIENT_* token name the relay.
+// the portal directly unless LEGISLATION_RELAY_ORIGIN and the LEGISLATION_RELAY_CLIENT_* token name the relay.
 
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 // The package keeps its own copy of these tables' types; this fails when they drift apart.

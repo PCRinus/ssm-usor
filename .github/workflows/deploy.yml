@@ -447,8 +447,8 @@ jobs:
     env:
       SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-      PORTAL_ACCESS_CLIENT_ID: ${{ secrets.PORTAL_ACCESS_CLIENT_ID }}
-      PORTAL_ACCESS_CLIENT_SECRET: ${{ secrets.PORTAL_ACCESS_CLIENT_SECRET }}
+      LEGISLATION_RELAY_CLIENT_ID: ${{ secrets.LEGISLATION_RELAY_CLIENT_ID }}
+      LEGISLATION_RELAY_CLIENT_SECRET: ${{ secrets.LEGISLATION_RELAY_CLIENT_SECRET }}
     steps:
       # Without the Supabase pair the cron fails every morning before it can record a run; without
       # the Access token the relay turns away every act.
@@ -457,8 +457,8 @@ jobs:
         run: |
           : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
-          : "${PORTAL_ACCESS_CLIENT_ID:?Set PORTAL_ACCESS_CLIENT_ID in GitHub secrets, from the homelab Terraform output legislation_relay_client_id}"
-          : "${PORTAL_ACCESS_CLIENT_SECRET:?Set PORTAL_ACCESS_CLIENT_SECRET in GitHub secrets, from the homelab Terraform output legislation_relay_client_secret}"
+          : "${LEGISLATION_RELAY_CLIENT_ID:?Set LEGISLATION_RELAY_CLIENT_ID in GitHub secrets, from the homelab Terraform output legislation_relay_client_id}"
+          : "${LEGISLATION_RELAY_CLIENT_SECRET:?Set LEGISLATION_RELAY_CLIENT_SECRET in GitHub secrets, from the homelab Terraform output legislation_relay_client_secret}"
 
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -487,8 +487,8 @@ jobs:
             SUPABASE_URL
           secrets: |
             SUPABASE_SECRET_KEY
-            PORTAL_ACCESS_CLIENT_ID
-            PORTAL_ACCESS_CLIENT_SECRET
+            LEGISLATION_RELAY_CLIENT_ID
+            LEGISLATION_RELAY_CLIENT_SECRET
 
   deploy-api:
     name: Deploy API

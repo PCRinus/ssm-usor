@@ -170,9 +170,9 @@ the script and the local cron skip the relay by default. To test the relay from 
 the script its address and the Access service token from the homelab Terraform outputs:
 
 ```bash
-PORTAL_ORIGIN=https://legislation-relay.home-server.me \
-PORTAL_ACCESS_CLIENT_ID="$(terraform output -raw legislation_relay_client_id)" \
-PORTAL_ACCESS_CLIENT_SECRET="$(terraform output -raw legislation_relay_client_secret)" \
+LEGISLATION_RELAY_ORIGIN=https://legislation-relay.home-server.me \
+LEGISLATION_RELAY_CLIENT_ID="$(terraform output -raw legislation_relay_client_id)" \
+LEGISLATION_RELAY_CLIENT_SECRET="$(terraform output -raw legislation_relay_client_secret)" \
 pnpm legislation:check:local --acts packages/legislation/fixtures/legal-acts.json
 ```
 
@@ -182,9 +182,9 @@ relay answer with Access's redirect or `403`, and every act fails.
 
 The Worker's cron, in `wrangler dev`: copy `apps/legislation/.dev.vars.example` to `.dev.vars`
 and put in the local secret key from `pnpm supabase:status`, build the packages it imports, and
-start it with scheduled events exposed over HTTP. The example's `PORTAL_ORIGIN` overrides the
+start it with scheduled events exposed over HTTP. The example's `LEGISLATION_RELAY_ORIGIN` overrides the
 relay in `wrangler.jsonc` with the portal itself; to test the relay, delete that line and fill
-in the two `PORTAL_ACCESS_CLIENT_*` values:
+in the two `LEGISLATION_RELAY_CLIENT_*` values:
 
 ```bash
 pnpm --filter @ssm-usor/document-engine --filter @ssm-usor/legislation-check build

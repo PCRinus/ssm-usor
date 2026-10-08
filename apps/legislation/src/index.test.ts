@@ -44,9 +44,9 @@ describe('the daily cron', () => {
     vi.mocked(runLegislationCheck).mockResolvedValue(run('succeeded'));
     await scheduled({
       ...env,
-      PORTAL_ORIGIN: 'https://legislation-relay.example.com',
-      PORTAL_ACCESS_CLIENT_ID: 'id.access',
-      PORTAL_ACCESS_CLIENT_SECRET: 'secret',
+      LEGISLATION_RELAY_ORIGIN: 'https://legislation-relay.example.com',
+      LEGISLATION_RELAY_CLIENT_ID: 'id.access',
+      LEGISLATION_RELAY_CLIENT_SECRET: 'secret',
     });
     const [, , options] = vi.mocked(runLegislationCheck).mock.calls[0]!;
 
