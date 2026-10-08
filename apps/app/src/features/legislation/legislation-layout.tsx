@@ -1,16 +1,10 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { FileClock, History, ScrollText } from 'lucide-react';
 
 import { SectionNav } from '@/components/section-nav';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { LastCheck } from './last-check';
-
-const sections = [
-  { to: '/legislatie/documente', label: 'Documente de actualizat', icon: FileClock },
-  { to: '/legislatie/modificari', label: 'Modificări', icon: History },
-  { to: '/legislatie/acte', label: 'Acte urmărite', icon: ScrollText },
-] as const;
+import { legislationSections } from './legislation-sections';
 
 export function LegislationLayout() {
   const { session } = useAuth();
@@ -29,7 +23,7 @@ export function LegislationLayout() {
         <LastCheck userId={userId} />
       </div>
       <SectionNav label="Secțiunile paginii Legislație">
-        {sections.map(({ to, label, icon: Icon }) => (
+        {legislationSections.map(({ to, label, icon: Icon }) => (
           <li key={to} className="shrink-0">
             <Link
               to={to}

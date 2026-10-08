@@ -364,7 +364,11 @@ keeps the logo and sidebar toggle visible independently of sidebar collapse. The
 account menu sits at the bottom of the sidebar and remains accessible as an avatar
 when collapsed. Breadcrumbs sit above the page content, and a small footer follows the content.
 The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting a
-mobile navigation link closes the Sheet.
+mobile navigation link closes the Sheet. An entry of `navigation` may have `children`, its
+page's tabs: while the entry's route is open they show under it as sub-entries, the current one
+highlighted instead of the parent, and otherwise they are hidden. The icon rail hides them and
+keeps the parent highlighted. "Legislație" is the one entry with children, from
+`legislation-sections.ts`, the same list its tab bar reads.
 
 - `/dashboard`: overview and existing account/API status.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table,
@@ -540,6 +544,13 @@ mobile navigation link closes the Sheet.
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own
   header. A `404` or `409` reloads the list. An archived client only gets the downloads.
+  The open section is the `section` search param. `focus` takes `generate` (open the dialog)
+  or a type key of the set, the way the missing-data rows lead to a field
+  (`missing-data/focus.ts`): once the list has loaded, the row of that document (its id is
+  `document-{typeKey}`) is scrolled to the middle of the window and pointed at with the
+  `data-pointed` ring, drawn inside a table row; then `focus` leaves the address with a
+  replace. A type with no document any more only opens its section. `documentRowLink` builds
+  the address with both params; the fire-safety tab below takes the same.
 
 - `/clients/:clientId/documents/:documentId`: one document in the in-app Word editor (ADR 005,
   [the trial](document-editor-trial.md)). The page finds the document in the client's list,
@@ -816,7 +827,7 @@ mobile navigation link closes the Sheet.
   evaluation read, since their links and names change.
 - `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),
   in `src/features/legislation/`, the sidebar entry after "Riscuri" for owners and specialists
-  alike. `legislation-layout.tsx` keeps the title, its one-line description and the last check
+  alike, which opens to its three tabs while the page is open. `legislation-layout.tsx` keeps the title, its one-line description and the last check
   above three tabs, child routes in the clients page's way (`SectionNav`):
   `/legislatie/documente` ("Documente de actualizat", where `/legislatie` leads),
   `/legislatie/modificari` ("Modificări") and `/legislatie/acte` ("Acte urmărite"). The last
@@ -833,8 +844,9 @@ mobile navigation link closes the Sheet.
   `kind` and `status`, never its `message`, which is English for the logs; an error recorded
   before errors had a kind counts as "Altă eroare". "Documente de actualizat" lists
   `GET /documents/behind` by type under "Documente SSM" and "Documente PSI"
-  (`documentSetOf` from the contracts): the newest version's kind and note, the clients
-  behind with the version they are on (each a link to the client's documents of that set) and
+  (`documentSetOf` from the contracts), each type's title led by an "SSM" or "PSI" badge: the
+  newest version's kind and note, the clients behind with the version they are on (each a link
+  to that document's row on the client's documents tab of its set, see above) and
   the drafts edited by hand marked as skipped, and "Regenerează pentru toți clienții (N)".
   After a confirmation it posts `POST /documents/behind/regenerate` and polls
   `GET /documents/regeneration-jobs/{jobId}` every two seconds until `finishedAt`: a bar with

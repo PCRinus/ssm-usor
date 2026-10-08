@@ -305,6 +305,27 @@ describe('the Legislație page', () => {
     expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
   });
 
+  it('opens Legislație in the navigation on its tabs, the current one marked', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    const group = await screen.findByTestId('nav-legislatie-group');
+    const entries = within(group).getAllByTestId('nav-sub-entry');
+    expect(entries.map((entry) => [entry.textContent, entry.getAttribute('href')])).toEqual([
+      ['Documente de actualizat', '/legislatie/documente'],
+      ['Modificări', '/legislatie/modificari'],
+      ['Acte urmărite', '/legislatie/acte'],
+    ]);
+    await waitFor(() => expect(entries[0]!.getAttribute('aria-current')).toBe('page'));
+
+    await user.click(entries[2]!);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/legislatie/acte'));
+    expect(entries[2]!.getAttribute('aria-current')).toBe('page');
+    expect(entries[0]!.getAttribute('aria-current')).toBeNull();
+    expect(entries[2]!.getAttribute('data-active')).toBe('true');
+  });
+
   it('keeps the title and the last check above every tab', async () => {
     mockApi();
     const runtime = mount();
@@ -443,15 +464,17 @@ describe('the Legislație page', () => {
       within(ssm!)
         .getAllByRole('heading', { level: 3 })
         .map((heading) => heading.textContent)
-    ).toEqual(['Decizia privind responsabilii cu primul ajutor']);
+    ).toEqual(['SSMDecizia privind responsabilii cu primul ajutor']);
     expect(within(psi!).getByRole('heading', { level: 2 }).textContent).toBe('Documente PSI');
     expect(
       within(psi!)
         .getAllByRole('heading', { level: 3 })
         .map((heading) => heading.textContent)
-    ).toEqual(['Registru de evidență a controlului stingătoarelor de incendiu']);
+    ).toEqual(['PSIRegistru de evidență a controlului stingătoarelor de incendiu']);
+    expect(within(ssm!).getByTestId('behind-type-set').textContent).toBe('SSM');
+    expect(within(psi!).getByTestId('behind-type-set').textContent).toBe('PSI');
     expect(within(psi!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${extinguisherBehind.clients[0]!.clientId}/fire-safety-documents`
+      `/clients/${extinguisherBehind.clients[0]!.clientId}/fire-safety-documents?section=registers&focus=fire_extinguisher_register`
     );
   });
 
@@ -461,7 +484,7 @@ describe('the Legislație page', () => {
 
     const type = await screen.findByTestId('behind-type');
     expect(within(type).getByRole('heading', { level: 3 }).textContent).toBe(
-      'Decizia privind responsabilii cu primul ajutor'
+      'SSMDecizia privind responsabilii cu primul ajutor'
     );
     expect(type.textContent).toContain('Corectură');
     expect(type.textContent).toContain('Versiunea 4 a șablonului');
@@ -474,7 +497,7 @@ describe('the Legislație page', () => {
       'BETA CAFE SRLpe versiunea 2ciornă editată manual – va fi sărită',
     ]);
     expect(within(clients[0]!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${firstAidBehind.clients[0]!.clientId}/documents`
+      `/clients/${firstAidBehind.clients[0]!.clientId}/documents?section=decisions&focus=decision_first_aid`
     );
     expect(within(type).getByTestId('behind-regenerate').textContent).toBe(
       'Regenerează pentru toți clienții (2)'

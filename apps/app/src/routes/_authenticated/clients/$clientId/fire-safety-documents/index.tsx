@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { useAuth } from '@/features/auth/auth-context';
 import { fireSafetyDocumentSectionIds } from '@/features/documents/document-sections';
 import { DocumentsCard } from '@/features/documents/documents-card';
-import { documentsFocus, focusSearch } from '@/features/missing-data/focus';
+import { fireSafetyDocumentsFocus, focusSearch } from '@/features/missing-data/focus';
 
-const searchSchema = focusSearch(documentsFocus).extend({
+const searchSchema = focusSearch(fireSafetyDocumentsFocus).extend({
   section: z.enum(fireSafetyDocumentSectionIds).optional().catch(undefined),
 });
 

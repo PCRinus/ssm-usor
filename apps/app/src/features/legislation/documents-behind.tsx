@@ -33,7 +33,7 @@ import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
-import { documentSetCopy, documentsLink } from '@/features/documents/document-sets';
+import { documentRowLink, documentSetCopy } from '@/features/documents/document-sets';
 
 import { countOf, kindLabels } from './legislation-labels';
 import { RegenerationJob } from './regeneration-job';
@@ -123,7 +123,7 @@ export function DocumentsBehind({ userId }: { userId: string }) {
           key={typeKey}
           data-testid="behind-type"
           headingLevel={3}
-          title={tracked.title}
+          title={<TypeTitle typeKey={typeKey} title={tracked.title} />}
           description="Niciun client nu mai are acest document în urmă."
         >
           <RegenerationJob
@@ -255,6 +255,17 @@ function BehindSet({ set, children }: { set: DocumentSet; children: ReactNode })
   );
 }
 
+function TypeTitle({ typeKey, title }: { typeKey: string; title: string }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <Badge variant="secondary" data-testid="behind-type-set">
+        {documentSetCopy[documentSetOf(typeKey)].name}
+      </Badge>
+      <span>{title}</span>
+    </span>
+  );
+}
+
 function confirmationText(type: BehindType) {
   const edited = type.clients.filter((client) => client.editedDraft).length;
   const regenerated = type.clients.length - edited;
@@ -274,9 +285,13 @@ function BehindTypeCard({
   action: ReactNode;
   children: ReactNode;
 }) {
-  const set = documentSetOf(type.typeKey);
   return (
-    <SectionCard data-testid="behind-type" headingLevel={3} title={type.title} action={action}>
+    <SectionCard
+      data-testid="behind-type"
+      headingLevel={3}
+      title={<TypeTitle typeKey={type.typeKey} title={type.title} />}
+      action={action}
+    >
       <div className="grid gap-1.5">
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="outline">{kindLabels[type.newestVersion.kind]}</Badge>
@@ -301,7 +316,7 @@ function BehindTypeCard({
               className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
             >
               <Link
-                {...documentsLink(set, client.clientId)}
+                {...documentRowLink(client.clientId, type.typeKey)}
                 className="font-medium underline-offset-4 hover:underline"
               >
                 {client.clientName}

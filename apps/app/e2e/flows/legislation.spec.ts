@@ -45,10 +45,34 @@ test('a document behind its template is regenerated for every client from the Le
   await expect(
     page.getByTestId('legislation-section').filter({ hasText: 'Documente de actualizat' })
   ).toHaveAttribute('aria-current', 'page');
+  const navigationTabs = page.getByTestId('nav-legislatie-group').getByTestId('nav-sub-entry');
+  await expect(navigationTabs).toHaveText([
+    'Documente de actualizat',
+    'Modificări',
+    'Acte urmărite',
+  ]);
+  await expect(navigationTabs.first()).toHaveAttribute('aria-current', 'page');
   const type = page.getByTestId('behind-type').filter({ hasText: title });
+  await expect(type.getByTestId('behind-type-set')).toHaveText('PSI');
   await expect(type.getByTestId('behind-client')).toHaveText([
     `${clientName}pe versiunea ${version}`,
   ]);
+
+  await type.getByRole('link', { name: clientName }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/clients/${clientId}/fire-safety-documents\\?section=registers`)
+  );
+  const pointed = page.locator('#document-fire_extinguisher_register');
+  await expect(pointed).toHaveAttribute('data-pointed', '');
+  await expect(pointed).toBeInViewport();
+  await expect(pointed.getByTestId('document-behind')).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp(`/clients/${clientId}/fire-safety-documents\\?section=registers$`)
+  );
+  await expect(page.getByTestId('nav-legislatie-group')).toHaveCount(0);
+
+  await page.getByTestId('nav-legislatie').click();
+  await expect(page).toHaveURL(/\/legislatie\/documente$/);
   await type.getByTestId('behind-regenerate').click();
   await page.getByTestId('behind-confirm').click();
 

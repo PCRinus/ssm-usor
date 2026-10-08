@@ -1,7 +1,12 @@
-import type { DocumentSet } from '@ssm-usor/contracts';
+import {
+  type DocumentSet,
+  documentSetOf,
+  type DocumentTypeKey,
+  type FireSafetyDocumentTypeKey,
+} from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
-import type { SectionIdOf } from './document-sections';
+import { type SectionIdOf, sectionOf } from './document-sections';
 
 export function documentsLink<Set extends DocumentSet>(
   set: Set,
@@ -20,6 +25,25 @@ export function documentsLink<Set extends DocumentSet>(
         search: { section: section as SectionIdOf<'occupational_safety'> | undefined },
       });
 }
+
+export function documentRowLink(clientId: string, typeKey: string) {
+  return documentSetOf(typeKey) === 'fire_safety'
+    ? linkOptions({
+        to: '/clients/$clientId/fire-safety-documents',
+        params: { clientId },
+        search: {
+          section: sectionOf(typeKey, 'fire_safety'),
+          focus: typeKey as FireSafetyDocumentTypeKey,
+        },
+      })
+    : linkOptions({
+        to: '/clients/$clientId/documents',
+        params: { clientId },
+        search: { section: sectionOf(typeKey), focus: typeKey as DocumentTypeKey },
+      });
+}
+
+export const documentRowId = (typeKey: string) => `document-${typeKey}`;
 
 export function documentLink(set: DocumentSet, clientId: string, documentId: string) {
   return set === 'fire_safety'
@@ -43,7 +67,7 @@ export const documentSetCopy = {
     tab: 'Documente SSM',
     heading: 'Documentația SSM',
     backLabel: 'Înapoi la documentele SSM',
-    decisionSuffix: 'SSM',
+    name: 'SSM',
     emptyHint:
       'Generează documentația ca să obții deciziile, materialele de instruire, testele, registrele și celelalte documente, completate cu datele clientului.',
     templatesUnavailable: undefined,
@@ -52,7 +76,7 @@ export const documentSetCopy = {
     tab: 'Documente PSI',
     heading: 'Documentația PSI',
     backLabel: 'Înapoi la documentele PSI',
-    decisionSuffix: 'PSI',
+    name: 'PSI',
     emptyHint:
       'Generează documentația ca să obții registrele și formularele. Documentele în pregătire vor putea fi generate pe măsură ce sunt adăugate în aplicație.',
     templatesUnavailable:
@@ -64,7 +88,7 @@ export const documentSetCopy = {
     tab: string;
     heading: string;
     backLabel: string;
-    decisionSuffix: string;
+    name: string;
     emptyHint: string;
     templatesUnavailable: string | undefined;
   }

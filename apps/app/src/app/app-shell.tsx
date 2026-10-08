@@ -26,6 +26,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
 } from '@ssm-usor/ui/components/sidebar';
@@ -51,6 +54,7 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { legislationSections } from '@/features/legislation/legislation-sections';
 
 import { CommitVersion } from './commit-version';
 import { ReportProblemDialog } from './report-problem-dialog';
@@ -64,7 +68,13 @@ const navigation = [
   { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
   { to: '/instructions', label: 'Instrucțiuni', icon: BookOpenText, ownerOnly: false },
   { to: '/risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
-  { to: '/legislatie', label: 'Legislație', icon: Scale, ownerOnly: false },
+  {
+    to: '/legislatie',
+    label: 'Legislație',
+    icon: Scale,
+    ownerOnly: false,
+    children: legislationSections,
+  },
   { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
 ] as const;
 
@@ -96,6 +106,10 @@ function AppNavigation({
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
+  const closeOnMobile = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+  const within = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
   return (
     <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
@@ -105,23 +119,52 @@ function AppNavigation({
               <SidebarMenu>
                 {navigation
                   .filter((item) => isOwner || !item.ownerOnly)
-                  .map(({ to, label, icon: Icon }) => {
-                    const inside = pathname === to || pathname.startsWith(`${to}/`);
+                  .map((entry) => {
+                    const { to, label, icon: Icon } = entry;
+                    const children = 'children' in entry ? entry.children : undefined;
+                    const inside = within(to);
+                    const expanded = children !== undefined && inside;
                     return (
                       <SidebarMenuItem key={to}>
-                        <SidebarMenuButton asChild isActive={inside} tooltip={label}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={inside}
+                          tooltip={label}
+                          // The open group's current page carries the highlight; the parent keeps
+                          // it only in the icon rail, which hides the group.
+                          className={cn(
+                            expanded &&
+                              'data-[active=true]:bg-transparent group-data-[collapsible=icon]:data-[active=true]:bg-sidebar-accent'
+                          )}
+                        >
                           <Link
                             to={to}
                             data-testid={`nav-${to.slice(1)}`}
                             aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
-                            onClick={() => {
-                              if (isMobile) setOpenMobile(false);
-                            }}
+                            onClick={closeOnMobile}
                           >
                             <Icon aria-hidden="true" />
                             <span>{label}</span>
                           </Link>
                         </SidebarMenuButton>
+                        {expanded && (
+                          <SidebarMenuSub data-testid={`nav-${to.slice(1)}-group`}>
+                            {children.map((child) => (
+                              <SidebarMenuSubItem key={child.to}>
+                                <SidebarMenuSubButton asChild isActive={within(child.to)}>
+                                  <Link
+                                    to={child.to}
+                                    data-testid="nav-sub-entry"
+                                    aria-current={within(child.to) ? 'page' : undefined}
+                                    onClick={closeOnMobile}
+                                  >
+                                    <span>{child.label}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        )}
                       </SidebarMenuItem>
                     );
                   })}

@@ -510,6 +510,61 @@ describe('client documents', () => {
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
+  it('leads to the document the address names, in its open section, and points at it', async () => {
+    mockApi({
+      items: [firstAid, report],
+      behind: [
+        {
+          typeKey: 'decision_first_aid',
+          title: firstAid.title,
+          newestVersion: { version: 4, kind: 'legal', note: null },
+          runningJobId: null,
+          clients: [
+            {
+              documentId: firstAidId,
+              clientId,
+              clientName: sampleClient.legalName,
+              version: 3,
+              editedDraft: false,
+            },
+          ],
+        },
+      ],
+    });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/documents?section=decisions&focus=decision_first_aid`
+    );
+
+    const row = await waitFor(() => {
+      const element = document.getElementById('document-decision_first_aid');
+      expect(element?.hasAttribute('data-pointed')).toBe(true);
+      return element!;
+    });
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts).toContain(row);
+    expect(row.getAttribute('data-testid')).toBe('document-row');
+    expect(row.textContent).toContain(firstAid.title);
+    expect(await within(row).findByTestId('document-behind')).toBeTruthy();
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ section: 'decisions' })
+    );
+  });
+
+  it('opens the section quietly when the document the address names is not there', async () => {
+    mockApi({ items: [firstAid] });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/documents?section=control-report&focus=control_report`
+    );
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ section: 'control-report' })
+    );
+    expect(screen.queryByTestId('document-row')).toBeNull();
+    expect(document.querySelector('[data-pointed]')).toBeNull();
+    expect(vi.mocked(Element.prototype.scrollIntoView)).not.toHaveBeenCalled();
+  });
+
   it('generates with the date and the first number of the last generation', async () => {
     mockApi({
       items: [report],

@@ -1,3 +1,4 @@
+import { documentTypeKeys, fireSafetyDocumentTypeKeys } from '@ssm-usor/contracts';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useEffect, useEffectEvent } from 'react';
 import { z } from 'zod';
@@ -32,6 +33,10 @@ export const trainingFocus = [
 export const jobPositionsFocus = ['add-position'] as const;
 
 export const documentsFocus = ['generate'] as const;
+
+export const occupationalSafetyDocumentsFocus = [...documentsFocus, ...documentTypeKeys] as const;
+
+export const fireSafetyDocumentsFocus = [...documentsFocus, ...fireSafetyDocumentTypeKeys] as const;
 
 export const clientContractFocus = ['contract-details'] as const;
 

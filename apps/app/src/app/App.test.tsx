@@ -150,6 +150,7 @@ describe('dashboard authentication and routing', () => {
     await waitFor(() => expect(document.title).toBe('Clienți — SSM Ușor'));
     expect(runtime.router.state.location.pathname).toBe('/clients');
     expect(screen.getByTestId('nav-clients').getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByTestId('nav-legislatie-group')).toBeNull();
     await user.click(screen.getByTestId('sidebar-toggle'));
     expect(document.querySelector('[data-slot="sidebar"]')?.getAttribute('data-state')).toBe(
       'collapsed'
