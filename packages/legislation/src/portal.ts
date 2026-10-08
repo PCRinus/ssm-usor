@@ -33,8 +33,17 @@ export type PortalAct = {
   amendingActs: string[];
 };
 
+export type PortalFailure = { kind: 'http_status'; status: number } | { kind: 'fetch' | 'parse' };
+
 export class PortalError extends Error {
   override name = 'PortalError';
+
+  constructor(
+    message: string,
+    readonly failure: PortalFailure = { kind: 'parse' }
+  ) {
+    super(message);
+  }
 }
 
 const entities: Record<string, string> = {
@@ -206,11 +215,15 @@ async function request(
     });
   } catch (error) {
     throw new PortalError(
-      `${url} could not be fetched: ${error instanceof Error ? error.message : String(error)}`
+      `${url} could not be fetched: ${error instanceof Error ? error.message : String(error)}`,
+      { kind: 'fetch' }
     );
   }
   if (response.status !== 200) {
-    throw new PortalError(`${url} answered ${response.status}.`);
+    throw new PortalError(`${url} answered ${response.status}.`, {
+      kind: 'http_status',
+      status: response.status,
+    });
   }
   return response;
 }

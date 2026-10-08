@@ -200,11 +200,22 @@ describe('fetching an act from the portal', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('names the status the portal answered with', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 520 }));
+    await expect(fetchPortalAct(6350, { fetch: fetchMock, pauseMs: 0 })).rejects.toMatchObject({
+      failure: { kind: 'http_status', status: 520 },
+      message: 'https://legislatie.just.ro/Public/DetaliiDocument/6350 answered 520.',
+    });
+  });
+
   it('fails when the portal cannot be reached', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new TypeError('fetch failed'));
-    await expect(fetchPortalAct(1, { fetch: fetchMock, pauseMs: 0 })).rejects.toThrow(
-      /could not be fetched: fetch failed/
-    );
+    await expect(fetchPortalAct(1, { fetch: fetchMock, pauseMs: 0 })).rejects.toMatchObject({
+      failure: { kind: 'fetch' },
+      message: expect.stringMatching(/could not be fetched: fetch failed/),
+    });
   });
 
   it('fails when the actions are not JSON', async () => {
@@ -212,9 +223,10 @@ describe('fetching an act from the portal', () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(lawPage, { status: 200 }))
       .mockResolvedValueOnce(new Response('<html>Eroare</html>', { status: 200 }));
-    await expect(fetchPortalAct(73772, { fetch: fetchMock, pauseMs: 0 })).rejects.toThrow(
-      /not JSON/
-    );
+    await expect(fetchPortalAct(73772, { fetch: fetchMock, pauseMs: 0 })).rejects.toMatchObject({
+      failure: { kind: 'parse' },
+      message: expect.stringMatching(/not JSON/),
+    });
   });
 });
 

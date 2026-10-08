@@ -57,11 +57,23 @@ export const legalCheckRunStatusSchema = z.enum(legalCheckRunStatuses);
 
 export type LegalCheckRunStatus = z.infer<typeof legalCheckRunStatusSchema>;
 
+export const legalCheckRunErrorKinds = ['http_status', 'fetch', 'parse', 'other'] as const;
+
+export const legalCheckRunErrorKindSchema = z.enum(legalCheckRunErrorKinds);
+
+export type LegalCheckRunErrorKind = z.infer<typeof legalCheckRunErrorKindSchema>;
+
 export const legalCheckRunErrorSchema = z.object({
   // Null when the run itself failed, not one act's page.
   act: z.string().nullable(),
+  // 'http_status': the portal answered with `status`; 'fetch': it gave no answer at all.
+  kind: legalCheckRunErrorKindSchema,
+  status: z.int().optional(),
+  // The technical text, in English, for the logs; the page words the failure from the kind.
   message: z.string(),
 });
+
+export type LegalCheckRunError = z.infer<typeof legalCheckRunErrorSchema>;
 
 export const legalCheckRunSchema = z.object({
   id: z.uuid(),

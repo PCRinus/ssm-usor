@@ -4448,9 +4448,21 @@ export const LatestLegalCheckRunResponseRunStatus = {
   failed: 'failed',
 } as const;
 
+export type LatestLegalCheckRunResponseRunErrorsItemKind =
+  (typeof LatestLegalCheckRunResponseRunErrorsItemKind)[keyof typeof LatestLegalCheckRunResponseRunErrorsItemKind];
+
+export const LatestLegalCheckRunResponseRunErrorsItemKind = {
+  http_status: 'http_status',
+  fetch: 'fetch',
+  parse: 'parse',
+  other: 'other',
+} as const;
+
 export type LatestLegalCheckRunResponseRunErrorsItem = {
   /** @nullable */
   act: string | null;
+  kind: LatestLegalCheckRunResponseRunErrorsItemKind;
+  status?: number;
   message: string;
 };
 

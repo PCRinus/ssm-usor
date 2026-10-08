@@ -6765,11 +6765,18 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "kind": {
+                      "type": "string",
+                      "enum": ["http_status", "fetch", "parse", "other"]
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
                     "message": {
                       "type": "string"
                     }
                   },
-                  "required": ["act", "message"]
+                  "required": ["act", "kind", "message"]
                 }
               }
             },

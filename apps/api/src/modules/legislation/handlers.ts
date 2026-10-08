@@ -1,12 +1,14 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type {
-  LegalAct,
-  LegalActStatus,
-  LegalChange,
-  LegalChangeResolution,
-  LegalCheckRun,
-  LegalCheckRunStatus,
+import {
+  type LegalAct,
+  type LegalActStatus,
+  type LegalChange,
+  type LegalChangeResolution,
+  type LegalCheckRun,
+  legalCheckRunErrorSchema,
+  type LegalCheckRunStatus,
 } from '@ssm-usor/contracts';
+import { z } from 'zod';
 
 import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
@@ -32,7 +34,7 @@ const runColumns =
 const collator = new Intl.Collator('ro');
 
 // The casts below are safe: check constraints keep portal_status, resolution and status to these
-// values, and only the check, holding the secret key, writes a run's errors.
+// values.
 const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   id: row.id,
   name: row.name,
@@ -78,6 +80,13 @@ export const listLegalChanges: RouteHandler<typeof listLegalChangesRoute, ApiEnv
   return c.json({ items: data.map(toChange) }, 200);
 };
 
+// Runs recorded before the errors had a kind carry only the act and the message.
+const storedRunErrorsSchema = z.array(
+  legalCheckRunErrorSchema.extend({
+    kind: legalCheckRunErrorSchema.shape.kind.catch('other'),
+  })
+);
+
 const toRun = (row: RunRow): LegalCheckRun => ({
   id: row.id,
   startedAt: row.started_at,
@@ -86,7 +95,7 @@ const toRun = (row: RunRow): LegalCheckRun => ({
   actsChecked: row.acts_checked,
   changesFound: row.changes_found,
   actsSkipped: row.acts_skipped,
-  errors: row.errors as LegalCheckRun['errors'],
+  errors: row.errors === null ? null : storedRunErrorsSchema.parse(row.errors),
 });
 
 export const getLatestLegalCheckRun: RouteHandler<

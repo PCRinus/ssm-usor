@@ -18,7 +18,8 @@ const run = (status: CheckRun['status']): CheckRun => ({
   id: 'r1',
   status,
   outcomes: [],
-  errors: status === 'failed' ? [{ act: null, message: 'Could not save the acts.' }] : [],
+  errors:
+    status === 'failed' ? [{ act: null, kind: 'other', message: 'Could not save the acts.' }] : [],
 });
 
 afterEach(() => {
