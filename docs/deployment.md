@@ -156,18 +156,40 @@ address; its only entry is a cron trigger, `17 3 * * *` in `wrangler.jsonc`: 03:
 in Bucharest in winter and 06:17 in summer. To change the time, change the file and deploy.
 
 It reads every watched act on the Portal Legislativ, records newer consolidated forms, and
-logs each run in `legal_check_runs` ([data model](data-model.md#legislation)). It needs two
-values, both set by the **Deploy legislation Worker** job from the `production` environment:
+logs each run in `legal_check_runs` ([data model](data-model.md#legislation)). The portal
+refuses requests from Cloudflare's network, so the Worker reads it through a relay on
+Mircea's home server, reached through his Cloudflare Tunnel at
+`https://legislation-relay.home-server.me` and guarded by a Cloudflare Access service token.
+The relay passes each request on to the portal and its answer back unchanged; it holds no
+secrets. Its address is `PORTAL_ORIGIN` in `wrangler.jsonc`. The other values are set by the
+**Deploy legislation Worker** job from the `production` environment:
 
-| Worker value          | Kind     | From                                                                      |
-| --------------------- | -------- | ------------------------------------------------------------------------- |
-| `SUPABASE_URL`        | Variable | The `VITE_SUPABASE_URL` variable, as for the API                          |
-| `SUPABASE_SECRET_KEY` | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security |
+| Worker value                  | Kind     | From                                                                                     |
+| ----------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                         |
+| `SUPABASE_SECRET_KEY`         | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                |
+| `PORTAL_ACCESS_CLIENT_ID`     | Secret   | The `PORTAL_ACCESS_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`         |
+| `PORTAL_ACCESS_CLIENT_SECRET` | Secret   | The `PORTAL_ACCESS_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret` |
 
-The job fails when either is missing. A run takes about four minutes, most of it the two-second
-pause between requests to the portal; that is wall time, which a cron invocation may spend up
-to fifteen minutes of, while the 30-second CPU limit counts only the parsing. It makes about two
-hundred subrequests, within the Workers Paid limit.
+The job fails when any of them is missing. The service token is created by the homelab
+repository's Terraform, which also sets up the tunnel route and the Access application; copy
+its outputs into the two GitHub secrets, then redeploy the Worker:
+
+```bash
+terraform output -raw legislation_relay_client_id
+terraform output -raw legislation_relay_client_secret
+```
+
+When the token is rotated there, update both secrets and redeploy. When the relay is down,
+every act fails and the run says so. Because of `keep_vars`, deleting `PORTAL_ORIGIN` from
+`wrangler.jsonc` would leave the deployed value in place: going back to direct reads means
+setting it to `https://legislatie.just.ro` and dropping the token from the job and the Worker,
+since the Worker refuses to send the token to the portal itself.
+
+A run takes about four minutes, most of it the two-second pause between requests to the
+portal; that is wall time, which a cron invocation may spend up to fifteen minutes of, while
+the 30-second CPU limit counts only the parsing. It makes about two hundred subrequests, within
+the Workers Paid limit.
 
 A failed run shows three ways: the row in `legal_check_runs` says `failed`, with one error per
 act it could not read; the invocation is marked failed under the Worker's **Cron Events** in

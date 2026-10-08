@@ -88,8 +88,11 @@ a queue that does not exist; the deployment token needs **Queues → Edit** for 
 an existing queue is left as it is.
 The legislation Worker deploys after the migrations, since its cron writes to a table they
 create, with the production `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
-as a secret. Unlike the API, it fails without either, because the cron could not even
-record that it ran.
+as a secret, beside `PORTAL_ACCESS_CLIENT_ID` and `PORTAL_ACCESS_CLIENT_SECRET`, the Access
+service token of the relay it reads the portal through
+([deployment guide](deployment.md#legislation-worker)). Unlike the API, it fails when any of
+them is missing: without the first two the cron could not even record that it ran, and
+without the token the relay turns away every act.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the hosted
 project with `supabase config push`, after the API, because the Send Email hook it declares
