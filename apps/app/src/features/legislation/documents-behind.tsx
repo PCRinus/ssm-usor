@@ -1,4 +1,10 @@
-import { type BuiltInDocumentTypeKey, documentSetOf, documentTypeKeys } from '@ssm-usor/contracts';
+import {
+  type BuiltInDocumentTypeKey,
+  type DocumentSet,
+  documentSetOf,
+  documentSets,
+  documentTypeKeys,
+} from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -11,7 +17,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { FileCheck2, RefreshCw } from 'lucide-react';
+import { FileCheck2, FileText, FireExtinguisher, RefreshCw } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -27,7 +33,7 @@ import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
-import { documentsLink } from '@/features/documents/document-sets';
+import { documentSetCopy, documentsLink } from '@/features/documents/document-sets';
 
 import { countOf, kindLabels } from './legislation-labels';
 import { RegenerationJob } from './regeneration-job';
@@ -43,6 +49,8 @@ const packOrder = new Map<string, number>(
 );
 const inPackOrder = (a: Row, b: Row) =>
   (packOrder.get(a.typeKey) ?? Infinity) - (packOrder.get(b.typeKey) ?? Infinity);
+
+const setIcons = { occupational_safety: FileText, fire_safety: FireExtinguisher } as const;
 
 export function DocumentsBehind({ userId }: { userId: string }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -104,17 +112,71 @@ export function DocumentsBehind({ userId }: { userId: string }) {
       .map(([typeKey, tracked]) => ({ typeKey, type: null, tracked })),
   ].sort(inPackOrder);
 
+  const groups = documentSets
+    .map((set) => ({ set, rows: rows.filter((row) => documentSetOf(row.typeKey) === set) }))
+    .filter((group) => group.rows.length > 0);
+
+  function renderRow({ typeKey, type, tracked }: Row) {
+    if (!type) {
+      return (
+        <SectionCard
+          key={typeKey}
+          data-testid="behind-type"
+          headingLevel={3}
+          title={tracked.title}
+          description="Niciun client nu mai are acest document în urmă."
+        >
+          <RegenerationJob
+            key={tracked.jobId}
+            jobId={tracked.jobId}
+            userId={userId}
+            onFinished={(job) => finished(typeKey, tracked.title, job)}
+          />
+        </SectionCard>
+      );
+    }
+    const jobId = type.runningJobId ?? tracked?.jobId ?? null;
+    const running = jobId !== null && !(tracked?.jobId === jobId && tracked.finished);
+    return (
+      <BehindTypeCard
+        key={type.typeKey}
+        type={type}
+        action={
+          running ? null : (
+            <Button
+              data-testid="behind-regenerate"
+              disabled={start.isPending}
+              onClick={() => setConfirming(type)}
+            >
+              <RefreshCw aria-hidden="true" />
+              Regenerează pentru toți clienții ({type.clients.length})
+            </Button>
+          )
+        }
+      >
+        {failures[type.typeKey] && (
+          <Notice variant="destructive" data-testid="behind-regenerate-error">
+            {failures[type.typeKey]}
+          </Notice>
+        )}
+        {jobId && (
+          <RegenerationJob
+            key={jobId}
+            jobId={jobId}
+            userId={userId}
+            onFinished={(job) => finished(type.typeKey, type.title, job)}
+          />
+        )}
+      </BehindTypeCard>
+    );
+  }
+
   return (
-    <section aria-labelledby="documents-behind-heading" className="grid gap-4">
-      <div>
-        <h2 id="documents-behind-heading" className="text-lg font-semibold">
-          Documente în urmă
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Documentele generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări
-          legislative sau a unei corecturi.
-        </p>
-      </div>
+    <section aria-label="Documente de actualizat" className="grid gap-6">
+      <p className="max-w-2xl text-sm text-muted-foreground">
+        Documentele generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări
+        legislative sau a unei corecturi.
+      </p>
       {behind.isPending ? (
         <Skeleton className="h-40 w-full" />
       ) : behind.isError ? (
@@ -140,60 +202,11 @@ export function DocumentsBehind({ userId }: { userId: string }) {
           </EmptyState>
         </div>
       ) : (
-        rows.map(({ typeKey, type, tracked }) => {
-          if (!type) {
-            return (
-              <SectionCard
-                key={typeKey}
-                data-testid="behind-type"
-                headingLevel={3}
-                title={tracked.title}
-                description="Niciun client nu mai are acest document în urmă."
-              >
-                <RegenerationJob
-                  key={tracked.jobId}
-                  jobId={tracked.jobId}
-                  userId={userId}
-                  onFinished={(job) => finished(typeKey, tracked.title, job)}
-                />
-              </SectionCard>
-            );
-          }
-          const jobId = type.runningJobId ?? tracked?.jobId ?? null;
-          const running = jobId !== null && !(tracked?.jobId === jobId && tracked.finished);
-          return (
-            <BehindTypeCard
-              key={type.typeKey}
-              type={type}
-              action={
-                running ? null : (
-                  <Button
-                    data-testid="behind-regenerate"
-                    disabled={start.isPending}
-                    onClick={() => setConfirming(type)}
-                  >
-                    <RefreshCw aria-hidden="true" />
-                    Regenerează pentru toți clienții ({type.clients.length})
-                  </Button>
-                )
-              }
-            >
-              {failures[type.typeKey] && (
-                <Notice variant="destructive" data-testid="behind-regenerate-error">
-                  {failures[type.typeKey]}
-                </Notice>
-              )}
-              {jobId && (
-                <RegenerationJob
-                  key={jobId}
-                  jobId={jobId}
-                  userId={userId}
-                  onFinished={(job) => finished(type.typeKey, type.title, job)}
-                />
-              )}
-            </BehindTypeCard>
-          );
-        })
+        groups.map(({ set, rows: setRows }) => (
+          <BehindSet key={set} set={set}>
+            {setRows.map(renderRow)}
+          </BehindSet>
+        ))
       )}
       <Dialog
         open={confirming !== null}
@@ -224,6 +237,20 @@ export function DocumentsBehind({ userId }: { userId: string }) {
           </DialogContent>
         )}
       </Dialog>
+    </section>
+  );
+}
+
+function BehindSet({ set, children }: { set: DocumentSet; children: ReactNode }) {
+  const Icon = setIcons[set];
+  const headingId = `behind-set-${set}`;
+  return (
+    <section aria-labelledby={headingId} data-testid="behind-set" className="grid gap-4">
+      <h2 id={headingId} className="flex items-center gap-2 text-lg font-semibold">
+        <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        {documentSetCopy[set].tab}
+      </h2>
+      {children}
     </section>
   );
 }

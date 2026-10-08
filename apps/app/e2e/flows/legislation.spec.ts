@@ -41,7 +41,10 @@ test('a document behind its template is regenerated for every client from the Le
   await expect(row.getByTestId('document-behind')).toHaveText('Șablon actualizat');
 
   await page.getByTestId('nav-legislatie').click();
-  await expect(page).toHaveURL(/\/legislatie$/);
+  await expect(page).toHaveURL(/\/legislatie\/documente$/);
+  await expect(
+    page.getByTestId('legislation-section').filter({ hasText: 'Documente de actualizat' })
+  ).toHaveAttribute('aria-current', 'page');
   const type = page.getByTestId('behind-type').filter({ hasText: title });
   await expect(type.getByTestId('behind-client')).toHaveText([
     `${clientName}pe versiunea ${version}`,

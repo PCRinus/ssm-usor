@@ -34,6 +34,17 @@ const acts = [
     checkedByHandOn: null,
   },
   {
+    id: 'lege-53-2003',
+    name: 'Legea 53/2003',
+    portalId: 41625,
+    portalStatus: 'repealed',
+    verifiedConsolidatedOn: '2024-01-10',
+    lastConsolidatedOn: '2024-01-10',
+    lastAmendingAct: null,
+    lastCheckedAt: null,
+    checkedByHandOn: '2026-10-07',
+  },
+  {
     id: 'omai-163-2007',
     name: 'OMAI 163/2007',
     portalId: null,
@@ -113,6 +124,25 @@ const firstAidBehind = {
     },
   ],
 };
+
+const extinguisherBehind = {
+  typeKey: 'fire_extinguisher_register',
+  title: 'Registru de evidență a controlului stingătoarelor de incendiu',
+  newestVersion: { version: 2, kind: 'legal', note: 'Rubricile urmează OMAI 163/2007.' },
+  runningJobId: null as string | null,
+  clients: [
+    {
+      documentId: '5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b',
+      clientId: firstAidBehind.clients[0]!.clientId,
+      clientName: 'ALFA CONSTRUCT SRL',
+      version: 1,
+      editedDraft: false,
+    },
+  ],
+};
+
+const actNamesInTable = () =>
+  screen.getAllByTestId('watched-act').map((row) => row.querySelector('td')!.textContent);
 
 const job = (overrides: Record<string, unknown> = {}) => ({
   job: {
@@ -209,7 +239,7 @@ const requests = (path: string, method: string) =>
       new URL(String(input)).pathname === path && (init?.method ?? 'GET') === method
   );
 
-const mount = () => mountApp(authFixture(makeSession()).client, '/legislatie');
+const mount = (path = '/legislatie') => mountApp(authFixture(makeSession()).client, path);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -223,17 +253,75 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const failedRun: NonNullable<LatestLegalCheckRunResponseRun> = {
+  ...succeeded,
+  status: 'failed',
+  errors: [
+    {
+      act: 'lege-319-2006',
+      kind: 'http_status',
+      status: 520,
+      message: 'https://legislatie.just.ro/Public/DetaliiDocument/73772 answered 520.',
+    },
+    {
+      act: 'lege-53-2003',
+      kind: 'http_status',
+      status: 520,
+      message: 'https://legislatie.just.ro/Public/DetaliiDocument/41625 answered 520.',
+    },
+    {
+      act: 'hg-1425-2006',
+      kind: 'http_status',
+      status: 522,
+      message: 'https://legislatie.just.ro/Public/DetaliiDocument/77095 answered 522.',
+    },
+    {
+      act: 'omai-163-2007',
+      kind: 'fetch',
+      message: 'https://legislatie.just.ro/Public/DetaliiDocument/1 could not be fetched: timeout',
+    },
+    { act: 'lege-unknown-2001', message: 'Page 1 has no act heading (S_DEN).' } as never,
+  ],
+};
+
 describe('the Legislație page', () => {
-  it('is in the navigation of a specialist, titled in the breadcrumb', async () => {
+  it('opens on the documents to update, with the other tabs beside it', async () => {
     mockApi();
-    mount();
+    const runtime = mount();
 
     expect(await screen.findByTestId('legislation-page')).toBeTruthy();
-    expect(screen.getByTestId('nav-legislatie').getAttribute('aria-current')).toBe('page');
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/legislatie/documente')
+    );
+    expect(screen.getByTestId('nav-legislatie').getAttribute('aria-current')).not.toBeNull();
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Legislație');
-    expect(
-      screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
-    ).toEqual(['Documente în urmă', 'Modificări legislative', 'Acte urmărite']);
+    const tabs = screen.getAllByTestId('legislation-section');
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      'Documente de actualizat',
+      'Modificări',
+      'Acte urmărite',
+    ]);
+    expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
+    expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
+  });
+
+  it('keeps the title and the last check above every tab', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await user.click((await screen.findAllByTestId('legislation-section'))[1]!);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/legislatie/modificari')
+    );
+    expect(await screen.findAllByTestId('legal-change')).toHaveLength(3);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Legislație');
+    expect(screen.getByTestId('last-check-ok')).toBeTruthy();
+
+    await user.click(screen.getAllByTestId('legislation-section')[2]!);
+    expect(await screen.findAllByTestId('watched-act')).toHaveLength(4);
+    expect(screen.getByTestId('last-check-ok')).toBeTruthy();
+    expect(screen.queryByTestId('legal-change')).toBeNull();
   });
 
   it('says quietly when the acts were read within two days', async () => {
@@ -241,9 +329,19 @@ describe('the Legislație page', () => {
     mount();
 
     const line = await screen.findByTestId('last-check-ok');
-    expect(line.textContent).toContain('Ultima verificare pe Portalul Legislativ');
-    expect(line.textContent).toContain('14 acte citite, nicio modificare nouă, 1 act sărit');
+    expect(line.textContent).toMatch(
+      /^Verificat pe \d{1,2} \S+ \d{4} la \d{2}:\d{2} · 14 acte citite$/
+    );
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('counts the new changes the last check found', async () => {
+    mockApi({ run: { ...succeeded, actsChecked: 50, changesFound: 2 } });
+    mount();
+
+    expect((await screen.findByTestId('last-check-ok')).textContent).toMatch(
+      / · 50 de acte citite · 2 modificări noi$/
+    );
   });
 
   it('warns when the check never ran', async () => {
@@ -254,30 +352,66 @@ describe('the Legislație page', () => {
     expect(notice.textContent).toContain('Verificarea nu a rulat încă');
   });
 
-  it('warns when the last check failed, naming the acts it could not read', async () => {
+  it('says when a check is running', async () => {
+    mockApi({ run: { ...succeeded, status: 'running', finishedAt: null } });
+    mount();
+
+    expect((await screen.findByTestId('last-check-running')).textContent).toMatch(
+      /^Verificarea rulează din \d{1,2} \S+ \d{4} la \d{2}:\d{2}\.$/
+    );
+  });
+
+  it('says in one line that the last check failed, with the causes behind "Detalii"', async () => {
+    mockApi({ run: failedRun });
+    mount();
+    const user = userEvent.setup();
+
+    const notice = await screen.findByTestId('last-check-failed');
+    expect(notice.textContent).toMatch(
+      /^Ultima verificare nu a reușit \(\d{1,2} \S+, \d{2}:\d{2}\): 5 acte nu au putut fi citite\./
+    );
+    const details = within(notice).getByTestId('last-check-details');
+    const panel = document.getElementById(details.getAttribute('aria-controls')!)!;
+    expect(details.getAttribute('aria-expanded')).toBe('false');
+    expect(panel.hidden).toBe(true);
+
+    await user.click(details);
+    expect(details.getAttribute('aria-expanded')).toBe('true');
+    expect(panel.hidden).toBe(false);
+    await waitFor(() =>
+      expect(
+        within(notice)
+          .getAllByTestId('last-check-failure-group')
+          .map((group) => [
+            group.querySelector('p')!.textContent,
+            within(group).queryByTestId('last-check-failure-acts')?.textContent,
+          ])
+      ).toEqual([
+        ['Portalul a răspuns 520 (2 acte)', 'Legea 53/2003, Legea 319/2006'],
+        ['Portalul a răspuns 522 (1 act)', 'H.G. 1425/2006'],
+        ['Portalul nu a răspuns (1 act)', 'OMAI 163/2007'],
+        ['Altă eroare (1 act)', 'lege-unknown-2001'],
+      ])
+    );
+    expect(notice.textContent).not.toMatch(/https?:|answered|fetched/);
+  });
+
+  it('says that a check stopped as a whole, without acts', async () => {
     mockApi({
       run: {
         ...succeeded,
         status: 'failed',
-        errors: [
-          { act: 'hg-1425-2006', message: 'Pagina nu a putut fi citită (HTTP 503).' },
-          { act: 'lege-unknown-2001', message: 'Data formei consolidate lipsește.' },
-          { act: null, message: 'Verificarea s-a oprit după 15 minute.' },
-        ],
+        errors: [{ act: null, kind: 'other', message: 'Could not save the acts.' }],
       },
     });
     mount();
+    const user = userEvent.setup();
 
     const notice = await screen.findByTestId('last-check-failed');
-    expect(notice.textContent).toContain('Ultima verificare nu a reușit');
-    await waitFor(() =>
-      expect(
-        screen.getAllByTestId('last-check-failed-act').map((item) => item.textContent)
-      ).toEqual([
-        'H.G. 1425/2006: Pagina nu a putut fi citită (HTTP 503).',
-        'lege-unknown-2001: Data formei consolidate lipsește.',
-        'Verificarea s-a oprit după 15 minute.',
-      ])
+    expect(notice.textContent).toContain(': verificarea s-a oprit înainte de final.');
+    await user.click(within(notice).getByTestId('last-check-details'));
+    expect(within(notice).getByTestId('last-check-failure-group').textContent).toBe(
+      'Verificarea s-a oprit înainte de final'
     );
   });
 
@@ -294,7 +428,31 @@ describe('the Legislație page', () => {
     mount();
 
     expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
+    expect(screen.queryByTestId('behind-set')).toBeNull();
     expect(screen.queryByTestId('behind-regenerate')).toBeNull();
+  });
+
+  it('groups the documents to update under SSM and PSI', async () => {
+    mockApi({ behind: [extinguisherBehind, firstAidBehind] });
+    mount();
+
+    await waitFor(() => expect(screen.getAllByTestId('behind-set')).toHaveLength(2));
+    const [ssm, psi] = screen.getAllByTestId('behind-set');
+    expect(within(ssm!).getByRole('heading', { level: 2 }).textContent).toBe('Documente SSM');
+    expect(
+      within(ssm!)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent)
+    ).toEqual(['Decizia privind responsabilii cu primul ajutor']);
+    expect(within(psi!).getByRole('heading', { level: 2 }).textContent).toBe('Documente PSI');
+    expect(
+      within(psi!)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent)
+    ).toEqual(['Registru de evidență a controlului stingătoarelor de incendiu']);
+    expect(within(psi!).getByRole('link').getAttribute('href')).toBe(
+      `/clients/${extinguisherBehind.clients[0]!.clientId}/fire-safety-documents`
+    );
   });
 
   it('lists the clients behind a template, with the hand-edited drafts that will be skipped', async () => {
@@ -407,7 +565,7 @@ describe('the Legislație page', () => {
 
   it('lists the legal changes by how they were resolved', async () => {
     mockApi();
-    mount();
+    mount('/legislatie/modificari');
 
     await waitFor(() => expect(screen.getAllByTestId('legal-change')).toHaveLength(3));
     const [open, noImpact, answered] = screen.getAllByTestId('legal-change');
@@ -426,21 +584,71 @@ describe('the Legislație page', () => {
 
   it('lists the watched acts by name, each linking to its portal page', async () => {
     mockApi();
-    mount();
+    mount('/legislatie/acte');
 
-    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(4));
     const rows = screen.getAllByTestId('watched-act');
-    expect(rows.map((row) => row.querySelector('td')!.textContent)).toEqual([
+    expect(actNamesInTable()).toEqual([
       'H.G. 1425/2006',
+      'Legea 53/2003',
       'Legea 319/2006',
       'OMAI 163/2007',
     ]);
-    expect(within(rows[1]!).getByRole('link').getAttribute('href')).toBe(
+    expect(within(rows[2]!).getByRole('link').getAttribute('href')).toBe(
       'https://legislatie.just.ro/Public/DetaliiDocument/73772'
     );
-    expect(rows[1]!.textContent).toContain('12.09.2026');
-    expect(rows[1]!.textContent).toContain('03.11.2025');
-    expect(within(rows[2]!).queryByRole('link')).toBeNull();
-    expect(within(rows[2]!).getByTestId('watched-act-status').textContent).toBe('neverificat');
+    expect(rows[2]!.textContent).toContain('12.09.2026');
+    expect(rows[2]!.textContent).toContain('03.11.2025');
+    expect(within(rows[1]!).getByTestId('watched-act-status').textContent).toBe('abrogat');
+    expect(within(rows[3]!).queryByRole('link')).toBeNull();
+    expect(within(rows[3]!).getByTestId('watched-act-status').textContent).toBe('neverificat');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–4 din 4 acte');
+  });
+
+  it('sorts the watched acts by any column, keeping the sort in the address', async () => {
+    mockApi();
+    const runtime = mount('/legislatie/acte');
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(4));
+
+    await user.click(screen.getByTestId('sort-status'));
+    await waitFor(() =>
+      expect(actNamesInTable()).toEqual([
+        'Legea 53/2003',
+        'H.G. 1425/2006',
+        'Legea 319/2006',
+        'OMAI 163/2007',
+      ])
+    );
+    expect(runtime.router.state.location.search).toEqual({ sort: 'status' });
+
+    await user.click(screen.getByTestId('sort-consolidated'));
+    await user.click(screen.getByTestId('sort-consolidated'));
+    await waitFor(() =>
+      expect(actNamesInTable()).toEqual([
+        'Legea 319/2006',
+        'H.G. 1425/2006',
+        'Legea 53/2003',
+        'OMAI 163/2007',
+      ])
+    );
+    expect(runtime.router.state.location.search).toEqual({ sort: 'consolidated', order: 'desc' });
+    expect(screen.getByTestId('sort-consolidated').closest('th')!.getAttribute('aria-sort')).toBe(
+      'descending'
+    );
+  });
+
+  it('opens the watched acts sorted as the address says', async () => {
+    mockApi();
+    mount('/legislatie/acte?sort=read&order=desc');
+
+    await waitFor(() =>
+      expect(actNamesInTable()).toEqual([
+        'Legea 53/2003',
+        'H.G. 1425/2006',
+        'Legea 319/2006',
+        'OMAI 163/2007',
+      ])
+    );
   });
 });
