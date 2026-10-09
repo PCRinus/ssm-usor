@@ -2,12 +2,14 @@ export {
   type ActOutcome,
   checkLegislation,
   type CheckOptions,
+  describeOutcome,
   type Failure,
   type FailureKind,
   isNewer,
   type LegalAct,
   legalActsSchema,
   summarize,
+  tally,
 } from './check';
 export {
   createLegislationClient,
@@ -29,4 +31,12 @@ export {
   type PortalPage,
   type PortalStatus,
 } from './portal';
-export { type CheckRun, describeRun, type RunError, runLegislationCheck } from './run';
+export {
+  type CheckRun,
+  describeRun,
+  runCutOffAfterMs,
+  type RunError,
+  runInProgress,
+  runLegislationCheck,
+  type RunOptions,
+} from './run';

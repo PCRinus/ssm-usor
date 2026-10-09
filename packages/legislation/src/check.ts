@@ -64,6 +64,7 @@ export type CheckOptions = {
   readAct?: (portalId: number) => Promise<PortalAct>;
   pauseMs?: number;
   portal?: PortalOptions;
+  onOutcome?: (outcome: ActOutcome) => void;
 };
 
 export async function checkLegislation(
@@ -81,15 +82,19 @@ export async function checkLegislation(
   const rows = new Map(upserted.data.map((row) => [row.id, row]));
 
   const outcomes: ActOutcome[] = [];
+  const record = (outcome: ActOutcome) => {
+    outcomes.push(outcome);
+    options.onOutcome?.(outcome);
+  };
   let first = true;
   for (const act of acts) {
     const row = rows.get(act.id);
     if (act.portalId === null) {
-      outcomes.push({ act, result: 'skipped' });
+      record({ act, result: 'skipped' });
       continue;
     }
     if (!row) {
-      outcomes.push({
+      record({
         act,
         result: 'failed',
         error: { kind: 'other', message: 'the act was not saved' },
@@ -106,9 +111,9 @@ export async function checkLegislation(
           `The page lists no consolidated form, where ${row.last_consolidated_on} was seen before.`
         );
       }
-      outcomes.push(await checkAct(db, act, row, portal));
+      record(await checkAct(db, act, row, portal));
     } catch (error) {
-      outcomes.push({ act, result: 'failed', error: failureOf(error) });
+      record({ act, result: 'failed', error: failureOf(error) });
     }
   }
   return outcomes;
@@ -153,30 +158,32 @@ async function checkAct(
 
 const statusWords = { in_force: 'in force', repealed: 'REPEALED' } as const;
 
-export function summarize(outcomes: ActOutcome[]) {
-  const lines = outcomes.map((outcome) => {
-    const label = `${outcome.act.id.padEnd(18)} ${outcome.act.name}:`;
-    if (outcome.result === 'skipped') return `${label} skipped, no portal id`;
-    if (outcome.result === 'failed') return `${label} FAILED, ${outcome.error.message}`;
-    const { portal, change } = outcome;
-    const form = portal.newestConsolidation
-      ? `consolidated ${portal.newestConsolidation}${portal.amendingActs.length > 0 ? ` after ${portal.amendingActs.join(', ')}` : ''}`
-      : 'never consolidated';
-    const news = !change
-      ? 'no change'
-      : change.recorded
-        ? `NEW CHANGE ${change.consolidatedOn}`
-        : `change ${change.consolidatedOn} already recorded`;
-    return `${label} ${statusWords[portal.status]}, ${form}; ${news}`;
-  });
+export function describeOutcome(outcome: ActOutcome) {
+  const label = `${outcome.act.id.padEnd(18)} ${outcome.act.name}:`;
+  if (outcome.result === 'skipped') return `${label} skipped, no portal id`;
+  if (outcome.result === 'failed') return `${label} FAILED, ${outcome.error.message}`;
+  const { portal, change } = outcome;
+  const form = portal.newestConsolidation
+    ? `consolidated ${portal.newestConsolidation}${portal.amendingActs.length > 0 ? ` after ${portal.amendingActs.join(', ')}` : ''}`
+    : 'never consolidated';
+  const news = !change
+    ? 'no change'
+    : change.recorded
+      ? `NEW CHANGE ${change.consolidatedOn}`
+      : `change ${change.consolidatedOn} already recorded`;
+  return `${label} ${statusWords[portal.status]}, ${form}; ${news}`;
+}
+
+export function tally(outcomes: ActOutcome[]) {
   const count = (result: ActOutcome['result']) =>
     outcomes.filter((outcome) => outcome.result === result).length;
   const recorded = outcomes.filter(
     (outcome) => outcome.result === 'checked' && outcome.change?.recorded
   ).length;
   const skipped = outcomes.filter((outcome) => outcome.result === 'skipped');
-  lines.push(
-    `${outcomes.length} acts: ${count('checked')} checked, ${recorded} new ${recorded === 1 ? 'change' : 'changes'}, ${count('failed')} failed, ${skipped.length} skipped${skipped.length > 0 ? ` (${skipped.map((outcome) => outcome.act.id).join(', ')})` : ''}.`
-  );
-  return lines.join('\n');
+  return `${outcomes.length} acts: ${count('checked')} checked, ${recorded} new ${recorded === 1 ? 'change' : 'changes'}, ${count('failed')} failed, ${skipped.length} skipped${skipped.length > 0 ? ` (${skipped.map((outcome) => outcome.act.id).join(', ')})` : ''}.`;
+}
+
+export function summarize(outcomes: ActOutcome[]) {
+  return [...outcomes.map(describeOutcome), tally(outcomes)].join('\n');
 }
