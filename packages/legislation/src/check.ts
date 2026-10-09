@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
 import type { LegislationClient, LegislationTables } from './database';
-import { fetchPortalAct, pause, type PortalAct, portalPauseMs } from './portal';
+import {
+  fetchPortalAct,
+  pause,
+  type PortalAct,
+  PortalError,
+  type PortalOptions,
+  portalPauseMs,
+} from './portal';
 
 export const legalActsSchema = z.object({
   acts: z.array(
@@ -25,9 +32,14 @@ type ActRow = Pick<
   'id' | 'last_consolidated_on' | 'verified_consolidated_on'
 >;
 
+export type FailureKind = 'http_status' | 'fetch' | 'parse' | 'other';
+
+// `message` is the technical text for the logs; the app words the failure from the other fields.
+export type Failure = { kind: FailureKind; status?: number; message: string };
+
 export type ActOutcome =
   | { act: LegalAct; result: 'skipped' }
-  | { act: LegalAct; result: 'failed'; error: string }
+  | { act: LegalAct; result: 'failed'; error: Failure }
   | {
       act: LegalAct;
       result: 'checked';
@@ -43,16 +55,24 @@ export function isNewer(newest: string | null, row: ActRow) {
   return (last !== null && newest > last) || (verified !== null && newest > verified);
 }
 
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
+export function failureOf(error: unknown): Failure {
+  if (error instanceof PortalError) return { ...error.failure, message: error.message };
+  return { kind: 'other', message: error instanceof Error ? error.message : String(error) };
+}
 
-export type CheckOptions = { readAct?: (portalId: number) => Promise<PortalAct>; pauseMs?: number };
+export type CheckOptions = {
+  readAct?: (portalId: number) => Promise<PortalAct>;
+  pauseMs?: number;
+  portal?: PortalOptions;
+};
 
 export async function checkLegislation(
   db: LegislationClient,
   acts: LegalAct[],
   options: CheckOptions = {}
 ) {
-  const readAct = options.readAct ?? ((portalId: number) => fetchPortalAct(portalId));
+  const readAct =
+    options.readAct ?? ((portalId: number) => fetchPortalAct(portalId, options.portal));
   const upserted = await db
     .from('legal_acts')
     .upsert(acts.map((act) => ({ id: act.id, name: act.name, portal_id: act.portalId })))
@@ -69,7 +89,11 @@ export async function checkLegislation(
       continue;
     }
     if (!row) {
-      outcomes.push({ act, result: 'failed', error: 'the act was not saved' });
+      outcomes.push({
+        act,
+        result: 'failed',
+        error: { kind: 'other', message: 'the act was not saved' },
+      });
       continue;
     }
     // A government site with no API: one act at a time, with a pause between them.
@@ -78,13 +102,13 @@ export async function checkLegislation(
     try {
       const portal = await readAct(act.portalId);
       if (portal.newestConsolidation === null && row.last_consolidated_on !== null) {
-        throw new Error(
+        throw new PortalError(
           `The page lists no consolidated form, where ${row.last_consolidated_on} was seen before.`
         );
       }
       outcomes.push(await checkAct(db, act, row, portal));
     } catch (error) {
-      outcomes.push({ act, result: 'failed', error: message(error) });
+      outcomes.push({ act, result: 'failed', error: failureOf(error) });
     }
   }
   return outcomes;
@@ -133,7 +157,7 @@ export function summarize(outcomes: ActOutcome[]) {
   const lines = outcomes.map((outcome) => {
     const label = `${outcome.act.id.padEnd(18)} ${outcome.act.name}:`;
     if (outcome.result === 'skipped') return `${label} skipped, no portal id`;
-    if (outcome.result === 'failed') return `${label} FAILED, ${outcome.error}`;
+    if (outcome.result === 'failed') return `${label} FAILED, ${outcome.error.message}`;
     const { portal, change } = outcome;
     const form = portal.newestConsolidation
       ? `consolidated ${portal.newestConsolidation}${portal.amendingActs.length > 0 ? ` after ${portal.amendingActs.join(', ')}` : ''}`

@@ -2,28 +2,28 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import type { UseQueryResult } from '@tanstack/react-query';
+import { useRouteContext } from '@tanstack/react-router';
 import { Scale } from 'lucide-react';
 
-import type { LegalChangeListResponse } from '@/api/generated/api';
+import { getListLegalChangesQueryKey, useListLegalChanges } from '@/api/generated/api';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
 
 import { formatDayOf, portalPage, resolutionLabels } from './legislation-labels';
 
-export function LegalChanges({ changes }: { changes: UseQueryResult<LegalChangeListResponse> }) {
+export function LegalChanges({ userId }: { userId: string }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const changes = useListLegalChanges({
+    request: apiRequest,
+    query: { queryKey: [...getListLegalChangesQueryKey(), userId] },
+  });
   const items = changes.data?.items ?? [];
   return (
-    <section aria-labelledby="legal-changes-heading" className="grid gap-4">
-      <div>
-        <h2 id="legal-changes-heading" className="text-lg font-semibold">
-          Modificări legislative
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Formele consolidate noi ale actelor urmărite, cele mai recente primele.
-        </p>
-      </div>
+    <section aria-label="Modificări legislative" className="grid gap-4">
+      <p className="max-w-2xl text-sm text-muted-foreground">
+        Formele consolidate noi ale actelor urmărite, cele mai recente primele.
+      </p>
       <div className="overflow-hidden rounded-lg border bg-card">
         {changes.isPending ? (
           <div className="p-5">

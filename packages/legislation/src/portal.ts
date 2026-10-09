@@ -33,8 +33,17 @@ export type PortalAct = {
   amendingActs: string[];
 };
 
+export type PortalFailure = { kind: 'http_status'; status: number } | { kind: 'fetch' | 'parse' };
+
 export class PortalError extends Error {
   override name = 'PortalError';
+
+  constructor(
+    message: string,
+    readonly failure: PortalFailure = { kind: 'parse' }
+  ) {
+    super(message);
+  }
 }
 
 const entities: Record<string, string> = {
@@ -154,25 +163,67 @@ export function describeAct(
   };
 }
 
-type PortalOptions = { fetch?: typeof fetch; pauseMs?: number };
+export type PortalOptions = {
+  fetch?: typeof fetch;
+  pauseMs?: number;
+  origin?: string;
+  headers?: Record<string, string>;
+};
 
-async function request(url: string, init: RequestInit, fetchImpl: typeof fetch) {
+export type PortalEnv = {
+  LEGISLATION_RELAY_ORIGIN?: string;
+  LEGISLATION_RELAY_CLIENT_ID?: string;
+  LEGISLATION_RELAY_CLIENT_SECRET?: string;
+};
+
+// The portal refuses Cloudflare's and GitHub's networks, so a hosted check goes through a relay
+// behind Cloudflare Access (ADR 017).
+export function portalOptionsFromEnv(env: PortalEnv): Pick<PortalOptions, 'origin' | 'headers'> {
+  const origin = env.LEGISLATION_RELAY_ORIGIN || undefined;
+  const clientId = env.LEGISLATION_RELAY_CLIENT_ID || undefined;
+  const clientSecret = env.LEGISLATION_RELAY_CLIENT_SECRET || undefined;
+  if (!clientId !== !clientSecret) {
+    throw new Error(
+      'Set both LEGISLATION_RELAY_CLIENT_ID and LEGISLATION_RELAY_CLIENT_SECRET, or neither.'
+    );
+  }
+  if (!clientId || !clientSecret) return { origin };
+  if (!origin || new URL(origin).origin === portalOrigin) {
+    throw new Error(
+      'The Access token is only sent to a relay: set LEGISLATION_RELAY_ORIGIN to its address.'
+    );
+  }
+  return {
+    origin,
+    headers: { 'CF-Access-Client-Id': clientId, 'CF-Access-Client-Secret': clientSecret },
+  };
+}
+
+async function request(
+  url: string,
+  init: RequestInit,
+  { fetch: fetchImpl = fetch, headers }: PortalOptions
+) {
   let response: Response;
   try {
     response = await fetchImpl(url, {
       ...init,
-      headers: { 'User-Agent': portalUserAgent, ...init.headers },
+      headers: { 'User-Agent': portalUserAgent, ...headers, ...init.headers },
       // The portal answers a missing page with a redirect to /Error.
       redirect: 'manual',
       signal: AbortSignal.timeout(30_000),
     });
   } catch (error) {
     throw new PortalError(
-      `${url} could not be fetched: ${error instanceof Error ? error.message : String(error)}`
+      `${url} could not be fetched: ${error instanceof Error ? error.message : String(error)}`,
+      { kind: 'fetch' }
     );
   }
   if (response.status !== 200) {
-    throw new PortalError(`${url} answered ${response.status}.`);
+    throw new PortalError(`${url} answered ${response.status}.`, {
+      kind: 'http_status',
+      status: response.status,
+    });
   }
   return response;
 }
@@ -180,12 +231,12 @@ async function request(url: string, init: RequestInit, fetchImpl: typeof fetch) 
 // The page alone never says that an act was repealed, and an annex's amendments are not on it;
 // the "Acțiuni suferite" list behind the page's "Fișă act" carries both.
 export async function fetchPortalAct(portalId: number, options: PortalOptions = {}) {
-  const fetchImpl = options.fetch ?? fetch;
-  const pageUrl = `${portalOrigin}/Public/DetaliiDocument/${portalId}`;
-  const page = parseActPage(await (await request(pageUrl, {}, fetchImpl)).text(), portalId);
+  const origin = options.origin ?? portalOrigin;
+  const pageUrl = new URL(`/Public/DetaliiDocument/${portalId}`, origin).href;
+  const page = parseActPage(await (await request(pageUrl, {}, options)).text(), portalId);
   // A government site with no API: one request at a time, with a pause between them.
   await pause(options.pauseMs ?? portalPauseMs);
-  const actionsUrl = `${portalOrigin}/Public/actiuniSuferite`;
+  const actionsUrl = new URL('/Public/actiuniSuferite', origin).href;
   const response = await request(
     actionsUrl,
     {
@@ -193,7 +244,7 @@ export async function fetchPortalAct(portalId: number, options: PortalOptions = 
       headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
       body: new URLSearchParams({ contor: String(portalId) }).toString(),
     },
-    fetchImpl
+    options
   );
   let body: unknown;
   try {

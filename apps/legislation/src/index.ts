@@ -3,10 +3,12 @@ import {
   createLegislationClient,
   describeRun,
   legalActsSchema,
+  type PortalEnv,
+  portalOptionsFromEnv,
   runLegislationCheck,
 } from '@ssm-usor/legislation-check';
 
-export type LegislationEnv = {
+export type LegislationEnv = PortalEnv & {
   SUPABASE_URL?: string;
   SUPABASE_SECRET_KEY?: string;
 };
@@ -16,10 +18,12 @@ export default {
     if (!env.SUPABASE_URL || !env.SUPABASE_SECRET_KEY) {
       throw new Error('Set SUPABASE_URL and SUPABASE_SECRET_KEY: without them no run is recorded.');
     }
+    const portal = portalOptionsFromEnv(env);
     const { acts } = legalActsSchema.parse({ acts: legalActs() });
     const run = await runLegislationCheck(
       createLegislationClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY),
-      acts
+      acts,
+      { portal }
     );
     console.log(describeRun(run));
     // The run log carries the failure to the app; throwing also marks the invocation failed

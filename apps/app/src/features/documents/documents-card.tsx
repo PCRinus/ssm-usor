@@ -78,7 +78,7 @@ import {
   sectionSummary,
   setSections,
 } from './document-sections';
-import { documentLink, documentSetCopy, setParams } from './document-sets';
+import { documentLink, documentRowId, documentSetCopy, setParams } from './document-sets';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { pdfOfRevision, usePrint } from './print';
 
@@ -170,7 +170,7 @@ export function DocumentsCard<Set extends DocumentSet>({
   readOnly: boolean;
   openSection: SectionIdOf<Set> | undefined;
   onOpenSectionChange: (section: SectionIdOf<Set> | undefined) => void;
-  focus?: 'generate';
+  focus?: 'generate' | BuiltInDocumentTypeKey;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
@@ -226,6 +226,11 @@ export function DocumentsCard<Set extends DocumentSet>({
     ready: !documents.isPending,
     anchor: () => generateRef.current,
     open: canGenerate ? openGenerate : undefined,
+  });
+  const focusedType = focus === 'generate' ? undefined : focus;
+  useFocusRequest(focusedType !== undefined, {
+    ready: !documents.isPending,
+    field: focusedType && existing.has(focusedType) ? documentRowId(focusedType) : undefined,
   });
   const { sections: setSectionList, other, listsWholePack } = setSections[set];
   const packRows = typeKeys.flatMap((typeKey): SectionRow[] => {
@@ -547,6 +552,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                           return (
                             <Fragment key={document.id}>
                               <TableRow
+                                id={documentRowId(document.typeKey)}
                                 data-testid="document-row"
                                 {...rowClickProps(
                                   () =>
@@ -567,7 +573,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                                   </Link>
                                   {document.decisionNumber !== null && (
                                     <span className="block text-xs text-muted-foreground">
-                                      Decizia nr. {document.decisionNumber} {copy.decisionSuffix}
+                                      Decizia nr. {document.decisionNumber} {copy.name}
                                     </span>
                                   )}
                                 </TableCell>

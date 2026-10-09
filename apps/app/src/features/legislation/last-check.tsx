@@ -1,8 +1,8 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
-import { CircleCheck, LoaderCircle } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, CircleCheck, LoaderCircle } from 'lucide-react';
+import { useId, useState } from 'react';
 
 import {
   getGetLatestLegalCheckRunQueryKey,
@@ -11,30 +11,38 @@ import {
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
-import { countOf, formatMoment } from './legislation-labels';
+import { countOf, formatDayThisYear, formatTimeOf, momentOf } from './legislation-labels';
+import { groupFailures, groupHeading } from './run-failures';
+import { useLegalActs } from './use-legal-acts';
 
 const staleAfterMs = 2 * 24 * 60 * 60 * 1000;
 
-function summary(run: NonNullable<LatestLegalCheckRunResponseRun>) {
+type Run = NonNullable<LatestLegalCheckRunResponseRun>;
+
+function found(run: Run) {
   const parts = [countOf(run.actsChecked, 'act citit', 'acte citite')];
-  parts.push(
-    run.changesFound === 0
-      ? 'nicio modificare nouă'
-      : countOf(run.changesFound, 'modificare nouă', 'modificări noi')
-  );
-  if (run.actsSkipped > 0) {
-    parts.push(countOf(run.actsSkipped, 'act sărit', 'acte sărite'));
+  if (run.changesFound > 0) {
+    parts.push(countOf(run.changesFound, 'modificare nouă', 'modificări noi'));
   }
-  return parts.join(', ');
+  return parts.join(' · ');
 }
 
-export function LastCheck({
-  userId,
-  actNames,
-}: {
-  userId: string;
-  actNames: ReadonlyMap<string, string>;
-}) {
+function failedSummary(run: Run, openedAt: number) {
+  const at = `${formatDayThisYear(run.startedAt, openedAt)}, ${formatTimeOf(run.startedAt)}`;
+  const errors = run.errors ?? [];
+  const acts = errors.filter((error) => error.act !== null).length;
+  const what =
+    acts === 1
+      ? '1 act nu a putut fi citit'
+      : acts > 1
+        ? `${countOf(acts, 'act', 'acte')} nu au putut fi citite`
+        : errors.length > 0
+          ? 'verificarea s-a oprit înainte de final'
+          : null;
+  return `Ultima verificare nu a reușit (${at})${what ? `: ${what}` : ''}.`;
+}
+
+export function LastCheck({ userId }: { userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const latest = useGetLatestLegalCheckRun({
     request: apiRequest,
@@ -51,6 +59,7 @@ export function LastCheck({
         action={
           <Button
             variant="outline"
+            size="sm"
             disabled={latest.isFetching}
             onClick={() => void latest.refetch()}
           >
@@ -66,53 +75,21 @@ export function LastCheck({
   const { run } = latest.data;
   if (!run) {
     return (
-      <Notice variant="warning" data-testid="last-check-never" title="Verificarea nu a rulat încă">
-        Actele urmărite nu au fost citite niciodată pe Portalul Legislativ, așa că pagina nu poate
-        spune încă dacă legislația s-a schimbat.
+      <Notice variant="warning" data-testid="last-check-never">
+        Verificarea nu a rulat încă: actele urmărite nu au fost citite pe Portalul Legislativ.
       </Notice>
     );
   }
 
   if (run.status === 'failed') {
-    return (
-      <Notice
-        variant="warning"
-        data-testid="last-check-failed"
-        title="Ultima verificare nu a reușit"
-      >
-        <p>
-          Verificarea pornită pe {formatMoment(run.startedAt)} nu a putut citi toate actele pe
-          Portalul Legislativ. Până la o verificare reușită, modificările acestor acte nu apar aici.
-        </p>
-        {run.errors && run.errors.length > 0 && (
-          <ul className="mt-2 grid gap-1">
-            {run.errors.map((error, index) => (
-              <li key={error.act ?? `run-${index}`} data-testid="last-check-failed-act">
-                {error.act && (
-                  <>
-                    <span className="font-medium">{actNames.get(error.act) ?? error.act}</span>
-                    :{' '}
-                  </>
-                )}
-                {error.message}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Notice>
-    );
+    return <FailedCheck run={run} userId={userId} summary={failedSummary(run, openedAt)} />;
   }
 
   const at = run.finishedAt ?? run.startedAt;
   if (openedAt - new Date(at).getTime() > staleAfterMs) {
     return (
-      <Notice
-        variant="warning"
-        data-testid="last-check-stale"
-        title="Verificarea nu a mai rulat de peste două zile"
-      >
-        Actele au fost citite ultima dată pe Portalul Legislativ pe {formatMoment(at)}. Verificarea
-        zilnică pare oprită: modificările apărute de atunci nu sunt încă pe această pagină.
+      <Notice variant="warning" data-testid="last-check-stale">
+        Verificarea nu a mai rulat de peste două zile. Ultima dată: {momentOf(at)}.
       </Notice>
     );
   }
@@ -121,10 +98,11 @@ export function LastCheck({
     return (
       <p
         data-testid="last-check-running"
+        role="status"
         className="flex items-center gap-2 text-sm text-muted-foreground"
       >
         <LoaderCircle className="size-4 shrink-0 animate-spin" aria-hidden="true" />
-        Actele se citesc acum pe Portalul Legislativ, de la {formatMoment(run.startedAt)}.
+        Verificarea rulează din {momentOf(run.startedAt)}.
       </p>
     );
   }
@@ -133,8 +111,60 @@ export function LastCheck({
     <p data-testid="last-check-ok" className="flex items-start gap-2 text-sm text-muted-foreground">
       <CircleCheck className="mt-0.5 size-4 shrink-0 text-success-foreground" aria-hidden="true" />
       <span>
-        Ultima verificare pe Portalul Legislativ: {formatMoment(at)}, {summary(run)}.
+        Verificat pe {momentOf(at)} · {found(run)}
       </span>
     </p>
+  );
+}
+
+function FailedCheck({ run, userId, summary }: { run: Run; userId: string; summary: string }) {
+  const acts = useLegalActs(userId);
+  const actNames = new Map((acts.data?.items ?? []).map((act) => [act.id, act.name]));
+  const groups = groupFailures(run.errors ?? [], actNames);
+  const [open, setOpen] = useState(false);
+  const detailsId = useId();
+
+  return (
+    <Notice
+      variant="warning"
+      data-testid="last-check-failed"
+      className="sm:[&>svg]:translate-y-1 sm:[&>svg]:self-start"
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <p>{summary}</p>
+        {groups.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="last-check-details"
+            aria-expanded={open}
+            aria-controls={detailsId}
+            className="-mx-2 -my-1 px-2 text-inherit hover:bg-warning-border/40 hover:text-inherit"
+            onClick={() => setOpen((current) => !current)}
+          >
+            Detalii
+            <ChevronDown
+              aria-hidden="true"
+              className={open ? 'rotate-180 transition-transform' : 'transition-transform'}
+            />
+          </Button>
+        )}
+      </div>
+      <div id={detailsId} hidden={!open} className="mt-3 grid gap-3">
+        <p>Modificările acestor acte apar pe pagină după o verificare reușită.</p>
+        <ul className="grid gap-2.5">
+          {groups.map((group) => (
+            <li key={group.key} data-testid="last-check-failure-group">
+              <p className="font-medium">{groupHeading(group)}</p>
+              {group.acts.length > 0 && (
+                <p data-testid="last-check-failure-acts" className="leading-relaxed">
+                  {group.acts.join(', ')}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Notice>
   );
 }

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { checkLegislation, isNewer, legalActsSchema, summarize } from './check';
 import type { LegislationDatabase } from './database';
-import type { PortalAct } from './portal';
+import { type PortalAct, PortalError } from './portal';
 
 const { acts } = legalActsSchema.parse(
   JSON.parse(readFileSync(new URL('../fixtures/legal-acts.json', import.meta.url), 'utf8'))
@@ -162,12 +162,15 @@ describe('checking the watched acts', () => {
     const { db, sent } = database([row(law.id, '2021-05-06'), row(norms.id, '2016-10-21')]);
     const outcomes = await checkLegislation(db, [law, norms], {
       readAct: async (portalId) => {
-        if (portalId === 73772) throw new Error('Page 73772 has no "Forme act" section.');
+        if (portalId === 73772) throw new PortalError('Page 73772 has no "Forme act" section.');
         return portalAct(portalId, '2022-03-07', ['HG 259 23/02/2022']);
       },
       pauseMs: 0,
     });
     expect(outcomes.map((outcome) => outcome.result)).toEqual(['failed', 'checked']);
+    expect(outcomes[0]).toMatchObject({
+      error: { kind: 'parse', message: 'Page 73772 has no "Forme act" section.' },
+    });
     expect(sent('legal_acts', 'PATCH')).toHaveLength(1);
     expect(sent('legal_changes', 'POST')[0]!.body).toMatchObject({ act_id: 'hg-1425-2006' });
     expect(summarize(outcomes)).toContain(
@@ -183,9 +186,30 @@ describe('checking the watched acts', () => {
     });
     expect(outcomes[0]).toMatchObject({
       result: 'failed',
-      error: 'The page lists no consolidated form, where 2021-07-25 was seen before.',
+      error: {
+        kind: 'parse',
+        message: 'The page lists no consolidated form, where 2021-07-25 was seen before.',
+      },
     });
     expect(sent('legal_acts', 'PATCH')).toHaveLength(0);
+  });
+
+  it('reads the portal with the options it is given', async () => {
+    const { db } = database([row(law.id)]);
+    const portalFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 302, headers: { Location: '/Error' } }));
+    const outcomes = await checkLegislation(db, [law], {
+      pauseMs: 0,
+      portal: { fetch: portalFetch, pauseMs: 0, origin: 'https://relay.example.com' },
+    });
+    expect(outcomes[0]).toMatchObject({
+      result: 'failed',
+      error: { kind: 'http_status', status: 302 },
+    });
+    expect(portalFetch.mock.calls[0]![0]).toBe(
+      'https://relay.example.com/Public/DetaliiDocument/73772'
+    );
   });
 
   it('stops before reading any page when the acts cannot be saved', async () => {

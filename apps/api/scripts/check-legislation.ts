@@ -10,6 +10,7 @@ import {
   describeRun,
   legalActsSchema,
   type LegislationTables,
+  portalOptionsFromEnv,
   runLegislationCheck,
 } from '@ssm-usor/legislation-check';
 import { z } from 'zod';
@@ -20,7 +21,8 @@ import { localSupabase, secretFromCli } from './lib/supabase-cli';
 // apps/legislation runs the same check every morning. By hand:
 //   pnpm legislation:check          hosted project from SUPABASE_URL (apps/api/.env.seed)
 //   pnpm legislation:check:local    local Docker stack
-// Either takes --acts <file.json>, another act list in the shape of legal-acts.json.
+// Either takes --acts <file.json>, another act list in the shape of legal-acts.json, and reads
+// the portal directly unless LEGISLATION_RELAY_ORIGIN and the LEGISLATION_RELAY_CLIENT_* token name the relay.
 
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 // The package keeps its own copy of these tables' types; this fails when they drift apart.
@@ -47,9 +49,12 @@ try {
       ? JSON.parse(readFileSync(path.resolve(process.env.INIT_CWD ?? '.', values.acts), 'utf8'))
       : { acts: legalActs() }
   );
-  const run = await runLegislationCheck(client, acts);
+  const portal = portalOptionsFromEnv(process.env);
+  const run = await runLegislationCheck(client, acts, { portal });
   console.log(describeRun(run));
-  console.log(`Checked against ${new URL(config.url).hostname}.`);
+  console.log(
+    `Checked against ${new URL(config.url).hostname}${portal.origin ? `, through ${new URL(portal.origin).hostname}` : ''}.`
+  );
   // A page that could not be read fails the run, which is the alert; the others are saved.
   if (run.status === 'failed') process.exitCode = 1;
 } catch (error) {

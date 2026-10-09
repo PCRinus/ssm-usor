@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { useAuth } from '@/features/auth/auth-context';
 import { documentSectionIds } from '@/features/documents/document-sections';
 import { DocumentsCard } from '@/features/documents/documents-card';
-import { documentsFocus, focusSearch } from '@/features/missing-data/focus';
+import { focusSearch, occupationalSafetyDocumentsFocus } from '@/features/missing-data/focus';
 
 // The open section lives in the URL, so going back from the editor returns to it.
-const searchSchema = focusSearch(documentsFocus).extend({
+const searchSchema = focusSearch(occupationalSafetyDocumentsFocus).extend({
   section: z.enum(documentSectionIds).optional().catch(undefined),
 });
 

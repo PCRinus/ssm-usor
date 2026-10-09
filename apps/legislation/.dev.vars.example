@@ -3,3 +3,9 @@
 # bypasses row-level security: never put the hosted one here.
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SECRET_KEY=sb_secret_your_local_key
+
+# The portal answers a laptop directly, so a local run skips the relay in wrangler.jsonc. To test
+# the relay, delete LEGISLATION_RELAY_ORIGIN here and fill in the Access service token (docs/deployment.md).
+LEGISLATION_RELAY_ORIGIN=https://legislatie.just.ro
+# LEGISLATION_RELAY_CLIENT_ID=
+# LEGISLATION_RELAY_CLIENT_SECRET=

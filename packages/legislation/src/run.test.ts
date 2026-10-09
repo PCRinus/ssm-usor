@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { legalActsSchema } from './check';
 import { createLegislationClient } from './database';
-import type { PortalAct } from './portal';
+import { type PortalAct, PortalError } from './portal';
 import { describeRun, runLegislationCheck } from './run';
 
 const { acts } = legalActsSchema.parse(
@@ -99,7 +99,15 @@ describe('a run of the check', () => {
     const { db, runEnd } = database();
     const run = await runLegislationCheck(db, acts, {
       readAct: async (portalId) => {
-        if (portalId === 76337) throw new Error('Page 76337 has no "Forme act" section.');
+        if (portalId === 76337) {
+          throw new PortalError(
+            'https://legislatie.just.ro/Public/DetaliiDocument/76337 answered 520.',
+            {
+              kind: 'http_status',
+              status: 520,
+            }
+          );
+        }
         return portalAct(portalId, '2021-05-06');
       },
       pauseMs: 0,
@@ -111,8 +119,16 @@ describe('a run of the check', () => {
       acts_checked: 1,
       changes_found: 0,
       acts_skipped: 1,
-      errors: [{ act: 'hg-1425-2006', message: 'Page 76337 has no "Forme act" section.' }],
+      errors: [
+        {
+          act: 'hg-1425-2006',
+          kind: 'http_status',
+          status: 520,
+          message: 'https://legislatie.just.ro/Public/DetaliiDocument/76337 answered 520.',
+        },
+      ],
     });
+    expect(describeRun(run)).toContain('Failed acts by cause: 1 answered 520.');
   });
 
   it('ends failed when the check itself throws', async () => {
@@ -127,6 +143,7 @@ describe('a run of the check', () => {
       errors: [
         {
           act: null,
+          kind: 'other',
           message: 'Could not save the acts: relation "legal_acts" does not exist',
         },
       ],

@@ -331,7 +331,7 @@ describe('clients list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, '/clients');
     const user = userEvent.setup();
     await screen.findByTestId('clients-row');
-    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 clienți');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 de clienți');
     await user.click(screen.getByTestId('pager-next'));
     await screen.findByText('ZETA SRL');
     expect(runtime.router.state.location.search).toEqual({ page: 2 });

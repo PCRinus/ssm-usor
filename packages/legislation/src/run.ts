@@ -2,12 +2,15 @@ import {
   type ActOutcome,
   checkLegislation,
   type CheckOptions,
+  type Failure,
+  failureOf,
   type LegalAct,
   summarize,
 } from './check';
 import type { LegislationClient } from './database';
 
-export type RunError = { act: string | null; message: string };
+// `act` is null when the run itself failed, not one act's page.
+export type RunError = { act: string | null } & Failure;
 
 export type CheckRun = {
   id: string;
@@ -15,8 +18,6 @@ export type CheckRun = {
   outcomes: ActOutcome[];
   errors: RunError[];
 };
-
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 export async function runLegislationCheck(
   db: LegislationClient,
@@ -34,10 +35,10 @@ export async function runLegislationCheck(
   try {
     outcomes = await checkLegislation(db, acts, options);
     errors = outcomes.flatMap((outcome) =>
-      outcome.result === 'failed' ? [{ act: outcome.act.id, message: outcome.error }] : []
+      outcome.result === 'failed' ? [{ act: outcome.act.id, ...outcome.error }] : []
     );
   } catch (error) {
-    errors = [{ act: null, message: message(error) }];
+    errors = [{ act: null, ...failureOf(error) }];
   }
 
   const status = errors.length > 0 ? 'failed' : 'succeeded';
@@ -60,10 +61,26 @@ export async function runLegislationCheck(
   return { id, status, outcomes, errors };
 }
 
+const causes = {
+  fetch: 'could not be fetched',
+  parse: 'could not be parsed',
+  other: 'failed otherwise',
+} as const;
+
+const causeOf = (error: RunError) =>
+  error.kind === 'http_status' ? `answered ${error.status}` : causes[error.kind];
+
 export function describeRun(run: CheckRun) {
   const lines = run.outcomes.length > 0 ? [summarize(run.outcomes)] : [];
+  const counts = new Map<string, number>();
   for (const error of run.errors) {
     if (error.act === null) lines.push(`The run stopped: ${error.message}`);
+    else counts.set(causeOf(error), (counts.get(causeOf(error)) ?? 0) + 1);
+  }
+  if (counts.size > 0) {
+    lines.push(
+      `Failed acts by cause: ${[...counts].map(([cause, count]) => `${count} ${cause}`).join(', ')}.`
+    );
   }
   lines.push(`Run ${run.id} ${run.status}.`);
   return lines.join('\n');

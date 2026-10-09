@@ -35,6 +35,10 @@ import { Route as AuthenticatedInstructionsModuleIdRouteImport } from './routes/
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads/index';
 import { Route as AuthenticatedLeadsLeadIdRouteImport } from './routes/_authenticated/leads/$leadId';
 import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticated/leads/new';
+import { Route as AuthenticatedLegislatieIndexRouteImport } from './routes/_authenticated/legislatie/index';
+import { Route as AuthenticatedLegislatieActeRouteImport } from './routes/_authenticated/legislatie/acte';
+import { Route as AuthenticatedLegislatieDocumenteRouteImport } from './routes/_authenticated/legislatie/documente';
+import { Route as AuthenticatedLegislatieModificariRouteImport } from './routes/_authenticated/legislatie/modificari';
 import { Route as AuthenticatedOrganizationIndexRouteImport } from './routes/_authenticated/organization/index';
 import { Route as AuthenticatedOrganizationAuthorizationsRouteImport } from './routes/_authenticated/organization/authorizations';
 import { Route as AuthenticatedOrganizationCompanyRouteImport } from './routes/_authenticated/organization/company';
@@ -210,6 +214,30 @@ const AuthenticatedLeadsNewRoute = AuthenticatedLeadsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedLeadsRoute,
 } as any);
+const AuthenticatedLegislatieIndexRoute =
+  AuthenticatedLegislatieIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedLegislatieRoute,
+  } as any);
+const AuthenticatedLegislatieActeRoute =
+  AuthenticatedLegislatieActeRouteImport.update({
+    id: '/acte',
+    path: '/acte',
+    getParentRoute: () => AuthenticatedLegislatieRoute,
+  } as any);
+const AuthenticatedLegislatieDocumenteRoute =
+  AuthenticatedLegislatieDocumenteRouteImport.update({
+    id: '/documente',
+    path: '/documente',
+    getParentRoute: () => AuthenticatedLegislatieRoute,
+  } as any);
+const AuthenticatedLegislatieModificariRoute =
+  AuthenticatedLegislatieModificariRouteImport.update({
+    id: '/modificari',
+    path: '/modificari',
+    getParentRoute: () => AuthenticatedLegislatieRoute,
+  } as any);
 const AuthenticatedOrganizationIndexRoute =
   AuthenticatedOrganizationIndexRouteImport.update({
     id: '/',
@@ -458,7 +486,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
   '/leads': typeof AuthenticatedLeadsRouteWithChildren;
-  '/legislatie': typeof AuthenticatedLegislatieRoute;
+  '/legislatie': typeof AuthenticatedLegislatieRouteWithChildren;
   '/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/profile': typeof AuthenticatedProfileRoute;
   '/risks': typeof AuthenticatedRisksRouteWithChildren;
@@ -467,6 +495,9 @@ export interface FileRoutesByFullPath {
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRouteWithChildren;
   '/leads/new': typeof AuthenticatedLeadsNewRoute;
+  '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
+  '/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
+  '/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
@@ -474,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AuthenticatedClientsIndexRoute;
   '/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/leads/': typeof AuthenticatedLeadsIndexRoute;
+  '/legislatie/': typeof AuthenticatedLegislatieIndexRoute;
   '/organization/': typeof AuthenticatedOrganizationIndexRoute;
   '/risks/': typeof AuthenticatedRisksIndexRoute;
   '/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
@@ -520,11 +552,13 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
-  '/legislatie': typeof AuthenticatedLegislatieRoute;
   '/profile': typeof AuthenticatedProfileRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/leads/new': typeof AuthenticatedLeadsNewRoute;
+  '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
+  '/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
+  '/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
@@ -532,6 +566,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AuthenticatedClientsIndexRoute;
   '/instructions': typeof AuthenticatedInstructionsIndexRoute;
   '/leads': typeof AuthenticatedLeadsIndexRoute;
+  '/legislatie': typeof AuthenticatedLegislatieIndexRoute;
   '/organization': typeof AuthenticatedOrganizationIndexRoute;
   '/risks': typeof AuthenticatedRisksIndexRoute;
   '/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
@@ -576,7 +611,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
   '/_authenticated/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
   '/_authenticated/leads': typeof AuthenticatedLeadsRouteWithChildren;
-  '/_authenticated/legislatie': typeof AuthenticatedLegislatieRoute;
+  '/_authenticated/legislatie': typeof AuthenticatedLegislatieRouteWithChildren;
   '/_authenticated/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/_authenticated/profile': typeof AuthenticatedProfileRoute;
   '/_authenticated/risks': typeof AuthenticatedRisksRouteWithChildren;
@@ -585,6 +620,9 @@ export interface FileRoutesById {
   '/_authenticated/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/_authenticated/leads/$leadId': typeof AuthenticatedLeadsLeadIdRouteWithChildren;
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute;
+  '/_authenticated/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
+  '/_authenticated/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
+  '/_authenticated/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/_authenticated/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/_authenticated/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/_authenticated/organization/team': typeof AuthenticatedOrganizationTeamRoute;
@@ -592,6 +630,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
   '/_authenticated/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute;
+  '/_authenticated/legislatie/': typeof AuthenticatedLegislatieIndexRoute;
   '/_authenticated/organization/': typeof AuthenticatedOrganizationIndexRoute;
   '/_authenticated/risks/': typeof AuthenticatedRisksIndexRoute;
   '/_authenticated/clients/$clientId/contact': typeof AuthenticatedClientsClientIdContactRoute;
@@ -652,6 +691,9 @@ export interface FileRouteTypes {
     | '/instructions/$moduleId'
     | '/leads/$leadId'
     | '/leads/new'
+    | '/legislatie/acte'
+    | '/legislatie/documente'
+    | '/legislatie/modificari'
     | '/organization/authorizations'
     | '/organization/company'
     | '/organization/team'
@@ -659,6 +701,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/instructions/'
     | '/leads/'
+    | '/legislatie/'
     | '/organization/'
     | '/risks/'
     | '/clients/$clientId/contact'
@@ -705,11 +748,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/dashboard'
-    | '/legislatie'
     | '/profile'
     | '/clients/new'
     | '/instructions/$moduleId'
     | '/leads/new'
+    | '/legislatie/acte'
+    | '/legislatie/documente'
+    | '/legislatie/modificari'
     | '/organization/authorizations'
     | '/organization/company'
     | '/organization/team'
@@ -717,6 +762,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/instructions'
     | '/leads'
+    | '/legislatie'
     | '/organization'
     | '/risks'
     | '/clients/$clientId/contact'
@@ -769,6 +815,9 @@ export interface FileRouteTypes {
     | '/_authenticated/instructions/$moduleId'
     | '/_authenticated/leads/$leadId'
     | '/_authenticated/leads/new'
+    | '/_authenticated/legislatie/acte'
+    | '/_authenticated/legislatie/documente'
+    | '/_authenticated/legislatie/modificari'
     | '/_authenticated/organization/authorizations'
     | '/_authenticated/organization/company'
     | '/_authenticated/organization/team'
@@ -776,6 +825,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/'
     | '/_authenticated/instructions/'
     | '/_authenticated/leads/'
+    | '/_authenticated/legislatie/'
     | '/_authenticated/organization/'
     | '/_authenticated/risks/'
     | '/_authenticated/clients/$clientId/contact'
@@ -1008,6 +1058,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/leads/new';
       preLoaderRoute: typeof AuthenticatedLeadsNewRouteImport;
       parentRoute: typeof AuthenticatedLeadsRoute;
+    };
+    '/_authenticated/legislatie/': {
+      id: '/_authenticated/legislatie/';
+      path: '/';
+      fullPath: '/legislatie/';
+      preLoaderRoute: typeof AuthenticatedLegislatieIndexRouteImport;
+      parentRoute: typeof AuthenticatedLegislatieRoute;
+    };
+    '/_authenticated/legislatie/acte': {
+      id: '/_authenticated/legislatie/acte';
+      path: '/acte';
+      fullPath: '/legislatie/acte';
+      preLoaderRoute: typeof AuthenticatedLegislatieActeRouteImport;
+      parentRoute: typeof AuthenticatedLegislatieRoute;
+    };
+    '/_authenticated/legislatie/documente': {
+      id: '/_authenticated/legislatie/documente';
+      path: '/documente';
+      fullPath: '/legislatie/documente';
+      preLoaderRoute: typeof AuthenticatedLegislatieDocumenteRouteImport;
+      parentRoute: typeof AuthenticatedLegislatieRoute;
+    };
+    '/_authenticated/legislatie/modificari': {
+      id: '/_authenticated/legislatie/modificari';
+      path: '/modificari';
+      fullPath: '/legislatie/modificari';
+      preLoaderRoute: typeof AuthenticatedLegislatieModificariRouteImport;
+      parentRoute: typeof AuthenticatedLegislatieRoute;
     };
     '/_authenticated/organization/': {
       id: '/_authenticated/organization/';
@@ -1528,6 +1606,28 @@ const AuthenticatedLeadsRouteChildren: AuthenticatedLeadsRouteChildren = {
 const AuthenticatedLeadsRouteWithChildren =
   AuthenticatedLeadsRoute._addFileChildren(AuthenticatedLeadsRouteChildren);
 
+interface AuthenticatedLegislatieRouteChildren {
+  AuthenticatedLegislatieActeRoute: typeof AuthenticatedLegislatieActeRoute;
+  AuthenticatedLegislatieDocumenteRoute: typeof AuthenticatedLegislatieDocumenteRoute;
+  AuthenticatedLegislatieModificariRoute: typeof AuthenticatedLegislatieModificariRoute;
+  AuthenticatedLegislatieIndexRoute: typeof AuthenticatedLegislatieIndexRoute;
+}
+
+const AuthenticatedLegislatieRouteChildren: AuthenticatedLegislatieRouteChildren =
+  {
+    AuthenticatedLegislatieActeRoute: AuthenticatedLegislatieActeRoute,
+    AuthenticatedLegislatieDocumenteRoute:
+      AuthenticatedLegislatieDocumenteRoute,
+    AuthenticatedLegislatieModificariRoute:
+      AuthenticatedLegislatieModificariRoute,
+    AuthenticatedLegislatieIndexRoute: AuthenticatedLegislatieIndexRoute,
+  };
+
+const AuthenticatedLegislatieRouteWithChildren =
+  AuthenticatedLegislatieRoute._addFileChildren(
+    AuthenticatedLegislatieRouteChildren,
+  );
+
 interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationAuthorizationsRoute: typeof AuthenticatedOrganizationAuthorizationsRoute;
   AuthenticatedOrganizationCompanyRoute: typeof AuthenticatedOrganizationCompanyRoute;
@@ -1568,7 +1668,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
   AuthenticatedInstructionsRoute: typeof AuthenticatedInstructionsRouteWithChildren;
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRouteWithChildren;
-  AuthenticatedLegislatieRoute: typeof AuthenticatedLegislatieRoute;
+  AuthenticatedLegislatieRoute: typeof AuthenticatedLegislatieRouteWithChildren;
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren;
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
   AuthenticatedRisksRoute: typeof AuthenticatedRisksRouteWithChildren;
@@ -1579,7 +1679,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInstructionsRoute: AuthenticatedInstructionsRouteWithChildren,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRouteWithChildren,
-  AuthenticatedLegislatieRoute: AuthenticatedLegislatieRoute,
+  AuthenticatedLegislatieRoute: AuthenticatedLegislatieRouteWithChildren,
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRisksRoute: AuthenticatedRisksRouteWithChildren,

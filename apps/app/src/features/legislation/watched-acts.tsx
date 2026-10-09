@@ -1,154 +1,156 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import type { UseQueryResult } from '@tanstack/react-query';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ScrollText } from 'lucide-react';
 
-import type { LegalActListResponse, LegalActListResponseItemsItem } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
+import type { LegalActListResponseItemsItem } from '@/api/generated/api';
+import { createDataTableColumns } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { formatRoDate } from '@/lib/dates';
 
 import { formatMoment, portalPage, portalStatusLabel } from './legislation-labels';
+import { useLegalActs } from './use-legal-acts';
+import { lastReadOn, sortActs, type WatchedActSort } from './watched-act-sort';
 
-const columns = [
-  { id: 'name', header: 'Act normativ', title: undefined },
-  { id: 'status', header: 'Stare', title: undefined },
-  {
-    id: 'consolidated',
-    header: 'Ultima formă consolidată',
-    title: 'Cea mai nouă formă consolidată găsită pe Portalul Legislativ.',
-  },
-  {
-    id: 'verified',
-    header: 'Șabloane verificate pe forma din',
-    title: 'Forma consolidată față de care au fost verificate șabloanele.',
-  },
-  { id: 'checked', header: 'Citit ultima dată', title: undefined },
-] as const;
+type Act = LegalActListResponseItemsItem;
 
 const dateOrDash = (value: string | null) => (value ? formatRoDate(value) : '—');
 
-function lastRead(act: LegalActListResponseItemsItem) {
-  if (act.checkedByHandOn && (!act.lastCheckedAt || act.checkedByHandOn > act.lastCheckedAt)) {
-    return `${formatRoDate(act.checkedByHandOn)}, de mână`;
-  }
-  return act.lastCheckedAt ? formatMoment(act.lastCheckedAt) : '—';
+function lastRead(act: Act) {
+  const on = lastReadOn(act);
+  if (on === null) return '—';
+  return on === act.lastCheckedAt ? formatMoment(on) : `${formatRoDate(on)}, de mână`;
 }
 
-export function WatchedActs({ acts }: { acts: UseQueryResult<LegalActListResponse> }) {
-  const items = [...(acts.data?.items ?? [])].sort((a, b) =>
-    a.name.localeCompare(b.name, 'ro', { numeric: true })
-  );
+const helper = createDataTableColumns<Act>();
+
+const dateColumn = { cellClassName: 'tabular-nums', skeletonClassName: 'w-20' };
+
+const columns = helper.columns([
+  helper.accessor('name', {
+    id: 'name',
+    header: 'Act normativ',
+    meta: { headerClassName: 'pl-5', cellClassName: 'pl-5 font-medium', skeletonClassName: 'w-32' },
+    cell: ({ row, getValue }) =>
+      row.original.portalId ? (
+        <a
+          href={portalPage(row.original.portalId)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
+        >
+          {getValue()}
+          <ExternalLink
+            className="size-3.5 text-muted-foreground"
+            aria-label="(se deschide pe Portalul Legislativ)"
+          />
+        </a>
+      ) : (
+        getValue()
+      ),
+  }),
+  helper.accessor('portalStatus', {
+    id: 'status',
+    header: 'Stare',
+    meta: { skeletonClassName: 'w-20' },
+    cell: ({ getValue }) => {
+      const status = getValue();
+      return (
+        <Badge
+          data-testid="watched-act-status"
+          variant={
+            status === 'repealed' ? 'destructive' : status === 'in_force' ? 'secondary' : 'outline'
+          }
+        >
+          {portalStatusLabel(status)}
+        </Badge>
+      );
+    },
+  }),
+  helper.accessor('lastConsolidatedOn', {
+    id: 'consolidated',
+    header: () => (
+      <span title="Cea mai nouă formă consolidată găsită pe Portalul Legislativ.">
+        Ultima formă consolidată
+      </span>
+    ),
+    meta: dateColumn,
+    cell: ({ getValue }) => dateOrDash(getValue()),
+  }),
+  helper.accessor('verifiedConsolidatedOn', {
+    id: 'verified',
+    header: () => (
+      <span title="Forma consolidată față de care au fost verificate șabloanele.">
+        Șabloane verificate pe forma din
+      </span>
+    ),
+    meta: dateColumn,
+    cell: ({ getValue }) => dateOrDash(getValue()),
+  }),
+  helper.accessor(lastReadOn, {
+    id: 'read',
+    header: 'Citit ultima dată',
+    meta: { cellClassName: 'text-muted-foreground tabular-nums', skeletonClassName: 'w-28' },
+    cell: ({ row }) => lastRead(row.original),
+  }),
+]);
+
+const rowKey = (act: Act) => act.id;
+
+export function WatchedActs({
+  userId,
+  sort,
+  onSortChange,
+}: {
+  userId: string;
+  sort: WatchedActSort;
+  onSortChange: (sort: WatchedActSort) => void;
+}) {
+  const acts = useLegalActs(userId);
+  const items = acts.data ? sortActs(acts.data.items, sort) : undefined;
+  const total = items?.length ?? 0;
+
   return (
-    <section aria-labelledby="watched-acts-heading" className="grid gap-4">
-      <div>
-        <h2 id="watched-acts-heading" className="text-lg font-semibold">
-          Acte urmărite
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Actele normative pe care le citează șabloanele, citite zilnic pe Portalul Legislativ.
-        </p>
-      </div>
+    <section aria-label="Acte urmărite" className="grid gap-4">
+      <p className="max-w-2xl text-sm text-muted-foreground">
+        Actele normative pe care le citează șabloanele, citite zilnic pe Portalul Legislativ.
+      </p>
       <div className="overflow-hidden rounded-lg border bg-card">
-        {acts.isError ? (
-          <div className="p-5">
-            <Notice
-              variant="destructive"
-              action={
-                <Button
-                  variant="outline"
-                  disabled={acts.isFetching}
-                  onClick={() => void acts.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              }
-            >
-              Nu am putut încărca actele urmărite.
-            </Notice>
-          </div>
-        ) : (
-          <Table data-testid="watched-acts" aria-labelledby="watched-acts-heading">
-            <TableHeader>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableHead
-                    key={column.id}
-                    title={column.title}
-                    className={column.id === 'name' ? 'pl-5' : undefined}
-                  >
-                    {column.header}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {acts.isPending
-                ? Array.from({ length: 3 }, (_, index) => (
-                    <TableRow key={index} className="hover:bg-transparent">
-                      {columns.map((column) => (
-                        <TableCell key={column.id} className={column.id === 'name' ? 'pl-5' : ''}>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : items.map((act) => (
-                    <TableRow key={act.id} data-testid="watched-act">
-                      <TableCell className="pl-5 font-medium">
-                        {act.portalId ? (
-                          <a
-                            href={portalPage(act.portalId)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
-                          >
-                            {act.name}
-                            <ExternalLink
-                              className="size-3.5 text-muted-foreground"
-                              aria-label="(se deschide pe Portalul Legislativ)"
-                            />
-                          </a>
-                        ) : (
-                          act.name
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          data-testid="watched-act-status"
-                          variant={
-                            act.portalStatus === 'repealed'
-                              ? 'destructive'
-                              : act.portalStatus === 'in_force'
-                                ? 'secondary'
-                                : 'outline'
-                          }
-                        >
-                          {portalStatusLabel(act.portalStatus)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="tabular-nums">
-                        {dateOrDash(act.lastConsolidatedOn)}
-                      </TableCell>
-                      <TableCell className="tabular-nums">
-                        {dateOrDash(act.verifiedConsolidatedOn)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground tabular-nums">
-                        {lastRead(act)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
-        )}
+        <DataTable
+          testId="watched-acts"
+          rowTestId="watched-act"
+          label="Acte urmărite"
+          columns={columns}
+          data={items}
+          rowKey={rowKey}
+          meta={{ page: 1, pageSize: Math.max(total, 1), total }}
+          noun={['act', 'acte']}
+          status={acts.status}
+          isFetching={acts.isFetching}
+          sort={sort}
+          onSortChange={(next) => onSortChange(next as WatchedActSort)}
+          onPageChange={() => {}}
+          error={
+            <>
+              <p role="alert" className="text-sm">
+                Nu am putut încărca actele urmărite.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                disabled={acts.isFetching}
+                onClick={() => void acts.refetch()}
+              >
+                Încearcă din nou
+              </Button>
+            </>
+          }
+          empty={
+            <EmptyState icon={ScrollText}>
+              Niciun act urmărit încă. Actele apar aici după prima verificare.
+            </EmptyState>
+          }
+        />
       </div>
     </section>
   );

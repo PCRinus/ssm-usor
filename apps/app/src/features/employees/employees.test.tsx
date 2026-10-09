@@ -323,12 +323,12 @@ describe('client employees list', () => {
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     expect(screen.getByTestId('employees-count').textContent).toBe('26 angajați');
-    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 angajați');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 de angajați');
     expect((screen.getByTestId('pager-previous') as HTMLButtonElement).disabled).toBe(true);
     await user.click(screen.getByTestId('pager-next'));
     await screen.findByText('Zamfir Ion');
     expect(runtime.router.state.location.search).toEqual({ page: 2 });
-    expect(screen.getByTestId('pager-summary').textContent).toBe('26–26 din 26 angajați');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('26–26 din 26 de angajați');
     expect((screen.getByTestId('pager-next') as HTMLButtonElement).disabled).toBe(true);
     // Switching the status filter starts again from the first page.
     await user.click(screen.getByTestId('employees-filter-terminated'));

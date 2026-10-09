@@ -175,7 +175,15 @@ describe('GET /legislation/runs/latest', () => {
     acts_checked: 49,
     changes_found: 0,
     acts_skipped: 0,
-    errors: [{ act: 'hg-1425-2006', message: 'Page 76337 answered 503.' }],
+    errors: [
+      {
+        act: 'hg-1425-2006',
+        kind: 'http_status',
+        status: 503,
+        message: 'https://legislatie.just.ro/Public/DetaliiDocument/76337 answered 503.',
+      },
+      { act: null, kind: 'other', message: 'Could not save the acts.' },
+    ],
   };
 
   it('returns the run that started last', async () => {
@@ -191,12 +199,26 @@ describe('GET /legislation/runs/latest', () => {
         actsChecked: 49,
         changesFound: 0,
         actsSkipped: 0,
-        errors: [{ act: 'hg-1425-2006', message: 'Page 76337 answered 503.' }],
+        errors: failedRun.errors,
       },
     });
     const [query] = searchParams('legal_check_runs');
     expect(query!.get('order')).toBe('started_at.desc,id.asc');
     expect(query!.get('limit')).toBe('1');
+  });
+
+  it('reads an error recorded without a kind as another failure', async () => {
+    mockUpstream({
+      legal_check_runs: () =>
+        Response.json([
+          { ...failedRun, errors: [{ act: 'hg-1425-2006', message: 'Page 76337 answered 503.' }] },
+        ]),
+    });
+    const response = await request('/legislation/runs/latest');
+    expect(response.status).toBe(200);
+    expect(latestLegalCheckRunResponseSchema.parse(await response.json()).run!.errors).toEqual([
+      { act: 'hg-1425-2006', kind: 'other', message: 'Page 76337 answered 503.' },
+    ]);
   });
 
   it('returns null before the first run', async () => {
