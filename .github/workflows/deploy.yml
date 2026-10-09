@@ -449,6 +449,7 @@ jobs:
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       LEGISLATION_RELAY_CLIENT_ID: ${{ secrets.LEGISLATION_RELAY_CLIENT_ID }}
       LEGISLATION_RELAY_CLIENT_SECRET: ${{ secrets.LEGISLATION_RELAY_CLIENT_SECRET }}
+      LEGISLATION_RUN_SECRET: ${{ secrets.LEGISLATION_RUN_SECRET }}
     steps:
       # Without the Supabase pair the cron fails every morning before it can record a run; without
       # the Access token the relay turns away every act.
@@ -468,6 +469,10 @@ jobs:
           name: release-legislation-${{ github.sha }}
           path: apps/legislation/.wrangler/release
 
+      - name: Report missing run secret
+        if: env.LEGISLATION_RUN_SECRET == ''
+        run: echo "::notice::LEGISLATION_RUN_SECRET is not set. The cron runs as usual; a run by hand at https://legislation.ssmusor.ro/run needs the secret on the Worker, and answers 404 until then."
+
       - name: Prepare deployment message
         id: metadata
         uses: ./.github/actions/deployment-message
@@ -485,10 +490,13 @@ jobs:
             --message "${{ steps.metadata.outputs.message }}"
           vars: |
             SUPABASE_URL
+          # The run secret only when set: running the check by hand is optional, and without the
+          # secret on the Worker /run answers 404. The action drops the blank line it leaves.
           secrets: |
             SUPABASE_SECRET_KEY
             LEGISLATION_RELAY_CLIENT_ID
             LEGISLATION_RELAY_CLIENT_SECRET
+            ${{ env.LEGISLATION_RUN_SECRET != '' && 'LEGISLATION_RUN_SECRET' || '' }}
 
   deploy-api:
     name: Deploy API

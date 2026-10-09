@@ -6,6 +6,7 @@ import {
   failureOf,
   type LegalAct,
   summarize,
+  tally,
 } from './check';
 import type { LegislationClient } from './database';
 
@@ -19,10 +20,29 @@ export type CheckRun = {
   errors: RunError[];
 };
 
+export type RunOptions = CheckOptions & { onStart?: (id: string) => void };
+
+// A cron invocation is stopped after fifteen minutes of wall time, so a row still 'running'
+// after that was cut off and blocks nothing.
+export const runCutOffAfterMs = 15 * 60 * 1000;
+
+export async function runInProgress(db: LegislationClient, now = Date.now()) {
+  const found = await db
+    .from('legal_check_runs')
+    .select('id, started_at')
+    .eq('status', 'running')
+    .gt('started_at', new Date(now - runCutOffAfterMs).toISOString())
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (found.error) throw new Error(`Could not look for a run in progress: ${found.error.message}`);
+  return found.data;
+}
+
 export async function runLegislationCheck(
   db: LegislationClient,
   acts: LegalAct[],
-  options: CheckOptions = {}
+  options: RunOptions = {}
 ): Promise<CheckRun> {
   const started = await db.from('legal_check_runs').insert({}).select('id').single();
   if (started.error) throw new Error(`Could not start the run: ${started.error.message}`);
@@ -33,6 +53,7 @@ export async function runLegislationCheck(
   // Whatever throws, the run is still closed as failed: a cron that dies says nothing, and a
   // row left 'running' reads only as cut off.
   try {
+    options.onStart?.(id);
     outcomes = await checkLegislation(db, acts, options);
     errors = outcomes.flatMap((outcome) =>
       outcome.result === 'failed' ? [{ act: outcome.act.id, ...outcome.error }] : []
@@ -70,8 +91,9 @@ const causes = {
 const causeOf = (error: RunError) =>
   error.kind === 'http_status' ? `answered ${error.status}` : causes[error.kind];
 
-export function describeRun(run: CheckRun) {
-  const lines = run.outcomes.length > 0 ? [summarize(run.outcomes)] : [];
+export function describeRun(run: CheckRun, { perAct = true } = {}) {
+  const lines =
+    run.outcomes.length === 0 ? [] : [perAct ? summarize(run.outcomes) : tally(run.outcomes)];
   const counts = new Map<string, number>();
   for (const error of run.errors) {
     if (error.act === null) lines.push(`The run stopped: ${error.message}`);

@@ -9,3 +9,6 @@ SUPABASE_SECRET_KEY=sb_secret_your_local_key
 LEGISLATION_RELAY_ORIGIN=https://legislatie.just.ro
 # LEGISLATION_RELAY_CLIENT_ID=
 # LEGISLATION_RELAY_CLIENT_SECRET=
+
+# Serves POST /run on the local Worker; any value, sent as `Authorization: Bearer <value>`.
+# LEGISLATION_RUN_SECRET=local-run-secret

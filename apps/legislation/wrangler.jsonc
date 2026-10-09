@@ -3,8 +3,9 @@
   "name": "ssm-usor-legislation",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
-  // No routes: the cron trigger is the only way in.
   "workers_dev": false,
+  // Only POST /run answers here, with LEGISLATION_RUN_SECRET; without that secret, nothing does.
+  "routes": [{ "pattern": "legislation.ssmusor.ro", "custom_domain": true }],
   "preview_urls": false,
   "triggers": {
     // 03:17 UTC: 05:17 in Bucharest in winter, 06:17 in summer.

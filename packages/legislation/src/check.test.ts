@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { checkLegislation, isNewer, legalActsSchema, summarize } from './check';
+import { checkLegislation, describeOutcome, isNewer, legalActsSchema, summarize } from './check';
 import type { LegislationDatabase } from './database';
 import { type PortalAct, PortalError } from './portal';
 
@@ -175,6 +175,25 @@ describe('checking the watched acts', () => {
     expect(sent('legal_changes', 'POST')[0]!.body).toMatchObject({ act_id: 'hg-1425-2006' });
     expect(summarize(outcomes)).toContain(
       'Legea 319/2006: FAILED, Page 73772 has no "Forme act" section.'
+    );
+  });
+
+  it('reports each act as it is done, in the words of the summary', async () => {
+    const { db } = database([row(law.id, '2021-05-06'), row(norms.id, '2016-10-21')]);
+    const reported: string[] = [];
+    const outcomes = await checkLegislation(db, [law, norms, order], {
+      readAct: async (portalId) => {
+        if (portalId === 73772) throw new PortalError('Page 73772 has no "Forme act" section.');
+        return portalAct(portalId, '2022-03-07');
+      },
+      pauseMs: 0,
+      onOutcome: (outcome) => reported.push(describeOutcome(outcome)),
+    });
+    expect(reported).toHaveLength(3);
+    expect(summarize(outcomes)).toBe(
+      [...reported, '3 acts: 1 checked, 1 new change, 1 failed, 1 skipped (omai-163-2007).'].join(
+        '\n'
+      )
     );
   });
 

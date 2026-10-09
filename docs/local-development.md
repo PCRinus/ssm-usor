@@ -197,6 +197,19 @@ when the run ends; the Worker's terminal prints a line per act and the run's out
 failed run answers `500`, as Cloudflare marks the invocation failed. It is not part of
 `pnpm dev`. Never put the hosted secret key in `.dev.vars`.
 
+The local Worker serves `POST /run` too, the [run by hand](deployment.md#running-the-check-by-hand)
+of the deployed one. Uncomment `LEGISLATION_RUN_SECRET` in `.dev.vars` (any value; without it
+`/run` answers `404`), restart `pnpm legislation:cron`, and send the same value:
+
+```bash
+curl -sS -N -X POST http://localhost:8792/run -H "Authorization: Bearer local-run-secret"
+```
+
+The run's lines arrive as it goes, ending with `Run <id> succeeded.` or `Run <id> failed.`.
+Wrangler restarts the Worker when a file under `apps/legislation` changes, which cuts a run
+short and leaves its row `running`; a second run is refused with `409` for fifteen minutes,
+unless that row is deleted in Studio.
+
 ## Stop or switch back
 
 ```bash

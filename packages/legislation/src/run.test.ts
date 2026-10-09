@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { legalActsSchema } from './check';
 import { createLegislationClient } from './database';
 import { type PortalAct, PortalError } from './portal';
-import { describeRun, runLegislationCheck } from './run';
+import { describeRun, runInProgress, runLegislationCheck } from './run';
 
 const { acts } = legalActsSchema.parse(
   JSON.parse(readFileSync(new URL('../fixtures/legal-acts.json', import.meta.url), 'utf8'))
@@ -95,6 +95,25 @@ describe('a run of the check', () => {
     expect(describeRun(run)).toMatch(/1 new change, 0 failed, 1 skipped .*\nRun r1 succeeded\.$/);
   });
 
+  it('names the run before it reads the first act, and can be summed up without the acts', async () => {
+    const { db } = database();
+    const events: string[] = [];
+    const run = await runLegislationCheck(db, acts, {
+      readAct: async (portalId) => {
+        events.push(`read ${portalId}`);
+        return portalAct(portalId, '2022-03-07');
+      },
+      pauseMs: 0,
+      onStart: (id) => events.push(`started ${id}`),
+    });
+
+    expect(events[0]).toBe('started r1');
+    expect(events).toHaveLength(3);
+    expect(describeRun(run, { perAct: false })).toBe(
+      '3 acts: 2 checked, 1 new change, 0 failed, 1 skipped (omai-163-2007).\nRun r1 succeeded.'
+    );
+  });
+
   it('ends failed with one error per act it could not read, after checking the others', async () => {
     const { db, runEnd } = database();
     const run = await runLegislationCheck(db, acts, {
@@ -161,5 +180,29 @@ describe('a run of the check', () => {
     );
     expect(readAct).not.toHaveBeenCalled();
     expect(runEnd()).toBeUndefined();
+  });
+});
+
+describe('looking for a run in progress', () => {
+  function runs(rows: { id: string; started_at: string }[]) {
+    const fetchMock = vi.fn<typeof fetch>(async () => Response.json(rows));
+    vi.stubGlobal('fetch', fetchMock);
+    const db = createLegislationClient('https://example.supabase.co', 'sb_secret_test');
+    const query = () => new URL(String(fetchMock.mock.calls[0]![0])).searchParams;
+    return { db, query };
+  }
+
+  it('asks only for a run still running that started within the last fifteen minutes', async () => {
+    const { db, query } = runs([{ id: 'r1', started_at: '2026-10-09T09:50:00Z' }]);
+    const found = await runInProgress(db, Date.parse('2026-10-09T10:00:00Z'));
+
+    expect(found).toEqual({ id: 'r1', started_at: '2026-10-09T09:50:00Z' });
+    expect(query().get('status')).toBe('eq.running');
+    expect(query().get('started_at')).toBe('gt.2026-10-09T09:45:00.000Z');
+  });
+
+  it('finds nothing when no recent run is running', async () => {
+    const { db } = runs([]);
+    expect(await runInProgress(db)).toBeNull();
   });
 });
