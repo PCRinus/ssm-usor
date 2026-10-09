@@ -48,7 +48,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { type ComponentProps, Fragment, type ReactNode, useEffect, useState } from 'react';
 
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
@@ -77,6 +77,36 @@ const navigation = [
   },
   { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
 ] as const;
+
+const foldsFor = 200;
+
+// A group's tabs fold open and shut. The group leaves the page once shut, so its links are out of
+// the tab order and the screen reader's outline. `starting:` gives the first paint of a mounting
+// group its folded size, which is what the opening transition starts from.
+function NavGroup({
+  open,
+  children,
+  ...props
+}: { open: boolean; children: ReactNode } & ComponentProps<'div'>) {
+  const [shown, setShown] = useState(open);
+  if (open && !shown) setShown(true);
+  useEffect(() => {
+    if (open) return;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const timer = setTimeout(() => setShown(false), still ? 0 : foldsFor);
+    return () => clearTimeout(timer);
+  }, [open]);
+  if (!shown) return null;
+  return (
+    <div
+      data-open={open}
+      className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 ease-out starting:grid-rows-[0fr] starting:opacity-0 data-[open=false]:grid-rows-[0fr] data-[open=false]:opacity-0 motion-reduce:transition-none"
+      {...props}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
 
 function initials(name: string | undefined, email: string) {
   const words = name?.split(/\s+/).filter(Boolean) ?? [];
@@ -147,23 +177,25 @@ function AppNavigation({
                             <span>{label}</span>
                           </Link>
                         </SidebarMenuButton>
-                        {expanded && (
-                          <SidebarMenuSub data-testid={`nav-${to.slice(1)}-group`}>
-                            {children.map((child) => (
-                              <SidebarMenuSubItem key={child.to}>
-                                <SidebarMenuSubButton asChild isActive={within(child.to)}>
-                                  <Link
-                                    to={child.to}
-                                    data-testid="nav-sub-entry"
-                                    aria-current={within(child.to) ? 'page' : undefined}
-                                    onClick={closeOnMobile}
-                                  >
-                                    <span>{child.label}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
+                        {children && (
+                          <NavGroup open={expanded}>
+                            <SidebarMenuSub data-testid={`nav-${to.slice(1)}-group`}>
+                              {children.map((child) => (
+                                <SidebarMenuSubItem key={child.to}>
+                                  <SidebarMenuSubButton asChild isActive={within(child.to)}>
+                                    <Link
+                                      to={child.to}
+                                      data-testid="nav-sub-entry"
+                                      aria-current={within(child.to) ? 'page' : undefined}
+                                      onClick={closeOnMobile}
+                                    >
+                                      <span>{child.label}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </NavGroup>
                         )}
                       </SidebarMenuItem>
                     );

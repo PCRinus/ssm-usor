@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
-import { ChevronDown, CircleCheck, LoaderCircle } from 'lucide-react';
+import { ChevronDown, LoaderCircle } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import {
@@ -96,24 +96,20 @@ export function LastCheck({ userId }: { userId: string }) {
 
   if (run.status === 'running') {
     return (
-      <p
+      <Notice
+        variant="info"
         data-testid="last-check-running"
-        role="status"
-        className="flex items-center gap-2 text-sm text-muted-foreground"
+        icon={<LoaderCircle className="animate-spin" aria-hidden="true" />}
       >
-        <LoaderCircle className="size-4 shrink-0 animate-spin" aria-hidden="true" />
         Verificarea rulează din {momentOf(run.startedAt)}.
-      </p>
+      </Notice>
     );
   }
 
   return (
-    <p data-testid="last-check-ok" className="flex items-start gap-2 text-sm text-muted-foreground">
-      <CircleCheck className="mt-0.5 size-4 shrink-0 text-success-foreground" aria-hidden="true" />
-      <span>
-        Verificat pe {momentOf(at)} · {found(run)}
-      </span>
-    </p>
+    <Notice variant="success" data-testid="last-check-ok">
+      Verificat pe {momentOf(at)} · {found(run)}
+    </Notice>
   );
 }
 

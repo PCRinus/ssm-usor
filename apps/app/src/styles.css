@@ -44,7 +44,7 @@
 }
 
 [data-pointed] {
-  animation: pointed 0.9s ease-out 2;
+  animation: pointed 0.9s ease-out 3;
 }
 
 /* A table row sits inside the table's scroll container, which clips a ring drawn outside it. */
