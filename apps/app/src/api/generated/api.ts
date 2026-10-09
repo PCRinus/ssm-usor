@@ -57,11 +57,43 @@ export type ApiErrorResponseIssuesItem = {
   message: string;
 };
 
+export type ApiErrorResponseMissingItem =
+  (typeof ApiErrorResponseMissingItem)[keyof typeof ApiErrorResponseMissingItem];
+
+export const ApiErrorResponseMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  specialistname: 'specialist.name',
+  specialistprofessionalTitle: 'specialist.professionalTitle',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  clienttrainingSchedule: 'client.trainingSchedule',
+  responsibleworkplace_manager: 'responsible.workplace_manager',
+  responsiblefirst_aid: 'responsible.first_aid',
+  responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
+  responsibleimminent_danger: 'responsible.imminent_danger',
+  responsibleworkers_representative: 'responsible.workers_representative',
+  responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
+  responsibleworkers_representative_is_legal_representative:
+    'responsible.workers_representative_is_legal_representative',
+  positionsany: 'positions.any',
+  positionsequipment: 'positions.equipment',
+  positionsinstructions: 'positions.instructions',
+  positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
+  risk_evaluationsmeasures: 'risk_evaluations.measures',
+  risk_evaluationsplan: 'risk_evaluations.plan',
+  documentsown_instructions: 'documents.own_instructions',
+} as const;
+
 export interface ApiErrorResponse {
   error: ApiErrorResponseError;
   message: string;
   issues?: ApiErrorResponseIssuesItem[];
   reason?: string;
+  missing?: ApiErrorResponseMissingItem[];
 }
 
 export type MeResponseUser = {
@@ -3004,12 +3036,44 @@ export const RegenerationJobResponseJobItemsItemStatus = {
   failed: 'failed',
 } as const;
 
+export type RegenerationJobResponseJobItemsItemMissingItem =
+  (typeof RegenerationJobResponseJobItemsItemMissingItem)[keyof typeof RegenerationJobResponseJobItemsItemMissingItem];
+
+export const RegenerationJobResponseJobItemsItemMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  specialistname: 'specialist.name',
+  specialistprofessionalTitle: 'specialist.professionalTitle',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  clienttrainingSchedule: 'client.trainingSchedule',
+  responsibleworkplace_manager: 'responsible.workplace_manager',
+  responsiblefirst_aid: 'responsible.first_aid',
+  responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
+  responsibleimminent_danger: 'responsible.imminent_danger',
+  responsibleworkers_representative: 'responsible.workers_representative',
+  responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
+  responsibleworkers_representative_is_legal_representative:
+    'responsible.workers_representative_is_legal_representative',
+  positionsany: 'positions.any',
+  positionsequipment: 'positions.equipment',
+  positionsinstructions: 'positions.instructions',
+  positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
+  risk_evaluationsmeasures: 'risk_evaluations.measures',
+  risk_evaluationsplan: 'risk_evaluations.plan',
+  documentsown_instructions: 'documents.own_instructions',
+} as const;
+
 export type RegenerationJobResponseJobItemsItem = {
   clientId: string;
   clientName: string;
   status: RegenerationJobResponseJobItemsItemStatus;
   /** @nullable */
   detail: string | null;
+  missing: RegenerationJobResponseJobItemsItemMissingItem[];
 };
 
 export type RegenerationJobResponseJob = {
@@ -15095,7 +15159,7 @@ export const getGenerateClientDocumentsUrl = (
 };
 
 /**
- * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty. `firstDecisionNumber` is read for the occupational safety set only.
+ * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` is read for the occupational safety set only.
  * @summary Generate the documents one of a client's documentation sets does not have yet
  */
 export const generateClientDocuments = async (
@@ -15391,7 +15455,7 @@ export const getRegenerateDocumentUrl = (documentId: string) => {
 };
 
 /**
- * A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number.
+ * A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number. Refused with the reason `missing_document_data`, the codes listed under `missing`, only for missing data its template prints: what the rest of the set lacks does not stop it.
  * @summary Merge one document again from the stored facts
  */
 export const regenerateDocument = async (

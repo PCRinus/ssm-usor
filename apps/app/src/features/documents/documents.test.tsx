@@ -1111,26 +1111,81 @@ describe('client documents', () => {
     expect(runtime.router.history.length).toBe(2);
   });
 
-  it('points to the generation form when regenerating is refused for missing data', async () => {
+  const refused = (missing?: string[]) => () =>
+    Response.json(
+      { error: 'conflict', message: 'missing', reason: 'missing_document_data', missing },
+      { status: 409 }
+    );
+
+  const regenerateRow = async (user: ReturnType<typeof userEvent.setup>, title: string) => {
+    await openMenu(user, title);
+    await user.click(await screen.findByTestId('document-regenerate'));
+    await user.click(await screen.findByTestId('document-confirm'));
+  };
+
+  it('lists what a refused document lacks as the rows of the form, and the toast of the save leads back to it', async () => {
+    mockApi({
+      role: 'specialist',
+      items: [firstAid],
+      readiness: { ready: false, missing: ['client.representativeRole', 'responsible.first_aid'] },
+      action: refused(['client.representativeRole']),
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await regenerateRow(user, 'primul ajutor');
+    expect((await screen.findByTestId('documents-error')).textContent).toBe(
+      'Nu am putut genera din nou „Decizia privind responsabilii cu primul ajutor”. Completează mai întâi:'
+    );
+    const rows = await screen.findAllByTestId('documents-missing-row');
+    expect(rows.map((row) => row.textContent)).toEqual(['Funcția reprezentantului legal']);
+    expect(screen.getByTestId('documents-missing-place').textContent).toContain(
+      'Detaliile clientului'
+    );
+
+    await user.click(rows[0]!);
+    const role = await screen.findByTestId('details-representative-role');
+    await waitFor(() => expect(document.activeElement).toBe(role));
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    await user.type(role, 'Administrator');
+    await user.click(screen.getByTestId('legal-representative-save'));
+    await user.click(await screen.findByRole('button', { name: 'Înapoi la document' }));
+
+    await waitFor(() =>
+      expect(
+        document.getElementById('document-decision_first_aid')?.hasAttribute('data-pointed')
+      ).toBe(true)
+    );
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(sessionStorage.getItem('ssm-usor:way-back')).toBeNull();
+  });
+
+  it('gives a refused document one row per position behind its codes, and none for the rest', async () => {
     mockApi({
       items: [firstAid],
-      action: () =>
-        Response.json(
-          { error: 'conflict', message: 'missing', reason: 'missing_document_data' },
-          { status: 409 }
-        ),
+      readiness: {
+        ready: false,
+        missing: ['positions.equipment', 'positions.instructions'],
+        undecidedJobPositions: [
+          { id: 'p-contabil', name: 'Contabil', undecided: ['equipment', 'instructions'] },
+        ],
+      },
+      action: refused(['positions.equipment']),
     });
     mount();
     const user = userEvent.setup();
 
-    await openMenu(user, 'primul ajutor');
-    await user.click(await screen.findByTestId('document-regenerate'));
-    await user.click(await screen.findByTestId('document-confirm'));
-
-    expect((await screen.findByTestId('documents-error')).textContent).toContain('Lipsesc date');
+    await regenerateRow(user, 'primul ajutor');
+    const rows = await screen.findAllByTestId('documents-missing-row');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Contabil · echipament de protecțieArticolele postului, sau că nu are nevoie de echipament.',
+    ]);
+    expect(rows[0]!.getAttribute('href')).toBe(
+      `/clients/${clientId}/job-positions/p-contabil#protective-equipment`
+    );
   });
 
-  it('says what a decision 1.5 needs when regenerating it is refused', async () => {
+  it('says what a decision 1.5 kept under 10 employees needs when regenerating it is refused', async () => {
     mockApi({
       items: [
         {
@@ -1139,22 +1194,31 @@ describe('client documents', () => {
           title: 'Decizia privind reprezentanții lucrătorilor',
         },
       ],
-      action: () =>
-        Response.json(
-          { error: 'conflict', message: 'missing', reason: 'missing_document_data' },
-          { status: 409 }
-        ),
+      action: refused(['responsible.workers_representative']),
     });
     mount();
     const user = userEvent.setup();
 
-    await openMenu(user, 'reprezentanții lucrătorilor');
-    await user.click(await screen.findByTestId('document-regenerate'));
-    await user.click(await screen.findByTestId('document-confirm'));
-
-    expect((await screen.findByTestId('documents-error')).textContent).toContain(
-      'cel puțin un reprezentant al lucrătorilor'
+    await regenerateRow(user, 'reprezentanții lucrătorilor');
+    const row = await screen.findByTestId('documents-missing-row');
+    expect(row.textContent).toBe(
+      'Reprezentantul lucrătorilorAles dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
     );
+    expect(row.getAttribute('href')).toBe(
+      `/clients/${clientId}/training?focus=workers-representative`
+    );
+  });
+
+  it('says data is missing when a refusal does not name it', async () => {
+    mockApi({ items: [firstAid], action: refused() });
+    mount();
+    const user = userEvent.setup();
+
+    await regenerateRow(user, 'primul ajutor');
+    expect((await screen.findByTestId('documents-error')).textContent).toBe(
+      'Lipsesc date de care documentul are nevoie. Completează-le în paginile clientului, apoi generează documentul din nou.'
+    );
+    expect(screen.queryByTestId('documents-missing-row')).toBeNull();
   });
 
   it('only offers downloads and printing for an archived client', async () => {

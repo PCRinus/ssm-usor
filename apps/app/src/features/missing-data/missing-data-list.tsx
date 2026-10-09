@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
+import { useId } from 'react';
 
 import type { MissingGroup, MissingRow } from './missing-rows';
 
@@ -25,10 +26,12 @@ export function MissingDataList({
   testId: string;
   onFollow?: (row: MissingRow) => void;
 }) {
+  // Unique per list: a page can show one list per client.
+  const id = useId();
   return (
     <div className="grid gap-5">
       {groups.map((group) => {
-        const headingId = `${testId}-${group.place}`;
+        const headingId = `${id}-${group.place}`;
         return (
           <section
             key={group.place}

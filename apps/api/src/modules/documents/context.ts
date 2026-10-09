@@ -1,7 +1,6 @@
 import {
   decisionTypeKeys,
   type DocumentationState,
-  type DocumentTypeKey,
   documentTypeKeys,
   type EquipmentAllocation,
   formatTrainingDuration,
@@ -225,6 +224,10 @@ export type DocumentContext = {
   themes?: ThemesContext;
 };
 
+/** A context some gaps left names out of; the decisions' numbers are never among them. */
+export type PartialDocumentContext = Partial<DocumentContext> &
+  Pick<DocumentContext, 'decisionNumbers'>;
+
 const staffCategoryLabels: Record<StaffCategory, string> = {
   technical_administrative: 'Tehnico-administrativ',
   execution: 'Execuție',
@@ -355,22 +358,75 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
   return checks.filter(([, present]) => !present).map(([code]) => code);
 }
 
-const riskDocuments: readonly DocumentTypeKey[] = [
-  'general_training_material',
-  'risk_assessment',
-  'prevention_plan',
-];
+const imminentDangerWordingNames = [
+  'workplaceManagersAssumeImminentDanger',
+  'workplaceManagersAssumeAndDesignateImminentDanger',
+  'workplaceManagersDesignateAlongsideImminentDanger',
+  'workplaceManagersAssignImminentDanger',
+  'workplaceManagersDesignateImminentDanger',
+  'imminentDangerOthersText',
+  'imminentDangerManagerNames',
+] as const;
+const workersRepresentativeNames = [
+  'workersRepresentatives',
+  'workersRepresentativesLead',
+] as const;
+const riskNames = ['unitRisks', 'hasUnitRisks', 'noUnitRisks', 'riskAssessment'] as const;
 
-// Any other code is a gap in what the whole set prints.
-const concernedDocuments: [codePrefix: string, typeKeys: readonly string[]][] = [
-  ['positions.risk_evaluation', riskDocuments],
-  ['risk_evaluations.', riskDocuments],
-  ['documents.own_instructions', ['training_themes'] satisfies DocumentTypeKey[]],
-];
+/**
+ * The names of the merge context each gap leaves out, which a template asking for any of them
+ * cannot be merged without. `workersRepresentativeDecision` is in none: the cover lists 1.5 by
+ * the headcount, whoever represents the workers.
+ */
+const printedAs = {
+  'provider.legalName': ['provider', 'themes'],
+  'provider.representativeName': ['provider'],
+  'provider.representativeRole': ['provider'],
+  'provider.fireSafetyTechnician': [],
+  'specialist.name': ['specialist', 'themes'],
+  'specialist.professionalTitle': ['specialist'],
+  'client.representativeName': ['client'],
+  'client.representativeRole': ['client'],
+  'client.trainingSchedule': ['training', 'positions', 'equippedPositions', 'themes'],
+  'responsible.workplace_manager': [
+    'workplaceManagers',
+    'workplaceManagersText',
+    'workplaceManagersList',
+    ...imminentDangerWordingNames,
+    'themes',
+  ],
+  'responsible.first_aid': ['firstAiders', 'firstAiderNames'],
+  'responsible.risk_evaluation_team': ['evaluationTeam'],
+  'responsible.imminent_danger': [
+    'imminentDanger',
+    'imminentDangerText',
+    ...imminentDangerWordingNames,
+  ],
+  'responsible.workers_representative': workersRepresentativeNames,
+  'responsible.workers_representatives_two': workersRepresentativeNames,
+  'responsible.workers_representative_is_legal_representative': workersRepresentativeNames,
+  'positions.any': [
+    'positions',
+    'equippedPositions',
+    'hasEquippedPositions',
+    'unequippedPositionsText',
+    'annexes',
+    'noAnnexes',
+    ...riskNames,
+    'themes',
+  ],
+  'positions.equipment': ['equippedPositions', 'hasEquippedPositions', 'unequippedPositionsText'],
+  'positions.instructions': ['annexes', 'noAnnexes', 'themes'],
+  'positions.risk_evaluation': riskNames,
+  'risk_evaluations.sensitive_groups': riskNames,
+  'risk_evaluations.measures': riskNames,
+  'risk_evaluations.plan': riskNames,
+  'documents.own_instructions': ['themes'],
+} satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
-export function missingDataConcerns(code: MissingDocumentData, typeKey: string) {
-  const concerned = concernedDocuments.find(([prefix]) => code.startsWith(prefix));
-  return !concerned || concerned[1].includes(typeKey);
+/** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
+export function documentGapConcerns(code: MissingDocumentData, printedNames: readonly string[]) {
+  return printedAs[code].some((name) => printedNames.includes(name));
 }
 
 // A representative whose employee has left no longer speaks for the workers.
@@ -438,27 +494,25 @@ export function printedDate(isoDate: string) {
   return `${day}.${month}.${year}`;
 }
 
-/**
- * The data every template is merged with. Call `missingDocumentData` first: this throws when
- * something is missing, because a data field is never left blank in a document.
- */
-export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
-  const missing = missingDocumentData(facts);
-  if (missing.length > 0) throw new Error(`Missing document data: ${missing.join(', ')}`);
+type ContextParts = { [Name in keyof DocumentContext]-?: () => DocumentContext[Name] };
+
+// A part is only called when no gap leaves it out, which is what makes its `!` safe.
+function contextParts(facts: DocumentFacts): ContextParts {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
   const withRole = (role: ResponsiblePersonRole): Person[] =>
     facts.responsiblePersons.filter((person) => person.roles.includes(role)).map(asPerson);
-  const workersRepresentatives = currentWorkersRepresentatives(facts).map((person) => ({
-    name: person.fullName.trim(),
-    jobTitle: person.jobTitle.trim(),
-  }));
+  const workplaceManagers = withRole('workplace_manager');
+  const firstAiders = withRole('first_aid');
+  const imminentDanger = withRole('imminent_danger');
+  const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
+  const workersRepresentatives = currentWorkersRepresentatives(facts).map(asPerson);
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
     position.trainingIntervalMonths ??
     (position.staffCategory === 'execution'
       ? client.workerTrainingIntervalMonths
       : client.administrativeTrainingIntervalMonths);
-  const positions: PositionContext[] = facts.jobPositions.map((position) => ({
+  const positionContext = (position: DocumentFacts['jobPositions'][number]): PositionContext => ({
     name: position.name.trim(),
     activities: position.activities?.trim() || '—',
     staffCategory: staffCategoryLabels[position.staffCategory],
@@ -467,92 +521,69 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
     workZoneOrDash: position.workZone?.trim() || '—',
     intervalLabel: intervalLabel(intervalOf(position)),
     trainingDuration: unbroken(formatTrainingDuration(client.periodicTrainingMinutes!)),
-  }));
-  // Not on `positions`: a snapshot keeps all of a name it printed, so an equipment edit would
-  // mark every document that prints the posts.
-  const equippedPositions = facts.jobPositions.flatMap((position, index) =>
-    position.equipment.length === 0
-      ? []
-      : [
-          {
-            ...positions[index]!,
-            equipment: position.equipment.map((entry) => ({
-              risk: entry.risk.trim(),
-              item: entry.item.trim(),
-              quantityLabel: quantityLabel(entry),
-              allocationLabel: allocationLabels[entry.allocation],
-            })),
-          },
-        ]
-  );
-  const unequipped = positions.filter(
-    (_, index) => facts.jobPositions[index]!.equipment.length === 0
-  );
-  const workplaceManagers = withRole('workplace_manager');
-  const provider = {
-    legalName: organization.legalName!.trim(),
-    representativeName: organization.representativeName!.trim(),
-    representativeRole: organization.representativeRole!.trim(),
-  };
-  const specialist = {
-    name: facts.specialist!.fullName!.trim(),
-    professionalTitle: facts.specialist!.professionalTitle!.trim(),
-  };
-  const annexes = annexedModules(facts);
-  const firstAiders = withRole('first_aid');
-  const imminentDanger = withRole('imminent_danger');
-  const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
-  const risks = unitRisks(facts.riskEvaluations, facts.jobPositions);
+  });
+  const unequipped = facts.jobPositions.filter((position) => position.equipment.length === 0);
+  let builtRisks: DocumentContext['unitRisks'] | undefined;
+  const risks = () => (builtRisks ??= unitRisks(facts.riskEvaluations, facts.jobPositions));
+  let builtAnnexes: AnnexContext[] | undefined;
+  const annexes = () => (builtAnnexes ??= annexedModules(facts));
   return {
-    branding: facts.branding,
-    issueDate: printedDate(facts.issueDate),
-    issueYear: String(year),
-    followingYear: String(year + 1),
-    decisionNumbers: Object.fromEntries(
-      decisionTypeKeys.map((key, index) => [key, facts.firstDecisionNumber + index])
-    ) as DocumentContext['decisionNumbers'],
-    client: {
+    branding: () => facts.branding,
+    issueDate: () => printedDate(facts.issueDate),
+    issueYear: () => String(year),
+    followingYear: () => String(year + 1),
+    decisionNumbers: () =>
+      Object.fromEntries(
+        decisionTypeKeys.map((key, index) => [key, facts.firstDecisionNumber + index])
+      ) as DocumentContext['decisionNumbers'],
+    client: () => ({
       legalName: client.legalName.trim(),
       representativeName: client.representativeName!.trim(),
       representativeRole: client.representativeRole!.trim(),
-    },
-    provider,
-    specialist,
-    workplaceManagers,
-    workplaceManagersText: described(workplaceManagers),
-    workplaceManagersList: workplaceManagers
-      .map((person) => `${person.name}, ${person.jobTitle}`)
-      .join('; '),
-    firstAiders,
-    firstAiderNames: listed(firstAiders.map((person) => person.name)),
-    evaluationTeam: withRole('risk_evaluation_team'),
-    imminentDanger,
-    imminentDangerText: described(imminentDanger),
-    workplaceManagersAssumeImminentDanger: imminentDangerWording.wording === 'assume',
-    workplaceManagersAssumeAndDesignateImminentDanger:
+    }),
+    provider: () => ({
+      legalName: organization.legalName!.trim(),
+      representativeName: organization.representativeName!.trim(),
+      representativeRole: organization.representativeRole!.trim(),
+    }),
+    specialist: () => ({
+      name: facts.specialist!.fullName!.trim(),
+      professionalTitle: facts.specialist!.professionalTitle!.trim(),
+    }),
+    workplaceManagers: () => workplaceManagers,
+    workplaceManagersText: () => described(workplaceManagers),
+    workplaceManagersList: () =>
+      workplaceManagers.map((person) => `${person.name}, ${person.jobTitle}`).join('; '),
+    firstAiders: () => firstAiders,
+    firstAiderNames: () => listed(firstAiders.map((person) => person.name)),
+    evaluationTeam: () => withRole('risk_evaluation_team'),
+    imminentDanger: () => imminentDanger,
+    imminentDangerText: () => described(imminentDanger),
+    workplaceManagersAssumeImminentDanger: () => imminentDangerWording.wording === 'assume',
+    workplaceManagersAssumeAndDesignateImminentDanger: () =>
       imminentDangerWording.wording === 'assume_and_designate',
-    workplaceManagersDesignateAlongsideImminentDanger:
+    workplaceManagersDesignateAlongsideImminentDanger: () =>
       imminentDangerWording.wording === 'designate_alongside',
-    workplaceManagersAssignImminentDanger: imminentDangerWording.wording === 'assign',
-    workplaceManagersDesignateImminentDanger: imminentDangerWording.wording === 'designate',
-    imminentDangerOthersText:
+    workplaceManagersAssignImminentDanger: () => imminentDangerWording.wording === 'assign',
+    workplaceManagersDesignateImminentDanger: () => imminentDangerWording.wording === 'designate',
+    imminentDangerOthersText: () =>
       imminentDangerWording.wording === 'assume_and_designate' ||
       imminentDangerWording.wording === 'designate_alongside'
         ? described(imminentDangerWording.others.map(asPerson))
         : null,
-    imminentDangerManagerNames:
+    imminentDangerManagerNames: () =>
       imminentDangerWording.wording === 'designate_alongside' ||
       imminentDangerWording.wording === 'assign'
         ? listed(imminentDangerWording.designatedManagers.map((person) => person.fullName.trim()))
         : null,
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
-    workersRepresentativeDecision:
+    workersRepresentativeDecision: () =>
       documentApplies(facts, 'decision_workers_representative') ||
       facts.workersRepresentativeDecisionGenerated,
-    workersRepresentatives,
-    workersRepresentativesLead:
+    workersRepresentatives: () => workersRepresentatives,
+    workersRepresentativesLead: () =>
       workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',
-    training: {
+    training: () => ({
       periodicDuration: unbroken(formatTrainingDuration(client.periodicTrainingMinutes!)),
       intervalPhrase:
         client.administrativeTrainingIntervalMonths !== null &&
@@ -578,45 +609,97 @@ export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
           }),
       dayFrom: client.trainingDayFrom!,
       dayTo: client.trainingDayTo!,
-    },
-    unitRisks: risks,
-    hasUnitRisks: risks.length > 0,
-    noUnitRisks: risks.length === 0,
-    riskAssessment: riskAssessment({
-      evaluations: facts.riskEvaluations,
-      positions: facts.jobPositions,
-      caenCode: client.caenCode,
-      workplaces: facts.workplaces,
-      currentEmployeeCount: facts.currentEmployeeCount,
     }),
-    positions,
-    equippedPositions,
-    hasEquippedPositions: equippedPositions.length > 0,
-    unequippedPositionsText:
+    unitRisks: risks,
+    hasUnitRisks: () => risks().length > 0,
+    noUnitRisks: () => risks().length === 0,
+    riskAssessment: () =>
+      riskAssessment({
+        evaluations: facts.riskEvaluations,
+        positions: facts.jobPositions,
+        caenCode: client.caenCode,
+        workplaces: facts.workplaces,
+        currentEmployeeCount: facts.currentEmployeeCount,
+      }),
+    positions: () => facts.jobPositions.map(positionContext),
+    // Not on `positions`: a snapshot keeps all of a name it printed, so an equipment edit would
+    // mark every document that prints the posts.
+    equippedPositions: () =>
+      facts.jobPositions.flatMap((position) =>
+        position.equipment.length === 0
+          ? []
+          : [
+              {
+                ...positionContext(position),
+                equipment: position.equipment.map((entry) => ({
+                  risk: entry.risk.trim(),
+                  item: entry.item.trim(),
+                  quantityLabel: quantityLabel(entry),
+                  allocationLabel: allocationLabels[entry.allocation],
+                })),
+              },
+            ]
+      ),
+    hasEquippedPositions: () => unequipped.length < facts.jobPositions.length,
+    unequippedPositionsText: () =>
       unequipped.length === 0
         ? null
-        : `${unequipped.length === 1 ? 'postul de lucru' : 'posturile de lucru'} ${listed(unequipped.map((position) => position.name))}`,
+        : `${unequipped.length === 1 ? 'postul de lucru' : 'posturile de lucru'} ${listed(unequipped.map((position) => position.name.trim()))}`,
     annexes,
-    noAnnexes: annexes.length === 0,
-    ...(facts.ownInstructions && {
-      themes: trainingThemes({
-        ownInstructions: facts.ownInstructions,
-        positions: facts.jobPositions.map((position) => ({
-          name: position.name,
-          staffCategory: position.staffCategory,
-          intervalMonths: intervalOf(position),
-          moduleIds: position.instructions.map((module) => module.moduleId),
-        })),
-        firstMonth: client.trainingFirstMonth!,
-        periodicTrainingMinutes: client.periodicTrainingMinutes!,
-        names: {
-          workplaceManagers: workplaceManagers.map((person) => person.name),
-          provider: provider.legalName,
-          specialist: specialist.name,
-        },
-      }),
-    }),
+    noAnnexes: () => annexes().length === 0,
+    themes: () =>
+      facts.ownInstructions
+        ? trainingThemes({
+            ownInstructions: facts.ownInstructions,
+            positions: facts.jobPositions.map((position) => ({
+              name: position.name,
+              staffCategory: position.staffCategory,
+              intervalMonths: intervalOf(position),
+              moduleIds: position.instructions.map((module) => module.moduleId),
+            })),
+            firstMonth: client.trainingFirstMonth!,
+            periodicTrainingMinutes: client.periodicTrainingMinutes!,
+            names: {
+              workplaceManagers: workplaceManagers.map((person) => person.name),
+              provider: organization.legalName!.trim(),
+              specialist: facts.specialist!.fullName!.trim(),
+            },
+          })
+        : undefined,
   };
+}
+
+function contextWithout(facts: DocumentFacts, gaps: readonly MissingDocumentData[]) {
+  const leftOut = new Set<string>(gaps.flatMap((code) => printedAs[code]));
+  return Object.fromEntries(
+    Object.entries(contextParts(facts)).flatMap(([name, part]) => {
+      if (leftOut.has(name)) return [];
+      const value = part();
+      return value === undefined ? [] : [[name, value]];
+    })
+  );
+}
+
+/**
+ * The data every template is merged with. Call `missingDocumentData` first: this throws when
+ * something is missing, because a data field is never left blank in a document.
+ */
+export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
+  const missing = missingDocumentData(facts);
+  if (missing.length > 0) throw new Error(`Missing document data: ${missing.join(', ')}`);
+  return contextWithout(facts, []) as DocumentContext;
+}
+
+/**
+ * The data one document is merged with when it is generated again: what the gaps of
+ * `missingDocumentData(facts, typeKey)` cover is left out rather than left blank, so a template
+ * that prints any of it has no value for it.
+ */
+export function buildPartialDocumentContext(
+  facts: DocumentFacts,
+  typeKey: string
+): PartialDocumentContext {
+  return contextWithout(facts, missingDocumentData(facts, typeKey)) as PartialDocumentContext;
 }
 
 const groupOrder: Record<InstructionModuleGroup, number> = {
@@ -693,20 +776,20 @@ export function documentationProgress({
  * already has when it is generated again.
  */
 export function documentData(
-  context: DocumentContext,
+  context: PartialDocumentContext,
   typeKey: string,
   decisionNumber: number | null = decisionNumberOf(context, typeKey)
 ) {
-  if (typeKey === 'training_themes' && !context.themes) {
-    throw new Error('The training themes need an own instructions revision to cite.');
-  }
   const shared: Record<string, unknown> = { ...context };
   delete shared.decisionNumbers;
   return decisionNumber === null ? shared : { ...shared, decisionNumber };
 }
 
 /** The number a decision gets in this generation; null for any other document. */
-export function decisionNumberOf(context: DocumentContext, typeKey: string) {
+export function decisionNumberOf(
+  context: Pick<DocumentContext, 'decisionNumbers'>,
+  typeKey: string
+) {
   return typeKey in context.decisionNumbers
     ? context.decisionNumbers[typeKey as keyof DocumentContext['decisionNumbers']]
     : null;

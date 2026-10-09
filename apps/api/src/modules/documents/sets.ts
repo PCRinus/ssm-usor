@@ -7,10 +7,10 @@ import {
 } from '@ssm-usor/contracts';
 
 import {
-  buildDocumentContext,
+  buildPartialDocumentContext,
   documentData,
   type DocumentFacts,
-  missingDataConcerns,
+  documentGapConcerns,
   missingDocumentData,
 } from './context';
 import {
@@ -21,25 +21,32 @@ import {
 
 type SetRules = {
   missing: (facts: DocumentFacts, typeKey?: string) => MissingDocumentData[];
-  concerns: (code: MissingDocumentData, typeKey: string, printedNames: string[]) => boolean;
+  concerns: (code: MissingDocumentData, printedNames: readonly string[]) => boolean;
+  /**
+   * With `buildsWithGaps`, what the gaps of `missing(facts, typeKey)` cover is left out of the
+   * data; without it, any gap throws.
+   */
   data: (
     facts: DocumentFacts,
     typeKey: string,
     decisionNumber: number | null
   ) => Record<string, unknown>;
+  buildsWithGaps: boolean;
 };
 
 export const setRules: Record<DocumentSet, SetRules> = {
   occupational_safety: {
     missing: missingDocumentData,
-    concerns: (code, typeKey) => missingDataConcerns(code, typeKey),
+    concerns: documentGapConcerns,
     data: (facts, typeKey, decisionNumber) =>
-      documentData(buildDocumentContext(facts), typeKey, decisionNumber),
+      documentData(buildPartialDocumentContext(facts, typeKey), typeKey, decisionNumber),
+    buildsWithGaps: true,
   },
   fire_safety: {
     missing: (facts) => missingFireSafetyData(facts),
-    concerns: (code, _typeKey, printedNames) => fireSafetyGapConcerns(code, printedNames),
+    concerns: fireSafetyGapConcerns,
     data: (facts) => ({ ...buildFireSafetyContext(facts) }),
+    buildsWithGaps: false,
   },
 };
 

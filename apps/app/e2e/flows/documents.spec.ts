@@ -10,6 +10,7 @@ import {
   evaluateRisks,
   openDocumentSection,
   signIn,
+  updateClient,
 } from './support';
 
 test.afterAll(cleanUp);
@@ -114,6 +115,48 @@ async function generateDocumentation(page: Page, account: string, client: string
   await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
   return page.getByTestId('document-row');
 }
+
+test('with a gap elsewhere in the set the cover is generated again, and a decision that prints it names it as a row to its field', async ({
+  page,
+}) => {
+  const rows = await generateDocumentation(page, 'documents-refused', 'GOL ÎN SET E2E');
+  const clientId = new URL(page.url()).pathname.split('/')[2]!;
+  await updateClient(clientId, { training_day_to: null });
+  await page.reload();
+  await openDocumentSection(page, '1');
+
+  await act(page, rows.filter({ hasText: 'Copertă – Deciziile interne' }), 'document-regenerate');
+  await page.getByTestId('document-confirm').click();
+  await expect(
+    page.getByText('„Copertă – Deciziile interne” a fost generat din nou.')
+  ).toBeVisible();
+
+  const title = 'Decizia privind responsabilii cu instruirea';
+  await act(page, rows.filter({ hasText: title }), 'document-regenerate');
+  await page.getByTestId('document-confirm').click();
+  await expect(page.getByTestId('documents-error')).toHaveText(
+    `Nu am putut genera din nou „${title}”. Completează mai întâi:`
+  );
+  const missing = page.getByTestId('documents-missing-row');
+  await expect(missing).toHaveText([/^Programul instruirii periodice/]);
+
+  await missing.click();
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
+  const dayTo = page.getByTestId('details-day-to');
+  await expect(dayTo).toBeFocused();
+  await expect(dayTo).toHaveAttribute('data-pointed', '');
+  await dayTo.fill('7');
+  await page.getByTestId('training-program-save').click();
+  await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Înapoi la document' }).click();
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents\\?section=decisions`));
+  const pointed = page.locator('#document-decision_training');
+  await expect(pointed).toHaveAttribute('data-pointed', '');
+  await act(page, pointed, 'document-regenerate');
+  await page.getByTestId('document-confirm').click();
+  await expect(page.getByText(`„${title}” a fost generat din nou.`)).toBeVisible();
+});
 
 test('a client gets its whole documentation, numbered and dated, and downloads a draft', async ({
   page,

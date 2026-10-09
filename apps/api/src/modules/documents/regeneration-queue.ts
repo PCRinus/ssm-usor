@@ -1,4 +1,8 @@
-import { clientConflictReasons, type RegenerationItemStatus } from '@ssm-usor/contracts';
+import {
+  clientConflictReasons,
+  type MissingDocumentData,
+  type RegenerationItemStatus,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { type AdminClient, adminClient } from '../../lib/admin-db';
@@ -24,12 +28,13 @@ export type QueueMessage = {
 const details = {
   notBehind: 'Documentul nu mai este în urmă.',
   editedDraft:
-    'Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde. Regenerați documentul de pe pagina clientului.',
+    'Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde. Regenerează documentul din pagina clientului.',
   noRequester: 'Membrul care a pornit regenerarea nu mai are cont.',
+  // The page shows the codes as rows instead, when the item has them.
   missingData:
-    'Lipsesc date pe care documentul le tipărește. Completați-le pe pagina clientului, apoi regenerați documentul.',
+    'Lipsesc date de care documentul are nevoie. Completează-le pe pagina clientului, apoi regenerează documentul.',
   archived: 'Clientul a fost arhivat.',
-  unavailable: 'Un serviciu nu a răspuns. Regenerați documentul de pe pagina clientului.',
+  unavailable: 'Un serviciu nu a răspuns. Regenerează documentul din pagina clientului.',
 } as const;
 
 export async function consumeRegenerationBatch(
@@ -77,8 +82,11 @@ export async function regenerateQueuedClient(
   // No item: its job was taken back because it could not be queued.
   if (!item.data || item.data.status !== 'queued' || !item.data.regeneration_jobs) return;
   const job = item.data.regeneration_jobs;
-  const record = (status: Exclude<RegenerationItemStatus, 'queued'>, detail: string | null) =>
-    recordItem(admin, jobId, clientId, status, detail);
+  const record = (
+    status: Exclude<RegenerationItemStatus, 'queued'>,
+    detail: string | null,
+    missing?: MissingDocumentData[]
+  ) => recordItem(admin, jobId, clientId, status, detail, missing);
 
   if (!job.requested_by) return record('failed', details.noRequester);
 
@@ -107,7 +115,7 @@ export async function regenerateQueuedClient(
     await regenerateDocument(admin, files, actor, behind.data.document_id!, {});
   } catch (error) {
     if (transient(error) && !lastAttempt) throw error;
-    return record('failed', failureDetail(error));
+    return record('failed', failureDetail(error), missingOf(error));
   }
   return record('done', null);
 }
@@ -117,7 +125,8 @@ async function recordItem(
   jobId: string,
   clientId: string,
   status: Exclude<RegenerationItemStatus, 'queued'>,
-  detail: string | null
+  detail: string | null,
+  missing: MissingDocumentData[] = []
 ) {
   const { error } = await admin.rpc('record_regeneration_item', {
     p_job_id: jobId,
@@ -125,6 +134,7 @@ async function recordItem(
     p_status: status,
     // Null where nothing needs saying; the generated type does not know a parameter can be.
     p_detail: detail as string,
+    ...(missing.length > 0 ? { p_missing: missing } : {}),
   });
   if (error) throw fromDatabaseError(error, 'record regeneration item');
 }
@@ -142,6 +152,12 @@ function failureDetail(error: unknown) {
     if (error.code === 'service_unavailable') return details.unavailable;
   }
   return `Regenerarea a eșuat: ${describe(error)}`.slice(0, 1000);
+}
+
+function missingOf(error: unknown) {
+  return error instanceof ApiError && error.reason === 'missing_document_data'
+    ? error.missing
+    : undefined;
 }
 
 function describe(error: unknown) {

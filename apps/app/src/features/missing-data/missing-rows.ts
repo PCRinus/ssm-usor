@@ -1,10 +1,11 @@
-import type {
-  JobPositionDecision,
-  MissingDocumentData,
-  MissingServiceContractData,
-  ResponsiblePersonRole,
-  RiskEvaluationGap,
-  RiskEvaluationKind,
+import {
+  type JobPositionDecision,
+  type MissingDocumentData,
+  type MissingServiceContractData,
+  requiredWorkersRepresentatives,
+  type ResponsiblePersonRole,
+  type RiskEvaluationGap,
+  type RiskEvaluationKind,
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
@@ -132,7 +133,7 @@ type DocumentPlace = keyof typeof documentPlaces;
 
 type Clash = { representativeName: string; legalRepresentativeName: string } | null;
 
-type DocumentContext = { clientId: string; clash: Clash };
+type DocumentContext = { clientId: string; clash: Clash; currentEmployeeCount?: number };
 
 const responsible = (role: ResponsiblePersonRole, focus: TrainingFocus) => ({
   place: 'training' as const,
@@ -205,7 +206,12 @@ export const documentMissingData: Record<
   'responsible.workers_representative': {
     place: 'training',
     label: 'Reprezentantul lucrătorilor',
-    detail: 'Ales dintre angajați. Clientul are cel puțin 10 angajați.',
+    // Below 10 employees only a decision 1.5 generated earlier asks for one (ADR 010).
+    detail: ({ currentEmployeeCount }) =>
+      currentEmployeeCount !== undefined &&
+      requiredWorkersRepresentatives(currentEmployeeCount) === 0
+        ? 'Ales dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
+        : 'Ales dintre angajați. Clientul are cel puțin 10 angajați.',
     target: ({ clientId }) => to.training(clientId, 'workers-representative'),
   },
   'responsible.workers_representatives_two': {
@@ -329,16 +335,18 @@ export function documentMissingGroups({
   clash,
   undecidedJobPositions,
   incompleteRiskEvaluations = [],
+  currentEmployeeCount,
   canEditOrganization,
 }: {
   missing: readonly MissingDocumentData[];
   clientId: string;
   clash: Clash;
+  currentEmployeeCount?: number;
   undecidedJobPositions: readonly UndecidedJobPosition[];
   incompleteRiskEvaluations?: readonly IncompleteRiskEvaluation[];
   canEditOrganization: boolean;
 }): MissingGroup[] {
-  const context = { clientId, clash };
+  const context = { clientId, clash, currentEmployeeCount };
   const rowOf = (code: MissingDocumentData): MissingRow => {
     const entry = documentMissingData[code];
     return {

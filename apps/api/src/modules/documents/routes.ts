@@ -88,7 +88,7 @@ export const generateClientDocumentsRoute = createRoute({
   operationId: 'generateClientDocuments',
   summary: "Generate the documents one of a client's documentation sets does not have yet",
   description:
-    "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty. `firstDecisionNumber` is read for the occupational safety set only.",
+    "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` is read for the occupational safety set only.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -163,7 +163,7 @@ export const regenerateDocumentRoute = createRoute({
   operationId: 'regenerateDocument',
   summary: 'Merge one document again from the stored facts',
   description:
-    'A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number.',
+    'A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number. Refused with the reason `missing_document_data`, the codes listed under `missing`, only for missing data its template prints: what the rest of the set lacks does not stop it.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

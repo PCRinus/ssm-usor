@@ -11,6 +11,7 @@ import {
   documentSetTypeKeys,
   type GenerateDocumentsRequest,
   type IssueDocumentRequest,
+  type MissingDocumentData,
   type RegenerateDocumentRequest,
   serviceContractTitle,
   serviceContractTypeKey,
@@ -89,7 +90,8 @@ export type Actor = { userId: string; organizationId: string; createdBy: string 
 /**
  * Whether the stored facts would print differently from what the draft was generated from.
  * Nothing to compare for an uploaded file. Data missing that this document prints changes it;
- * data missing elsewhere leaves no context to compare with, so nothing to say until it is in.
+ * data missing elsewhere leaves the rest to compare with, or, in a set that cannot be built
+ * with gaps, nothing to say until it is in.
  */
 function dataChanged(
   document: DocumentRow,
@@ -115,9 +117,8 @@ function dataChanged(
   // The snapshot holds what the document printed; the rest of the data is not its concern.
   const printed = revision.data_snapshot as Record<string, unknown>;
   const missing = rules.missing(input, document.type_key);
-  if (missing.length > 0) {
-    return missing.some((code) => rules.concerns(code, document.type_key, Object.keys(printed)));
-  }
+  if (missing.some((code) => rules.concerns(code, Object.keys(printed)))) return true;
+  if (missing.length > 0 && !rules.buildsWithGaps) return false;
   const current = rules.data(input, document.type_key, document.decision_number);
   return Object.entries(printed).some(
     ([name, value]) => stableJson(current[name]) !== stableJson(value)
@@ -364,8 +365,15 @@ async function builtInTemplates(db: DataClient, typeKeys: readonly string[]): Pr
 /**
  * The merged file, and the part of the data it printed. That part is the revision's snapshot:
  * a new first-aider then marks the first aid decision as out of date, not the whole set.
+ * `printedGaps` names the gaps behind the top-level names the template found no value for;
+ * when there are any, the document is refused for them rather than left with a gap.
  */
-export function merge(template: Uint8Array, data: Record<string, unknown>, typeKey: string) {
+export function merge(
+  template: Uint8Array,
+  data: Record<string, unknown>,
+  typeKey: string,
+  printedGaps: (absentNames: string[]) => MissingDocumentData[] = () => []
+) {
   try {
     const { document, usedNames } = renderTemplate(template, data);
     return {
@@ -373,14 +381,26 @@ export function merge(template: Uint8Array, data: Record<string, unknown>, typeK
       snapshot: Object.fromEntries(usedNames.map((name) => [name, data[name]])),
     };
   } catch (error) {
-    // The readiness check should make this unreachable: a template asks for a name the
-    // context does not have.
     if (error instanceof TemplateError) {
+      const gaps = printedGaps([...new Set(error.missing.map((path) => path.split('.')[0]!))]);
+      if (gaps.length > 0) throw missingDocumentDataError(gaps);
+      // The readiness check should make this unreachable: a template asks for a name the
+      // context does not have.
       console.error(`Template ${typeKey} could not be merged: ${error.message}`);
       throw new ApiError('internal_error', 'A document template could not be filled in.');
     }
     throw error;
   }
+}
+
+function missingDocumentDataError(missing: MissingDocumentData[]) {
+  return new ApiError(
+    'conflict',
+    `Data the documents print is missing: ${missing.join(', ')}.`,
+    undefined,
+    'missing_document_data',
+    missing
+  );
 }
 
 /**
@@ -401,14 +421,7 @@ export async function generateClientDocuments(
   }
   const input = { ...facts, ...request };
   const missing = setRules[set].missing(input);
-  if (missing.length > 0) {
-    throw new ApiError(
-      'conflict',
-      `Data the documents print is missing: ${missing.join(', ')}.`,
-      undefined,
-      'missing_document_data'
-    );
-  }
+  if (missing.length > 0) throw missingDocumentDataError(missing);
 
   const [templates, existing] = await Promise.all([
     builtInTemplates(db, documentSetTypeKeys[set]),
@@ -741,23 +754,18 @@ export async function regenerateDocument(
   }
   const input = { ...facts, issueDate, firstDecisionNumber: 1 };
   const missing = rules.missing(input, document.type_key);
-  if (missing.length > 0) {
-    throw new ApiError(
-      'conflict',
-      `Data the documents print is missing: ${missing.join(', ')}.`,
-      undefined,
-      'missing_document_data'
-    );
-  }
+  if (missing.length > 0 && !rules.buildsWithGaps) throw missingDocumentDataError(missing);
   const [template] = await builtInTemplates(db, [document.type_key]);
   if (!template) {
     throw new ApiError('conflict', 'This document has no template to be generated from.');
   }
   const data = rules.data(input, document.type_key, document.decision_number);
+  // Gaps elsewhere in the set do not refuse it (ADR 005, amended 2026-10-10).
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
     data,
-    document.type_key
+    document.type_key,
+    (absentNames) => missing.filter((code) => rules.concerns(code, absentNames))
   );
 
   // The form is filled in again from the set's last generation, so its first number carries over.

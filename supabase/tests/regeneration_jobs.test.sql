@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(23);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -234,6 +234,33 @@ select results_eq(
      where i.client_id = 'c1c1c1c1-0000-4000-8000-000000000006' $$,
   $$ values (1, true, 'failed', 'Regenerarea nu s-a încheiat într-o oră.') $$,
   'the stale job is closed, its waiting clients failed'
+);
+
+select throws_ok(
+  $$ select public.record_regeneration_item(
+       (select id from public.regeneration_jobs where type_key = 'behind_test' and finished_at is null),
+       'c1c1c1c1-0000-4000-8000-000000000001', 'done', null, array['responsible.first_aid']) $$,
+  '23514',
+  null,
+  'only a failed item names missing data'
+);
+
+select is(
+  public.record_regeneration_item(
+    (select id from public.regeneration_jobs where type_key = 'behind_test' and finished_at is null),
+    'c1c1c1c1-0000-4000-8000-000000000001', 'failed', 'Lipsesc date.',
+    array['client.trainingSchedule', 'responsible.first_aid']),
+  true,
+  'a client refused for missing data is recorded with what is missing'
+);
+
+select results_eq(
+  $$ select i.status, i.detail, i.missing
+     from public.regeneration_job_items i join public.regeneration_jobs j on j.id = i.job_id
+     where i.client_id = 'c1c1c1c1-0000-4000-8000-000000000001' and j.type_key = 'behind_test'
+       and i.status = 'failed' $$,
+  $$ values ('failed', 'Lipsesc date.', array['client.trainingSchedule', 'responsible.first_aid']) $$,
+  'the codes are kept in the order they were refused for'
 );
 
 select * from finish();

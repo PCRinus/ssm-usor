@@ -412,6 +412,9 @@ export const regenerationJobItemSchema = z.object({
   status: regenerationItemStatusSchema,
   // Why the client was skipped or failed, in Romanian; null otherwise.
   detail: z.string().nullable(),
+  // What its document prints that was missing when it failed for that; empty otherwise, and
+  // for a failure recorded before the codes were kept, which only `detail` explains.
+  missing: z.array(missingDocumentDataSchema),
 });
 
 export type RegenerationJobItem = z.infer<typeof regenerationJobItemSchema>;

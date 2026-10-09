@@ -3,6 +3,7 @@ import {
   type DocumentAnnex,
   type DocumentSet,
   documentSetTypeKeys,
+  type MissingDocumentData,
   unfilledMark,
 } from '@ssm-usor/contracts';
 import {
@@ -72,6 +73,7 @@ import {
   notGeneratedTitles,
   workersRepresentativesRule,
 } from './document-labels';
+import { DocumentMissingRows } from './document-missing-rows';
 import {
   type SectionIdOf,
   type SectionRow,
@@ -88,6 +90,7 @@ type Confirming = {
   action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
   document: ClientDocument;
 } | null;
+type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
 
 const archivedHint = 'Clientul este arhivat, așa că nu i se mai generează documente.';
 
@@ -194,7 +197,7 @@ export function DocumentsCard<Set extends DocumentSet>({
   const uploadTarget = useRef<{ typeKey: BuiltInDocumentTypeKey; title: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState<Confirming>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | Refusal | null>(null);
   const busy =
     regenerate.isPending ||
     issue.isPending ||
@@ -385,12 +388,10 @@ export function DocumentsCard<Set extends DocumentSet>({
       setError(
         body?.reason === 'pdf_unavailable'
           ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
-          : body?.reason === 'missing_document_data' &&
-              document.typeKey === 'decision_workers_representative'
-            ? // Under 10 employees the generation form does not ask for a representative.
-              'Decizia are nevoie de cel puțin un reprezentant al lucrătorilor, ales dintre angajații actuali și altul decât reprezentantul legal. Verifică „Instruire și responsabili”.'
+          : body?.reason === 'missing_document_data' && body.missing?.length
+            ? { document, missing: body.missing }
             : body?.reason === 'missing_document_data'
-              ? 'Lipsesc date pe care documentul le tipărește. Deschide „Generează documentația” ca să vezi care.'
+              ? 'Lipsesc date de care documentul are nevoie. Completează-le în paginile clientului, apoi generează documentul din nou.'
               : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
                 ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
                 : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
@@ -421,10 +422,25 @@ export function DocumentsCard<Set extends DocumentSet>({
         )}
       </CardHeader>
       <CardContent className="grid gap-4">
-        {error && (
+        {typeof error === 'string' ? (
           <Notice variant="destructive" data-testid="documents-error">
             {error}
           </Notice>
+        ) : (
+          error && (
+            <div data-testid="documents-refused" className="grid gap-4">
+              <Notice variant="destructive" data-testid="documents-error">
+                Nu am putut genera din nou „{error.document.title}”. Completează mai întâi:
+              </Notice>
+              <DocumentMissingRows
+                clientId={clientId}
+                userId={userId}
+                typeKey={error.document.typeKey as BuiltInDocumentTypeKey}
+                missing={error.missing}
+                testId="documents-missing"
+              />
+            </div>
+          )
         )}
         {documents.isPending ? (
           <Skeleton className="h-40 w-full" />

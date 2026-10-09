@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildDocumentContext,
+  buildPartialDocumentContext,
   documentApplies,
   documentData,
   type DocumentFacts,
+  documentGapConcerns,
   missingDocumentData,
   quantityLabel,
   undecidedJobPositions,
@@ -672,8 +674,8 @@ describe('the training themes', () => {
     expect(missingDocumentData(facts, 'training_themes')).toEqual([]);
     const context = buildDocumentContext(without);
     expect(context).not.toHaveProperty('themes');
-    expect(() => documentData(context, 'training_themes')).toThrow();
     expect(documentData(context, 'own_instructions')).not.toHaveProperty('themes');
+    expect(buildPartialDocumentContext(without, 'training_themes')).not.toHaveProperty('themes');
   });
 });
 
@@ -724,5 +726,73 @@ describe('decision 1.5', () => {
       buildDocumentContext({ ...facts, workersRepresentativeDecisionGenerated: true })
         .workersRepresentativeDecision
     ).toBe(true);
+  });
+});
+
+describe('a document generated again', () => {
+  const gapsOutsideTheCover: DocumentFacts = {
+    ...facts,
+    client: { ...facts.client, trainingDayTo: null },
+    responsiblePersons: [],
+    jobPositions: facts.jobPositions.map((position) => ({
+      ...position,
+      needsProtectiveEquipment: null,
+      needsInstructions: null,
+    })),
+    riskEvaluations: [],
+  };
+
+  it('is built without what each gap covers, and with everything else', () => {
+    expect(missingDocumentData(gapsOutsideTheCover, 'cover_decisions')).toEqual([
+      'client.trainingSchedule',
+      'responsible.workplace_manager',
+      'responsible.first_aid',
+      'responsible.risk_evaluation_team',
+      'responsible.imminent_danger',
+      'positions.equipment',
+      'positions.instructions',
+      'positions.risk_evaluation',
+      'risk_evaluations.sensitive_groups',
+    ]);
+    const context = buildPartialDocumentContext(gapsOutsideTheCover, 'cover_decisions');
+    expect(Object.keys(context).sort()).toEqual([
+      'branding',
+      'client',
+      'decisionNumbers',
+      'followingYear',
+      'issueDate',
+      'issueYear',
+      'provider',
+      'specialist',
+      'workersRepresentativeDecision',
+      'workersRepresentatives',
+      'workersRepresentativesLead',
+    ]);
+    expect(context.client).toEqual(buildDocumentContext(facts).client);
+  });
+
+  it('keeps the cover listing decision 1.5 whoever represents the workers', () => {
+    const unrepresented = { ...facts, currentEmployeeCount: 12 };
+    expect(missingDocumentData(unrepresented)).toEqual(['responsible.workers_representative']);
+    const context = buildPartialDocumentContext(unrepresented, 'cover_decisions');
+    expect(context.workersRepresentativeDecision).toBe(true);
+    expect(context).not.toHaveProperty('workersRepresentatives');
+  });
+
+  it('is equal to the whole context when nothing is missing', () => {
+    expect(buildPartialDocumentContext(facts, 'training_themes')).toEqual(
+      buildDocumentContext(facts)
+    );
+  });
+
+  it('is concerned by a gap only in a name it prints', () => {
+    const cover = ['branding', 'client', 'provider', 'workersRepresentativeDecision'];
+    expect(documentGapConcerns('client.trainingSchedule', cover)).toBe(false);
+    expect(documentGapConcerns('responsible.workers_representative', cover)).toBe(false);
+    expect(documentGapConcerns('positions.equipment', cover)).toBe(false);
+    expect(documentGapConcerns('provider.legalName', cover)).toBe(true);
+    expect(documentGapConcerns('client.trainingSchedule', ['client', 'positions'])).toBe(true);
+    expect(documentGapConcerns('risk_evaluations.plan', ['riskAssessment'])).toBe(true);
+    expect(documentGapConcerns('documents.own_instructions', ['client', 'positions'])).toBe(false);
   });
 });

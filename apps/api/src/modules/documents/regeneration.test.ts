@@ -81,8 +81,20 @@ const jobRow = {
   skipped_count: 0,
   failed_count: 0,
   regeneration_job_items: [
-    { client_id: zebraId, status: 'queued', detail: null, clients: { legal_name: 'Zebra S.R.L.' } },
-    { client_id: albaId, status: 'done', detail: null, clients: { legal_name: 'Alba S.R.L.' } },
+    {
+      client_id: zebraId,
+      status: 'queued',
+      detail: null,
+      missing: null,
+      clients: { legal_name: 'Zebra S.R.L.' },
+    },
+    {
+      client_id: albaId,
+      status: 'done',
+      detail: null,
+      missing: null,
+      clients: { legal_name: 'Alba S.R.L.' },
+    },
   ],
 };
 
@@ -275,7 +287,7 @@ describe('POST /documents/behind/regenerate', () => {
     const body = apiErrorResponseSchema.parse(await response.json());
     expect(body.reason).toBe('regeneration_running');
     expect(body.message).toBe(
-      'Documentul se regenerează deja pentru toți clienții. Așteptați să se termine.'
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.'
     );
     expect(queue.sendBatch).not.toHaveBeenCalled();
   });
@@ -331,10 +343,44 @@ describe('GET /documents/regeneration-jobs/{jobId}', () => {
       skipped: 0,
       failed: 0,
       items: [
-        { clientId: albaId, clientName: 'Alba S.R.L.', status: 'done', detail: null },
-        { clientId: zebraId, clientName: 'Zebra S.R.L.', status: 'queued', detail: null },
+        { clientId: albaId, clientName: 'Alba S.R.L.', status: 'done', detail: null, missing: [] },
+        {
+          clientId: zebraId,
+          clientName: 'Zebra S.R.L.',
+          status: 'queued',
+          detail: null,
+          missing: [],
+        },
       ],
     });
+  });
+
+  it('names what a client failed for, leaving out a code it no longer knows', async () => {
+    mockUpstream({
+      jobs: () =>
+        Response.json({
+          ...jobRow,
+          regeneration_job_items: [
+            {
+              client_id: albaId,
+              status: 'failed',
+              detail: 'Lipsesc date.',
+              missing: ['client.trainingSchedule', 'client.retired_code', 'responsible.first_aid'],
+              clients: { legal_name: 'Alba S.R.L.' },
+            },
+          ],
+        }),
+    });
+    const response = await request(`/documents/regeneration-jobs/${jobId}`);
+    expect(regenerationJobResponseSchema.parse(await response.json()).job.items).toEqual([
+      {
+        clientId: albaId,
+        clientName: 'Alba S.R.L.',
+        status: 'failed',
+        detail: 'Lipsesc date.',
+        missing: ['client.trainingSchedule', 'responsible.first_aid'],
+      },
+    ]);
   });
 
   it('is 404 for a job the caller cannot read', async () => {

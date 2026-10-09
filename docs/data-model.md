@@ -491,7 +491,9 @@ organization, `type_key`, `requested_by` (the member the documents name as their
 `finished_at`, which checks keep set exactly when the three counts add up to the total. A
 partial unique index allows one unfinished job per organization and type.
 `regeneration_job_items` holds one row per client of a job (`job_id`, `client_id`), with a
-`status` of `queued`, `done`, `skipped` or `failed` and a `detail` in Romanian for members.
+`status` of `queued`, `done`, `skipped` or `failed`, a `detail` in Romanian for members, and,
+for a client failed because data its document prints is missing, `missing`: the codes of that
+data, which the Legislație page turns into rows leading to where each is filled in.
 
 Members read their organization's jobs, and the items of the jobs they can read; nobody writes
 them but the secret key, through two functions granted only to it.
@@ -499,7 +501,7 @@ them but the secret key, through two functions granted only to it.
 clients of that organization among those given, each once; one still running raises
 `23505`, and one unfinished after an hour is closed first, its queued clients failed, since a
 message the queue gave up on would otherwise hold the type.
-`record_regeneration_item(job, client, status, detail)` records what became of a client only
+`record_regeneration_item(job, client, status, detail, missing)` records what became of a client only
 while it is `queued`, so a message delivered twice counts once, and finishes the job with the
 last one.
 

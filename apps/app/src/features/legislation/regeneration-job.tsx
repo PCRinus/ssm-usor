@@ -1,3 +1,4 @@
+import type { BuiltInDocumentTypeKey } from '@ssm-usor/contracts';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
@@ -9,6 +10,7 @@ import {
   useGetRegenerationJob,
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
+import { DocumentMissingRows } from '@/features/documents/document-missing-rows';
 
 import { countOf } from './legislation-labels';
 
@@ -77,27 +79,55 @@ export function RegenerationJob({
   const leftOut = current.items.filter(
     (item) => item.status === 'skipped' || item.status === 'failed'
   );
+  const lacking = leftOut.filter((item) => item.missing.length > 0);
+  const explained = leftOut.filter((item) => item.missing.length === 0);
   return (
-    <Notice
-      variant={leftOut.length > 0 ? 'warning' : 'success'}
-      data-testid="regeneration-result"
-      title="Regenerarea s-a încheiat"
-    >
-      <p data-testid="regeneration-result-counts">
-        Din {countOf(current.total, 'client', 'clienți')}: {counts(current)}.
-        {current.done > 0 && ' Ciornele noi se emit de pe pagina fiecărui client.'}
-      </p>
-      {leftOut.length > 0 && (
-        <ul className="mt-2 grid gap-1">
-          {leftOut.map((item) => (
-            <li key={item.clientId} data-testid="regeneration-left-out">
-              <span className="font-medium">{item.clientName}</span>
-              {item.status === 'skipped' ? ' (sărit)' : ' (eșuat)'}
-              {item.detail && `: ${item.detail}`}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Notice>
+    <div className="grid gap-4">
+      <Notice
+        variant={leftOut.length > 0 ? 'warning' : 'success'}
+        data-testid="regeneration-result"
+        title="Regenerarea s-a încheiat"
+      >
+        <p data-testid="regeneration-result-counts">
+          Din {countOf(current.total, 'client', 'clienți')}: {counts(current)}.
+          {current.done > 0 && ' Ciornele noi se emit de pe pagina fiecărui client.'}
+        </p>
+        {explained.length > 0 && (
+          <ul className="mt-2 grid gap-1">
+            {explained.map((item) => (
+              <li key={item.clientId} data-testid="regeneration-left-out">
+                <span className="font-medium">{item.clientName}</span>
+                {item.status === 'skipped' ? ' (sărit)' : ' (eșuat)'}
+                {item.detail && `: ${item.detail}`}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Notice>
+      {lacking.map((item) => (
+        <section
+          key={item.clientId}
+          data-testid="regeneration-lacking"
+          aria-label={item.clientName}
+          className="grid gap-3"
+        >
+          <div className="grid gap-0.5 text-sm">
+            <p data-testid="regeneration-lacking-client" className="font-medium wrap-anywhere">
+              {item.clientName}
+            </p>
+            <p className="text-muted-foreground">
+              Nu am putut regenera documentul. Completează mai întâi:
+            </p>
+          </div>
+          <DocumentMissingRows
+            clientId={item.clientId}
+            userId={userId}
+            typeKey={current.typeKey as BuiltInDocumentTypeKey}
+            missing={item.missing}
+            testId="regeneration-missing"
+          />
+        </section>
+      ))}
+    </div>
   );
 }

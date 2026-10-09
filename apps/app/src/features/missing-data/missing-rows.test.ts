@@ -191,6 +191,23 @@ describe('the rows of the generation form', () => {
       '„Talos Florin” are același nume ca reprezentantul legal al clientului, „Florin TALOȘ”.'
     );
   });
+
+  it('say why a representative is needed under 10 employees, which only a decision 1.5 kept asks for', () => {
+    const detailFor = (currentEmployeeCount?: number) =>
+      documentMissingGroups({
+        missing: ['responsible.workers_representative'],
+        clientId,
+        clash: null,
+        undecidedJobPositions: [],
+        currentEmployeeCount,
+        canEditOrganization: true,
+      })[0]!.rows[0]!.detail;
+    expect(detailFor(9)).toBe(
+      'Ales dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
+    );
+    expect(detailFor(10)).toBe('Ales dintre angajați. Clientul are cel puțin 10 angajați.');
+    expect(detailFor()).toBe('Ales dintre angajați. Clientul are cel puțin 10 angajați.');
+  });
 });
 
 const organizationCompany = '/organization/company?focus=';

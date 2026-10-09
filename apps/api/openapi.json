@@ -62,6 +62,38 @@
           },
           "reason": {
             "type": "string"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "provider.legalName",
+                "provider.representativeName",
+                "provider.representativeRole",
+                "provider.fireSafetyTechnician",
+                "specialist.name",
+                "specialist.professionalTitle",
+                "client.representativeName",
+                "client.representativeRole",
+                "client.trainingSchedule",
+                "responsible.workplace_manager",
+                "responsible.first_aid",
+                "responsible.risk_evaluation_team",
+                "responsible.imminent_danger",
+                "responsible.workers_representative",
+                "responsible.workers_representatives_two",
+                "responsible.workers_representative_is_legal_representative",
+                "positions.any",
+                "positions.equipment",
+                "positions.instructions",
+                "positions.risk_evaluation",
+                "risk_evaluations.sensitive_groups",
+                "risk_evaluations.measures",
+                "risk_evaluations.plan",
+                "documents.own_instructions"
+              ]
+            }
           }
         },
         "required": ["error", "message"]
@@ -4417,9 +4449,41 @@
                     "detail": {
                       "type": "string",
                       "nullable": true
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "provider.legalName",
+                          "provider.representativeName",
+                          "provider.representativeRole",
+                          "provider.fireSafetyTechnician",
+                          "specialist.name",
+                          "specialist.professionalTitle",
+                          "client.representativeName",
+                          "client.representativeRole",
+                          "client.trainingSchedule",
+                          "responsible.workplace_manager",
+                          "responsible.first_aid",
+                          "responsible.risk_evaluation_team",
+                          "responsible.imminent_danger",
+                          "responsible.workers_representative",
+                          "responsible.workers_representatives_two",
+                          "responsible.workers_representative_is_legal_representative",
+                          "positions.any",
+                          "positions.equipment",
+                          "positions.instructions",
+                          "positions.risk_evaluation",
+                          "risk_evaluations.sensitive_groups",
+                          "risk_evaluations.measures",
+                          "risk_evaluations.plan",
+                          "documents.own_instructions"
+                        ]
+                      }
                     }
                   },
-                  "required": ["clientId", "clientName", "status", "detail"]
+                  "required": ["clientId", "clientName", "status", "detail", "missing"]
                 }
               }
             },
@@ -15776,7 +15840,7 @@
       "post": {
         "operationId": "generateClientDocuments",
         "summary": "Generate the documents one of a client's documentation sets does not have yet",
-        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty. `firstDecisionNumber` is read for the occupational safety set only.",
+        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` is read for the occupational safety set only.",
         "security": [
           {
             "bearerAuth": []
@@ -16015,7 +16079,7 @@
       "post": {
         "operationId": "regenerateDocument",
         "summary": "Merge one document again from the stored facts",
-        "description": "A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number.",
+        "description": "A draft is overwritten, hand edits included. An issued document gets a new draft revision and stays in force until that one is issued. A decision keeps its number. Refused with the reason `missing_document_data`, the codes listed under `missing`, only for missing data its template prints: what the rest of the set lacks does not stop it.",
         "security": [
           {
             "bearerAuth": []

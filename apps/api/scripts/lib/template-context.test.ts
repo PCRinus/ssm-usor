@@ -1,11 +1,24 @@
 import { readFileSync } from 'node:fs';
 
 import { documentTypeKeys, fireSafetyDocumentTypeKeys } from '@ssm-usor/contracts';
-import { annexTitlePage, documentText, renderDocument } from '@ssm-usor/document-engine';
+import {
+  annexTitlePage,
+  documentText,
+  renderDocument,
+  renderTemplate,
+} from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
 import type { Json } from '../../src/database.types';
-import { buildDocumentContext, documentData } from '../../src/modules/documents/context';
+import { ApiError } from '../../src/lib/errors';
+import {
+  buildDocumentContext,
+  buildPartialDocumentContext,
+  documentData,
+  type DocumentFacts,
+  documentGapConcerns,
+  missingDocumentData,
+} from '../../src/modules/documents/context';
 import { facts } from '../../src/modules/documents/context.fixture';
 import { merge } from '../../src/modules/documents/documents';
 import { buildFireSafetyContext } from '../../src/modules/documents/fire-safety';
@@ -85,6 +98,178 @@ describe('the built-in templates', () => {
     },
     30_000
   );
+});
+
+describe('a document generated again while the set lacks data', () => {
+  const withGaps: [string, DocumentFacts][] = [
+    [
+      'what the clients of the first bulk regeneration lacked',
+      {
+        ...facts,
+        client: { ...facts.client, trainingDayTo: null },
+        responsiblePersons: facts.responsiblePersons.map((person) => ({
+          ...person,
+          roles: person.roles.filter((role) => role !== 'workplace_manager'),
+        })),
+        jobPositions: facts.jobPositions.map((position) => ({
+          ...position,
+          needsProtectiveEquipment: null,
+          needsInstructions: null,
+        })),
+        riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
+          ...evaluation,
+          factors: evaluation.kind === 'other' ? evaluation.factors : [],
+        })),
+      },
+    ],
+    [
+      'everything about the provider, the client and its people',
+      {
+        ...facts,
+        organization: {
+          ...facts.organization,
+          legalName: null,
+          representativeName: null,
+          representativeRole: null,
+        },
+        specialist: null,
+        client: { ...facts.client, representativeName: null, representativeRole: null },
+        responsiblePersons: [],
+        currentEmployeeCount: 12,
+        ownInstructions: null,
+      },
+    ],
+    [
+      'a position',
+      {
+        ...facts,
+        jobPositions: [],
+        riskEvaluations: facts.riskEvaluations.filter(
+          (evaluation) => evaluation.kind !== 'job_position'
+        ),
+      },
+    ],
+    [
+      "the workers' representatives",
+      {
+        ...facts,
+        currentEmployeeCount: 60,
+        responsiblePersons: [
+          ...facts.responsiblePersons,
+          {
+            fullName: 'Florin Cristian TALOȘ',
+            jobTitle: 'Administrator',
+            roles: ['workers_representative'],
+            currentEmployee: true,
+          },
+        ],
+      },
+    ],
+    [
+      'measures and their plan',
+      {
+        ...facts,
+        riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
+          ...evaluation,
+          factors: evaluation.factors.map((factor) =>
+            evaluation.kind === 'sensitive_groups'
+              ? { ...factor, gravityClass: 7, probabilityClass: 6, measures: [] }
+              : { ...factor, deadline: null }
+          ),
+        })),
+      },
+    ],
+  ];
+
+  const refusedFor = (merging: () => unknown) => {
+    try {
+      merging();
+      return [];
+    } catch (error) {
+      if (error instanceof ApiError && error.reason === 'missing_document_data') {
+        return error.missing;
+      }
+      throw error;
+    }
+  };
+
+  it('covers every gap of the occupational safety set', () => {
+    const gaps = new Set(
+      withGaps.flatMap(([, variant]) =>
+        manifest.templates.flatMap((entry) => missingDocumentData(variant, entry.typeKey))
+      )
+    );
+    expect([...gaps].sort()).toEqual(
+      [
+        'provider.legalName',
+        'provider.representativeName',
+        'provider.representativeRole',
+        'specialist.name',
+        'specialist.professionalTitle',
+        'client.representativeName',
+        'client.representativeRole',
+        'client.trainingSchedule',
+        'responsible.workplace_manager',
+        'responsible.first_aid',
+        'responsible.risk_evaluation_team',
+        'responsible.imminent_danger',
+        'responsible.workers_representative',
+        'responsible.workers_representatives_two',
+        'responsible.workers_representative_is_legal_representative',
+        'positions.any',
+        'positions.equipment',
+        'positions.instructions',
+        'positions.risk_evaluation',
+        'risk_evaluations.sensitive_groups',
+        'risk_evaluations.measures',
+        'risk_evaluations.plan',
+        'documents.own_instructions',
+      ].sort()
+    );
+  });
+
+  // The names a template printed from the whole context are what its snapshot keeps, so a
+  // refusal here is also what marks its draft as changed.
+  it.each(
+    manifest.templates.flatMap((entry) =>
+      withGaps.map(([label, variant]) => [entry.typeKey, label, entry.file, variant] as const)
+    )
+  )(
+    '%s is refused for exactly the gaps it prints, lacking %s',
+    (typeKey, _, file, variant) => {
+      const template = readFileSync(new URL(file, templatesUrl));
+      const { usedNames } = renderTemplate(
+        template,
+        documentData(buildDocumentContext(facts), typeKey)
+      );
+      const missing = missingDocumentData(variant, typeKey);
+      expect(
+        refusedFor(() =>
+          merge(
+            template,
+            documentData(buildPartialDocumentContext(variant, typeKey), typeKey),
+            typeKey,
+            (absentNames) => missing.filter((code) => documentGapConcerns(code, absentNames))
+          )
+        )
+      ).toEqual(missing.filter((code) => documentGapConcerns(code, usedNames)));
+    },
+    30_000
+  );
+
+  it('leaves the cover of the decisions to be generated again', () => {
+    const [, lacking] = withGaps[0]!;
+    const entry = manifest.templates.find((template) => template.typeKey === 'cover_decisions')!;
+    const text = documentText(
+      merge(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildPartialDocumentContext(lacking, 'cover_decisions'), 'cover_decisions'),
+        'cover_decisions'
+      ).bytes
+    );
+    expect(text).toContain('PIPETECH');
+    expect(text).toContain('S.C. SERVICIU EXTERN DEMO S.R.L.');
+  }, 30_000);
 });
 
 describe('the training themes', () => {

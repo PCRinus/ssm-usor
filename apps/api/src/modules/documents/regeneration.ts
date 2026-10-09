@@ -2,6 +2,8 @@ import {
   type BuiltInDocumentTypeKey,
   builtInDocumentTypeKeySchema,
   type DocumentsBehindType,
+  type MissingDocumentData,
+  missingDocumentDataSchema,
   type RegenerationItemStatus,
   type RegenerationJob,
   type TemplateVersionKind,
@@ -121,7 +123,7 @@ export async function startRegeneration(
   if (started.error?.code === '23505') {
     throw new ApiError(
       'conflict',
-      'Documentul se regenerează deja pentru toți clienții. Așteptați să se termine.',
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.',
       undefined,
       'regeneration_running'
     );
@@ -145,7 +147,7 @@ export async function startRegeneration(
     );
     const removed = await admin.from('regeneration_jobs').delete().eq('id', jobId);
     if (removed.error) console.error(`Regeneration job ${jobId} stays open: ${removed.error.code}`);
-    throw new ApiError('service_unavailable', 'Regenerarea nu a putut porni. Încercați din nou.');
+    throw new ApiError('service_unavailable', 'Regenerarea nu a putut porni. Încearcă din nou.');
   }
   return readRegenerationJob(db, jobId);
 }
@@ -163,15 +165,20 @@ type JobRow = {
     client_id: string;
     status: string;
     detail: string | null;
+    missing: string[] | null;
     clients: { legal_name: string } | null;
   }[];
 };
+
+// A code renamed since the item was recorded would otherwise break the whole job's answer.
+const knownCode = (code: string): code is MissingDocumentData =>
+  missingDocumentDataSchema.safeParse(code).success;
 
 export async function readRegenerationJob(db: DataClient, jobId: string): Promise<RegenerationJob> {
   const { data, error } = await db
     .from('regeneration_jobs')
     .select(
-      'id, type_key, requested_at, finished_at, total_count, done_count, skipped_count, failed_count, regeneration_job_items(client_id, status, detail, clients(legal_name))'
+      'id, type_key, requested_at, finished_at, total_count, done_count, skipped_count, failed_count, regeneration_job_items(client_id, status, detail, missing, clients(legal_name))'
     )
     .eq('id', jobId)
     .returns<JobRow[]>()
@@ -193,6 +200,7 @@ export async function readRegenerationJob(db: DataClient, jobId: string): Promis
         clientName: item.clients?.legal_name ?? '',
         status: item.status as RegenerationItemStatus,
         detail: item.detail,
+        missing: (item.missing ?? []).filter(knownCode),
       }))
       .sort(byName),
   };
