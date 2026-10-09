@@ -287,7 +287,7 @@ describe('POST /documents/behind/regenerate', () => {
     const body = apiErrorResponseSchema.parse(await response.json());
     expect(body.reason).toBe('regeneration_running');
     expect(body.message).toBe(
-      'Documentul se regenerează deja pentru toți clienții. Așteptați să se termine.'
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.'
     );
     expect(queue.sendBatch).not.toHaveBeenCalled();
   });

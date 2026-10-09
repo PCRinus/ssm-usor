@@ -123,7 +123,7 @@ export async function startRegeneration(
   if (started.error?.code === '23505') {
     throw new ApiError(
       'conflict',
-      'Documentul se regenerează deja pentru toți clienții. Așteptați să se termine.',
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.',
       undefined,
       'regeneration_running'
     );
@@ -147,7 +147,7 @@ export async function startRegeneration(
     );
     const removed = await admin.from('regeneration_jobs').delete().eq('id', jobId);
     if (removed.error) console.error(`Regeneration job ${jobId} stays open: ${removed.error.code}`);
-    throw new ApiError('service_unavailable', 'Regenerarea nu a putut porni. Încercați din nou.');
+    throw new ApiError('service_unavailable', 'Regenerarea nu a putut porni. Încearcă din nou.');
   }
   return readRegenerationJob(db, jobId);
 }

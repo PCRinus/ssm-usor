@@ -651,8 +651,7 @@ describe('the Legislație page', () => {
         Response.json(
           {
             error: 'conflict',
-            message:
-              'Documentul se regenerează deja pentru toți clienții. Așteptați să se termine.',
+            message: 'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.',
             reason: 'regeneration_running',
           },
           { status: 409 }
@@ -665,7 +664,7 @@ describe('the Legislație page', () => {
     await user.click(await screen.findByTestId('behind-confirm'));
 
     expect((await screen.findByTestId('behind-regenerate-error')).textContent).toBe(
-      'Documentul se regenerează deja pentru toți clienții. Așteptați să se termine.'
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.'
     );
     expect(screen.queryByTestId('behind-confirm-dialog')).toBeNull();
   });
