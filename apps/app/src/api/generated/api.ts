@@ -3036,12 +3036,44 @@ export const RegenerationJobResponseJobItemsItemStatus = {
   failed: 'failed',
 } as const;
 
+export type RegenerationJobResponseJobItemsItemMissingItem =
+  (typeof RegenerationJobResponseJobItemsItemMissingItem)[keyof typeof RegenerationJobResponseJobItemsItemMissingItem];
+
+export const RegenerationJobResponseJobItemsItemMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  specialistname: 'specialist.name',
+  specialistprofessionalTitle: 'specialist.professionalTitle',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  clienttrainingSchedule: 'client.trainingSchedule',
+  responsibleworkplace_manager: 'responsible.workplace_manager',
+  responsiblefirst_aid: 'responsible.first_aid',
+  responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
+  responsibleimminent_danger: 'responsible.imminent_danger',
+  responsibleworkers_representative: 'responsible.workers_representative',
+  responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
+  responsibleworkers_representative_is_legal_representative:
+    'responsible.workers_representative_is_legal_representative',
+  positionsany: 'positions.any',
+  positionsequipment: 'positions.equipment',
+  positionsinstructions: 'positions.instructions',
+  positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
+  risk_evaluationsmeasures: 'risk_evaluations.measures',
+  risk_evaluationsplan: 'risk_evaluations.plan',
+  documentsown_instructions: 'documents.own_instructions',
+} as const;
+
 export type RegenerationJobResponseJobItemsItem = {
   clientId: string;
   clientName: string;
   status: RegenerationJobResponseJobItemsItemStatus;
   /** @nullable */
   detail: string | null;
+  missing: RegenerationJobResponseJobItemsItemMissingItem[];
 };
 
 export type RegenerationJobResponseJob = {

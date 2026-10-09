@@ -2,6 +2,8 @@ import {
   type BuiltInDocumentTypeKey,
   builtInDocumentTypeKeySchema,
   type DocumentsBehindType,
+  type MissingDocumentData,
+  missingDocumentDataSchema,
   type RegenerationItemStatus,
   type RegenerationJob,
   type TemplateVersionKind,
@@ -163,15 +165,20 @@ type JobRow = {
     client_id: string;
     status: string;
     detail: string | null;
+    missing: string[] | null;
     clients: { legal_name: string } | null;
   }[];
 };
+
+// A code renamed since the item was recorded would otherwise break the whole job's answer.
+const knownCode = (code: string): code is MissingDocumentData =>
+  missingDocumentDataSchema.safeParse(code).success;
 
 export async function readRegenerationJob(db: DataClient, jobId: string): Promise<RegenerationJob> {
   const { data, error } = await db
     .from('regeneration_jobs')
     .select(
-      'id, type_key, requested_at, finished_at, total_count, done_count, skipped_count, failed_count, regeneration_job_items(client_id, status, detail, clients(legal_name))'
+      'id, type_key, requested_at, finished_at, total_count, done_count, skipped_count, failed_count, regeneration_job_items(client_id, status, detail, missing, clients(legal_name))'
     )
     .eq('id', jobId)
     .returns<JobRow[]>()
@@ -193,6 +200,7 @@ export async function readRegenerationJob(db: DataClient, jobId: string): Promis
         clientName: item.clients?.legal_name ?? '',
         status: item.status as RegenerationItemStatus,
         detail: item.detail,
+        missing: (item.missing ?? []).filter(knownCode),
       }))
       .sort(byName),
   };

@@ -1786,6 +1786,7 @@ export type Database = {
           client_id: string;
           detail: string | null;
           job_id: string;
+          missing: string[] | null;
           status: string;
           updated_at: string;
         };
@@ -1793,6 +1794,7 @@ export type Database = {
           client_id: string;
           detail?: string | null;
           job_id: string;
+          missing?: string[] | null;
           status?: string;
           updated_at?: string;
         };
@@ -1800,6 +1802,7 @@ export type Database = {
           client_id?: string;
           detail?: string | null;
           job_id?: string;
+          missing?: string[] | null;
           status?: string;
           updated_at?: string;
         };
@@ -2452,6 +2455,7 @@ export type Database = {
           p_client_id: string;
           p_detail: string;
           p_job_id: string;
+          p_missing?: string[];
           p_status: string;
         };
         Returns: boolean;

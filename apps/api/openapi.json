@@ -4449,9 +4449,41 @@
                     "detail": {
                       "type": "string",
                       "nullable": true
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "provider.legalName",
+                          "provider.representativeName",
+                          "provider.representativeRole",
+                          "provider.fireSafetyTechnician",
+                          "specialist.name",
+                          "specialist.professionalTitle",
+                          "client.representativeName",
+                          "client.representativeRole",
+                          "client.trainingSchedule",
+                          "responsible.workplace_manager",
+                          "responsible.first_aid",
+                          "responsible.risk_evaluation_team",
+                          "responsible.imminent_danger",
+                          "responsible.workers_representative",
+                          "responsible.workers_representatives_two",
+                          "responsible.workers_representative_is_legal_representative",
+                          "positions.any",
+                          "positions.equipment",
+                          "positions.instructions",
+                          "positions.risk_evaluation",
+                          "risk_evaluations.sensitive_groups",
+                          "risk_evaluations.measures",
+                          "risk_evaluations.plan",
+                          "documents.own_instructions"
+                        ]
+                      }
                     }
                   },
-                  "required": ["clientId", "clientName", "status", "detail"]
+                  "required": ["clientId", "clientName", "status", "detail", "missing"]
                 }
               }
             },

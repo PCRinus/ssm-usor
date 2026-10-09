@@ -117,7 +117,7 @@ describe('the regeneration queue consumer', () => {
         p_client_id: clientId,
         p_status: 'skipped',
         p_detail:
-          'Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde. Regenerați documentul de pe pagina clientului.',
+          'Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde. Regenerează documentul din pagina clientului.',
       },
     ]);
     expect(delivered.ack).toHaveBeenCalledOnce();
@@ -163,24 +163,28 @@ describe('the regeneration queue consumer', () => {
     ]);
   });
 
-  it('fails a client whose data is missing at once, since another delivery would not help', async () => {
+  it('fails a client whose data is missing at once, keeping what is missing, since another delivery would not help', async () => {
     mockUpstream();
     regenerate.mockRejectedValueOnce(
       new ApiError(
         'conflict',
         'Data the documents print is missing.',
         undefined,
-        'missing_document_data'
+        'missing_document_data',
+        ['client.trainingSchedule', 'responsible.workplace_manager']
       )
     );
     const delivered = message();
     await consumeRegenerationBatch({ messages: [delivered] }, env);
 
-    expect(records()).toMatchObject([
+    expect(records()).toEqual([
       {
+        p_job_id: jobId,
+        p_client_id: clientId,
         p_status: 'failed',
         p_detail:
-          'Lipsesc date pe care documentul le tipărește. Completați-le pe pagina clientului, apoi regenerați documentul.',
+          'Lipsesc date de care documentul are nevoie. Completează-le pe pagina clientului, apoi regenerează documentul.',
+        p_missing: ['client.trainingSchedule', 'responsible.workplace_manager'],
       },
     ]);
     expect(delivered.ack).toHaveBeenCalledOnce();
@@ -203,7 +207,7 @@ describe('the regeneration queue consumer', () => {
     expect(records()).toMatchObject([
       {
         p_status: 'failed',
-        p_detail: 'Un serviciu nu a răspuns. Regenerați documentul de pe pagina clientului.',
+        p_detail: 'Un serviciu nu a răspuns. Regenerează documentul din pagina clientului.',
       },
     ]);
     expect(last.ack).toHaveBeenCalledOnce();
