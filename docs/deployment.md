@@ -151,9 +151,13 @@ left out of the sitemap. When the consent sentence changes, bump `waitlist.conse
 ## Legislation Worker
 
 The daily legislation check ([ADR 017](architecture/adr-017-legislation-monitoring.md)) is the
-`ssm-usor-legislation` Worker in `apps/legislation`. It has no routes and no `workers.dev`
-address; its only entry is a cron trigger, `17 3 * * *` in `wrangler.jsonc`: 03:17 UTC, 05:17
-in Bucharest in winter and 06:17 in summer. To change the time, change the file and deploy.
+`ssm-usor-legislation` Worker in `apps/legislation`. Its entry is a cron trigger, `17 3 * * *`
+in `wrangler.jsonc`: 03:17 UTC, 05:17 in Bucharest in winter and 06:17 in summer. To change the
+time, change the file and deploy. It also has the custom domain `legislation.ssmusor.ro`, where
+it serves one thing, `POST /run`, to [run the check by hand](#running-the-check-by-hand), and
+no `workers.dev` address. Wrangler creates the hostname's DNS record and certificate on deploy,
+as for `api.ssmusor.ro`, with the same token's **Zone → Workers Routes → Edit**; do not create
+a record for it by hand.
 
 It reads every watched act on the Portal Legislativ, records newer consolidated forms, and
 logs each run in `legal_check_runs` ([data model](data-model.md#legislation)). The portal
@@ -170,8 +174,9 @@ secrets. Its address is `LEGISLATION_RELAY_ORIGIN` in `wrangler.jsonc`. The othe
 | `SUPABASE_SECRET_KEY`             | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                    |
 | `LEGISLATION_RELAY_CLIENT_ID`     | Secret   | The `LEGISLATION_RELAY_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`         |
 | `LEGISLATION_RELAY_CLIENT_SECRET` | Secret   | The `LEGISLATION_RELAY_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret` |
+| `LEGISLATION_RUN_SECRET`          | Secret   | The `LEGISLATION_RUN_SECRET` secret, optional: the bearer token of `POST /run`               |
 
-The job fails when any of them is missing. The service token is created by the homelab
+The job fails when any of the first four is missing. The service token is created by the homelab
 repository's Terraform, which also sets up the tunnel route and the Access application; copy
 its outputs into the two GitHub secrets, then redeploy the Worker:
 
@@ -196,7 +201,43 @@ act it could not read; the invocation is marked failed under the Worker's **Cron
 the Cloudflare dashboard; and its log, with one line per act, is in the Worker's
 observability logs. A row left `running` is a run that was cut off.
 
-To run the check without waiting for the morning, run `pnpm legislation:check` from a laptop
+### Running the check by hand
+
+Cloudflare cannot fire a deployed cron trigger on demand, so the Worker starts the same run on
+`POST https://legislation.ssmusor.ro/run`, through the relay like the cron:
+
+```bash
+curl -sS -N -X POST https://legislation.ssmusor.ro/run -H "Authorization: Bearer $LEGISLATION_RUN_SECRET"
+```
+
+`-N` makes curl print the answer as it arrives. The answer is `200` as soon as the run has
+started, and its body is the run's own log: a first line naming the run, one line per act as
+it is read, the totals and any failures by cause, and a last line `Run <id> succeeded.` or
+`Run <id> failed.`; the outcome is in that line, not in the status. The run takes about four
+minutes. Keep curl open until it ends: a run started this way lives as long as the request, so
+interrupting curl stops it, and its row stays `running`.
+
+Other answers have an empty body, or one line:
+
+- `401`: the bearer token is missing or wrong;
+- `404`: any other path or method, or every request while the Worker has no `LEGISLATION_RUN_SECRET`;
+- `409`: a run, by hand or by the cron, is still `running` and started less than fifteen
+  minutes ago; the line names it. The cron skips its morning in the same case. A row left
+  `running` for longer was cut off and blocks nothing.
+
+The secret is optional, and the deploy job only notes its absence. To set it, generate a value,
+save it as the `LEGISLATION_RUN_SECRET` secret of the `production` environment, and redeploy
+the Worker (rerun **CI** by hand, or push a change under `apps/legislation`):
+
+```bash
+openssl rand -hex 32
+```
+
+Keep the same value in your shell or password manager to call `/run`. A Worker secret outlives
+the GitHub secret: to turn `/run` off again, delete both, the Worker's with
+`pnpm --filter @ssm-usor/legislation exec wrangler secret delete LEGISLATION_RUN_SECRET`.
+
+To run the check from a laptop instead, run `pnpm legislation:check`
 ([local development](local-development.md#legislation-check)); it does the same work and logs
 its run in the same table.
 
