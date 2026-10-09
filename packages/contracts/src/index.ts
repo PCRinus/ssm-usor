@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { missingDocumentDataSchema } from './documents';
 import { membershipSchema } from './organizations';
 import { profileSchema } from './profile';
 
@@ -94,6 +95,8 @@ export const apiErrorResponseSchema = z.object({
   issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
   // A stable identifier for errors a client words itself, such as `already_member`.
   reason: z.string().optional(),
+  // With the reason `missing_document_data`: what is missing, in the order of the readiness list.
+  missing: z.array(missingDocumentDataSchema).optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

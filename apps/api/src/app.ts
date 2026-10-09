@@ -109,6 +109,7 @@ export function createApp() {
           message: error.message,
           ...(error.issues ? { issues: error.issues } : {}),
           ...(error.reason ? { reason: error.reason } : {}),
+          ...(error.missing ? { missing: error.missing } : {}),
         } satisfies ApiErrorResponse,
         errorStatus[error.code]
       );

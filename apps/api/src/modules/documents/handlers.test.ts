@@ -13,34 +13,53 @@ import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluation
 
 // The engine is tested in its own package, against the real templates. Here it prints the
 // client, a decision's number, and the training themes whenever there are any; a template's
-// file is its type key, and some types print more, as their real templates do. A file's text
-// is its bytes read as text. A merged annex title page is its data as JSON.
+// file is its type key, and some types print more, as their real templates do. A name it prints
+// that the data lacks is refused, as the engine does. A file's text is its bytes read as text. A
+// merged annex title page is its data as JSON.
 vi.mock('@ssm-usor/document-engine', () => {
   const printedBy: Record<string, string[]> = {
+    cover_decisions: ['branding', 'provider', 'workersRepresentativeDecision'],
+    decision_training: ['training', 'workplaceManagers'],
+    decision_workers_representative: ['workersRepresentatives'],
     general_training_material: ['riskAssessment', 'unitRisks'],
     own_instructions: ['positions'],
+    training_themes: ['themes'],
     protective_equipment_list: ['positions', 'equippedPositions', 'unequippedPositionsText'],
     risk_assessment: ['positions', 'riskAssessment'],
     prevention_plan: ['riskAssessment'],
     fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding'],
     fire_registers: ['branding'],
+    event_registers: ['branding'],
   };
+  class TemplateError extends Error {
+    constructor(
+      message: string,
+      readonly missing: string[] = []
+    ) {
+      super(message);
+    }
+  }
   return {
-    TemplateError: class TemplateError extends Error {},
+    TemplateError,
     annexTitlePage: () => new TextEncoder().encode('annex_title_page'),
     documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
-    renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => ({
-      document:
-        new TextDecoder().decode(template) === 'annex_title_page'
-          ? new TextEncoder().encode(JSON.stringify(data))
-          : new Uint8Array([80, 75, 3, 4]),
-      usedNames: [
-        'client',
-        ...('decisionNumber' in data ? ['decisionNumber'] : []),
-        ...('themes' in data ? ['themes'] : []),
-        ...(printedBy[new TextDecoder().decode(template)] ?? []),
-      ],
-    }),
+    renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => {
+      const typeKey = new TextDecoder().decode(template);
+      if (typeKey === 'annex_title_page') {
+        return { document: new TextEncoder().encode(JSON.stringify(data)), usedNames: [] };
+      }
+      const printed = [
+        ...new Set([
+          'client',
+          ...('decisionNumber' in data ? ['decisionNumber'] : []),
+          ...('themes' in data ? ['themes'] : []),
+          ...(printedBy[typeKey] ?? []),
+        ]),
+      ];
+      const absent = printed.filter((name) => !(name in data));
+      if (absent.length > 0) throw new TemplateError(`No value for ${absent.join(', ')}.`, absent);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: printed };
+    },
   };
 });
 
@@ -382,6 +401,23 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     }
   });
 }
+
+// Gaps in what the set prints, none of them in what the decisions' cover prints.
+const gapsOutsideTheCover: Partial<Record<Upstream, Handler>> = {
+  clients: () => Response.json({ ...clientRow, training_day_to: null }),
+  persons: () => Response.json([]),
+  positions: () =>
+    Response.json([
+      {
+        ...positionRow,
+        needs_protective_equipment: null,
+        needs_instructions: null,
+        job_position_equipment: [],
+        job_position_instructions: [],
+      },
+    ]),
+  riskEvaluations: () => Response.json([]),
+};
 
 const calls = (pathname: string, method = 'GET') =>
   fetchMock.mock.calls.filter(
@@ -1138,26 +1174,91 @@ describe('POST /documents/{documentId}/regenerate', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('issueDate');
   });
 
-  it('refuses while data is missing, and a type without a template', async () => {
-    mockUpstream({ documents: oneDocument([revisionRow]), persons: () => Response.json([]) });
+  it('refuses while data it prints is missing, naming it, and a type without a template', async () => {
+    mockUpstream({
+      documents: oneDocument([revisionRow]),
+      clients: () => Response.json({ ...clientRow, legal_representative_role: null }),
+    });
     const missing = await regenerate();
     expect(missing.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await missing.json()).reason).toBe('missing_document_data');
+    expect(apiErrorResponseSchema.parse(await missing.json())).toEqual({
+      error: 'conflict',
+      message: 'Data the documents print is missing: client.representativeRole.',
+      reason: 'missing_document_data',
+      missing: ['client.representativeRole'],
+    });
 
     mockUpstream({ documents: oneDocument([revisionRow]), templates: () => Response.json([]) });
     expect((await regenerate()).status).toBe(409);
   });
 
-  it('refuses a decision 1.5 kept under 10 employees once nobody represents the workers', async () => {
-    mockUpstream({
-      documents: () =>
-        Response.json({ ...documentRow, type_key: 'decision_workers_representative' }),
+  const ofType = (typeKey: string) => ({
+    documents: () =>
+      Response.json({
+        ...documentRow,
+        type_key: typeKey,
+        decision_number: typeKey.startsWith('decision_') ? 3 : null,
+      }),
+    templates: () =>
+      Response.json([
+        {
+          type_key: typeKey,
+          title: typeKey,
+          document_template_versions: [
+            { id: 'v9', version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+          ],
+        },
+      ]),
+  });
+
+  it('generates the cover again while the set lacks only what the cover does not print', async () => {
+    mockUpstream(gapsOutsideTheCover);
+    const readiness = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await readiness.json()).missing).toEqual([
+      'client.trainingSchedule',
+      'responsible.workplace_manager',
+      'responsible.first_aid',
+      'responsible.risk_evaluation_team',
+      'responsible.imminent_danger',
+      'positions.equipment',
+      'positions.instructions',
+      'positions.risk_evaluation',
+      'risk_evaluations.sensitive_groups',
+    ]);
+
+    mockUpstream({ ...gapsOutsideTheCover, ...ofType('cover_decisions') });
+    const response = await regenerate();
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot).toEqual({
+      branding: true,
+      client: printedClient,
+      provider: {
+        legalName: 'S.C. SAFETY S.R.L.',
+        representativeName: 'Maria POPESCU',
+        representativeRole: 'Administrator',
+      },
+      workersRepresentativeDecision: false,
     });
+  });
+
+  it('refuses a document for the gaps it prints, and names only those', async () => {
+    mockUpstream({ ...gapsOutsideTheCover, ...ofType('decision_training') });
     const response = await regenerate();
     expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
-      'missing_document_data'
-    );
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.reason).toBe('missing_document_data');
+    expect(body.missing).toEqual(['client.trainingSchedule', 'responsible.workplace_manager']);
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses a decision 1.5 kept under 10 employees once nobody represents the workers', async () => {
+    mockUpstream(ofType('decision_workers_representative'));
+    const response = await regenerate();
+    expect(response.status).toBe(409);
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.reason).toBe('missing_document_data');
+    expect(body.missing).toEqual(['responsible.workers_representative']);
   });
 
   it('leaves a document that is not of the documentation set to its own page', async () => {
@@ -1333,12 +1434,29 @@ describe('"Date modificate"', () => {
     });
   });
 
-  it('marks every draft for a gap in what the whole set prints', async () => {
+  it('marks a draft for a gap in a name it printed, and not one that printed none of it', async () => {
     expect(
-      await dataChanged(['cover_decisions', 'risk_assessment'], {
+      await dataChanged(['cover_decisions', 'event_registers'], {
         organizations: () => Response.json({ ...organizationRow, legal_name: null }),
       })
-    ).toEqual({ cover_decisions: true, risk_assessment: true });
+    ).toEqual({ cover_decisions: true, event_registers: false });
+  });
+
+  it('agrees with generating again: gaps elsewhere leave the rest of a draft to compare', async () => {
+    expect(
+      await dataChanged(['cover_decisions', 'decision_training'], gapsOutsideTheCover)
+    ).toEqual({ cover_decisions: false, decision_training: true });
+    expect(
+      await dataChanged(['cover_decisions'], {
+        ...gapsOutsideTheCover,
+        clients: () =>
+          Response.json({
+            ...clientRow,
+            training_day_to: null,
+            legal_name: 'S.C. PIPETECH NOU S.R.L.',
+          }),
+      })
+    ).toEqual({ cover_decisions: true });
   });
 });
 
@@ -1394,12 +1512,15 @@ describe('the training themes', () => {
   const regenerate = () => request(`/documents/${themesDocumentId}/regenerate`, 'POST', {});
 
   it('are not generated again while the client has no own instructions revision', async () => {
-    mockUpstream({ documents: () => Response.json(themesDocument(null)) });
+    mockUpstream({
+      documents: () => Response.json(themesDocument(null)),
+      templates: () => Response.json([themesTemplate]),
+    });
     const response = await regenerate();
     expect(response.status).toBe(409);
     const body = apiErrorResponseSchema.parse(await response.json());
     expect(body.reason).toBe('missing_document_data');
-    expect(body.message).toContain('documents.own_instructions');
+    expect(body.missing).toEqual(['documents.own_instructions']);
     expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
   });
 

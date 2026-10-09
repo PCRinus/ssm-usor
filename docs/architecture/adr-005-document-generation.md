@@ -51,6 +51,8 @@ Facts that outlast one generation are stored once:
 
 The training schedule is the same data the future deadline calendar needs. Only the issue date and the starting decision number are asked at generation time. The generation form lists whatever is missing, links to where it is filled in, and refuses to generate until it is.
 
+(Amended 2026-10-10. Generating one document again, by hand or through the bulk regeneration of ADR 017, is refused only for missing data its template prints: the first bulk regeneration of the decisions' cover failed for every client on undecided positions and unfinished risk evaluations, none of which the cover prints. Each missing-data code leaves out the names of the merge context it fills, and the template refusing a name left out is what refuses the document, so the rule follows the template rather than a list per document; the "Date modificate" badge reads the same names from the snapshot. Generating the set still needs everything.)
+
 ### Where the work runs
 
 The API merges templates with docxtemplater, which is plain JavaScript and runs on Workers; `docx-templates` does not, because it needs `eval`. Generation stays on the server so that the bulk generation of per-employee documents later does not depend on an open browser tab. The account is on Workers Paid, which the largest file, at 68,000 words, needs to be unzipped and rebuilt. The engine is the `packages/document-engine` that the technical architecture reserved.

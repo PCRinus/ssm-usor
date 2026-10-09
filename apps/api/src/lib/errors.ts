@@ -1,4 +1,4 @@
-import type { ApiErrorCode, ApiErrorResponse } from '@ssm-usor/contracts';
+import type { ApiErrorCode, ApiErrorResponse, MissingDocumentData } from '@ssm-usor/contracts';
 
 export const errorStatus = {
   unauthorized: 401,
@@ -27,7 +27,8 @@ export class ApiError extends Error {
     // Field-level details for validation errors raised by handlers, not by body parsing.
     readonly issues?: ApiErrorResponse['issues'],
     // A stable identifier for an error the client words itself.
-    readonly reason?: string
+    readonly reason?: string,
+    readonly missing?: MissingDocumentData[]
   ) {
     super(message);
     this.name = 'ApiError';
