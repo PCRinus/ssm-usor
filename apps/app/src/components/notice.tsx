@@ -15,11 +15,21 @@ type NoticeProps = Omit<ComponentProps<typeof Alert>, 'variant' | 'title'> & {
   title?: ReactNode;
   // A button or a link that answers the notice, kept beside the text on wide screens.
   action?: ReactNode;
+  // Replaces the variant's icon, as a spinner does while something runs.
+  icon?: ReactNode;
 };
 
 // Every message the app shows inside a page: a failure, a warning, something to know.
 // A failure interrupts a screen reader; the rest wait their turn.
-export function Notice({ variant, title, action, children, className, ...props }: NoticeProps) {
+export function Notice({
+  variant,
+  title,
+  action,
+  icon,
+  children,
+  className,
+  ...props
+}: NoticeProps) {
   const Icon = icons[variant];
   return (
     <Alert
@@ -28,7 +38,7 @@ export function Notice({ variant, title, action, children, className, ...props }
       className={cn(action && 'sm:pr-3', className)}
       {...props}
     >
-      <Icon aria-hidden="true" />
+      {icon ?? <Icon aria-hidden="true" />}
       {title && <AlertTitle>{title}</AlertTitle>}
       <AlertDescription
         className={cn(action && 'gap-2 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4')}

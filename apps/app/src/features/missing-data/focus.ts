@@ -107,7 +107,7 @@ const settledAfter = 120;
 const startsWithin = 400;
 const movesAtMost = 1500;
 const beat = 600;
-const pointedFor = 1800;
+const pointedFor = 2700;
 const tries = 3;
 const centred = 24;
 

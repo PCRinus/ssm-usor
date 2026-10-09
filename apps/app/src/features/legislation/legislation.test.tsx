@@ -324,6 +324,11 @@ describe('the Legislație page', () => {
     expect(entries[2]!.getAttribute('aria-current')).toBe('page');
     expect(entries[0]!.getAttribute('aria-current')).toBeNull();
     expect(entries[2]!.getAttribute('data-active')).toBe('true');
+
+    await user.click(screen.getByTestId('nav-dashboard'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(group.closest('[data-open]')?.getAttribute('data-open')).toBe('false');
+    await waitFor(() => expect(screen.queryByTestId('nav-legislatie-group')).toBeNull());
   });
 
   it('keeps the title and the last check above every tab', async () => {
