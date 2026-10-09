@@ -160,12 +160,14 @@ const job = (overrides: Record<string, unknown> = {}) => ({
         clientName: 'ALFA CONSTRUCT SRL',
         status: 'queued',
         detail: null,
+        missing: [] as string[],
       },
       {
         clientId: firstAidBehind.clients[1]!.clientId,
         clientName: 'BETA CAFE SRL',
         status: 'queued',
         detail: null,
+        missing: [] as string[],
       },
     ],
     ...overrides,
@@ -182,15 +184,45 @@ const finishedJob = job({
       clientName: 'ALFA CONSTRUCT SRL',
       status: 'done',
       detail: null,
+      missing: [],
     },
     {
       clientId: firstAidBehind.clients[1]!.clientId,
       clientName: 'BETA CAFE SRL',
       status: 'skipped',
       detail: 'Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde.',
+      missing: [],
     },
   ],
 });
+
+const lackingJob = job({
+  finishedAt: hoursAgo(0),
+  skipped: 1,
+  failed: 1,
+  items: [
+    {
+      clientId: firstAidBehind.clients[0]!.clientId,
+      clientName: 'ALFA CONSTRUCT SRL',
+      status: 'failed',
+      detail:
+        'Lipsesc date de care documentul are nevoie. Completează-le pe pagina clientului, apoi regenerează documentul.',
+      missing: ['client.trainingSchedule', 'positions.equipment'],
+    },
+    finishedJob.job.items[1],
+  ],
+});
+
+const alfaReadiness = {
+  ready: false,
+  missing: ['client.trainingSchedule', 'responsible.first_aid', 'positions.equipment'],
+  currentEmployeeCount: 4,
+  workersRepresentativeClash: null,
+  undecidedJobPositions: [
+    { id: '6c7d8e9f-0a1b-4c2d-8e3f-4a5b6c7d8e9f', name: 'Sudor', undecided: ['equipment'] },
+  ],
+  incompleteRiskEvaluations: [],
+};
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -200,6 +232,7 @@ function mockApi({
   afterJob = [] as unknown[],
   start = (() => Response.json(job(), { status: 201 })) as () => Response,
   polls = [finishedJob] as unknown[],
+  readiness = alfaReadiness as unknown,
 } = {}) {
   let jobDone = false;
   let pollCount = 0;
@@ -223,6 +256,9 @@ function mockApi({
       return Response.json({ items: jobDone ? afterJob : behind });
     }
     if (pathname === '/documents/behind/regenerate' && method === 'POST') return start();
+    if (pathname === `/clients/${firstAidBehind.clients[0]!.clientId}/documents/readiness`) {
+      return Response.json(readiness);
+    }
     if (pathname === `/documents/regeneration-jobs/${jobId}`) {
       const answer = polls[Math.min(pollCount, polls.length - 1)] as ReturnType<typeof job>;
       pollCount += 1;
@@ -549,6 +585,49 @@ describe('the Legislație page', () => {
     expect(screen.getByTestId('behind-type').textContent).toContain(
       'Niciun client nu mai are acest document în urmă.'
     );
+  });
+
+  it('lists what a client failed for as the rows of the generation form, each starting the way back to its document', async () => {
+    mockApi({ behind: [{ ...firstAidBehind, runningJobId: jobId }], polls: [lackingJob] });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('regeneration-result-counts')).textContent).toContain(
+      'Din 2 clienți: 0 regenerate, 1 sărit, 1 eșuat.'
+    );
+    expect(screen.getAllByTestId('regeneration-left-out').map((item) => item.textContent)).toEqual([
+      'BETA CAFE SRL (sărit): Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde.',
+    ]);
+    const lacking = screen.getByTestId('regeneration-lacking');
+    expect(within(lacking).getByTestId('regeneration-lacking-client').textContent).toBe(
+      'ALFA CONSTRUCT SRL'
+    );
+    expect(lacking.textContent).toContain(
+      'Nu am putut regenera documentul. Completează mai întâi:'
+    );
+    const rows = await within(lacking).findAllByTestId('regeneration-missing-row');
+    const alfaId = firstAidBehind.clients[0]!.clientId;
+    expect(rows.map((row) => [row.textContent, row.getAttribute('href')])).toEqual([
+      [
+        'Programul instruirii periodiceIntervalele pe categorii, prima lună, durata și zilele.',
+        `/clients/${alfaId}/training?focus=training-schedule`,
+      ],
+      [
+        'Sudor · echipament de protecțieArticolele postului, sau că nu are nevoie de echipament.',
+        `/clients/${alfaId}/job-positions/6c7d8e9f-0a1b-4c2d-8e3f-4a5b6c7d8e9f#protective-equipment`,
+      ],
+    ]);
+
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await user.click(rows[0]!);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${alfaId}/training`)
+    );
+    expect(JSON.parse(sessionStorage.getItem('ssm-usor:way-back')!)).toMatchObject({
+      clientId: alfaId,
+      to: 'document',
+      typeKey: 'decision_first_aid',
+    });
   });
 
   it('picks up a regeneration already running when the page opens', async () => {

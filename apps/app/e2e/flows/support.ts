@@ -184,6 +184,12 @@ export async function completeDocumentData(
   await evaluateRisks(organizationId, clientId);
 }
 
+// A gap left after the documentation was generated, as a member could leave one.
+export async function updateClient(clientId: string, values: Record<string, unknown>) {
+  const { error } = await admin.from('clients').update(values).eq('id', clientId);
+  if (error) throw error;
+}
+
 async function insertEvaluation(
   owner: { organization_id: string; client_id: string },
   evaluation: Record<string, unknown>,

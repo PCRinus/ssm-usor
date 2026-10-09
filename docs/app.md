@@ -544,6 +544,12 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own
   header. A `404` or `409` reloads the list. An archived client only gets the downloads.
+  Generating one document again refused with `missing_document_data` names the codes under
+  `missing`; the card shows them as the generation form's rows (`DocumentMissingRows`, which
+  asks the readiness for the positions and evaluations behind a code, so a refused code gets
+  the same rows as in the form and the rest of the readiness list none). Following a row starts
+  the way back with `to: 'document'` and the type key, and the toast of the save offers
+  "Înapoi la document", which opens that document's row, pointed at.
   The open section is the `section` search param. `focus` takes `generate` (open the dialog)
   or a type key of the set, the way the missing-data rows lead to a field
   (`missing-data/focus.ts`): once the list has loaded, the row of that document (its id is
@@ -851,7 +857,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   After a confirmation it posts `POST /documents/behind/regenerate` and polls
   `GET /documents/regeneration-jobs/{jobId}` every two seconds until `finishedAt`: a bar with
   how many are regenerated, skipped and failed, then the result with each client skipped or
-  failed and why. A job already running when the page opens is picked up from `runningJobId`;
+  failed and why. A client failed for missing data, whose item keeps the refused codes, is
+  listed below the result with the same rows as on the documents tab, and the same way back
+  to its document: the bulk job is over by then, so the next step is that one document. A job already running when the page opens is picked up from `runningJobId`;
   a `409` or `503` shows the API's own message. A type whose clients all caught up keeps its
   place with the result. "Modificări" lists `GET /legislation/changes` newest first, each "În
   verificare", "Fără impact asupra documentelor" or "Șablon actualizat" with the version's

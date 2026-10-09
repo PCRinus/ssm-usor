@@ -1,3 +1,4 @@
+import { builtInDocumentTypeKeySchema } from '@ssm-usor/contracts';
 import { useEffect, useSyncExternalStore } from 'react';
 import { z } from 'zod';
 
@@ -9,12 +10,22 @@ const storageKey = 'ssm-usor:way-back';
 // Nothing dismisses it by hand, so an old trip must not offer a way back to a form long closed.
 export const wayBackLifetime = 60 * 60 * 1000;
 
-const wayBackSchema = z.object({
-  userId: z.string(),
-  clientId: z.uuid(),
-  to: z.enum(['documents', 'fire-safety-documents', 'client-contract', 'lead-contract']),
-  startedAt: z.number(),
-});
+// `document` goes back to one document of the client, the one generating again was refused for.
+const wayBackSchema = z
+  .object({
+    userId: z.string(),
+    clientId: z.uuid(),
+    to: z.enum([
+      'documents',
+      'fire-safety-documents',
+      'document',
+      'client-contract',
+      'lead-contract',
+    ]),
+    typeKey: builtInDocumentTypeKeySchema.optional(),
+    startedAt: z.number(),
+  })
+  .refine((wayBack) => wayBack.to !== 'document' || wayBack.typeKey !== undefined);
 
 export type WayBack = z.infer<typeof wayBackSchema>;
 
