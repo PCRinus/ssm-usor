@@ -81,7 +81,7 @@ const columns = helper.columns([
     id: 'verified',
     header: () => (
       <span title="Forma consolidată față de care au fost verificate șabloanele.">
-        Șabloane verificate pe forma din
+        Șabloanele urmează forma din
       </span>
     ),
     meta: dateColumn,
