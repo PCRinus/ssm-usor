@@ -177,7 +177,8 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/modificari.tsx`                                          | `/legislatie/modificari`                                    | "Modificări": the legal changes, newest first.                                                                                                                                                              |
 | `routes/_authenticated/legislatie/acte.tsx`                                                | `/legislatie/acte`                                          | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
-| `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the training schedule and the responsible persons the generated documents print.                                                                                               |
+| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace.                                                                                                           |
+| `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                          |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
 | `routes/_authenticated/clients/$clientId/fire-safety-documents/index.tsx`                  | `/clients/:id/fire-safety-documents`                        | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                            |
@@ -510,7 +511,37 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   not an employee is typed in by hand. At least one role is required, and roles are sent in
   the order the decisions list them. A `409` means the employee is already listed and a `400`
   on `employeeId` that they belong to another client; both are reported on the employee
-  field.
+  field. The dialog also offers the two fire-safety roles and "Loc de muncă", one active
+  workplace or, by default, all of them; a person tied to one is listed with "Numai la …".
+  The workplace and person routes replace the whole row, so every save, including "Folosește
+  această adresă" and "Folosește această funcție", sends the fire-safety fields as saved.
+- "Instruire PSI", the card after the occupational safety schedule (ADR 018), edits
+  `GET`/`PUT /clients/{clientId}/fire-safety` in place: the duration in hours, the interval of
+  each staff category (one to six months), the first month and the days, the smoking rule
+  (which may stay "Nestabilit"), the kinds of waste as chips (Enter adds one, a text left in
+  the field is added on save) and the firm that collects them. While the API says no row
+  exists the card reads "Necompletat", and its form opens on two hours, three months for both
+  categories and the occupational safety schedule's first month and days, with the note
+  "Valori de pornire; salvează pentru a le păstra.". Nothing links the two schedules after
+  that.
+- The workplace dialog of "Detalii" has a group "Apărare împotriva incendiilor": activity,
+  floor area, the annex 6 norm, the assembly point and the four texts of the posted sheet,
+  with annex 1's examples as placeholders. All are optional to save; a row missing any of the
+  seven that generating asks for reads "Date PSI incomplete". `?focus=workplace-fire-data`
+  opens the first such workplace at its first empty field, `?focus=add-workplace` the new
+  workplace dialog.
+- `/clients/:clientId/fire-safety-means`: "Mijloace PSI", between "Posturi de lucru" and
+  "Instruire și responsabili", in `src/features/fire-safety-means/`. One card per active
+  workplace, with its activity and address, holds a table of its equipment (the extinguisher's
+  code as the trade writes it, "P6", then its agent and capacity; the inventory number,
+  location and year; the last and next service, an overdue one marked; the servicing firm) and
+  a table of its installations, each added, edited and deleted through a dialog, a deletion
+  after a confirmation that warns when it removes a workplace's last extinguisher. Under the
+  equipment, "N stingătoare · minim orientativ M (anexa 6)", or "cel puțin unul pe nivel" for
+  dwellings, once the workplace has an area and a norm; it is a hint and never blocks
+  anything. A client without a workplace gets a link to add one in "Detalii".
+  `?focus=fire-equipment` opens the equipment dialog of the first workplace without an
+  extinguisher.
 - `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
   pack: title, the decision's number, badges for the issued revision and the draft, the
