@@ -46,6 +46,11 @@ import {
   toGenerateDocumentsRequest,
 } from './generate-documents-schema';
 
+function documentCount(count: number) {
+  const tens = count % 100;
+  return tens === 0 || tens >= 20 ? `${count} de documente` : `${count} documente`;
+}
+
 export function GenerateDocumentsDialog({
   set,
   clientId,
@@ -144,7 +149,7 @@ function GenerateDocumentsForm({
       toast.success(
         result.created.length === 1
           ? 'A fost generat un document.'
-          : `Au fost generate ${result.created.length} documente.`
+          : `Au fost generate ${documentCount(result.created.length)}.`
       );
       onClose();
     } catch (cause) {
