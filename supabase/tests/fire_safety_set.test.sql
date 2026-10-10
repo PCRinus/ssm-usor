@@ -111,10 +111,12 @@ select throws_ok(
 );
 
 select results_eq(
-  $$ select documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at
+  $$ select documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at,
+            fire_safety_generated_type_keys, fire_safety_issued_count, fire_safety_last_generated_at
      from public.client_list where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
-  $$ values ('{cover_decisions}'::text[], 0, '2026-09-01 10:00+00'::timestamptz) $$,
-  'the clients list counts and dates the occupational safety set only'
+  $$ values ('{cover_decisions}'::text[], 0, '2026-09-01 10:00+00'::timestamptz,
+             '{fire_registers}'::text[], 1, '2026-10-01 10:00+00'::timestamptz) $$,
+  'the clients list counts and dates each set apart'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');

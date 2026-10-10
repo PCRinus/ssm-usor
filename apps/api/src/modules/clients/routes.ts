@@ -19,7 +19,7 @@ export const listClientsRoute = createRoute({
   operationId: 'listClients',
   summary: "List the organization's clients or its leads, active or archived",
   description:
-    'Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, "documentation" sorts by the number of issued documents, and "clientSince" by when the company became a client. A client carries its job positions and where its documentation set stands; a lead carries null for both, and its contract state instead.',
+    'Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, "documentation" and "fireSafetyDocumentation" sort by the number of issued documents of the occupational safety set and of the fire-safety set, and "clientSince" by when the company became a client. A client carries where each of its documentation sets stands; a lead carries null for both, and its contract state instead.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listClientsQuerySchema },

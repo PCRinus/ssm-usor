@@ -374,16 +374,14 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
 - `/dashboard`: overview and existing account/API status.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table,
   built to show which still need work. "Companie" has the registered office (locality, county)
-  under the name; then "CUI", "Angajați" (current employees), "Posturi" (current positions, with
-  "N de completat" in the warning tone under it when some have the equipment or instructions
-  undecided or no risk evaluation, and "de adăugat" when there are none), "Documentație"
-  (`DocumentationBadge`: Negenerată and În lucru in the warning tone, Emisă calm, beside "18 din
-  23 emise"; the state labels live in
+  under the name; then "CUI", "Angajați" (current employees), "Documentație SSM" and
+  "Documentație PSI", one per documentation set (`DocumentationBadge`: Negenerată and În lucru
+  in the warning tone, Emisă calm, beside "18 din 23 emise"; the state labels live in
   `documentation-badge.tsx` alone). No contract column: most clients are imported from another
   system and never get a contract here. Last, "Adăugat": the day the company became a client
   (`clientSince`: its promotion for a former lead, otherwise its creation), muted; not
   `updatedAt`, which only moves when the client row itself is edited. Sortable by company, CUI,
-  employees, positions, documentation (issued count, least done first ascending) and
+  employees, either documentation set (issued count, least done first ascending) and
   "Adăugat", whose first click sorts newest first (`sortDescFirst` on the column), paged through `?page=` with the
   sort in `?sort=&order=`, with loading, empty, and error states (a missing membership is
   explained; other failures offer a retry). The company name wraps so that the table fits
@@ -644,7 +642,7 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
   to this tab's form. A `503` says that
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
-  the clients list's "Documentație" counts the occupational safety set only.
+  the clients list's "Documentație PSI" counts this set, apart from "Documentație SSM".
 
 - `/leads`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same

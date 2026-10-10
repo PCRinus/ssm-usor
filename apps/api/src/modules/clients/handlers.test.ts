@@ -4,6 +4,7 @@ import {
   clientOwnerNotesResponseSchema,
   clientResponseSchema,
   documentTypeKeys,
+  fireSafetyDocumentTypeKeys,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,11 +60,12 @@ const clientRow = {
 
 const workRow = {
   client_since: '2026-09-17T10:00:00+00:00',
-  job_position_count: 4,
-  job_positions_needing_work_count: 1,
   documentation_generated_type_keys: documentTypeKeys.slice(6),
   documentation_issued_count: 18,
   documentation_last_generated_at: '2026-09-20T10:00:00+00:00',
+  fire_safety_generated_type_keys: [],
+  fire_safety_issued_count: 0,
+  fire_safety_last_generated_at: null,
 };
 
 type Handler = (init?: RequestInit) => Response | Promise<Response>;
@@ -159,13 +161,17 @@ describe('GET /clients', () => {
           updatedAt: clientRow.updated_at,
           archivedAt: null,
           clientSince: '2026-09-17T10:00:00+00:00',
-          jobPositionCount: 4,
-          jobPositionsNeedingWorkCount: 1,
           documentation: {
             state: 'in_progress',
             issuedCount: 18,
             totalCount: 23,
             lastGeneratedAt: '2026-09-20T10:00:00+00:00',
+          },
+          fireSafetyDocumentation: {
+            state: 'none',
+            issuedCount: 0,
+            totalCount: 24,
+            lastGeneratedAt: null,
           },
         },
       ],
@@ -201,9 +207,10 @@ describe('GET /clients', () => {
   });
 
   it.each([
-    ['jobPositionCount', 'asc', 'job_position_count.asc,legal_name.asc,id.asc'],
     ['documentation', 'asc', 'documentation_issued_count.asc,legal_name.asc,id.asc'],
     ['documentation', 'desc', 'documentation_issued_count.desc,legal_name.desc,id.asc'],
+    ['fireSafetyDocumentation', 'asc', 'fire_safety_issued_count.asc,legal_name.asc,id.asc'],
+    ['fireSafetyDocumentation', 'desc', 'fire_safety_issued_count.desc,legal_name.desc,id.asc'],
     ['clientSince', 'desc', 'client_since.desc,id.asc'],
   ])('sorts by %s %s through the computed fields', async (sort, order, expected) => {
     mockUpstream({});
@@ -212,7 +219,7 @@ describe('GET /clients', () => {
     expect(new URL(String(listUrl)).searchParams.get('order')).toBe(expected);
   });
 
-  const documentationOf = async (row: Record<string, unknown>) => {
+  const itemOf = async (row: Record<string, unknown>) => {
     mockUpstream({
       clients: () =>
         Response.json([{ ...clientRow, ...workRow, ...row }], {
@@ -220,8 +227,11 @@ describe('GET /clients', () => {
         }),
     });
     const body = clientListResponseSchema.parse(await (await request('/clients')).json());
-    return body.items[0]!.documentation;
+    return body.items[0]!;
   };
+  const documentationOf = async (row: Record<string, unknown>) => (await itemOf(row)).documentation;
+  const fireSafetyDocumentationOf = async (row: Record<string, unknown>) =>
+    (await itemOf(row)).fireSafetyDocumentation;
 
   it('says the documentation is not generated while no document of the set has a revision', async () => {
     expect(
@@ -273,6 +283,40 @@ describe('GET /clients', () => {
     ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
   });
 
+  it('counts the whole fire-safety set, whatever the headcount', async () => {
+    const generated = fireSafetyDocumentTypeKeys.slice(0, 20);
+    expect(
+      await fireSafetyDocumentationOf({
+        current_employee_count: 3,
+        fire_safety_generated_type_keys: generated,
+        fire_safety_issued_count: 18,
+        fire_safety_last_generated_at: '2026-10-01T10:00:00+00:00',
+      })
+    ).toEqual({
+      state: 'in_progress',
+      issuedCount: 18,
+      totalCount: 24,
+      lastGeneratedAt: '2026-10-01T10:00:00+00:00',
+    });
+    expect(
+      await fireSafetyDocumentationOf({
+        fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys, 'fire_own_annex'],
+        fire_safety_issued_count: 25,
+      })
+    ).toMatchObject({ state: 'issued', issuedCount: 25, totalCount: 25 });
+  });
+
+  it('keeps the two sets apart', async () => {
+    const item = await itemOf({
+      documentation_generated_type_keys: [],
+      documentation_issued_count: 0,
+      fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys],
+      fire_safety_issued_count: fireSafetyDocumentTypeKeys.length,
+    });
+    expect(item.documentation).toMatchObject({ state: 'none', totalCount: 23 });
+    expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 24 });
+  });
+
   it('answers a page past the end with no rows and the real total', async () => {
     let call = 0;
     mockUpstream({
@@ -294,7 +338,7 @@ describe('GET /clients', () => {
     mockUpstream({});
     await request('/clients');
     const select = new URL(String(calls('/rest/v1/client_list')[0]![0])).searchParams.get('select');
-    expect(select).toContain('job_positions_needing_work_count');
+    expect(select).toContain('fire_safety_issued_count');
     expect(select).not.toContain('client_documents');
   });
 
@@ -310,13 +354,12 @@ describe('GET /clients', () => {
     );
     expect(
       new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')
-    ).not.toContain('job_position_count');
+    ).not.toContain('documentation_issued_count');
     expect(body.items[0]).toMatchObject({
       serviceContractState: 'none',
       clientSince: null,
-      jobPositionCount: null,
-      jobPositionsNeedingWorkCount: null,
       documentation: null,
+      fireSafetyDocumentation: null,
     });
   });
 

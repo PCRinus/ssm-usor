@@ -34,13 +34,17 @@ const listed = (client: object = sampleClient, work: object = {}) => ({
   ...client,
   serviceContractState: null,
   clientSince: '2026-09-18T07:30:00+00:00',
-  jobPositionCount: 3,
-  jobPositionsNeedingWorkCount: 0,
   documentation: {
     state: 'issued',
     issuedCount: 23,
     totalCount: 23,
     lastGeneratedAt: '2026-09-20T10:00:00+00:00',
+  },
+  fireSafetyDocumentation: {
+    state: 'issued',
+    issuedCount: 24,
+    totalCount: 24,
+    lastGeneratedAt: '2026-10-01T10:00:00+00:00',
   },
   ...work,
 });
@@ -202,30 +206,39 @@ describe('clients list', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
-  it('shows which clients still need work on their positions and documentation', async () => {
+  it('shows where each client stands with its SSM and its PSI documentation', async () => {
     mockApi({
       list: () =>
         Response.json(
           page([
             listed(sampleClient, {
-              jobPositionCount: 0,
               documentation: {
                 state: 'none',
                 issuedCount: 0,
                 totalCount: 23,
                 lastGeneratedAt: null,
               },
+              fireSafetyDocumentation: {
+                state: 'none',
+                issuedCount: 0,
+                totalCount: 24,
+                lastGeneratedAt: null,
+              },
             }),
             listed(
               { ...sampleClient, id: 'b2', legalName: 'IN LUCRU SRL' },
               {
-                jobPositionCount: 5,
-                jobPositionsNeedingWorkCount: 2,
                 documentation: {
                   state: 'in_progress',
                   issuedCount: 18,
                   totalCount: 24,
                   lastGeneratedAt: '2026-09-20T10:00:00+00:00',
+                },
+                fireSafetyDocumentation: {
+                  state: 'in_progress',
+                  issuedCount: 1,
+                  totalCount: 24,
+                  lastGeneratedAt: '2026-10-01T10:00:00+00:00',
                 },
               }
             ),
@@ -235,21 +248,35 @@ describe('clients list', () => {
     });
     mountApp(authFixture(makeSession()).client, '/clients');
     const [none, working, done] = await screen.findAllByTestId('clients-row');
+    expect(screen.getByRole('columnheader', { name: /Documentație SSM/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /Documentație PSI/ })).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: /Posturi/ })).toBeNull();
     expect(within(none!).getByTestId('clients-documentation').textContent).toBe('Negenerată');
     expect(within(none!).queryByTestId('clients-documentation-progress')).toBeNull();
-    expect(within(none!).getByTestId('clients-positions-work').textContent).toBe('de adăugat');
+    expect(within(none!).getByTestId('clients-fire-safety-documentation').textContent).toBe(
+      'Negenerată'
+    );
+    expect(within(none!).queryByTestId('clients-fire-safety-documentation-progress')).toBeNull();
     expect(within(working!).getByTestId('clients-documentation').textContent).toBe('În lucru');
     expect(within(working!).getByTestId('clients-documentation-progress').textContent).toBe(
       '18 din 24 emise'
     );
-    expect(within(working!).getByTestId('clients-positions-work').textContent).toBe(
-      '2 de completat'
+    expect(within(working!).getByTestId('clients-fire-safety-documentation').textContent).toBe(
+      'În lucru'
     );
+    expect(
+      within(working!).getByTestId('clients-fire-safety-documentation-progress').textContent
+    ).toBe('1 din 24 emis');
     expect(within(done!).getByTestId('clients-documentation').textContent).toBe('Emisă');
-    expect(within(done!).queryByTestId('clients-positions-work')).toBeNull();
+    expect(within(done!).getByTestId('clients-fire-safety-documentation').textContent).toBe(
+      'Emisă'
+    );
+    expect(
+      within(done!).getByTestId('clients-fire-safety-documentation-progress').textContent
+    ).toBe('24 din 24 emise');
   });
 
-  it('sorts by documentation progress and by positions through the API', async () => {
+  it('sorts by the progress of either documentation set through the API', async () => {
     mockApi({ list: () => Response.json(page([listed()])) });
     const runtime = mountApp(authFixture(makeSession()).client, '/clients');
     const user = userEvent.setup();
@@ -258,14 +285,14 @@ describe('clients list', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ sort: 'documentation' })
     );
-    await user.click(screen.getByTestId('sort-jobPositionCount'));
+    await user.click(screen.getByTestId('sort-fireSafetyDocumentation'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ sort: 'jobPositionCount' })
+      expect(runtime.router.state.location.search).toEqual({ sort: 'fireSafetyDocumentation' })
     );
     const sorts = requests('/clients').map(([url]) =>
       new URL(String(url)).searchParams.get('sort')
     );
-    expect(sorts).toEqual(expect.arrayContaining(['documentation', 'jobPositionCount']));
+    expect(sorts).toEqual(expect.arrayContaining(['documentation', 'fireSafetyDocumentation']));
   });
 
   it('shows when each company became a client, newest first on the first click', async () => {

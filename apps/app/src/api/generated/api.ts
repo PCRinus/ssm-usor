@@ -310,6 +310,28 @@ export type ClientListResponseItemsItemDocumentation = {
   lastGeneratedAt: string | null;
 } | null;
 
+export type ClientListResponseItemsItemFireSafetyDocumentationState =
+  (typeof ClientListResponseItemsItemFireSafetyDocumentationState)[keyof typeof ClientListResponseItemsItemFireSafetyDocumentationState];
+
+export const ClientListResponseItemsItemFireSafetyDocumentationState = {
+  none: 'none',
+  in_progress: 'in_progress',
+  issued: 'issued',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientListResponseItemsItemFireSafetyDocumentation = {
+  state: ClientListResponseItemsItemFireSafetyDocumentationState;
+  /** @minimum 0 */
+  issuedCount: number;
+  /** @minimum 0 */
+  totalCount: number;
+  /** @nullable */
+  lastGeneratedAt: string | null;
+} | null;
+
 export type ClientListResponseItemsItem = {
   id: string;
   legalName: string;
@@ -348,18 +370,10 @@ export type ClientListResponseItemsItem = {
   archivedAt: string | null;
   /** @nullable */
   clientSince: string | null;
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  jobPositionCount: number | null;
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  jobPositionsNeedingWorkCount: number | null;
   /** @nullable */
   documentation: ClientListResponseItemsItemDocumentation;
+  /** @nullable */
+  fireSafetyDocumentation: ClientListResponseItemsItemFireSafetyDocumentation;
 };
 
 export interface ClientListResponse {
@@ -5382,8 +5396,8 @@ export const ListClientsSort = {
   legalName: 'legalName',
   cui: 'cui',
   currentEmployeeCount: 'currentEmployeeCount',
-  jobPositionCount: 'jobPositionCount',
   documentation: 'documentation',
+  fireSafetyDocumentation: 'fireSafetyDocumentation',
   clientSince: 'clientSince',
 } as const;
 
@@ -6220,7 +6234,7 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, "documentation" sorts by the number of issued documents, and "clientSince" by when the company became a client. A client carries its job positions and where its documentation set stands; a lead carries null for both, and its contract state instead.
+ * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, "documentation" and "fireSafetyDocumentation" sort by the number of issued documents of the occupational safety set and of the fire-safety set, and "clientSince" by when the company became a client. A client carries where each of its documentation sets stands; a lead carries null for both, and its contract state instead.
  * @summary List the organization's clients or its leads, active or archived
  */
 export const listClients = async (
