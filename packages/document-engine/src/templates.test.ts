@@ -840,8 +840,8 @@ describe('typesetting', () => {
 
   // A label takes its size from its list level, or without one from its paragraph's end mark,
   // which the originals left at 9 pt under 10 pt text.
-  it.each(['3.2_own_instructions.docx', ...fireFiles])(
-    '%s prints its list labels at the size of their text, and its dashes as en dashes',
+  it.each(typesetFiles)(
+    '%s prints its list labels at the size of their text, and its dashes as en dashes in Arial',
     (name) => {
       const zip = new PizZip(read(name));
       const numbering = zip.file('word/numbering.xml')?.asText() ?? '';
@@ -876,7 +876,14 @@ describe('typesetting', () => {
         const label =
           sizeOf(/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(level)?.[1]) ??
           sizeOf(/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(properties)?.[1]);
-        if ((label && label !== sizeOf(text)) || /<w:lvlText w:val="-"\/>/.test(level)) {
+        const dashFont = /<w:lvlText w:val="[-–]"\/>/.test(level)
+          ? /<w:rFonts [^>]*w:ascii="([^"]+)"/.exec(level)?.[1]
+          : undefined;
+        if (
+          (label && label !== sizeOf(text)) ||
+          /<w:lvlText w:val="-"\/>/.test(level) ||
+          (dashFont && dashFont !== 'Arial')
+        ) {
           mismatched.push(documentTextOf(paragraph).slice(0, 40));
         }
       }
