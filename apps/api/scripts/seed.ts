@@ -127,11 +127,11 @@ try {
       user.id
     );
     console.log(
-      `Added fire-safety facts to ${fire.facts} clients and ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
+      `Added fire-safety facts to ${fire.facts} clients, a smoking rule to ${fire.smoking} and facts to ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
     );
     const provider = await seedFireSafetyProvider(client);
     console.log(
-      `${provider.technician ? 'Named' : 'Kept'} the fire-safety technician and ${provider.authorization ? 'filled in' : 'kept'} the fire-safety authorization of the organization.`
+      `${provider.technician ? 'Named' : 'Kept'} the fire-safety technician, ${provider.certificate ? 'filled in' : 'kept'} the certificate and ${provider.authorization ? 'filled in' : 'kept'} the fire-safety authorization of the organization.`
     );
     const equipment = await seedProtectiveEquipment(client, organization.id, user.id);
     console.log(

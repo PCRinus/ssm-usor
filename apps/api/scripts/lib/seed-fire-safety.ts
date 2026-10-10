@@ -106,7 +106,7 @@ export const fireSafetyTechnician = {
 
 export const fireSafetyAuthorization = 'nr. 12 din 15.09.2026, ISU Timiș';
 
-// Each only while missing, as below: a technician or an authorization typed on the
+// Each only while missing, as below: a technician, a certificate or an authorization typed on the
 // organization page is kept.
 export async function seedFireSafetyProvider(db: SeedClient) {
   const technician = await db
@@ -118,6 +118,17 @@ export async function seedFireSafetyProvider(db: SeedClient) {
   if (technician.error) {
     throw new Error(`Could not seed the fire-safety technician: ${technician.error.message}`);
   }
+  const certificate = await db
+    .from('organizations')
+    .update({
+      fire_safety_technician_certificate: fireSafetyTechnician.fire_safety_technician_certificate,
+    })
+    .eq('id', seedOrganizationId)
+    .is('fire_safety_technician_certificate', null)
+    .select('id');
+  if (certificate.error) {
+    throw new Error(`Could not seed the technician's certificate: ${certificate.error.message}`);
+  }
   const authorization = await db
     .from('organizations')
     .update({ fire_safety_authorization: fireSafetyAuthorization })
@@ -127,7 +138,11 @@ export async function seedFireSafetyProvider(db: SeedClient) {
   if (authorization.error) {
     throw new Error(`Could not seed the fire-safety authorization: ${authorization.error.message}`);
   }
-  return { technician: technician.data.length > 0, authorization: authorization.data.length > 0 };
+  return {
+    technician: technician.data.length > 0,
+    certificate: certificate.data.length > 0,
+    authorization: authorization.data.length > 0,
+  };
 }
 
 const fireRoles: ResponsiblePersonRole[] = ['fire_safety_coordinator', 'fire_intervention_leader'];
@@ -139,7 +154,14 @@ export function fireRolesToAdd(persons: { roles: ResponsiblePersonRole[] }[]) {
 
 // Each fact is seeded only while it is missing, so a rerun leaves alone what was entered by hand.
 export async function seedFireSafety(db: SeedClient, clientIds: string[], createdBy: string) {
-  const counts = { facts: 0, workplaces: 0, persons: 0, equipment: 0, installations: 0 };
+  const counts = {
+    facts: 0,
+    smoking: 0,
+    workplaces: 0,
+    persons: 0,
+    equipment: 0,
+    installations: 0,
+  };
   if (clientIds.length === 0) return counts;
 
   const clients = await db
@@ -158,6 +180,16 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     .select('client_id');
   if (facts.error) throw new Error(`Could not seed fire-safety facts: ${facts.error.message}`);
   counts.facts = facts.data.length;
+
+  // A card saved before the smoking rule was asked for (ADR 019) would hold the set back.
+  const smoking = await db
+    .from('client_fire_safety')
+    .update({ smoking_policy: 'forbidden_everywhere' })
+    .in('client_id', clientIds)
+    .is('smoking_policy', null)
+    .select('client_id');
+  if (smoking.error) throw new Error(`Could not seed the smoking rule: ${smoking.error.message}`);
+  counts.smoking = smoking.data.length;
 
   const filled = await db
     .from('client_workplaces')
