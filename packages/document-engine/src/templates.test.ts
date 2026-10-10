@@ -428,7 +428,8 @@ describe('fire-safety set', () => {
       'prin autorizația nr. 12 din 15.09.2026, ISU Timiș, pentru îndeplinirea atribuțiilor'
     );
     expect(text).toContain('(Preluare din Legea 307/2006 – Art. 27 alin. (1))');
-    for (const letter of 'abcdefghijklm') expect(text).toMatch(new RegExp(`^${letter}\\)\\S`, 'm'));
+    for (const letter of 'abcdefghijklm')
+      expect(text).toMatch(new RegExp(`^${letter}\\) \\S`, 'm'));
     const unauthorized = documentText(
       renderDocument(read(decision), {
         ...stageTwoData,

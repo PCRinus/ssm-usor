@@ -139,6 +139,19 @@ describe('a quoted article', () => {
     expect(quote!.lastParagraph).toBe(0);
   });
 
+  it('reads digits set as superscript as superscript characters', () => {
+    const superscript = (text: string) =>
+      `<w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:t>${text}</w:t></w:r>`;
+    const [quote] = quotes(
+      '<w:p><w:pPr><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:pPr>' +
+        '<w:r><w:t xml:space="preserve">(Preluare din Legea 307/2006 – Art. 19) r</w:t></w:r>' +
+        `${superscript('16')}<w:r><w:t xml:space="preserve">) la art. 30</w:t></w:r>${superscript('3')}` +
+        '<w:r><w:t xml:space="preserve"> alin. (4</w:t></w:r>' +
+        `${superscript('4')}<w:r><w:t>).</w:t></w:r></w:p>`
+    );
+    expect(quote!.text).toBe('r¹⁶) la art. 30³ alin. (4⁴).');
+  });
+
   it('is not also a reference to its act, while the act that amended it is', () => {
     expect(
       cite('(Preluare din H.G. 1425/2006 – Art. 99 – conf. H.G. 767/2016 – pct. 6) Durata.').map(
