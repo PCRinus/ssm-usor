@@ -4,6 +4,7 @@ import { type DocumentFacts, missingDocumentData } from './context';
 import { facts, officeId, workshopId } from './context.fixture';
 import {
   buildFireSafetyContext,
+  buildPartialFireSafetyContext,
   fireSafetyGapConcerns,
   missingFireSafetyData,
 } from './fire-safety';
@@ -347,6 +348,51 @@ describe('the fire-safety context', () => {
     expect(setRules.fire_safety.data(facts, 'fire_registers', 4)).toEqual(
       buildFireSafetyContext(facts)
     );
+  });
+});
+
+describe('a fire-safety document generated again', () => {
+  const stageTwoGaps: DocumentFacts = {
+    ...facts,
+    responsiblePersons: [],
+    jobPositions: [],
+    workplaces: facts.workplaces.map((workplace) => ({ ...workplace, assemblyPoint: null })),
+    fireSafety: { card: null, equipment: [], installations: [] },
+  };
+
+  it('is built without the fire object while any of its data is missing, and with the rest', () => {
+    expect(missingFireSafetyData(stageTwoGaps)).toEqual([
+      'fire.trainingSchedule',
+      'fire.waste',
+      'responsible.workplace_manager',
+      'responsible.fire_safety_coordinator',
+      'responsible.fire_intervention_leader',
+      'positions.any',
+      'fire.workplaces',
+      'fire.equipment',
+    ]);
+    const context = buildPartialFireSafetyContext(stageTwoGaps);
+    expect(Object.keys(context).sort()).toEqual([
+      'branding',
+      'client',
+      'fireSafetyTechnician',
+      'issueDate',
+      'provider',
+    ]);
+    expect(buildFireSafetyContext(facts)).toMatchObject(context);
+  });
+
+  it('leaves out the name of the provider, the technician or the client that a gap is in', () => {
+    const context = buildPartialFireSafetyContext({
+      ...facts,
+      organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
+      client: { ...facts.client, representativeRole: null },
+    });
+    expect(Object.keys(context).sort()).toEqual(['branding', 'fire', 'issueDate']);
+  });
+
+  it('is equal to the whole context when nothing is missing', () => {
+    expect(buildPartialFireSafetyContext(facts)).toEqual(buildFireSafetyContext(facts));
   });
 });
 

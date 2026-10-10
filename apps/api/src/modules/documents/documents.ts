@@ -92,8 +92,7 @@ export type Actor = { userId: string; organizationId: string; createdBy: string 
 /**
  * Whether the stored facts would print differently from what the draft was generated from.
  * Nothing to compare for an uploaded file. Data missing that this document prints changes it;
- * data missing elsewhere leaves the rest to compare with, or, in a set that cannot be built
- * with gaps, nothing to say until it is in.
+ * data missing elsewhere leaves the rest to compare with.
  */
 function dataChanged(
   document: DocumentRow,
@@ -124,7 +123,6 @@ function dataChanged(
   const printed = revision.data_snapshot as Record<string, unknown>;
   const missing = rules.missing(input, document.type_key);
   if (missing.some((code) => rules.concerns(code, Object.keys(printed)))) return true;
-  if (missing.length > 0 && !rules.buildsWithGaps) return false;
   const current = rules.data(input, document.type_key, document.decision_number);
   return Object.entries(printed).some(
     ([name, value]) => stableJson(current[name]) !== stableJson(value)
@@ -810,7 +808,6 @@ export async function regenerateDocument(
       : null;
   const input = { ...facts, issueDate, firstDecisionNumber: fireFirstNumber ?? 1 };
   const missing = rules.missing(input, document.type_key);
-  if (missing.length > 0 && !rules.buildsWithGaps) throw missingDocumentDataError(missing);
   const [template] = await builtInTemplates(db, [document.type_key]);
   if (!template) {
     throw new ApiError('conflict', 'This document has no template to be generated from.');
