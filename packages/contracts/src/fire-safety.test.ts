@@ -128,6 +128,18 @@ describe('updateClientFireSafetyRequestSchema', () => {
       updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: ['Carton', 'carton'] }).success
     ).toBe(false);
   });
+
+  it('takes a smoking place of up to 240 characters, trimmed', () => {
+    expect(
+      updateClientFireSafetyRequestSchema.parse({
+        smokingPolicy: 'designated_places',
+        smokingPlace: '  în curtea interioară, lângă poarta de acces auto ',
+      }).smokingPlace
+    ).toBe('în curtea interioară, lângă poarta de acces auto');
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ smokingPlace: 'x'.repeat(241) }).success
+    ).toBe(false);
+  });
 });
 
 describe('the fire-safety fields elsewhere', () => {

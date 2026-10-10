@@ -69,13 +69,17 @@ export type UpdateOrganizationCompanyDetailsRequest = z.infer<
   typeof updateOrganizationCompanyDetailsRequestSchema
 >;
 
-/** The certificate of authorization and the fire-safety technician. Owners write them. */
+/**
+ * The certificate of authorization, the fire-safety technician and the fire-safety authorization
+ * (Legea 307/2006 art. 12^2). Owners write them.
+ */
 export const organizationAuthorizationsSchema = z.object({
   authorizationCertificateNumber: z.string().nullable(),
   authorizationCertificateDate: z.iso.date().nullable(),
   authorizationCertificateIssuer: z.string().nullable(),
   fireSafetyTechnicianName: z.string().nullable(),
   fireSafetyTechnicianCertificate: z.string().nullable(),
+  fireSafetyAuthorization: z.string().nullable(),
 });
 
 export type OrganizationAuthorizations = z.infer<typeof organizationAuthorizationsSchema>;
@@ -95,6 +99,7 @@ export const updateOrganizationAuthorizationsRequestSchema = z.object({
   authorizationCertificateIssuer: optionalText(2, 200),
   fireSafetyTechnicianName: optionalText(2, 160),
   fireSafetyTechnicianCertificate: optionalText(1, 80),
+  fireSafetyAuthorization: optionalText(2, 200),
 });
 
 export type UpdateOrganizationAuthorizationsRequest = z.infer<
