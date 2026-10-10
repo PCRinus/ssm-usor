@@ -5,6 +5,7 @@ import { type SeedClient, seedOrganizationId } from './seed-organization';
 
 type Tables = Database['public']['Tables'];
 type FireSafetyInsert = Tables['client_fire_safety']['Insert'];
+type SmokingRule = Pick<FireSafetyInsert, 'smoking_policy' | 'smoking_place'>;
 type WorkplaceUpdate = Tables['client_workplaces']['Update'];
 type EquipmentInsert = Tables['fire_equipment']['Insert'];
 type InstallationInsert = Tables['fire_installations']['Insert'];
@@ -16,7 +17,21 @@ interface ClientCalendar {
   training_day_to: number | null;
 }
 
-export function fireSafetyFor(client: ClientCalendar, createdBy: string): FireSafetyInsert {
+// The three ways decision 4 reads, in turn, so a local review sees each of them (ADR 019).
+const smokingRules: SmokingRule[] = [
+  { smoking_policy: 'forbidden_everywhere', smoking_place: null },
+  {
+    smoking_policy: 'designated_places',
+    smoking_place: 'în curtea interioară, lângă poarta de acces auto',
+  },
+  { smoking_policy: 'designated_places', smoking_place: null },
+];
+
+export function fireSafetyFor(
+  client: ClientCalendar,
+  createdBy: string,
+  index = 0
+): FireSafetyInsert {
   return {
     client_id: client.id,
     organization_id: seedOrganizationId,
@@ -27,7 +42,7 @@ export function fireSafetyFor(client: ClientCalendar, createdBy: string): FireSa
     training_first_month: client.training_first_month ?? 2,
     training_day_from: client.training_day_from ?? 2,
     training_day_to: client.training_day_to ?? 7,
-    smoking_policy: 'forbidden_everywhere',
+    ...smokingRules[index % smokingRules.length],
     waste_kinds: ['deșeuri de carton, hârtie și plastic', 'deșeuri menajere'],
     waste_contractor: 'Salubritate Demo S.R.L.',
     created_by: createdBy,
@@ -84,6 +99,37 @@ export function fireMeansFor(
   };
 }
 
+export const fireSafetyTechnician = {
+  fire_safety_technician_name: 'Radu Stan',
+  fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+} satisfies Tables['organizations']['Update'];
+
+export const fireSafetyAuthorization = 'nr. 12 din 15.09.2026, ISU Timiș';
+
+// Each only while missing, as below: a technician or an authorization typed on the
+// organization page is kept.
+export async function seedFireSafetyProvider(db: SeedClient) {
+  const technician = await db
+    .from('organizations')
+    .update(fireSafetyTechnician)
+    .eq('id', seedOrganizationId)
+    .is('fire_safety_technician_name', null)
+    .select('id');
+  if (technician.error) {
+    throw new Error(`Could not seed the fire-safety technician: ${technician.error.message}`);
+  }
+  const authorization = await db
+    .from('organizations')
+    .update({ fire_safety_authorization: fireSafetyAuthorization })
+    .eq('id', seedOrganizationId)
+    .is('fire_safety_authorization', null)
+    .select('id');
+  if (authorization.error) {
+    throw new Error(`Could not seed the fire-safety authorization: ${authorization.error.message}`);
+  }
+  return { technician: technician.data.length > 0, authorization: authorization.data.length > 0 };
+}
+
 const fireRoles: ResponsiblePersonRole[] = ['fire_safety_coordinator', 'fire_intervention_leader'];
 
 export function fireRolesToAdd(persons: { roles: ResponsiblePersonRole[] }[]) {
@@ -104,7 +150,9 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   const facts = await db
     .from('client_fire_safety')
     .upsert(
-      clients.data.map((client) => fireSafetyFor(client, createdBy)),
+      [...clients.data]
+        .sort((a, b) => clientIds.indexOf(a.id) - clientIds.indexOf(b.id))
+        .map((client, index) => fireSafetyFor(client, createdBy, index)),
       { onConflict: 'client_id', ignoreDuplicates: true }
     )
     .select('client_id');
