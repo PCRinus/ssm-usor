@@ -14,6 +14,7 @@ import {
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedEvaluationProfiles } from './lib/seed-evaluation-profiles';
+import { seedFireSafety } from './lib/seed-fire-safety';
 import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
@@ -118,6 +119,15 @@ try {
     const documentData = await seedDocumentData(client, clients, user.id);
     console.log(
       `Added ${documentData.workplaces} registered offices and ${documentData.persons} responsible persons to clients that had none.`
+    );
+    // The clients the seed completes for the occupational safety set, and only those.
+    const fire = await seedFireSafety(
+      client,
+      clients.filter((row) => row.legal_representative_name).map((row) => row.id),
+      user.id
+    );
+    console.log(
+      `Added fire-safety facts to ${fire.facts} clients and ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
     );
     const equipment = await seedProtectiveEquipment(client, organization.id, user.id);
     console.log(
