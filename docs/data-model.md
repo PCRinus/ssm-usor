@@ -215,20 +215,24 @@ but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
 | `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                   |
 
 This is the fire-safety training schedule, and it is not linked to the occupational safety one
-on `clients`: the app fills the form from those columns only while no row exists, as a
-suggestion, and never reads them for a fire-safety document. Members of the organization read
-and write the row; the lead trigger refuses one under a lead (`CLL01`) and the archived-client
-trigger freezes it (`CLA01`), as on `client_workplaces`.
+on `clients`. While no row exists, which the API reports, the app opens the form on a starting
+state: 2 hours, 3 months for both categories, and `clients.training_first_month`,
+`training_day_from` and `training_day_to` when they are set. Nothing else is copied:
+`periodic_training_minutes` belongs to another law, and the occupational safety administrative
+interval allows up to 12 months where OMAI 712/2005 allows 6. No fire-safety document reads the
+columns of `clients`.
 
-**Workplaces.** `client_workplaces` gains seven nullable columns. `activity` ("Gelaterie",
+**Workplaces.** `client_workplaces` gains eight nullable columns. `activity` ("Gelaterie",
 "Birouri", 2 to 160 characters) is printed by decision 5, the list of means and the posted
 sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilată". `extinguisher_norm` is
 the row of OMAI 163/2007 annex 6 that applies, the list's "Norma de dotare", as
 `fire_extinguisher_norm`: `administrative_300`, `commercial_200`, `residential_level`,
 `mixed_300` or `other_150`. `assembly_point` (2 to 240) is printed by the posted sheet and
 decision 5. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
-each) are points I.1, I.2 and I.3 of the posted sheet. A unique index on `(id, client_id)`
-lets the tables below, and a responsible person, point at a workplace of the same client.
+each) are points I.1, I.2 and I.3 of the posted sheet, and `specific_measures` (2 to 600) is
+its point I.5, printed empty when null. Point I.4, the general measures, is template text, the
+same at every workplace, and is not stored. A unique index on `(id, client_id)` lets the
+tables below, and a responsible person, point at a workplace of the same client.
 The fire risk level is not stored: no document prints it.
 
 From the area and the norm the app shows the orientative minimum of extinguishers,
@@ -237,7 +241,8 @@ From the area and the norm the app shows the orientative minimum of extinguisher
 never stored, never printed and never a reason to refuse generation.
 
 **Responsible persons.** `responsible_person_role` gains `fire_safety_coordinator` and
-`fire_intervention_leader`, and the check on `roles` becomes one to six. A person gains an
+`fire_intervention_leader`, seven roles in all, and the check on `roles` follows the list: from
+one role up to its length, as the contracts' maximum already does. A person gains an
 optional `workplace_id`, tied by a composite foreign key on `(workplace_id, client_id)` to
 `client_workplaces (id, client_id)`, so it names a workplace of the same client or none. None
 means every workplace: the posted sheet of a workplace prints the persons whose `workplace_id`
@@ -272,12 +277,17 @@ the equipment and deleted the same way. `kind` is a `fire_installation_kind`:
 none. The list of means prints its exterior-hydrant accessories table only when a workplace has
 an `exterior_hydrants` row.
 
+The three tables, `client_fire_safety`, `fire_equipment` and `fire_installations`, are guarded
+as `client_workplaces` is: members of the organization read and write them under the same
+policies, `set_updated_at` keeps `updated_at`, the lead trigger refuses a row under a lead
+(`CLL01`), and the archived-client trigger freezes them (`CLA01`).
+
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
-columns above set on every active workplace), `fire.equipment` (an extinguisher in every active
-workplace), `responsible.fire_safety_coordinator` and `responsible.fire_intervention_leader`
-(an active person in each role). It also asks the existing `responsible.workplace_manager` and
+columns above other than `specific_measures` set on every active workplace), `fire.equipment`
+(an extinguisher in every active workplace), `responsible.fire_safety_coordinator` and
+`responsible.fire_intervention_leader` (an active person in each role). It also asks the existing `responsible.workplace_manager` and
 `positions.any`. Any of them refuses the whole set's generation.
 
 **What the templates read.** Fire-safety templates read these facts from one merge object,

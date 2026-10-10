@@ -40,7 +40,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Training schedule** (_program de instruire_): the client's periodic training plan. For each staff category, it records an interval or the specialist's explicit decision that the category does not apply; a blank choice remains undecided.
 
-**Fire-safety training schedule** (_programul de instruire PSI_): the client's periodic fire-safety training plan under OMAI 712/2005: a duration in hours, an interval for each staff category, the first month and its days. Separate from the occupational safety training schedule, which only suggests its values the first time it is filled in. ADR 018. Avoid: PSI interval as a setting of the training schedule.
+**Fire-safety training schedule** (_programul de instruire PSI_): the client's periodic fire-safety training plan under OMAI 712/2005: a duration in hours, an interval for each staff category, the first month and its days. Separate from the occupational safety training schedule, which lends it only its first month and days while it is still empty. ADR 018. Avoid: PSI interval as a setting of the training schedule.
 
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 

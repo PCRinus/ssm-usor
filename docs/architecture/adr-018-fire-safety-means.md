@@ -22,7 +22,7 @@ The legal texts were read on 2026-10-10. OMAI 712/2005, as amended by OMAI 786/2
 
 The sample pack prints these facts about the client. Decision 1 names one person, the shop's manager, in every designation, with the provider's technician "după caz" beside them, and a first-intervention team of a named leader and "personalul aflat la program". Decision 2 names the posts of each staff category, "Manager magazin" as administrative and two execution posts, trains both every three months for two hours, and names the head of the workplace as trainer. Decision 3 names who answers for open-fire work and leaves the permit to "coordonatorul privind apărarea împotriva incendiilor". Decision 5 names the workplace by its activity, "Punct de lucru, Gelaterie", and the person who answers for each seasonal measure. Decision 8 lists the waste collected and the authorized firm it goes to. The list of means prints, per workplace, its used area, its norm from annex 6, and counts of extinguishers by type, wheeled extinguishers, sand boxes and fire posts, then annex 6 itself, then a table of exterior-hydrant accessories.
 
-The pack contradicts itself on the one fact it counts. The list of means counts two P6 extinguishers. Decision 7, the posted instructions of stage 3, says two P6 in a sentence and lists two P6 and one G3 in the table under it. Typed one by one, the documents drifted apart; generated, both must read one inventory.
+The pack contradicts itself on the one fact it counts. The list of means counts two P6 and one G3 extinguishers, in the workplace's row and again in its total. Decision 7, the posted instructions of stage 3, lists the same two P6 and one G3 in its table, and the sentence right above that table says two P6 alone. Typed by hand, the same count drifted within one page; generated, both documents must read one inventory.
 
 The app already stores part of this. A client has workplaces (`client_workplaces`: a name, the registered-office flag, an address) and responsible persons with roles, the workplace manager among them. Its occupational safety training schedule sits on `clients`: a duration of 60, 90 or 120 minutes, an interval per staff category, the first month and the days. A job position has a staff category. The organization keeps the fire-safety technician's name and certificate, and `document_generations.first_decision_number` exists, left null by the fire-safety generation since ADR 016.
 
@@ -44,19 +44,21 @@ Annex 6 is a hint and nothing more. Each workplace records which of its five row
 
 `client_fire_safety` holds one row per client, created on the first save, so a client nobody has opened for fire safety has no row rather than a row of nulls. It carries the **fire-safety training schedule** (_programul de instruire PSI_), the smoking policy and the waste.
 
-The fire-safety training schedule is not the occupational safety one. The two come from different law, OMAI 712/2005 here and H.G. 1425/2006 there, and their bounds differ: two hours at least against a choice of 60, 90 or 120 minutes, and art. 26's ranges against the intervals of the first set. It records the duration of a periodic training in hours (2 to 8), an interval in months (1 to 6) for each of the two staff categories a job position already has, the first month, and the days of that month. Reading the occupational safety columns was rejected because one client can rightly have different answers, and a change made for one law would silently change the documents of the other. The first time the card is edited, the app fills the form from the occupational safety schedule as a suggestion; after that the two never touch.
+The fire-safety training schedule is not the occupational safety one. The two come from different law, OMAI 712/2005 here and H.G. 1425/2006 there, and their bounds differ: two hours at least against a choice of 60, 90 or 120 minutes, and art. 26's ranges against the intervals of the first set. It records the duration of a periodic training in hours (2 to 8), an interval in months (1 to 6) for each of the two staff categories a job position already has, the first month, and the days of that month. Reading the occupational safety columns was rejected because one client can rightly have different answers, and a change made for one law would silently change the documents of the other.
 
-Every client gets the full set of art. 17 acts whatever its headcount, both staff categories default to a three-month interval and the periodic training to two hours: the sample's values, inside art. 26's ranges. These are provisional, waiting on ADR 016's questions 2 and 5; what may change is wording, not the data.
+While a client has no row, the card opens on one starting state: two hours, the law's minimum and the sample's value; three months for both categories, the sample's value; and the first month and the days of the occupational safety schedule, when they are set, because the calendar is the client's while the law is not. Nothing else is carried over: the occupational safety duration is a choice of minutes under another law, and its administrative interval allows twelve months where OMAI 712/2005 allows six. The API says whether the row exists, so the app applies the starting state only then; a saved row is shown as saved, and after that the two schedules never touch.
+
+Every client gets the full set of art. 17 acts whatever its headcount, and the starting values above are the sample's, inside art. 26's ranges. Decision 2 names, at every client whatever its headcount, the technician for the general introductory training and the workplace manager, with the technician "după caz", for the workplace and periodic training, as the sample does; at a client of at most nine employees that also meets art. 31(2), since the workplace manager is the client's own person. These are provisional, waiting on ADR 016's questions 2 and 5, and question 2 stays open; what may change is wording, not the data.
 
 The smoking policy, `forbidden_everywhere` or `designated_places`, is stored now and may stay empty. Nothing prints it until the smoking decision of stage 3, which waits on ADR 016's question 3, and no readiness asks for it; it sits on this card because that is where a specialist settles the client's fire-safety rules.
 
 The waste is a list of kinds, at most twelve short texts ("deșeuri de carton, hârtie, plastic"), and the firm that collects them, optional. Decision 8 prints both.
 
-The table follows `client_workplaces`: members of the organization read and write it, a lead has no row, and an archived client's row is frozen (`CLA01`).
+`client_fire_safety`, `fire_equipment` and `fire_installations` follow `client_workplaces` alike: members of the organization read and write them under the same row policies, `updated_at` is kept by the same trigger, a lead has none of them, and an archived client's rows are frozen (`CLA01`).
 
 ### Two new roles, and the head of the workplace
 
-The responsible persons gain two roles: the **fire-safety coordinator** (_coordonator privind apărarea împotriva incendiilor_, the sample's own term, from decision 3) and the **first-intervention leader** (_șef echipă de primă intervenție_). They are roles of a responsible person, not names on the fire-safety card, because a responsible person is already whoever holds a role in the client's safety organization, employee or not, and one person often holds several: in the sample the shop's manager holds every designation. A person may now hold one to six roles.
+The responsible persons gain two roles: the **fire-safety coordinator** (_coordonator privind apărarea împotriva incendiilor_, the sample's own term, from decision 3) and the **first-intervention leader** (_șef echipă de primă intervenție_). They are roles of a responsible person, not names on the fire-safety card, because a responsible person is already whoever holds a role in the client's safety organization, employee or not, and one person often holds several: in the sample the shop's manager holds every designation. A person may hold from one role up to every role in the list; the limit follows the list of roles, seven from now on.
 
 The head of the workplace, who completes the posted sheet and trains at the workplace, is the existing workplace manager. A role of its own was rejected for now: asking for the same person twice invites two different answers. Whether the two are the same is ADR 016's question 1, tracked as issue #372; until it is answered they are, provisionally.
 
@@ -66,7 +68,9 @@ A responsible person can be tied to one workplace, optionally; none means all of
 
 ### What a workplace adds
 
-A workplace gains seven columns, all optional in the database: its **activity** ("Gelaterie", "Birouri"), which decision 5, the list of means and the posted sheet print; its floor area in square metres and its annex 6 norm, which the list prints as "Aria utilată" and "Norma de dotare" and the hint reads; its assembly point; and three texts of section I of the posted sheet, the combustible materials, the ignition sources, and the equipment and means of work. The three texts are what only someone who knows the place can write; the dialog shows examples from annex 1 as placeholders.
+A workplace gains eight columns, all optional in the database: its **activity** ("Gelaterie", "Birouri"), which decision 5, the list of means and the posted sheet print; its floor area in square metres and its annex 6 norm, which the list prints as "Aria utilată" and "Norma de dotare" and the hint reads; its assembly point; three texts of section I of the posted sheet, the combustible materials (I.1), the ignition sources (I.2), and the equipment and means of work (I.3); and the specific measures of point I.5. The texts are what only someone who knows the place can write; the dialog shows examples from annex 1 as placeholders. Generation asks for the first seven; the specific measures are optional, and the sheet prints that point empty when they are not set.
+
+Point I.4, the general measures, is the template's own text, the same at every workplace: open fire only with a permit, smoking as the client's rule says, combustible waste collected daily, access and evacuation routes kept free, the electrical panel and the installations checked at closing time. It is not stored, since nothing in it differs between workplaces.
 
 The fire risk level of a space is not stored. No document of this stage prints it, and a column nobody prints is a field users fill for nothing.
 
@@ -76,7 +80,7 @@ There is no "Date PSI" tab. The client page was reorganized in September 2026 be
 
 - the fire-safety training schedule, the smoking policy and the waste, on "Instruire și responsabili", as a card "Instruire PSI" beside the occupational safety training card, in the same frame and edited in place;
 - the two roles and the optional workplace, in the responsible-person dialog on the same tab;
-- the activity, area, norm, assembly point and the three texts, in the workplace dialog under "Detalii", as a group "Apărare împotriva incendiilor", with a muted "Date PSI incomplete" in the workplaces table on every row that lacks one;
+- the activity, area, norm, assembly point and the four texts, in the workplace dialog under "Detalii", as a group "Apărare împotriva incendiilor", with a muted "Date PSI incomplete" in the workplaces table on every row that lacks one of the seven required;
 - the equipment and the installations, on "Mijloace PSI".
 
 ### Readiness stays whole
@@ -85,7 +89,7 @@ The fire-safety set is still generated whole or not at all: any missing fact blo
 
 - `fire.trainingSchedule`: the duration, both intervals, the first month and both days;
 - `fire.waste`: at least one kind of waste;
-- `fire.workplaces`: the seven new facts on every active workplace;
+- `fire.workplaces`: the seven required facts on every active workplace, the specific measures not among them;
 - `fire.equipment`: at least one extinguisher in every active workplace, so a workplace without one is a row of missing data, not a document that prints nothing;
 - `responsible.fire_safety_coordinator` and `responsible.fire_intervention_leader`: an active person in each role;
 - `responsible.workplace_manager` and `positions.any`, the existing codes, because the posted sheet and decision 2 print them.
@@ -122,7 +126,7 @@ From this stage the fire-safety generation asks for the first decision number, i
 - A client with several workplaces has more to fill in before the first fire-safety generation: seven facts and at least one extinguisher per workplace, and the generation dialog has to say which workplace lacks what.
 - Every extinguisher is entered one by one, which is more typing than a count for a client with many units, once.
 - The client page gains its ninth tab. On a phone the tab bar already scrolls, and the tab's tables stack their cells at 360 px.
-- `responsible_person_role`, the contracts' role list and the responsible-person request grow by two roles; the occupational safety documents ignore them.
+- `responsible_person_role`, the contracts' role list and the responsible-person request grow by two roles, and the limit on a person's roles grows with them; the occupational safety documents ignore them.
 - A fire-safety draft goes "Date modificate" on any edit of any fire-safety fact, not only those it prints, until staleness is computed per document.
 - Printed decision numbers have gaps until stage 3: the binder goes from decision 3 to decision 5 and from 5 to 8.
 - The wording of decisions 1 and 2 and of the posted sheet follows provisional defaults. When the provider answers ADR 016's questions 1, 2, 4 and 5, the templates change and the data stays.
