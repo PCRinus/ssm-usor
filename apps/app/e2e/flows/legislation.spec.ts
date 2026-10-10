@@ -34,7 +34,7 @@ test('a document behind its template is regenerated for every client from the Le
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 13 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 16 documente.')).toBeVisible();
 
   const title = 'Registru de evidență a controlului stingătoarelor de incendiu';
   const version = await putBehindItsTemplate(clientId, 'fire_extinguisher_register');
