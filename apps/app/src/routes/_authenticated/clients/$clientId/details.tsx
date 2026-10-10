@@ -13,6 +13,7 @@ import {
   focusAmong,
   focusSearch,
   legalRepresentativeFocus,
+  workplacesFocus,
 } from '@/features/missing-data/focus';
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/details')({
@@ -41,7 +42,12 @@ function ClientDetailsPage() {
         userId={userId}
         focus={focusAmong(focus, legalRepresentativeFocus)}
       />
-      <WorkplacesCard client={client} userId={userId} readOnly={readOnly} />
+      <WorkplacesCard
+        client={client}
+        userId={userId}
+        readOnly={readOnly}
+        focus={focusAmong(focus, workplacesFocus)}
+      />
       <ContactCard client={client} readOnly={readOnly} />
       {isOwner && <OwnerNotesCard clientId={client.id} userId={userId} readOnly={readOnly} />}
     </div>

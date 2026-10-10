@@ -79,13 +79,20 @@ describe('templates outside the pack', () => {
   });
 });
 
-// ADR 016: a set of its own, in its own folder, merged with the shared facts and the technician
-// only. A name of the occupational safety set would mark these drafts as changed when it does.
+// ADR 016: a set of its own, in its own folder, merged with the shared facts, the technician
+// and, from stage 2 (ADR 018), the `fire` object only. A name of the occupational safety set
+// would mark these drafts as changed when it does.
 describe('fire-safety set', () => {
   const fireUrl = new URL('fire/', templatesUrl);
   const manifest = JSON.parse(readFileSync(new URL('manifest.json', fireUrl), 'utf8')) as {
-    templates: { number: string; typeKey: string; title: string; file: string }[];
+    templates: { number: string; typeKey: string; title: string; file: string; stage: number }[];
   };
+  const stageOne = manifest.templates
+    .filter((entry) => entry.stage === 1)
+    .map((entry) => `fire/${entry.file}`);
+  const stageTwo = manifest.templates
+    .filter((entry) => entry.stage === 2)
+    .map((entry) => `fire/${entry.file}`);
   const allowed = [
     'branding',
     'client.legalName',
@@ -104,6 +111,91 @@ describe('fire-safety set', () => {
     provider: { legalName: 'S.C. SERVICIU EXTERN S.R.L.' },
     fireSafetyTechnician: { name: 'Dan MARIN' },
   };
+  const person = { name: 'Ion VLAD', jobTitle: 'Șef magazin' };
+  const workplace = {
+    first: true,
+    name: 'Magazin',
+    activity: 'Gelaterie',
+    address: 'Timișoara, județul Timiș, Str. Lungă 5',
+    floorAreaM2: 120,
+    normLabel: 'Clădiri comerciale (1 buc./200 m²)',
+    assemblyPoint: 'Parcarea din spate',
+    combustibleMaterials: 'Cartoane',
+    ignitionSources: 'Instalația electrică',
+    fireRiskEquipment: 'Vitrine frigorifice',
+    specificMeasures: 'Vitrinele se opresc noaptea.',
+    extinguishers: [
+      { code: 'P6', agentLabel: 'Pulbere', capacityLabel: '6 kg', wheeled: false, count: 2 },
+      { code: 'P50', agentLabel: 'Pulbere', capacityLabel: '50 kg', wheeled: true, count: 1 },
+    ],
+    extinguisherCount: 3,
+    otherEquipment: [{ kindLabel: 'Ladă cu nisip', count: 1 }],
+    installations: [{ kindLabel: 'Hidranți interiori', description: 'Unul pe nivel' }],
+    hasInstallations: true,
+    hasExteriorHydrants: true,
+    hasInteriorHydrants: true,
+    manager: person,
+    firstIntervention: [{ ...person, roleLabel: 'șef echipă de primă intervenție' }],
+    firstInterventionNames: 'Ion VLAD',
+    interventionLeaderName: 'Ion VLAD',
+  };
+  const fire = {
+    decisionNumbers: {
+      organization: '4 PSI',
+      training: '5 PSI',
+      openFire: '6 PSI',
+      seasons: '8 PSI',
+      waste: '11 PSI',
+    },
+    schedule: {
+      periodicHours: 2,
+      periodicLabel: '2 ore',
+      administrativeIntervalMonths: 6,
+      administrativeIntervalLabel: '6 LUNI',
+      administrativeMonths: 'lunile februarie și august',
+      workerIntervalMonths: 3,
+      workerIntervalLabel: '3 LUNI',
+      workerMonths: 'lunile februarie, mai, august și noiembrie',
+      firstMonth: 2,
+      firstMonthLabel: 'februarie',
+      dayFrom: 2,
+      dayTo: 7,
+    },
+    staff: {
+      administrative: ['Manager magazin'],
+      execution: ['Barman'],
+      administrativeText: 'Manager magazin',
+      executionText: 'Barman',
+    },
+    coordinator: person,
+    interventionLeader: person,
+    workplaceManagers: [{ ...person, workplaceName: null }],
+    designated: [person],
+    workplaces: [workplace, { ...workplace, first: false, name: 'Depozit' }],
+    hasExteriorHydrants: true,
+    waste: { kinds: ['deșeuri de carton'], contractor: 'S.C. ECO S.R.L.' },
+  };
+  // Every condition the other way: no contractor, no manager at a workplace, nothing optional.
+  const sparse = {
+    ...fire,
+    staff: { ...fire.staff, administrative: [], administrativeText: null },
+    workplaces: [
+      {
+        ...workplace,
+        specificMeasures: '',
+        otherEquipment: [],
+        installations: [],
+        hasInstallations: false,
+        hasExteriorHydrants: false,
+        hasInteriorHydrants: false,
+        manager: null,
+        firstIntervention: [],
+      },
+    ],
+    hasExteriorHydrants: false,
+    waste: { kinds: ['deșeuri menajere'], contractor: null },
+  };
+  const stageTwoData = { ...data, issueDate: '19.01.2026', fire };
 
   it('are the files of their manifest, named after their numbers and their types', () => {
     expect(manifest.templates.map((entry) => `fire/${entry.file}`).sort()).toEqual(
@@ -113,17 +205,112 @@ describe('fire-safety set', () => {
       expect(entry.file).toBe(`${entry.number}_${entry.typeKey}.docx`);
       expect(entry.typeKey).toMatch(/^fire_[a-z0-9_]{1,54}$/);
       expect(entry.title).toBeTruthy();
+      expect([1, 2]).toContain(entry.stage);
     }
     expect(new Set(manifest.templates.map((entry) => entry.typeKey)).size).toBe(
       manifest.templates.length
     );
   });
 
-  it.each(fireFiles)('%s asks only for the shared facts and the technician', (name) => {
+  it.each(stageOne)('%s asks only for the shared facts and the technician', (name) => {
     expect(
       templatePlaceholders(read(name)).filter((placeholder) => !allowed.includes(placeholder))
     ).toEqual([]);
     expect(documentText(renderDocument(read(name), data))).not.toContain('{{');
+  });
+
+  // Inside a loop a name is the item's, so only the dotted ones are held to the list.
+  it.each(stageTwo)('%s asks for the shared facts and the `fire` object only', (name) => {
+    expect(
+      templatePlaceholders(read(name)).filter(
+        (placeholder) =>
+          placeholder.includes('.') &&
+          placeholder !== '.' &&
+          !allowed.includes(placeholder) &&
+          !placeholder.startsWith('fire.')
+      )
+    ).toEqual([]);
+  });
+
+  it.each(
+    stageTwo.flatMap((name) => [
+      [name, 'every fact', fire] as const,
+      [name, 'the fewest', sparse] as const,
+    ])
+  )('%s renders from %s with nothing missing', (name, _, variant) => {
+    const text = documentText(renderDocument(read(name), { ...stageTwoData, fire: variant }));
+    expect(text).not.toContain('{{');
+    expect(text).toContain('S.C. CLIENT DEMO S.R.L.');
+  });
+
+  it('numbers each decision as its place in the binder says', () => {
+    const numbers = {
+      'fire/1.1_fire_decision_organization.docx': '4 PSI',
+      'fire/1.2_fire_decision_training.docx': '5 PSI',
+      'fire/1.3_fire_decision_open_fire.docx': '6 PSI',
+      'fire/1.5_fire_decision_seasons.docx': '8 PSI',
+      'fire/1.8_fire_decision_waste.docx': '11 PSI',
+    };
+    for (const [name, number] of Object.entries(numbers)) {
+      const text = documentText(renderDocument(read(name), stageTwoData));
+      expect(text).toContain(`Nr. ${number} din 19.01.2026`);
+      expect(text).toContain(`nr. ${number} din 19.01.2026.`);
+    }
+  });
+
+  it('numbers the responsibilities under contracts as an item of decision 1 of its own', () => {
+    const xml = new PizZip(read('fire/1.1_fire_decision_organization.docx'))
+      .file('word/document.xml')!
+      .asText();
+    const numbering = (start: string) => {
+      const paragraph = (xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).find((each) =>
+        documentTextOf(each).startsWith(start)
+      )!;
+      return /<w:ilvl w:val="(\d)"\/><w:numId w:val="(\d+)"\/>/.exec(paragraph)!.slice(1);
+    };
+    const contracts = numbering('Pentru stabilirea răspunderilor');
+    expect(contracts[0]).toBe('0');
+    expect(contracts).toEqual(numbering('Pentru analiza evenimentelor'));
+  });
+
+  it('prints the interval of a staff category in decision 2 only when it has posts', () => {
+    const decision = 'fire/1.2_fire_decision_training.docx';
+    const full = documentText(renderDocument(read(decision), stageTwoData));
+    expect(full).toContain('personalul administrativ (Manager magazin) va fi instruit la 6 LUNI');
+    expect(full).toContain('personalul de execuție (Barman) va fi instruit la 3 LUNI');
+    const sparseText = documentText(
+      renderDocument(read(decision), { ...stageTwoData, fire: sparse })
+    );
+    expect(sparseText).not.toContain('personalul administrativ');
+    expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 LUNI');
+  });
+
+  it('names the contractor of the waste, or the contracted firm', () => {
+    const decision = 'fire/1.8_fire_decision_waste.docx';
+    expect(documentText(renderDocument(read(decision), stageTwoData))).toContain(
+      'și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
+    );
+    expect(
+      documentText(renderDocument(read(decision), { ...stageTwoData, fire: sparse }))
+    ).toContain('și firma contractată, autorizată în acest domeniu.');
+  });
+
+  it('prints the exterior-hydrant accessories only for a client with exterior hydrants', () => {
+    const list = 'fire/5.1_fire_means_list.docx';
+    const accessories = 'Lista dotării cu accesorii pentru trecerea apei';
+    expect(documentText(renderDocument(read(list), stageTwoData))).toContain(accessories);
+    expect(
+      documentText(renderDocument(read(list), { ...stageTwoData, fire: sparse }))
+    ).not.toContain(accessories);
+  });
+
+  it('gives every workplace a page of its own on the posted sheet', () => {
+    const sheet = renderDocument(read('fire/5.2_fire_workplace_organization.docx'), stageTwoData);
+    const xml = new PizZip(sheet).file('word/document.xml')!.asText();
+    expect(xml.match(/<w:br w:type="page"\/>/g)).toHaveLength(1);
+    expect(documentText(sheet).match(/ORGANIZAREA APĂRĂRII ÎMPOTRIVA INCENDIILOR/g)).toHaveLength(
+      2
+    );
   });
 
   it.each(fireFiles)('%s keeps no author, company or title of the original', (name) => {
@@ -135,10 +322,18 @@ describe('fire-safety set', () => {
     expect(zip.file('docProps/app.xml')?.asText() ?? '').not.toMatch(/<(Company|Manager)>[^<]/);
   });
 
-  it('has the technician sign the cover for the provider', () => {
-    const text = documentText(renderDocument(read('fire/6.0_fire_cover_registers.docx'), data));
-    expect(text).toContain('Dan MARIN\nCadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
-    expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
+  it.each(['fire/6.0_fire_cover_registers.docx', 'fire/1.0_fire_cover_decisions.docx'])(
+    '%s has the technician sign for the provider',
+    (name) => {
+      const text = documentText(renderDocument(read(name), data));
+      expect(text).toContain('Dan MARIN\nCadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
+      expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
+    }
+  );
+
+  it('lists the nine decisions of the binder on their cover', () => {
+    const text = documentText(read('fire/1.0_fire_cover_decisions.docx'));
+    for (let item = 1; item <= 9; item++) expect(text).toMatch(new RegExp(`^${item}\\. `, 'm'));
   });
 
   it('prints the checks of OMAI 135/2023 annex 2, each answered yes or no', () => {
@@ -267,11 +462,14 @@ describe('typesetting', () => {
       const texts = paragraphsOf(body).map(documentTextOf);
       expect(texts.filter((text) => /^[ \u00a0\t]/.test(text))).toEqual([]);
       // Loop tags stand alone in a paragraph. The only empty paragraphs are the ones Word needs
-      // after a table: at the end, or between two tables that would otherwise be saved as one.
+      // after a table: at the end, or between two tables that would otherwise be saved as one;
+      // and a page break that a section prints for some items of a loop only.
       const empty = paragraphsOf(body).filter(
         (paragraph) =>
           documentTextOf(paragraph).trim() === '' &&
-          !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent/.test(paragraph)
+          !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
+            paragraph
+          )
       );
       // Or set at 1 pt, where it takes no room: one original cannot be saved without them.
       for (const paragraph of empty.filter((item) => !item.includes('<w:sz w:val="2"/>'))) {

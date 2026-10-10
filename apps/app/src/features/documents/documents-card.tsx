@@ -75,6 +75,7 @@ import {
 } from './document-labels';
 import { DocumentMissingRows } from './document-missing-rows';
 import {
+  inBinderOrder,
   type SectionIdOf,
   type SectionRow,
   sectionSummary,
@@ -261,15 +262,18 @@ export function DocumentsCard<Set extends DocumentSet>({
     ...setSectionList.map((section) => ({
       id: section.id,
       title: `${section.number}. ${section.title}`,
-      rows: [
-        ...packRows.filter((row) => section.typeKeys.includes(row.key)),
-        ...(section.planned ?? []).map((planned): SectionRow => ({
-          kind: 'planned',
-          key: planned.id,
-          title: planned.title,
-          document: null,
-        })),
-      ],
+      rows: inBinderOrder(
+        packRows.filter((row) => section.typeKeys.includes(row.key)),
+        (section.planned ?? []).map((planned) => ({
+          ...planned,
+          row: {
+            kind: 'planned',
+            key: planned.id,
+            title: planned.title,
+            document: null,
+          } as SectionRow,
+        }))
+      ),
     })),
     ...(otherRows.length > 0 ? [{ ...other, rows: otherRows }] : []),
   ];

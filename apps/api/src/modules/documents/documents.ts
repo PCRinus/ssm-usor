@@ -9,8 +9,10 @@ import {
   documentSetGroups,
   documentSetOf,
   documentSetTypeKeys,
+  fireDecisionNumber,
   type GenerateDocumentsRequest,
   type IssueDocumentRequest,
+  maxFirstFireDecisionNumber,
   type MissingDocumentData,
   type RegenerateDocumentRequest,
   serviceContractTitle,
@@ -57,7 +59,7 @@ type RevisionRow = Pick<
   | 'issued_at'
   | 'created_at'
 > & {
-  document_generations: { issue_date: string } | null;
+  document_generations: { issue_date: string; first_decision_number: number | null } | null;
   document_template_versions: Pick<
     Tables['document_template_versions']['Row'],
     'version' | 'kind' | 'note'
@@ -76,7 +78,7 @@ type DocumentRow = Pick<
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
+  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date, first_decision_number), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
 const typeOrders = Object.fromEntries(
   Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
@@ -112,7 +114,11 @@ function dataChanged(
   const input = {
     ...facts,
     issueDate: revision.document_generations.issue_date,
-    firstDecisionNumber: 1,
+    firstDecisionNumber:
+      set === 'fire_safety'
+        ? (fireFirstDecisionNumber(document, revision.document_generations.first_decision_number) ??
+          1)
+        : 1,
   };
   // The snapshot holds what the document printed; the rest of the data is not its concern.
   const printed = revision.data_snapshot as Record<string, unknown>;
@@ -123,6 +129,23 @@ function dataChanged(
   return Object.entries(printed).some(
     ([name, value]) => stableJson(current[name]) !== stableJson(value)
   );
+}
+
+/**
+ * What a fire-safety document was numbered from, null when nothing says. It prints every
+ * decision's number in `fire` (ADR 018), so it is compared and generated again with the first
+ * number it was made with, which a decision also carries as its own number. The occupational
+ * safety set prints only a decision's own number, from `decision_number`.
+ */
+function fireFirstDecisionNumber(
+  document: Pick<DocumentRow, 'type_key' | 'decision_number'>,
+  generationFirstNumber: number | null | undefined
+) {
+  const ordinalOffset = fireDecisionNumber(document.type_key, 1);
+  if (ordinalOffset !== null && document.decision_number !== null) {
+    return document.decision_number - ordinalOffset + 1;
+  }
+  return generationFirstNumber ?? null;
 }
 
 type ModuleVersion = { id: string; module_id: string; number: number; created_at: string };
@@ -415,11 +438,28 @@ export async function generateClientDocuments(
   request: GenerateDocumentsRequest,
   set: DocumentSet = 'occupational_safety'
 ) {
+  const fire = set === 'fire_safety';
+  if (
+    fire &&
+    (request.firstDecisionNumber === undefined ||
+      request.firstDecisionNumber > maxFirstFireDecisionNumber)
+  ) {
+    throw new ApiError('validation_error', 'Say which number the first decision takes.', [
+      {
+        path: 'firstDecisionNumber',
+        message: `Required for the fire-safety set, from 1 to ${maxFirstFireDecisionNumber}.`,
+      },
+    ]);
+  }
   const facts = await loadDocumentFacts(db, clientId, actor);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
   }
-  const input = { ...facts, ...request };
+  const asked = {
+    issueDate: request.issueDate,
+    firstDecisionNumber: request.firstDecisionNumber ?? 1,
+  };
+  const input = { ...facts, ...asked };
   const missing = setRules[set].missing(input);
   if (missing.length > 0) throw missingDocumentDataError(missing);
 
@@ -449,7 +489,7 @@ export async function generateClientDocuments(
       client_id: clientId,
       document_group: documentSetGroups[set],
       issue_date: request.issueDate,
-      first_decision_number: set === 'occupational_safety' ? request.firstDecisionNumber : null,
+      first_decision_number: asked.firstDecisionNumber,
       created_by: actor.createdBy,
     })
     .select('id')
@@ -463,10 +503,15 @@ export async function generateClientDocuments(
     });
   const createdIds: string[] = [];
   let current = facts;
-  if (set === 'fire_safety') {
+  if (fire) {
     const data = { ...buildFireSafetyContext(input) };
     createdIds.push(
-      ...(await inBatches(wanted, (template) => create(template, { data, decisionNumber: null })))
+      ...(await inBatches(wanted, (template) =>
+        create(template, {
+          data,
+          decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
+        })
+      ))
     );
   } else {
     const context = buildDocumentContext(input);
@@ -487,7 +532,7 @@ export async function generateClientDocuments(
       // Nothing to cite only when the own instructions are an uploaded file: the themes wait
       // for them to be generated.
       if (current.ownInstructions) {
-        const themesContext = buildDocumentContext({ ...current, ...request });
+        const themesContext = buildDocumentContext({ ...current, ...asked });
         createdIds.push(await create(themes, fromContext(themesContext, themes.typeKey)));
       }
     }
@@ -752,7 +797,18 @@ export async function regenerateDocument(
       { path: 'issueDate', message: 'Required for a document that was not generated before.' },
     ]);
   }
-  const input = { ...facts, issueDate, firstDecisionNumber: 1 };
+  // The form is filled in again from the set's last generation, so its first number carries over.
+  const previous = await lastGeneration(db, document.client_id, set);
+  if (previous.error) throw fromDatabaseError(previous.error, 'last document generation');
+  const fireFirstNumber =
+    set === 'fire_safety'
+      ? fireFirstDecisionNumber(
+          document,
+          latest?.document_generations?.first_decision_number ??
+            previous.data?.first_decision_number
+        )
+      : null;
+  const input = { ...facts, issueDate, firstDecisionNumber: fireFirstNumber ?? 1 };
   const missing = rules.missing(input, document.type_key);
   if (missing.length > 0 && !rules.buildsWithGaps) throw missingDocumentDataError(missing);
   const [template] = await builtInTemplates(db, [document.type_key]);
@@ -768,9 +824,6 @@ export async function regenerateDocument(
     (absentNames) => missing.filter((code) => rules.concerns(code, absentNames))
   );
 
-  // The form is filled in again from the set's last generation, so its first number carries over.
-  const previous = await lastGeneration(db, document.client_id, set);
-  if (previous.error) throw fromDatabaseError(previous.error, 'last document generation');
   const generation = await db
     .from('document_generations')
     .insert({
@@ -779,7 +832,7 @@ export async function regenerateDocument(
       document_group: documentSetGroups[set],
       issue_date: issueDate,
       first_decision_number:
-        previous.data?.first_decision_number ?? (set === 'occupational_safety' ? 1 : null),
+        set === 'fire_safety' ? fireFirstNumber : (previous.data?.first_decision_number ?? 1),
       created_by: actor.createdBy,
     })
     .select('id')

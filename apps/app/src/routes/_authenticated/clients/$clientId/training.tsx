@@ -1,7 +1,14 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { focusSearch, trainingFocus } from '@/features/missing-data/focus';
+import {
+  fireTrainingFocus,
+  focusAmong,
+  focusSearch,
+  responsiblePersonFocus,
+  trainingFocus,
+} from '@/features/missing-data/focus';
+import { FireSafetySection } from '@/features/training/fire-safety-card';
 import { ResponsiblePersonsCard } from '@/features/training/responsible-persons-card';
 import { TrainingProgramSection } from '@/features/training/training-program-card';
 
@@ -29,11 +36,16 @@ function TrainingPage() {
         userId={session.user.id}
         focus={focus === 'training-schedule'}
       />
+      <FireSafetySection
+        client={client}
+        userId={session.user.id}
+        focus={focusAmong(focus, fireTrainingFocus)}
+      />
       <ResponsiblePersonsCard
         clientId={client.id}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
-        focus={focus === 'training-schedule' ? undefined : focus}
+        focus={focusAmong(focus, responsiblePersonFocus)}
       />
     </div>
   );

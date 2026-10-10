@@ -34,7 +34,19 @@ const emptyDetails = {
   trainingDayTo: null,
 };
 
+const noFireData = {
+  activity: null,
+  floorAreaM2: null,
+  extinguisherNorm: null,
+  assemblyPoint: null,
+  combustibleMaterials: null,
+  ignitionSources: null,
+  fireRiskEquipment: null,
+  specificMeasures: null,
+};
+
 const office = {
+  ...noFireData,
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
   clientId,
   name: 'Sediu social',
@@ -54,6 +66,17 @@ const shop = {
   countyCode: 'TM',
   locality: 'Timișoara',
   addressLine: 'Str. Goethe 2',
+};
+
+const fireData = {
+  activity: 'Gelaterie',
+  floorAreaM2: 60,
+  extinguisherNorm: 'commercial_200',
+  assemblyPoint: 'Parcarea din fața magazinului',
+  combustibleMaterials: 'Ambalaje de carton',
+  ignitionSources: 'De natură electrică',
+  fireRiskEquipment: 'Vitrine frigorifice',
+  specificMeasures: null,
 };
 
 const listPath = `/clients/${clientId}/workplaces`;
@@ -141,6 +164,7 @@ describe('client workplaces', () => {
           countyCode: 'CJ',
           locality: 'Cluj-Napoca',
           addressLine: 'Calea Victoriei 122A',
+          ...noFireData,
         },
       ])
     );
@@ -195,6 +219,7 @@ describe('client workplaces', () => {
           countyCode: 'B',
           locality: 'Sectorul 3',
           addressLine: null,
+          ...noFireData,
         },
       ])
     );
@@ -284,6 +309,7 @@ describe('client workplaces', () => {
           countyCode: 'TM',
           locality: 'Timișoara',
           addressLine: 'Str. Goethe 2',
+          ...noFireData,
         },
       ])
     );
@@ -337,6 +363,111 @@ describe('client workplaces', () => {
       'nu mai există la acest client'
     );
     expect(requests(listPath, 'GET').length).toBeGreaterThan(1);
+  });
+
+  it('marks the workplaces whose fire-safety data is incomplete', async () => {
+    mockApi({ items: [office, { ...shop, ...fireData }] });
+    mount();
+
+    const rows = await screen.findAllByTestId('workplace-row');
+    expect(within(rows[0]!).getByTestId('workplace-fire-incomplete').textContent).toBe(
+      'Date PSI incomplete'
+    );
+    expect(within(rows[1]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
+  });
+
+  it('saves the fire-safety data with the rest of the workplace', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await openRowMenu(user, 'Magazin Timișoara');
+    await user.click(await screen.findByTestId('workplace-edit'));
+    const dialog = await screen.findByTestId('workplace-dialog');
+    expect(
+      within(dialog).getByRole('heading', { name: 'Apărare împotriva incendiilor' })
+    ).toBeTruthy();
+    expect(
+      within(dialog).getByTestId<HTMLTextAreaElement>('workplace-ignition-sources').placeholder
+    ).toBe('de natură electrică, termică, autoaprindere');
+    await user.type(within(dialog).getByTestId('workplace-activity'), 'Gelaterie');
+    await user.type(within(dialog).getByTestId('workplace-floor-area'), '60');
+    await user.selectOptions(within(dialog).getByTestId('workplace-norm'), 'commercial_200');
+    expect(within(dialog).getByText(/Comerț alimentar și nealimentar/)).toBeTruthy();
+    await user.type(
+      within(dialog).getByTestId('workplace-assembly-point'),
+      'Parcarea din fața magazinului'
+    );
+    await user.type(
+      within(dialog).getByTestId('workplace-combustible-materials'),
+      'Ambalaje de carton'
+    );
+    await user.type(
+      within(dialog).getByTestId('workplace-ignition-sources'),
+      'De natură electrică'
+    );
+    await user.type(
+      within(dialog).getByTestId('workplace-fire-risk-equipment'),
+      'Vitrine frigorifice'
+    );
+    await user.click(within(dialog).getByTestId('workplace-save'));
+
+    await waitFor(() =>
+      expect(requests(`${listPath}/${shop.id}`, 'PUT')).toEqual([
+        {
+          name: 'Magazin Timișoara',
+          isRegisteredOffice: false,
+          countyCode: 'TM',
+          locality: 'Timișoara',
+          addressLine: 'Str. Goethe 2',
+          ...fireData,
+        },
+      ])
+    );
+  });
+
+  it('refuses a floor area that is not a whole number of square metres', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await openRowMenu(user, 'Magazin Timișoara');
+    await user.click(await screen.findByTestId('workplace-edit'));
+    await user.type(await screen.findByTestId('workplace-floor-area'), '60,5');
+    await user.click(screen.getByTestId('workplace-save'));
+
+    expect((await screen.findByTestId('workplace-floor-area-error')).textContent).toContain(
+      'metri pătrați'
+    );
+    expect(requests(`${listPath}/${shop.id}`, 'PUT')).toEqual([]);
+  });
+
+  it('opens the first workplace with incomplete fire-safety data at its first empty field', async () => {
+    mockApi({
+      items: [
+        { ...office, ...fireData },
+        { ...shop, ...fireData, assemblyPoint: null },
+      ],
+    });
+    mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/details?focus=workplace-fire-data`
+    );
+
+    const name = await screen.findByTestId<HTMLInputElement>('workplace-name');
+    expect(name.value).toBe('Magazin Timișoara');
+    await waitFor(() => expect(document.activeElement?.id).toBe('workplace-assembly-point'));
+  });
+
+  it('opens the new workplace dialog for ?focus=add-workplace', async () => {
+    mockApi({ items: [] });
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details?focus=add-workplace`);
+
+    const dialog = await screen.findByTestId('workplace-dialog');
+    expect(within(dialog).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Adaugă un punct de lucru'
+    );
+    await waitFor(() => expect(document.activeElement?.id).toBe('workplace-name'));
   });
 
   it('shows an archived client the list without add or row actions', async () => {

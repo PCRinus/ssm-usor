@@ -84,6 +84,8 @@
                 "responsible.workers_representative",
                 "responsible.workers_representatives_two",
                 "responsible.workers_representative_is_legal_representative",
+                "responsible.fire_safety_coordinator",
+                "responsible.fire_intervention_leader",
                 "positions.any",
                 "positions.equipment",
                 "positions.instructions",
@@ -91,7 +93,11 @@
                 "risk_evaluations.sensitive_groups",
                 "risk_evaluations.measures",
                 "risk_evaluations.plan",
-                "documents.own_instructions"
+                "documents.own_instructions",
+                "fire.trainingSchedule",
+                "fire.waste",
+                "fire.workplaces",
+                "fire.equipment"
               ]
             }
           }
@@ -3946,6 +3952,46 @@
                   "type": "string",
                   "nullable": true
                 },
+                "activity": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "floorAreaM2": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "extinguisherNorm": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "administrative_300",
+                    "commercial_200",
+                    "residential_level",
+                    "mixed_300",
+                    "other_150",
+                    null
+                  ]
+                },
+                "assemblyPoint": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "combustibleMaterials": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "ignitionSources": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "fireRiskEquipment": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "specificMeasures": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -3963,6 +4009,14 @@
                 "countyCode",
                 "locality",
                 "addressLine",
+                "activity",
+                "floorAreaM2",
+                "extinguisherNorm",
+                "assemblyPoint",
+                "combustibleMaterials",
+                "ignitionSources",
+                "fireRiskEquipment",
+                "specificMeasures",
                 "createdAt",
                 "updatedAt"
               ]
@@ -4048,6 +4102,46 @@
                 "type": "string",
                 "nullable": true
               },
+              "activity": {
+                "type": "string",
+                "nullable": true
+              },
+              "floorAreaM2": {
+                "type": "integer",
+                "nullable": true
+              },
+              "extinguisherNorm": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "administrative_300",
+                  "commercial_200",
+                  "residential_level",
+                  "mixed_300",
+                  "other_150",
+                  null
+                ]
+              },
+              "assemblyPoint": {
+                "type": "string",
+                "nullable": true
+              },
+              "combustibleMaterials": {
+                "type": "string",
+                "nullable": true
+              },
+              "ignitionSources": {
+                "type": "string",
+                "nullable": true
+              },
+              "fireRiskEquipment": {
+                "type": "string",
+                "nullable": true
+              },
+              "specificMeasures": {
+                "type": "string",
+                "nullable": true
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -4065,6 +4159,14 @@
               "countyCode",
               "locality",
               "addressLine",
+              "activity",
+              "floorAreaM2",
+              "extinguisherNorm",
+              "assemblyPoint",
+              "combustibleMaterials",
+              "ignitionSources",
+              "fireRiskEquipment",
+              "specificMeasures",
               "createdAt",
               "updatedAt"
             ]
@@ -4144,6 +4246,60 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 240
+          },
+          "activity": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "floorAreaM2": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "extinguisherNorm": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "administrative_300",
+              "commercial_200",
+              "residential_level",
+              "mixed_300",
+              "other_150",
+              null
+            ]
+          },
+          "assemblyPoint": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 240
+          },
+          "combustibleMaterials": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "ignitionSources": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "fireRiskEquipment": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "specificMeasures": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
           }
         },
         "required": ["name"]
@@ -4188,10 +4344,17 @@
                       "first_aid",
                       "risk_evaluation_team",
                       "imminent_danger",
-                      "workers_representative"
+                      "workers_representative",
+                      "fire_safety_coordinator",
+                      "fire_intervention_leader"
                     ]
                   },
                   "minItems": 1
+                },
+                "workplaceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
                 },
                 "createdAt": {
                   "type": "string",
@@ -4210,6 +4373,7 @@
                 "jobTitle",
                 "employeeJobTitle",
                 "roles",
+                "workplaceId",
                 "createdAt",
                 "updatedAt"
               ]
@@ -4256,10 +4420,17 @@
                     "first_aid",
                     "risk_evaluation_team",
                     "imminent_danger",
-                    "workers_representative"
+                    "workers_representative",
+                    "fire_safety_coordinator",
+                    "fire_intervention_leader"
                   ]
                 },
                 "minItems": 1
+              },
+              "workplaceId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
               },
               "createdAt": {
                 "type": "string",
@@ -4278,6 +4449,7 @@
               "jobTitle",
               "employeeJobTitle",
               "roles",
+              "workplaceId",
               "createdAt",
               "updatedAt"
             ]
@@ -4289,6 +4461,11 @@
         "type": "object",
         "properties": {
           "employeeId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "workplaceId": {
             "type": "string",
             "nullable": true,
             "format": "uuid"
@@ -4312,14 +4489,607 @@
                 "first_aid",
                 "risk_evaluation_team",
                 "imminent_danger",
-                "workers_representative"
+                "workers_representative",
+                "fire_safety_coordinator",
+                "fire_intervention_leader"
               ]
             },
             "minItems": 1,
-            "maxItems": 5
+            "maxItems": 7
           }
         },
         "required": ["fullName", "jobTitle", "roles"]
+      },
+      "ClientFireSafetyResponse": {
+        "type": "object",
+        "properties": {
+          "fireSafety": {
+            "type": "object",
+            "properties": {
+              "periodicTrainingHours": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 2,
+                "maximum": 8
+              },
+              "administrativeTrainingIntervalMonths": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 6
+              },
+              "workerTrainingIntervalMonths": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 6
+              },
+              "trainingFirstMonth": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 12
+              },
+              "trainingDayFrom": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 31
+              },
+              "trainingDayTo": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 31
+              },
+              "smokingPolicy": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["forbidden_everywhere", "designated_places", null]
+              },
+              "wasteKinds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "wasteContractor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "periodicTrainingHours",
+              "administrativeTrainingIntervalMonths",
+              "workerTrainingIntervalMonths",
+              "trainingFirstMonth",
+              "trainingDayFrom",
+              "trainingDayTo",
+              "smokingPolicy",
+              "wasteKinds",
+              "wasteContractor"
+            ]
+          },
+          "exists": {
+            "type": "boolean"
+          }
+        },
+        "required": ["fireSafety", "exists"]
+      },
+      "UpdateClientFireSafetyRequest": {
+        "type": "object",
+        "properties": {
+          "periodicTrainingHours": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 2,
+            "maximum": 8
+          },
+          "administrativeTrainingIntervalMonths": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 6
+          },
+          "workerTrainingIntervalMonths": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 6
+          },
+          "trainingFirstMonth": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 12
+          },
+          "trainingDayFrom": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 31
+          },
+          "trainingDayTo": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 31
+          },
+          "smokingPolicy": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["forbidden_everywhere", "designated_places", null]
+          },
+          "wasteKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            },
+            "maxItems": 12,
+            "default": []
+          },
+          "wasteContractor": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          }
+        }
+      },
+      "FireEquipmentListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workplaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["extinguisher", "sand_box", "fire_post", "fire_blanket", "other"]
+                },
+                "agent": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["powder", "co2", "foam", "water", "clean_agent", null]
+                },
+                "capacity": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 1,
+                  "maximum": 250
+                },
+                "wheeled": {
+                  "type": "boolean"
+                },
+                "label": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "location": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "manufacturedYear": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 1990,
+                  "maximum": 2100
+                },
+                "lastServiceOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "nextServiceOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "maintainer": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "workplaceId",
+                "kind",
+                "agent",
+                "capacity",
+                "wheeled",
+                "label",
+                "location",
+                "manufacturedYear",
+                "lastServiceOn",
+                "nextServiceOn",
+                "maintainer",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "FireEquipmentResponse": {
+        "type": "object",
+        "properties": {
+          "equipment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "workplaceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["extinguisher", "sand_box", "fire_post", "fire_blanket", "other"]
+              },
+              "agent": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["powder", "co2", "foam", "water", "clean_agent", null]
+              },
+              "capacity": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 250
+              },
+              "wheeled": {
+                "type": "boolean"
+              },
+              "label": {
+                "type": "string",
+                "nullable": true
+              },
+              "location": {
+                "type": "string",
+                "nullable": true
+              },
+              "manufacturedYear": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1990,
+                "maximum": 2100
+              },
+              "lastServiceOn": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "nextServiceOn": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "maintainer": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "workplaceId",
+              "kind",
+              "agent",
+              "capacity",
+              "wheeled",
+              "label",
+              "location",
+              "manufacturedYear",
+              "lastServiceOn",
+              "nextServiceOn",
+              "maintainer",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["equipment"]
+      },
+      "FireEquipmentRequest": {
+        "type": "object",
+        "properties": {
+          "workplaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["extinguisher", "sand_box", "fire_post", "fire_blanket", "other"]
+          },
+          "agent": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["powder", "co2", "foam", "water", "clean_agent", null]
+          },
+          "capacity": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 250
+          },
+          "wheeled": {
+            "type": "boolean",
+            "default": false
+          },
+          "label": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "location": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "manufacturedYear": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1990,
+            "maximum": 2100
+          },
+          "lastServiceOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "nextServiceOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "maintainer": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          }
+        },
+        "required": ["workplaceId", "kind"]
+      },
+      "FireInstallationListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workplaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "detection_alarm",
+                    "interior_hydrants",
+                    "exterior_hydrants",
+                    "sprinklers",
+                    "smoke_exhaust",
+                    "emergency_lighting",
+                    "lightning_protection",
+                    "gas_detection",
+                    "other"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "maintainer": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "lastCheckOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "nextCheckOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "workplaceId",
+                "kind",
+                "description",
+                "maintainer",
+                "lastCheckOn",
+                "nextCheckOn",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "FireInstallationResponse": {
+        "type": "object",
+        "properties": {
+          "installation": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "workplaceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "detection_alarm",
+                  "interior_hydrants",
+                  "exterior_hydrants",
+                  "sprinklers",
+                  "smoke_exhaust",
+                  "emergency_lighting",
+                  "lightning_protection",
+                  "gas_detection",
+                  "other"
+                ]
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "maintainer": {
+                "type": "string",
+                "nullable": true
+              },
+              "lastCheckOn": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "nextCheckOn": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "workplaceId",
+              "kind",
+              "description",
+              "maintainer",
+              "lastCheckOn",
+              "nextCheckOn",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["installation"]
+      },
+      "FireInstallationRequest": {
+        "type": "object",
+        "properties": {
+          "workplaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "detection_alarm",
+              "interior_hydrants",
+              "exterior_hydrants",
+              "sprinklers",
+              "smoke_exhaust",
+              "emergency_lighting",
+              "lightning_protection",
+              "gas_detection",
+              "other"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 240
+          },
+          "maintainer": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "lastCheckOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "nextCheckOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          }
+        },
+        "required": ["workplaceId", "kind"]
       },
       "DocumentsBehindResponse": {
         "type": "object",
@@ -4471,6 +5241,8 @@
                           "responsible.workers_representative",
                           "responsible.workers_representatives_two",
                           "responsible.workers_representative_is_legal_representative",
+                          "responsible.fire_safety_coordinator",
+                          "responsible.fire_intervention_leader",
                           "positions.any",
                           "positions.equipment",
                           "positions.instructions",
@@ -4478,7 +5250,11 @@
                           "risk_evaluations.sensitive_groups",
                           "risk_evaluations.measures",
                           "risk_evaluations.plan",
-                          "documents.own_instructions"
+                          "documents.own_instructions",
+                          "fire.trainingSchedule",
+                          "fire.waste",
+                          "fire.workplaces",
+                          "fire.equipment"
                         ]
                       }
                     }
@@ -4532,6 +5308,14 @@
               "cover_employer_briefing",
               "employer_briefing",
               "control_regulation",
+              "fire_cover_decisions",
+              "fire_decision_organization",
+              "fire_decision_training",
+              "fire_decision_open_fire",
+              "fire_decision_seasons",
+              "fire_decision_waste",
+              "fire_means_list",
+              "fire_workplace_organization",
               "fire_cover_registers",
               "fire_registers",
               "fire_work_permit",
@@ -4569,6 +5353,8 @@
                 "responsible.workers_representative",
                 "responsible.workers_representatives_two",
                 "responsible.workers_representative_is_legal_representative",
+                "responsible.fire_safety_coordinator",
+                "responsible.fire_intervention_leader",
                 "positions.any",
                 "positions.equipment",
                 "positions.instructions",
@@ -4576,7 +5362,11 @@
                 "risk_evaluations.sensitive_groups",
                 "risk_evaluations.measures",
                 "risk_evaluations.plan",
-                "documents.own_instructions"
+                "documents.own_instructions",
+                "fire.trainingSchedule",
+                "fire.waste",
+                "fire.workplaces",
+                "fire.equipment"
               ]
             }
           },
@@ -5392,8 +6182,7 @@
           "firstDecisionNumber": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 9995,
-            "default": 1
+            "maximum": 9995
           }
         },
         "required": ["issueDate"]
@@ -15044,7 +15833,7 @@
       "post": {
         "operationId": "createResponsiblePerson",
         "summary": "Add a responsible person to a client",
-        "description": "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.",
+        "description": "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative. `workplaceId` ties the person to one active workplace of the client; null means every workplace.",
         "security": [
           {
             "bearerAuth": []
@@ -15083,7 +15872,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or body, or an employee who is not of this client",
+            "description": "Invalid path or body, or an employee or a workplace that is not of this client",
             "content": {
               "application/json": {
                 "schema": {
@@ -15206,7 +15995,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or body, or an employee who is not of this client",
+            "description": "Invalid path or body, or an employee or a workplace that is not of this client",
             "content": {
               "application/json": {
                 "schema": {
@@ -15342,6 +16131,1087 @@
           },
           "404": {
             "description": "The responsible person does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-safety": {
+      "get": {
+        "operationId": "getClientFireSafety",
+        "summary": "Read a client's fire-safety training schedule, smoking policy and waste",
+        "description": "Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The fire-safety facts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientFireSafetyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateClientFireSafety",
+        "summary": "Replace a client's fire-safety training schedule, smoking policy and waste",
+        "description": "Created on the first save. A field left out or null is cleared, and `wasteKinds` left out is empty.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientFireSafetyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The fire-safety facts after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientFireSafetyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-equipment": {
+      "get": {
+        "operationId": "listFireEquipment",
+        "summary": "List a client's fire-fighting equipment",
+        "description": "Every unit on an active workplace, by workplace in the order of the workplaces list, then by kind, agent, capacity and label.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The equipment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireEquipmentListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFireEquipment",
+        "summary": "Add a unit of fire-fighting equipment to a workplace",
+        "description": "An extinguisher carries its agent and its capacity in kilograms or litres, and may be wheeled; other equipment carries neither.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireEquipmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created unit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireEquipmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or `workplaceId` is not an active workplace of this client (an issue on `workplaceId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-equipment/{equipmentId}": {
+      "put": {
+        "operationId": "updateFireEquipment",
+        "summary": "Replace a unit of fire-fighting equipment",
+        "description": "The unit may move to another active workplace of the same client.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "equipmentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireEquipmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The unit after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireEquipmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or `workplaceId` is not an active workplace of this client (an issue on `workplaceId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the equipment does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFireEquipment",
+        "summary": "Delete a unit of fire-fighting equipment",
+        "description": "A unit taken away is deleted, not archived; issued documents keep what they printed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "equipmentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the equipment does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-installations": {
+      "get": {
+        "operationId": "listFireInstallations",
+        "summary": "List a client's fire-safety installations",
+        "description": "Every installation on an active workplace, by workplace in the order of the workplaces list, then by kind and description.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The installations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireInstallationListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFireInstallation",
+        "summary": "Add a fire-safety installation to a workplace",
+        "description": "An installation of the kind `other` needs a description.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireInstallationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created installation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireInstallationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or `workplaceId` is not an active workplace of this client (an issue on `workplaceId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-installations/{installationId}": {
+      "put": {
+        "operationId": "updateFireInstallation",
+        "summary": "Replace a fire-safety installation",
+        "description": "The installation may move to another active workplace of the same client.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "installationId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireInstallationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The installation after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireInstallationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or `workplaceId` is not an active workplace of this client (an issue on `workplaceId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the installation does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFireInstallation",
+        "summary": "Delete a fire-safety installation",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "installationId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the installation does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -15840,7 +17710,7 @@
       "post": {
         "operationId": "generateClientDocuments",
         "summary": "Generate the documents one of a client's documentation sets does not have yet",
-        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` is read for the occupational safety set only.",
+        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one.",
         "security": [
           {
             "bearerAuth": []
@@ -17092,6 +18962,14 @@
                 "cover_employer_briefing",
                 "employer_briefing",
                 "control_regulation",
+                "fire_cover_decisions",
+                "fire_decision_organization",
+                "fire_decision_training",
+                "fire_decision_open_fire",
+                "fire_decision_seasons",
+                "fire_decision_waste",
+                "fire_means_list",
+                "fire_workplace_organization",
                 "fire_cover_registers",
                 "fire_registers",
                 "fire_work_permit",

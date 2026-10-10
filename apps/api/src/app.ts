@@ -16,6 +16,7 @@ import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
 import { evaluationProfilesRouter } from './modules/evaluation-profiles';
 import { filesRouter } from './modules/files';
+import { fireSafetyRouter } from './modules/fire-safety';
 import { healthRouter } from './modules/health';
 import { instructionModulesRouter } from './modules/instruction-modules';
 import { invitationsRouter } from './modules/invitations';
@@ -71,6 +72,7 @@ export function createApp() {
   app.route('/', riskEvaluationsRouter);
   app.route('/', evaluationProfilesRouter);
   app.route('/', documentDataRouter);
+  app.route('/', fireSafetyRouter);
   app.route('/', documentsRouter);
   app.route('/', clientFilesRouter);
   app.route('/', filesRouter);

@@ -30,19 +30,36 @@ export const responsibleRoleLabels: Record<
     description:
       'Ales de lucrători dintre ei. Necesar de la 10 angajați, doi de la 50. Nu poate fi reprezentantul legal.',
   },
+  fire_safety_coordinator: {
+    label: 'Coordonator privind apărarea împotriva incendiilor',
+    description:
+      'Răspunde de organizarea apărării împotriva incendiilor și de lucrul cu foc deschis.',
+  },
+  fire_intervention_leader: {
+    label: 'Șef echipă de primă intervenție',
+    description: 'Conduce prima intervenție în caz de incendiu, până la sosirea pompierilor.',
+  },
 };
 
 export const responsibleRoleOrder = responsiblePersonRoles;
 
-/** The roles every documentation set needs; a workers' representative depends on headcount. */
+/**
+ * The roles the occupational safety set always needs; a workers' representative depends on
+ * headcount, and the two fire-safety roles are the fire-safety set's.
+ */
 export const alwaysRequiredRoles = responsiblePersonRoles.filter(
-  (role) => role !== 'workers_representative'
+  (role) =>
+    role !== 'workers_representative' &&
+    role !== 'fire_safety_coordinator' &&
+    role !== 'fire_intervention_leader'
 );
 
 export const responsiblePersonFormSchema = z
   .object({
     // Empty when the person is not one of the client's employees.
     employeeId: z.string(),
+    // Empty for every workplace of the client.
+    workplaceId: z.string(),
     fullName: z
       .string()
       .trim()
@@ -64,6 +81,7 @@ export type ResponsiblePersonFormValues = z.infer<typeof responsiblePersonFormSc
 
 export const emptyResponsiblePersonForm: ResponsiblePersonFormValues = {
   employeeId: '',
+  workplaceId: '',
   fullName: '',
   jobTitle: '',
   roles: [],
@@ -72,6 +90,7 @@ export const emptyResponsiblePersonForm: ResponsiblePersonFormValues = {
 export function toResponsiblePersonForm(person: ResponsiblePerson): ResponsiblePersonFormValues {
   return {
     employeeId: person.employeeId ?? '',
+    workplaceId: person.workplaceId ?? '',
     fullName: person.fullName,
     jobTitle: person.jobTitle,
     roles: person.roles,
@@ -83,6 +102,7 @@ export function toResponsiblePersonRequest(
 ): ResponsiblePersonRequest {
   return {
     employeeId: values.employeeId || null,
+    workplaceId: values.workplaceId || null,
     fullName: values.fullName,
     jobTitle: values.jobTitle,
     // Always in the order the decisions list them, whatever order they were ticked in.

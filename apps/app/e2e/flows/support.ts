@@ -184,6 +184,63 @@ export async function completeDocumentData(
   await evaluateRisks(organizationId, clientId);
 }
 
+// What the fire-safety set prints about the client (ADR 018): its training schedule and waste,
+// one workplace with its facts and an extinguisher, and a person in each of the set's roles.
+export async function completeFireSafetyData(organizationId: string, clientId: string) {
+  const base = { organization_id: organizationId, client_id: clientId };
+  const workplaceId = await createWorkplace(organizationId, clientId, {
+    name: 'Magazin',
+    is_registered_office: true,
+    activity: 'Gelaterie',
+    floor_area_m2: 120,
+    extinguisher_norm: 'commercial_200',
+    assembly_point: 'Parcarea din fața magazinului',
+    combustible_materials: 'Ambalaje din carton și hârtie',
+    ignition_sources: 'Instalația electrică',
+    fire_risk_equipment: 'Vitrine frigorifice',
+  });
+  const card = await admin.from('client_fire_safety').insert({
+    ...base,
+    periodic_training_hours: 2,
+    administrative_training_interval_months: 3,
+    worker_training_interval_months: 3,
+    training_first_month: 2,
+    training_day_from: 2,
+    training_day_to: 7,
+    waste_kinds: ['deșeuri de carton, hârtie, plastic'],
+  });
+  if (card.error) throw card.error;
+  const extinguisher = await admin.from('fire_equipment').insert({
+    ...base,
+    workplace_id: workplaceId,
+    kind: 'extinguisher',
+    agent: 'powder',
+    capacity: 6,
+  });
+  if (extinguisher.error) throw extinguisher.error;
+  const person = await admin.from('client_responsible_persons').insert({
+    ...base,
+    full_name: 'Ion VLAD',
+    job_title: 'Șef magazin',
+    roles: ['fire_safety_coordinator', 'fire_intervention_leader'],
+  });
+  if (person.error) throw person.error;
+}
+
+export async function createWorkplace(
+  organizationId: string,
+  clientId: string,
+  values: Record<string, unknown>
+) {
+  const workplace = await admin
+    .from('client_workplaces')
+    .insert({ organization_id: organizationId, client_id: clientId, ...values })
+    .select('id')
+    .single();
+  if (workplace.error) throw workplace.error;
+  return workplace.data.id as string;
+}
+
 // A gap left after the documentation was generated, as a member could leave one.
 export async function updateClient(clientId: string, values: Record<string, unknown>) {
   const { error } = await admin.from('clients').update(values).eq('id', clientId);
@@ -475,6 +532,9 @@ export async function cleanUp() {
     await admin.from('document_generations').delete().eq('organization_id', id);
     // Clients restrict the deletion of their organization, and their rows that of the client.
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
+    await admin.from('fire_equipment').delete().eq('organization_id', id);
+    await admin.from('fire_installations').delete().eq('organization_id', id);
+    await admin.from('client_fire_safety').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
     // Their factors and measures go with them; a position's would go with the position.

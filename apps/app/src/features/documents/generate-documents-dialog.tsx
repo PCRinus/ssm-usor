@@ -109,7 +109,7 @@ function GenerateDocumentsForm({
   // Only an owner can fill in the organization's details; a specialist is told whom to ask.
   const isOwner = useMe().data?.membership?.role === 'owner';
   const form = useForm<GenerateDocumentsFormValues>({
-    resolver: zodResolver(generateDocumentsFormSchema),
+    resolver: zodResolver(generateDocumentsFormSchema(set)),
     defaultValues: {
       issueDate: lastGeneration?.issueDate ?? dateToIso(new Date()),
       firstDecisionNumber: String(lastGeneration?.firstDecisionNumber ?? 1),
@@ -126,6 +126,7 @@ function GenerateDocumentsForm({
         undecidedJobPositions: readiness.data.undecidedJobPositions,
         incompleteRiskEvaluations: readiness.data.incompleteRiskEvaluations,
         canEditOrganization: isOwner,
+        set,
       })
     : [];
   // The cached answer predates what was filled in since, so it waits for the one asked above.
@@ -136,7 +137,7 @@ function GenerateDocumentsForm({
     try {
       const result = await generate.mutateAsync({
         clientId,
-        data: toGenerateDocumentsRequest(values, set),
+        data: toGenerateDocumentsRequest(values),
         params: setParams(set),
       });
       await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
@@ -256,30 +257,32 @@ function GenerateDocumentsForm({
                   )}
                 />
               </Field>
-              {occupationalSafety && (
-                <Field
+              <Field
+                id="generate-first-number"
+                label={occupationalSafety ? 'Numărul primei decizii' : 'Numărul primei decizii PSI'}
+                mark="required"
+                hint={
+                  occupationalSafety
+                    ? 'Deciziile primesc numere consecutive.'
+                    : 'Celelalte decizii primesc numere după locul lor în biblioraft.'
+                }
+                error={errors.firstDecisionNumber}
+              >
+                <Input
                   id="generate-first-number"
-                  label="Numărul primei decizii"
-                  mark="required"
-                  hint="Deciziile primesc numere consecutive."
-                  error={errors.firstDecisionNumber}
-                >
-                  <Input
-                    id="generate-first-number"
-                    data-testid="generate-first-number"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    disabled={busy}
-                    aria-invalid={Boolean(errors.firstDecisionNumber)}
-                    aria-describedby={
-                      errors.firstDecisionNumber
-                        ? 'generate-first-number-error'
-                        : 'generate-first-number-hint'
-                    }
-                    {...form.register('firstDecisionNumber')}
-                  />
-                </Field>
-              )}
+                  data-testid="generate-first-number"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  disabled={busy}
+                  aria-invalid={Boolean(errors.firstDecisionNumber)}
+                  aria-describedby={
+                    errors.firstDecisionNumber
+                      ? 'generate-first-number-error'
+                      : 'generate-first-number-hint'
+                  }
+                  {...form.register('firstDecisionNumber')}
+                />
+              </Field>
             </div>
           )}
           {errors.root?.server && (

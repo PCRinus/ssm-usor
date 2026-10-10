@@ -26,6 +26,10 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Workers' representative** (_reprezentantul lucrătorilor_): the responsible-person role of an employee chosen by the workers to speak for them on safety and health. Required from 10 current employees, two from 50. Always an employee, never the client's legal representative. ADR 010. Avoid: employee representative, union representative.
 
+**Fire-safety coordinator** (_coordonator privind apărarea împotriva incendiilor_): the responsible-person role of the person who organizes fire defence at a client and holds the designations of its organization decision, with the fire-safety technician beside them where the decision says so. ADR 018. Avoid: _responsabil PSI_, which the old norms used, and fire officer.
+
+**First-intervention leader** (_șef echipă de primă intervenție_): the responsible-person role of the person who leads a client's first-intervention team, the staff on duty who act with the extinguishers and evacuate people and goods when a fire starts. ADR 018. Avoid: fire warden, emergency team leader.
+
 ## Work
 
 **Job position** (_post de lucru_): a post at a client as occupational safety sees it: a kind of work with its own risks, equipment and training. Belongs to the client and exists whether or not anyone holds it. An employee is assigned to one. ADR 006. Avoid: job title, role, function, occupation, and "loc de muncă", which the source documents use for three different things.
@@ -36,9 +40,13 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Training schedule** (_program de instruire_): the client's periodic training plan. For each staff category, it records an interval or the specialist's explicit decision that the category does not apply; a blank choice remains undecided.
 
+**Fire-safety training schedule** (_programul de instruire PSI_): the client's periodic fire-safety training plan under OMAI 712/2005: a duration in hours, an interval for each staff category, the first month and its days. Separate from the occupational safety training schedule, which lends it only its first month and days while it is still empty. ADR 018. Avoid: PSI interval as a setting of the training schedule.
+
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 
 **Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Avoid: location, site, and "loc de muncă".
+
+**Fire-safety means** (_mijloace de apărare împotriva incendiilor_): the equipment and installations a workplace has against fire, recorded one unit per row: each extinguisher, sand box, fire post or fire blanket, and each installation, such as the alarm system or the interior hydrants. They have a tab of their own, _Mijloace PSI_. ADR 018. Avoid: inventory, _dotări_ as a word users see, and PSI equipment, which collides with protective equipment.
 
 **Protective equipment** (_echipament individual de protecție_, EIP): what the holders of a job position wear or use against the risks of the post, recorded as entries on the position. A position is **undecided** about it, **needs none**, or is **equipped**. Its internal list is a document of the set. ADR 011. Avoid: PPE, gear, and work clothing (_îmbrăcăminte de lucru_), which the law excludes.
 
@@ -73,6 +81,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 **Documentation set** (_documentația_): the documents the app generates for a client in one field, with a tab, a generation and a readiness of its own. A client has two: the **occupational safety set** (_Documente SSM_) and the **fire-safety set** (_Documente PSI_). Every client has both; a lead has neither. "The set" on its own, in the ADRs before 016, is the occupational safety one. ADR 016. Avoid: pack and dossier (_dosar PSI_) as something users see, and SU (_situații de urgență_), which the source documents use for the field the interface calls PSI.
 
 **Fire-work permit** (_permis de lucru cu foc_): the form that allows one job with open flame for one day, in the model of the general fire-safety norms. The fire-safety set holds it blank. Avoid: hot-work permit, authorization.
+
+**Posted workplace sheet** (_organizarea apărării împotriva incendiilor la locul de muncă_): the page posted at a workplace that says what can burn there, what can set it alight, and who does what when it does, in the model of OMAI 163/2007 annex 1. Completed by the workplace manager as head of the workplace and approved by the fire-safety technician. One document of the fire-safety set, with a page per workplace. ADR 018. Avoid: posted instructions (_instrucțiuni de afișat_), which are decision 7, and fire plan.
 
 **Client file** (_fișier_): a file about a client that the app did not write: uploaded, named, downloaded, deleted. Has no revisions and no type. An owner can keep one **for owners only**. A lead has them too. ADR 013. Avoid: document, which the app generates and issues, and attachment.
 

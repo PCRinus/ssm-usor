@@ -99,6 +99,16 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                                                      |
 | `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                                       |
 | `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                                                  |
+| `GET /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | `{ "fireSafety": { … }, "exists" }`: the fire-safety training schedule, smoking policy and waste                          |
+| `PUT /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | The same after replacing them; the first save creates them                                                                |
+| `GET /clients/{clientId}/fire-equipment`                               | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace, kind, agent, capacity and label                                  |
+| `POST /clients/{clientId}/fire-equipment`                              | Verified user with a membership       | `201 { "equipment": { … } }`                                                                                              |
+| `PUT /clients/{clientId}/fire-equipment/{equipmentId}`                 | Verified user with a membership       | `{ "equipment": { … } }` after replacing it                                                                               |
+| `DELETE /clients/{clientId}/fire-equipment/{equipmentId}`              | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-installations`                           | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace and kind                                                          |
+| `POST /clients/{clientId}/fire-installations`                          | Verified user with a membership       | `201 { "installation": { … } }`                                                                                           |
+| `PUT /clients/{clientId}/fire-installations/{installationId}`          | Verified user with a membership       | `{ "installation": { … } }` after replacing it                                                                            |
+| `DELETE /clients/{clientId}/fire-installations/{installationId}`       | Verified user with a membership       | `204` after deleting it                                                                                                   |
 | `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                   |
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                            |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
@@ -600,9 +610,30 @@ worker interval stops at six months, as the database checks too.
 Workplaces and responsible persons are created with `POST`, replaced with `PUT`, and archived
 with `DELETE`; archived rows leave the lists. An archived client takes no new ones (`409`). A
 second registered office is `409`. A responsible person carries a name, a job title, one or
-more of `workplace_manager`, `first_aid`, `risk_evaluation_team`, `imminent_danger`, and
+more of `workplace_manager`, `first_aid`, `risk_evaluation_team`, `imminent_danger`,
+`workers_representative`, `fire_safety_coordinator` and `fire_intervention_leader`, and
 optionally an `employeeId`: an employee of another client is `400` with the issue on
-`employeeId`, and an employee who already is a responsible person of the client is `409`.
+`employeeId`, and an employee who already is a responsible person of the client is `409`. Its
+optional `workplaceId` ties it to one workplace, and null means every workplace; anything but
+an active workplace of the client is `400` with the issue on `workplaceId`. A workplace also
+carries the fire-safety facts of [ADR 018](architecture/adr-018-fire-safety-means.md), all
+optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
+`combustibleMaterials`, `ignitionSources`, `fireRiskEquipment` and `specificMeasures`; the
+`PUT` clears those left out, as it does the address.
+
+The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
+`GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
+the first `PUT` creates the row; the app then opens the form on its starting values (two hours,
+three months for both categories, and the occupational safety schedule's first month and days),
+which `fireSafetyStartingValues` names. The `PUT` replaces the whole set like the details above,
+with OMAI 712/2005's bounds: two to eight hours, one to six months for each category, the days
+in order, at most twelve distinct kinds of waste. Equipment and installations are one row per
+unit, each on a workplace in `workplaceId`, which must be an active workplace of the client
+(`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
+`agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
+kind `other` needs a `description`, all `400` before the database is asked. `DELETE` removes the
+row. Under an archived client or a lead, every write is `409` with the reason `client_archived`
+or `client_is_lead`.
 
 `PATCH /me/profile` also takes `professionalTitle`: left out it stays, `null` clears it.
 `GET /organization/members` returns it for each member.
@@ -642,20 +673,31 @@ list of `factors`, `measures` and `plan`. Generating the training themes again a
 instructions revision to cite, `documents.own_instructions`
 ([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
 the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
-(default 1) and is `409` with the reason `missing_document_data` until that list is empty,
+(1 when left out) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template of the set is registered
 (`pnpm templates:register`).
 
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
-code a service contract covering fire safety uses), `client.representativeName` and
-`client.representativeRole`. Its readiness lists nothing else, and its `undecidedJobPositions`,
-`incompleteRiskEvaluations` and `workersRepresentativeClash` are empty. Its generation reads
-`issueDate` only: it has no decisions yet, so it records no first number and its
-`lastGeneration.firstDecisionNumber` is null. Its templates are merged with a context of their
-own, `client`, `provider`, `fireSafetyTechnician.name`, `issueDate` and `branding`, and never
-with the occupational safety set's names, so an edit to positions or equipment never marks a
-fire-safety draft. Its list has no `notApplicable` document.
+code a service contract covering fire safety uses), `client.representativeName`,
+`client.representativeRole`, and the client data of its second stage (ADR 018):
+`fire.trainingSchedule` (the duration, both intervals, the first month and both days of the
+"Instruire PSI" card), `fire.waste` (at least one kind), `responsible.workplace_manager`,
+`responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
+`positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
+area, norm, assembly point and the three texts of the posted sheet) and `fire.equipment` (an
+extinguisher in every active workplace). Any of them refuses the whole set. Its readiness lists
+nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
+`workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
+9991 so that the binder's ninth decision still fits in four digits, and is `400`
+(`validation_error`, the issue on `firstDecisionNumber`) without it. Each fire-safety decision
+keeps its place in the provider's binder (`fireDecisionOrdinals`: 1, 2, 3, 5 and 8 now) and is
+numbered the first number plus that ordinal minus one; its `decisionNumber` says so, and a
+decision generated again keeps it. Its templates are merged with a context of their own,
+`client`, `provider`, `fireSafetyTechnician.name`, `issueDate`, `branding` and `fire`, and
+never with the occupational safety set's names, so an edit to positions or equipment never
+marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does. Its
+list has no `notApplicable` document.
 
 Generating creates every document type the client does not have yet as revision 1, in draft:
 the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private

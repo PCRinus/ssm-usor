@@ -13,6 +13,14 @@ export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>
 
 // The template titles, held to the fire-safety manifest by a test.
 export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
+  fire_cover_decisions: 'Copertă – Deciziile interne în domeniul situațiilor de urgență',
+  fire_decision_organization: 'Decizia privind organizarea apărării împotriva incendiilor',
+  fire_decision_training: 'Decizia privind instruirea în domeniul situațiilor de urgență',
+  fire_decision_open_fire: 'Decizia privind lucrul cu foc deschis',
+  fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
+  fire_decision_waste: 'Decizia privind colectarea deșeurilor',
+  fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
+  fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
   fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
   fire_registers:
     'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',

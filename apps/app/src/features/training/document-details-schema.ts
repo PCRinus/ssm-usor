@@ -1,4 +1,4 @@
-import { periodicTrainingMinutesOptions } from '@ssm-usor/contracts';
+import { periodicTrainingMinutesOptions, trainingMonths } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
@@ -133,6 +133,11 @@ export const monthNames = [
   'Noiembrie',
   'Decembrie',
 ] as const;
+
+export const monthList = (firstMonth: number, interval: number) =>
+  trainingMonths(firstMonth, interval)
+    .map((month) => monthNames[month - 1])
+    .join(', ');
 
 // The intervals providers use, worded the way the decision prints them.
 export const intervalOptions = [

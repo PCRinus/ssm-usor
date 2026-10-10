@@ -4,6 +4,7 @@ import {
   clientDocumentResponseSchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
+  fireSafetyDocumentTypeKeys,
   generateDocumentsResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -113,7 +114,15 @@ const profileRow = {
 const personRow = {
   full_name: 'Florin TALOȘ',
   job_title: 'Administrator',
-  roles: ['workplace_manager', 'first_aid', 'risk_evaluation_team', 'imminent_danger'],
+  roles: [
+    'workplace_manager',
+    'first_aid',
+    'risk_evaluation_team',
+    'imminent_danger',
+    'fire_safety_coordinator',
+    'fire_intervention_leader',
+  ],
+  workplace_id: null,
 };
 
 const documentId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
@@ -180,11 +189,37 @@ const positionRow = {
   ],
 };
 const workplaceRow = {
+  id: 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f',
   name: 'Sediul social',
   is_registered_office: true,
   county_code: 'TM',
   locality: 'Timișoara',
   address_line: 'Str. Lungă 5',
+  activity: 'Gelaterie',
+  floor_area_m2: 120,
+  extinguisher_norm: 'commercial_200',
+  assembly_point: 'Parcarea din spate',
+  combustible_materials: 'Cartoane',
+  ignition_sources: 'Instalația electrică',
+  fire_risk_equipment: 'Vitrine frigorifice',
+  specific_measures: null,
+};
+const fireSafetyRow = {
+  periodic_training_hours: 2,
+  administrative_training_interval_months: 3,
+  worker_training_interval_months: 3,
+  training_first_month: 2,
+  training_day_from: 2,
+  training_day_to: 7,
+  waste_kinds: ['deșeuri de carton, hârtie, plastic'],
+  waste_contractor: null,
+};
+const fireEquipmentRow = {
+  workplace_id: workplaceRow.id,
+  kind: 'extinguisher',
+  agent: 'powder',
+  capacity: 6,
+  wheeled: false,
 };
 
 const evaluationRow = (
@@ -287,7 +322,10 @@ type Upstream =
   | 'moduleVersions'
   | 'ownInstructions'
   | 'workplaces'
-  | 'riskEvaluations';
+  | 'riskEvaluations'
+  | 'fireSafety'
+  | 'fireEquipment'
+  | 'fireInstallations';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -345,6 +383,12 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.workplaces?.() ?? Response.json([workplaceRow]);
       case '/rest/v1/risk_evaluations':
         return handlers.riskEvaluations?.() ?? Response.json(evaluationRows);
+      case '/rest/v1/client_fire_safety':
+        return handlers.fireSafety?.() ?? Response.json(fireSafetyRow);
+      case '/rest/v1/fire_equipment':
+        return handlers.fireEquipment?.() ?? Response.json([fireEquipmentRow]);
+      case '/rest/v1/fire_installations':
+        return handlers.fireInstallations?.() ?? Response.json([]);
       case '/rest/v1/client_documents':
         if (method === 'HEAD') {
           return (
@@ -2483,17 +2527,28 @@ describe('the fire-safety set', () => {
       },
     ],
   };
-  // The occupational safety set could not be generated from these: nobody holds a role, and
-  // there is no position.
+  // The occupational safety set could not be generated from these: nobody gives first aid, the
+  // position has decided nothing, and nothing is evaluated.
   const occupationalGaps: Partial<Record<Upstream, Handler>> = {
-    persons: () => Response.json([]),
-    positions: () => Response.json([]),
+    persons: () =>
+      Response.json([
+        {
+          ...personRow,
+          roles: ['workplace_manager', 'fire_safety_coordinator', 'fire_intervention_leader'],
+        },
+      ]),
+    positions: () =>
+      Response.json([
+        { ...positionRow, needs_protective_equipment: null, needs_instructions: null },
+      ]),
     riskEvaluations: () => Response.json([]),
   };
   const withoutTechnician = () =>
     Response.json({ ...organizationRow, fire_safety_technician_name: '  ' });
-  const generate = (set?: string, body: unknown = { issueDate: '2026-10-01' }) =>
-    request(`/clients/${clientId}/documents/generate${set ? `?set=${set}` : ''}`, 'POST', body);
+  const generate = (
+    set?: string,
+    body: unknown = { issueDate: '2026-10-01', firstDecisionNumber: 4 }
+  ) => request(`/clients/${clientId}/documents/generate${set ? `?set=${set}` : ''}`, 'POST', body);
   const searchParam = (pathname: string, name: string, index = 0, method = 'GET') =>
     new URL(String(calls(pathname, method)[index]![0])).searchParams.get(name);
 
@@ -2595,12 +2650,12 @@ describe('the fire-safety set', () => {
     ).toEqual(['fire_cover_registers']);
 
     expect(searchParam('/rest/v1/document_templates', 'type_key')).toBe(
-      'in.(fire_cover_registers,fire_registers,fire_work_permit,fire_installation_register,fire_extinguisher_register)'
+      `in.(${fireSafetyDocumentTypeKeys.join(',')})`
     );
     expect(sentBody('/rest/v1/document_generations')).toMatchObject({
       document_group: 'fire_safety_set',
       issue_date: '2026-10-01',
-      first_decision_number: null,
+      first_decision_number: 4,
     });
     const documents = [0, 1].map((index) => sentBody('/rest/v1/client_documents', index));
     expect(documents.map((document) => document.type_key).sort()).toEqual([
@@ -2635,6 +2690,7 @@ describe('the fire-safety set', () => {
     expect(Object.keys(merged[0]!).sort()).toEqual([
       'branding',
       'client',
+      'fire',
       'fireSafetyTechnician',
       'issueDate',
       'provider',
@@ -2665,6 +2721,138 @@ describe('the fire-safety set', () => {
       document_group: 'documentation_set',
       first_decision_number: 1,
     });
+  });
+
+  it('is refused without the first decision number, which numbers its decisions', async () => {
+    mockUpstream();
+    for (const body of [
+      { issueDate: '2026-10-01' },
+      { issueDate: '2026-10-01', firstDecisionNumber: 9992 },
+    ]) {
+      const refused = await generate('fire_safety', body);
+      expect(refused.status).toBe(400);
+      expect(apiErrorResponseSchema.parse(await refused.json())).toMatchObject({
+        error: 'validation_error',
+        issues: [{ path: 'firstDecisionNumber' }],
+      });
+    }
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+  });
+
+  it('numbers each decision by its place in the binder', async () => {
+    const decisionTemplates = ['fire_decision_organization', 'fire_decision_waste'].map(
+      (typeKey) => ({
+        type_key: typeKey,
+        title: typeKey,
+        document_template_versions: [
+          { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+        ],
+      })
+    );
+    mockUpstream({
+      templates: () => Response.json([...fireTemplateRows, ...decisionTemplates]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+    });
+    const merged: Record<string, unknown>[] = [];
+    const engine = await import('@ssm-usor/document-engine');
+    vi.spyOn(engine, 'renderTemplate').mockImplementation((_template, data) => {
+      merged.push(data);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: ['fire'] };
+    });
+    expect((await generate('fire_safety')).status).toBe(201);
+    const numbers = Object.fromEntries(
+      calls('/rest/v1/client_documents', 'POST').map((_, index) => {
+        const document = sentBody('/rest/v1/client_documents', index);
+        return [document.type_key, document.decision_number];
+      })
+    );
+    expect(numbers).toEqual({
+      fire_cover_registers: null,
+      fire_registers: null,
+      fire_decision_organization: 4,
+      fire_decision_waste: 11,
+    });
+    expect((merged[0]!.fire as { decisionNumbers: unknown }).decisionNumbers).toEqual({
+      organization: '4 PSI',
+      training: '5 PSI',
+      openFire: '6 PSI',
+      seasons: '8 PSI',
+      waste: '11 PSI',
+    });
+  });
+
+  it('asks for the fire-safety data of the client, its workplaces and its people', async () => {
+    mockUpstream({
+      fireSafety: () => Response.json(null),
+      fireEquipment: () => Response.json([{ ...fireEquipmentRow, kind: 'sand_box' }]),
+      workplaces: () => Response.json([{ ...workplaceRow, assembly_point: null }]),
+      persons: () => Response.json([{ ...personRow, roles: ['workplace_manager'] }]),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await response.json()).missing).toEqual([
+      'fire.trainingSchedule',
+      'fire.waste',
+      'responsible.fire_safety_coordinator',
+      'responsible.fire_intervention_leader',
+      'fire.workplaces',
+      'fire.equipment',
+    ]);
+    expect(searchParam('/rest/v1/fire_equipment', 'client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it('compares a fire-safety decision with what it printed under its own number', async () => {
+    const decision = {
+      ...fireDocumentRow,
+      type_key: 'fire_decision_waste',
+      decision_number: 11,
+      document_revisions: [{ ...fireDocumentRow.document_revisions[0]! }],
+    };
+    let fire: unknown;
+    mockUpstream({
+      templates: () => Response.json(fireTemplateRows),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+    });
+    const engine = await import('@ssm-usor/document-engine');
+    vi.spyOn(engine, 'renderTemplate').mockImplementation((_template, data) => {
+      fire = data.fire;
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: ['fire'] };
+    });
+    expect((await generate('fire_safety')).status).toBe(201);
+    vi.restoreAllMocks();
+
+    const changed = async (changes: Partial<Record<Upstream, Handler>>) => {
+      mockUpstream({
+        documents: () =>
+          Response.json([
+            {
+              ...decision,
+              document_revisions: [
+                {
+                  ...decision.document_revisions[0]!,
+                  data_snapshot: { fire },
+                  // Regenerated since, under a generation that carried another first number.
+                  document_generations: { issue_date: '2026-10-01', first_decision_number: 1 },
+                },
+              ],
+            },
+          ]),
+        ...changes,
+      });
+      const body = clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents?set=fire_safety`)).json()
+      );
+      return body.items[0]!.draft!.dataChanged;
+    };
+    expect(await changed({})).toBe(false);
+    expect(
+      await changed({
+        fireSafety: () => Response.json({ ...fireSafetyRow, waste_contractor: 'S.C. ECO S.R.L.' }),
+      })
+    ).toBe(true);
+    expect(await changed({ riskEvaluations: () => Response.json([]) })).toBe(false);
+    expect(await changed({ fireEquipment: () => Response.json([]) })).toBe(true);
   });
 
   it('says so when none of its templates is registered', async () => {

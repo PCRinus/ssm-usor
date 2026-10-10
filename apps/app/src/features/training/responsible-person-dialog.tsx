@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
@@ -17,8 +19,10 @@ import {
   type ApiErrorResponse,
   getGetClientDocumentDetailsQueryKey,
   getListResponsiblePersonsQueryKey,
+  getListWorkplacesQueryKey,
   useCreateResponsiblePerson,
   useGetClientDocumentDetails,
+  useListWorkplaces,
   useUpdateResponsiblePerson,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -95,6 +99,10 @@ function ResponsiblePersonForm({
     request: apiRequest,
     query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
   });
+  const workplaces = useListWorkplaces(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+  });
   const form = useForm<ResponsiblePersonFormValues>({
     resolver: zodResolver(responsiblePersonFormSchema),
     defaultValues: person
@@ -147,6 +155,13 @@ function ResponsiblePersonForm({
       }
       if (status === 400 && body?.issues?.some((issue) => issue.path === 'employeeId')) {
         form.setError('employeeId', { message: 'Angajatul nu aparține acestui client.' });
+        return;
+      }
+      if (status === 400 && body?.issues?.some((issue) => issue.path === 'workplaceId')) {
+        form.setError('workplaceId', {
+          message: 'Locul de muncă a fost arhivat. Alege altul sau toate locurile de muncă.',
+        });
+        await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
         return;
       }
       form.setError('root.server', {
@@ -257,6 +272,45 @@ function ResponsiblePersonForm({
               }
               {...form.register('jobTitle')}
             />
+          </Field>
+          <Field
+            id="responsible-workplace"
+            label="Loc de muncă"
+            mark="optional"
+            hint="Pentru fișa de la locul de muncă din documentele PSI."
+            error={errors.workplaceId}
+            className="sm:col-span-2"
+          >
+            {workplaces.isPending ? (
+              <Skeleton className="h-11 w-full" />
+            ) : (
+              <NativeSelect
+                id="responsible-workplace"
+                data-testid="responsible-workplace"
+                disabled={busy}
+                aria-invalid={Boolean(errors.workplaceId)}
+                aria-describedby={
+                  errors.workplaceId ? 'responsible-workplace-error' : 'responsible-workplace-hint'
+                }
+                {...form.register('workplaceId')}
+              >
+                <NativeSelectOption value="">Toate locurile de muncă</NativeSelectOption>
+                {workplaces.data?.items.map((workplace) => (
+                  <NativeSelectOption key={workplace.id} value={workplace.id}>
+                    {workplace.name}
+                  </NativeSelectOption>
+                ))}
+                {person?.workplaceId &&
+                  workplaces.data &&
+                  !workplaces.data.items.some(
+                    (workplace) => workplace.id === person.workplaceId
+                  ) && (
+                    <NativeSelectOption value={person.workplaceId}>
+                      Loc de muncă arhivat
+                    </NativeSelectOption>
+                  )}
+              </NativeSelect>
+            )}
           </Field>
           <fieldset
             className="mt-1 grid gap-3 sm:col-span-2"

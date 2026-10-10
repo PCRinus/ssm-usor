@@ -72,6 +72,14 @@ const workplaceRow = {
   county_code: 'B',
   locality: 'București',
   address_line: 'Calea Victoriei 122A',
+  activity: 'Birouri',
+  floor_area_m2: 120,
+  extinguisher_norm: 'administrative_300',
+  assembly_point: 'Parcarea din fața clădirii',
+  combustible_materials: 'Hârtie, mobilier din lemn',
+  ignition_sources: 'Aparatură electrică',
+  fire_risk_equipment: 'Calculatoare, imprimante',
+  specific_measures: null,
   created_at: '2026-09-18T10:00:00+00:00',
   updated_at: '2026-09-18T10:00:00+00:00',
 };
@@ -84,6 +92,7 @@ const responsiblePersonRow = {
   full_name: 'Ion Popescu',
   job_title: 'Manager magazin',
   roles: ['workplace_manager', 'first_aid'],
+  workplace_id: null,
   created_at: '2026-09-18T10:00:00+00:00',
   updated_at: '2026-09-18T10:00:00+00:00',
   employees: { job_title: 'Director magazin' },
@@ -375,6 +384,14 @@ describe('/clients/{clientId}/workplaces', () => {
         countyCode: 'B',
         locality: 'București',
         addressLine: 'Calea Victoriei 122A',
+        activity: 'Birouri',
+        floorAreaM2: 120,
+        extinguisherNorm: 'administrative_300',
+        assemblyPoint: 'Parcarea din fața clădirii',
+        combustibleMaterials: 'Hârtie, mobilier din lemn',
+        ignitionSources: 'Aparatură electrică',
+        fireRiskEquipment: 'Calculatoare, imprimante',
+        specificMeasures: null,
         createdAt: '2026-09-18T10:00:00.000Z',
         updatedAt: '2026-09-18T10:00:00.000Z',
       },
@@ -404,8 +421,47 @@ describe('/clients/{clientId}/workplaces', () => {
       county_code: null,
       locality: null,
       address_line: null,
+      activity: null,
+      floor_area_m2: null,
+      extinguisher_norm: null,
+      assembly_point: null,
+      combustible_materials: null,
+      ignition_sources: null,
+      fire_risk_equipment: null,
+      specific_measures: null,
       created_by: user.id,
     });
+  });
+
+  it('stores the fire-safety facts of a workplace and clears those left out', async () => {
+    mockUpstream({ workplaces: () => Response.json(workplaceRow) });
+    const response = await request(`${path}/${workplaceRow.id}`, 'PUT', {
+      name: 'Gelaterie',
+      activity: ' Gelaterie ',
+      floorAreaM2: 85,
+      extinguisherNorm: 'commercial_200',
+      assemblyPoint: 'Parcarea din fața magazinului',
+      combustibleMaterials: 'Ambalaje de carton',
+    });
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/client_workplaces')).toMatchObject({
+      activity: 'Gelaterie',
+      floor_area_m2: 85,
+      extinguisher_norm: 'commercial_200',
+      assembly_point: 'Parcarea din fața magazinului',
+      combustible_materials: 'Ambalaje de carton',
+      ignition_sources: null,
+      fire_risk_equipment: null,
+      specific_measures: null,
+    });
+  });
+
+  it('refuses an area of nothing and a norm annex 6 does not have', async () => {
+    mockUpstream({});
+    for (const fields of [{ floorAreaM2: 0 }, { extinguisherNorm: 'commercial_250' }]) {
+      expect((await request(path, 'POST', { name: 'Gelaterie', ...fields })).status).toBe(400);
+    }
+    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
   });
 
   it('refuses an archived client and a second registered office with 409', async () => {
@@ -463,6 +519,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
       roles: body.roles,
       jobTitle: 'Manager magazin',
       employeeJobTitle: 'Director magazin',
+      workplaceId: null,
     });
     const [url] = calls('/rest/v1/client_responsible_persons')[0]!;
     expect(new URL(String(url)).searchParams.get('select')).toContain('employees(job_title)');
@@ -483,8 +540,47 @@ describe('/clients/{clientId}/responsible-persons', () => {
       full_name: 'Ion Popescu',
       job_title: 'Manager magazin',
       roles: ['workplace_manager', 'first_aid'],
+      workplace_id: null,
       created_by: user.id,
     });
+  });
+
+  it('ties a fire-safety role to one active workplace of the client', async () => {
+    mockUpstream({
+      workplaces: () => Response.json({ id: workplaceRow.id }),
+      responsiblePersons: () => Response.json(responsiblePersonRow, { status: 201 }),
+    });
+    const response = await request(path, 'POST', {
+      ...body,
+      roles: ['fire_safety_coordinator', 'fire_intervention_leader'],
+      workplaceId: workplaceRow.id,
+    });
+    expect(response.status).toBe(201);
+    const [find] = calls('/rest/v1/client_workplaces').map(
+      ([url]) => new URL(String(url)).searchParams
+    );
+    expect(find!.get('id')).toBe(`eq.${workplaceRow.id}`);
+    expect(find!.get('client_id')).toBe(`eq.${clientId}`);
+    expect(find!.get('archived_at')).toBe('is.null');
+    expect(sentBody('/rest/v1/client_responsible_persons')).toMatchObject({
+      workplace_id: workplaceRow.id,
+      roles: ['fire_safety_coordinator', 'fire_intervention_leader'],
+    });
+  });
+
+  it('names the workplace field when the workplace is not an active one of this client', async () => {
+    mockUpstream({ workplaces: () => Response.json(null) });
+    for (const [method, url] of [
+      ['POST', path],
+      ['PUT', `${path}/${responsiblePersonRow.id}`],
+    ] as const) {
+      const response = await request(url, method, { ...body, workplaceId: workplaceRow.id });
+      expect(response.status).toBe(400);
+      expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+        'workplaceId'
+      );
+    }
+    expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
   });
 
   it('refuses no role, an unknown role, and a role given twice', async () => {

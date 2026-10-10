@@ -178,6 +178,23 @@ const sectionOf = (number: string) =>
     .find((item) => item.textContent?.startsWith(`${number}. `))!;
 
 const allBuilt = [
+  ...(
+    [
+      ['fire_cover_decisions', 'Copertă – Deciziile interne în domeniul situațiilor de urgență'],
+      ['fire_decision_organization', 'Decizia privind organizarea apărării împotriva incendiilor'],
+      ['fire_decision_training', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
+      ['fire_decision_open_fire', 'Decizia privind lucrul cu foc deschis'],
+      ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
+      ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
+      ['fire_means_list', 'Lista mijloacelor de apărare împotriva incendiilor'],
+      [
+        'fire_workplace_organization',
+        'Organizarea apărării împotriva incendiilor la locul de muncă',
+      ],
+    ] as const
+  ).map(([typeKey, title], index) =>
+    fireDocument(`${index}0e1f2a3-2a6b-4c3d-8e7f-1a2b3c4d5e6f`, typeKey, title)
+  ),
   cover,
   registers,
   permit,
@@ -215,6 +232,7 @@ describe('client fire-safety documents', () => {
         'Detalii',
         'Angajați',
         'Posturi de lucru',
+        'Mijloace PSI',
         'Instruire și responsabili',
         'Documente SSM',
         'Documente PSI',
@@ -254,11 +272,11 @@ describe('client fire-safety documents', () => {
 
     const sections = await screen.findAllByTestId('document-section-trigger');
     expect(sections.map((section) => section.textContent)).toEqual([
-      '1. Decizii interneîn pregătire',
+      '1. Decizii internenegenerat',
       '2. Instrucțiuni proprii în domeniul situațiilor de urgențăîn pregătire',
       '3. Tematica de instruireîn pregătire',
       '4. Teste de verificare a cunoștințelorîn pregătire',
-      '5. Mijloace de apărare și organizarea la locul de muncăîn pregătire',
+      '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
       '6. Registre și formulare PSInegenerat',
     ]);
     expect(sections.map((section) => section.getAttribute('data-state'))).toEqual(
@@ -302,16 +320,27 @@ describe('client fire-safety documents', () => {
     await openSection(user, '1');
     const planned = await screen.findAllByTestId('document-planned');
     expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
-      'Copertă – Deciziile interne în domeniul situațiilor de urgență',
-      'Decizia privind organizarea apărării împotriva incendiilor',
-      'Decizia privind instruirea în domeniul situațiilor de urgență',
-      'Decizia privind lucrul cu foc deschis',
       'Decizia privind fumatul',
-      'Decizia privind perioadele caniculare și sezonul rece',
       'Decizia privind cadrul tehnic PSI',
       'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-      'Decizia privind colectarea deșeurilor',
       'Decizia privind controlul propriu',
+    ]);
+    expect(
+      within(sectionOf('1'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => [row.getAttribute('data-testid'), row.querySelector('td')!.textContent])
+    ).toEqual([
+      ['document-not-generated', 'Copertă – Deciziile interne în domeniul situațiilor de urgență'],
+      ['document-not-generated', 'Decizia privind organizarea apărării împotriva incendiilor'],
+      ['document-not-generated', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
+      ['document-not-generated', 'Decizia privind lucrul cu foc deschis'],
+      ['document-planned', 'Decizia privind fumatul'],
+      ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
+      ['document-planned', 'Decizia privind cadrul tehnic PSI'],
+      ['document-planned', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
+      ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
+      ['document-planned', 'Decizia privind controlul propriu'],
     ]);
     for (const row of planned) {
       expect(within(row).queryByRole('link')).toBeNull();
@@ -365,7 +394,10 @@ describe('client fire-safety documents', () => {
     ).toBe('5 ciorne');
     expect(
       sectionOf('5').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('în pregătire');
+    ).toBe('2 ciorne');
+    expect(
+      sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('6 ciorne');
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
@@ -463,7 +495,7 @@ describe('client fire-safety documents', () => {
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe(firePath));
   });
 
-  it('generates with the issue date alone, without a first decision number', async () => {
+  it('generates with the issue date and the number of the first PSI decision', async () => {
     mockApi({ fireItems: [permit] });
     mount();
     const user = userEvent.setup();
@@ -472,15 +504,67 @@ describe('client fire-safety documents', () => {
     expect(open.textContent).toContain('Generează documentele lipsă');
     await user.click(open);
     expect(await screen.findByTestId('generate-issue-date')).toBeTruthy();
-    expect(screen.queryByTestId('generate-first-number')).toBeNull();
-    expect(screen.queryByText('Numărul primei decizii')).toBeNull();
+    const number = screen.getByTestId<HTMLInputElement>('generate-first-number');
+    expect(number.value).toBe('1');
+    expect(screen.getByText('Numărul primei decizii PSI')).toBeTruthy();
     expect(screen.queryByTestId('generate-headcount')).toBeNull();
-    await user.click(screen.getByTestId('generate-submit'));
 
+    await user.clear(number);
+    await user.type(number, '9992');
+    await user.click(screen.getByTestId('generate-submit'));
+    expect((await screen.findByTestId('generate-first-number-error')).textContent).toContain(
+      'Introdu un număr între 1 și 9991.'
+    );
+    expect(requests('/documents/generate', 'POST')).toHaveLength(0);
+
+    await user.clear(number);
+    await user.type(number, '4');
+    await user.click(screen.getByTestId('generate-submit'));
     expect(await screen.findByText('Au fost generate 2 documente.')).toBeTruthy();
     const [call] = requests('/documents/generate', 'POST');
     expect(call!.url.searchParams.get('set')).toBe('fire_safety');
-    expect(Object.keys(JSON.parse(String(call!.init?.body)))).toEqual(['issueDate']);
+    expect(JSON.parse(String(call!.init?.body))).toMatchObject({ firstDecisionNumber: 4 });
+  });
+
+  it('leads each gap in the client data of the set to the field that fills it', async () => {
+    mockApi({
+      readiness: {
+        ready: false,
+        missing: [
+          'fire.trainingSchedule',
+          'fire.waste',
+          'responsible.workplace_manager',
+          'responsible.fire_safety_coordinator',
+          'responsible.fire_intervention_leader',
+          'positions.any',
+          'fire.workplaces',
+          'fire.equipment',
+        ],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
+      '8 date de completat'
+    );
+    const rows = screen.getAllByTestId('generate-missing-row');
+    expect(rows.at(-1)!.textContent).toBe(
+      'Cel puțin un post de lucruDecizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+    );
+    const client = `/clients/${clientId}`;
+    expect(rows.map((row) => row.getAttribute('href'))).toEqual([
+      `${client}/details?focus=workplace-fire-data`,
+      `${client}/fire-safety-means?focus=fire-equipment`,
+      `${client}/training?focus=fire-training-schedule`,
+      `${client}/training?focus=fire-waste`,
+      `${client}/training?focus=workplace-manager`,
+      `${client}/training?focus=fire-safety-coordinator`,
+      `${client}/training?focus=fire-intervention-leader`,
+      `${client}/job-positions?focus=add-position`,
+    ]);
+    expect(screen.queryByTestId('generate-first-number')).toBeNull();
   });
 
   it('says so when the templates of the set are not available yet', async () => {

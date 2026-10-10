@@ -18,17 +18,34 @@ export const contractFocus = [
   'contract-representative-role',
 ] as const;
 
-export const clientDetailsFocus = [...legalRepresentativeFocus, ...companyFocus] as const;
+export const workplacesFocus = ['add-workplace', 'workplace-fire-data'] as const;
 
-export const trainingFocus = [
-  'training-schedule',
+export const clientDetailsFocus = [
+  ...legalRepresentativeFocus,
+  ...companyFocus,
+  ...workplacesFocus,
+] as const;
+
+export const fireTrainingFocus = ['fire-training-schedule', 'fire-waste'] as const;
+
+export const responsiblePersonFocus = [
   'workplace-manager',
   'first-aid',
   'risk-evaluation-team',
   'imminent-danger',
   'workers-representative',
   'workers-representative-clash',
+  'fire-safety-coordinator',
+  'fire-intervention-leader',
 ] as const;
+
+export const trainingFocus = [
+  'training-schedule',
+  ...fireTrainingFocus,
+  ...responsiblePersonFocus,
+] as const;
+
+export const fireSafetyMeansFocus = ['fire-equipment'] as const;
 
 export const jobPositionsFocus = ['add-position'] as const;
 
@@ -61,7 +78,10 @@ export type LegalRepresentativeFocus = (typeof legalRepresentativeFocus)[number]
 export type CompanyFocus = (typeof companyFocus)[number];
 export type ContractFocus = (typeof contractFocus)[number];
 export type ClientDetailsFocus = (typeof clientDetailsFocus)[number];
+export type WorkplacesFocus = (typeof workplacesFocus)[number];
 export type TrainingFocus = (typeof trainingFocus)[number];
+export type FireTrainingFocus = (typeof fireTrainingFocus)[number];
+export type ResponsiblePersonFocus = (typeof responsiblePersonFocus)[number];
 export type OrganizationCompanyFocus = (typeof organizationCompanyFocus)[number];
 export type AuthorizationsFocus = (typeof authorizationsFocus)[number];
 export type ProfileFocus = (typeof profileFocus)[number];

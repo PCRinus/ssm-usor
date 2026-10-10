@@ -52,6 +52,12 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'risk_evaluations.measures': `/clients/${clientId}/job-positions`,
   'risk_evaluations.plan': `/clients/${clientId}/job-positions`,
   'documents.own_instructions': `/clients/${clientId}/documents?section=own-instructions`,
+  'responsible.fire_safety_coordinator': `${training}fire-safety-coordinator`,
+  'responsible.fire_intervention_leader': `${training}fire-intervention-leader`,
+  'fire.trainingSchedule': `${training}fire-training-schedule`,
+  'fire.waste': `${training}fire-waste`,
+  'fire.workplaces': `${details}workplace-fire-data`,
+  'fire.equipment': `/clients/${clientId}/fire-safety-means?focus=fire-equipment`,
 };
 
 describe('the rows of the generation form', () => {
@@ -64,6 +70,36 @@ describe('the rows of the generation form', () => {
       canEditOrganization: true,
     });
     expect(hrefs(groups)).toEqual([documentTargets[code]]);
+  });
+
+  it('group the fire-safety codes by the page that fills them in', () => {
+    const groups = documentMissingGroups({
+      missing: [
+        'fire.trainingSchedule',
+        'fire.waste',
+        'fire.workplaces',
+        'fire.equipment',
+        'responsible.fire_safety_coordinator',
+        'responsible.fire_intervention_leader',
+      ],
+      clientId,
+      clash: null,
+      undecidedJobPositions: [],
+      canEditOrganization: true,
+    });
+    expect(groups.map((group) => [group.heading, group.rows.map((row) => row.label)])).toEqual([
+      ['Detaliile clientului', ['Datele PSI ale locurilor de muncă']],
+      ['Mijloacele PSI', ['Stingătoarele locurilor de muncă']],
+      [
+        'Instruire și responsabili',
+        [
+          'Programul instruirii PSI',
+          'Deșeurile colectate',
+          'Coordonator privind apărarea împotriva incendiilor',
+          'Șef echipă de primă intervenție',
+        ],
+      ],
+    ]);
   });
 
   it('are one per position and per section still undecided, each to that section', () => {
@@ -189,6 +225,24 @@ describe('the rows of the generation form', () => {
     });
     expect(group!.rows[0]!.detail).toBe(
       '„Talos Florin” are același nume ca reprezentantul legal al clientului, „Florin TALOȘ”.'
+    );
+  });
+
+  it('say why a post is needed in the words of the set that asks for it', () => {
+    const detailFor = (set?: 'occupational_safety' | 'fire_safety') =>
+      documentMissingGroups({
+        missing: ['positions.any'],
+        clientId,
+        clash: null,
+        undecidedJobPositions: [],
+        canEditOrganization: true,
+        set,
+      })[0]!.rows[0]!.detail;
+    expect(detailFor()).toBe(
+      'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.'
+    );
+    expect(detailFor('fire_safety')).toBe(
+      'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
     );
   });
 

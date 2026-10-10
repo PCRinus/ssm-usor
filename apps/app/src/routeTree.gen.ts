@@ -54,6 +54,7 @@ import { Route as AuthenticatedClientsClientIdDocumentsRouteImport } from './rou
 import { Route as AuthenticatedClientsClientIdEditRouteImport } from './routes/_authenticated/clients/$clientId/edit';
 import { Route as AuthenticatedClientsClientIdEmployeesRouteImport } from './routes/_authenticated/clients/$clientId/employees';
 import { Route as AuthenticatedClientsClientIdFireSafetyDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/fire-safety-documents';
+import { Route as AuthenticatedClientsClientIdFireSafetyMeansRouteImport } from './routes/_authenticated/clients/$clientId/fire-safety-means';
 import { Route as AuthenticatedClientsClientIdJobPositionsRouteImport } from './routes/_authenticated/clients/$clientId/job-positions';
 import { Route as AuthenticatedClientsClientIdOtherDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/other-documents';
 import { Route as AuthenticatedClientsClientIdTrainingRouteImport } from './routes/_authenticated/clients/$clientId/training';
@@ -327,6 +328,12 @@ const AuthenticatedClientsClientIdFireSafetyDocumentsRoute =
     path: '/fire-safety-documents',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
+const AuthenticatedClientsClientIdFireSafetyMeansRoute =
+  AuthenticatedClientsClientIdFireSafetyMeansRouteImport.update({
+    id: '/fire-safety-means',
+    path: '/fire-safety-means',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
 const AuthenticatedClientsClientIdJobPositionsRoute =
   AuthenticatedClientsClientIdJobPositionsRouteImport.update({
     id: '/job-positions',
@@ -516,6 +523,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/clients/$clientId/fire-safety-documents': typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren;
+  '/clients/$clientId/fire-safety-means': typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
@@ -573,6 +581,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/details': typeof AuthenticatedClientsClientIdDetailsRoute;
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
+  '/clients/$clientId/fire-safety-means': typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
@@ -641,6 +650,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/_authenticated/clients/$clientId/employees': typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   '/_authenticated/clients/$clientId/fire-safety-documents': typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren;
+  '/_authenticated/clients/$clientId/fire-safety-means': typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   '/_authenticated/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/_authenticated/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   '/_authenticated/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
@@ -712,6 +722,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/edit'
     | '/clients/$clientId/employees'
     | '/clients/$clientId/fire-safety-documents'
+    | '/clients/$clientId/fire-safety-means'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId/other-documents'
     | '/clients/$clientId/training'
@@ -769,6 +780,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/details'
     | '/clients/$clientId/document-data'
     | '/clients/$clientId/edit'
+    | '/clients/$clientId/fire-safety-means'
     | '/clients/$clientId/training'
     | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
@@ -836,6 +848,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/edit'
     | '/_authenticated/clients/$clientId/employees'
     | '/_authenticated/clients/$clientId/fire-safety-documents'
+    | '/_authenticated/clients/$clientId/fire-safety-means'
     | '/_authenticated/clients/$clientId/job-positions'
     | '/_authenticated/clients/$clientId/other-documents'
     | '/_authenticated/clients/$clientId/training'
@@ -1192,6 +1205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
+    '/_authenticated/clients/$clientId/fire-safety-means': {
+      id: '/_authenticated/clients/$clientId/fire-safety-means';
+      path: '/fire-safety-means';
+      fullPath: '/clients/$clientId/fire-safety-means';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdFireSafetyMeansRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
     '/_authenticated/clients/$clientId/job-positions': {
       id: '/_authenticated/clients/$clientId/job-positions';
       path: '/job-positions';
@@ -1500,6 +1520,7 @@ interface AuthenticatedClientsClientIdRouteChildren {
   AuthenticatedClientsClientIdEditRoute: typeof AuthenticatedClientsClientIdEditRoute;
   AuthenticatedClientsClientIdEmployeesRoute: typeof AuthenticatedClientsClientIdEmployeesRouteWithChildren;
   AuthenticatedClientsClientIdFireSafetyDocumentsRoute: typeof AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren;
+  AuthenticatedClientsClientIdFireSafetyMeansRoute: typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   AuthenticatedClientsClientIdJobPositionsRoute: typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   AuthenticatedClientsClientIdOtherDocumentsRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
   AuthenticatedClientsClientIdTrainingRoute: typeof AuthenticatedClientsClientIdTrainingRoute;
@@ -1524,6 +1545,8 @@ const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRou
       AuthenticatedClientsClientIdEmployeesRouteWithChildren,
     AuthenticatedClientsClientIdFireSafetyDocumentsRoute:
       AuthenticatedClientsClientIdFireSafetyDocumentsRouteWithChildren,
+    AuthenticatedClientsClientIdFireSafetyMeansRoute:
+      AuthenticatedClientsClientIdFireSafetyMeansRoute,
     AuthenticatedClientsClientIdJobPositionsRoute:
       AuthenticatedClientsClientIdJobPositionsRouteWithChildren,
     AuthenticatedClientsClientIdOtherDocumentsRoute:

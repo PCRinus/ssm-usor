@@ -1,8 +1,4 @@
-import {
-  formatTrainingDuration,
-  periodicTrainingMinutesOptions,
-  trainingMonths,
-} from '@ssm-usor/contracts';
+import { formatTrainingDuration, periodicTrainingMinutesOptions } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -28,7 +24,7 @@ import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useFocusRequest } from '@/features/missing-data/focus';
 
-import { intervalOptions, monthNames, notApplicable } from './document-details-schema';
+import { intervalOptions, monthList, monthNames, notApplicable } from './document-details-schema';
 import {
   type ClientSummary,
   describedBy,
@@ -78,11 +74,6 @@ function completeProgram(saved: DocumentDetails): Program | null {
     trainingDayTo: saved.trainingDayTo,
   };
 }
-
-const monthList = (firstMonth: number, interval: number) =>
-  trainingMonths(firstMonth, interval)
-    .map((month) => monthNames[month - 1])
-    .join(', ');
 
 export function TrainingProgramSection({
   client,
@@ -206,7 +197,7 @@ function TrainingProgramCard({
   );
 }
 
-function CategoryProgram({
+export function CategoryProgram({
   testId,
   label,
   interval,

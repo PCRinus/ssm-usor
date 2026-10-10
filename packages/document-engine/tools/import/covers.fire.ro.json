@@ -2,6 +2,23 @@
   "folder": "fire",
   "covers": [
     {
+      "number": "1.0",
+      "typeKey": "fire_cover_decisions",
+      "title": "DECIZIILE INTERNE",
+      "subtitle": "la nivelul unității, în domeniul situațiilor de urgență, pentru",
+      "items": [
+        "Modul de organizare și responsabilitățile privind apărarea împotriva incendiilor;",
+        "Măsurile obligatorii privind instruirea salariaților în domeniul situațiilor de urgență;",
+        "Modul de reglementare a lucrărilor cu foc deschis;",
+        "Modul de reglementare a fumatului;",
+        "Modul de reglementare a lucrărilor în timpul sezonului rece și în perioadele caniculare și secetoase;",
+        "Numirea cadrului tehnic cu atribuții în domeniul apărării împotriva incendiilor;",
+        "Instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă;",
+        "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și distrugerea acestora;",
+        "Controlul propriu al respectării normelor, dispozițiilor și măsurilor de apărare împotriva incendiilor."
+      ]
+    },
+    {
       "number": "6.0",
       "typeKey": "fire_cover_registers",
       "title": "REGISTRELE DE EVIDENȚĂ ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",

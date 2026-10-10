@@ -17,6 +17,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { countOf, listed } from '../../lib/romanian';
+import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -63,7 +64,8 @@ export type DocumentFacts = {
     trainingDayTo: number | null;
     caenCode: string | null;
   };
-  workplaces: WorkplaceFacts[];
+  /** The active workplaces, by name. */
+  workplaces: (WorkplaceFacts & FireWorkplaceFacts)[];
   /** In the order they should be printed. */
   responsiblePersons: {
     fullName: string;
@@ -71,6 +73,8 @@ export type DocumentFacts = {
     roles: ResponsiblePersonRole[];
     /** Linked to an employee who has not left. */
     currentEmployee: boolean;
+    /** The one workplace the person answers for; null for every workplace (ADR 018). */
+    workplaceId: string | null;
   }[];
   /** The current positions in the order of the positions table, each with its equipment. */
   jobPositions: {
@@ -110,6 +114,7 @@ export type DocumentFacts = {
   ownInstructions: OwnInstructionsRevision | null;
   /** Every evaluation of the client, archived positions' included (ADR 015). */
   riskEvaluations: RiskEvaluationFacts[];
+  fireSafety: FireSafetyClientFacts;
 };
 
 type Person = { name: string; jobTitle: string };
@@ -422,6 +427,12 @@ const printedAs = {
   'risk_evaluations.measures': riskNames,
   'risk_evaluations.plan': riskNames,
   'documents.own_instructions': ['themes'],
+  'responsible.fire_safety_coordinator': [],
+  'responsible.fire_intervention_leader': [],
+  'fire.trainingSchedule': [],
+  'fire.waste': [],
+  'fire.workplaces': [],
+  'fire.equipment': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
 /** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
@@ -460,7 +471,7 @@ function frequency(intervalMonths: number) {
   return named[intervalMonths] ?? `LA ${intervalMonths} LUNI`;
 }
 
-const months = (firstMonth: number, intervalMonths: number) => {
+export const months = (firstMonth: number, intervalMonths: number) => {
   const names = trainingMonths(firstMonth, intervalMonths).map((month) => monthNames[month - 1]!);
   return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
 };

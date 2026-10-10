@@ -1,4 +1,5 @@
 import {
+  type DocumentSet,
   type JobPositionDecision,
   type MissingDocumentData,
   type MissingServiceContractData,
@@ -32,6 +33,12 @@ const to = {
     linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
     linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
+  fireSafetyMeans: (clientId: string) =>
+    linkOptions({
+      to: '/clients/$clientId/fire-safety-means',
+      params: { clientId },
+      search: { focus: 'fire-equipment' as const },
+    }),
   clientEvaluations: (clientId: string) =>
     linkOptions({
       to: '/clients/$clientId/job-positions',
@@ -123,6 +130,7 @@ export const documentPlaces = {
   organization: 'Datele organizației',
   profile: 'Profilul tău',
   clientDetails: 'Detaliile clientului',
+  fireSafetyMeans: 'Mijloacele PSI',
   training: 'Instruire și responsabili',
   jobPositions: 'Posturile de lucru',
   riskEvaluations: 'Evaluarea riscurilor',
@@ -133,7 +141,12 @@ type DocumentPlace = keyof typeof documentPlaces;
 
 type Clash = { representativeName: string; legalRepresentativeName: string } | null;
 
-type DocumentContext = { clientId: string; clash: Clash; currentEmployeeCount?: number };
+type DocumentContext = {
+  clientId: string;
+  clash: Clash;
+  currentEmployeeCount?: number;
+  set: DocumentSet;
+};
 
 const responsible = (role: ResponsiblePersonRole, focus: TrainingFocus) => ({
   place: 'training' as const,
@@ -232,7 +245,10 @@ export const documentMissingData: Record<
   'positions.any': {
     place: 'jobPositions',
     label: 'Cel puțin un post de lucru',
-    detail: 'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.',
+    detail: ({ set }) =>
+      set === 'fire_safety'
+        ? 'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+        : 'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.',
     target: ({ clientId }) => to.addPosition(clientId),
   },
   // One row per position replaces these two whenever readiness names the positions.
@@ -276,6 +292,39 @@ export const documentMissingData: Record<
     label: 'Instrucțiunile proprii, generate înaintea tematicii',
     detail: 'Tematica citează modulele pe care le anexează instrucțiunile proprii.',
     target: ({ clientId }) => to.documentSection(clientId, 'own-instructions'),
+  },
+  'responsible.fire_safety_coordinator': responsible(
+    'fire_safety_coordinator',
+    'fire-safety-coordinator'
+  ),
+  'responsible.fire_intervention_leader': responsible(
+    'fire_intervention_leader',
+    'fire-intervention-leader'
+  ),
+  'fire.trainingSchedule': {
+    place: 'training',
+    label: 'Programul instruirii PSI',
+    detail: 'Durata, intervalele pe categorii, prima lună și zilele.',
+    target: ({ clientId }) => to.training(clientId, 'fire-training-schedule'),
+  },
+  'fire.waste': {
+    place: 'training',
+    label: 'Deșeurile colectate',
+    detail: 'Cel puțin un tip de deșeu, pentru decizia privind colectarea deșeurilor.',
+    target: ({ clientId }) => to.training(clientId, 'fire-waste'),
+  },
+  'fire.workplaces': {
+    place: 'clientDetails',
+    label: 'Datele PSI ale locurilor de muncă',
+    detail:
+      'Activitatea, suprafața, norma de dotare, punctul de adunare și textele fișei de la locul de muncă.',
+    target: ({ clientId }) => to.clientDetails(clientId, 'workplace-fire-data'),
+  },
+  'fire.equipment': {
+    place: 'fireSafetyMeans',
+    label: 'Stingătoarele locurilor de muncă',
+    detail: 'Fiecare loc de muncă activ are nevoie de cel puțin un stingător.',
+    target: ({ clientId }) => to.fireSafetyMeans(clientId),
   },
 };
 
@@ -337,6 +386,7 @@ export function documentMissingGroups({
   incompleteRiskEvaluations = [],
   currentEmployeeCount,
   canEditOrganization,
+  set = 'occupational_safety',
 }: {
   missing: readonly MissingDocumentData[];
   clientId: string;
@@ -345,8 +395,9 @@ export function documentMissingGroups({
   undecidedJobPositions: readonly UndecidedJobPosition[];
   incompleteRiskEvaluations?: readonly IncompleteRiskEvaluation[];
   canEditOrganization: boolean;
+  set?: DocumentSet;
 }): MissingGroup[] {
-  const context = { clientId, clash, currentEmployeeCount };
+  const context = { clientId, clash, currentEmployeeCount, set };
   const rowOf = (code: MissingDocumentData): MissingRow => {
     const entry = documentMissingData[code];
     return {
