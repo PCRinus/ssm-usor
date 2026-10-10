@@ -191,6 +191,48 @@ describe('fire-safety set', () => {
       place: 'în curtea interioară',
     },
     waste: { kinds: ['deșeuri de carton'], contractor: 'S.C. ECO S.R.L.' },
+    themes: [
+      {
+        staffCategory: 'technical_administrative',
+        label: 'Personal administrativ',
+        posts: ['Manager magazin'],
+        postsText: 'Manager magazin',
+        workplaceTrainers: { workplaceManagers: null, technician: true },
+        periodicTrainers: { workplaceManagers: null, technician: true },
+        intervalLabel: '6 LUNI',
+        sessions: [
+          { month: 'FEBRUARIE', content: 'IPSU Art. 1 – 130; Afișate', duration: '120 min' },
+          {
+            month: 'AUGUST',
+            content: 'IPSU Art. 131 – 257; Afișate; Testare.',
+            duration: '120 min',
+          },
+        ],
+      },
+      {
+        staffCategory: 'execution',
+        label: 'Personal de execuție',
+        posts: ['Barman'],
+        postsText: 'Barman',
+        workplaceTrainers: {
+          workplaceManagers: 'Ion VLAD – conducătorul locului de muncă',
+          technician: false,
+        },
+        periodicTrainers: {
+          workplaceManagers: 'Ion VLAD – conducătorul locului de muncă',
+          technician: true,
+        },
+        intervalLabel: '3 LUNI',
+        sessions: [
+          { month: 'FEBRUARIE', content: 'IPSU Art. 1 – 76; Afișate', duration: '120 min' },
+          {
+            month: 'NOIEMBRIE',
+            content: 'IPSU Art. 236 – 257; Afișate; Testare.',
+            duration: '120 min',
+          },
+        ],
+      },
+    ],
   };
   // Every condition the other way: no contractor, no manager at a workplace, nothing optional.
   const sparse = {
@@ -218,6 +260,7 @@ describe('fire-safety set', () => {
       place: null,
     },
     waste: { kinds: ['deșeuri menajere'], contractor: null },
+    themes: fire.themes.slice(1),
   };
   const stageTwoData = {
     ...data,
@@ -493,6 +536,8 @@ describe('fire-safety set', () => {
     'fire/6.0_fire_cover_registers.docx',
     'fire/1.0_fire_cover_decisions.docx',
     'fire/2.0_fire_cover_own_instructions.docx',
+    'fire/3.0_fire_cover_training_themes.docx',
+    'fire/4.0_fire_cover_tests.docx',
   ])('%s has the technician sign for the provider', (name) => {
     const text = documentText(renderDocument(read(name), data));
     expect(text).toContain('Dan MARIN\nCadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
@@ -530,6 +575,72 @@ describe('fire-safety set', () => {
     ]) {
       expect(text).not.toContain(gone);
     }
+  });
+
+  it('gives every staff category with posts a block of the workplace and the periodic training', () => {
+    const themes = 'fire/3.1_fire_training_themes.docx';
+    const text = documentText(renderDocument(read(themes), stageTwoData));
+    expect(text.match(/^FUNCȚIA: Personal administrativ \(Manager magazin\)$/gm)).toHaveLength(2);
+    expect(text).toContain(
+      'CINE EFECTUEAZĂ INSTRUIREA: Ion VLAD – conducătorul locului de muncă\n'
+    );
+    expect(text).toContain(
+      'CINE EFECTUEAZĂ INSTRUIREA: Ion VLAD – conducătorul locului de muncă sau, după caz, S.C. SERVICIU EXTERN S.R.L. – Dan MARIN (cadru tehnic PSI)'
+    );
+    expect(text).toContain('Decizia nr. 10 PSI');
+    expect(text).toMatch(/^NOIEMBRIE\nIPSU Art. 236 – 257; Afișate; Testare.\n120 min$/m);
+    const sparseText = documentText(
+      renderDocument(read(themes), { ...stageTwoData, fire: sparse })
+    );
+    expect(sparseText).not.toContain('Personal administrativ');
+    expect(sparseText.match(/^FUNCȚIA: Personal de execuție \(Barman\)$/gm)).toHaveLength(2);
+  });
+
+  // OMAI 712/2005 art. 13 and 18 ask eight hours of training, which the breaks are not.
+  it('counts eight hours of training in each plan, its breaks without minutes', () => {
+    const text = documentText(read('fire/3.1_fire_training_themes.docx'));
+    const plans = text.split('TIMP TOTAL DE INSTRUIRE').slice(0, -1);
+    expect(plans).toHaveLength(2);
+    for (const plan of plans) {
+      const rows = plan.slice(plan.lastIndexOf('Planul de desfășurare'));
+      const minutes = [...rows.matchAll(/^(\d+) min$/gm)].map(([, value]) => Number(value));
+      expect(minutes.reduce((sum, value) => sum + value, 0)).toBe(480);
+      expect(rows).toContain('PAUZA');
+      expect(rows).not.toMatch(/^PAUZA\n\d+ min$/m);
+    }
+    expect(text).toMatch(/^TIMP TOTAL DE INSTRUIRE\n480 min$/m);
+  });
+
+  it.each([
+    ['fire/4.1_fire_test_hiring.docx', 12, 'A'],
+    ['fire/4.2_fire_test_annual.docx', 11, 'BC'],
+  ])(
+    '%s asks %i questions, one row per question on the sheet and in the key',
+    (name, count, last) => {
+      const text = documentText(renderDocument(read(name), stageTwoData));
+      expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
+      expect(text).toMatch(new RegExp(`^${count}\\. `, 'm'));
+      expect(text).not.toMatch(new RegExp(`^${count + 1}\\. `, 'm'));
+      const sheet = text.slice(text.indexOf('Răspunsul acordat'), text.lastIndexOf('TESTARE'));
+      expect(sheet.match(/^\d+$/gm)).toHaveLength(count);
+      const key = text.slice(text.indexOf('Răspunsul corect'));
+      expect(key.match(/^\d+\n[A-D]+$/gm)).toHaveLength(count);
+      expect(key).toMatch(new RegExp(`^${count}\\n${last}$`, 'm'));
+      for (const gone of [
+        'funcții de execuție sau operative',
+        'termenul de valabilitate',
+        'culorii',
+        'bătăile inimii',
+      ]) {
+        expect(text).not.toContain(gone);
+      }
+    }
+  );
+
+  it('lists the two tests on their cover', () => {
+    const text = documentText(read('fire/4.0_fire_cover_tests.docx'));
+    expect(text).toMatch(/^1\. Test de verificare a cunoștințelor la angajare/m);
+    expect(text).toMatch(/^2\. Test de verificare periodică \(anual\)\.$/m);
   });
 
   it('prints the checks of OMAI 135/2023 annex 2, each answered yes or no', () => {

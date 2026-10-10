@@ -940,6 +940,24 @@ describe('the fire-safety templates', () => {
     );
   });
 
+  it('give the training themes a block per staff category with its trainers and sessions', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_training_themes')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(text).toContain('FUNCȚIA: Personal administrativ (Contabil)');
+    expect(text).toContain('FUNCȚIA: Personal de execuție (Sudor)');
+    expect(text).toContain(
+      'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
+    );
+    expect(text).toMatch(
+      /^NOIEMBRIE\nIPSU Art\.\u00a0236\u00a0–\u00a0257; .+; Testare\.\n120 min$/m
+    );
+  });
+
   const fireGaps: [string, DocumentFacts][] = [
     [
       'everything of the second stage',

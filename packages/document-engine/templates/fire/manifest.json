@@ -147,6 +147,66 @@
       }
     },
     {
+      "number": "3.0",
+      "originals": ["3.1._Coperta_Tematica_SU"],
+      "stage": 3,
+      "typeKey": "fire_cover_training_themes",
+      "title": "Copertă – Tematica de instruire în domeniul situațiilor de urgență",
+      "file": "3.0_fire_cover_training_themes.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "3.1",
+      "originals": ["3.2._Tematica_SU"],
+      "stage": 3,
+      "typeKey": "fire_training_themes",
+      "title": "Tematica de instruire în domeniul situațiilor de urgență",
+      "file": "3.1_fire_training_themes.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "4.0",
+      "originals": ["4.0._Coperta testari_SU"],
+      "stage": 3,
+      "typeKey": "fire_cover_tests",
+      "title": "Copertă – Testele de verificare a cunoștințelor",
+      "file": "4.0_fire_cover_tests.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "4.1",
+      "originals": ["4.1._Test_angajare_S.U"],
+      "stage": 3,
+      "typeKey": "fire_test_hiring",
+      "title": "Test la angajare",
+      "file": "4.1_fire_test_hiring.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "4.2",
+      "originals": ["4.2._Test_anual_S.U"],
+      "stage": 3,
+      "typeKey": "fire_test_annual",
+      "title": "Test anual",
+      "file": "4.2_fire_test_annual.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "5.1",
       "originals": ["5._Lista_cu_situatia_mijloacelor_de_aparare_psi"],
       "stage": 2,

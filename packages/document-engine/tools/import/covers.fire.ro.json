@@ -27,6 +27,33 @@
       "subtitle": "pentru"
     },
     {
+      "number": "3.0",
+      "typeKey": "fire_cover_training_themes",
+      "title": "TEMATICA DE INSTRUIRE PENTRU TOATE FAZELE DE INSTRUIRE ȘI PROGRAMUL DE INSTRUIRE – TESTARE LA NIVELUL UNITĂȚII ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",
+      "subtitle": "pentru",
+      "intro": {
+        "lead": "Tematica de instruire este adaptată fiecărei categorii de salariați și se structurează de regulă astfel:",
+        "items": [
+          "a) actele normative care reglementează activitatea de apărare împotriva incendiilor;",
+          "b) obligațiile generale și specifice care revin categoriilor de salariați;",
+          "c) riscul de incendiu, cauzele potențiale de incendiu prezentate de instalațiile utilitare ale construcțiilor și de procesele de muncă desfășurate, normele, regulile și măsurile de prevenire și înlăturare a acestora;",
+          "d) descrierea, funcționarea, întreținerea și modul de utilizare a tuturor sistemelor de protecție împotriva incendiilor aflate în dotare;",
+          "e) acțiunea salariaților în cadrul echipelor de intervenție (răspuns) în caz de incendiu, la antrenamente și exerciții practice."
+        ]
+      }
+    },
+    {
+      "number": "4.0",
+      "typeKey": "fire_cover_tests",
+      "title": "TESTE DE VERIFICARE A CUNOȘTINȚELOR ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",
+      "subtitle": "la nivelul unității, pentru",
+      "itemsAfterClient": true,
+      "items": [
+        "Test de verificare a cunoștințelor la angajare, după instruirea introductiv-generală și instruirea la locul de muncă;",
+        "Test de verificare periodică (anual)."
+      ]
+    },
+    {
       "number": "6.0",
       "typeKey": "fire_cover_registers",
       "title": "REGISTRELE DE EVIDENȚĂ ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",

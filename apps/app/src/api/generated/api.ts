@@ -3730,6 +3730,11 @@ export const StartRegenerationRequestTypeKey = {
   fire_decision_control: 'fire_decision_control',
   fire_cover_own_instructions: 'fire_cover_own_instructions',
   fire_own_instructions: 'fire_own_instructions',
+  fire_cover_training_themes: 'fire_cover_training_themes',
+  fire_training_themes: 'fire_training_themes',
+  fire_cover_tests: 'fire_cover_tests',
+  fire_test_hiring: 'fire_test_hiring',
+  fire_test_annual: 'fire_test_annual',
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
   fire_cover_registers: 'fire_cover_registers',
@@ -18133,6 +18138,11 @@ export const getUploadClientDocumentUrl = (
     | 'fire_decision_control'
     | 'fire_cover_own_instructions'
     | 'fire_own_instructions'
+    | 'fire_cover_training_themes'
+    | 'fire_training_themes'
+    | 'fire_cover_tests'
+    | 'fire_test_hiring'
+    | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
@@ -18187,6 +18197,11 @@ export const uploadClientDocument = async (
     | 'fire_decision_control'
     | 'fire_cover_own_instructions'
     | 'fire_own_instructions'
+    | 'fire_cover_training_themes'
+    | 'fire_training_themes'
+    | 'fire_cover_tests'
+    | 'fire_test_hiring'
+    | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
@@ -18309,6 +18324,11 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_decision_control'
     | 'fire_cover_own_instructions'
     | 'fire_own_instructions'
+    | 'fire_cover_training_themes'
+    | 'fire_training_themes'
+    | 'fire_cover_tests'
+    | 'fire_test_hiring'
+    | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
