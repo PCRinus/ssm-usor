@@ -110,7 +110,7 @@ KINDS = {
 HANDOVER = (
     (['Am întocmit și predat un exemplar', 'Am informat angajatorul'],
      '{{provider.representativeName}}', '{{provider.representativeRole}} al {{provider.legalName}}'),
-    (['Am primit un exemplar', 'Am luat la cunoștință'],
+    (['Am primit un exemplar', 'Am luat cunoștință'],
      '{{client.representativeName}}', '{{client.representativeRole}} al {{client.legalName}}'),
 )
 # Who signs for the provider, where a spec names someone other than the legal representative:
@@ -1021,8 +1021,9 @@ def kind_rules(spec):
                         ('answers', 'answers')):
         if plural in spec:
             rules[key] = rules.get(key, []) + spec[plural]
-    if 'titleBelow' in spec:
-        rules['titleBelow'] = spec['titleBelow']
+    for key in ('titleBelow', 'subtitleBelow'):
+        if key in spec:
+            rules[key] = spec[key]
     return rules
 
 
@@ -1280,7 +1281,7 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             paragraph.ParaKeepTogether = True
         elif matches(text, rules['subtitle']):
             paragraph.ParaAdjust = CENTER
-            paragraph.ParaBottomMargin = round(12 * POINT)
+            paragraph.ParaBottomMargin = round(rules.get('subtitleBelow', 12) * POINT)
         elif matches(text, rules['headings']):
             paragraph.CharWeight = 150
             paragraph.ParaAdjust = CENTER

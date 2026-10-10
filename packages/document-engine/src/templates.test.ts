@@ -647,6 +647,11 @@ describe('fire-safety set', () => {
       const key = text.slice(text.indexOf('Răspunsul corect'));
       expect(key.match(/^\d+\n[a-d](?:, [a-d])*$/gm)).toHaveLength(count);
       expect(key).toMatch(new RegExp(`^${count}\\n${last}$`, 'm'));
+      expect(
+        text.match(
+          /^TEST DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+        )
+      ).toHaveLength(2);
       for (const gone of [
         'funcții de execuție sau operative',
         'termenul de valabilitate',
@@ -1045,7 +1050,7 @@ describe('typesetting', () => {
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
       const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
-        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE LA CUNOȘTINȚĂ')
+        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE DE CUNOȘTINȚĂ')
       );
       expect(heading).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
       // A table that may not split is written as rows that keep with the next one.
@@ -1448,6 +1453,17 @@ describe('employer_briefing', () => {
       'Instruirea periodică durează 1 oră și 30 de minute și are periodicitatea stabilită prin programul de instruire-testare și prin instrucțiunile proprii ale unității.'
     );
     expect(text).not.toContain('1,30 ore');
+  });
+});
+
+describe('test_periodic', () => {
+  it('says under the title of the test and of the specimen that several answers may be right', () => {
+    const text = documentText(read('5.2_test_periodic.docx'));
+    expect(
+      text.match(
+        /^TESTARE DE VERIFICARE .*\(PERIODIC\)\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+      )
+    ).toHaveLength(2);
   });
 });
 

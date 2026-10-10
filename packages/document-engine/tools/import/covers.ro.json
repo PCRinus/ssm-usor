@@ -65,8 +65,8 @@
     }
   ],
   "handover": {
-    "heading": "PERSOANE IMPLICATE ÎN PROCESUL DE PREDARE / PRIMIRE A DOCUMENTULUI",
-    "client": ["Am luat la cunoștință", "Am primit un exemplar", "Aprob documentul"],
+    "heading": "PERSOANE IMPLICATE ÎN PROCESUL DE PREDARE-PRIMIRE A DOCUMENTULUI",
+    "client": ["Am luat cunoștință", "Am primit un exemplar", "Aprob documentul"],
     "provider": ["Am întocmit documentul", "Am informat angajatorul", "Am predat un exemplar"],
     "date": "Data: ____________________"
   }

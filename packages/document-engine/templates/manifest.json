@@ -9,7 +9,7 @@
       "file": "1.0_cover_decisions.docx",
       "change": {
         "kind": "correction",
-        "note": "Persoanele din decizia 1.4 sunt numite „personalul desemnat”."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "layout",
-        "note": "Liniuțele listelor au mărimea textului (unele erau mai mici, altele mai mari) și sunt tipărite ca în celelalte documente: „–”, în Arial, neîngroșat."
+        "kind": "correction",
+        "note": "Corecturi de limbă: „proces-verbal de luare de cunoștință” în titlu și în articolul despre persoanele nou numite, iar în textul procesului-verbal „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
       }
     },
     {
@@ -33,7 +33,7 @@
       "file": "1.2_decision_risk_evaluation_team.docx",
       "change": {
         "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
       }
     },
     {
@@ -45,7 +45,7 @@
       "file": "1.3_decision_first_aid.docx",
       "change": {
         "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
       }
     },
     {
@@ -57,7 +57,7 @@
       "file": "1.4_decision_imminent_danger.docx",
       "change": {
         "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
       }
     },
     {
@@ -68,8 +68,8 @@
       "title": "Decizia privind reprezentanții lucrătorilor",
       "file": "1.5_decision_workers_representative.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor (literele) au mărimea textului, nu mai mici."
+        "kind": "correction",
+        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
       }
     },
     {
@@ -81,7 +81,7 @@
       "file": "2.1_cover_general_training_material.docx",
       "change": {
         "kind": "correction",
-        "note": "Blocul de predare-primire are câte un rând pentru dată de fiecare parte."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -105,7 +105,7 @@
       "file": "3.1_cover_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Blocul de predare-primire are câte un rând pentru dată de fiecare parte."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -117,7 +117,7 @@
       "file": "3.2_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Primul ajutor: ghilimelele de închidere „…”, o paranteză în plus la „lit. g)” scoasă, acordul („corpuri străine”), lista de folosire a defibrilatorului cu literă mică și punct și virgulă, și formulări mai clare (înecare, șoc, compresă rece, șoc termic, intoxicație, ce nu face salvatorul)."
+        "note": "Corecturi de limbă: „procesul-verbal de predare-primire” a echipamentului individual de protecție, cu cratimă, nu cu linie de pauză."
       }
     },
     {
@@ -129,7 +129,7 @@
       "file": "4.1_cover_training_themes.docx",
       "change": {
         "kind": "correction",
-        "note": "Tematica de instruire este numită cu titlul ei complet."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -153,7 +153,7 @@
       "file": "5.0_cover_tests.docx",
       "change": {
         "kind": "correction",
-        "note": "Coperta a fost refăcută."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -177,7 +177,7 @@
       "file": "5.2_test_periodic.docx",
       "change": {
         "kind": "correction",
-        "note": "Fraze incomplete sau neclare, reformulate."
+        "note": "Sub titlul testului și al specimenului, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”; întrebările și răspunsurile corecte rămân aceleași."
       }
     },
     {
@@ -188,8 +188,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor („Art. N.”, literele și liniuțele) au mărimea textului, nu mai mici."
+        "kind": "correction",
+        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
       }
     },
     {
@@ -201,7 +201,7 @@
       "file": "7.1_cover_event_registers.docx",
       "change": {
         "kind": "correction",
-        "note": "Blocul de predare-primire are câte un rând pentru dată de fiecare parte."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -248,8 +248,8 @@
       "title": "Planul de prevenire și protecție",
       "file": "10_prevention_plan.docx",
       "change": {
-        "kind": "layout",
-        "note": "Coloana termenelor este mai lată."
+        "kind": "correction",
+        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
       }
     },
     {
@@ -261,7 +261,7 @@
       "file": "11.1_cover_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Fraze incomplete sau neclare, reformulate."
+        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
       }
     },
     {
@@ -272,8 +272,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11_employer_briefing.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor („Art. N.”, numerele și literele) au mărimea textului, nu mai mici."
+        "kind": "correction",
+        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
       }
     },
     {
@@ -284,8 +284,8 @@
       "title": "Regulament intern privind controlul propriu",
       "file": "12_control_regulation.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor (numerele) au mărimea textului, nu mai mici."
+        "kind": "correction",
+        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
       }
     }
   ]
