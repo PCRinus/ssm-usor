@@ -45,6 +45,8 @@ export const trainingFocus = [
   ...responsiblePersonFocus,
 ] as const;
 
+export const fireSafetyMeansFocus = ['fire-equipment'] as const;
+
 export const jobPositionsFocus = ['add-position'] as const;
 
 export const documentsFocus = ['generate'] as const;

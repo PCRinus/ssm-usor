@@ -17,6 +17,7 @@ import {
   FileSignature,
   FileText,
   FireExtinguisher,
+  Flame,
   FolderOpen,
   IdCard,
   UsersRound,
@@ -42,6 +43,13 @@ const sections = [
     to: '/clients/$clientId/job-positions',
     label: 'Posturi de lucru',
     icon: BriefcaseBusiness,
+    ownerOnly: false,
+  },
+  // Documente PSI already shows the extinguisher.
+  {
+    to: '/clients/$clientId/fire-safety-means',
+    label: 'Mijloace PSI',
+    icon: Flame,
     ownerOnly: false,
   },
   {

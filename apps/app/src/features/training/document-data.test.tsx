@@ -138,6 +138,7 @@ describe('client document data', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
+      'Mijloace PSI',
       'Instruire și responsabili',
       'Documente SSM',
       'Documente PSI',
