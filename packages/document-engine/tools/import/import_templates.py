@@ -859,12 +859,13 @@ def add_branding(page_style):
     cursor.ParaTopMargin = round(3 * POINT)
     cursor.ParaBottomMargin = 0
     cursor.ParaLeftMargin = 0
+    cursor.ParaRightMargin = 0
     cursor.ParaFirstLineIndent = 0
 
 
-def snap_list_indent(paragraph):
-    """Moves a list item to the nearest tier, in the list's own definition, and drops the
-    paragraph indents laid over it. Articles ("Art. 1.") keep their flush-left form."""
+def snap_list_indent(paragraph, tier=None):
+    """Moves a list item to the nearest tier, or to `tier`, in the list's own definition, and
+    drops the paragraph indents laid over it. Articles ("Art. 1.") keep their flush-left form."""
     if paragraph.ListLabelString.startswith('Art.'):
         return
     numbering = paragraph.NumberingRules
@@ -872,7 +873,8 @@ def snap_list_indent(paragraph):
     properties = list(numbering.getByIndex(level))
     current = paragraph.ParaLeftMargin or next(
         (item.Value for item in properties if item.Name == 'IndentAt'), 0)
-    tier = min(LIST_TIERS, key=lambda candidate: abs(candidate - current)) if current <= 2500 else LIST_TIERS[2]
+    if tier is None:
+        tier = min(LIST_TIERS, key=lambda candidate: abs(candidate - current)) if current <= 2500 else LIST_TIERS[2]
     for item in properties:
         if item.Name in ('IndentAt', 'ListtabStopPosition'):
             item.Value = tier
@@ -889,6 +891,10 @@ def snap_list_indent(paragraph):
     # label's tab before it reaches the tier.
     for name in ('ParaLeftMargin', 'ParaFirstLineIndent', 'ParaTabStops'):
         paragraph.setPropertyToDefault(name)
+    # Its style's too: the originals' "HTML Preformatted" sets one every 16 mm.
+    stops = paragraph.ParaTabStops
+    if any(0 < stop.Position < tier for stop in stops):
+        paragraph.ParaTabStops = tuple(stop for stop in stops if stop.Position >= tier)
 
 
 def matches(text, patterns):
@@ -1095,8 +1101,9 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
                 # with the numbers. On the paragraph, because both may share one list.
                 letter_tier = 1 if under_number else 0
                 if under_number:
-                    paragraph.ParaLeftMargin = LIST_TIERS[1]
-                    paragraph.ParaFirstLineIndent = LIST_HANG
+                    # In the list's definition, not on the paragraph: an indent laid over a list
+                    # leaves its tab behind the label, which then touches the text.
+                    snap_list_indent(paragraph, LIST_TIERS[1])
             elif letter_tier is not None and not re.search(r'[\w]', label):
                 # Dashes under a letter: one tier further in.
                 paragraph.ParaLeftMargin = LIST_TIERS[letter_tier + 1]
@@ -1486,6 +1493,15 @@ def style_branding(xml):
     return re.sub(r'<w:p(?:\s[^>]*)?(?<!/)>(?:(?!</w:p>).)*</w:p>', paragraph, xml, flags=re.S)
 
 
+# A paragraph holding only this marker becomes a page break of its own. A break set on a
+# paragraph is saved as a break run at the end of the paragraph before it, which may be a loop
+# tag's: inside a section of its own, the break can be left out for one item of a loop.
+PAGE_BREAK_MARKER = '@@page-break@@'
+PAGE_BREAK_PARAGRAPH = re.compile(
+    rf'<w:p\b(?:(?!</w:p>).)*?<w:t\b[^>]*>{PAGE_BREAK_MARKER}</w:t>(?:(?!</w:p>).)*?</w:p>', re.S)
+PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+
+
 def sweep(path):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
@@ -1514,12 +1530,67 @@ def sweep(path):
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 if item.filename == 'word/document.xml':
                     xml = cap_keep_chains(keep_lead_ins(xml, styles), styles)
+                    xml = PAGE_BREAK_PARAGRAPH.sub(PAGE_BREAK, xml)
                 elif item.filename.startswith('word/footer'):
                     xml = style_branding(xml)
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
             archive.writestr(item, data)
+
+
+ARTICLES = 'Articles'
+ARTICLE_LABEL = 'ArticleLabel'
+TYPED_ARTICLE = re.compile(r'^[\s\u00a0]*Art\.[\s\u00a0]*\d+[\s\u00a0]*\.[\s\u00a0]*')
+
+
+def number_articles(document):
+    """Article labels, typed ("Art. 3.") or numbered by a list of the original's own ("Art.3"),
+    become one list, as the other decisions' are: an article deleted or added in the editor
+    leaves no gap, and a label the original typed twice ("Art. 6." after "Art. 7.") is numbered
+    right. Returns how many it found."""
+    characters = document.StyleFamilies.getByName('CharacterStyles')
+    label = document.createInstance('com.sun.star.style.CharacterStyle')
+    characters.insertByName(ARTICLE_LABEL, label)
+    label.CharWeight = 150
+    label.CharFontName = FONT
+    label.CharHeight = BODY_SIZE
+    numbering = document.createInstance('com.sun.star.style.NumberingStyle')
+    document.StyleFamilies.getByName('NumberingStyles').insertByName(ARTICLES, numbering)
+    rules = numbering.NumberingRules
+    level = {item.Name: item for item in rules.getByIndex(0)}
+    for name, value in (
+        ('NumberingType', 4),  # Arabic numerals
+        # Not Prefix and Suffix, which this version of the office reads and then drops on export.
+        ('ListFormat', 'Art. %1%.'),
+        ('CharStyleName', ARTICLE_LABEL),
+        ('LabelFollowedBy', 1),  # a space
+        ('IndentAt', 0),
+        ('FirstLineIndent', 0),
+        ('ListtabStopPosition', 0),
+    ):
+        level[name] = prop(name, value)
+    uno.invoke(rules, 'replaceByIndex',
+               (0, uno.Any('[]com.sun.star.beans.PropertyValue', tuple(level.values()))))
+    numbering.NumberingRules = rules
+    found = 0
+    for element in list(_elements(document.Text)):
+        if not element.supportsService('com.sun.star.text.Paragraph'):
+            continue
+        typed = TYPED_ARTICLE.match(element.getString())
+        listed = element.NumberingIsNumber and re.fullmatch(r'Art\.\s*\d+\.?', element.ListLabelString or '')
+        if not typed and not listed:
+            continue
+        if typed:
+            cursor = document.Text.createTextCursorByRange(element.getStart())
+            cursor.goRight(len(typed.group(0)), True)
+            cursor.setString('')
+        element.NumberingStyleName = ARTICLES
+        element.NumberingLevel = 0
+        element.ParaLeftMargin = 0
+        element.ParaFirstLineIndent = 0
+        found += 1
+    return found
 
 
 def cut_tail(document, pattern):
@@ -1720,6 +1791,8 @@ def import_template(desktop, spec_path, wording, output):
         if spec.get('header'):
             build_header(document, spec['header'])
         strip_spacing(document)
+        if spec.get('articles') and number_articles(document) == 0:
+            problems.append('no article label was found')
         parts = kind_rules(spec)
         if 'answers' in parts:
             join_typed_answers(document, parts)
@@ -1727,6 +1800,13 @@ def import_template(desktop, spec_path, wording, output):
             rebuild_table(document, definition)
         rules = wording_replacements(wording, document_words(document))
         fixes = sum(apply(document, replacement) for replacement in rules)
+        # After the shared pass, for what its dictionary gets wrong in one document: it reads
+        # every "afara" as the adverb, also in "din afara unității".
+        for replacement in spec.get('corrections', []):
+            count = apply(document, replacement)
+            if count < replacement.get('min', 1):
+                label = replacement.get('find') or f'/{replacement["pattern"]}/'
+                problems.append(f'correction {label!r} found {count} times, expected at least {replacement.get("min", 1)}')
         removed = typeset(document, parts, spec.get('emptyParagraphs') == 'shrink',
                           spec.get('subheadings', []))
         # A table that still does not fit at the small print, by its place in the body.

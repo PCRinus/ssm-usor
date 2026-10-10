@@ -113,6 +113,152 @@ function evaluation(roman: string, name: string, heading: string, count: number)
   };
 }
 
+// The `fire` object of the fire-safety set (ADR 018): one workplace for the short sample, two
+// for the long one, the second without a manager of its own and with interior hydrants.
+function fireSample(people: ReturnType<typeof person>[], long: boolean) {
+  const [first] = people;
+  const workplace = (name: string, activity: string, extra: Record<string, unknown> = {}) => ({
+    first: true,
+    name,
+    activity,
+    address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+    floorAreaM2: 180,
+    normLabel: 'Clădiri comerciale (1 buc./200 m²)',
+    assemblyPoint: 'Parcarea din fața clădirii',
+    combustibleMaterials: 'Ambalaje din carton și hârtie, mobilier din lemn, textile.',
+    ignitionSources: 'Instalația electrică, aparatele electrice de încălzire.',
+    fireRiskEquipment: 'Vitrine frigorifice, casa de marcat, aparate de cafea.',
+    specificMeasures: '',
+    extinguishers: [
+      { code: 'P6', agentLabel: 'Pulbere', capacityLabel: '6\u00a0kg', wheeled: false, count: 2 },
+      {
+        code: 'G5',
+        agentLabel: 'Dioxid de carbon (CO₂)',
+        capacityLabel: '5\u00a0kg',
+        wheeled: false,
+        count: 1,
+      },
+    ],
+    extinguisherCount: 3,
+    otherEquipment: [],
+    installations: [],
+    hasInstallations: false,
+    hasExteriorHydrants: false,
+    hasInteriorHydrants: false,
+    manager: first,
+    firstIntervention: [{ ...first!, roleLabel: 'șef echipă de primă intervenție' }],
+    firstInterventionNames: first!.name,
+    interventionLeaderName: first!.name,
+    ...extra,
+  });
+  const workplaces = long
+    ? [
+        workplace('Punct de lucru Calea Aradului', 'Gelaterie și cofetărie cu laborator propriu'),
+        workplace('Depozit central', 'Depozitare de materii prime și ambalaje', {
+          first: false,
+          floorAreaM2: 1250,
+          normLabel: 'Alte amenajări (1 buc./150 m²)',
+          specificMeasures: 'Stivuirea ambalajelor la cel puțin 1 m de corpurile de iluminat.',
+          extinguishers: [
+            {
+              code: 'P6',
+              agentLabel: 'Pulbere',
+              capacityLabel: '6\u00a0kg',
+              wheeled: false,
+              count: 6,
+            },
+            {
+              code: 'P50',
+              agentLabel: 'Pulbere',
+              capacityLabel: '50\u00a0kg',
+              wheeled: true,
+              count: 1,
+            },
+            {
+              code: 'SM9',
+              agentLabel: 'Spumă mecanică',
+              capacityLabel: '9\u00a0l',
+              wheeled: false,
+              count: 2,
+            },
+          ],
+          extinguisherCount: 9,
+          otherEquipment: [
+            { kindLabel: 'Ladă cu nisip', count: 1 },
+            { kindLabel: 'Post de intervenție PSI', count: 1 },
+          ],
+          installations: [
+            { kindLabel: 'Hidranți interiori', description: 'Câte doi pe fiecare nivel' },
+            { kindLabel: 'Hidranți exteriori', description: '' },
+            {
+              kindLabel: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+              description: '',
+            },
+          ],
+          hasInstallations: true,
+          hasExteriorHydrants: true,
+          hasInteriorHydrants: true,
+          manager: null,
+          firstIntervention: people.slice(1).map((each) => ({
+            ...each,
+            roleLabel: 'coordonator privind apărarea împotriva incendiilor',
+          })),
+          firstInterventionNames: listed(people.slice(1).map(({ name }) => name)),
+          interventionLeaderName: people[1]!.name,
+        }),
+      ]
+    : [workplace('Punct de lucru', 'Gelaterie')];
+  return {
+    decisionNumbers: {
+      organization: '1 PSI',
+      training: '2 PSI',
+      openFire: '3 PSI',
+      seasons: '5 PSI',
+      waste: '8 PSI',
+    },
+    schedule: {
+      periodicHours: 2,
+      periodicLabel: '2\u00a0ore',
+      administrativeIntervalMonths: 3,
+      administrativeIntervalLabel: '3 LUNI',
+      administrativeMonths: 'lunile februarie, mai, august și noiembrie',
+      workerIntervalMonths: long ? 1 : 3,
+      workerIntervalLabel: long ? '1 LUNĂ' : '3 LUNI',
+      workerMonths: long
+        ? 'lunile ianuarie, februarie, martie, aprilie, mai, iunie, iulie, august, septembrie, octombrie, noiembrie și decembrie'
+        : 'lunile februarie, mai, august și noiembrie',
+      firstMonth: 2,
+      firstMonthLabel: 'februarie',
+      dayFrom: 2,
+      dayTo: 7,
+    },
+    staff: {
+      administrative: long ? [] : ['Manager magazin'],
+      execution: ['Lucrător comercial', 'Barman preparator'],
+      administrativeText: long ? null : 'Manager magazin',
+      executionText: 'Lucrător comercial, Barman preparator',
+    },
+    coordinator: first,
+    interventionLeader: people[1] ?? first,
+    workplaceManagers: people.map((each, index) => ({
+      ...each,
+      workplaceName: index === 0 ? null : workplaces[0]!.name,
+    })),
+    designated: people,
+    workplaces,
+    hasExteriorHydrants: long,
+    waste: long
+      ? {
+          kinds: ['deșeuri de carton, hârtie, plastic', 'deșeuri menajere', 'uleiuri uzate'],
+          contractor: null,
+        }
+      : {
+          kinds: ['deșeuri de carton, hârtie, plastic', 'deșeuri menajere'],
+          contractor: 'S.C. ECO COLECT S.R.L.',
+        },
+  };
+}
+
 function sample(
   label: string,
   legalName: string,
@@ -324,6 +470,7 @@ function sample(
       },
       specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
       fireSafetyTechnician: { name: fireSafetyTechnician },
+      fire: fireSample(people, people.length > 1),
       workplaceManagers: people,
       workplaceManagersText: described(people),
       workplaceManagersList: people.map(({ name, jobTitle }) => `${name}, ${jobTitle}`).join('; '),

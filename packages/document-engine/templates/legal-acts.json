@@ -82,6 +82,15 @@
       "portalId": 50294
     },
     {
+      "id": "lege-481-2004",
+      "kind": "lege",
+      "number": "481",
+      "year": 2004,
+      "name": "Legea 481/2004",
+      "title": "Legea nr. 481 din 8 noiembrie 2004 privind protecția civilă",
+      "portalId": 56923
+    },
+    {
       "id": "lege-95-2006",
       "kind": "lege",
       "number": "95",
@@ -433,6 +442,24 @@
       "portalId": 63056
     },
     {
+      "id": "omai-786-2005",
+      "kind": "omai",
+      "number": "786",
+      "year": 2005,
+      "name": "OMAI 786/2005",
+      "title": "Ordinul ministrului administrației și internelor nr. 786 din 2 septembrie 2005 privind modificarea și completarea Ordinului ministrului administrației și internelor nr. 712/2005 pentru aprobarea Dispozițiilor generale privind instruirea salariaților în domeniul situațiilor de urgență",
+      "portalId": 65081
+    },
+    {
+      "id": "omai-1259-2006",
+      "kind": "omai",
+      "number": "1259",
+      "year": 2006,
+      "name": "OMAI 1259/2006",
+      "title": "Ordinul ministrului administrației și internelor nr. 1.259 din 10 aprilie 2006 pentru aprobarea Normelor privind organizarea și asigurarea activității de înștiințare, avertizare, prealarmare și alarmare în situații de protecție civilă",
+      "portalId": 70912
+    },
+    {
       "id": "omai-106-2007",
       "kind": "omai",
       "number": "106",
@@ -449,6 +476,15 @@
       "name": "OMAI 163/2007",
       "title": "Ordinul ministrului administrației și internelor nr. 163 din 28 februarie 2007 pentru aprobarea Normelor generale de apărare împotriva incendiilor",
       "portalId": 80730
+    },
+    {
+      "id": "omai-166-2010",
+      "kind": "omai",
+      "number": "166",
+      "year": 2010,
+      "name": "OMAI 166/2010",
+      "title": "Ordinul ministrului administrației și internelor nr. 166 din 27 iulie 2010 pentru aprobarea Dispozițiilor generale privind apărarea împotriva incendiilor la construcții și instalațiile aferente",
+      "portalId": 121291
     }
   ]
 }

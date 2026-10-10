@@ -19,7 +19,7 @@ import {
   documentGapConcerns,
   missingDocumentData,
 } from '../../src/modules/documents/context';
-import { facts } from '../../src/modules/documents/context.fixture';
+import { facts, workshopId } from '../../src/modules/documents/context.fixture';
 import { merge } from '../../src/modules/documents/documents';
 import { buildFireSafetyContext } from '../../src/modules/documents/fire-safety';
 import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
@@ -72,6 +72,7 @@ describe('the built-in templates', () => {
         jobTitle: 'Sudor',
         roles: ['workers_representative', 'imminent_danger'],
         currentEmployee: true,
+        workplaceId: null,
       },
     ],
   };
@@ -161,6 +162,7 @@ describe('a document generated again while the set lacks data', () => {
             jobTitle: 'Administrator',
             roles: ['workers_representative'],
             currentEmployee: true,
+            workplaceId: null,
           },
         ],
       },
@@ -720,6 +722,7 @@ describe('the risk assessment', () => {
           jobTitle: 'Sudor',
           roles: ['workers_representative'],
           currentEmployee: true,
+          workplaceId: null,
         },
       ],
       riskEvaluations: [
@@ -774,10 +777,27 @@ describe('the fire-safety templates', () => {
     ]);
   });
 
+  // Nothing optional: no contractor, no specific measures, no installation, no other equipment,
+  // and every responsible person tied to the workshop, so the office has no manager of its own.
+  const fewest: DocumentFacts = {
+    ...facts,
+    branding: false,
+    workplaces: facts.workplaces.map((workplace) => ({ ...workplace, specificMeasures: null })),
+    responsiblePersons: facts.responsiblePersons.map((person) => ({
+      ...person,
+      workplaceId: workshopId,
+    })),
+    fireSafety: {
+      card: { ...facts.fireSafety.card!, wasteContractor: null },
+      equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
+      installations: [],
+    },
+  };
+
   it.each(
     fireManifest.templates.flatMap((entry) => [
       [entry.typeKey, 'the fixture', entry.file, facts] as const,
-      [entry.typeKey, 'no branding', entry.file, { ...facts, branding: false }] as const,
+      [entry.typeKey, 'the fewest facts', entry.file, fewest] as const,
     ])
   )(
     '%s renders from %s with nothing missing',
@@ -801,6 +821,47 @@ describe('the fire-safety templates', () => {
       );
       expect(names).toEqual(expect.arrayContaining(Object.keys(snapshot as object)));
     }
+  });
+
+  it('number the decisions by their places in the binder, from the first number', () => {
+    const numbers: Record<string, string> = {
+      fire_decision_organization: '5 PSI',
+      fire_decision_training: '6 PSI',
+      fire_decision_open_fire: '7 PSI',
+      fire_decision_seasons: '9 PSI',
+      fire_decision_waste: '12 PSI',
+    };
+    for (const [typeKey, number] of Object.entries(numbers)) {
+      const entry = fireManifest.templates.find((each) => each.typeKey === typeKey)!;
+      const text = documentText(
+        renderDocument(readFileSync(new URL(entry.file, fireUrl)), {
+          ...buildFireSafetyContext(facts),
+        })
+      );
+      expect(text).toContain(`Nr. ${number} din 19.01.2026`);
+    }
+  });
+
+  it('print the workplaces, their means and their people', () => {
+    const file = (typeKey: string) =>
+      readFileSync(
+        new URL(fireManifest.templates.find((each) => each.typeKey === typeKey)!.file, fireUrl)
+      );
+    const data = { ...buildFireSafetyContext(facts) };
+    const means = documentText(renderDocument(file('fire_means_list'), data));
+    expect(means).toContain('Stingător P50 – Pulbere, 50\u00a0kg, carosabil');
+    expect(means).toContain('Ladă cu nisip');
+    expect(means).toContain('Lista dotării cu accesorii pentru trecerea apei');
+    const sheet = documentText(renderDocument(file('fire_workplace_organization'), data));
+    expect(sheet).toContain('Locul de muncă: Atelier Ghiroda, Atelier de sudură');
+    expect(sheet).toContain('– stingătoare: Ioana PETRE și Florin Cristian TALOȘ');
+    expect(sheet).toContain('– hidranți interiori: Florin Cristian TALOȘ');
+    const seasons = documentText(renderDocument(file('fire_decision_seasons'), data));
+    expect(seasons).toContain('Atelier Ghiroda, Atelier de sudură;\nSediul social, Birouri;');
+    const training = documentText(renderDocument(file('fire_decision_training'), data));
+    expect(training).toContain(
+      'personalul administrativ (Contabil) va fi instruit la 6 LUNI, respectiv în lunile februarie și august, în perioada (zilele) 2 – 7 ale lunii;'
+    );
   });
 
   it('name the fire-safety technician on the cover, not the legal representative', () => {

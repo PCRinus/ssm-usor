@@ -1,6 +1,102 @@
 {
   "templates": [
     {
+      "number": "1.0",
+      "originals": ["1.0._Coperta decizii_SU"],
+      "stage": 2,
+      "typeKey": "fire_cover_decisions",
+      "title": "Copertă – Deciziile interne în domeniul situațiilor de urgență",
+      "file": "1.0_fire_cover_decisions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.1",
+      "originals": ["1.1._Decizia_1_P.S.I._-_Privind_organizarea_şi_responsabilităţile"],
+      "stage": 2,
+      "typeKey": "fire_decision_organization",
+      "title": "Decizia privind organizarea apărării împotriva incendiilor",
+      "file": "1.1_fire_decision_organization.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.2",
+      "originals": ["1.2._Decizia_2_P.S.I._-_Privind_periodicitatea_efectuarii_instruirilor"],
+      "stage": 2,
+      "typeKey": "fire_decision_training",
+      "title": "Decizia privind instruirea în domeniul situațiilor de urgență",
+      "file": "1.2_fire_decision_training.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.3",
+      "originals": ["1.3._Decizia_3_P.S.I._-_Privind_lucrul_cu_foc_deschis"],
+      "stage": 2,
+      "typeKey": "fire_decision_open_fire",
+      "title": "Decizia privind lucrul cu foc deschis",
+      "file": "1.3_fire_decision_open_fire.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.5",
+      "originals": ["1.5._Decizia_5_P.S.I._-_Perioada_caniculara"],
+      "stage": 2,
+      "typeKey": "fire_decision_seasons",
+      "title": "Decizia privind perioadele caniculare și sezonul rece",
+      "file": "1.5_fire_decision_seasons.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.8",
+      "originals": ["1.8._Decizia_8_P.S.I._-_Deseuri"],
+      "stage": 2,
+      "typeKey": "fire_decision_waste",
+      "title": "Decizia privind colectarea deșeurilor",
+      "file": "1.8_fire_decision_waste.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "5.1",
+      "originals": ["5._Lista_cu_situatia_mijloacelor_de_aparare_psi"],
+      "stage": 2,
+      "typeKey": "fire_means_list",
+      "title": "Lista mijloacelor de apărare împotriva incendiilor",
+      "file": "5.1_fire_means_list.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "5.2",
+      "originals": [],
+      "stage": 2,
+      "typeKey": "fire_workplace_organization",
+      "title": "Organizarea apărării împotriva incendiilor la locul de muncă",
+      "file": "5.2_fire_workplace_organization.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "6.0",
       "originals": ["7.1._Coperta_Registre"],
       "stage": 1,
@@ -8,8 +104,8 @@
       "title": "Copertă – Registrele de evidență în domeniul situațiilor de urgență",
       "file": "6.0_fire_cover_registers.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Blocul de predare – primire începe la aceeași înălțime ca pe coperta deciziilor."
       }
     },
     {
