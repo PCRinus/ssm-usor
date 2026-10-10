@@ -1746,7 +1746,6 @@ def set_tiers(document, entries):
             continue
         if len(tiers) == 1:
             tier = tiers.pop()
-            # Each paragraph, for the tab stops of its own a deeper tier must drop.
             for index in members:
                 snap_list_indent(listed[index], LIST_TIERS[tier])
             continue
