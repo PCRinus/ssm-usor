@@ -113,11 +113,15 @@ export async function completeProviderDetails(organizationId: string) {
   if (organization.error) throw organization.error;
 }
 
-// The provider's signer on the fire-safety set (ADR 016), the one fact it asks beyond the others'.
+// The provider's signer on the fire-safety set (ADR 016), the one fact it asks beyond the
+// others', with the certificate decision 6 prints (ADR 019).
 export async function nameFireSafetyTechnician(organizationId: string) {
   const organization = await admin
     .from('organizations')
-    .update({ fire_safety_technician_name: 'Radu STAN' })
+    .update({
+      fire_safety_technician_name: 'Radu STAN',
+      fire_safety_technician_certificate: 'CT 1234/2024',
+    })
     .eq('id', organizationId);
   if (organization.error) throw organization.error;
 }
@@ -184,8 +188,9 @@ export async function completeDocumentData(
   await evaluateRisks(organizationId, clientId);
 }
 
-// What the fire-safety set prints about the client (ADR 018): its training schedule and waste,
-// one workplace with its facts and an extinguisher, and a person in each of the set's roles.
+// What the fire-safety set prints about the client (ADR 018, ADR 019): its training schedule,
+// smoking rule and waste, one workplace with its facts and an extinguisher, and a person in each
+// of the set's roles.
 export async function completeFireSafetyData(organizationId: string, clientId: string) {
   const base = { organization_id: organizationId, client_id: clientId };
   const workplaceId = await createWorkplace(organizationId, clientId, {
@@ -207,6 +212,7 @@ export async function completeFireSafetyData(organizationId: string, clientId: s
     training_first_month: 2,
     training_day_from: 2,
     training_day_to: 7,
+    smoking_policy: 'forbidden_everywhere',
     waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   });
   if (card.error) throw card.error;

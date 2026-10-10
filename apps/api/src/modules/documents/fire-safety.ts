@@ -13,14 +13,25 @@ import {
   type FireInstallationKind,
   fireInstallationKindLabels,
   fireSafetyMissingDocumentData,
+  type FireSmokingPolicy,
   type ResponsiblePersonRole,
   samePersonName,
+  type StaffCategory,
+  trainingMonths,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
 import { countOf, listed } from '../../lib/romanian';
 import { type DocumentFacts, months, printedDate } from './context';
-import { monthNames, themeIntervalLabel } from './themes';
+import {
+  articles,
+  dealChapters,
+  fireOwnInstructionsChapters,
+  monthNames,
+  themeIntervalLabel,
+  type TrainingSession,
+  workplaceManagersTrainer,
+} from './themes';
 
 type FireSafetyMissingData = (typeof fireSafetyMissingDocumentData)[number];
 
@@ -45,6 +56,9 @@ export type FireSafetyClientFacts = {
     trainingFirstMonth: number | null;
     trainingDayFrom: number | null;
     trainingDayTo: number | null;
+    smokingPolicy: FireSmokingPolicy | null;
+    /** Only with the designated-places policy. */
+    smokingPlace: string | null;
     wasteKinds: string[];
     wasteContractor: string | null;
   } | null;
@@ -100,6 +114,30 @@ type FireWorkplaceContext = {
   interventionLeaderName: string;
 };
 
+/**
+ * Who gives one kind of training. The template names the technician from `provider` and
+ * `fireSafetyTechnician`: printed inside `fire`, they would leave it out with their own gaps,
+ * and mark every draft that prints it when the technician changes.
+ */
+type FireTrainers = {
+  /** "Ion POP și Ana RUS – conducătorii locurilor de muncă"; null where the technician alone trains. */
+  workplaceManagers: string | null;
+  technician: boolean;
+};
+
+type FireThemesContext = {
+  staffCategory: StaffCategory;
+  /** "Personal administrativ", as decision 2 names the category. */
+  label: string;
+  posts: string[];
+  /** "Contabil, Sudor". */
+  postsText: string;
+  workplaceTrainers: FireTrainers;
+  periodicTrainers: FireTrainers;
+  intervalLabel: string;
+  sessions: TrainingSession[];
+};
+
 export type FireContext = {
   /** "5 PSI": the first decision number plus each decision's ordinal in the binder, minus one. */
   decisionNumbers: Record<FireDecision, string>;
@@ -136,7 +174,18 @@ export type FireContext = {
   designated: Person[];
   workplaces: FireWorkplaceContext[];
   hasExteriorHydrants: boolean;
+  /** Some active workplace has a CO₂ or clean-agent extinguisher, which is weighed. */
+  hasGasExtinguishers: boolean;
+  smoking: {
+    policy: FireSmokingPolicy;
+    forbiddenEverywhere: boolean;
+    designatedPlaces: boolean;
+    /** Null where the client names no place, and always where smoking is forbidden. */
+    place: string | null;
+  };
   waste: { kinds: string[]; contractor: string | null };
+  /** One per staff category with current posts, technical-administrative first. */
+  themes: FireThemesContext[];
 };
 
 /**
@@ -149,7 +198,12 @@ export type FireSafetyContext = {
   issueDate: string;
   client: { legalName: string; representativeName: string; representativeRole: string };
   provider: { legalName: string; representativeName: string; representativeRole: string };
-  fireSafetyTechnician: { name: string };
+  fireSafetyTechnician: {
+    name: string;
+    certificate: string;
+    /** The inspectorate's authorization of the provider; null when not set. */
+    authorization: string | null;
+  };
   fire: FireContext;
 };
 
@@ -187,6 +241,9 @@ export function missingFireSafetyData(
   const present: Record<FireSafetyMissingData, boolean> = {
     'provider.legalName': filled(facts.organization.legalName),
     'provider.fireSafetyTechnician': filled(facts.organization.fireSafetyTechnicianName),
+    'provider.fireSafetyTechnicianCertificate': filled(
+      facts.organization.fireSafetyTechnicianCertificate
+    ),
     'client.representativeName': filled(facts.client.representativeName),
     'client.representativeRole': filled(facts.client.representativeRole),
     'fire.trainingSchedule':
@@ -199,6 +256,7 @@ export function missingFireSafetyData(
         card.trainingDayFrom,
         card.trainingDayTo,
       ].every((value) => value !== null),
+    'fire.smokingPolicy': card?.smokingPolicy != null,
     'fire.waste': (card?.wasteKinds ?? []).some(filled),
     'responsible.workplace_manager': held.has('workplace_manager'),
     'responsible.fire_safety_coordinator': held.has('fire_safety_coordinator'),
@@ -225,9 +283,11 @@ export function missingFireSafetyData(
 const printedAs: Record<FireSafetyMissingData, keyof FireSafetyContext> = {
   'provider.legalName': 'provider',
   'provider.fireSafetyTechnician': 'fireSafetyTechnician',
+  'provider.fireSafetyTechnicianCertificate': 'fireSafetyTechnician',
   'client.representativeName': 'client',
   'client.representativeRole': 'client',
   'fire.trainingSchedule': 'fire',
+  'fire.smokingPolicy': 'fire',
   'fire.waste': 'fire',
   'responsible.workplace_manager': 'fire',
   'responsible.fire_safety_coordinator': 'fire',
@@ -351,7 +411,11 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): {
       representativeName: organization.representativeName?.trim() ?? '',
       representativeRole: organization.representativeRole?.trim() ?? '',
     }),
-    fireSafetyTechnician: () => ({ name: organization.fireSafetyTechnicianName!.trim() }),
+    fireSafetyTechnician: () => ({
+      name: organization.fireSafetyTechnicianName!.trim(),
+      certificate: organization.fireSafetyTechnicianCertificate!.trim(),
+      authorization: organization.fireSafetyAuthorization?.trim() || null,
+    }),
     fire: () => fireContext(facts),
   };
 }
@@ -393,6 +457,12 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       `${facts.firstDecisionNumber + fireDecisionOrdinals[decision] - 1} PSI`,
     ])
   ) as Record<FireDecision, string>;
+
+  const activeWorkplaceIds = new Set(facts.workplaces.map((workplace) => workplace.id));
+  const managerNames: string[] = [];
+  for (const { name } of workplaceManagers) {
+    if (!managerNames.some((each) => samePersonName(each, name))) managerNames.push(name);
+  }
 
   const workplaces = facts.workplaces.map((workplace, index): FireWorkplaceContext => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
@@ -493,9 +563,91 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
     designated,
     workplaces,
     hasExteriorHydrants: workplaces.some((workplace) => workplace.hasExteriorHydrants),
+    hasGasExtinguishers: facts.fireSafety.equipment.some(
+      (unit) =>
+        activeWorkplaceIds.has(unit.workplaceId) &&
+        unit.kind === 'extinguisher' &&
+        (unit.agent === 'co2' || unit.agent === 'clean_agent')
+    ),
+    smoking: {
+      policy: card.smokingPolicy!,
+      forbiddenEverywhere: card.smokingPolicy === 'forbidden_everywhere',
+      designatedPlaces: card.smokingPolicy === 'designated_places',
+      place: card.smokingPolicy === 'designated_places' ? card.smokingPlace?.trim() || null : null,
+    },
     waste: {
       kinds: card.wasteKinds.map((kind) => kind.trim()).filter(Boolean),
       contractor: card.wasteContractor?.trim() || null,
     },
+    themes: fireThemes({
+      staff: { technical_administrative: administrative, execution },
+      intervalMonths: {
+        technical_administrative: card.administrativeTrainingIntervalMonths!,
+        execution: card.workerTrainingIntervalMonths!,
+      },
+      firstMonth: card.trainingFirstMonth!,
+      periodicMinutes: card.periodicTrainingHours! * 60,
+      instructionsDecision: decisionNumbers.instructions,
+      workplaceManagers: managerNames,
+    }),
   };
+}
+
+const staffCategoryLabels: Record<StaffCategory, string> = {
+  technical_administrative: 'Personal administrativ',
+  execution: 'Personal de execuție',
+};
+
+function fireThemes({
+  staff,
+  intervalMonths,
+  firstMonth,
+  periodicMinutes,
+  instructionsDecision,
+  workplaceManagers,
+}: {
+  staff: Record<StaffCategory, readonly string[]>;
+  intervalMonths: Record<StaffCategory, number>;
+  firstMonth: number;
+  periodicMinutes: number;
+  /** "11 PSI", the number of decision 7, whose annex is the posted instructions. */
+  instructionsDecision: string;
+  /** At least one. */
+  workplaceManagers: readonly string[];
+}): FireThemesContext[] {
+  const managers = workplaceManagersTrainer(workplaceManagers);
+  return (['technical_administrative', 'execution'] as const)
+    .filter((category) => staff[category].length > 0)
+    .map((category) => {
+      const execution = category === 'execution';
+      const sessionMonths = trainingMonths(firstMonth, intervalMonths[category]);
+      const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);
+      return {
+        staffCategory: category,
+        label: staffCategoryLabels[category],
+        posts: [...staff[category]],
+        postsText: staff[category].join(', '),
+        workplaceTrainers: {
+          workplaceManagers: execution ? managers : null,
+          technician: !execution,
+        },
+        // Decision 2 has the heads of the workplaces give the periodic training "și, după caz",
+        // the technician, who alone trains the heads themselves.
+        periodicTrainers: { workplaceManagers: execution ? managers : null, technician: true },
+        intervalLabel: themeIntervalLabel(intervalMonths[category]),
+        sessions: sessionMonths.map((month, index) => {
+          const range = ranges[index]!;
+          return {
+            month: monthNames[month - 1]!.toLocaleUpperCase('ro'),
+            content: [
+              `IPSU ${articles(range.from, range.to)}`,
+              `Instrucțiunile afișate la locul de muncă, Decizia nr.\u00a0${instructionsDecision}`,
+              'Organizarea apărării împotriva incendiilor la locul de muncă',
+              ...(index === sessionMonths.length - 1 ? ['Testare.'] : []),
+            ].join('; '),
+            duration: `${periodicMinutes} min`,
+          };
+        }),
+      };
+    });
 }

@@ -2,16 +2,27 @@ import { type StaffCategory, trainingMonths } from '@ssm-usor/contracts';
 
 import { listed } from '../../lib/romanian';
 
-// Both lists are held to their templates by scripts/lib/theme-chapters.test.ts.
-export const ownInstructionsChapterStarts = [
-  1, 10, 45, 47, 57, 64, 96, 160, 180, 195, 236, 256,
-] as const;
-export const ownInstructionsArticleCount = 290;
+/** Where each chapter's first article falls in a document's one numbered list of articles. */
+export type ChapterStructure = { chapterStarts: readonly number[]; articleCount: number };
 
-export const generalTrainingChapterStarts = [
-  1, 7, 14, 16, 28, 81, 97, 109, 121, 152, 211, 236, 268, 278, 291, 300, 325,
-] as const;
-export const generalTrainingArticleCount = 325;
+// Each is held to its template by scripts/lib/theme-chapters.test.ts.
+export const ownInstructionsChapters: ChapterStructure = {
+  chapterStarts: [1, 10, 45, 47, 57, 64, 96, 160, 180, 195, 236, 256],
+  articleCount: 290,
+};
+
+export const generalTrainingChapters: ChapterStructure = {
+  chapterStarts: [1, 7, 14, 16, 28, 81, 97, 109, 121, 152, 211, 236, 268, 278, 291, 300, 325],
+  articleCount: 325,
+};
+
+export const fireOwnInstructionsChapters: ChapterStructure = {
+  chapterStarts: [
+    1, 7, 15, 65, 70, 74, 77, 92, 105, 119, 121, 130, 131, 140, 147, 150, 153, 215, 236, 241, 242,
+    246, 253,
+  ],
+  articleCount: 257,
+};
 
 export const monthNames = [
   'ianuarie',
@@ -30,8 +41,9 @@ export const monthNames = [
 
 export type ArticleRange = { from: number; to: number };
 
-export function dealChapters(sessions: number): ArticleRange[] {
-  const chapters = ownInstructionsChapterStarts.length;
+export function dealChapters(document: ChapterStructure, sessions: number): ArticleRange[] {
+  const { chapterStarts, articleCount } = document;
+  const chapters = chapterStarts.length;
   if (!Number.isInteger(sessions) || sessions < 1 || sessions > chapters) {
     throw new RangeError(`Between 1 and ${chapters} training sessions, not ${sessions}.`);
   }
@@ -42,8 +54,8 @@ export function dealChapters(sessions: number): ArticleRange[] {
   for (let session = 0; session < sessions; session += 1) {
     const next = first + size + (session < larger ? 1 : 0);
     ranges.push({
-      from: ownInstructionsChapterStarts[first]!,
-      to: next < chapters ? ownInstructionsChapterStarts[next]! - 1 : ownInstructionsArticleCount,
+      from: chapterStarts[first]!,
+      to: next < chapters ? chapterStarts[next]! - 1 : articleCount,
     });
     first = next;
   }
@@ -52,7 +64,7 @@ export function dealChapters(sessions: number): ArticleRange[] {
 
 export type CitedModule = { title: string; articleCount: number };
 
-const articles = (from: number, to: number) => `Art.\u00a0${from}\u00a0–\u00a0${to}`;
+export const articles = (from: number, to: number) => `Art.\u00a0${from}\u00a0–\u00a0${to}`;
 
 // A file without a numbered list counts no articles, and "Art. 1 – 0" would cite nothing.
 export const citation = (module: CitedModule) =>
@@ -74,7 +86,7 @@ export function trainingSessions({
   modules: readonly CitedModule[];
 }): TrainingSession[] {
   const months = trainingMonths(firstMonth, intervalMonths);
-  const ranges = dealChapters(months.length);
+  const ranges = dealChapters(ownInstructionsChapters, months.length);
   return months.map((month, index) => {
     const last = index === months.length - 1;
     const range = ranges[index]!;
@@ -101,9 +113,14 @@ export type TrainerNames = {
 // A workplace manager cannot train themself, so the specialist trains the other posts.
 export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
   if (staffCategory !== 'execution') return `${names.provider} – ${names.specialist}`;
-  return names.workplaceManagers.length === 1
-    ? `${names.workplaceManagers[0]} – conducătorul locului\u00a0de\u00a0muncă`
-    : `${listed(names.workplaceManagers)} – conducătorii locurilor\u00a0de\u00a0muncă`;
+  return workplaceManagersTrainer(names.workplaceManagers);
+}
+
+/** At least one name. */
+export function workplaceManagersTrainer(names: readonly string[]) {
+  return names.length === 1
+    ? `${names[0]} – conducătorul locului\u00a0de\u00a0muncă`
+    : `${listed(names)} – conducătorii locurilor\u00a0de\u00a0muncă`;
 }
 
 export function themeIntervalLabel(months: number | null) {

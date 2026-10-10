@@ -65,6 +65,7 @@ export const ApiErrorResponseMissingItem = {
   providerrepresentativeName: 'provider.representativeName',
   providerrepresentativeRole: 'provider.representativeRole',
   providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  providerfireSafetyTechnicianCertificate: 'provider.fireSafetyTechnicianCertificate',
   specialistname: 'specialist.name',
   specialistprofessionalTitle: 'specialist.professionalTitle',
   clientrepresentativeName: 'client.representativeName',
@@ -89,6 +90,7 @@ export const ApiErrorResponseMissingItem = {
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
   firetrainingSchedule: 'fire.trainingSchedule',
+  firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
@@ -2557,6 +2559,8 @@ export type OrganizationAuthorizationsResponseAuthorizations = {
   fireSafetyTechnicianName: string | null;
   /** @nullable */
   fireSafetyTechnicianCertificate: string | null;
+  /** @nullable */
+  fireSafetyAuthorization: string | null;
 };
 
 export interface OrganizationAuthorizationsResponse {
@@ -2590,6 +2594,12 @@ export interface UpdateOrganizationAuthorizationsRequest {
    * @nullable
    */
   fireSafetyTechnicianCertificate?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   * @nullable
+   */
+  fireSafetyAuthorization?: string | null;
 }
 
 export type ClientDocumentDetailsResponseDocumentDetails = {
@@ -3176,6 +3186,8 @@ export type ClientFireSafetyResponseFireSafety = {
   trainingDayTo: number | null;
   /** @nullable */
   smokingPolicy: ClientFireSafetyResponseFireSafetySmokingPolicy;
+  /** @nullable */
+  smokingPlace: string | null;
   wasteKinds: string[];
   /** @nullable */
   wasteContractor: string | null;
@@ -3237,6 +3249,12 @@ export interface UpdateClientFireSafetyRequest {
   trainingDayTo?: number | null;
   /** @nullable */
   smokingPolicy?: UpdateClientFireSafetyRequestSmokingPolicy;
+  /**
+   * @minLength 2
+   * @maxLength 240
+   * @nullable
+   */
+  smokingPlace?: string | null;
   /**
    * @maxItems 12
    * @items.minLength 2
@@ -3611,6 +3629,7 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   providerrepresentativeName: 'provider.representativeName',
   providerrepresentativeRole: 'provider.representativeRole',
   providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  providerfireSafetyTechnicianCertificate: 'provider.fireSafetyTechnicianCertificate',
   specialistname: 'specialist.name',
   specialistprofessionalTitle: 'specialist.professionalTitle',
   clientrepresentativeName: 'client.representativeName',
@@ -3635,6 +3654,7 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
   firetrainingSchedule: 'fire.trainingSchedule',
+  firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
@@ -3702,8 +3722,19 @@ export const StartRegenerationRequestTypeKey = {
   fire_decision_organization: 'fire_decision_organization',
   fire_decision_training: 'fire_decision_training',
   fire_decision_open_fire: 'fire_decision_open_fire',
+  fire_decision_smoking: 'fire_decision_smoking',
   fire_decision_seasons: 'fire_decision_seasons',
+  fire_decision_technician: 'fire_decision_technician',
+  fire_decision_instructions: 'fire_decision_instructions',
   fire_decision_waste: 'fire_decision_waste',
+  fire_decision_control: 'fire_decision_control',
+  fire_cover_own_instructions: 'fire_cover_own_instructions',
+  fire_own_instructions: 'fire_own_instructions',
+  fire_cover_training_themes: 'fire_cover_training_themes',
+  fire_training_themes: 'fire_training_themes',
+  fire_cover_tests: 'fire_cover_tests',
+  fire_test_hiring: 'fire_test_hiring',
+  fire_test_annual: 'fire_test_annual',
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
   fire_cover_registers: 'fire_cover_registers',
@@ -3725,6 +3756,7 @@ export const DocumentReadinessResponseMissingItem = {
   providerrepresentativeName: 'provider.representativeName',
   providerrepresentativeRole: 'provider.representativeRole',
   providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  providerfireSafetyTechnicianCertificate: 'provider.fireSafetyTechnicianCertificate',
   specialistname: 'specialist.name',
   specialistprofessionalTitle: 'specialist.professionalTitle',
   clientrepresentativeName: 'client.representativeName',
@@ -3749,6 +3781,7 @@ export const DocumentReadinessResponseMissingItem = {
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
   firetrainingSchedule: 'fire.trainingSchedule',
+  firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
@@ -18097,8 +18130,19 @@ export const getUploadClientDocumentUrl = (
     | 'fire_decision_organization'
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
+    | 'fire_decision_smoking'
     | 'fire_decision_seasons'
+    | 'fire_decision_technician'
+    | 'fire_decision_instructions'
     | 'fire_decision_waste'
+    | 'fire_decision_control'
+    | 'fire_cover_own_instructions'
+    | 'fire_own_instructions'
+    | 'fire_cover_training_themes'
+    | 'fire_training_themes'
+    | 'fire_cover_tests'
+    | 'fire_test_hiring'
+    | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
@@ -18145,8 +18189,19 @@ export const uploadClientDocument = async (
     | 'fire_decision_organization'
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
+    | 'fire_decision_smoking'
     | 'fire_decision_seasons'
+    | 'fire_decision_technician'
+    | 'fire_decision_instructions'
     | 'fire_decision_waste'
+    | 'fire_decision_control'
+    | 'fire_cover_own_instructions'
+    | 'fire_own_instructions'
+    | 'fire_cover_training_themes'
+    | 'fire_training_themes'
+    | 'fire_cover_tests'
+    | 'fire_test_hiring'
+    | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
@@ -18261,8 +18316,19 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_decision_organization'
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
+    | 'fire_decision_smoking'
     | 'fire_decision_seasons'
+    | 'fire_decision_technician'
+    | 'fire_decision_instructions'
     | 'fire_decision_waste'
+    | 'fire_decision_control'
+    | 'fire_cover_own_instructions'
+    | 'fire_own_instructions'
+    | 'fire_cover_training_themes'
+    | 'fire_training_themes'
+    | 'fire_cover_tests'
+    | 'fire_test_hiring'
+    | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'

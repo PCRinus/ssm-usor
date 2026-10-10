@@ -214,6 +214,10 @@ function AuthorizationsForm({
           {text('fireSafetyTechnicianCertificate', 'Certificat', {
             hint: 'Seria și numărul certificatului de cadru tehnic.',
           })}
+          {text('fireSafetyAuthorization', 'Autorizație ISU', {
+            hint: 'Autorizația inspectoratului după Legea 307/2006 art. 12², de exemplu „nr. 12 din 15.09.2026, ISU Cluj”. Dacă o completezi, apare în decizia privind cadrul tehnic PSI.',
+            className: 'sm:col-span-2',
+          })}
         </FormSection>
       </Card>
 

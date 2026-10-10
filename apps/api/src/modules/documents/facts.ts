@@ -59,7 +59,7 @@ export async function loadDocumentFacts(
     db
       .from('organizations')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name'
+        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization'
       )
       .eq('id', preparer.organizationId)
       .single(),
@@ -126,7 +126,7 @@ export async function loadDocumentFacts(
     db
       .from('client_fire_safety')
       .select(
-        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, waste_kinds, waste_contractor'
+        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor'
       )
       .eq('client_id', clientId)
       .maybeSingle(),
@@ -187,6 +187,8 @@ export async function loadDocumentFacts(
       representativeName: organization.data.legal_representative_name,
       representativeRole: organization.data.legal_representative_role,
       fireSafetyTechnicianName: organization.data.fire_safety_technician_name,
+      fireSafetyTechnicianCertificate: organization.data.fire_safety_technician_certificate,
+      fireSafetyAuthorization: organization.data.fire_safety_authorization,
     },
     specialist: membership.data
       ? {
@@ -233,6 +235,8 @@ export async function loadDocumentFacts(
         trainingFirstMonth: fireSafety.data.training_first_month,
         trainingDayFrom: fireSafety.data.training_day_from,
         trainingDayTo: fireSafety.data.training_day_to,
+        smokingPolicy: fireSafety.data.smoking_policy,
+        smokingPlace: fireSafety.data.smoking_place,
         wasteKinds: fireSafety.data.waste_kinds,
         wasteContractor: fireSafety.data.waste_contractor,
       },

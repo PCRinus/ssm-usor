@@ -786,18 +786,20 @@ describe('the fire-safety templates', () => {
     ]);
   });
 
-  // Nothing optional: no contractor, no specific measures, no installation, no other equipment,
-  // and every responsible person tied to the workshop, so the office has no manager of its own.
+  // Nothing optional: no authorization, no smoking place, no contractor, no specific measures, no
+  // installation, no other equipment, and every responsible person tied to the workshop, so the
+  // office has no manager of its own.
   const fewest: DocumentFacts = {
     ...facts,
     branding: false,
+    organization: { ...facts.organization, fireSafetyAuthorization: null },
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, specificMeasures: null })),
     responsiblePersons: facts.responsiblePersons.map((person) => ({
       ...person,
       workplaceId: workshopId,
     })),
     fireSafety: {
-      card: { ...facts.fireSafety.card!, wasteContractor: null },
+      card: { ...facts.fireSafety.card!, smokingPlace: null, wasteContractor: null },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
     },
@@ -837,8 +839,12 @@ describe('the fire-safety templates', () => {
       fire_decision_organization: '5 PSI',
       fire_decision_training: '6 PSI',
       fire_decision_open_fire: '7 PSI',
+      fire_decision_smoking: '8 PSI',
       fire_decision_seasons: '9 PSI',
+      fire_decision_technician: '10 PSI',
+      fire_decision_instructions: '11 PSI',
       fire_decision_waste: '12 PSI',
+      fire_decision_control: '13 PSI',
     };
     for (const [typeKey, number] of Object.entries(numbers)) {
       const entry = fireManifest.templates.find((each) => each.typeKey === typeKey)!;
@@ -873,6 +879,85 @@ describe('the fire-safety templates', () => {
     );
   });
 
+  it('print the smoking rule, the technician appointed and the controls of the client', () => {
+    const file = (typeKey: string) =>
+      readFileSync(
+        new URL(fireManifest.templates.find((each) => each.typeKey === typeKey)!.file, fireUrl)
+      );
+    const data = { ...buildFireSafetyContext(facts) };
+    const fewestData = { ...buildFireSafetyContext(fewest) };
+    expect(documentText(renderDocument(file('fire_decision_smoking'), data))).toContain(
+      'în exteriorul clădirilor, în curtea interioară, lângă poarta de acces auto, marcate cu indicatorul „LOC PENTRU FUMAT”'
+    );
+    expect(documentText(renderDocument(file('fire_workplace_organization'), fewestData))).toContain(
+      '– fumatul este permis numai în exteriorul clădirilor, în locurile amenajate și marcate „LOC PENTRU FUMAT”, conform Deciziei nr. 8 PSI;'
+    );
+    const technician = documentText(renderDocument(file('fire_decision_technician'), data));
+    expect(technician).toContain(
+      'prin autorizația nr. 12 din 15.09.2026, ISU Timiș, pentru îndeplinirea atribuțiilor'
+    );
+    expect(technician).toContain(
+      'de Radu STAN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, certificat CT 1234/2024'
+    );
+    expect(
+      documentText(renderDocument(file('fire_decision_technician'), fewestData))
+    ).not.toContain('autorizația');
+    expect(documentText(renderDocument(file('fire_decision_control'), data))).toContain(
+      'Stingătoarele cu CO₂ sau agent curat, prin cântărire'
+    );
+    const noGas = {
+      ...buildFireSafetyContext({
+        ...facts,
+        fireSafety: {
+          ...facts.fireSafety,
+          equipment: facts.fireSafety.equipment.filter((unit) => unit.agent !== 'co2'),
+        },
+      }),
+    };
+    expect(documentText(renderDocument(file('fire_decision_control'), noGas))).not.toContain(
+      'cântărire'
+    );
+  });
+
+  it('post the instructions of each workplace with its own means, the schedule and first aid', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_decision_instructions')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(
+      facts.workplaces.length
+    );
+    expect(text).toContain('Locul de muncă: Atelier Ghiroda, Atelier de sudură');
+    expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
+    expect(text).toContain('Ladă cu nisip: 1 buc.;');
+    expect(text).toContain('redate în Decizia nr. 10 PSI.');
+    expect(text).toContain('conform Deciziei nr. 8 PSI:');
+    expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(
+      facts.workplaces.length
+    );
+  });
+
+  it('give the training themes a block per staff category with its trainers and sessions', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_training_themes')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(text).toContain('FUNCȚIA: Personal administrativ (Contabil)');
+    expect(text).toContain('FUNCȚIA: Personal de execuție (Sudor)');
+    expect(text).toContain(
+      'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
+    );
+    expect(text).toMatch(
+      /^NOIEMBRIE\nIPSU Art\.\u00a0236\u00a0–\u00a0257; .+; Testare\.\n120 min$/m
+    );
+  });
+
   const fireGaps: [string, DocumentFacts][] = [
     [
       'everything of the second stage',
@@ -888,7 +973,12 @@ describe('the fire-safety templates', () => {
       'the provider, its technician and the client',
       {
         ...facts,
-        organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: null },
+        organization: {
+          ...facts.organization,
+          legalName: null,
+          fireSafetyTechnicianName: null,
+          fireSafetyTechnicianCertificate: null,
+        },
         client: { ...facts.client, representativeName: null, representativeRole: null },
       },
     ],

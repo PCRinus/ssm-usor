@@ -17,6 +17,8 @@ export const facts: DocumentFacts = {
     representativeName: 'Ana IONESCU',
     representativeRole: 'Administrator',
     fireSafetyTechnicianName: 'Radu STAN',
+    fireSafetyTechnicianCertificate: 'CT 1234/2024',
+    fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Timiș',
   },
   specialist: { fullName: 'Dan MARIN', professionalTitle: 'Evaluator de risc SSM' },
   client: {
@@ -227,6 +229,8 @@ export const facts: DocumentFacts = {
       trainingFirstMonth: 2,
       trainingDayFrom: 2,
       trainingDayTo: 7,
+      smokingPolicy: 'designated_places',
+      smokingPlace: ' în curtea interioară, lângă poarta de acces auto ',
       wasteKinds: ['deșeuri de carton, hârtie, plastic', ' deșeuri menajere '],
       wasteContractor: 'S.C. ECO COLECT S.R.L.',
     },

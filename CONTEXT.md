@@ -18,7 +18,9 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Certificate of authorization** (_certificat de abilitare_): what entitles an organization to act as an external prevention and protection service: a number, a date and the directorate that issued it. A service contract cites it and annexes a copy.
 
-**Fire-safety technician** (_cadru tehnic PSI_): the person who carries the organization's fire-safety duties for its clients and signs the fire-safety set for the provider, where the specialist and the legal representative sign the occupational safety one. A name and a certificate kept on the organization; not a member role. ADR 016. Avoid: PSI specialist, which collides with the member role, and _responsabil PSI_, which the old norms used.
+**Fire-safety technician** (_cadru tehnic PSI_): the person who carries the organization's fire-safety duties for its clients and signs the fire-safety set for the provider, where the specialist and the legal representative sign the occupational safety one. A name and a certificate kept on the organization; not a member role. Decision 6 of the fire-safety set appoints them for the provider under contract and prints their certificate, which the set requires. ADR 016, ADR 019. Avoid: PSI specialist, which collides with the member role, and _responsabil PSI_, which the old norms used.
+
+**Fire-safety authorization** (_autorizația de cadru tehnic_): the inspectorate's authorization of a provider to act as fire-safety technician under contract, required by Legea 307/2006 art. 12^2 since OUG 17/2026. Optional text on the organization, as the provider writes it; decision 6 prints it when set and never asks for it. ADR 019. Avoid: certificate, which is the technician's own qualification, and _atestat_, which the norms use for firms that service equipment.
 
 **Employee** (_angajat_): a person employed by a client. Avoid: worker, staff, user.
 
@@ -42,6 +44,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-safety training schedule** (_programul de instruire PSI_): the client's periodic fire-safety training plan under OMAI 712/2005: a duration in hours, an interval for each staff category, the first month and its days. Separate from the occupational safety training schedule, which lends it only its first month and days while it is still empty. ADR 018. Avoid: PSI interval as a setting of the training schedule.
 
+**Smoking rule** (_reglementarea fumatului_): how a client regulates smoking against fire: forbidden everywhere on its premises, or allowed only in places set up outside its buildings, with one optional text saying where. Kept on the client's fire-safety card; decision 4 prints it, the posted instructions and the posted workplace sheet repeat it. The fire-safety coordinator supervises it. ADR 018, ADR 019. Avoid: smoking ban, which is one of the two rules, and smoking area.
+
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 
 **Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Avoid: location, site, and "loc de muncă".
@@ -58,9 +62,13 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Training themes** (_tematica de instruire_): the document of the set that says, per job position, who trains it and what each training phase covers, citing the general training material and the own instructions by article range and the position's instruction modules by title. Generated from the client's newest own instructions revision. ADR 014. Avoid: training plan, syllabus, and "program de instruire", which is the training schedule.
 
-**Training session** (_ședință de instruire_): one periodic training of a job position, in one of the months its interval gives from the client's first training month: a month, a content line and the client's periodic duration. The training themes print one row per session. Avoid: instructaj, which the law replaced.
+**Fire-safety training themes** (_tematica de instruire în domeniul situațiilor de urgență_): the fire-safety set's training themes and training–testing programme: what the introductory general, workplace and periodic trainings cover and who gives them, a block per staff category, citing the fire-safety own instructions by article range as static text. ADR 019. Avoid: training themes on their own, which is the occupational safety document, and training plan.
+
+**Training session** (_ședință de instruire_): one periodic training in one of the months an interval gives from the first training month: a month, a content line and the periodic duration. The training themes of the occupational safety set print one row per session of a job position; the fire-safety training themes, one per session of a staff category (ADR 019). Avoid: instructaj, which the law replaced.
 
 **Own instructions** (_instrucțiuni proprii_, IPSSM): the document of the set that binds the client's workers: a **common part** the app generates, which lists as **annexes** the instruction modules the client's positions apply. Its Word file is the common part; its issued PDF is the common part and the annexes in one file, each module after an **annex title page** that names it "Anexa N" (the module's own file is never written to). ADR 012. Avoid: bound document, assembled document.
+
+**Fire-safety own instructions** (_instrucțiuni proprii în domeniul situațiilor de urgență_, IPSU): the fire-safety set's own instructions: one built-in text the same for every client but its name, made of the norms' general chapters, with no annexes and no instruction modules. What is specific to a workplace is printed by the posted instructions and the posted workplace sheet. ADR 019. Avoid: own instructions on its own, which is the occupational safety document (IPSSM), and PSI instructions.
 
 **Allocation mode** (_mod de acordare_): how an item reaches the worker: **personal inventory** (_inventar personal_), issued and replaced when its duration runs out; **section inventory** (_inventar de secție_), kept at the workplace and shared; or **consumable** (_consum_), used up and restocked, with no duration. Avoid: type of issue, ownership.
 
@@ -82,7 +90,11 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-work permit** (_permis de lucru cu foc_): the form that allows one job with open flame for one day, in the model of the general fire-safety norms. The fire-safety set holds it blank. Avoid: hot-work permit, authorization.
 
+**Own control** (_controlul propriu_): the checks a client makes of its own fire-safety rules, by whom and how often, as decision 9 of the fire-safety set schedules them: the coordinator and the technician quarterly, every extinguisher monthly, the heads of the workplaces and the execution staff daily, the representative yearly. ADR 019. Avoid: inspection and control on their own, which are the inspectorate's, and internal audit.
+
 **Posted workplace sheet** (_organizarea apărării împotriva incendiilor la locul de muncă_): the page posted at a workplace that says what can burn there, what can set it alight, and who does what when it does, in the model of OMAI 163/2007 annex 1. Completed by the workplace manager as head of the workplace and approved by the fire-safety technician. One document of the fire-safety set, with a page per workplace. ADR 018. Avoid: posted instructions (_instrucțiuni de afișat_), which are decision 7, and fire plan.
+
+**Posted instructions** (_instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă_): the annex of decision 7 of the fire-safety set, a page set per workplace that says the duties of each kind of person, how to behave in case of fire, the workplace's extinguishers and installations, its fire risks, the smoking rule and first aid; drafted by the workplace manager, checked by the fire-safety technician, approved by the client's representative. ADR 019. Avoid: posted workplace sheet, which is the sheet of OMAI 163/2007 annex 1, and _instrucțiuni de afișat_ as something users see.
 
 **Client file** (_fișier_): a file about a client that the app did not write: uploaded, named, downloaded, deleted. Has no revisions and no type. An owner can keep one **for owners only**. A lead has them too. ADR 013. Avoid: document, which the app generates and issues, and attachment.
 

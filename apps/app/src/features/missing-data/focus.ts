@@ -26,7 +26,7 @@ export const clientDetailsFocus = [
   ...workplacesFocus,
 ] as const;
 
-export const fireTrainingFocus = ['fire-training-schedule', 'fire-waste'] as const;
+export const fireTrainingFocus = ['fire-training-schedule', 'fire-smoking', 'fire-waste'] as const;
 
 export const responsiblePersonFocus = [
   'workplace-manager',

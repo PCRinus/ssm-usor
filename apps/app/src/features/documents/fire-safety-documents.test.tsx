@@ -184,8 +184,28 @@ const allBuilt = [
       ['fire_decision_organization', 'Decizia privind organizarea apărării împotriva incendiilor'],
       ['fire_decision_training', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['fire_decision_open_fire', 'Decizia privind lucrul cu foc deschis'],
+      ['fire_decision_smoking', 'Decizia privind fumatul'],
       ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
+      ['fire_decision_technician', 'Decizia privind cadrul tehnic PSI'],
+      [
+        'fire_decision_instructions',
+        'Decizia privind instrucțiunile de apărare împotriva incendiilor',
+      ],
       ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
+      ['fire_decision_control', 'Decizia privind controlul propriu'],
+      [
+        'fire_cover_own_instructions',
+        'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+      ],
+      ['fire_own_instructions', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
+      [
+        'fire_cover_training_themes',
+        'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+      ],
+      ['fire_training_themes', 'Tematica de instruire în domeniul situațiilor de urgență'],
+      ['fire_cover_tests', 'Copertă – Testele de verificare a cunoștințelor'],
+      ['fire_test_hiring', 'Test la angajare'],
+      ['fire_test_annual', 'Test anual'],
       ['fire_means_list', 'Lista mijloacelor de apărare împotriva incendiilor'],
       [
         'fire_workplace_organization',
@@ -246,7 +266,7 @@ describe('client fire-safety documents', () => {
     expect(tab.querySelector('svg')!.getAttribute('class')).toContain('lucide-fire-extinguisher');
     expect(screen.getByRole('heading', { name: 'Documentația PSI' })).toBeTruthy();
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
-      'Generează documentația ca să obții registrele și formularele. Documentele în pregătire vor putea fi generate pe măsură ce sunt adăugate în aplicație.'
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului.'
     );
     expect(screen.queryByTestId('documents-empty')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
@@ -273,9 +293,9 @@ describe('client fire-safety documents', () => {
     const sections = await screen.findAllByTestId('document-section-trigger');
     expect(sections.map((section) => section.textContent)).toEqual([
       '1. Decizii internenegenerat',
-      '2. Instrucțiuni proprii în domeniul situațiilor de urgențăîn pregătire',
-      '3. Tematica de instruireîn pregătire',
-      '4. Teste de verificare a cunoștințelorîn pregătire',
+      '2. Instrucțiuni proprii în domeniul situațiilor de urgențănegenerat',
+      '3. Tematica de instruirenegenerat',
+      '4. Teste de verificare a cunoștințelornegenerat',
       '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
       '6. Registre și formulare PSInegenerat',
     ]);
@@ -285,7 +305,7 @@ describe('client fire-safety documents', () => {
     expect(screen.queryByTestId('document-row')).toBeNull();
   });
 
-  it('shows a document not generated yet and one the app cannot write yet, muted and inert', async () => {
+  it('shows a document not generated yet, muted and inert', async () => {
     mockApi({ fireItems: [registers] });
     mount();
     const user = userEvent.setup();
@@ -318,13 +338,6 @@ describe('client fire-safety documents', () => {
     }
 
     await openSection(user, '1');
-    const planned = await screen.findAllByTestId('document-planned');
-    expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
-      'Decizia privind fumatul',
-      'Decizia privind cadrul tehnic PSI',
-      'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-      'Decizia privind controlul propriu',
-    ]);
     expect(
       within(sectionOf('1'))
         .getAllByRole('row')
@@ -335,20 +348,38 @@ describe('client fire-safety documents', () => {
       ['document-not-generated', 'Decizia privind organizarea apărării împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['document-not-generated', 'Decizia privind lucrul cu foc deschis'],
-      ['document-planned', 'Decizia privind fumatul'],
+      ['document-not-generated', 'Decizia privind fumatul'],
       ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
-      ['document-planned', 'Decizia privind cadrul tehnic PSI'],
-      ['document-planned', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
+      ['document-not-generated', 'Decizia privind cadrul tehnic PSI'],
+      ['document-not-generated', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
-      ['document-planned', 'Decizia privind controlul propriu'],
+      ['document-not-generated', 'Decizia privind controlul propriu'],
     ]);
-    for (const row of planned) {
-      expect(within(row).queryByRole('link')).toBeNull();
-      expect(within(row).queryByTestId('document-actions')).toBeNull();
-      expect(row.querySelector('td')!.className).toContain('text-muted-foreground');
-      const state = within(row).getByText('În pregătire');
-      expect(state.getAttribute('title')).toBe('Aplicația nu poate genera încă acest document.');
-    }
+
+    await openSection(user, '2');
+    expect(
+      within(sectionOf('2'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => [row.getAttribute('data-testid'), row.querySelector('td')!.textContent])
+    ).toEqual([
+      [
+        'document-not-generated',
+        'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+      ],
+      ['document-not-generated', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
+    ]);
+
+    await openSection(user, '3');
+    expect(
+      within(sectionOf('3'))
+        .getAllByTestId('document-not-generated')
+        .map((row) => row.querySelector('td')!.textContent)
+    ).toEqual([
+      'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+      'Tematica de instruire în domeniul situațiilor de urgență',
+    ]);
+    expect(screen.queryByTestId('document-planned')).toBeNull();
     expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentele lipsă'
@@ -370,7 +401,7 @@ describe('client fire-safety documents', () => {
     ]);
     expect(
       within(sectionOf('4'))
-        .getAllByTestId('document-planned')
+        .getAllByTestId('document-not-generated')
         .map((row) => row.querySelector('td')!.textContent)
     ).toEqual([
       'Copertă – Testele de verificare a cunoștințelor',
@@ -397,14 +428,23 @@ describe('client fire-safety documents', () => {
     ).toBe('2 ciorne');
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('6 ciorne');
+    ).toBe('10 ciorne');
+    expect(
+      sectionOf('2').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('2 ciorne');
+    expect(
+      sectionOf('3').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('2 ciorne');
+    expect(
+      sectionOf('4').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('3 ciorne');
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
     const extra = fireDocument(
       '8a3b4c9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
-      'fire_smoking_decision',
-      'Decizia privind fumatul'
+      'fire_evacuation_plan',
+      'Planul de evacuare'
     );
     mockApi({ fireItems: [permit, extra, registers, cover] });
     const runtime = mount();
@@ -436,6 +476,7 @@ describe('client fire-safety documents', () => {
         missing: [
           'provider.legalName',
           'provider.fireSafetyTechnician',
+          'provider.fireSafetyTechnicianCertificate',
           'client.representativeName',
           'client.representativeRole',
         ],
@@ -446,7 +487,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
-      '4 date de completat'
+      '5 date de completat'
     );
     const places = screen.getAllByTestId('generate-missing-place');
     expect(places.map((place) => within(place).getByRole('heading').textContent)).toEqual([
@@ -458,6 +499,10 @@ describe('client fire-safety documents', () => {
       ['Denumirea legală', '/organization/company?focus=legal-name'],
       [
         'Cadrul tehnic PSINumele lui apare pe documentele PSI.',
+        '/organization/authorizations?focus=fire-safety-technician',
+      ],
+      [
+        'Certificatul cadrului tehnic PSIDecizia de numire a cadrului tehnic PSI îl tipărește.',
         '/organization/authorizations?focus=fire-safety-technician',
       ],
       [
@@ -532,6 +577,7 @@ describe('client fire-safety documents', () => {
         ready: false,
         missing: [
           'fire.trainingSchedule',
+          'fire.smokingPolicy',
           'fire.waste',
           'responsible.workplace_manager',
           'responsible.fire_safety_coordinator',
@@ -547,7 +593,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
-      '8 date de completat'
+      '9 date de completat'
     );
     const rows = screen.getAllByTestId('generate-missing-row');
     expect(rows.at(-1)!.textContent).toBe(
@@ -558,6 +604,7 @@ describe('client fire-safety documents', () => {
       `${client}/details?focus=workplace-fire-data`,
       `${client}/fire-safety-means?focus=fire-equipment`,
       `${client}/training?focus=fire-training-schedule`,
+      `${client}/training?focus=fire-smoking`,
       `${client}/training?focus=fire-waste`,
       `${client}/training?focus=workplace-manager`,
       `${client}/training?focus=fire-safety-coordinator`,

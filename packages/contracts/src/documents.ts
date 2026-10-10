@@ -46,8 +46,19 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_decision_organization',
   'fire_decision_training',
   'fire_decision_open_fire',
+  'fire_decision_smoking',
   'fire_decision_seasons',
+  'fire_decision_technician',
+  'fire_decision_instructions',
   'fire_decision_waste',
+  'fire_decision_control',
+  'fire_cover_own_instructions',
+  'fire_own_instructions',
+  'fire_cover_training_themes',
+  'fire_training_themes',
+  'fire_cover_tests',
+  'fire_test_hiring',
+  'fire_test_annual',
   'fire_means_list',
   'fire_workplace_organization',
   'fire_cover_registers',
@@ -100,15 +111,19 @@ export const decisionTypeKeys = [
 
 /**
  * Each fire-safety decision's place in the provider's binder (ADR 018). It prints the first
- * decision number plus its ordinal minus one, so the decisions still to come (4, 6, 7 and 9)
- * take their places without renumbering these.
+ * decision number plus its ordinal minus one, so a decision built later takes its place without
+ * renumbering the others.
  */
 export const fireDecisionOrdinals = {
   organization: 1,
   training: 2,
   openFire: 3,
+  smoking: 4,
   seasons: 5,
+  technician: 6,
+  instructions: 7,
   waste: 8,
+  control: 9,
 } as const;
 
 export type FireDecision = keyof typeof fireDecisionOrdinals;
@@ -117,8 +132,12 @@ export const fireDecisionTypeKeys = {
   organization: 'fire_decision_organization',
   training: 'fire_decision_training',
   openFire: 'fire_decision_open_fire',
+  smoking: 'fire_decision_smoking',
   seasons: 'fire_decision_seasons',
+  technician: 'fire_decision_technician',
+  instructions: 'fire_decision_instructions',
   waste: 'fire_decision_waste',
+  control: 'fire_decision_control',
 } as const satisfies Record<FireDecision, FireSafetyDocumentTypeKey>;
 
 // The binder holds nine fire-safety decisions, and the ninth's number must fit in four digits.
@@ -126,9 +145,9 @@ export const maxFirstFireDecisionNumber = 9991;
 
 /** The number a fire-safety decision prints, or null for any other document. */
 export function fireDecisionNumber(typeKey: string, firstDecisionNumber: number) {
-  const decision = (Object.keys(fireDecisionTypeKeys) as FireDecision[]).find(
-    (key) => fireDecisionTypeKeys[key] === typeKey
-  );
+  const decision = (
+    Object.keys(fireDecisionTypeKeys) as (keyof typeof fireDecisionTypeKeys)[]
+  ).find((key) => fireDecisionTypeKeys[key] === typeKey);
   return decision === undefined ? null : firstDecisionNumber + fireDecisionOrdinals[decision] - 1;
 }
 
@@ -144,6 +163,7 @@ export const missingDocumentData = [
   'provider.representativeRole',
   // The same code as a service contract's: the name, kept with the organization's authorizations.
   'provider.fireSafetyTechnician',
+  'provider.fireSafetyTechnicianCertificate',
   'specialist.name',
   'specialist.professionalTitle',
   'client.representativeName',
@@ -171,6 +191,7 @@ export const missingDocumentData = [
   // Only for generating the training themes again: they cite the own instructions (ADR 014).
   'documents.own_instructions',
   'fire.trainingSchedule',
+  'fire.smokingPolicy',
   'fire.waste',
   // A required fact missing on an active workplace.
   'fire.workplaces',
@@ -186,9 +207,11 @@ export type MissingDocumentData = z.infer<typeof missingDocumentDataSchema>;
 export const fireSafetyMissingDocumentData = [
   'provider.legalName',
   'provider.fireSafetyTechnician',
+  'provider.fireSafetyTechnicianCertificate',
   'client.representativeName',
   'client.representativeRole',
   'fire.trainingSchedule',
+  'fire.smokingPolicy',
   'fire.waste',
   'responsible.workplace_manager',
   'responsible.fire_safety_coordinator',

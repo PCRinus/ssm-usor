@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   dealChapters,
+  ownInstructionsChapters,
   themeIntervalLabel,
   trainerOf,
   trainingSessions,
   trainingThemes,
 } from './themes';
 
-const ranges = (sessions: number) =>
-  dealChapters(sessions).map(({ from, to }) => `Art. ${from} – ${to}`);
+const ranges = (sessions: number, document = ownInstructionsChapters) =>
+  dealChapters(document, sessions).map(({ from, to }) => `Art. ${from} – ${to}`);
 
 describe('dealing the chapters of the common part', () => {
   it('gives one session everything', () => {
@@ -52,8 +53,28 @@ describe('dealing the chapters of the common part', () => {
   });
 
   it('refuses a count of sessions no schedule gives', () => {
-    expect(() => dealChapters(0)).toThrow(RangeError);
-    expect(() => dealChapters(13)).toThrow(RangeError);
+    expect(() => dealChapters(ownInstructionsChapters, 0)).toThrow(RangeError);
+    expect(() => dealChapters(ownInstructionsChapters, 13)).toThrow(RangeError);
+  });
+});
+
+describe('dealing the chapters of another document', () => {
+  const document = { chapterStarts: [1, 4, 9, 20, 21], articleCount: 30 };
+
+  it('ends the last range at its own article count', () => {
+    expect(ranges(1, document)).toEqual(['Art. 1 – 30']);
+    expect(ranges(2, document)).toEqual(['Art. 1 – 19', 'Art. 20 – 30']);
+    expect(ranges(5, document)).toEqual([
+      'Art. 1 – 3',
+      'Art. 4 – 8',
+      'Art. 9 – 19',
+      'Art. 20 – 20',
+      'Art. 21 – 30',
+    ]);
+  });
+
+  it('refuses more sessions than it has chapters', () => {
+    expect(() => dealChapters(document, 6)).toThrow('Between 1 and 5 training sessions, not 6.');
   });
 });
 

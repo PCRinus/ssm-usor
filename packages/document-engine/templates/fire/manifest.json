@@ -44,6 +44,18 @@
       "title": "Decizia privind lucrul cu foc deschis",
       "file": "1.3_fire_decision_open_fire.docx",
       "change": {
+        "kind": "layout",
+        "note": "Temeiul legal și numele reprezentantului legal nu mai sunt scrise cu litere înclinate."
+      }
+    },
+    {
+      "number": "1.4",
+      "originals": ["1.4._Decizia_4_P.S.I._-_Privind_fumatul"],
+      "stage": 3,
+      "typeKey": "fire_decision_smoking",
+      "title": "Decizia privind fumatul",
+      "file": "1.4_fire_decision_smoking.docx",
+      "change": {
         "kind": "correction",
         "note": "Versiunea inițială."
       }
@@ -61,6 +73,32 @@
       }
     },
     {
+      "number": "1.6",
+      "originals": ["1.6._Decizia_6_P.S.I._-_Numire_cadru_tehnic"],
+      "stage": 3,
+      "typeKey": "fire_decision_technician",
+      "title": "Decizia privind cadrul tehnic PSI",
+      "file": "1.6_fire_decision_technician.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Art. 3 spune limpede că activitatea cadrului tehnic se desfășoară în limitele Legii 307/2006 art. 27 și ale certificatului său, iar obligațiile din art. 27 alin. (1) sunt redate în anexă."
+      }
+    },
+    {
+      "number": "1.7",
+      "originals": [
+        "1.7._Decizia_7_P.S.I._-_Instructiuni de aparare si atributii  personal ptr. afisat"
+      ],
+      "stage": 3,
+      "typeKey": "fire_decision_instructions",
+      "title": "Decizia privind instrucțiunile de apărare împotriva incendiilor",
+      "file": "1.7_fire_decision_instructions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Adresa locului de muncă are un rând al ei în instrucțiunile afișate, iar un loc de muncă fără adresă nu mai lasă o liniuță după activitate."
+      }
+    },
+    {
       "number": "1.8",
       "originals": ["1.8._Decizia_8_P.S.I._-_Deseuri"],
       "stage": 2,
@@ -70,6 +108,102 @@
       "change": {
         "kind": "correction",
         "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.9",
+      "originals": ["1.9._Decizia_9_P.S.I._-_Controlul_intern"],
+      "stage": 3,
+      "typeKey": "fire_decision_control",
+      "title": "Decizia privind controlul propriu",
+      "file": "1.9_fire_decision_control.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "2.0",
+      "originals": ["2.1._Coperta_IPSU"],
+      "stage": 3,
+      "typeKey": "fire_cover_own_instructions",
+      "title": "Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență",
+      "file": "2.0_fire_cover_own_instructions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "2.1",
+      "originals": ["2.2._IPSU"],
+      "stage": 3,
+      "typeKey": "fire_own_instructions",
+      "title": "Instrucțiuni proprii în domeniul situațiilor de urgență",
+      "file": "2.1_fire_own_instructions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Capitolul XVII nu mai descrie stingătoarele cu spumă chimică (tip „S”) și cele care funcționează prin răsturnare, pe care OMAI 135/2023 art. 20 le interzice; ghilimelele, liniile de pauză și trimiterile la alineate din textele citate sunt corectate, iar art. 152 își numerotează și primul alineat."
+      }
+    },
+    {
+      "number": "3.0",
+      "originals": ["3.1._Coperta_Tematica_SU"],
+      "stage": 3,
+      "typeKey": "fire_cover_training_themes",
+      "title": "Copertă – Tematica de instruire în domeniul situațiilor de urgență",
+      "file": "3.0_fire_cover_training_themes.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "3.1",
+      "originals": ["3.2._Tematica_SU"],
+      "stage": 3,
+      "typeKey": "fire_training_themes",
+      "title": "Tematica de instruire în domeniul situațiilor de urgență",
+      "file": "3.1_fire_training_themes.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "4.0",
+      "originals": ["4.0._Coperta testari_SU"],
+      "stage": 3,
+      "typeKey": "fire_cover_tests",
+      "title": "Copertă – Testele de verificare a cunoștințelor",
+      "file": "4.0_fire_cover_tests.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "4.1",
+      "originals": ["4.1._Test_angajare_S.U"],
+      "stage": 3,
+      "typeKey": "fire_test_hiring",
+      "title": "Test la angajare",
+      "file": "4.1_fire_test_hiring.docx",
+      "change": {
+        "kind": "layout",
+        "note": "Variantele de răspuns ale unei întrebări rămân pe aceeași pagină cu întrebarea."
+      }
+    },
+    {
+      "number": "4.2",
+      "originals": ["4.2._Test_anual_S.U"],
+      "stage": 3,
+      "typeKey": "fire_test_annual",
+      "title": "Test anual",
+      "file": "4.2_fire_test_annual.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Testul are 10 întrebări: întrebarea despre spuma chimică a fost scoasă, deoarece OMAI 135/2023 art. 20 interzice stingătoarele cu spumă chimică; variantele de răspuns rămân pe aceeași pagină cu întrebarea."
       }
     },
     {
@@ -93,7 +227,7 @@
       "file": "5.2_fire_workplace_organization.docx",
       "change": {
         "kind": "correction",
-        "note": "Versiunea inițială."
+        "note": "Măsurile generale spun regula fumatului stabilită pentru client și trimit la decizia privind fumatul. Adresa locului de muncă are un rând al ei, iar un loc de muncă fără adresă sau fără măsuri specifice arată o liniuță în locul lor."
       }
     },
     {

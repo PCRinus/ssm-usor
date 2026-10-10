@@ -44,6 +44,7 @@ const emptyFireSafety = {
   trainingDayFrom: null as number | null,
   trainingDayTo: null as number | null,
   smokingPolicy: null as string | null,
+  smokingPlace: null as string | null,
   wasteKinds: [] as string[],
   wasteContractor: null as string | null,
 };
@@ -56,6 +57,7 @@ const savedFireSafety = {
   trainingDayFrom: 10,
   trainingDayTo: 15,
   smokingPolicy: 'designated_places',
+  smokingPlace: 'în curtea interioară, lângă poarta de acces auto',
   wasteKinds: ['deșeuri de carton', 'uleiuri uzate'],
   wasteContractor: 'Salubris SA',
 };
@@ -167,6 +169,7 @@ describe('the fire-safety training card', () => {
           trainingDayFrom: 2,
           trainingDayTo: 7,
           smokingPolicy: null,
+          smokingPlace: null,
           wasteKinds: ['deșeuri de carton', 'uleiuri uzate'],
           wasteContractor: null,
         },
@@ -246,8 +249,67 @@ describe('the fire-safety training card', () => {
         {
           ...savedFireSafety,
           smokingPolicy: null,
+          smokingPlace: null,
           wasteKinds: ['uleiuri uzate'],
           wasteContractor: null,
+        },
+      ])
+    );
+  });
+
+  it('shows the smoking place under the designated-places rule and drops it when smoking is forbidden', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('fire-smoking-place')).textContent).toBe(
+      'în curtea interioară, lângă poarta de acces auto'
+    );
+    await user.click(screen.getByTestId('fire-safety-edit'));
+    expect(value('fire-smoking-place-input')).toBe(
+      'în curtea interioară, lângă poarta de acces auto'
+    );
+    await user.selectOptions(screen.getByTestId('fire-smoking-select'), 'forbidden_everywhere');
+    expect(screen.queryByTestId('fire-smoking-place-input')).toBeNull();
+    await user.click(screen.getByTestId('fire-safety-save'));
+
+    await waitFor(() =>
+      expect(requests(firePath, 'PUT')).toEqual([
+        { ...savedFireSafety, smokingPolicy: 'forbidden_everywhere', smokingPlace: null },
+      ])
+    );
+    expect((await screen.findByTestId('fire-smoking')).textContent).toBe(
+      'Interzis în toată unitatea'
+    );
+    expect(screen.queryByTestId('fire-smoking-place')).toBeNull();
+  });
+
+  it('asks where smoking is allowed only once designated places are picked', async () => {
+    mockApi({
+      fireSafety: { ...savedFireSafety, smokingPolicy: null, smokingPlace: null },
+      exists: true,
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('fire-safety-edit'));
+    expect(screen.queryByTestId('fire-smoking-place-input')).toBeNull();
+    await user.selectOptions(screen.getByTestId('fire-smoking-select'), 'designated_places');
+    await user.type(screen.getByTestId('fire-smoking-place-input'), 'x');
+    await user.click(screen.getByTestId('fire-safety-save'));
+    expect((await screen.findByTestId('fire-smoking-place-input-error')).textContent).toBe(
+      'Locul are cel puțin 2 caractere.'
+    );
+    expect(requests(firePath, 'PUT')).toEqual([]);
+
+    await user.type(screen.getByTestId('fire-smoking-place-input'), ' lângă rampa de descărcare ');
+    await user.click(screen.getByTestId('fire-safety-save'));
+    await waitFor(() =>
+      expect(requests(firePath, 'PUT')).toEqual([
+        {
+          ...savedFireSafety,
+          smokingPolicy: 'designated_places',
+          smokingPlace: 'x lângă rampa de descărcare',
         },
       ])
     );
@@ -269,6 +331,7 @@ describe('the fire-safety training card', () => {
 
   it.each([
     ['fire-waste', 'fire-waste-input'],
+    ['fire-smoking', 'fire-smoking'],
     ['fire-training-schedule', 'fire-first-month'],
   ])('opens the form for ?focus=%s and focuses the field to fill', async (focus, field) => {
     mockApi({ details: { ...occupationalDetails, trainingFirstMonth: null } });

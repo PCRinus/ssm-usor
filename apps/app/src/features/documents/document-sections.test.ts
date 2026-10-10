@@ -7,7 +7,6 @@ import {
   documentSections,
   fireSafetyDocumentSectionIds,
   fireSafetyDocumentSections,
-  inBinderOrder,
   sectionOf,
   type SectionRow,
   sectionSummary,
@@ -45,9 +44,6 @@ describe('document sections', () => {
       ['5', 'means', 'Mijloace de apărare și organizarea la locul de muncă'],
       ['6', 'registers', 'Registre și formulare PSI'],
     ]);
-    expect(fireSafetyDocumentSections.map((section) => section.planned.length)).toEqual([
-      4, 2, 2, 3, 0, 0,
-    ]);
     expect(fireSafetyDocumentSectionIds).toEqual([
       'other',
       'decisions',
@@ -57,27 +53,6 @@ describe('document sections', () => {
       'means',
       'registers',
     ]);
-  });
-
-  it('place each planned document right after the one it follows in the binder', () => {
-    const row = (key: string) => ({ key });
-    const planned = (id: string, after?: string) => ({ id, title: id, after, row: row(id) });
-    expect(
-      inBinderOrder(
-        [row('a'), row('b'), row('c')],
-        [planned('last'), planned('after-a', 'a'), planned('then', 'after-a'), planned('lost', 'z')]
-      ).map((each) => each.key)
-    ).toEqual(['a', 'after-a', 'then', 'b', 'c', 'last', 'lost']);
-  });
-
-  it('give each planned fire-safety document an id and a title of its own', () => {
-    const planned = fireSafetyDocumentSections.flatMap(
-      (section): readonly { id: string; title: string }[] => section.planned
-    );
-    const keys = new Set<string>(fireSafetyDocumentTypeKeys);
-    expect(new Set(planned.map((document) => document.id)).size).toBe(planned.length);
-    expect(new Set(planned.map((document) => document.title)).size).toBe(planned.length);
-    expect(planned.filter((document) => keys.has(document.id))).toEqual([]);
   });
 
   it('name a fire-safety document not generated yet by its template title', () => {
@@ -90,7 +65,7 @@ describe('document sections', () => {
 
   it('place a type in the sections of its own set', () => {
     expect(sectionOf('fire_work_permit', 'fire_safety')).toBe('registers');
-    expect(sectionOf('fire_smoking_decision', 'fire_safety')).toBe('other');
+    expect(sectionOf('fire_evacuation_plan', 'fire_safety')).toBe('other');
     expect(sectionOf('control_report')).toBe('control-report');
   });
 });
@@ -98,7 +73,6 @@ describe('document sections', () => {
 describe('section summary', () => {
   it.each([
     ['nothing listed', [], 'negenerat'],
-    ['only planned documents', [emptyRow('planned'), emptyRow('planned')], 'în pregătire'],
     [
       'built documents of which none exists',
       [emptyRow('notGenerated'), emptyRow('notGenerated')],
@@ -121,7 +95,7 @@ describe('section summary', () => {
     ],
     [
       'one built document missing beside existing ones',
-      [documentRow({ draft: true }), emptyRow('notGenerated'), emptyRow('planned')],
+      [documentRow({ draft: true }), emptyRow('notGenerated'), emptyRow('notApplicable')],
       '1 ciornă · 1 negenerat',
     ],
     [

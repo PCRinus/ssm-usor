@@ -232,8 +232,9 @@ describe('/organization/authorizations', () => {
     authorization_certificate_number: '17664',
     authorization_certificate_date: '2022-09-30',
     authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
-    fire_safety_technician_name: null,
-    fire_safety_technician_certificate: null,
+    fire_safety_technician_name: 'Radu Stan',
+    fire_safety_technician_certificate: 'CT 123/2024',
+    fire_safety_authorization: 'nr. 12 din 15.09.2026, ISU Cluj',
   };
 
   it('reads them for any member', async () => {
@@ -248,8 +249,9 @@ describe('/organization/authorizations', () => {
         authorizationCertificateNumber: '17664',
         authorizationCertificateDate: '2022-09-30',
         authorizationCertificateIssuer: 'Direcția de muncă și protecție socială Timiș',
-        fireSafetyTechnicianName: null,
-        fireSafetyTechnicianCertificate: null,
+        fireSafetyTechnicianName: 'Radu Stan',
+        fireSafetyTechnicianCertificate: 'CT 123/2024',
+        fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Cluj',
       },
     });
   });
@@ -268,7 +270,29 @@ describe('/organization/authorizations', () => {
       authorization_certificate_issuer: null,
       fire_safety_technician_name: null,
       fire_safety_technician_certificate: null,
+      fire_safety_authorization: null,
     });
+  });
+
+  it('saves the fire-safety authorization trimmed, and refuses one longer than 200 characters', async () => {
+    mockUpstream({ organizations: () => Response.json(authorizationsRow) });
+    await request('/organization/authorizations', 'PUT', {
+      fireSafetyTechnicianName: 'Radu Stan',
+      fireSafetyAuthorization: ' nr. 12 din 15.09.2026, ISU Cluj ',
+    });
+    expect(sentBody('/rest/v1/organizations')).toMatchObject({
+      fire_safety_technician_name: 'Radu Stan',
+      fire_safety_authorization: 'nr. 12 din 15.09.2026, ISU Cluj',
+    });
+
+    const response = await request('/organization/authorizations', 'PUT', {
+      fireSafetyAuthorization: 'x'.repeat(201),
+    });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+      'fireSafetyAuthorization'
+    );
+    expect(calls('/rest/v1/organizations')).toHaveLength(1);
   });
 
   it('refuses a date that is not one', async () => {

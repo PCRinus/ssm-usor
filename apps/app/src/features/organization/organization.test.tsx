@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { OrganizationAuthorizationsResponse } from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -55,12 +56,13 @@ const companyDetails = {
   bankName: null,
 };
 
-const authorizations = {
+const authorizations: OrganizationAuthorizationsResponse['authorizations'] = {
   authorizationCertificateNumber: null,
   authorizationCertificateDate: null,
   authorizationCertificateIssuer: null,
   fireSafetyTechnicianName: null,
   fireSafetyTechnicianCertificate: null,
+  fireSafetyAuthorization: null,
 };
 
 const anafCompany = {
@@ -90,6 +92,7 @@ function mockApi({
   changeRole = (() => new Response(null, { status: 204 })) as Route,
   removeMember = (() => new Response(null, { status: 204 })) as Route,
   saveCompanyDetails = (() => Response.json({ companyDetails })) as Route,
+  savedAuthorizations = authorizations,
   saveAuthorizations = (() => Response.json({ authorizations })) as Route,
   lookup = (() => Response.json({ company: anafCompany })) as Route,
 } = {}) {
@@ -103,7 +106,9 @@ function mockApi({
       return method === 'PUT' ? saveCompanyDetails(init) : Response.json({ companyDetails });
     }
     if (pathname === '/organization/authorizations') {
-      return method === 'PUT' ? saveAuthorizations(init) : Response.json({ authorizations });
+      return method === 'PUT'
+        ? saveAuthorizations(init)
+        : Response.json({ authorizations: savedAuthorizations });
     }
     if (pathname === '/companies/lookup') return lookup(init);
     if (pathname === '/organization/members/user-two') {
@@ -578,6 +583,48 @@ describe('authorizations', () => {
     });
   });
 
+  it('saves the fire-safety technician with the authorization beside them, trimmed', async () => {
+    mockApi();
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    await user.type(
+      within(form).getByTestId('authorizations-fireSafetyTechnicianName'),
+      'Radu Stan'
+    );
+    await user.type(
+      within(form).getByTestId('authorizations-fireSafetyAuthorization'),
+      ' nr. 12 din 15.09.2026, ISU Cluj '
+    );
+    expect(within(form).getByText(/Legea 307\/2006 art\. 12²/)).toBeTruthy();
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+    ).toEqual({
+      ...authorizations,
+      fireSafetyTechnicianName: 'Radu Stan',
+      fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Cluj',
+    });
+  });
+
+  it('refuses an authorization of one character', async () => {
+    mockApi();
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    await user.type(within(form).getByTestId('authorizations-fireSafetyAuthorization'), 'x');
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect(
+      (await screen.findByTestId('authorizations-fireSafetyAuthorization-error')).textContent
+    ).toBe('Autorizația are cel puțin 2 caractere.');
+    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
+  });
+
   it('shows a specialist the authorizations read-only', async () => {
     mockApi({ role: 'specialist' });
     mountAuthorizations();
@@ -595,5 +642,12 @@ describe('authorizations', () => {
     const input = await screen.findByTestId('authorizations-authorizationCertificateNumber');
     await waitFor(() => expect(document.activeElement).toBe(input));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it("puts the cursor in the technician's certificate once the technician is named", async () => {
+    mockApi({ savedAuthorizations: { ...authorizations, fireSafetyTechnicianName: 'Radu Stan' } });
+    mount('/organization/authorizations?focus=fire-safety-technician');
+    const input = await screen.findByTestId('authorizations-fireSafetyTechnicianCertificate');
+    await waitFor(() => expect(document.activeElement).toBe(input));
   });
 });

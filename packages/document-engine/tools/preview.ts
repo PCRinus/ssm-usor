@@ -213,8 +213,12 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
       organization: '1 PSI',
       training: '2 PSI',
       openFire: '3 PSI',
+      smoking: '4 PSI',
       seasons: '5 PSI',
+      technician: '6 PSI',
+      instructions: '7 PSI',
       waste: '8 PSI',
+      control: '9 PSI',
     },
     schedule: {
       periodicHours: 2,
@@ -247,6 +251,20 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     designated: people,
     workplaces,
     hasExteriorHydrants: long,
+    hasGasExtinguishers: true,
+    smoking: long
+      ? {
+          policy: 'forbidden_everywhere',
+          forbiddenEverywhere: true,
+          designatedPlaces: false,
+          place: null,
+        }
+      : {
+          policy: 'designated_places',
+          forbiddenEverywhere: false,
+          designatedPlaces: true,
+          place: 'în curtea interioară, lângă poarta de acces auto',
+        },
     waste: long
       ? {
           kinds: ['deșeuri de carton, hârtie, plastic', 'deșeuri menajere', 'uleiuri uzate'],
@@ -469,7 +487,11 @@ function sample(
         representativeRole: 'Administrator',
       },
       specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
-      fireSafetyTechnician: { name: fireSafetyTechnician },
+      fireSafetyTechnician: {
+        name: fireSafetyTechnician,
+        certificate: 'seria A nr. 1234/2024',
+        authorization: people.length > 1 ? null : 'nr. 12 din 15.09.2026, ISU Timiș',
+      },
       fire: fireSample(people, people.length > 1),
       workplaceManagers: people,
       workplaceManagersText: described(people),

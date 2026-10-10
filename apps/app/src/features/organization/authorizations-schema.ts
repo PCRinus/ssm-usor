@@ -30,6 +30,12 @@ export const authorizationsFormSchema = z.object({
     '',
     'Certificatul are cel mult 80 de caractere.'
   ),
+  fireSafetyAuthorization: optionalText(
+    2,
+    200,
+    'Autorizația are cel puțin 2 caractere.',
+    'Autorizația are cel mult 200 de caractere.'
+  ),
 });
 
 export type AuthorizationsFormValues = z.infer<typeof authorizationsFormSchema>;
@@ -41,6 +47,7 @@ export function toAuthorizationsForm(saved: Authorizations): AuthorizationsFormV
     authorizationCertificateIssuer: saved.authorizationCertificateIssuer ?? '',
     fireSafetyTechnicianName: saved.fireSafetyTechnicianName ?? '',
     fireSafetyTechnicianCertificate: saved.fireSafetyTechnicianCertificate ?? '',
+    fireSafetyAuthorization: saved.fireSafetyAuthorization ?? '',
   };
 }
 
@@ -54,5 +61,6 @@ export function toAuthorizationsRequest(
     authorizationCertificateIssuer: textOrNull(values.authorizationCertificateIssuer),
     fireSafetyTechnicianName: textOrNull(values.fireSafetyTechnicianName),
     fireSafetyTechnicianCertificate: textOrNull(values.fireSafetyTechnicianCertificate),
+    fireSafetyAuthorization: textOrNull(values.fireSafetyAuthorization),
   };
 }

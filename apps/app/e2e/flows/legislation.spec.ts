@@ -34,7 +34,7 @@ test('a document behind its template is regenerated for every client from the Le
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 13 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 24 de documente.')).toBeVisible();
 
   const title = 'Registru de evidență a controlului stingătoarelor de incendiu';
   const version = await putBehindItsTemplate(clientId, 'fire_extinguisher_register');
@@ -106,7 +106,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 23 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 23 de documente.')).toBeVisible();
 
   await updateClient(clientId, { training_day_to: null });
   await putBehindItsTemplate(clientId, 'decision_training');

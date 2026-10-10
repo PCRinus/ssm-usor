@@ -45,6 +45,7 @@ PORT = 2002
 # One folder per documentation set (ADR 016), the same under `originals/` and `templates/`: a
 # spec in `originals/fire/` reads its original there and writes to `templates/fire/`.
 SET_FOLDERS = ('', 'fire')
+COPIED_PASSAGES = 'copied-passages.json'
 
 # The house style. Lengths are in 1/100 mm, as LibreOffice counts them; 35 is about a point.
 FONT = 'Arial'
@@ -720,9 +721,15 @@ def join_typed_answers(document, rules):
         if element.supportsService('com.sun.star.text.Paragraph') and not element.ListLabelString \
                 and matches(element.getString(), rules['answers']):
             cursor = document.Text.createTextCursorByRange(element.getStart())
-            cursor.goRight(2, False)
+            cursor.goRight(len(typed_label(element.getString())), False)
             cursor.goRight(1, True)
             cursor.setString('\t')
+
+
+def typed_label(text):
+    """The letter an answer or a quoted list item was typed with: "a)", or "r¹⁶)" for a letter
+    the law inserted later."""
+    return re.match(r'[^\s)]*\)', text).group(0)
 
 
 def strip_spacing(document):
@@ -1137,7 +1144,7 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             paragraph.ParaBottomMargin = round(2 * POINT)
             paragraph.setPropertyToDefault('ParaTabStops')
             label = paragraph.getText().createTextCursorByRange(paragraph.getStart())
-            label.goRight(2, True)
+            label.goRight(len(typed_label(text)), True)
             label.CharWeight = 150
         elif matches(text, subheadings):
             paragraph.CharWeight = 150
@@ -1680,10 +1687,107 @@ def clear_section(document, section, marker):
     cursor.NumberingStyleName = ''
 
 
+def passage(document, first, last):
+    """The body's paragraphs from the one matching `first` to the next one matching `last`."""
+    elements = list(_elements(document.Text))
+    start = next((index for index, element in enumerate(elements)
+                  if element.supportsService('com.sun.star.text.Paragraph')
+                  and re.search(first, element.getString())), None)
+    if start is None:
+        raise RuntimeError(f'copy: no paragraph matches {first!r}')
+    end = next((index for index in range(start, len(elements))
+                if elements[index].supportsService('com.sun.star.text.Paragraph')
+                and re.search(last, elements[index].getString())), None)
+    if end is None:
+        raise RuntimeError(f'copy: no paragraph after {first!r} matches {last!r}')
+    found = elements[start:end + 1]
+    if any(not element.supportsService('com.sun.star.text.Paragraph') for element in found):
+        raise RuntimeError(f'copy: a table lies between {first!r} and {last!r}')
+    return found
+
+
+def is_article(paragraph):
+    return paragraph.NumberingIsNumber and \
+        re.fullmatch(r'Art\.\s*\d+\.?', paragraph.ListLabelString or '') is not None
+
+
+def copy_passage(desktop, document, marker, item):
+    """Writes over the paragraph holding `marker` a passage of another template, from the
+    paragraph matching `first` to the one matching `last`, with its formatting and lists,
+    through the office's own copy and paste (ADR 019). The source is the template in
+    `templates/`, never an original: the copy is of the text the other set prints. Its articles
+    join this document's, which `articles` has numbered by then; the copy comes after the
+    wording pass, which the source has been through and which would change it again."""
+    source = desktop.loadComponentFromURL(
+        uno.systemPathToFileUrl(f'{ROOT}/templates/{item["copy"]}'), '_blank', 0, (prop('Hidden', True),))
+    try:
+        found = passage(source, item['first'], item['last'])
+        articles = [index for index, paragraph in enumerate(found) if is_article(paragraph)]
+        # A list style of the same name in this document would win over the source's on paste,
+        # and imported files all name theirs WWNum1, WWNum2 and so on.
+        styles = source.StyleFamilies.getByName('NumberingStyles')
+        for name in sorted({paragraph.NumberingStyleName for paragraph in found if paragraph.NumberingStyleName}):
+            styles.getByName(name).setName(f'{name} ({item["copy"]})')
+        selection = source.Text.createTextCursorByRange(found[0].getStart())
+        selection.gotoRange(found[-1].getEnd(), True)
+        controller = source.getCurrentController()
+        controller.select(selection)
+        copied = controller.getTransferable()
+        flow = list(_elements(document.Text))
+        position = next(index for index, element in enumerate(flow)
+                        if element.supportsService('com.sun.star.text.Paragraph') and element.getString() == marker)
+        target = document.Text.createTextCursorByRange(flow[position].getStart())
+        target.gotoEndOfParagraph(True)
+        view = document.getCurrentController()
+        view.select(target)
+        view.insertTransferable(copied)
+        pasted = list(_elements(document.Text))[position:position + len(found)]
+        if [paragraph.getString() for paragraph in pasted] != [paragraph.getString() for paragraph in found]:
+            raise RuntimeError(f'copy: the passage from {item["first"]!r} was not pasted whole')
+        if item.get('numbering') == 'dashes':
+            flatten_lists(document, pasted, articles)
+            return
+        for index in articles:
+            pasted[index].NumberingStyleName = ARTICLES
+            pasted[index].NumberingLevel = 0
+            pasted[index].ParaLeftMargin = 0
+            pasted[index].ParaFirstLineIndent = 0
+    finally:
+        source.close(True)
+
+
+def flatten_lists(document, pasted, articles):
+    """A copy's articles lose their labels and its numbered items become dashes, for a copy
+    inside a loop: the engine repeats a list's paragraphs under the same numbering, so the
+    second workplace's posted instructions would count on from the first's. The lists keep
+    their own styles, which `copy_passage` renamed, and only their first level changes."""
+    styles = document.StyleFamilies.getByName('NumberingStyles')
+    for name in sorted({paragraph.NumberingStyleName for index, paragraph in enumerate(pasted)
+                        if index not in articles and paragraph.NumberingIsNumber
+                        and paragraph.NumberingStyleName}):
+        style = styles.getByName(name)
+        rules = style.NumberingRules
+        level = {entry.Name: entry for entry in rules.getByIndex(0)}
+        for key, value in (('NumberingType', 6),  # a character, not a number
+                           ('BulletChar', '–'), ('BulletFontName', FONT),
+                           ('Prefix', ''), ('Suffix', ''), ('ListFormat', '')):
+            level[key] = prop(key, value)
+        uno.invoke(rules, 'replaceByIndex',
+                   (0, uno.Any('[]com.sun.star.beans.PropertyValue', tuple(level.values()))))
+        style.NumberingRules = rules
+    for index in articles:
+        pasted[index].NumberingStyleName = ''
+        pasted[index].NumberingIsNumber = False
+        pasted[index].ParaLeftMargin = 0
+        pasted[index].ParaFirstLineIndent = 0
+
+
 def fill_section(document, marker, content):
     """Writes `content` over the paragraph holding `marker`: paragraphs as `append` writes
-    them, with `indent`, `pageBefore` and `pageAfter`, and tables drawn from a definition with
-    `rows` ({"table": …})."""
+    them, with `indent`, `pageBefore` and `pageAfter`, tables drawn from a definition with
+    `rows` ({"table": …}), and a marker for each passage of another template
+    ({"copy": …, "first", "last"}), which `copy_passage` writes later. Returns the markers with
+    their passages."""
     text = document.Text
     holder = next(element for element in _elements(text)
                   if element.supportsService('com.sun.star.text.Paragraph') and element.getString() == marker)
@@ -1691,7 +1795,14 @@ def fill_section(document, marker, content):
     cursor.gotoEndOfParagraph(True)
     cursor.setString('')
     tables = []
+    copies = []
     for index, item in enumerate(content):
+        if 'copy' in item:
+            copies.append((f'{marker} copy {index}', item))
+            write_paragraph(text, cursor, copies[-1][0], adjust=LEFT, below=0, first=index == 0)
+            cursor.ParaLeftMargin = 0
+            cursor.BreakType = NO_BREAK
+            continue
         if 'table' in item:
             tables.append((f'{marker} table {index}', item['table']))
             write_paragraph(text, cursor, tables[-1][0], adjust=LEFT, below=0, first=index == 0)
@@ -1722,6 +1833,8 @@ def fill_section(document, marker, content):
         if following is not None and following.supportsService('com.sun.star.text.Paragraph') \
                 and not following.getString().startswith(f'{marker} table '):
             text.removeTextContent(anchor)
+
+    return copies
 
 
 def reloaded(desktop, document, name):
@@ -1754,7 +1867,24 @@ def draw_landscape(document):
     style.Width, style.Height = 29700, 21000
 
 
-def import_template(desktop, spec_path, wording, output):
+def record_copies(registry, template, copies):
+    """Lists in `copied-passages.json`, beside the templates, what each template copied from
+    another, so the engine's tests can hold the copies to their source once the specs, which
+    live outside the repository, are gone."""
+    entries = []
+    if os.path.exists(registry):
+        with open(registry, encoding='utf8') as file:
+            entries = json.load(file)['passages']
+    entries = [entry for entry in entries if entry['template'] != template] + [
+        {'template': template, 'from': item['copy'], 'first': item['first'], 'last': item['last']}
+        for item in copies]
+    entries.sort(key=lambda entry: entry['template'])
+    with open(registry, 'w', encoding='utf8') as file:
+        json.dump({'passages': entries}, file, ensure_ascii=False, indent=2)
+        file.write('\n')
+
+
+def import_template(desktop, spec_path, wording, output, registry, template):
     with open(spec_path, encoding='utf8') as file:
         spec = json.load(file)
     name = os.path.basename(spec_path)[: -len('.spec.json')]
@@ -1767,9 +1897,10 @@ def import_template(desktop, spec_path, wording, output):
     DRAWN_SIZES.clear()
     try:
         problems = []
+        copies = []
         if spec.get('content'):
             document.Text.setString('@@content@@')
-            fill_section(document, '@@content@@', spec['content'])
+            copies += fill_section(document, '@@content@@', spec['content'])
         if spec.get('landscape'):
             draw_landscape(document)
         for replacement in spec['replacements']:
@@ -1795,7 +1926,7 @@ def import_template(desktop, spec_path, wording, output):
         if markers:
             document = reloaded(desktop, document, name)
         for section, marker in zip(spec.get('sections', []), markers):
-            fill_section(document, marker, section['content'])
+            copies += fill_section(document, marker, section['content'])
         if spec.get('header'):
             build_header(document, spec['header'])
         strip_spacing(document)
@@ -1815,6 +1946,12 @@ def import_template(desktop, spec_path, wording, output):
             if count < replacement.get('min', 1):
                 label = replacement.get('find') or f'/{replacement["pattern"]}/'
                 problems.append(f'correction {label!r} found {count} times, expected at least {replacement.get("min", 1)}')
+        if copies and not spec.get('articles'):
+            # Without it a copied article would keep the source's list and count from 1 again.
+            problems.append('a spec that copies a passage needs `articles: true`')
+        else:
+            for marker, item in copies:
+                copy_passage(desktop, document, marker, item)
         removed = typeset(document, parts, spec.get('emptyParagraphs') == 'shrink',
                           spec.get('subheadings', []))
         # A table that still does not fit at the small print, by its place in the body.
@@ -1847,6 +1984,7 @@ def import_template(desktop, spec_path, wording, output):
         target = f'{ROOT}/{output}/{name}.docx'
         document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
         sweep(target)
+        record_copies(registry, template, [item for _, item in copies])
         print(f'{name}: {fixes} wording fixes, {removed} empty paragraphs removed')
     finally:
         document.close(True)
@@ -1889,7 +2027,9 @@ def main():
     try:
         for set_folder, path in specs:
             try:
-                import_template(desktop, path, wording, os.path.join(output, set_folder).rstrip('/'))
+                import_template(desktop, path, wording, os.path.join(output, set_folder).rstrip('/'),
+                                f'{ROOT}/{output}/{COPIED_PASSAGES}',
+                                os.path.join(set_folder, os.path.basename(path)[: -len('.spec.json')] + '.docx'))
             except Exception as error:  # noqa: BLE001 - report every document, then fail
                 failed = True
                 print(f'{os.path.basename(path)}: FAILED: {error!r}')

@@ -148,7 +148,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/organization/index.tsx`                                             | `/organization`                                             | Redirects to the team.                                                                                                                                                                                      |
 | `routes/_authenticated/organization/team.tsx`                                              | `/organization/team`                                        | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                                                                      |
 | `routes/_authenticated/organization/company.tsx`                                           | `/organization/company`                                     | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                                                            |
-| `routes/_authenticated/organization/authorizations.tsx`                                    | `/organization/authorizations`                              | "Abilitări": the certificate of authorization and the fire-safety technician. Owners edit.                                                                                                                  |
+| `routes/_authenticated/organization/authorizations.tsx`                                    | `/organization/authorizations`                              | "Abilitări": the certificate of authorization, the fire-safety technician and their authorization. Owners edit.                                                                                             |
 | `routes/_authenticated/profile.tsx`                                                        | `/profile`                                                  | The user's name and professional title (editable), email, and organization.                                                                                                                                 |
 | `routes/_authenticated/clients.tsx`                                                        | pathless                                                    | Clients section layout carrying the breadcrumb title.                                                                                                                                                       |
 | `routes/_authenticated/clients/index.tsx`                                                  | `/clients`                                                  | Protected, paginated and sortable list of the organization's active clients.                                                                                                                                |
@@ -518,7 +518,10 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
 - "Instruire PSI", the card after the occupational safety schedule (ADR 018), edits
   `GET`/`PUT /clients/{clientId}/fire-safety` in place: the duration in hours, the interval of
   each staff category (one to six months), the first month and the days, the smoking rule
-  (which may stay "Nestabilit"), the kinds of waste as chips (Enter adds one, a text left in
+  (which may stay "Nestabilit" until the set is generated, which asks for it;
+  `?focus=fire-smoking` opens the form on it) and, under "Permis numai în locuri amenajate" only, the
+  optional "Locul pentru fumat" (ADR 019; picking another rule hides it and the save sends it
+  as null, so the API clears it), the kinds of waste as chips (Enter adds one, a text left in
   the field is added on save) and the firm that collects them. While the API says no row
   exists the card reads "Necompletat", and its form opens on two hours, three months for both
   categories and the occupational safety schedule's first month and days, with the note
@@ -631,12 +634,11 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   requests and query keys as they were (`?set=fire_safety` for the other). It lists the whole
   pack at all times, with no empty state: the six sections of the provider's binder under their
   numbers (`fireSafetyDocumentSections`, whose ids are the route's `?section=`), each holding
-  its built type keys and its planned documents, and "Alte documente PSI" for a type this build
-  does not know. A built document the client does not have yet is a muted "Negenerat" row named
-  from `notGeneratedTitles` (held to the fire-safety manifest by a test); a planned one is a
-  muted "În pregătire" row, placed after the built document it follows in the binder
-  (`after`), so the decisions read 1 to 9 whichever are built; neither has a link or a menu, and
-  planned rows never count as missing. Until something is generated, a hint under the heading
+  its type keys in the binder's order, and "Alte documente PSI" for a type this build does not
+  know. A document the client does not have yet is a muted "Negenerat" row named from
+  `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
+  document of the binder is built since ADR 019, so the tab plans nothing and the "În
+  pregătire" rows it showed until then are gone. Until something is generated, a hint under the heading
   replaces the empty state. Its dialog has no headcount notice and asks the date and "Numărul
   primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);
   every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
@@ -754,9 +756,12 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   an emptied input clears what was saved. The IBAN is checked as typed, with or without
   spaces, and shown in groups of four once saved.
 - `/organization/authorizations` ("Abilitări"): the certificate of authorization and, in a
-  section of its own, the one fire-safety technician (issue #170), from
+  section of its own, the one fire-safety technician (issue #170) with the optional "Autorizație
+  ISU" under Legea 307/2006 art. 12² (ADR 019), from
   `GET /organization/authorizations`, with the same rules. The contract card's notice of
-  missing data links to whichever of the two sections holds what is missing.
+  missing data links to whichever of the two sections holds what is missing; the PSI
+  generation's rows for the technician and the technician's certificate both open
+  `?focus=fire-safety-technician`, at the name until it is saved and at the certificate then.
 - `/instructions`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by

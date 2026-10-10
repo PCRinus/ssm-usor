@@ -40,6 +40,8 @@ export const monthChoices = monthNames.map((label, index) => ({
 
 export const maxWasteKinds = 12;
 
+const maxSmokingPlaceLength = 240;
+
 // Null when the kind can be added; otherwise what is wrong with it.
 export function wasteKindProblem(kind: string, kinds: readonly string[]) {
   const trimmed = kind.trim();
@@ -89,6 +91,7 @@ export const fireSafetyFormSchema = z
     trainingDayFrom: day,
     trainingDayTo: day,
     smokingPolicy: choice(Object.keys(fireSmokingChoices), 'Alege o regulă din listă.'),
+    smokingPlace: z.string(),
     wasteKinds: z.array(z.string()),
     // What is typed but not yet added; saving adds it.
     wasteDraft: z.string(),
@@ -112,6 +115,22 @@ export const fireSafetyFormSchema = z
         path: ['trainingDayTo'],
         message: 'Ultima zi nu poate fi înaintea primei zile.',
       });
+    }
+    const place = values.smokingPlace.trim();
+    if (values.smokingPolicy === 'designated_places' && place !== '') {
+      if (place.length < 2) {
+        context.addIssue({
+          code: 'custom',
+          path: ['smokingPlace'],
+          message: 'Locul are cel puțin 2 caractere.',
+        });
+      } else if (place.length > maxSmokingPlaceLength) {
+        context.addIssue({
+          code: 'custom',
+          path: ['smokingPlace'],
+          message: `Locul are cel mult ${maxSmokingPlaceLength} de caractere.`,
+        });
+      }
     }
     if (values.wasteDraft.trim() === '') return;
     const problem = wasteKindProblem(values.wasteDraft, values.wasteKinds);
@@ -151,6 +170,7 @@ export function toFireSafetyForm(start: FireSafety): FireSafetyFormValues {
     trainingDayFrom: text(start.trainingDayFrom),
     trainingDayTo: text(start.trainingDayTo),
     smokingPolicy: start.smokingPolicy ?? '',
+    smokingPlace: start.smokingPlace ?? '',
     wasteKinds: start.wasteKinds,
     wasteDraft: '',
     wasteContractor: start.wasteContractor ?? '',
@@ -170,6 +190,9 @@ export function toFireSafetyRequest(values: FireSafetyFormValues): UpdateClientF
     trainingDayFrom: numberOrNull(values.trainingDayFrom),
     trainingDayTo: numberOrNull(values.trainingDayTo),
     smokingPolicy: (values.smokingPolicy || null) as FireSmokingPolicy | null,
+    // The place stays in the form while another rule is picked, in case the pick is undone.
+    smokingPlace:
+      values.smokingPolicy === 'designated_places' ? values.smokingPlace.trim() || null : null,
     wasteKinds: draft ? [...values.wasteKinds, draft] : values.wasteKinds,
     wasteContractor: values.wasteContractor.trim() || null,
   };

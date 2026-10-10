@@ -4,16 +4,16 @@ import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import {
-  generalTrainingArticleCount,
-  generalTrainingChapterStarts,
-  ownInstructionsArticleCount,
-  ownInstructionsChapterStarts,
+  fireOwnInstructionsChapters,
+  generalTrainingChapters,
+  ownInstructionsChapters,
 } from '../../src/modules/documents/themes';
 
-// The training themes cite chapters of 3.2 and 2.2 as article ranges written into the code
-// and the 4.2 template (ADR 014); an article added to either template moves them.
+// The training themes cite chapters of 3.2, 2.2 and the IPSU as article ranges written into the
+// code and the 4.2 template (ADR 014, ADR 019); an article added to any of them moves them.
 
 const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
+const fireOwnInstructions = 'fire/2.1_fire_own_instructions.docx';
 
 function documentXml(file: string) {
   return new PizZip(readFileSync(new URL(file, templatesUrl))).file('word/document.xml')!.asText();
@@ -49,16 +49,57 @@ function articlesByChapter(file: string) {
 describe('the chapters the training themes cite', () => {
   it('fall where the own instructions template has them, chapter XIII being the annexes', () => {
     expect(articlesByChapter('3.2_own_instructions.docx')).toEqual({
-      chapterStarts: [...ownInstructionsChapterStarts, ownInstructionsArticleCount + 1],
-      total: ownInstructionsArticleCount,
+      chapterStarts: [
+        ...ownInstructionsChapters.chapterStarts,
+        ownInstructionsChapters.articleCount + 1,
+      ],
+      total: ownInstructionsChapters.articleCount,
     });
   });
 
   it('fall where the general training material template has them', () => {
     expect(articlesByChapter('2.2_general_training_material.docx')).toEqual({
-      chapterStarts: [...generalTrainingChapterStarts],
-      total: generalTrainingArticleCount,
+      chapterStarts: [...generalTrainingChapters.chapterStarts],
+      total: generalTrainingChapters.articleCount,
     });
+  });
+
+  it('fall where the fire-safety own instructions template has them', () => {
+    expect(articlesByChapter(fireOwnInstructions)).toEqual({
+      chapterStarts: [...fireOwnInstructionsChapters.chapterStarts],
+      total: fireOwnInstructionsChapters.articleCount,
+    });
+  });
+
+  it('are the chapters the fire-safety training themes template prints, each once', () => {
+    const text = documentXml('fire/3.1_fire_training_themes.docx')
+      .replace(/<\/w:p>/g, '\n')
+      .replace(/<[^>]+>/g, '');
+    const { chapterStarts, total } = articlesByChapter(fireOwnInstructions);
+    const chapters = chapterStarts.map((start, index) => [
+      start,
+      (chapterStarts[index + 1] ?? total + 1) - 1,
+    ]);
+    const rows = [...text.matchAll(/^IPSU Art\. (\d+)(?: – (\d+))?$/gm)].map(([, from, to]) => [
+      Number(from),
+      Number(to ?? from),
+    ]);
+    expect([...rows].sort((a, b) => a[0]! - b[0]!)).toEqual(chapters);
+    const summaries = [
+      ...text.matchAll(/^CONȚINUTUL MATERIALULUI DE INSTRUIRE: IPSU Art\. ([^;]+);/gm),
+    ]
+      .flatMap(([, list]) => list!.split(', '))
+      .map((range) => range.split(' – ').map(Number));
+    const covered = summaries.flatMap(([from, to]) =>
+      Array.from({ length: (to ?? from!) - from! + 1 }, (_, index) => from! + index)
+    );
+    expect([...covered].sort((a, b) => a - b)).toEqual(
+      Array.from({ length: total }, (_, index) => index + 1)
+    );
+    for (const [from, to] of summaries) {
+      expect(chapterStarts).toContain(from);
+      expect([...chapterStarts.slice(1).map((start) => start - 1), total]).toContain(to ?? from);
+    }
   });
 
   it('are the ranges the training themes template prints', () => {

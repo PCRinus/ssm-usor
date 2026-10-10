@@ -192,28 +192,44 @@ may not be a member. The name is also what the fire-safety set prints for the pr
 (ADR 016). The owners' update policy covers them, and they are added to the list of
 columns a member may write, which still leaves out `name` and the accepted terms.
 
+`fire_safety_authorization` (2 to 200 characters, optional) is the inspectorate's
+authorization of the provider to act as fire-safety technician under contract, Legea 307/2006
+art. 12^2, as the provider writes it: "nr. 12 din 15.09.2026, ISU Cluj". One text, not a number,
+a date and an issuer, while the form of the document the authorization methodology will issue is
+unknown. Decision 6 of the fire-safety set prints it when set, and no readiness asks for it
+([ADR 019](architecture/adr-019-fire-safety-stage-three.md)). It joins the columns a member may
+write, under the same owners' update policy.
+
 ## Fire-safety data
 
 Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by the migrations
-`20261010100000_fire_safety_roles` and `20261010100100_fire_safety_data`. The documents of the
-fire-safety set's second stage print these facts; the occupational safety set reads none of
-them.
+`20261010100000_fire_safety_roles` and `20261010100100_fire_safety_data`; the smoking place is
+[ADR 019](architecture/adr-019-fire-safety-stage-three.md)'s, created by
+`20261010130000_fire_safety_smoking_place` with the organization's `fire_safety_authorization`.
+The documents of the fire-safety set's second and third stages print these facts; the
+occupational safety set reads none of them.
 
 **The client's fire-safety facts.** `client_fire_safety` holds one row per client, keyed by
 `client_id`, with the denormalized `organization_id` and a composite foreign key on
 `(client_id, organization_id)` to `clients`. The row is created on the first save. Every column
 but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
 
-| Column                                    | Notes                                                                                                    |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `periodic_training_hours`                 | 2 to 8: OMAI 712/2005 art. 21 asks two hours at least.                                                   |
-| `administrative_training_interval_months` | 1 to 6, the range of art. 26.                                                                            |
-| `worker_training_interval_months`         | 1 to 6.                                                                                                  |
-| `training_first_month`                    | 1 to 12.                                                                                                 |
-| `training_day_from`, `training_day_to`    | 1 to 31, ordered by a check, the same shape as the occupational safety columns on `clients`.             |
-| `smoking_policy`                          | `fire_smoking_policy`: `forbidden_everywhere` or `designated_places`; no default. Nothing prints it yet. |
-| `waste_kinds`                             | A `text[]` of at most 12 entries of 2 to 80 characters each; `'{}'` by default.                          |
-| `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                   |
+| Column                                    | Notes                                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `periodic_training_hours`                 | 2 to 8: OMAI 712/2005 art. 21 asks two hours at least.                                                  |
+| `administrative_training_interval_months` | 1 to 6, the range of art. 26.                                                                           |
+| `worker_training_interval_months`         | 1 to 6.                                                                                                 |
+| `training_first_month`                    | 1 to 12.                                                                                                |
+| `training_day_from`, `training_day_to`    | 1 to 31, ordered by a check, the same shape as the occupational safety columns on `clients`.            |
+| `smoking_policy`                          | `fire_smoking_policy`: `forbidden_everywhere` or `designated_places`; no default. Decision 4 prints it. |
+| `smoking_place`                           | Where smoking is allowed, 2 to 240 characters; set only with `designated_places`, by a check.           |
+| `waste_kinds`                             | A `text[]` of at most 12 entries of 2 to 80 characters each; `'{}'` by default.                         |
+| `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                  |
+
+The smoking place is optional even with `designated_places`: without it decision 4 says the
+places are those marked "LOC PENTRU FUMAT". The API clears it whenever the card is saved with the
+other policy or none, so switching to `forbidden_everywhere` drops the place rather than failing
+the check, and switching back starts from an empty place.
 
 This is the fire-safety training schedule, and it is not linked to the occupational safety one
 on `clients`. While no row exists, which the API reports, the app opens the form on a starting
@@ -295,7 +311,9 @@ month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (t
 columns above other than `specific_measures` set on every active workplace), `fire.equipment`
 (an extinguisher in every active workplace), `responsible.fire_safety_coordinator` and
 `responsible.fire_intervention_leader` (an active person in each role). It also asks the existing `responsible.workplace_manager` and
-`positions.any`. Any of them refuses the whole set's generation.
+`positions.any`. Any of them refuses the whole set's generation. ADR 019 adds `fire.smokingPolicy` (a policy
+chosen) and `provider.fireSafetyTechnicianCertificate`; neither the smoking place nor the
+authorization is ever asked for.
 
 **What the templates read.** Fire-safety templates read these facts from one merge object,
 `fire`, and nothing else about the client beyond `client`, `provider`, `fireSafetyTechnician`,
@@ -303,7 +321,7 @@ columns above other than `specific_measures` set on every active workplace), `fi
 category and nothing else of them. The data snapshot keeps the whole `fire` value, so an edit
 of any fact above marks the set's drafts "Date modificate" and leaves the occupational safety
 ones alone. Fire-safety decisions print the generation's `first_decision_number` plus their
-fixed ordinal in the binder (1, 2, 3, 5, 8) minus one, and the fire-safety generation asks for
+fixed ordinal in the binder (1 to 9) minus one, and the fire-safety generation asks for
 that number. A fire-safety decision stores its printed number in `decision_number`, and a
 document of the set is compared with its snapshot, and generated again, with the first number
 it was made with.

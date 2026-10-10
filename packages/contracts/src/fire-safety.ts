@@ -188,6 +188,7 @@ export const clientFireSafetySchema = z.object({
   trainingDayFrom: fireTrainingFields.trainingDayFrom.nullable(),
   trainingDayTo: fireTrainingFields.trainingDayTo.nullable(),
   smokingPolicy: fireSmokingPolicySchema.nullable(),
+  smokingPlace: z.string().nullable(),
   wasteKinds: z.array(z.string()),
   wasteContractor: z.string().nullable(),
 });
@@ -213,6 +214,8 @@ export const updateClientFireSafetyRequestSchema = z
     trainingDayFrom: fireTrainingFields.trainingDayFrom.nullish(),
     trainingDayTo: fireTrainingFields.trainingDayTo.nullish(),
     smokingPolicy: fireSmokingPolicySchema.nullish(),
+    // Kept only with designated places; the API drops it with any other policy (ADR 019).
+    smokingPlace: optionalText(2, 240),
     wasteKinds: z
       .array(z.string().trim().min(2).max(80))
       .max(12)

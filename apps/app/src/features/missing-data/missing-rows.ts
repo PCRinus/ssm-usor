@@ -185,6 +185,13 @@ export const documentMissingData: Record<
     detail: 'Numele lui apare pe documentele PSI.',
     target: () => to.authorizations('fire-safety-technician'),
   },
+  // The technician's own key opens the certificate field once the name is saved.
+  'provider.fireSafetyTechnicianCertificate': {
+    place: 'organization',
+    label: 'Certificatul cadrului tehnic PSI',
+    detail: 'Decizia de numire a cadrului tehnic PSI îl tipărește.',
+    target: () => to.authorizations('fire-safety-technician'),
+  },
   'specialist.name': {
     place: 'profile',
     label: 'Numele tău',
@@ -306,6 +313,13 @@ export const documentMissingData: Record<
     label: 'Programul instruirii PSI',
     detail: 'Durata, intervalele pe categorii, prima lună și zilele.',
     target: ({ clientId }) => to.training(clientId, 'fire-training-schedule'),
+  },
+  'fire.smokingPolicy': {
+    place: 'training',
+    label: 'Regula privind fumatul',
+    detail:
+      'Interzis în toată unitatea sau permis numai în locuri amenajate, pentru decizia privind fumatul.',
+    target: ({ clientId }) => to.training(clientId, 'fire-smoking'),
   },
   'fire.waste': {
     place: 'training',

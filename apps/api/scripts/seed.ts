@@ -14,7 +14,7 @@ import {
 } from './lib/seed-document-data';
 import { fakeEmployees, seedEmployees } from './lib/seed-employees';
 import { seedEvaluationProfiles } from './lib/seed-evaluation-profiles';
-import { seedFireSafety } from './lib/seed-fire-safety';
+import { seedFireSafety, seedFireSafetyProvider } from './lib/seed-fire-safety';
 import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
@@ -127,7 +127,11 @@ try {
       user.id
     );
     console.log(
-      `Added fire-safety facts to ${fire.facts} clients and ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
+      `Added fire-safety facts to ${fire.facts} clients, a smoking rule to ${fire.smoking} and facts to ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
+    );
+    const provider = await seedFireSafetyProvider(client);
+    console.log(
+      `${provider.technician ? 'Named' : 'Kept'} the fire-safety technician, ${provider.certificate ? 'filled in' : 'kept'} the certificate and ${provider.authorization ? 'filled in' : 'kept'} the fire-safety authorization of the organization.`
     );
     const equipment = await seedProtectiveEquipment(client, organization.id, user.id);
     console.log(

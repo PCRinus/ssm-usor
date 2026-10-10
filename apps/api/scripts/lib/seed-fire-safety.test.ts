@@ -3,10 +3,17 @@ import {
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
   updateClientFireSafetyRequestSchema,
+  updateOrganizationAuthorizationsRequestSchema,
 } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { fireMeansFor, fireRolesToAdd, fireSafetyFor } from './seed-fire-safety';
+import {
+  fireMeansFor,
+  fireRolesToAdd,
+  fireSafetyAuthorization,
+  fireSafetyFor,
+  fireSafetyTechnician,
+} from './seed-fire-safety';
 
 const userId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -31,6 +38,44 @@ describe('fireSafetyFor', () => {
         periodicTrainingHours: row.periodic_training_hours,
         wasteKinds: row.waste_kinds,
         wasteContractor: row.waste_contractor,
+      }).success
+    ).toBe(true);
+  });
+
+  it('forbids smoking, allows it in a named place, and allows it with no place, in turn', () => {
+    const client = {
+      id: clientId,
+      training_first_month: null,
+      training_day_from: null,
+      training_day_to: null,
+    };
+    const rules = [0, 1, 2, 3].map((index) => {
+      const row = fireSafetyFor(client, userId, index);
+      return [row.smoking_policy, row.smoking_place];
+    });
+    expect(rules).toEqual([
+      ['forbidden_everywhere', null],
+      ['designated_places', 'în curtea interioară, lângă poarta de acces auto'],
+      ['designated_places', null],
+      ['forbidden_everywhere', null],
+    ]);
+    const named = fireSafetyFor(client, userId, 1);
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({
+        smokingPolicy: named.smoking_policy,
+        smokingPlace: named.smoking_place,
+      }).success
+    ).toBe(true);
+  });
+});
+
+describe('the seeded fire-safety provider', () => {
+  it('has a technician with a certificate and an authorization the organization page accepts', () => {
+    expect(
+      updateOrganizationAuthorizationsRequestSchema.safeParse({
+        fireSafetyTechnicianName: fireSafetyTechnician.fire_safety_technician_name,
+        fireSafetyTechnicianCertificate: fireSafetyTechnician.fire_safety_technician_certificate,
+        fireSafetyAuthorization,
       }).success
     ).toBe(true);
   });

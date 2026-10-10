@@ -44,6 +44,7 @@ const fireSafetyRow = {
   training_day_from: 2,
   training_day_to: 7,
   smoking_policy: null,
+  smoking_place: null,
   waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   waste_contractor: 'Salubris S.A.',
 };
@@ -225,6 +226,7 @@ describe('/clients/{clientId}/fire-safety', () => {
         trainingDayFrom: null,
         trainingDayTo: null,
         smokingPolicy: null,
+        smokingPlace: null,
         wasteKinds: [],
         wasteContractor: null,
       },
@@ -254,6 +256,7 @@ describe('/clients/{clientId}/fire-safety', () => {
       training_day_from: 2,
       training_day_to: 7,
       smoking_policy: null,
+      smoking_place: null,
       waste_kinds: ['deșeuri de carton, hârtie, plastic'],
       waste_contractor: 'Salubris S.A.',
     });
@@ -262,6 +265,49 @@ describe('/clients/{clientId}/fire-safety', () => {
     );
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
     expect(calls('client_fire_safety', 'POST')).toHaveLength(0);
+  });
+
+  it('keeps the smoking place with designated places and drops it with any other policy', async () => {
+    const place = 'În curtea interioară, lângă poarta de acces auto';
+    mockUpstream({
+      fireSafety: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({
+              ...fireSafetyRow,
+              smoking_policy: 'designated_places',
+              smoking_place: place,
+            })
+          : undefined,
+    });
+    const response = await request(path, 'PUT', {
+      ...body,
+      smokingPolicy: 'designated_places',
+      smokingPlace: ` ${place} `,
+    });
+    expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
+      smokingPolicy: 'designated_places',
+      smokingPlace: place,
+    });
+    expect(sent('client_fire_safety', 'PATCH')).toMatchObject({
+      smoking_policy: 'designated_places',
+      smoking_place: place,
+    });
+
+    await request(path, 'PUT', {
+      ...body,
+      smokingPolicy: 'forbidden_everywhere',
+      smokingPlace: place,
+    });
+    expect(sent('client_fire_safety', 'PATCH', 1)).toMatchObject({
+      smoking_policy: 'forbidden_everywhere',
+      smoking_place: null,
+    });
+
+    await request(path, 'PUT', { ...body, smokingPlace: place });
+    expect(sent('client_fire_safety', 'PATCH', 2)).toMatchObject({
+      smoking_policy: null,
+      smoking_place: null,
+    });
   });
 
   it('creates the row on the first save', async () => {
