@@ -33,15 +33,17 @@ import { useRef, useState } from 'react';
 
 import {
   getListResponsiblePersonsQueryKey,
+  getListWorkplacesQueryKey,
   useArchiveResponsiblePerson,
   useListResponsiblePersons,
+  useListWorkplaces,
   useUpdateResponsiblePerson,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
-import { type TrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { type ResponsiblePersonFocus, useFocusRequest } from '@/features/missing-data/focus';
 
 import {
   ResponsiblePersonDialog,
@@ -55,13 +57,15 @@ import {
 } from './responsible-person-schema';
 import { useDocumentDetails } from './use-document-details-form';
 
-const focusRoles: Record<Exclude<TrainingFocus, 'training-schedule'>, ResponsiblePersonRole> = {
+const focusRoles: Record<ResponsiblePersonFocus, ResponsiblePersonRole> = {
   'workplace-manager': 'workplace_manager',
   'first-aid': 'first_aid',
   'risk-evaluation-team': 'risk_evaluation_team',
   'imminent-danger': 'imminent_danger',
   'workers-representative': 'workers_representative',
   'workers-representative-clash': 'workers_representative',
+  'fire-safety-coordinator': 'fire_safety_coordinator',
+  'fire-intervention-leader': 'fire_intervention_leader',
 };
 
 const personRowId = (id: string) => `responsible-person-${id}`;
@@ -76,13 +80,20 @@ export function ResponsiblePersonsCard({
   clientId: string;
   userId: string;
   readOnly: boolean;
-  focus?: Exclude<TrainingFocus, 'training-schedule'>;
+  focus?: ResponsiblePersonFocus;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const persons = useListResponsiblePersons(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListResponsiblePersonsQueryKey(clientId), userId] },
   });
+  const workplaces = useListWorkplaces(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+  });
+  const workplaceNames = new Map(
+    workplaces.data?.items.map((workplace) => [workplace.id, workplace.name])
+  );
   const archive = useArchiveResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
   const [editing, setEditing] = useState<ResponsiblePersonEditing>(null);
@@ -132,6 +143,7 @@ export function ResponsiblePersonsCard({
         responsiblePersonId: person.id,
         data: {
           employeeId: person.employeeId,
+          workplaceId: person.workplaceId,
           fullName: person.fullName,
           jobTitle,
           roles: person.roles,
@@ -238,6 +250,15 @@ export function ResponsiblePersonsCard({
                   >
                     <TableCell className="font-medium max-sm:p-0 max-sm:whitespace-normal">
                       {person.fullName}
+                      {person.workplaceId && (
+                        <span
+                          data-testid="responsible-workplace-name"
+                          className="mt-0.5 block text-xs font-normal whitespace-normal text-muted-foreground"
+                        >
+                          Numai la{' '}
+                          {workplaceNames.get(person.workplaceId) ?? 'un loc de muncă arhivat'}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:p-0 max-sm:whitespace-normal">
                       {person.jobTitle}

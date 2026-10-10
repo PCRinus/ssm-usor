@@ -58,6 +58,8 @@ export const responsiblePersonFormSchema = z
   .object({
     // Empty when the person is not one of the client's employees.
     employeeId: z.string(),
+    // Empty for every workplace of the client.
+    workplaceId: z.string(),
     fullName: z
       .string()
       .trim()
@@ -79,6 +81,7 @@ export type ResponsiblePersonFormValues = z.infer<typeof responsiblePersonFormSc
 
 export const emptyResponsiblePersonForm: ResponsiblePersonFormValues = {
   employeeId: '',
+  workplaceId: '',
   fullName: '',
   jobTitle: '',
   roles: [],
@@ -87,6 +90,7 @@ export const emptyResponsiblePersonForm: ResponsiblePersonFormValues = {
 export function toResponsiblePersonForm(person: ResponsiblePerson): ResponsiblePersonFormValues {
   return {
     employeeId: person.employeeId ?? '',
+    workplaceId: person.workplaceId ?? '',
     fullName: person.fullName,
     jobTitle: person.jobTitle,
     roles: person.roles,
@@ -98,6 +102,7 @@ export function toResponsiblePersonRequest(
 ): ResponsiblePersonRequest {
   return {
     employeeId: values.employeeId || null,
+    workplaceId: values.workplaceId || null,
     fullName: values.fullName,
     jobTitle: values.jobTitle,
     // Always in the order the decisions list them, whatever order they were ticked in.

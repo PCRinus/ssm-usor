@@ -58,8 +58,28 @@ const manager = {
   jobTitle: 'Manager magazin',
   employeeJobTitle: 'Manager magazin',
   roles: ['workplace_manager', 'first_aid'],
+  workplaceId: null as string | null,
   createdAt: '2026-09-18T10:00:00.000Z',
   updatedAt: '2026-09-18T10:00:00.000Z',
+};
+
+const emptyFireSafety = {
+  periodicTrainingHours: null,
+  administrativeTrainingIntervalMonths: null,
+  workerTrainingIntervalMonths: null,
+  trainingFirstMonth: null,
+  trainingDayFrom: null,
+  trainingDayTo: null,
+  smokingPolicy: null,
+  wasteKinds: [],
+  wasteContractor: null,
+};
+
+const shop = {
+  id: '3f1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e',
+  clientId,
+  name: 'Gelaterie Timișoara',
+  isRegisteredOffice: false,
 };
 
 const listPath = `/clients/${clientId}/responsible-persons`;
@@ -83,6 +103,7 @@ function mockApi({
     })) as Route,
   archive = (() => new Response(null, { status: 204 })) as Route,
   details = emptyDetails as Record<string, unknown>,
+  workplaces = [] as unknown[],
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -94,7 +115,10 @@ function mockApi({
     if (pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: details });
     }
-    if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+    if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: workplaces });
+    if (pathname === `/clients/${clientId}/fire-safety`) {
+      return Response.json({ fireSafety: emptyFireSafety, exists: false });
+    }
     if (pathname === `/clients/${clientId}/employees`) {
       return Response.json({ items: [employee], page: 1, pageSize: 100, total: 1 });
     }
@@ -177,6 +201,7 @@ describe('client responsible persons', () => {
       expect(requests(listPath, 'POST')).toEqual([
         {
           employeeId: employee.id,
+          workplaceId: null,
           fullName: 'Paolo-Antonio Luca',
           jobTitle: 'Manager magazin',
           roles: ['workplace_manager', 'imminent_danger'],
@@ -201,12 +226,78 @@ describe('client responsible persons', () => {
       expect(requests(listPath, 'POST')).toEqual([
         {
           employeeId: null,
+          workplaceId: null,
           fullName: 'Maria Popescu',
           jobTitle: 'Administrator',
           roles: ['first_aid'],
         },
       ])
     );
+  });
+
+  it('ties a fire-safety coordinator to one workplace, and the row says which', async () => {
+    mockApi({ items: [], workplaces: [shop] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.type(await screen.findByTestId('responsible-name'), 'Ioana Marin');
+    await user.type(screen.getByTestId('responsible-job-title'), 'Manager magazin');
+    await user.selectOptions(await screen.findByTestId('responsible-workplace'), shop.id);
+    await user.click(screen.getByTestId('responsible-role-fire_intervention_leader'));
+    await user.click(screen.getByTestId('responsible-role-fire_safety_coordinator'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    await waitFor(() =>
+      expect(requests(listPath, 'POST')).toEqual([
+        {
+          employeeId: null,
+          workplaceId: shop.id,
+          fullName: 'Ioana Marin',
+          jobTitle: 'Manager magazin',
+          roles: ['fire_safety_coordinator', 'fire_intervention_leader'],
+        },
+      ])
+    );
+  });
+
+  it('names the workplace of a person tied to one, and keeps it when saving', async () => {
+    mockApi({ items: [{ ...manager, workplaceId: shop.id }], workplaces: [shop] });
+    mount();
+    const user = userEvent.setup();
+
+    const row = await screen.findByTestId('responsible-row');
+    expect((await within(row).findByTestId('responsible-workplace-name')).textContent).toBe(
+      'Numai la Gelaterie Timișoara'
+    );
+    await user.click(within(row).getByTestId('responsible-actions'));
+    await user.click(await screen.findByTestId('responsible-edit'));
+    expect((await screen.findByTestId<HTMLSelectElement>('responsible-workplace')).value).toBe(
+      shop.id
+    );
+    await user.click(screen.getByTestId('responsible-role-first_aid'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    await waitFor(() =>
+      expect(requests(itemPath, 'PUT')).toEqual([
+        expect.objectContaining({ workplaceId: shop.id, roles: ['workplace_manager'] }),
+      ])
+    );
+  });
+
+  it.each([
+    ['fire-safety-coordinator', 'responsible-role-fire_safety_coordinator'],
+    ['fire-intervention-leader', 'responsible-role-fire_intervention_leader'],
+  ])('opens the new person dialog for ?focus=%s with that role ticked', async (focus, box) => {
+    mockApi({ items: [] });
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training?focus=${focus}`);
+    const dialog = await screen.findByTestId('responsible-dialog');
+    expect(
+      within(dialog)
+        .getAllByRole('checkbox')
+        .filter((item) => item.getAttribute('data-state') === 'checked')
+        .map((item) => item.id)
+    ).toEqual([box]);
   });
 
   it('needs a name, a job title, and at least one role before calling the API', async () => {
@@ -306,6 +397,7 @@ describe('client responsible persons', () => {
       expect(requests(itemPath, 'PUT')).toEqual([
         {
           employeeId: employee.id,
+          workplaceId: null,
           fullName: 'Paolo-Antonio Luca',
           jobTitle: 'Manager magazin',
           roles: ['workplace_manager', 'risk_evaluation_team'],
@@ -327,6 +419,7 @@ describe('client responsible persons', () => {
     await waitFor(() => expect(requests(itemPath, 'PUT')).toHaveLength(1));
     expect(requests(itemPath, 'PUT')[0]).toEqual({
       employeeId: employee.id,
+      workplaceId: null,
       fullName: 'Paolo-Antonio Luca',
       jobTitle: 'Director magazin',
       roles: ['workplace_manager', 'first_aid'],
