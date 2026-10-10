@@ -227,6 +227,11 @@ function FireSafetySummary({ saved, exists }: { saved: FireSafety; exists: boole
         <Fact label="Fumatul" testId="fire-smoking">
           {saved.smokingPolicy ? fireSmokingChoices[saved.smokingPolicy] : unset('Nestabilit')}
         </Fact>
+        {saved.smokingPolicy === 'designated_places' && (
+          <Fact label="Locul pentru fumat" testId="fire-smoking-place">
+            {saved.smokingPlace ?? unset()}
+          </Fact>
+        )}
         <Fact label="Firma care preia deșeurile" testId="fire-waste-contractor">
           {saved.wasteContractor}
         </Fact>
@@ -362,9 +367,9 @@ function FireSafetyForm({
   const { form, onSubmit, busy } = useFireSafetyForm({ start, clientId, userId, onDone });
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
-  const [wasteKinds, wasteDraft] = useWatch({
+  const [wasteKinds, wasteDraft, smokingPolicy] = useWatch({
     control: form.control,
-    name: ['wasteKinds', 'wasteDraft'],
+    name: ['wasteKinds', 'wasteDraft', 'smokingPolicy'],
   });
 
   function addWasteKind() {
@@ -508,6 +513,30 @@ function FireSafetyForm({
               ))}
             </NativeSelect>
           </Field>
+          {smokingPolicy === 'designated_places' && (
+            <Field
+              id="fire-smoking-place-input"
+              label="Locul pentru fumat"
+              mark="optional"
+              hint="Dacă îl lași gol, decizia privind fumatul spune doar că locurile sunt marcate „LOC PENTRU FUMAT”."
+              error={errors.smokingPlace}
+            >
+              <Input
+                id="fire-smoking-place-input"
+                data-testid="fire-smoking-place-input"
+                autoComplete="off"
+                placeholder="de exemplu, în curtea interioară, lângă poarta de acces auto"
+                disabled={busy}
+                aria-invalid={Boolean(errors.smokingPlace)}
+                aria-describedby={describedBy(
+                  'fire-smoking-place-input',
+                  errors.smokingPlace,
+                  true
+                )}
+                {...form.register('smokingPlace')}
+              />
+            </Field>
+          )}
           <Field
             id="fire-waste-contractor-input"
             label="Firma care preia deșeurile"
