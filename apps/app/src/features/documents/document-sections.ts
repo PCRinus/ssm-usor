@@ -114,14 +114,8 @@ export const fireSafetyDocumentSections = [
     id: 'own-instructions',
     number: '2',
     title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
-    typeKeys: [],
-    planned: [
-      {
-        id: 'cover-own-instructions',
-        title: 'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
-      },
-      { id: 'own-instructions', title: 'Instrucțiuni proprii în domeniul situațiilor de urgență' },
-    ],
+    typeKeys: ['fire_cover_own_instructions', 'fire_own_instructions'],
+    planned: [],
   },
   {
     id: 'training-themes',

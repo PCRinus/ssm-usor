@@ -23,6 +23,9 @@ export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>>
   fire_decision_instructions: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
   fire_decision_waste: 'Decizia privind colectarea deșeurilor',
   fire_decision_control: 'Decizia privind controlul propriu',
+  fire_cover_own_instructions:
+    'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+  fire_own_instructions: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
   fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
   fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
   fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',

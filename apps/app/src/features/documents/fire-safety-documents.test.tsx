@@ -193,6 +193,11 @@ const allBuilt = [
       ],
       ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
       ['fire_decision_control', 'Decizia privind controlul propriu'],
+      [
+        'fire_cover_own_instructions',
+        'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+      ],
+      ['fire_own_instructions', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
       ['fire_means_list', 'Lista mijloacelor de apărare împotriva incendiilor'],
       [
         'fire_workplace_organization',
@@ -280,7 +285,7 @@ describe('client fire-safety documents', () => {
     const sections = await screen.findAllByTestId('document-section-trigger');
     expect(sections.map((section) => section.textContent)).toEqual([
       '1. Decizii internenegenerat',
-      '2. Instrucțiuni proprii în domeniul situațiilor de urgențăîn pregătire',
+      '2. Instrucțiuni proprii în domeniul situațiilor de urgențănegenerat',
       '3. Tematica de instruireîn pregătire',
       '4. Teste de verificare a cunoștințelorîn pregătire',
       '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
@@ -344,10 +349,24 @@ describe('client fire-safety documents', () => {
     ]);
 
     await openSection(user, '2');
+    expect(
+      within(sectionOf('2'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => [row.getAttribute('data-testid'), row.querySelector('td')!.textContent])
+    ).toEqual([
+      [
+        'document-not-generated',
+        'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+      ],
+      ['document-not-generated', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
+    ]);
+
+    await openSection(user, '3');
     const planned = await screen.findAllByTestId('document-planned');
     expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
-      'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
-      'Instrucțiuni proprii în domeniul situațiilor de urgență',
+      'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+      'Tematica de instruire în domeniul situațiilor de urgență',
     ]);
     for (const row of planned) {
       expect(within(row).queryByRole('link')).toBeNull();
@@ -405,6 +424,9 @@ describe('client fire-safety documents', () => {
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
     ).toBe('10 ciorne');
+    expect(
+      sectionOf('2').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('2 ciorne');
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
