@@ -126,6 +126,7 @@ function GenerateDocumentsForm({
         undecidedJobPositions: readiness.data.undecidedJobPositions,
         incompleteRiskEvaluations: readiness.data.incompleteRiskEvaluations,
         canEditOrganization: isOwner,
+        set,
       })
     : [];
   // The cached answer predates what was filled in since, so it waits for the one asked above.

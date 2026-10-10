@@ -28,7 +28,8 @@ export function DocumentMissingRows({
   testId: string;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = setParams(documentSetOf(typeKey));
+  const set = documentSetOf(typeKey);
+  const params = setParams(set);
   // A refusal names only codes; the readiness names the positions and evaluations behind them,
   // so the rows are those of the generation form. Without it the codes still lead somewhere.
   const readiness = useGetDocumentReadiness(clientId, params, {
@@ -49,6 +50,7 @@ export function DocumentMissingRows({
     incompleteRiskEvaluations: readiness.data?.incompleteRiskEvaluations ?? [],
     currentEmployeeCount: readiness.data?.currentEmployeeCount,
     canEditOrganization: isOwner,
+    set,
   });
   return (
     <MissingDataList

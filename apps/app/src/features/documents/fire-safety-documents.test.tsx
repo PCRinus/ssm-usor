@@ -550,6 +550,9 @@ describe('client fire-safety documents', () => {
       '8 date de completat'
     );
     const rows = screen.getAllByTestId('generate-missing-row');
+    expect(rows.at(-1)!.textContent).toBe(
+      'Cel puțin un post de lucruDecizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+    );
     const client = `/clients/${clientId}`;
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
       `${client}/details?focus=workplace-fire-data`,

@@ -1,4 +1,5 @@
 import {
+  type DocumentSet,
   type JobPositionDecision,
   type MissingDocumentData,
   type MissingServiceContractData,
@@ -140,7 +141,12 @@ type DocumentPlace = keyof typeof documentPlaces;
 
 type Clash = { representativeName: string; legalRepresentativeName: string } | null;
 
-type DocumentContext = { clientId: string; clash: Clash; currentEmployeeCount?: number };
+type DocumentContext = {
+  clientId: string;
+  clash: Clash;
+  currentEmployeeCount?: number;
+  set: DocumentSet;
+};
 
 const responsible = (role: ResponsiblePersonRole, focus: TrainingFocus) => ({
   place: 'training' as const,
@@ -239,7 +245,10 @@ export const documentMissingData: Record<
   'positions.any': {
     place: 'jobPositions',
     label: 'Cel puțin un post de lucru',
-    detail: 'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.',
+    detail: ({ set }) =>
+      set === 'fire_safety'
+        ? 'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+        : 'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.',
     target: ({ clientId }) => to.addPosition(clientId),
   },
   // One row per position replaces these two whenever readiness names the positions.
@@ -377,6 +386,7 @@ export function documentMissingGroups({
   incompleteRiskEvaluations = [],
   currentEmployeeCount,
   canEditOrganization,
+  set = 'occupational_safety',
 }: {
   missing: readonly MissingDocumentData[];
   clientId: string;
@@ -385,8 +395,9 @@ export function documentMissingGroups({
   undecidedJobPositions: readonly UndecidedJobPosition[];
   incompleteRiskEvaluations?: readonly IncompleteRiskEvaluation[];
   canEditOrganization: boolean;
+  set?: DocumentSet;
 }): MissingGroup[] {
-  const context = { clientId, clash, currentEmployeeCount };
+  const context = { clientId, clash, currentEmployeeCount, set };
   const rowOf = (code: MissingDocumentData): MissingRow => {
     const entry = documentMissingData[code];
     return {

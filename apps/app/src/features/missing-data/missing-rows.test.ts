@@ -228,6 +228,24 @@ describe('the rows of the generation form', () => {
     );
   });
 
+  it('say why a post is needed in the words of the set that asks for it', () => {
+    const detailFor = (set?: 'occupational_safety' | 'fire_safety') =>
+      documentMissingGroups({
+        missing: ['positions.any'],
+        clientId,
+        clash: null,
+        undecidedJobPositions: [],
+        canEditOrganization: true,
+        set,
+      })[0]!.rows[0]!.detail;
+    expect(detailFor()).toBe(
+      'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.'
+    );
+    expect(detailFor('fire_safety')).toBe(
+      'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+    );
+  });
+
   it('say why a representative is needed under 10 employees, which only a decision 1.5 kept asks for', () => {
     const detailFor = (currentEmployeeCount?: number) =>
       documentMissingGroups({
