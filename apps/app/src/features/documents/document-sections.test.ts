@@ -46,7 +46,7 @@ describe('document sections', () => {
       ['6', 'registers', 'Registre și formulare PSI'],
     ]);
     expect(fireSafetyDocumentSections.map((section) => section.planned.length)).toEqual([
-      4, 2, 2, 3, 0, 0,
+      1, 2, 2, 3, 0, 0,
     ]);
     expect(fireSafetyDocumentSectionIds).toEqual([
       'other',
@@ -90,7 +90,7 @@ describe('document sections', () => {
 
   it('place a type in the sections of its own set', () => {
     expect(sectionOf('fire_work_permit', 'fire_safety')).toBe('registers');
-    expect(sectionOf('fire_smoking_decision', 'fire_safety')).toBe('other');
+    expect(sectionOf('fire_evacuation_plan', 'fire_safety')).toBe('other');
     expect(sectionOf('control_report')).toBe('control-report');
   });
 });

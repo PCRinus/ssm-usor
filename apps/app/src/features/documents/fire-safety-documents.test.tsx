@@ -184,8 +184,11 @@ const allBuilt = [
       ['fire_decision_organization', 'Decizia privind organizarea apărării împotriva incendiilor'],
       ['fire_decision_training', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['fire_decision_open_fire', 'Decizia privind lucrul cu foc deschis'],
+      ['fire_decision_smoking', 'Decizia privind fumatul'],
       ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
+      ['fire_decision_technician', 'Decizia privind cadrul tehnic PSI'],
       ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
+      ['fire_decision_control', 'Decizia privind controlul propriu'],
       ['fire_means_list', 'Lista mijloacelor de apărare împotriva incendiilor'],
       [
         'fire_workplace_organization',
@@ -320,10 +323,7 @@ describe('client fire-safety documents', () => {
     await openSection(user, '1');
     const planned = await screen.findAllByTestId('document-planned');
     expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
-      'Decizia privind fumatul',
-      'Decizia privind cadrul tehnic PSI',
       'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-      'Decizia privind controlul propriu',
     ]);
     expect(
       within(sectionOf('1'))
@@ -335,12 +335,12 @@ describe('client fire-safety documents', () => {
       ['document-not-generated', 'Decizia privind organizarea apărării împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['document-not-generated', 'Decizia privind lucrul cu foc deschis'],
-      ['document-planned', 'Decizia privind fumatul'],
+      ['document-not-generated', 'Decizia privind fumatul'],
       ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
-      ['document-planned', 'Decizia privind cadrul tehnic PSI'],
+      ['document-not-generated', 'Decizia privind cadrul tehnic PSI'],
       ['document-planned', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
-      ['document-planned', 'Decizia privind controlul propriu'],
+      ['document-not-generated', 'Decizia privind controlul propriu'],
     ]);
     for (const row of planned) {
       expect(within(row).queryByRole('link')).toBeNull();
@@ -397,14 +397,14 @@ describe('client fire-safety documents', () => {
     ).toBe('2 ciorne');
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('6 ciorne');
+    ).toBe('9 ciorne');
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
     const extra = fireDocument(
       '8a3b4c9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
-      'fire_smoking_decision',
-      'Decizia privind fumatul'
+      'fire_evacuation_plan',
+      'Planul de evacuare'
     );
     mockApi({ fireItems: [permit, extra, registers, cover] });
     const runtime = mount();

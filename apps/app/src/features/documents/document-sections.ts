@@ -101,26 +101,18 @@ export const fireSafetyDocumentSections = [
       'fire_decision_organization',
       'fire_decision_training',
       'fire_decision_open_fire',
+      'fire_decision_smoking',
       'fire_decision_seasons',
+      'fire_decision_technician',
       'fire_decision_waste',
+      'fire_decision_control',
     ],
     planned: [
       {
-        id: 'decision-smoking',
-        title: 'Decizia privind fumatul',
-        after: 'fire_decision_open_fire',
-      },
-      {
-        id: 'decision-technician',
-        title: 'Decizia privind cadrul tehnic PSI',
-        after: 'fire_decision_seasons',
-      },
-      {
         id: 'decision-instructions',
         title: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-        after: 'decision-technician',
+        after: 'fire_decision_technician',
       },
-      { id: 'decision-control', title: 'Decizia privind controlul propriu' },
     ],
   },
   {
