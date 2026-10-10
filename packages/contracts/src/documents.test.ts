@@ -73,6 +73,12 @@ describe('the fire-safety decisions', () => {
     ).toEqual([]);
   });
 
+  it('fill the nine places of the binder, each once', () => {
+    expect(Object.values(fireDecisionOrdinals).sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
+  });
+
   it('leave room for the ninth decision under the four-digit limit', () => {
     expect(maxFirstFireDecisionNumber + 9 - 1).toBe(9999);
     expect(Math.max(...Object.values(fireDecisionOrdinals))).toBeLessThanOrEqual(9);

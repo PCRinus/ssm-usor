@@ -786,18 +786,20 @@ describe('the fire-safety templates', () => {
     ]);
   });
 
-  // Nothing optional: no contractor, no specific measures, no installation, no other equipment,
-  // and every responsible person tied to the workshop, so the office has no manager of its own.
+  // Nothing optional: no authorization, no smoking place, no contractor, no specific measures, no
+  // installation, no other equipment, and every responsible person tied to the workshop, so the
+  // office has no manager of its own.
   const fewest: DocumentFacts = {
     ...facts,
     branding: false,
+    organization: { ...facts.organization, fireSafetyAuthorization: null },
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, specificMeasures: null })),
     responsiblePersons: facts.responsiblePersons.map((person) => ({
       ...person,
       workplaceId: workshopId,
     })),
     fireSafety: {
-      card: { ...facts.fireSafety.card!, wasteContractor: null },
+      card: { ...facts.fireSafety.card!, smokingPlace: null, wasteContractor: null },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
     },
@@ -888,7 +890,12 @@ describe('the fire-safety templates', () => {
       'the provider, its technician and the client',
       {
         ...facts,
-        organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: null },
+        organization: {
+          ...facts.organization,
+          legalName: null,
+          fireSafetyTechnicianName: null,
+          fireSafetyTechnicianCertificate: null,
+        },
         client: { ...facts.client, representativeName: null, representativeRole: null },
       },
     ],

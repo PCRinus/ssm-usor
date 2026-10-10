@@ -93,6 +93,8 @@ const organizationRow = {
   legal_representative_name: 'Maria POPESCU',
   legal_representative_role: 'Administrator',
   fire_safety_technician_name: 'Radu STAN',
+  fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+  fire_safety_authorization: null,
 };
 const clientRow = {
   legal_name: 'S.C. PIPETECH S.R.L.',
@@ -212,6 +214,8 @@ const fireSafetyRow = {
   training_first_month: 2,
   training_day_from: 2,
   training_day_to: 7,
+  smoking_policy: 'forbidden_everywhere',
+  smoking_place: null,
   waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   waste_contractor: null,
 };
@@ -2510,7 +2514,11 @@ describe('the fire-safety set', () => {
   const printedFireSafety = {
     client: printedClient,
     provider: printedProvider,
-    fireSafetyTechnician: { name: 'Radu STAN' },
+    fireSafetyTechnician: {
+      name: 'Radu STAN',
+      certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+      authorization: null,
+    },
     branding: true,
   };
   const fireDocumentRow = {
@@ -2778,8 +2786,12 @@ describe('the fire-safety set', () => {
       organization: '4 PSI',
       training: '5 PSI',
       openFire: '6 PSI',
+      smoking: '7 PSI',
       seasons: '8 PSI',
+      technician: '9 PSI',
+      instructions: '10 PSI',
       waste: '11 PSI',
+      control: '12 PSI',
     });
   });
 
@@ -2793,6 +2805,7 @@ describe('the fire-safety set', () => {
     const response = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
     expect(documentReadinessResponseSchema.parse(await response.json()).missing).toEqual([
       'fire.trainingSchedule',
+      'fire.smokingPolicy',
       'fire.waste',
       'responsible.fire_safety_coordinator',
       'responsible.fire_intervention_leader',
@@ -2911,6 +2924,7 @@ describe('the fire-safety set', () => {
   };
   const stageTwoCodes = [
     'fire.trainingSchedule',
+    'fire.smokingPolicy',
     'fire.waste',
     'responsible.workplace_manager',
     'responsible.fire_safety_coordinator',
@@ -2963,7 +2977,8 @@ describe('the fire-safety set', () => {
   it('refuses a document that prints the fire object for every gap in it, and only those', async () => {
     mockUpstream({
       ...stageTwoGaps,
-      organizations: () => Response.json({ ...organizationRow, legal_name: null }),
+      organizations: () =>
+        Response.json({ ...organizationRow, fire_safety_technician_certificate: null }),
       templates: () => Response.json([wasteTemplateRow]),
       documents: () => Response.json(wasteDecisionRow),
     });
@@ -3036,6 +3051,14 @@ describe('the fire-safety set', () => {
           Response.json({ ...organizationRow, fire_safety_technician_name: 'Ion VLAD' }),
       })
     ).toEqual({ fire_cover_registers: true, fire_registers: false });
+    for (const edit of [
+      { fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 99/2026' },
+      { fire_safety_authorization: 'nr. 12 din 15.09.2026, ISU Cluj' },
+    ]) {
+      expect(
+        await changed({ organizations: () => Response.json({ ...organizationRow, ...edit }) })
+      ).toEqual({ fire_cover_registers: true, fire_registers: false });
+    }
     expect(await changed({ organizations: withoutTechnician })).toEqual({
       fire_cover_registers: true,
       fire_registers: false,

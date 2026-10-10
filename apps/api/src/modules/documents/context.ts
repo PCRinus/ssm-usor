@@ -47,6 +47,8 @@ export type DocumentFacts = {
     representativeName: string | null;
     representativeRole: string | null;
     fireSafetyTechnicianName: string | null;
+    fireSafetyTechnicianCertificate: string | null;
+    fireSafetyAuthorization: string | null;
   };
   /** The member who prepares the documents, or null when there is none to name. */
   specialist: { fullName: string | null; professionalTitle: string | null } | null;
@@ -388,6 +390,7 @@ const printedAs = {
   'provider.representativeName': ['provider'],
   'provider.representativeRole': ['provider'],
   'provider.fireSafetyTechnician': [],
+  'provider.fireSafetyTechnicianCertificate': [],
   'specialist.name': ['specialist', 'themes'],
   'specialist.professionalTitle': ['specialist'],
   'client.representativeName': ['client'],
@@ -430,6 +433,7 @@ const printedAs = {
   'responsible.fire_safety_coordinator': [],
   'responsible.fire_intervention_leader': [],
   'fire.trainingSchedule': [],
+  'fire.smokingPolicy': [],
   'fire.waste': [],
   'fire.workplaces': [],
   'fire.equipment': [],

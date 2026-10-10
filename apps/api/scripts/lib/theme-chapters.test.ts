@@ -1,19 +1,19 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import {
-  generalTrainingArticleCount,
-  generalTrainingChapterStarts,
-  ownInstructionsArticleCount,
-  ownInstructionsChapterStarts,
+  fireOwnInstructionsChapters,
+  generalTrainingChapters,
+  ownInstructionsChapters,
 } from '../../src/modules/documents/themes';
 
-// The training themes cite chapters of 3.2 and 2.2 as article ranges written into the code
-// and the 4.2 template (ADR 014); an article added to either template moves them.
+// The training themes cite chapters of 3.2, 2.2 and the IPSU as article ranges written into the
+// code and the 4.2 template (ADR 014, ADR 019); an article added to any of them moves them.
 
 const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
+const fireOwnInstructions = 'fire/2.1_fire_own_instructions.docx';
 
 function documentXml(file: string) {
   return new PizZip(readFileSync(new URL(file, templatesUrl))).file('word/document.xml')!.asText();
@@ -49,17 +49,31 @@ function articlesByChapter(file: string) {
 describe('the chapters the training themes cite', () => {
   it('fall where the own instructions template has them, chapter XIII being the annexes', () => {
     expect(articlesByChapter('3.2_own_instructions.docx')).toEqual({
-      chapterStarts: [...ownInstructionsChapterStarts, ownInstructionsArticleCount + 1],
-      total: ownInstructionsArticleCount,
+      chapterStarts: [
+        ...ownInstructionsChapters.chapterStarts,
+        ownInstructionsChapters.articleCount + 1,
+      ],
+      total: ownInstructionsChapters.articleCount,
     });
   });
 
   it('fall where the general training material template has them', () => {
     expect(articlesByChapter('2.2_general_training_material.docx')).toEqual({
-      chapterStarts: [...generalTrainingChapterStarts],
-      total: generalTrainingArticleCount,
+      chapterStarts: [...generalTrainingChapters.chapterStarts],
+      total: generalTrainingChapters.articleCount,
     });
   });
+
+  // The fire-safety training themes deal its chapters from provisional starts until it exists.
+  it.skipIf(!existsSync(new URL(fireOwnInstructions, templatesUrl)))(
+    'fall where the fire-safety own instructions template has them',
+    () => {
+      expect(articlesByChapter(fireOwnInstructions)).toEqual({
+        chapterStarts: [...fireOwnInstructionsChapters.chapterStarts],
+        total: fireOwnInstructionsChapters.articleCount,
+      });
+    }
+  );
 
   it('are the ranges the training themes template prints', () => {
     const text = documentXml('4.2_training_themes.docx')

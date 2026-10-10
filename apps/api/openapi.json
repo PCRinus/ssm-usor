@@ -72,6 +72,7 @@
                 "provider.representativeName",
                 "provider.representativeRole",
                 "provider.fireSafetyTechnician",
+                "provider.fireSafetyTechnicianCertificate",
                 "specialist.name",
                 "specialist.professionalTitle",
                 "client.representativeName",
@@ -95,6 +96,7 @@
                 "risk_evaluations.plan",
                 "documents.own_instructions",
                 "fire.trainingSchedule",
+                "fire.smokingPolicy",
                 "fire.waste",
                 "fire.workplaces",
                 "fire.equipment"
@@ -5251,6 +5253,7 @@
                           "provider.representativeName",
                           "provider.representativeRole",
                           "provider.fireSafetyTechnician",
+                          "provider.fireSafetyTechnicianCertificate",
                           "specialist.name",
                           "specialist.professionalTitle",
                           "client.representativeName",
@@ -5274,6 +5277,7 @@
                           "risk_evaluations.plan",
                           "documents.own_instructions",
                           "fire.trainingSchedule",
+                          "fire.smokingPolicy",
                           "fire.waste",
                           "fire.workplaces",
                           "fire.equipment"
@@ -5363,6 +5367,7 @@
                 "provider.representativeName",
                 "provider.representativeRole",
                 "provider.fireSafetyTechnician",
+                "provider.fireSafetyTechnicianCertificate",
                 "specialist.name",
                 "specialist.professionalTitle",
                 "client.representativeName",
@@ -5386,6 +5391,7 @@
                 "risk_evaluations.plan",
                 "documents.own_instructions",
                 "fire.trainingSchedule",
+                "fire.smokingPolicy",
                 "fire.waste",
                 "fire.workplaces",
                 "fire.equipment"

@@ -9,6 +9,7 @@ import {
   missingFireSafetyData,
 } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
+import { dealChapters, fireOwnInstructionsChapters } from './themes';
 
 const card = facts.fireSafety.card!;
 const withCard = (changes: Partial<typeof card> | null): DocumentFacts => ({
@@ -29,6 +30,8 @@ describe('what the fire-safety set is missing', () => {
         representativeName: null,
         representativeRole: null,
         fireSafetyTechnicianName: null,
+        fireSafetyTechnicianCertificate: ' ',
+        fireSafetyAuthorization: null,
       },
       specialist: null,
       client: { ...facts.client, representativeName: null, representativeRole: '', caenCode: null },
@@ -41,9 +44,11 @@ describe('what the fire-safety set is missing', () => {
     expect(missingFireSafetyData(lacking)).toEqual([
       'provider.legalName',
       'provider.fireSafetyTechnician',
+      'provider.fireSafetyTechnicianCertificate',
       'client.representativeName',
       'client.representativeRole',
       'fire.trainingSchedule',
+      'fire.smokingPolicy',
       'fire.waste',
       'responsible.workplace_manager',
       'responsible.fire_safety_coordinator',
@@ -67,7 +72,33 @@ describe('what the fire-safety set is missing', () => {
     expect(missingFireSafetyData(withCard({ wasteKinds: [] }))).toEqual(['fire.waste']);
     expect(missingFireSafetyData(withCard({ wasteKinds: ['  '] }))).toEqual(['fire.waste']);
     expect(missingFireSafetyData(withCard({ wasteContractor: null }))).toEqual([]);
-    expect(missingFireSafetyData(withCard(null))).toEqual(['fire.trainingSchedule', 'fire.waste']);
+    expect(missingFireSafetyData(withCard(null))).toEqual([
+      'fire.trainingSchedule',
+      'fire.smokingPolicy',
+      'fire.waste',
+    ]);
+  });
+
+  it('asks for the smoking rule, not where smoking is allowed', () => {
+    expect(missingFireSafetyData(withCard({ smokingPolicy: null, smokingPlace: null }))).toEqual([
+      'fire.smokingPolicy',
+    ]);
+    expect(missingFireSafetyData(withCard({ smokingPlace: null }))).toEqual([]);
+    expect(
+      missingFireSafetyData(withCard({ smokingPolicy: 'forbidden_everywhere', smokingPlace: null }))
+    ).toEqual([]);
+  });
+
+  it("asks for the technician's certificate, not the provider's authorization", () => {
+    const organization = (changes: Partial<DocumentFacts['organization']>) =>
+      missingFireSafetyData({ ...facts, organization: { ...facts.organization, ...changes } });
+    expect(organization({ fireSafetyTechnicianCertificate: '  ' })).toEqual([
+      'provider.fireSafetyTechnicianCertificate',
+    ]);
+    expect(organization({ fireSafetyAuthorization: null })).toEqual([]);
+    expect(
+      organization({ fireSafetyTechnicianName: null, fireSafetyTechnicianCertificate: null })
+    ).toEqual(['provider.fireSafetyTechnician', 'provider.fireSafetyTechnicianCertificate']);
   });
 
   it('asks every active workplace for its seven facts, the specific measures not among them', () => {
@@ -109,7 +140,11 @@ describe('what the fire-safety set is missing', () => {
   it('never holds back the occupational safety set, nor is held back by it', () => {
     const withoutTechnician = {
       ...facts,
-      organization: { ...facts.organization, fireSafetyTechnicianName: '  ' },
+      organization: {
+        ...facts.organization,
+        fireSafetyTechnicianName: '  ',
+        fireSafetyTechnicianCertificate: null,
+      },
     };
     expect(missingDocumentData(withoutTechnician)).toEqual([]);
     const occupationalGaps: DocumentFacts = {
@@ -141,8 +176,23 @@ describe('the fire-safety context', () => {
         representativeName: 'Ana IONESCU',
         representativeRole: 'Administrator',
       },
-      fireSafetyTechnician: { name: 'Radu STAN' },
+      fireSafetyTechnician: {
+        name: 'Radu STAN',
+        certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+        authorization: 'nr. 12 din 15.09.2026, ISU Timiș',
+      },
     });
+  });
+
+  it("prints the provider's authorization only where it is set", () => {
+    const technician = (fireSafetyAuthorization: string | null) =>
+      buildFireSafetyContext({
+        ...facts,
+        organization: { ...facts.organization, fireSafetyAuthorization },
+      }).fireSafetyTechnician.authorization;
+    expect(technician(' nr. 12 din 15.09.2026, ISU Cluj ')).toBe('nr. 12 din 15.09.2026, ISU Cluj');
+    expect(technician('  ')).toBeNull();
+    expect(technician(null)).toBeNull();
   });
 
   it('keeps the shape of the provider without its representative, which no document prints', () => {
@@ -154,6 +204,8 @@ describe('the fire-safety context', () => {
         representativeName: null,
         representativeRole: null,
         fireSafetyTechnicianName: '  Radu STAN ',
+        fireSafetyTechnicianCertificate: ' Certificat nr. 7 ',
+        fireSafetyAuthorization: null,
       },
     });
     expect(context.provider).toEqual({
@@ -161,7 +213,11 @@ describe('the fire-safety context', () => {
       representativeName: '',
       representativeRole: '',
     });
-    expect(context.fireSafetyTechnician).toEqual({ name: 'Radu STAN' });
+    expect(context.fireSafetyTechnician).toEqual({
+      name: 'Radu STAN',
+      certificate: 'Certificat nr. 7',
+      authorization: null,
+    });
     expect(context.branding).toBe(false);
   });
 
@@ -170,8 +226,12 @@ describe('the fire-safety context', () => {
       organization: '5 PSI',
       training: '6 PSI',
       openFire: '7 PSI',
+      smoking: '8 PSI',
       seasons: '9 PSI',
+      technician: '10 PSI',
+      instructions: '11 PSI',
       waste: '12 PSI',
+      control: '13 PSI',
     });
     expect(
       buildFireSafetyContext({ ...facts, firstDecisionNumber: 1 }).fire.decisionNumbers
@@ -179,8 +239,12 @@ describe('the fire-safety context', () => {
       organization: '1 PSI',
       training: '2 PSI',
       openFire: '3 PSI',
+      smoking: '4 PSI',
       seasons: '5 PSI',
+      technician: '6 PSI',
+      instructions: '7 PSI',
       waste: '8 PSI',
+      control: '9 PSI',
     });
   });
 
@@ -322,6 +386,135 @@ describe('the fire-safety context', () => {
     });
   });
 
+  it('words the smoking rule with a flag for each policy, and the place only where smoking is allowed', () => {
+    expect(buildFireSafetyContext(facts).fire.smoking).toEqual({
+      policy: 'designated_places',
+      forbiddenEverywhere: false,
+      designatedPlaces: true,
+      place: 'în curtea interioară, lângă poarta de acces auto',
+    });
+    expect(buildFireSafetyContext(withCard({ smokingPlace: '  ' })).fire.smoking.place).toBeNull();
+    expect(
+      buildFireSafetyContext(
+        withCard({ smokingPolicy: 'forbidden_everywhere', smokingPlace: 'în curte' })
+      ).fire.smoking
+    ).toEqual({
+      policy: 'forbidden_everywhere',
+      forbiddenEverywhere: true,
+      designatedPlaces: false,
+      place: null,
+    });
+  });
+
+  it('says whether an active workplace has an extinguisher that is weighed', () => {
+    const withEquipment = (equipment: DocumentFacts['fireSafety']['equipment']) =>
+      buildFireSafetyContext({ ...facts, fireSafety: { ...facts.fireSafety, equipment } }).fire
+        .hasGasExtinguishers;
+    const unit = { workplaceId: officeId, capacity: 6, wheeled: false };
+    expect(buildFireSafetyContext(facts).fire.hasGasExtinguishers).toBe(true);
+    expect(
+      withEquipment([
+        { ...unit, kind: 'extinguisher', agent: 'powder' },
+        { ...unit, workplaceId: workshopId, kind: 'extinguisher', agent: 'foam' },
+      ])
+    ).toBe(false);
+    expect(
+      withEquipment([
+        { ...unit, kind: 'extinguisher', agent: 'powder' },
+        { ...unit, workplaceId: workshopId, kind: 'extinguisher', agent: 'clean_agent' },
+      ])
+    ).toBe(true);
+    expect(
+      withEquipment([
+        { ...unit, kind: 'extinguisher', agent: 'powder' },
+        { ...unit, workplaceId: workshopId, kind: 'extinguisher', agent: 'water' },
+        { ...unit, workplaceId: 'archived-workplace', kind: 'extinguisher', agent: 'co2' },
+      ])
+    ).toBe(false);
+  });
+
+  it('gives the training themes a block per staff category with posts, and a session per month of its schedule', () => {
+    const ipsu = (sessions: number) =>
+      dealChapters(fireOwnInstructionsChapters, sessions).map(
+        ({ from, to }) => `IPSU Art.\u00a0${from}\u00a0–\u00a0${to}`
+      );
+    const posted =
+      'Instrucțiunile afișate la locul de muncă, Decizia nr.\u00a011 PSI; Organizarea apărării împotriva incendiilor la locul de muncă';
+    const managers =
+      'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă';
+    const administrative = ipsu(2);
+    const execution = ipsu(4);
+    expect(buildFireSafetyContext(facts).fire.themes).toEqual([
+      {
+        staffCategory: 'technical_administrative',
+        label: 'Personal administrativ',
+        posts: ['Contabil'],
+        postsText: 'Contabil',
+        workplaceTrainers: { workplaceManagers: null, technician: true },
+        periodicTrainers: { workplaceManagers: null, technician: true },
+        intervalLabel: '6 LUNI',
+        sessions: [
+          { month: 'FEBRUARIE', content: `${administrative[0]}; ${posted}`, duration: '120 min' },
+          {
+            month: 'AUGUST',
+            content: `${administrative[1]}; ${posted}; Testare.`,
+            duration: '120 min',
+          },
+        ],
+      },
+      {
+        staffCategory: 'execution',
+        label: 'Personal de execuție',
+        posts: ['Sudor'],
+        postsText: 'Sudor',
+        workplaceTrainers: { workplaceManagers: managers, technician: false },
+        periodicTrainers: { workplaceManagers: managers, technician: true },
+        intervalLabel: '3 LUNI',
+        sessions: ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE'].map((month, index) => ({
+          month,
+          content: `${execution[index]}; ${posted}${index === 3 ? '; Testare.' : ''}`,
+          duration: '120 min',
+        })),
+      },
+    ]);
+  });
+
+  it('leaves a staff category without posts out of the themes, and names a manager once', () => {
+    const themes = buildFireSafetyContext({
+      ...withCard({ periodicTrainingHours: 3, workerTrainingIntervalMonths: 1 }),
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        staffCategory: 'execution' as const,
+      })),
+      responsiblePersons: [
+        ...facts.responsiblePersons,
+        {
+          fullName: 'florin cristian talos',
+          jobTitle: 'Administrator',
+          roles: ['workplace_manager'],
+          currentEmployee: true,
+          workplaceId: null,
+        },
+      ],
+    }).fire.themes;
+    expect(themes.map((block) => block.staffCategory)).toEqual(['execution']);
+    expect(themes[0]).toMatchObject({
+      posts: ['Contabil', 'Sudor'],
+      postsText: 'Contabil, Sudor',
+      workplaceTrainers: {
+        workplaceManagers:
+          'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă',
+        technician: false,
+      },
+      intervalLabel: '1 LUNĂ',
+    });
+    expect(themes[0]!.sessions).toHaveLength(12);
+    expect(themes[0]!.sessions.every((session) => session.duration === '180 min')).toBe(true);
+    expect(themes[0]!.sessions.filter((session) => session.content.endsWith('Testare.'))).toEqual([
+      themes[0]!.sessions[11],
+    ]);
+  });
+
   it('leaves a workplace without a manager of its own to the template', () => {
     const fire = buildFireSafetyContext({
       ...facts,
@@ -363,6 +556,7 @@ describe('a fire-safety document generated again', () => {
   it('is built without the fire object while any of its data is missing, and with the rest', () => {
     expect(missingFireSafetyData(stageTwoGaps)).toEqual([
       'fire.trainingSchedule',
+      'fire.smokingPolicy',
       'fire.waste',
       'responsible.workplace_manager',
       'responsible.fire_safety_coordinator',
@@ -385,10 +579,18 @@ describe('a fire-safety document generated again', () => {
   it('leaves out the name of the provider, the technician or the client that a gap is in', () => {
     const context = buildPartialFireSafetyContext({
       ...facts,
-      organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
+      organization: { ...facts.organization, fireSafetyTechnicianCertificate: ' ' },
       client: { ...facts.client, representativeRole: null },
     });
-    expect(Object.keys(context).sort()).toEqual(['branding', 'fire', 'issueDate']);
+    expect(Object.keys(context).sort()).toEqual(['branding', 'fire', 'issueDate', 'provider']);
+  });
+
+  it('keeps the fire object without the provider or its technician, which the template names as trainers', () => {
+    const context = buildPartialFireSafetyContext({
+      ...facts,
+      organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
+    });
+    expect(Object.keys(context).sort()).toEqual(['branding', 'client', 'fire', 'issueDate']);
   });
 
   it('is equal to the whole context when nothing is missing', () => {
@@ -408,9 +610,17 @@ describe('a gap in the fire-safety data', () => {
     expect(fireSafetyGapConcerns('provider.legalName', ['branding'])).toBe(false);
   });
 
+  it("in the technician's certificate concerns what prints the technician", () => {
+    expect(
+      fireSafetyGapConcerns('provider.fireSafetyTechnicianCertificate', ['fireSafetyTechnician'])
+    ).toBe(true);
+    expect(fireSafetyGapConcerns('provider.fireSafetyTechnicianCertificate', ['fire'])).toBe(false);
+  });
+
   it('in the client data of the second stage concerns only what prints `fire`', () => {
     for (const code of [
       'fire.trainingSchedule',
+      'fire.smokingPolicy',
       'fire.waste',
       'fire.workplaces',
       'fire.equipment',
