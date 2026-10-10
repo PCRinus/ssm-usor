@@ -440,8 +440,7 @@ describe('the fire-safety context', () => {
       );
     const posted =
       'Instrucțiunile afișate la locul de muncă, Decizia nr.\u00a011 PSI; Organizarea apărării împotriva incendiilor la locul de muncă';
-    const managers =
-      'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă';
+    const managers = 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă';
     const administrative = ipsu(2);
     const execution = ipsu(4);
     expect(buildFireSafetyContext(facts).fire.themes).toEqual([
@@ -502,8 +501,7 @@ describe('the fire-safety context', () => {
       posts: ['Contabil', 'Sudor'],
       postsText: 'Contabil, Sudor',
       workplaceTrainers: {
-        workplaceManagers:
-          'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă',
+        workplaceManagers: 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă',
         technician: false,
       },
       intervalLabel: '1 LUNĂ',

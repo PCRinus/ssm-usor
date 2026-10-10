@@ -124,13 +124,15 @@ PROVIDER_SIGNERS = {
 WIDE_TABLE_COLUMNS = 6
 # ParaAdjust reads back as a number: justified, and justified with a stretched last line.
 JUSTIFIED = (2, 4)
+ADJUSTED_LEFT = 0
 SMALL_PRINT = 8.0
 # A table drawn from a definition has the sizes it was given.
 DRAWN = 'Drawn'
 DRAWN_SIZES = {}
-# The room above a drawn table, in points, where a table's own `above` asks for more than the
-# paragraph's distance.
+# The room above and under a drawn table, in points, where a table's own `above` or `below`
+# asks for more than the paragraph's distance.
 DRAWN_ABOVE = {}
+DRAWN_BELOW = {}
 
 SIGNATURE_BLOCK = [
     '{{client.legalName}}',
@@ -152,7 +154,10 @@ BRANDING_COLOR = 0x7A7A7A
 # some with paragraph indents on top, so each level drifts. The label hangs 6.35 mm to the left.
 LIST_TIERS = [1270, 1905, 3175]
 LIST_HANG = -635
+# Wider than a dash at the body's size, or the tab after it jumps to the next default stop.
+CELL_HANG = 300
 TYPED_DASH = re.compile(r'^[–-][ \t]')
+NUMBERED_PARAGRAPH = re.compile(r'^\(\d+\)\s')
 LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
 BULLET = 6  # NumberingType: a character, not a number
 TEXT_BULLETS = '-–•'
@@ -163,6 +168,7 @@ SUPERSCRIPT_RAISE = 33
 SUPERSCRIPT_HEIGHT = 58
 ITEM_LABEL = 'ItemLabel'
 DASH_LABEL = 'DashLabel'
+DASHES = 'Dashes'
 
 
 def prop(name, value):
@@ -540,6 +546,8 @@ def rebuild_table(document, definition, following=None):
     DRAWN_SIZES[table.Name] = definition.get('size', BODY_SIZE)
     if definition.get('above'):
         DRAWN_ABOVE[table.Name] = definition['above']
+    if definition.get('below'):
+        DRAWN_BELOW[table.Name] = definition['below']
     total, position = sum(definition['widths']), 0
     separators = table.TableColumnSeparators
     for separator, width in zip(separators, definition['widths']):
@@ -959,11 +967,16 @@ def is_list_paragraph(paragraph):
                                     and paragraph.ParaLeftMargin in LIST_TIERS)
 
 
-def hang_typed_dash(paragraph):
+def hang_typed_dash(paragraph, hang=None):
     """A dash typed by hand hangs from the nearest tier like a list's label, a tab after it, so
-    a long item's lines run under its text and not back under the dash."""
-    paragraph.ParaLeftMargin = min(LIST_TIERS, key=lambda tier: abs(tier - paragraph.ParaLeftMargin))
-    paragraph.ParaFirstLineIndent = LIST_HANG
+    a long item's lines run under its text and not back under the dash. With `hang`, from the
+    left edge: in a table cell, which has no room for the body's tiers."""
+    if hang:
+        paragraph.ParaLeftMargin = hang
+        paragraph.ParaFirstLineIndent = -hang
+    else:
+        paragraph.ParaLeftMargin = min(LIST_TIERS, key=lambda tier: abs(tier - paragraph.ParaLeftMargin))
+        paragraph.ParaFirstLineIndent = LIST_HANG
     paragraph.setPropertyToDefault('ParaTabStops')
     cursor = paragraph.getText().createTextCursorByRange(paragraph.getStart())
     cursor.goRight(1, False)
@@ -985,7 +998,8 @@ def label_style(document, name, bold):
 def format_superscripts(document):
     search = document.createSearchDescriptor()
     search.SearchRegularExpression = True
-    search.SearchString = f'[{SUPERSCRIPT_DIGITS}]+'
+    # "m²" stays the character, which every face has: the merge data prints the unit so.
+    search.SearchString = f'(?<!m)[{SUPERSCRIPT_DIGITS}]+'
     found = document.findAll(search)
     for index in range(found.getCount()):
         match = found.getByIndex(index)
@@ -1007,6 +1021,8 @@ def kind_rules(spec):
                         ('answers', 'answers')):
         if plural in spec:
             rules[key] = rules.get(key, []) + spec[plural]
+    if 'titleBelow' in spec:
+        rules['titleBelow'] = spec['titleBelow']
     return rules
 
 
@@ -1153,11 +1169,15 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
         # Again on the paragraph: its end mark keeps formatting of its own, out of a cursor's
         # reach, and that is where a stray language or size survives.
         paragraph.CharFontName = FONT
-        if is_bullet(paragraph) and list_level(paragraph).get('BulletChar') in TEXT_BULLETS:
+        if is_bullet(paragraph) and list_level(paragraph).get('BulletChar') in TEXT_BULLETS \
+                and paragraph.NumberingStyleName != DASHES:
             # The originals ask for Times New Roman, which the PDFs print in a serif face.
             font = list_level(paragraph)['BulletFont']
             font.Name = FONT
-            set_list_level(paragraph, {'BulletFont': font, 'BulletFontName': FONT})
+            changes = {'BulletFont': font, 'BulletFontName': FONT}
+            if list_level(paragraph)['BulletChar'] == '-':
+                changes['BulletChar'] = '–'
+            set_list_level(paragraph, changes)
         if not in_table:
             # In a table the size went on with the rest of the characters: a wide one is smaller.
             paragraph.CharHeight = BODY_SIZE
@@ -1179,6 +1199,8 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             paragraph.ParaBottomMargin = 0
             if paragraph.ParaAdjust in JUSTIFIED:
                 paragraph.ParaAdjust = LEFT
+            if TYPED_DASH.match(text) and paragraph.ParaAdjust == ADJUSTED_LEFT and not paragraph.NumberingIsNumber:
+                hang_typed_dash(paragraph, CELL_HANG)
             continue
 
         paragraph.ParaTopMargin = 0
@@ -1230,7 +1252,8 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             paragraph.CharHeight = TITLE_SIZE
             paragraph.CharWeight = 150
             paragraph.ParaAdjust = CENTER
-            paragraph.ParaBottomMargin = 0 if rules['subtitle'] else round(12 * POINT)
+            paragraph.ParaBottomMargin = round(rules['titleBelow'] * POINT) if 'titleBelow' in rules \
+                else 0 if rules['subtitle'] else round(12 * POINT)
             paragraph.ParaKeepTogether = True
             if seen_title and rules.get('titleOpensPart'):
                 # A second title opens a second part: the specimen of a test.
@@ -1279,6 +1302,10 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             # the signature's page more often.
             paragraph.ParaBottomMargin = [0, round(12 * POINT), round(6 * POINT)][position]
             paragraph.ParaKeepTogether = position < 2
+            if position == 2:
+                name = paragraph.getText().createTextCursorByRange(paragraph.getStart())
+                name.gotoEndOfParagraph(True)
+                name.CharWeight = 150
 
     # A list sits close under the paragraph that introduces it, and what follows a list starts
     # at a paragraph's distance. Loop tags leave nothing behind once merged, so the paragraphs on
@@ -1286,6 +1313,26 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
     flow = list(_elements(document.Text))
     tags = [element.supportsService('com.sun.star.text.Paragraph')
             and LOOP_TAGS_ONLY.fullmatch(element.getString().strip()) is not None for element in flow]
+    # Where the office adds a paragraph's room to the one above it rather than taking the larger.
+    adds = document.createInstance('com.sun.star.text.DocumentSettings').AddParaTableSpacing
+
+    # An article's numbered paragraphs, "(1)" with its label and "(2)" on, are a paragraph's
+    # distance apart, and the last as far from the next article as a one-paragraph article is.
+    for index, element in enumerate(flow):
+        if tags[index] or not element.supportsService('com.sun.star.text.Paragraph') \
+                or is_list_paragraph(element):
+            continue
+        after = next((position for position in range(index + 1, len(flow)) if not tags[position]), None)
+        if after is None or not flow[after].supportsService('com.sun.star.text.Paragraph'):
+            continue
+        following = flow[after]
+        if NUMBERED_PARAGRAPH.match(following.getString().strip()) and not is_list_paragraph(following) \
+                and not (following.NumberingIsNumber and following.ListLabelString):
+            element.ParaBottomMargin = round(6 * POINT)
+        elif NUMBERED_PARAGRAPH.match(element.getString().strip()) \
+                and following.ParaTopMargin >= round(6 * POINT):
+            element.ParaBottomMargin = round(3 * POINT)
+
     for index, element in enumerate(flow):
         if tags[index] or not element.supportsService('com.sun.star.text.Paragraph'):
             continue
@@ -1299,7 +1346,9 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
         elif is_list_paragraph(element) and not is_list_paragraph(following) and following.getString().strip():
             if after > index + 1:
                 # An item a loop repeats would carry the room after the list to every repetition.
-                following.ParaTopMargin = max(following.ParaTopMargin, round(6 * POINT))
+                room = round(6 * POINT)
+                following.ParaTopMargin = following.ParaTopMargin + room - element.ParaBottomMargin if adds \
+                    else max(following.ParaTopMargin, room)
             else:
                 element.ParaBottomMargin = round(6 * POINT)
 
@@ -1319,7 +1368,7 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
         if index + 1 < len(elements) and elements[index + 1].supportsService('com.sun.star.text.Paragraph'):
             after = elements[index + 1]
             if after.getString().strip():
-                after.ParaTopMargin = max(after.ParaTopMargin, round(6 * POINT))
+                after.ParaTopMargin = max(after.ParaTopMargin, round(DRAWN_BELOW.get(element.Name, 6) * POINT))
             # A loop's closing tag leaves no trace when merged: the paragraph after it is what
             # follows the table, and gets the room.
             if after.getString().strip().startswith('{{/') and index + 2 < len(elements) \
@@ -1407,6 +1456,11 @@ def inline_drawing(match):
 # once merged. A longer run kept together moves to the next page whole: the import kept
 # everything from a heading to its table, and left pages two thirds empty before a long one.
 KEEP_CHAIN = 3
+# A longer run of short lines takes little room and stays whole: a staff category's heading
+# and the lines naming its place, posts and trainer, with the table they introduce. In
+# characters of the template's text, merge tags left out.
+KEEP_CHAIN_TEXT = 400
+MERGE_TAG = re.compile(r'\{\{[^}]*\}\}')
 
 BLOCK_TAG = re.compile(r'<(/?)w:(p|tbl)\b[^>]*?(/?)>')
 KEEP_NEXT = re.compile(r'<w:keepNext(?: w:val="(\w+)")?/>')
@@ -1529,8 +1583,8 @@ def cap_keep_chains(xml, styles):
     run, cuts = [], []
 
     def close():
-        if len(run) > KEEP_CHAIN:
-            said = [paragraph_text(xml[start:end]) for start, end in run]
+        said = [paragraph_text(xml[start:end]) for start, end in run]
+        if len(run) > KEEP_CHAIN and sum(len(MERGE_TAG.sub('', text)) for text in said) > KEEP_CHAIN_TEXT:
             kept = [False] * len(run)
 
             def keep(index):
@@ -1635,7 +1689,8 @@ def sweep(path):
     as justified though its own model says otherwise, a picture floating between two lines,
     and its own fonts as the defaults of the styles. Then three rules every template keeps: a
     line ending in ":" keeps with the list item after it, no run of paragraphs kept with the
-    next longer than `KEEP_CHAIN`, and the branding line small and grey. Safe to run again."""
+    next longer than `KEEP_CHAIN` unless its lines are short, and the branding line small and
+    grey. Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
@@ -1947,7 +2002,8 @@ def restyle_labels(document, pasted):
     """List labels like the ones this document types: a bold letter or number, a plain dash, at
     the body's size. The source's take the size of their paragraph's end mark, 9 pt."""
     for paragraph in pasted:
-        if not paragraph.NumberingIsNumber or paragraph.NumberingRules is None:
+        if not paragraph.NumberingIsNumber or paragraph.NumberingRules is None \
+                or paragraph.NumberingStyleName == DASHES:
             continue
         name = label_style(document, DASH_LABEL, False) if is_bullet(paragraph) \
             else label_style(document, ITEM_LABEL, True)
@@ -1957,22 +2013,36 @@ def restyle_labels(document, pasted):
 def flatten_lists(document, pasted, articles):
     """A copy's articles lose their labels and its numbered items become dashes, for a copy
     inside a loop: the engine repeats a list's paragraphs under the same numbering, so the
-    second workplace's posted instructions would count on from the first's. The lists keep
-    their own styles, which `copy_passage` renamed, and only their first level changes."""
+    second workplace's posted instructions would count on from the first's. Every list of every
+    copy moves to one list of dashes: a list pasted next to one the document already has from
+    the same source keeps the source's numbers in its definition, which a level drawn over each
+    item turns into dashes the office prints smaller and lower."""
     styles = document.StyleFamilies.getByName('NumberingStyles')
-    for name in sorted({paragraph.NumberingStyleName for index, paragraph in enumerate(pasted)
-                        if index not in articles and paragraph.NumberingIsNumber
-                        and paragraph.NumberingStyleName}):
-        style = styles.getByName(name)
+    if not styles.hasByName(DASHES):
+        styles.insertByName(DASHES, document.createInstance('com.sun.star.style.NumberingStyle'))
+        style = styles.getByName(DASHES)
         rules = style.NumberingRules
         level = {entry.Name: entry for entry in rules.getByIndex(0)}
-        for key, value in (('NumberingType', 6),  # a character, not a number
-                           ('BulletChar', '–'), ('BulletFontName', FONT),
-                           ('Prefix', ''), ('Suffix', ''), ('ListFormat', '')):
+        font = uno.createUnoStruct('com.sun.star.awt.FontDescriptor')
+        font.Name = FONT
+        for key, value in (('NumberingType', BULLET), ('BulletChar', '–'), ('BulletFont', font),
+                           ('BulletFontName', FONT), ('Prefix', ''), ('Suffix', ''), ('ListFormat', ''),
+                           ('CharStyleName', label_style(document, DASH_LABEL, False)),
+                           ('IndentAt', LIST_TIERS[0]), ('FirstLineIndent', LIST_HANG),
+                           ('ListtabStopPosition', LIST_TIERS[0])):
             level[key] = prop(key, value)
         uno.invoke(rules, 'replaceByIndex',
                    (0, uno.Any('[]com.sun.star.beans.PropertyValue', tuple(level.values()))))
         style.NumberingRules = rules
+    for index, paragraph in enumerate(pasted):
+        if index in articles or not paragraph.NumberingIsNumber or not paragraph.NumberingStyleName:
+            continue
+        if paragraph.NumberingLevel:
+            raise RuntimeError(f'copy: {paragraph.getString()[:40]!r} is nested, which a list of dashes cannot show')
+        paragraph.NumberingStyleName = DASHES
+        # A pasted list stays in the list it had in the source until told otherwise.
+        paragraph.ListId = styles.getByName(DASHES).NumberingRules.DefaultListId
+        paragraph.ParaIsNumberingRestart = False
     for index in articles:
         pasted[index].NumberingStyleName = ''
         pasted[index].NumberingIsNumber = False
@@ -2094,6 +2164,7 @@ def import_template(desktop, spec_path, wording, output, registry, template):
     document = desktop.loadComponentFromURL(source, '_blank', 0, (prop('Hidden', True),))
     DRAWN_SIZES.clear()
     DRAWN_ABOVE.clear()
+    DRAWN_BELOW.clear()
     try:
         problems = []
         copies = []
@@ -2151,6 +2222,10 @@ def import_template(desktop, spec_path, wording, output, registry, template):
         else:
             for marker, item in copies:
                 copy_passage(desktop, document, marker, item)
+        if spec.get('source'):
+            # Between two paragraphs, the larger of their rooms, as in the Word originals: the
+            # ones saved from the old .doc format add the two, and their decisions sat looser.
+            document.createInstance('com.sun.star.text.DocumentSettings').AddParaTableSpacing = False
         removed = typeset(document, parts, spec.get('emptyParagraphs') == 'shrink',
                           spec.get('subheadings', []))
         if spec.get('tiers'):

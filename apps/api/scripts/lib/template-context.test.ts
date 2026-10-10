@@ -951,7 +951,7 @@ describe('the fire-safety templates', () => {
     expect(text).toContain('FUNCȚIA: Personal administrativ (Contabil)');
     expect(text).toContain('FUNCȚIA: Personal de execuție (Sudor)');
     expect(text).toContain(
-      'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
+      'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
     );
     expect(text).toMatch(
       /^NOIEMBRIE\nIPSU Art\.\u00a0236\u00a0–\u00a0257; .+; Testare\.\n120 min$/m
