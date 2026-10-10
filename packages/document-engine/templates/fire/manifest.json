@@ -8,8 +8,8 @@
       "title": "Copertă – Deciziile interne în domeniul situațiilor de urgență",
       "file": "1.0_fire_cover_decisions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Rândurile lungi din lista deciziilor continuă sub textul lor, nu sub număr."
       }
     },
     {
@@ -20,8 +20,8 @@
       "title": "Decizia privind organizarea apărării împotriva incendiilor",
       "file": "1.1_fire_decision_organization.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Procesul-verbal de luare la cunoștință începe mai aproape de semnătură, ca în celelalte decizii."
       }
     },
     {
@@ -32,8 +32,8 @@
       "title": "Decizia privind instruirea în domeniul situațiilor de urgență",
       "file": "1.2_fire_decision_training.docx",
       "change": {
-        "kind": "correction",
-        "note": "În art. 2, literele, punctele și liniuțele stau la fel sub fiecare tip de instructaj, cu o treaptă mai la dreapta decât titlul sub care stau, iar liniuțele de la C.4 și E.2 sunt așezate sub punctul lor; liniuțele sunt scrise cu Arial, spațiul se lasă după o listă, procesul-verbal de luare la cunoștință începe mai aproape de semnătură, iar barele oblice rămase în „instalații speciale” și „mijloacele de primă intervenție” au fost scoase."
+        "kind": "layout",
+        "note": "Liniuțele listelor sunt linii de pauză (–), ca în celelalte documente, nu cratime."
       }
     },
     {
@@ -45,7 +45,7 @@
       "file": "1.3_fire_decision_open_fire.docx",
       "change": {
         "kind": "layout",
-        "note": "Temeiul legal și numele reprezentantului legal nu mai sunt scrise cu litere înclinate."
+        "note": "În procesul-verbal de luare la cunoștință, data primirii este centrată și funcția este așezată ca în celelalte decizii, iar procesul-verbal începe mai aproape de semnătură."
       }
     },
     {
@@ -69,7 +69,7 @@
       "file": "1.5_fire_decision_seasons.docx",
       "change": {
         "kind": "layout",
-        "note": "Liniuțele listelor sunt scrise cu Arial, spațiul se lasă după o listă, nu înaintea ei, iar procesul-verbal de luare la cunoștință începe mai aproape de semnătură."
+        "note": "Spațiul dinaintea lui „DECIDE:” și dintre articole este ca în deciziile 1–4, alineatele art. 6 stau la aceeași distanță unul de altul, iar liniuțele listelor sunt linii de pauză (–), nu cratime."
       }
     },
     {
@@ -81,7 +81,7 @@
       "file": "1.6_fire_decision_technician.docx",
       "change": {
         "kind": "layout",
-        "note": "Exponentul din trimiterea la art. 12² este o cifră ridicată, iar procesul-verbal de luare la cunoștință începe mai aproape de semnătură."
+        "note": "Spațiul dinaintea lui „DECIDE:” și dintre articole este ca în deciziile 1–4."
       }
     },
     {
@@ -95,7 +95,7 @@
       "file": "1.7_fire_decision_instructions.docx",
       "change": {
         "kind": "layout",
-        "note": "Primul ajutor preluat din instrucțiunile proprii SSM nu mai are paragrafe îngroșate; rândurile lungi ale listelor cu liniuță continuă sub textul lor, nu sub liniuță; spațiul se lasă după o listă, nu înaintea ei; exponenții literelor și ai articolelor (r¹⁶, 30³) sunt cifre ridicate în același font; procesul-verbal de luare la cunoștință începe mai aproape de semnătură."
+        "note": "Liniuțele listelor din primul ajutor pentru arsuri, intoxicații cu gaze și electrocutare au mărimea și poziția celorlalte liniuțe, iar numele reprezentantului legal de sub semnătură este îngroșat, ca în celelalte decizii."
       }
     },
     {
@@ -107,7 +107,7 @@
       "file": "1.8_fire_decision_waste.docx",
       "change": {
         "kind": "layout",
-        "note": "Spațiul se lasă după o listă, nu înaintea ei, iar procesul-verbal de luare la cunoștință începe mai aproape de semnătură, ca să rămână mai des pe aceeași pagină cu decizia."
+        "note": "Spațiul dinaintea lui „DECIDE:” și dintre articole este ca în deciziile 1–4, iar liniuțele listelor sunt linii de pauză (–), nu cratime."
       }
     },
     {
@@ -119,7 +119,7 @@
       "file": "1.9_fire_decision_control.docx",
       "change": {
         "kind": "layout",
-        "note": "Procesul-verbal de luare la cunoștință începe mai aproape de semnătură, ca să rămână mai des pe aceeași pagină cu decizia."
+        "note": "Spațiul dinaintea lui „DECIDE:” și dintre articole este ca în deciziile 1–4."
       }
     },
     {
@@ -143,7 +143,7 @@
       "file": "2.1_fire_own_instructions.docx",
       "change": {
         "kind": "layout",
-        "note": "Capitolul despre primul ajutor arată ca restul documentului: doar eticheta „Art. N.” este îngroșată, iar literele și numerele listelor au mărimea textului și sunt îngroșate; rândurile lungi ale listelor cu liniuță continuă sub textul lor; spațiul se lasă după o listă, nu înaintea ei; exponenții (r¹⁶, 30³, 4⁴) sunt cifre ridicate în același font."
+        "note": "Liniuțele de la art. 241 stau sub litera lor, rândurile lungi cu liniuță din tabele continuă sub textul lor, iar alineatele (2), (3)… ale unui articol stau la aceeași distanță unul de altul și de articolul următor ca articolele cu un singur alineat."
       }
     },
     {
@@ -154,8 +154,8 @@
       "title": "Copertă – Tematica de instruire în domeniul situațiilor de urgență",
       "file": "3.0_fire_cover_training_themes.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Rândurile lungi din lista literelor a)–e) continuă sub textul lor, nu sub literă."
       }
     },
     {
@@ -167,7 +167,7 @@
       "file": "3.1_fire_training_themes.docx",
       "change": {
         "kind": "layout",
-        "note": "Capitolele II și III nu mai încep forțat pe o pagină nouă, ci continuă după planul capitolului anterior, cu titlul păstrat lângă textul lui, iar rândurile planurilor nu se mai rup între pagini."
+        "note": "Titlul fiecărei categorii de personal rămâne pe aceeași pagină cu rândurile de sub el (locul de muncă, funcția, cine efectuează instruirea) și cu tabelul planului."
       }
     },
     {
@@ -178,8 +178,8 @@
       "title": "Copertă – Testele de verificare a cunoștințelor",
       "file": "4.0_fire_cover_tests.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Rândurile lungi din lista testelor continuă sub textul lor, nu sub număr."
       }
     },
     {
@@ -191,7 +191,7 @@
       "file": "4.1_fire_test_hiring.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelul cu datele persoanei testate are mai mult spațiu deasupra, după ultima întrebare."
+        "note": "Prima întrebare rămâne pe aceeași pagină cu titlul testului și cu răspunsurile ei."
       }
     },
     {
@@ -203,7 +203,7 @@
       "file": "4.2_fire_test_annual.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelul cu datele persoanei testate are mai mult spațiu deasupra, după ultima întrebare."
+        "note": "O întrebare își păstrează toate răspunsurile pe aceeași pagină, iar prima rămâne lângă titlul testului."
       }
     },
     {
@@ -215,7 +215,7 @@
       "file": "5.1_fire_means_list.docx",
       "change": {
         "kind": "layout",
-        "note": "Blocul de predare – primire nu mai stă lipit de Tabelul 2."
+        "note": "Metrii pătrați se scriu peste tot „m²”, ca în norma de dotare, iar titlul listei rămâne pe aceeași pagină cu primul tabel."
       }
     },
     {
@@ -227,7 +227,7 @@
       "file": "5.2_fire_workplace_organization.docx",
       "change": {
         "kind": "layout",
-        "note": "Titlul fișei începe la aceeași înălțime pe prima pagină ca pe paginile celorlalte locuri de muncă."
+        "note": "Locul de muncă și adresa stau la distanțe egale sub titlu, iar rândurile lungi cu liniuță din tabel continuă sub textul lor."
       }
     },
     {
@@ -239,7 +239,7 @@
       "file": "6.0_fire_cover_registers.docx",
       "change": {
         "kind": "layout",
-        "note": "Blocul de predare – primire începe la aceeași înălțime ca pe coperta deciziilor."
+        "note": "Rândurile lungi din lista registrelor continuă sub textul lor, nu sub număr."
       }
     },
     {
@@ -278,8 +278,8 @@
       "title": "Registru de control pentru instalațiile de apărare împotriva incendiilor",
       "file": "6.3_fire_installation_register.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Nota de sub tabelul „Date evenimente” are mai mult spațiu deasupra."
       }
     },
     {
@@ -290,8 +290,8 @@
       "title": "Registru de evidență a controlului stingătoarelor de incendiu",
       "file": "6.4_fire_extinguisher_register.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Legenda a)–h) are mai mult spațiu față de tabel."
       }
     }
   ]
