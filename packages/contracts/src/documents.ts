@@ -52,6 +52,8 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_decision_instructions',
   'fire_decision_waste',
   'fire_decision_control',
+  'fire_cover_own_instructions',
+  'fire_own_instructions',
   'fire_means_list',
   'fire_workplace_organization',
   'fire_cover_registers',

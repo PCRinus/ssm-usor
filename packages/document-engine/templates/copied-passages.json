@@ -23,6 +23,12 @@
       "from": "3.2_own_instructions.docx",
       "first": "^La electrocutare, salvatorul",
       "last": "^Orice persoană electrocutată merge la medic"
+    },
+    {
+      "template": "fire/2.1_fire_own_instructions.docx",
+      "from": "3.2_own_instructions.docx",
+      "first": "^Primul ajutor este ajutorul imediat",
+      "last": "^nu oprește resuscitarea decât dacă victima își revine"
     }
   ]
 }

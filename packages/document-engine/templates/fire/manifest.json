@@ -123,6 +123,30 @@
       }
     },
     {
+      "number": "2.0",
+      "originals": ["2.1._Coperta_IPSU"],
+      "stage": 3,
+      "typeKey": "fire_cover_own_instructions",
+      "title": "Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență",
+      "file": "2.0_fire_cover_own_instructions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "2.1",
+      "originals": ["2.2._IPSU"],
+      "stage": 3,
+      "typeKey": "fire_own_instructions",
+      "title": "Instrucțiuni proprii în domeniul situațiilor de urgență",
+      "file": "2.1_fire_own_instructions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "5.1",
       "originals": ["5._Lista_cu_situatia_mijloacelor_de_aparare_psi"],
       "stage": 2,

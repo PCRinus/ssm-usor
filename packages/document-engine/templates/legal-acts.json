@@ -190,6 +190,15 @@
       "portalId": 47216
     },
     {
+      "id": "oug-21-2004",
+      "kind": "oug",
+      "number": "21",
+      "year": 2004,
+      "name": "O.U.G. 21/2004",
+      "title": "Ordonanța de urgență a Guvernului nr. 21 din 15 aprilie 2004 privind Sistemul Național de Management al Situațiilor de Urgență",
+      "portalId": 51410
+    },
+    {
       "id": "oug-158-2005",
       "kind": "oug",
       "number": "158",
@@ -460,6 +469,15 @@
       "portalId": 65081
     },
     {
+      "id": "omai-1184-2006",
+      "kind": "omai",
+      "number": "1184",
+      "year": 2006,
+      "name": "OMAI 1184/2006",
+      "title": "Ordinul ministrului administrației și internelor nr. 1.184 din 6 februarie 2006 pentru aprobarea Normelor privind organizarea și asigurarea activității de evacuare în situații de urgență",
+      "portalId": 69160
+    },
+    {
       "id": "omai-1259-2006",
       "kind": "omai",
       "number": "1259",
@@ -494,6 +512,24 @@
       "name": "OMAI 166/2010",
       "title": "Ordinul ministrului administrației și internelor nr. 166 din 27 iulie 2010 pentru aprobarea Dispozițiilor generale privind apărarea împotriva incendiilor la construcții și instalațiile aferente",
       "portalId": 121291
+    },
+    {
+      "id": "omai-187-2010",
+      "kind": "omai",
+      "number": "187",
+      "year": 2010,
+      "name": "OMAI 187/2010",
+      "title": "Ordinul ministrului administrației și internelor nr. 187 din 19 august 2010 pentru aprobarea Dispozițiilor generale privind apărarea împotriva incendiilor la spații pentru comerț",
+      "portalId": 121922
+    },
+    {
+      "id": "omai-262-2010",
+      "kind": "omai",
+      "number": "262",
+      "year": 2010,
+      "name": "OMAI 262/2010",
+      "title": "Ordinul ministrului administrației și internelor nr. 262 din 2 decembrie 2010 privind aprobarea Dispozițiilor generale de apărare împotriva incendiilor la spații și construcții pentru birouri",
+      "portalId": 124377
     },
     {
       "id": "omai-135-2023",

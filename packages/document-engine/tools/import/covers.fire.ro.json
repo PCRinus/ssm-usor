@@ -1,5 +1,6 @@
 {
   "folder": "fire",
+  "motto": "Instrucțiunile de apărare împotriva incendiilor sunt obligatorii și se aplică în cadrul tuturor compartimentelor de muncă.",
   "covers": [
     {
       "number": "1.0",
@@ -17,6 +18,13 @@
         "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și distrugerea acestora;",
         "Controlul propriu al respectării normelor, dispozițiilor și măsurilor de apărare împotriva incendiilor."
       ]
+    },
+    {
+      "number": "2.0",
+      "typeKey": "fire_cover_own_instructions",
+      "motto": true,
+      "title": "INSTRUCȚIUNI PROPRII ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",
+      "subtitle": "pentru"
     },
     {
       "number": "6.0",

@@ -489,18 +489,47 @@ describe('fire-safety set', () => {
     expect(zip.file('docProps/app.xml')?.asText() ?? '').not.toMatch(/<(Company|Manager)>[^<]/);
   });
 
-  it.each(['fire/6.0_fire_cover_registers.docx', 'fire/1.0_fire_cover_decisions.docx'])(
-    '%s has the technician sign for the provider',
-    (name) => {
-      const text = documentText(renderDocument(read(name), data));
-      expect(text).toContain('Dan MARIN\nCadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
-      expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
-    }
-  );
+  it.each([
+    'fire/6.0_fire_cover_registers.docx',
+    'fire/1.0_fire_cover_decisions.docx',
+    'fire/2.0_fire_cover_own_instructions.docx',
+  ])('%s has the technician sign for the provider', (name) => {
+    const text = documentText(renderDocument(read(name), data));
+    expect(text).toContain('Dan MARIN\nCadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
+    expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
+  });
 
   it('lists the nine decisions of the binder on their cover', () => {
     const text = documentText(read('fire/1.0_fire_cover_decisions.docx'));
     for (let item = 1; item <= 9; item++) expect(text).toMatch(new RegExp(`^${item}\\. `, 'm'));
+  });
+
+  it('keeps the general chapters of the own instructions, its contents without page numbers', () => {
+    const text = documentText(
+      renderDocument(read('fire/2.1_fire_own_instructions.docx'), stageTwoData)
+    );
+    expect(text.match(/^Capitolul [IVX]+\. /gm)).toHaveLength(23);
+    expect(text).toMatch(/^XXII\. Stingătoarele de incendiu$/m);
+    expect(text).toContain('(Preluare din OMAI 135/2023 – Anexa 1)');
+    expect(text).toContain('(Preluare din OMAI 712/2005 – Art. 21) Instructajul periodic');
+    expect(text).toContain('pe o durată de cel puțin două ore');
+    expect(text).toContain(
+      'testul de verificare a cunoștințelor privind situațiile de urgență la angajare'
+    );
+    expect(text).toContain(
+      'testul anual de verificare a cunoștințelor privind situațiile de urgență'
+    );
+    for (const gone of [
+      '60 minute',
+      'TLMSU',
+      'cazărmi',
+      '0-ZERO',
+      '50-60',
+      'haloni',
+      'Tehnici de securitate la incendiu',
+    ]) {
+      expect(text).not.toContain(gone);
+    }
   });
 
   it('prints the checks of OMAI 135/2023 annex 2, each answered yes or no', () => {
