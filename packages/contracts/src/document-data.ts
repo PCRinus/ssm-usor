@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput } from './cui';
+import { fireExtinguisherNormSchema } from './fire-safety';
 import { isValidIban } from './iban';
 
 // Every field is optional while it is being filled in; generating a document is what
@@ -199,6 +200,14 @@ export const workplaceSchema = z.object({
   countyCode: countyCodeSchema.nullable(),
   locality: z.string().nullable(),
   addressLine: z.string().nullable(),
+  activity: z.string().nullable(),
+  floorAreaM2: z.int().nullable(),
+  extinguisherNorm: fireExtinguisherNormSchema.nullable(),
+  assemblyPoint: z.string().nullable(),
+  combustibleMaterials: z.string().nullable(),
+  ignitionSources: z.string().nullable(),
+  fireRiskEquipment: z.string().nullable(),
+  specificMeasures: z.string().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -220,6 +229,14 @@ export const workplaceRequestSchema = z.object({
   countyCode: countyCodeSchema.nullish(),
   locality: optionalText(1, 120),
   addressLine: optionalText(1, 240),
+  activity: optionalText(2, 160),
+  floorAreaM2: z.int().min(1).max(1_000_000).nullish(),
+  extinguisherNorm: fireExtinguisherNormSchema.nullish(),
+  assemblyPoint: optionalText(2, 240),
+  combustibleMaterials: optionalText(2, 600),
+  ignitionSources: optionalText(2, 600),
+  fireRiskEquipment: optionalText(2, 600),
+  specificMeasures: optionalText(2, 600),
 });
 
 export type WorkplaceRequest = z.infer<typeof workplaceRequestSchema>;
@@ -231,6 +248,8 @@ export const responsiblePersonRoles = [
   'risk_evaluation_team',
   'imminent_danger',
   'workers_representative',
+  'fire_safety_coordinator',
+  'fire_intervention_leader',
 ] as const;
 
 export const responsiblePersonRoleSchema = z.enum(responsiblePersonRoles);
@@ -251,6 +270,8 @@ export const responsiblePersonSchema = z.object({
   // someone who is not an employee.
   employeeJobTitle: z.string().nullable(),
   roles: z.array(responsiblePersonRoleSchema).min(1),
+  // Null: every workplace of the client.
+  workplaceId: z.uuid().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -272,6 +293,7 @@ export type ResponsiblePersonListResponse = z.infer<typeof responsiblePersonList
 export const responsiblePersonRequestSchema = z
   .object({
     employeeId: z.uuid().nullish(),
+    workplaceId: z.uuid().nullish(),
     fullName: z.string().trim().min(2).max(160),
     jobTitle: z.string().trim().min(2).max(160),
     roles: z

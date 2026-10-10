@@ -33,11 +33,20 @@ export function missingFireSafetyData(
     'provider.fireSafetyTechnician': filled(facts.organization.fireSafetyTechnicianName),
     'client.representativeName': filled(facts.client.representativeName),
     'client.representativeRole': filled(facts.client.representativeRole),
+    // The client data of stage 2 (ADR 018) is checked once its documents exist to print it.
+    'fire.trainingSchedule': true,
+    'fire.waste': true,
+    'responsible.workplace_manager': true,
+    'responsible.fire_safety_coordinator': true,
+    'responsible.fire_intervention_leader': true,
+    'positions.any': true,
+    'fire.workplaces': true,
+    'fire.equipment': true,
   };
   return fireSafetyMissingDocumentData.filter((code) => !present[code]);
 }
 
-const printedAs: Record<FireSafetyMissingData, keyof FireSafetyContext> = {
+const printedAs: Partial<Record<FireSafetyMissingData, keyof FireSafetyContext>> = {
   'provider.legalName': 'provider',
   'provider.fireSafetyTechnician': 'fireSafetyTechnician',
   'client.representativeName': 'client',

@@ -422,6 +422,12 @@ const printedAs = {
   'risk_evaluations.measures': riskNames,
   'risk_evaluations.plan': riskNames,
   'documents.own_instructions': ['themes'],
+  'responsible.fire_safety_coordinator': [],
+  'responsible.fire_intervention_leader': [],
+  'fire.trainingSchedule': [],
+  'fire.waste': [],
+  'fire.workplaces': [],
+  'fire.equipment': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
 /** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */

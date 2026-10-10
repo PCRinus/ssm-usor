@@ -32,6 +32,10 @@ const to = {
     linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
     linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
+  trainingTab: (clientId: string) =>
+    linkOptions({ to: '/clients/$clientId/training', params: { clientId } }),
+  detailsTab: (clientId: string) =>
+    linkOptions({ to: '/clients/$clientId/details', params: { clientId } }),
   clientEvaluations: (clientId: string) =>
     linkOptions({
       to: '/clients/$clientId/job-positions',
@@ -276,6 +280,43 @@ export const documentMissingData: Record<
     label: 'Instrucțiunile proprii, generate înaintea tematicii',
     detail: 'Tematica citează modulele pe care le anexează instrucțiunile proprii.',
     target: ({ clientId }) => to.documentSection(clientId, 'own-instructions'),
+  },
+  'responsible.fire_safety_coordinator': {
+    place: 'training',
+    label: responsibleRoleLabels.fire_safety_coordinator.label,
+    detail: 'Nicio persoană responsabilă nu are încă acest rol.',
+    target: ({ clientId }) => to.trainingTab(clientId),
+  },
+  'responsible.fire_intervention_leader': {
+    place: 'training',
+    label: responsibleRoleLabels.fire_intervention_leader.label,
+    detail: 'Nicio persoană responsabilă nu are încă acest rol.',
+    target: ({ clientId }) => to.trainingTab(clientId),
+  },
+  'fire.trainingSchedule': {
+    place: 'training',
+    label: 'Programul instruirii PSI',
+    detail: 'Durata, intervalele pe categorii, prima lună și zilele.',
+    target: ({ clientId }) => to.trainingTab(clientId),
+  },
+  'fire.waste': {
+    place: 'training',
+    label: 'Deșeurile colectate',
+    detail: 'Cel puțin un tip de deșeu, pentru decizia privind colectarea deșeurilor.',
+    target: ({ clientId }) => to.trainingTab(clientId),
+  },
+  'fire.workplaces': {
+    place: 'clientDetails',
+    label: 'Datele PSI ale locurilor de muncă',
+    detail:
+      'Activitatea, suprafața, norma de dotare, punctul de adunare și textele fișei de la locul de muncă.',
+    target: ({ clientId }) => to.detailsTab(clientId),
+  },
+  'fire.equipment': {
+    place: 'clientDetails',
+    label: 'Stingătoarele locurilor de muncă',
+    detail: 'Fiecare loc de muncă activ are nevoie de cel puțin un stingător.',
+    target: ({ clientId }) => to.detailsTab(clientId),
   },
 };
 

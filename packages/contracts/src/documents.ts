@@ -111,6 +111,8 @@ export const missingDocumentData = [
   'responsible.workers_representative',
   'responsible.workers_representatives_two',
   'responsible.workers_representative_is_legal_representative',
+  'responsible.fire_safety_coordinator',
+  'responsible.fire_intervention_leader',
   'positions.any',
   'positions.equipment',
   'positions.instructions',
@@ -123,6 +125,12 @@ export const missingDocumentData = [
   'risk_evaluations.plan',
   // Only for generating the training themes again: they cite the own instructions (ADR 014).
   'documents.own_instructions',
+  'fire.trainingSchedule',
+  'fire.waste',
+  // A required fact missing on an active workplace.
+  'fire.workplaces',
+  // An active workplace without an extinguisher.
+  'fire.equipment',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -135,6 +143,14 @@ export const fireSafetyMissingDocumentData = [
   'provider.fireSafetyTechnician',
   'client.representativeName',
   'client.representativeRole',
+  'fire.trainingSchedule',
+  'fire.waste',
+  'responsible.workplace_manager',
+  'responsible.fire_safety_coordinator',
+  'responsible.fire_intervention_leader',
+  'positions.any',
+  'fire.workplaces',
+  'fire.equipment',
 ] as const satisfies readonly MissingDocumentData[];
 
 export const jobPositionDecisions = ['equipment', 'instructions'] as const;
