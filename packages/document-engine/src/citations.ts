@@ -68,8 +68,8 @@ const articleNumber = String.raw`(?:\d+[${superscripts}]*|[IVXLC]+)`;
 const alineat = String.raw`\(\d+[${superscripts}]*\)`;
 const letter = String.raw`[a-z][${superscripts}]*\)`;
 const articleLocator =
-  String.raw`Art\. (?<article>${articleNumber})(?:, ${articleNumber})*` +
-  String.raw`(?: alin\. ${alineat}(?:(?:, | și | – )${alineat})*)?` +
+  String.raw`[Aa]rt\. (?<article>${articleNumber})(?:, ${articleNumber})*` +
+  String.raw`(?: alin\. ${alineat}(?:(?:, | și | – |–)${alineat})*)?` +
   String.raw`(?: lit\. ${letter}(?:(?:, | și )${letter})*)?` +
   String.raw`(?:, pct\. \d+)?`;
 const marker = new RegExp(
@@ -107,13 +107,17 @@ export interface Marker {
   length: number;
 }
 
+// The index names an article one way, whatever case and range dash its marker is written with.
+const canonicalLocator = (locator: string) =>
+  locator.replace(/^art\./, 'Art.').replace(/\)–\(/g, ') – (');
+
 export function parseMarker(text: string): Marker | null {
   const match = marker.exec(text);
   if (!match) return null;
   return {
     act: parseAct(match.groups!.act!)!,
     article: match.groups!.article ?? null,
-    locator: match.groups!.locator!,
+    locator: canonicalLocator(match.groups!.locator!),
     length: match[0].length,
   };
 }
