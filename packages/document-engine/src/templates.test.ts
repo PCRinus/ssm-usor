@@ -258,6 +258,33 @@ describe('fire-safety set', () => {
     }
   });
 
+  it('numbers the responsibilities under contracts as an item of decision 1 of its own', () => {
+    const xml = new PizZip(read('fire/1.1_fire_decision_organization.docx'))
+      .file('word/document.xml')!
+      .asText();
+    const numbering = (start: string) => {
+      const paragraph = (xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).find((each) =>
+        documentTextOf(each).startsWith(start)
+      )!;
+      return /<w:ilvl w:val="(\d)"\/><w:numId w:val="(\d+)"\/>/.exec(paragraph)!.slice(1);
+    };
+    const contracts = numbering('Pentru stabilirea răspunderilor');
+    expect(contracts[0]).toBe('0');
+    expect(contracts).toEqual(numbering('Pentru analiza evenimentelor'));
+  });
+
+  it('prints the interval of a staff category in decision 2 only when it has posts', () => {
+    const decision = 'fire/1.2_fire_decision_training.docx';
+    const full = documentText(renderDocument(read(decision), stageTwoData));
+    expect(full).toContain('personalul administrativ (Manager magazin) va fi instruit la 6 LUNI');
+    expect(full).toContain('personalul de execuție (Barman) va fi instruit la 3 LUNI');
+    const sparseText = documentText(
+      renderDocument(read(decision), { ...stageTwoData, fire: sparse })
+    );
+    expect(sparseText).not.toContain('personalul administrativ');
+    expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 LUNI');
+  });
+
   it('names the contractor of the waste, or the contracted firm', () => {
     const decision = 'fire/1.8_fire_decision_waste.docx';
     expect(documentText(renderDocument(read(decision), stageTwoData))).toContain(

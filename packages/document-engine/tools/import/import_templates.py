@@ -1777,6 +1777,14 @@ def import_template(desktop, spec_path, wording, output):
             if count < replacement.get('min', 1):
                 label = replacement.get('find') or f'/{replacement["pattern"]}/'
                 problems.append(f'{label!r} found {count} times, expected at least {replacement.get("min", 1)}')
+        for moved in spec.get('levels', []):
+            # A list item the original nested under the one before it by mistake.
+            items = [element for element, _ in paragraphs(document.Text)
+                     if element.NumberingIsNumber and re.search(moved['pattern'], element.getString())]
+            if not items:
+                problems.append(f'level: no list item matches {moved["pattern"]!r}')
+            for item in items:
+                item.NumberingLevel = moved['level']
         if spec.get('cut'):
             cut_tail(document, spec['cut'])
         if spec.get('append'):

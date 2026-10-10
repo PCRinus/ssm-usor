@@ -293,7 +293,9 @@ A decision's spec may set `articles: true`: every paragraph that opens with a ty
 label ("Art. 3.") or is numbered by a list of the original's own ("Art.3") joins one list
 numbered "Art. %1.", as the other decisions' are, so an article added or deleted in the editor
 leaves no gap and a label the original typed twice is numbered right (the fire-safety decision
-8 had two "Art. 6."). `corrections` are replacements applied after the shared wording pass, for
+8 had two "Art. 6."). `levels` moves the list items matching a `pattern` to a `level`, for one
+the original nested under the item before it by mistake (decision 1's responsibilities under
+contracts, typed as item c) of the item above). `corrections` are replacements applied after the shared wording pass, for
 what its dictionary gets wrong in one document: it makes every "afara" the adverb "afară", also
 in "din afara unității". A paragraph holding only `@@page-break@@` becomes a page break of its
 own when the file is swept; inside a section of a loop it prints a break for some items only,
