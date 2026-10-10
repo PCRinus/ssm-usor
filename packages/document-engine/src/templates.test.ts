@@ -117,11 +117,12 @@ describe('fire-safety set', () => {
     certificate: 'seria A nr. 1234/2024',
     authorization: 'nr. 12 din 15.09.2026, ISU Timiș',
   };
-  const person = { name: 'Ion VLAD', jobTitle: 'Șef magazin' };
+  const person = { name: 'Ion VLAD', jobTitle: 'Șef magazin', jobTitleRunOn: 'șef magazin' };
   const workplace = {
     first: true,
     name: 'Magazin',
     activity: 'Gelaterie',
+    activityRunOn: 'gelaterie',
     address: 'Timișoara, județul Timiș, Str. Lungă 5',
     floorAreaM2: 120,
     normLabel: 'Clădiri comerciale (1 buc./200 m²)',
@@ -130,6 +131,7 @@ describe('fire-safety set', () => {
     ignitionSources: 'Instalația electrică',
     fireRiskEquipment: 'Vitrine frigorifice',
     specificMeasures: 'Vitrinele se opresc noaptea.',
+    specificMeasuresRunOn: 'vitrinele se opresc noaptea.',
     extinguishers: [
       { code: 'P6', agentLabel: 'Pulbere', capacityLabel: '6 kg', wheeled: false, count: 2 },
       { code: 'P50', agentLabel: 'Pulbere', capacityLabel: '50 kg', wheeled: true, count: 1 },
@@ -146,6 +148,7 @@ describe('fire-safety set', () => {
     interventionLeaderName: 'Ion VLAD',
   };
   const fire = {
+    representativeRoleRunOn: 'administrator',
     decisionNumbers: {
       organization: '4 PSI',
       training: '5 PSI',
@@ -161,10 +164,10 @@ describe('fire-safety set', () => {
       periodicHours: 2,
       periodicLabel: '2 ore',
       administrativeIntervalMonths: 6,
-      administrativeIntervalLabel: '6 LUNI',
+      administrativeIntervalLabel: '6 luni',
       administrativeMonths: 'lunile februarie și august',
       workerIntervalMonths: 3,
-      workerIntervalLabel: '3 LUNI',
+      workerIntervalLabel: '3 luni',
       workerMonths: 'lunile februarie, mai, august și noiembrie',
       firstMonth: 2,
       firstMonthLabel: 'februarie',
@@ -242,6 +245,7 @@ describe('fire-safety set', () => {
       {
         ...workplace,
         specificMeasures: '',
+        specificMeasuresRunOn: '',
         otherEquipment: [],
         installations: [],
         hasInstallations: false,
@@ -360,13 +364,13 @@ describe('fire-safety set', () => {
   it('prints the interval of a staff category in decision 2 only when it has posts', () => {
     const decision = 'fire/1.2_fire_decision_training.docx';
     const full = documentText(renderDocument(read(decision), stageTwoData));
-    expect(full).toContain('personalul administrativ (Manager magazin) va fi instruit la 6 LUNI');
-    expect(full).toContain('personalul de execuție (Barman) va fi instruit la 3 LUNI');
+    expect(full).toContain('personalul administrativ (Manager magazin) va fi instruit la 6 luni');
+    expect(full).toContain('personalul de execuție (Barman) va fi instruit la 3 luni');
     const sparseText = documentText(
       renderDocument(read(decision), { ...stageTwoData, fire: sparse })
     );
     expect(sparseText).not.toContain('personalul administrativ');
-    expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 LUNI');
+    expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 luni');
   });
 
   it('names the contractor of the waste, or the contracted firm', () => {
@@ -422,12 +426,12 @@ describe('fire-safety set', () => {
     const decision = 'fire/1.6_fire_decision_technician.docx';
     const text = documentText(renderDocument(read(decision), stageTwoData));
     expect(text).toContain(
-      'de Dan MARIN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, certificat seria A nr. 1234/2024'
+      'de Dan MARIN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, titular al certificatului seria A nr. 1234/2024'
     );
     expect(text).toContain(
       'prin autorizația nr. 12 din 15.09.2026, ISU Timiș, pentru îndeplinirea atribuțiilor'
     );
-    expect(text).toContain('(Preluare din Legea 307/2006 – Art. 27 alin. (1))');
+    expect(text).toContain('(Preluare din Legea 307/2006 – art. 27 alin. (1))');
     for (const letter of 'abcdefghijklm')
       expect(text).toMatch(new RegExp(`^${letter}\\) \\S`, 'm'));
     const unauthorized = documentText(
@@ -462,16 +466,16 @@ describe('fire-safety set', () => {
     expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(2);
     expect(text).toContain('Anexă la Decizia nr. 10 PSI din 19.01.2026');
     expect(text).toMatch(
-      /^Locul de muncă: Depozit, Gelaterie\nAdresa: Timișoara, județul Timiș, Str. Lungă 5$/m
+      /^Locul de muncă: Depozit \(gelaterie\)\nAdresa: Timișoara, județul Timiș, Str. Lungă 5$/m
     );
     expect(text).toContain('Stingător tip P50 – Pulbere, 50 kg, carosabil: 1 buc.;');
     expect(text).toMatch(/^P50\nPulbere\n50 kg, carosabil\n1$/m);
     expect(text).toMatch(/^Total\n3$/m);
     expect(text).toContain(
-      'personalul de execuție la 3 LUNI, respectiv în lunile februarie, mai, august și noiembrie, conform Deciziei nr. 5 PSI;'
+      'personalul de execuție la 3 luni, respectiv în lunile februarie, mai, august și noiembrie, conform Deciziei nr. 5 PSI;'
     );
     expect(text).toContain('redate în Decizia nr. 9 PSI.');
-    expect(text).toContain('(Preluare din Legea 307/2006 – Art. 19 alin. (1))');
+    expect(text).toContain('(Preluare din Legea 307/2006 – art. 19 alin. (1))');
     expect(text).toMatch(/^r¹⁶\)/m);
     expect(text).toContain(
       'Fumatul este permis numai în locurile amenajate în exteriorul clădirilor (în curtea interioară)'
@@ -567,7 +571,7 @@ describe('fire-safety set', () => {
     expect(text.match(/^Capitolul [IVX]+\. /gm)).toHaveLength(23);
     expect(text).toMatch(/^XXII\. Stingătoarele de incendiu$/m);
     expect(text).toContain('(Preluare din OMAI 135/2023 – Anexa 1)');
-    expect(text).toContain('(Preluare din OMAI 712/2005 – Art. 21) Instructajul periodic');
+    expect(text).toContain('(Preluare din OMAI 712/2005 – art. 21) Instructajul periodic');
     expect(text).toContain('pe o durată de cel puțin două ore');
     expect(text).toContain(
       'testul de verificare a cunoștințelor privind situațiile de urgență la angajare'
@@ -616,7 +620,7 @@ describe('fire-safety set', () => {
     const plans = text.split('TIMP TOTAL DE INSTRUIRE').slice(0, -1);
     expect(plans).toHaveLength(2);
     for (const plan of plans) {
-      const rows = plan.slice(plan.lastIndexOf('Planul de desfășurare'));
+      const rows = plan.slice(plan.lastIndexOf('Durata'));
       const minutes = [...rows.matchAll(/^(\d+) min$/gm)].map(([, value]) => Number(value));
       expect(minutes.reduce((sum, value) => sum + value, 0)).toBe(480);
       expect(rows).toContain('PAUZA');
@@ -626,8 +630,8 @@ describe('fire-safety set', () => {
   });
 
   it.each([
-    ['fire/4.1_fire_test_hiring.docx', 12, 'A'],
-    ['fire/4.2_fire_test_annual.docx', 10, 'A'],
+    ['fire/4.1_fire_test_hiring.docx', 12, 'a'],
+    ['fire/4.2_fire_test_annual.docx', 10, 'a'],
   ])(
     '%s asks %i questions, one row per question on the sheet and in the key',
     (name, count, last) => {
@@ -635,10 +639,13 @@ describe('fire-safety set', () => {
       expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
       expect(text).toMatch(new RegExp(`^${count}\\. `, 'm'));
       expect(text).not.toMatch(new RegExp(`^${count + 1}\\. `, 'm'));
-      const sheet = text.slice(text.indexOf('Răspunsul acordat'), text.lastIndexOf('TESTARE'));
+      const sheet = text.slice(
+        text.indexOf('Răspunsul dat'),
+        text.lastIndexOf('TEST DE VERIFICARE')
+      );
       expect(sheet.match(/^\d+$/gm)).toHaveLength(count);
       const key = text.slice(text.indexOf('Răspunsul corect'));
-      expect(key.match(/^\d+\n[A-D]+$/gm)).toHaveLength(count);
+      expect(key.match(/^\d+\n[a-d](?:, [a-d])*$/gm)).toHaveLength(count);
       expect(key).toMatch(new RegExp(`^${count}\\n${last}$`, 'm'));
       for (const gone of [
         'funcții de execuție sau operative',

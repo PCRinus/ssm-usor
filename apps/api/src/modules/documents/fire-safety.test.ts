@@ -253,10 +253,10 @@ describe('the fire-safety context', () => {
       periodicHours: 2,
       periodicLabel: '2 ore',
       administrativeIntervalMonths: 6,
-      administrativeIntervalLabel: '6 LUNI',
+      administrativeIntervalLabel: '6 luni',
       administrativeMonths: 'lunile februarie și august',
       workerIntervalMonths: 3,
-      workerIntervalLabel: '3 LUNI',
+      workerIntervalLabel: '3 luni',
       workerMonths: 'lunile februarie, mai, august și noiembrie',
       firstMonth: 2,
       firstMonthLabel: 'februarie',
@@ -271,7 +271,7 @@ describe('the fire-safety context', () => {
       })
     ).fire.schedule;
     expect(monthly.periodicLabel).toBe('1 oră');
-    expect(monthly.workerIntervalLabel).toBe('1 LUNĂ');
+    expect(monthly.workerIntervalLabel).toBe('1 lună');
     expect(monthly.administrativeMonths).toBe('lunile iunie și decembrie');
   });
 
@@ -293,13 +293,41 @@ describe('the fire-safety context', () => {
     expect(staff.executionText).toBe('Contabil, Sudor');
   });
 
+  it("words the representative's role and the job titles as they read inside a sentence", () => {
+    const fire = buildFireSafetyContext(facts).fire;
+    expect(fire.representativeRoleRunOn).toBe('administrator');
+    expect(fire.coordinator.jobTitleRunOn).toBe('administrator');
+    expect(fire.designated).toEqual([
+      { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' },
+      { name: 'Ioana PETRE', jobTitle: 'Șef de echipă' },
+    ]);
+  });
+
   it('names the coordinator, the leader and the workplace managers, each once', () => {
     const fire = buildFireSafetyContext(facts).fire;
-    expect(fire.coordinator).toEqual({ name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' });
-    expect(fire.interventionLeader).toEqual({ name: 'Ioana PETRE', jobTitle: 'Șef de echipă' });
+    expect(fire.coordinator).toEqual({
+      name: 'Florin Cristian TALOȘ',
+      jobTitle: 'Administrator',
+      jobTitleRunOn: 'administrator',
+    });
+    expect(fire.interventionLeader).toEqual({
+      name: 'Ioana PETRE',
+      jobTitle: 'Șef de echipă',
+      jobTitleRunOn: 'șef de echipă',
+    });
     expect(fire.workplaceManagers).toEqual([
-      { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator', workplaceName: null },
-      { name: 'Ioana PETRE', jobTitle: 'Șef de echipă', workplaceName: 'Atelier Ghiroda' },
+      {
+        name: 'Florin Cristian TALOȘ',
+        jobTitle: 'Administrator',
+        jobTitleRunOn: 'administrator',
+        workplaceName: null,
+      },
+      {
+        name: 'Ioana PETRE',
+        jobTitle: 'Șef de echipă',
+        jobTitleRunOn: 'șef de echipă',
+        workplaceName: 'Atelier Ghiroda',
+      },
     ]);
     expect(fire.designated).toEqual([
       { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' },
@@ -341,11 +369,13 @@ describe('the fire-safety context', () => {
       first: true,
       name: 'Atelier Ghiroda',
       activity: 'Atelier de sudură',
+      activityRunOn: 'atelier de sudură',
       address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
       floorAreaM2: 420,
       normLabel: 'Alte amenajări (1 buc./150 m²)',
       assemblyPoint: 'Parcarea din fața atelierului',
       specificMeasures: 'Sudura numai cu permis de lucru cu foc.',
+      specificMeasuresRunOn: 'sudura numai cu permis de lucru cu foc.',
       installations: [{ kindLabel: 'Hidranți exteriori', description: 'Doi hidranți în curte' }],
       hasInstallations: true,
       hasExteriorHydrants: true,
@@ -436,10 +466,10 @@ describe('the fire-safety context', () => {
   it('gives the training themes a block per staff category with posts, and a session per month of its schedule', () => {
     const ipsu = (sessions: number) =>
       dealChapters(fireOwnInstructionsChapters, sessions).map(
-        ({ from, to }) => `IPSU Art.\u00a0${from}\u00a0–\u00a0${to}`
+        ({ from, to }) => `IPSU art.\u00a0${from}–${to}`
       );
     const posted =
-      'Instrucțiunile afișate la locul de muncă, Decizia nr.\u00a011 PSI; Organizarea apărării împotriva incendiilor la locul de muncă';
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a011 PSI); organizarea apărării împotriva incendiilor la locul de muncă';
     const managers = 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă';
     const administrative = ipsu(2);
     const execution = ipsu(4);
@@ -456,7 +486,7 @@ describe('the fire-safety context', () => {
           { month: 'FEBRUARIE', content: `${administrative[0]}; ${posted}`, duration: '120 min' },
           {
             month: 'AUGUST',
-            content: `${administrative[1]}; ${posted}; Testare.`,
+            content: `${administrative[1]}; ${posted}; testare.`,
             duration: '120 min',
           },
         ],
@@ -471,7 +501,7 @@ describe('the fire-safety context', () => {
         intervalLabel: '3 LUNI',
         sessions: ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE'].map((month, index) => ({
           month,
-          content: `${execution[index]}; ${posted}${index === 3 ? '; Testare.' : ''}`,
+          content: `${execution[index]}; ${posted}${index === 3 ? '; testare.' : ''}`,
           duration: '120 min',
         })),
       },
@@ -508,7 +538,7 @@ describe('the fire-safety context', () => {
     });
     expect(themes[0]!.sessions).toHaveLength(12);
     expect(themes[0]!.sessions.every((session) => session.duration === '180 min')).toBe(true);
-    expect(themes[0]!.sessions.filter((session) => session.content.endsWith('Testare.'))).toEqual([
+    expect(themes[0]!.sessions.filter((session) => session.content.endsWith('testare.'))).toEqual([
       themes[0]!.sessions[11],
     ]);
   });

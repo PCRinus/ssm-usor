@@ -87,6 +87,13 @@ describe('the marker of a quoted article', () => {
     ],
     ['(Preluare din H.G. 767/2016 – Art. II, pct. 1)', 'hg-767-2016', 'II', 'Art. II, pct. 1'],
     ['(Preluare din H.G. 971/2006 – Anexa 2)', 'hg-971-2006', null, 'Anexa 2'],
+    ['(Preluare din Legea 307/2006 – art. 22)', 'lege-307-2006', '22', 'Art. 22'],
+    [
+      '(Preluare din Legea 307/2006 – art. 6 alin. (1)–(3))',
+      'lege-307-2006',
+      '6',
+      'Art. 6 alin. (1) – (3)',
+    ],
   ])('%s', (text, act, article, locator) => {
     const marker = parseMarker(`${text} Textul articolului.`);
     expect(marker).toMatchObject({ act: { id: act }, article, locator, length: text.length });

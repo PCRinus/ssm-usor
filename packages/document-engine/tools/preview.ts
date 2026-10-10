@@ -16,7 +16,13 @@ const [templatesArgument = 'templates', outputArgument = 'originals/preview'] =
 const templates = `${root}${templatesArgument}/`;
 const output = `${root}${outputArgument}/`;
 
-const person = (name: string, jobTitle: string) => ({ name, jobTitle });
+const runOn = (text: string) =>
+  /^.\p{Ll}/u.test(text) ? text[0]!.toLocaleLowerCase('ro') + text.slice(1) : text;
+const person = (name: string, jobTitle: string) => ({
+  name,
+  jobTitle,
+  jobTitleRunOn: runOn(jobTitle),
+});
 const listed = (items: string[]) =>
   items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
 const described = (people: { name: string; jobTitle: string }[]) => {
@@ -121,6 +127,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     first: true,
     name,
     activity,
+    activityRunOn: runOn(activity),
     address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
     floorAreaM2: 180,
     normLabel: 'Clădiri comerciale (1 buc./200 m²)',
@@ -129,6 +136,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     ignitionSources: 'Instalația electrică, aparatele electrice de încălzire.',
     fireRiskEquipment: 'Vitrine frigorifice, casa de marcat, aparate de cafea.',
     specificMeasures: '',
+    specificMeasuresRunOn: '',
     extinguishers: [
       { code: 'P6', agentLabel: 'Pulbere', capacityLabel: '6\u00a0kg', wheeled: false, count: 2 },
       {
@@ -159,6 +167,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           floorAreaM2: 1250,
           normLabel: 'Alte amenajări (1 buc./150 m²)',
           specificMeasures: 'Stivuirea ambalajelor la cel puțin 1 m de corpurile de iluminat.',
+          specificMeasuresRunOn: 'stivuirea ambalajelor la cel puțin 1 m de corpurile de iluminat.',
           extinguishers: [
             {
               code: 'P6',
@@ -209,6 +218,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
       ]
     : [workplace('Punct de lucru', 'Gelaterie')];
   return {
+    representativeRoleRunOn: 'administrator',
     decisionNumbers: {
       organization: '1 PSI',
       training: '2 PSI',
@@ -224,10 +234,10 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
       periodicHours: 2,
       periodicLabel: '2\u00a0ore',
       administrativeIntervalMonths: 3,
-      administrativeIntervalLabel: '3 LUNI',
+      administrativeIntervalLabel: '3 luni',
       administrativeMonths: 'lunile februarie, mai, august și noiembrie',
       workerIntervalMonths: long ? 1 : 3,
-      workerIntervalLabel: long ? '1 LUNĂ' : '3 LUNI',
+      workerIntervalLabel: long ? '1 lună' : '3 luni',
       workerMonths: long
         ? 'lunile ianuarie, februarie, martie, aprilie, mai, iunie, iulie, august, septembrie, octombrie, noiembrie și decembrie'
         : 'lunile februarie, mai, august și noiembrie',

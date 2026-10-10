@@ -92,8 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.2_general_training_material.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor („Art. N.”, numerele și literele) au mărimea textului, nu mai mici, iar liniuțele sunt tipărite ca în celelalte documente: „–”, neîngroșat."
+        "kind": "correction",
+        "note": "Ghilimeaua de închidere din „în centrul pieptului” este cea românească, ca în restul documentului."
       }
     },
     {
@@ -116,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.2_own_instructions.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor („Art. N.”, numerele, literele și liniuțele) au mărimea textului, nu mai mici, iar liniuțele sunt tipărite ca în celelalte documente: „–”, neîngroșat."
+        "kind": "correction",
+        "note": "Primul ajutor: ghilimelele de închidere „…”, o paranteză în plus la „lit. g)” scoasă, acordul („corpuri străine”), lista de folosire a defibrilatorului cu literă mică și punct și virgulă, și formulări mai clare (înecare, șoc, compresă rece, șoc termic, intoxicație, ce nu face salvatorul)."
       }
     },
     {

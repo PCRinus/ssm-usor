@@ -15,7 +15,7 @@
         "Modul de reglementare a lucrărilor în timpul sezonului rece și în perioadele caniculare și secetoase;",
         "Numirea cadrului tehnic cu atribuții în domeniul apărării împotriva incendiilor;",
         "Instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă;",
-        "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și distrugerea acestora;",
+        "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și de distrugere a acestora;",
         "Controlul propriu al respectării normelor, dispozițiilor și măsurilor de apărare împotriva incendiilor."
       ]
     },
@@ -29,7 +29,7 @@
     {
       "number": "3.0",
       "typeKey": "fire_cover_training_themes",
-      "title": "TEMATICA DE INSTRUIRE PENTRU TOATE FAZELE DE INSTRUIRE ȘI PROGRAMUL DE INSTRUIRE – TESTARE LA NIVELUL UNITĂȚII ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",
+      "title": "TEMATICA DE INSTRUIRE PENTRU TOATE FAZELE DE INSTRUIRE ȘI PROGRAMUL DE INSTRUIRE-TESTARE LA NIVELUL UNITĂȚII ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ",
       "subtitle": "pentru",
       "intro": {
         "lead": "Tematica de instruire este adaptată fiecărei categorii de salariați și se structurează de regulă astfel:",
@@ -70,8 +70,8 @@
     }
   ],
   "handover": {
-    "heading": "PERSOANE IMPLICATE ÎN PROCESUL DE PREDARE / PRIMIRE A DOCUMENTULUI",
-    "client": ["Am luat la cunoștință", "Am primit un exemplar", "Aprob documentul"],
+    "heading": "PERSOANE IMPLICATE ÎN PROCESUL DE PREDARE-PRIMIRE A DOCUMENTULUI",
+    "client": ["Am luat cunoștință", "Am primit un exemplar", "Aprob documentul"],
     "provider": ["Am întocmit documentul", "Am informat angajatorul", "Am predat un exemplar"],
     "date": "Data: ____________________",
     "signer": {

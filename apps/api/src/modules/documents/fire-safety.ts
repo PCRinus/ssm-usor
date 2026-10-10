@@ -21,10 +21,9 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf, listed } from '../../lib/romanian';
+import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { type DocumentFacts, months, printedDate } from './context';
 import {
-  articles,
   dealChapters,
   fireOwnInstructionsChapters,
   monthNames,
@@ -74,24 +73,32 @@ export type FireSafetyClientFacts = {
   installations: { workplaceId: string; kind: FireInstallationKind; description: string | null }[];
 };
 
-type Person = { name: string; jobTitle: string };
+type Person = {
+  name: string;
+  jobTitle: string;
+  /** "mecanic auto": the job title inside a sentence, where a table cell prints `jobTitle`. */
+  jobTitleRunOn: string;
+};
 
 type FireWorkplaceContext = {
   /** The posted sheet opens a page for every workplace but the first. */
   first: boolean;
   name: string;
   activity: string;
+  activityRunOn: string;
   /** The printed address, or a dash. */
   address: string;
   floorAreaM2: number;
   /** "Clădiri comerciale (1 buc./200 m²)". */
   normLabel: string;
   assemblyPoint: string;
+  /** The three texts of section I end without a stop: the posted instructions list them as items. */
   combustibleMaterials: string;
   ignitionSources: string;
   fireRiskEquipment: string;
   /** Empty when not set: the posted sheet leaves point I.5 to be written in. */
   specificMeasures: string;
+  specificMeasuresRunOn: string;
   extinguishers: {
     code: string;
     agentLabel: string;
@@ -146,7 +153,7 @@ export type FireContext = {
     /** "2 ore". */
     periodicLabel: string;
     administrativeIntervalMonths: number;
-    /** "3 LUNI", as the provider's decisions print it. */
+    /** "3 luni". */
     administrativeIntervalLabel: string;
     /** "lunile februarie, mai, august și noiembrie". */
     administrativeMonths: string;
@@ -167,11 +174,13 @@ export type FireContext = {
     administrativeText: string | null;
     executionText: string | null;
   };
+  /** "administrator": the client's representative's role inside a sentence. */
+  representativeRoleRunOn: string;
   coordinator: Person;
   interventionLeader: Person;
   workplaceManagers: (Person & { workplaceName: string | null })[];
   /** Each person once, for the acknowledgement tables. */
-  designated: Person[];
+  designated: Pick<Person, 'name' | 'jobTitle'>[];
   workplaces: FireWorkplaceContext[];
   hasExteriorHydrants: boolean;
   /** Some active workplace has a CO₂ or clean-agent extinguisher, which is weighed. */
@@ -425,6 +434,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
   const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
     name: person.fullName.trim(),
     jobTitle: person.jobTitle.trim(),
+    jobTitleRunOn: runOn(person.jobTitle.trim()),
   });
   const holding = (role: ResponsiblePersonRole) =>
     facts.responsiblePersons.filter((person) => person.roles.includes(role));
@@ -439,7 +449,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       facts.workplaces.find((workplace) => workplace.id === person.workplaceId)?.name.trim() ??
       null,
   }));
-  const designated: Person[] = [];
+  const designated: FireContext['designated'] = [];
   for (const person of [coordinator, interventionLeader, ...workplaceManagers]) {
     if (!designated.some((each) => samePersonName(each.name, person.name))) {
       designated.push({ name: person.name, jobTitle: person.jobTitle });
@@ -504,14 +514,16 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       first: index === 0,
       name: workplace.name.trim(),
       activity: workplace.activity!.trim(),
+      activityRunOn: runOn(workplace.activity!.trim()),
       address: printedAddress(workplace) || '—',
       floorAreaM2: workplace.floorAreaM2!,
       normLabel: `${norm.label} (${norm.rate})`,
       assemblyPoint: workplace.assemblyPoint!.trim(),
-      combustibleMaterials: workplace.combustibleMaterials!.trim(),
-      ignitionSources: workplace.ignitionSources!.trim(),
-      fireRiskEquipment: workplace.fireRiskEquipment!.trim(),
+      combustibleMaterials: withoutFinalStop(workplace.combustibleMaterials!.trim()),
+      ignitionSources: withoutFinalStop(workplace.ignitionSources!.trim()),
+      fireRiskEquipment: withoutFinalStop(workplace.fireRiskEquipment!.trim()),
       specificMeasures: workplace.specificMeasures?.trim() ?? '',
+      specificMeasuresRunOn: runOn(workplace.specificMeasures?.trim() ?? ''),
       extinguishers,
       extinguisherCount: extinguishers.reduce((total, group) => total + group.count, 0),
       otherEquipment: otherEquipmentGroups(units),
@@ -534,17 +546,22 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
 
   return {
     decisionNumbers,
+    representativeRoleRunOn: runOn(facts.client.representativeRole?.trim() ?? ''),
     schedule: {
       periodicHours: card.periodicTrainingHours!,
       periodicLabel: countOf(card.periodicTrainingHours!, 'oră', 'ore').replace(' ', '\u00a0'),
       administrativeIntervalMonths: card.administrativeTrainingIntervalMonths!,
-      administrativeIntervalLabel: themeIntervalLabel(card.administrativeTrainingIntervalMonths),
+      administrativeIntervalLabel: countOf(
+        card.administrativeTrainingIntervalMonths!,
+        'lună',
+        'luni'
+      ),
       administrativeMonths: months(
         card.trainingFirstMonth!,
         card.administrativeTrainingIntervalMonths!
       ),
       workerIntervalMonths: card.workerTrainingIntervalMonths!,
-      workerIntervalLabel: themeIntervalLabel(card.workerTrainingIntervalMonths),
+      workerIntervalLabel: countOf(card.workerTrainingIntervalMonths!, 'lună', 'luni'),
       workerMonths: months(card.trainingFirstMonth!, card.workerTrainingIntervalMonths!),
       firstMonth: card.trainingFirstMonth!,
       firstMonthLabel: monthNames[card.trainingFirstMonth! - 1]!,
@@ -641,10 +658,10 @@ function fireThemes({
           return {
             month: monthNames[month - 1]!.toLocaleUpperCase('ro'),
             content: [
-              `IPSU ${articles(range.from, range.to)}`,
-              `Instrucțiunile afișate la locul de muncă, Decizia nr.\u00a0${instructionsDecision}`,
-              'Organizarea apărării împotriva incendiilor la locul de muncă',
-              ...(index === sessionMonths.length - 1 ? ['Testare.'] : []),
+              `IPSU art.\u00a0${range.from}–${range.to}`,
+              `instrucțiunile afișate la locul de muncă (Decizia nr.\u00a0${instructionsDecision})`,
+              'organizarea apărării împotriva incendiilor la locul de muncă',
+              ...(index === sessionMonths.length - 1 ? ['testare.'] : []),
             ].join('; '),
             duration: `${periodicMinutes} min`,
           };

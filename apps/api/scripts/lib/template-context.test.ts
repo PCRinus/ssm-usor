@@ -868,14 +868,14 @@ describe('the fire-safety templates', () => {
     expect(means).toContain('Ladă cu nisip');
     expect(means).toContain('Lista dotării cu accesorii pentru trecerea apei');
     const sheet = documentText(renderDocument(file('fire_workplace_organization'), data));
-    expect(sheet).toContain('Locul de muncă: Atelier Ghiroda, Atelier de sudură');
-    expect(sheet).toContain('– stingătoare: Ioana PETRE și Florin Cristian TALOȘ');
-    expect(sheet).toContain('– hidranți interiori: Florin Cristian TALOȘ');
+    expect(sheet).toContain('Locul de muncă: Atelier Ghiroda (atelier de sudură)');
+    expect(sheet).toContain('– stingătoare: Ioana PETRE și Florin Cristian TALOȘ;');
+    expect(sheet).toContain('– hidranți interiori: Florin Cristian TALOȘ;');
     const seasons = documentText(renderDocument(file('fire_decision_seasons'), data));
-    expect(seasons).toContain('Atelier Ghiroda, Atelier de sudură;\nSediul social, Birouri;');
+    expect(seasons).toContain('Atelier Ghiroda (atelier de sudură);\nSediul social (birouri);');
     const training = documentText(renderDocument(file('fire_decision_training'), data));
     expect(training).toContain(
-      'personalul administrativ (Contabil) va fi instruit la 6 LUNI, respectiv în lunile februarie și august, în perioada (zilele) 2 – 7 ale lunii;'
+      'personalul administrativ (Contabil) va fi instruit la 6 luni, respectiv în lunile februarie și august, între zilele 2 și 7 ale lunii;'
     );
   });
 
@@ -897,7 +897,7 @@ describe('the fire-safety templates', () => {
       'prin autorizația nr. 12 din 15.09.2026, ISU Timiș, pentru îndeplinirea atribuțiilor'
     );
     expect(technician).toContain(
-      'de Radu STAN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, certificat CT 1234/2024'
+      'de Radu STAN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, titular al certificatului CT 1234/2024'
     );
     expect(
       documentText(renderDocument(file('fire_decision_technician'), fewestData))
@@ -930,7 +930,7 @@ describe('the fire-safety templates', () => {
     expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(
       facts.workplaces.length
     );
-    expect(text).toContain('Locul de muncă: Atelier Ghiroda, Atelier de sudură');
+    expect(text).toContain('Locul de muncă: Atelier Ghiroda (atelier de sudură)');
     expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
     expect(text).toContain('Ladă cu nisip: 1 buc.;');
     expect(text).toContain('redate în Decizia nr. 10 PSI.');
@@ -953,9 +953,7 @@ describe('the fire-safety templates', () => {
     expect(text).toContain(
       'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
     );
-    expect(text).toMatch(
-      /^NOIEMBRIE\nIPSU Art\.\u00a0236\u00a0–\u00a0257; .+; Testare\.\n120 min$/m
-    );
+    expect(text).toMatch(/^NOIEMBRIE\nIPSU art\.\u00a0236–257; .+; testare\.\n120 min$/m);
   });
 
   const fireGaps: [string, DocumentFacts][] = [
