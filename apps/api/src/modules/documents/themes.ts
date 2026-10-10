@@ -16,13 +16,12 @@ export const generalTrainingChapters: ChapterStructure = {
   articleCount: 325,
 };
 
-// Provisional until the IPSU's template is imported (ADR 019): the sample's chapters that ADR
-// keeps, renumbered, without the new chapter on extinguishers, whose articles are not written yet.
 export const fireOwnInstructionsChapters: ChapterStructure = {
   chapterStarts: [
-    1, 7, 14, 47, 52, 55, 60, 71, 84, 95, 97, 104, 105, 112, 119, 123, 126, 145, 160, 164, 165, 169,
+    1, 7, 15, 65, 70, 74, 77, 92, 105, 119, 121, 130, 131, 140, 147, 150, 153, 215, 236, 241, 242,
+    246, 253,
   ],
-  articleCount: 173,
+  articleCount: 257,
 };
 
 export const monthNames = [

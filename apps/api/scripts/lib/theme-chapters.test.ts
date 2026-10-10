@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
@@ -64,16 +64,12 @@ describe('the chapters the training themes cite', () => {
     });
   });
 
-  // The fire-safety training themes deal its chapters from provisional starts until it exists.
-  it.skipIf(!existsSync(new URL(fireOwnInstructions, templatesUrl)))(
-    'fall where the fire-safety own instructions template has them',
-    () => {
-      expect(articlesByChapter(fireOwnInstructions)).toEqual({
-        chapterStarts: [...fireOwnInstructionsChapters.chapterStarts],
-        total: fireOwnInstructionsChapters.articleCount,
-      });
-    }
-  );
+  it('fall where the fire-safety own instructions template has them', () => {
+    expect(articlesByChapter(fireOwnInstructions)).toEqual({
+      chapterStarts: [...fireOwnInstructionsChapters.chapterStarts],
+      total: fireOwnInstructionsChapters.articleCount,
+    });
+  });
 
   it('are the ranges the training themes template prints', () => {
     const text = documentXml('4.2_training_themes.docx')
