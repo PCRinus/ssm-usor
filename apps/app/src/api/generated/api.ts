@@ -3722,8 +3722,11 @@ export const StartRegenerationRequestTypeKey = {
   fire_decision_organization: 'fire_decision_organization',
   fire_decision_training: 'fire_decision_training',
   fire_decision_open_fire: 'fire_decision_open_fire',
+  fire_decision_smoking: 'fire_decision_smoking',
   fire_decision_seasons: 'fire_decision_seasons',
+  fire_decision_technician: 'fire_decision_technician',
   fire_decision_waste: 'fire_decision_waste',
+  fire_decision_control: 'fire_decision_control',
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
   fire_cover_registers: 'fire_cover_registers',
@@ -18119,8 +18122,11 @@ export const getUploadClientDocumentUrl = (
     | 'fire_decision_organization'
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
+    | 'fire_decision_smoking'
     | 'fire_decision_seasons'
+    | 'fire_decision_technician'
     | 'fire_decision_waste'
+    | 'fire_decision_control'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
@@ -18167,8 +18173,11 @@ export const uploadClientDocument = async (
     | 'fire_decision_organization'
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
+    | 'fire_decision_smoking'
     | 'fire_decision_seasons'
+    | 'fire_decision_technician'
     | 'fire_decision_waste'
+    | 'fire_decision_control'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'
@@ -18283,8 +18292,11 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_decision_organization'
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
+    | 'fire_decision_smoking'
     | 'fire_decision_seasons'
+    | 'fire_decision_technician'
     | 'fire_decision_waste'
+    | 'fire_decision_control'
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_cover_registers'

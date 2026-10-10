@@ -46,8 +46,11 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_decision_organization',
   'fire_decision_training',
   'fire_decision_open_fire',
+  'fire_decision_smoking',
   'fire_decision_seasons',
+  'fire_decision_technician',
   'fire_decision_waste',
+  'fire_decision_control',
   'fire_means_list',
   'fire_workplace_organization',
   'fire_cover_registers',
@@ -121,8 +124,11 @@ export const fireDecisionTypeKeys = {
   organization: 'fire_decision_organization',
   training: 'fire_decision_training',
   openFire: 'fire_decision_open_fire',
+  smoking: 'fire_decision_smoking',
   seasons: 'fire_decision_seasons',
+  technician: 'fire_decision_technician',
   waste: 'fire_decision_waste',
+  control: 'fire_decision_control',
   // Only the decisions built so far: a type key joins the set with its template (ADR 019).
 } as const satisfies Partial<Record<FireDecision, FireSafetyDocumentTypeKey>>;
 

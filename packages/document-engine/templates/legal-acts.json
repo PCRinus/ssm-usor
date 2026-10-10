@@ -46,6 +46,15 @@
       "portalId": 36905
     },
     {
+      "id": "lege-349-2002",
+      "kind": "lege",
+      "number": "349",
+      "year": 2002,
+      "name": "Legea 349/2002",
+      "title": "Legea nr. 349 din 6 iunie 2002 pentru prevenirea și combaterea efectelor consumului produselor din tutun",
+      "portalId": 36778
+    },
+    {
       "id": "lege-363-2002",
       "kind": "lege",
       "number": "363",
@@ -485,6 +494,15 @@
       "name": "OMAI 166/2010",
       "title": "Ordinul ministrului administrației și internelor nr. 166 din 27 iulie 2010 pentru aprobarea Dispozițiilor generale privind apărarea împotriva incendiilor la construcții și instalațiile aferente",
       "portalId": 121291
+    },
+    {
+      "id": "omai-135-2023",
+      "kind": "omai",
+      "number": "135",
+      "year": 2023,
+      "name": "OMAI 135/2023",
+      "title": "Ordinul ministrului afacerilor interne nr. 135 din 30 august 2023 pentru aprobarea Normelor tehnice privind utilizarea, verificarea, reîncărcarea, repararea și scoaterea din uz a stingătoarelor de incendiu",
+      "portalId": 274213
     }
   ]
 }

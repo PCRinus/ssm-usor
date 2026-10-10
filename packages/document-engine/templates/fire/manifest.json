@@ -49,6 +49,18 @@
       }
     },
     {
+      "number": "1.4",
+      "originals": ["1.4._Decizia_4_P.S.I._-_Privind_fumatul"],
+      "stage": 3,
+      "typeKey": "fire_decision_smoking",
+      "title": "Decizia privind fumatul",
+      "file": "1.4_fire_decision_smoking.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "1.5",
       "originals": ["1.5._Decizia_5_P.S.I._-_Perioada_caniculara"],
       "stage": 2,
@@ -61,12 +73,36 @@
       }
     },
     {
+      "number": "1.6",
+      "originals": ["1.6._Decizia_6_P.S.I._-_Numire_cadru_tehnic"],
+      "stage": 3,
+      "typeKey": "fire_decision_technician",
+      "title": "Decizia privind cadrul tehnic PSI",
+      "file": "1.6_fire_decision_technician.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "1.8",
       "originals": ["1.8._Decizia_8_P.S.I._-_Deseuri"],
       "stage": 2,
       "typeKey": "fire_decision_waste",
       "title": "Decizia privind colectarea deșeurilor",
       "file": "1.8_fire_decision_waste.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
+      "number": "1.9",
+      "originals": ["1.9._Decizia_9_P.S.I._-_Controlul_intern"],
+      "stage": 3,
+      "typeKey": "fire_decision_control",
+      "title": "Decizia privind controlul propriu",
+      "file": "1.9_fire_decision_control.docx",
       "change": {
         "kind": "correction",
         "note": "Versiunea inițială."
@@ -93,7 +129,7 @@
       "file": "5.2_fire_workplace_organization.docx",
       "change": {
         "kind": "correction",
-        "note": "Versiunea inițială."
+        "note": "Măsurile generale spun regula fumatului stabilită pentru client și trimit la decizia privind fumatul."
       }
     },
     {

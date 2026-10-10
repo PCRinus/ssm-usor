@@ -839,8 +839,11 @@ describe('the fire-safety templates', () => {
       fire_decision_organization: '5 PSI',
       fire_decision_training: '6 PSI',
       fire_decision_open_fire: '7 PSI',
+      fire_decision_smoking: '8 PSI',
       fire_decision_seasons: '9 PSI',
+      fire_decision_technician: '10 PSI',
       fire_decision_waste: '12 PSI',
+      fire_decision_control: '13 PSI',
     };
     for (const [typeKey, number] of Object.entries(numbers)) {
       const entry = fireManifest.templates.find((each) => each.typeKey === typeKey)!;
@@ -872,6 +875,46 @@ describe('the fire-safety templates', () => {
     const training = documentText(renderDocument(file('fire_decision_training'), data));
     expect(training).toContain(
       'personalul administrativ (Contabil) va fi instruit la 6 LUNI, respectiv în lunile februarie și august, în perioada (zilele) 2 – 7 ale lunii;'
+    );
+  });
+
+  it('print the smoking rule, the technician appointed and the controls of the client', () => {
+    const file = (typeKey: string) =>
+      readFileSync(
+        new URL(fireManifest.templates.find((each) => each.typeKey === typeKey)!.file, fireUrl)
+      );
+    const data = { ...buildFireSafetyContext(facts) };
+    const fewestData = { ...buildFireSafetyContext(fewest) };
+    expect(documentText(renderDocument(file('fire_decision_smoking'), data))).toContain(
+      'în exteriorul clădirilor, în curtea interioară, lângă poarta de acces auto, marcate cu indicatorul „LOC PENTRU FUMAT”'
+    );
+    expect(documentText(renderDocument(file('fire_workplace_organization'), fewestData))).toContain(
+      '– fumatul este permis numai în exteriorul clădirilor, în locurile amenajate și marcate „LOC PENTRU FUMAT”, conform Deciziei nr. 8 PSI;'
+    );
+    const technician = documentText(renderDocument(file('fire_decision_technician'), data));
+    expect(technician).toContain(
+      'prin autorizația nr. 12 din 15.09.2026, ISU Timiș, pentru îndeplinirea atribuțiilor'
+    );
+    expect(technician).toContain(
+      'de Radu STAN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, certificat Certificat cadru tehnic PSI nr. 1234/2024'
+    );
+    expect(
+      documentText(renderDocument(file('fire_decision_technician'), fewestData))
+    ).not.toContain('autorizația');
+    expect(documentText(renderDocument(file('fire_decision_control'), data))).toContain(
+      'Stingătoarele cu CO₂ sau agent curat, prin cântărire'
+    );
+    const noGas = {
+      ...buildFireSafetyContext({
+        ...facts,
+        fireSafety: {
+          ...facts.fireSafety,
+          equipment: facts.fireSafety.equipment.filter((unit) => unit.agent !== 'co2'),
+        },
+      }),
+    };
+    expect(documentText(renderDocument(file('fire_decision_control'), noGas))).not.toContain(
+      'cântărire'
     );
   });
 
