@@ -10,6 +10,7 @@ import {
   type ResponsiblePersonRequest,
   samePersonName,
   type Workplace,
+  type WorkplaceRequest,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -265,7 +266,7 @@ export const updateClientDocumentDetails: RouteHandler<
 };
 
 const workplaceColumns =
-  'id, client_id, name, is_registered_office, county_code, locality, address_line, created_at, updated_at';
+  'id, client_id, name, is_registered_office, county_code, locality, address_line, activity, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures, created_at, updated_at';
 
 type WorkplaceRow = Pick<
   Tables['client_workplaces']['Row'],
@@ -276,6 +277,14 @@ type WorkplaceRow = Pick<
   | 'county_code'
   | 'locality'
   | 'address_line'
+  | 'activity'
+  | 'floor_area_m2'
+  | 'extinguisher_norm'
+  | 'assembly_point'
+  | 'combustible_materials'
+  | 'ignition_sources'
+  | 'fire_risk_equipment'
+  | 'specific_measures'
   | 'created_at'
   | 'updated_at'
 >;
@@ -289,10 +298,34 @@ function toWorkplace(row: WorkplaceRow): Workplace {
     countyCode: row.county_code as Workplace['countyCode'],
     locality: row.locality,
     addressLine: row.address_line,
+    activity: row.activity,
+    floorAreaM2: row.floor_area_m2,
+    extinguisherNorm: row.extinguisher_norm,
+    assemblyPoint: row.assembly_point,
+    combustibleMaterials: row.combustible_materials,
+    ignitionSources: row.ignition_sources,
+    fireRiskEquipment: row.fire_risk_equipment,
+    specificMeasures: row.specific_measures,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   };
 }
+
+const workplaceFields = (body: WorkplaceRequest) => ({
+  name: body.name,
+  is_registered_office: body.isRegisteredOffice,
+  county_code: body.countyCode ?? null,
+  locality: body.locality ?? null,
+  address_line: body.addressLine ?? null,
+  activity: body.activity ?? null,
+  floor_area_m2: body.floorAreaM2 ?? null,
+  extinguisher_norm: body.extinguisherNorm ?? null,
+  assembly_point: body.assemblyPoint ?? null,
+  combustible_materials: body.combustibleMaterials ?? null,
+  ignition_sources: body.ignitionSources ?? null,
+  fire_risk_equipment: body.fireRiskEquipment ?? null,
+  specific_measures: body.specificMeasures ?? null,
+});
 
 const noSuchWorkplace = () =>
   new ApiError('not_found', 'This workplace does not exist under this client.');
@@ -326,11 +359,7 @@ export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> 
     .insert({
       organization_id: c.get('membership').organizationId,
       client_id: clientId,
-      name: body.name,
-      is_registered_office: body.isRegisteredOffice,
-      county_code: body.countyCode ?? null,
-      locality: body.locality ?? null,
-      address_line: body.addressLine ?? null,
+      ...workplaceFields(body),
       created_by: c.get('user').id,
     })
     .select(workplaceColumns)
@@ -348,13 +377,7 @@ export const updateWorkplace: RouteHandler<typeof updateWorkplaceRoute, ApiEnv> 
   const body = c.req.valid('json');
   const { data, error } = await createDataClient(c)
     .from('client_workplaces')
-    .update({
-      name: body.name,
-      is_registered_office: body.isRegisteredOffice,
-      county_code: body.countyCode ?? null,
-      locality: body.locality ?? null,
-      address_line: body.addressLine ?? null,
-    })
+    .update(workplaceFields(body))
     .eq('id', workplaceId)
     .eq('client_id', clientId)
     .is('archived_at', null)
@@ -385,13 +408,14 @@ export const archiveWorkplace: RouteHandler<typeof archiveWorkplaceRoute, ApiEnv
 };
 
 const responsiblePersonColumns =
-  'id, client_id, employee_id, full_name, job_title, roles, created_at, updated_at, employees(job_title)';
+  'id, client_id, employee_id, workplace_id, full_name, job_title, roles, created_at, updated_at, employees(job_title)';
 
 type ResponsiblePersonRow = Pick<
   Tables['client_responsible_persons']['Row'],
   | 'id'
   | 'client_id'
   | 'employee_id'
+  | 'workplace_id'
   | 'full_name'
   | 'job_title'
   | 'roles'
@@ -408,6 +432,7 @@ function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
     jobTitle: row.job_title,
     employeeJobTitle: row.employees?.job_title ?? null,
     roles: row.roles,
+    workplaceId: row.workplace_id,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   };
@@ -441,9 +466,35 @@ async function refuseLegalRepresentative(
 const noSuchResponsiblePerson = () =>
   new ApiError('not_found', 'This responsible person does not exist under this client.');
 
-function responsiblePersonError(error: { code: string }, context: string) {
+export const workplaceNotOfClient = () => {
+  const message = 'This workplace is not an active workplace of this client.';
+  return new ApiError('validation_error', message, [{ path: 'workplaceId', message }]);
+};
+
+// The foreign key alone would take an archived workplace, which no document lists.
+export async function refuseWorkplaceOfAnotherClient(
+  db: DataClient,
+  clientId: string,
+  workplaceId: string | null | undefined
+) {
+  if (!workplaceId) return;
+  const { data, error } = await db
+    .from('client_workplaces')
+    .select('id')
+    .eq('id', workplaceId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find workplace');
+  if (!data) throw workplaceNotOfClient();
+}
+
+function responsiblePersonError(error: { code: string; message?: string }, context: string) {
   if (error.code === '23505') {
     return new ApiError('conflict', 'This employee is already a responsible person.');
+  }
+  if (error.code === '23503' && error.message?.includes('workplace_of_client')) {
+    return workplaceNotOfClient();
   }
   if (error.code === '23503') {
     const message = 'This employee does not belong to this client.';
@@ -483,12 +534,14 @@ export const createResponsiblePerson: RouteHandler<
     'This client is archived; responsible persons cannot be added.'
   );
   await refuseLegalRepresentative(db, clientId, body);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
   const { data, error } = await db
     .from('client_responsible_persons')
     .insert({
       organization_id: c.get('membership').organizationId,
       client_id: clientId,
       employee_id: body.employeeId ?? null,
+      workplace_id: body.workplaceId ?? null,
       full_name: body.fullName,
       job_title: body.jobTitle,
       roles: body.roles,
@@ -508,10 +561,12 @@ export const updateResponsiblePerson: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await refuseLegalRepresentative(db, clientId, body);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
   const { data, error } = await db
     .from('client_responsible_persons')
     .update({
       employee_id: body.employeeId ?? null,
+      workplace_id: body.workplaceId ?? null,
       full_name: body.fullName,
       job_title: body.jobTitle,
       roles: body.roles,

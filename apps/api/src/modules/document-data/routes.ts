@@ -310,14 +310,14 @@ export const createResponsiblePersonRoute = createRoute({
   operationId: 'createResponsiblePerson',
   summary: 'Add a responsible person to a client',
   description:
-    "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative.",
+    "A name, a job title, and one or more roles. `employeeId` is optional, since the administrator is often designated without being an employee, except for a workers' representative. `workplaceId` ties the person to one active workplace of the client; null means every workplace.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, body: responsiblePersonBody },
   responses: {
     201: { description: 'The created responsible person', content: responsiblePersonContent },
     400: {
-      description: 'Invalid path or body, or an employee who is not of this client',
+      description: 'Invalid path or body, or an employee or a workplace that is not of this client',
       content: errorContent,
     },
     404: noSuchClient,
@@ -344,7 +344,7 @@ export const updateResponsiblePersonRoute = createRoute({
       content: responsiblePersonContent,
     },
     400: {
-      description: 'Invalid path or body, or an employee who is not of this client',
+      description: 'Invalid path or body, or an employee or a workplace that is not of this client',
       content: errorContent,
     },
     404: {
