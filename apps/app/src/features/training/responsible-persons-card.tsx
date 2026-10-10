@@ -250,7 +250,7 @@ export function ResponsiblePersonsCard({
                   >
                     <TableCell className="font-medium max-sm:p-0 max-sm:whitespace-normal">
                       {person.fullName}
-                      {person.workplaceId && (
+                      {person.workplaceId && workplaces.data && (
                         <span
                           data-testid="responsible-workplace-name"
                           className="mt-0.5 block text-xs font-normal whitespace-normal text-muted-foreground"
