@@ -1,4 +1,7 @@
 import type { DocumentFacts } from './context';
+
+export const workshopId = 'f1f1f1f1-0000-4000-8000-000000000001';
+export const officeId = 'f1f1f1f1-0000-4000-8000-000000000002';
 import {
   officeEvaluation,
   sensitiveGroupsEvaluation,
@@ -32,32 +35,58 @@ export const facts: DocumentFacts = {
   },
   workplaces: [
     {
+      id: workshopId,
       name: 'Atelier Ghiroda',
       registeredOffice: false,
       countyCode: 'TM',
       locality: 'Ghiroda',
       addressLine: 'Str. Industriilor 4',
+      activity: 'Atelier de sudură ',
+      floorAreaM2: 420,
+      extinguisherNorm: 'other_150',
+      assemblyPoint: 'Parcarea din fața atelierului',
+      combustibleMaterials: 'Lemn, cartoane, uleiuri de motor',
+      ignitionSources: 'Arcul electric, scântei de la polizare',
+      fireRiskEquipment: 'Aparate de sudură, polizoare unghiulare',
+      specificMeasures: 'Sudura numai cu permis de lucru cu foc.',
     },
     {
+      id: officeId,
       name: 'Sediul social',
       registeredOffice: true,
       countyCode: 'B',
       locality: 'Sector 1',
       addressLine: 'Calea Victoriei 122A',
+      activity: 'Birouri',
+      floorAreaM2: 180,
+      extinguisherNorm: 'administrative_300',
+      assemblyPoint: 'Curtea interioară',
+      combustibleMaterials: 'Hârtie, mobilier',
+      ignitionSources: 'Instalația electrică',
+      fireRiskEquipment: 'Calculatoare, imprimante',
+      specificMeasures: null,
     },
   ],
   responsiblePersons: [
     {
       fullName: 'Florin Cristian TALOȘ',
       jobTitle: 'Administrator',
-      roles: ['workplace_manager', 'first_aid', 'risk_evaluation_team', 'imminent_danger'],
+      roles: [
+        'workplace_manager',
+        'first_aid',
+        'risk_evaluation_team',
+        'imminent_danger',
+        'fire_safety_coordinator',
+      ],
       currentEmployee: false,
+      workplaceId: null,
     },
     {
       fullName: 'Ioana PETRE',
       jobTitle: 'Șef de echipă',
-      roles: ['workplace_manager', 'first_aid', 'imminent_danger'],
+      roles: ['workplace_manager', 'first_aid', 'imminent_danger', 'fire_intervention_leader'],
       currentEmployee: true,
+      workplaceId: workshopId,
     },
   ],
   jobPositions: [
@@ -190,4 +219,48 @@ export const facts: DocumentFacts = {
       exposedPersons: null,
     },
   ],
+  fireSafety: {
+    card: {
+      periodicTrainingHours: 2,
+      administrativeTrainingIntervalMonths: 6,
+      workerTrainingIntervalMonths: 3,
+      trainingFirstMonth: 2,
+      trainingDayFrom: 2,
+      trainingDayTo: 7,
+      wasteKinds: ['deșeuri de carton, hârtie, plastic', ' deșeuri menajere '],
+      wasteContractor: 'S.C. ECO COLECT S.R.L.',
+    },
+    equipment: [
+      {
+        workplaceId: workshopId,
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+      },
+      { workplaceId: workshopId, kind: 'extinguisher', agent: 'co2', capacity: 5, wheeled: false },
+      {
+        workplaceId: workshopId,
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 50,
+        wheeled: true,
+      },
+      {
+        workplaceId: workshopId,
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+      },
+      { workplaceId: workshopId, kind: 'sand_box', agent: null, capacity: null, wheeled: false },
+      { workplaceId: officeId, kind: 'fire_blanket', agent: null, capacity: null, wheeled: false },
+      { workplaceId: officeId, kind: 'extinguisher', agent: 'foam', capacity: 9, wheeled: false },
+    ],
+    installations: [
+      { workplaceId: workshopId, kind: 'exterior_hydrants', description: 'Doi hidranți în curte' },
+      { workplaceId: officeId, kind: 'detection_alarm', description: null },
+      { workplaceId: officeId, kind: 'interior_hydrants', description: 'Câte unul pe nivel' },
+    ],
+  },
 };

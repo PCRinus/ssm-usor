@@ -44,6 +44,9 @@ export async function loadDocumentFacts(
     ownInstructions,
     workplaces,
     riskEvaluations,
+    fireSafety,
+    fireEquipment,
+    fireInstallations,
     ...employeeCounts
   ] = await Promise.all([
     db
@@ -73,7 +76,7 @@ export async function loadDocumentFacts(
       .maybeSingle(),
     db
       .from('client_responsible_persons')
-      .select('full_name, job_title, roles, employees(status, archived_at)')
+      .select('full_name, job_title, roles, workplace_id, employees(status, archived_at)')
       .eq('client_id', clientId)
       .is('archived_at', null)
       // The order people were designated in is the order the decisions list them in.
@@ -112,12 +115,33 @@ export async function loadDocumentFacts(
     loadOwnInstructions(db, clientId),
     db
       .from('client_workplaces')
-      .select('name, is_registered_office, county_code, locality, address_line')
+      .select(
+        'id, name, is_registered_office, county_code, locality, address_line, activity, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
+      )
       .eq('client_id', clientId)
       .is('archived_at', null)
       .order('name')
       .order('id'),
     loadRiskEvaluations(db, clientId),
+    db
+      .from('client_fire_safety')
+      .select(
+        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, waste_kinds, waste_contractor'
+      )
+      .eq('client_id', clientId)
+      .maybeSingle(),
+    db
+      .from('fire_equipment')
+      .select('workplace_id, kind, agent, capacity, wheeled')
+      .eq('client_id', clientId)
+      .order('created_at')
+      .order('id'),
+    db
+      .from('fire_installations')
+      .select('workplace_id, kind, description')
+      .eq('client_id', clientId)
+      .order('created_at')
+      .order('id'),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -143,6 +167,13 @@ export async function loadDocumentFacts(
   }
   if (positions.error) throw fromDatabaseError(positions.error, 'document facts: job positions');
   if (workplaces.error) throw fromDatabaseError(workplaces.error, 'document facts: workplaces');
+  if (fireSafety.error) throw fromDatabaseError(fireSafety.error, 'document facts: fire safety');
+  if (fireEquipment.error) {
+    throw fromDatabaseError(fireEquipment.error, 'document facts: fire equipment');
+  }
+  if (fireInstallations.error) {
+    throw fromDatabaseError(fireInstallations.error, 'document facts: fire installations');
+  }
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
   }
@@ -178,16 +209,51 @@ export async function loadDocumentFacts(
       caenCode: client.data.caen_code,
     },
     workplaces: workplaces.data.map((workplace) => ({
+      id: workplace.id,
       name: workplace.name,
       registeredOffice: workplace.is_registered_office,
       countyCode: workplace.county_code,
       locality: workplace.locality,
       addressLine: workplace.address_line,
+      activity: workplace.activity,
+      floorAreaM2: workplace.floor_area_m2,
+      extinguisherNorm: workplace.extinguisher_norm,
+      assemblyPoint: workplace.assembly_point,
+      combustibleMaterials: workplace.combustible_materials,
+      ignitionSources: workplace.ignition_sources,
+      fireRiskEquipment: workplace.fire_risk_equipment,
+      specificMeasures: workplace.specific_measures,
     })),
+    fireSafety: {
+      card: fireSafety.data && {
+        periodicTrainingHours: fireSafety.data.periodic_training_hours,
+        administrativeTrainingIntervalMonths:
+          fireSafety.data.administrative_training_interval_months,
+        workerTrainingIntervalMonths: fireSafety.data.worker_training_interval_months,
+        trainingFirstMonth: fireSafety.data.training_first_month,
+        trainingDayFrom: fireSafety.data.training_day_from,
+        trainingDayTo: fireSafety.data.training_day_to,
+        wasteKinds: fireSafety.data.waste_kinds,
+        wasteContractor: fireSafety.data.waste_contractor,
+      },
+      equipment: fireEquipment.data.map((unit) => ({
+        workplaceId: unit.workplace_id,
+        kind: unit.kind,
+        agent: unit.agent,
+        capacity: unit.capacity,
+        wheeled: unit.wheeled,
+      })),
+      installations: fireInstallations.data.map((installation) => ({
+        workplaceId: installation.workplace_id,
+        kind: installation.kind,
+        description: installation.description,
+      })),
+    },
     responsiblePersons: persons.data.map((person) => ({
       fullName: person.full_name,
       jobTitle: person.job_title,
       roles: person.roles as ResponsiblePersonRole[],
+      workplaceId: person.workplace_id,
       currentEmployee:
         person.employees?.status === 'active' && person.employees.archived_at === null,
     })),

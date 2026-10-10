@@ -3698,6 +3698,14 @@ export const StartRegenerationRequestTypeKey = {
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
   control_regulation: 'control_regulation',
+  fire_cover_decisions: 'fire_cover_decisions',
+  fire_decision_organization: 'fire_decision_organization',
+  fire_decision_training: 'fire_decision_training',
+  fire_decision_open_fire: 'fire_decision_open_fire',
+  fire_decision_seasons: 'fire_decision_seasons',
+  fire_decision_waste: 'fire_decision_waste',
+  fire_means_list: 'fire_means_list',
+  fire_workplace_organization: 'fire_workplace_organization',
   fire_cover_registers: 'fire_cover_registers',
   fire_registers: 'fire_registers',
   fire_work_permit: 'fire_work_permit',
@@ -16871,7 +16879,7 @@ export const getGenerateClientDocumentsUrl = (
 };
 
 /**
- * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` is read for the occupational safety set only.
+ * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one.
  * @summary Generate the documents one of a client's documentation sets does not have yet
  */
 export const generateClientDocuments = async (
@@ -18085,6 +18093,14 @@ export const getUploadClientDocumentUrl = (
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'fire_cover_decisions'
+    | 'fire_decision_organization'
+    | 'fire_decision_training'
+    | 'fire_decision_open_fire'
+    | 'fire_decision_seasons'
+    | 'fire_decision_waste'
+    | 'fire_means_list'
+    | 'fire_workplace_organization'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'
@@ -18125,6 +18141,14 @@ export const uploadClientDocument = async (
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'fire_cover_decisions'
+    | 'fire_decision_organization'
+    | 'fire_decision_training'
+    | 'fire_decision_open_fire'
+    | 'fire_decision_seasons'
+    | 'fire_decision_waste'
+    | 'fire_means_list'
+    | 'fire_workplace_organization'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'
@@ -18233,6 +18257,14 @@ export type UploadClientDocumentMutationVariables = {
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'fire_cover_decisions'
+    | 'fire_decision_organization'
+    | 'fire_decision_training'
+    | 'fire_decision_open_fire'
+    | 'fire_decision_seasons'
+    | 'fire_decision_waste'
+    | 'fire_means_list'
+    | 'fire_workplace_organization'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'

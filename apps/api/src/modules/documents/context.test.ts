@@ -33,7 +33,13 @@ describe('what is missing', () => {
         specialist: null,
         client: { ...facts.client, representativeRole: null, trainingDayTo: null },
         responsiblePersons: [
-          { fullName: 'A B', jobTitle: 'C', roles: ['first_aid'], currentEmployee: true },
+          {
+            fullName: 'A B',
+            jobTitle: 'C',
+            roles: ['first_aid'],
+            currentEmployee: true,
+            workplaceId: null,
+          },
         ],
       })
     ).toEqual([
@@ -114,6 +120,7 @@ describe('what is missing', () => {
       jobTitle: 'Vânzător',
       roles: ['workers_representative' as const],
       currentEmployee,
+      workplaceId: null,
     });
     const missing = (currentEmployeeCount: number, ...representatives: string[]) =>
       missingDocumentData({
@@ -267,6 +274,7 @@ describe('the merge context', () => {
       jobTitle: 'Magaziner',
       roles: ['workplace_manager', 'first_aid', 'imminent_danger'],
       currentEmployee: true,
+      workplaceId: null,
     };
     const three = buildDocumentContext({
       ...facts,
@@ -298,6 +306,7 @@ describe('the merge context', () => {
           jobTitle: 'Administrator',
           roles: [...personRoles, 'first_aid', 'risk_evaluation_team'],
           currentEmployee: true,
+          workplaceId: null,
         })),
       });
       const chosen = [
@@ -690,12 +699,14 @@ describe('decision 1.5', () => {
         jobTitle: 'Vânzător',
         roles: ['workers_representative' as const],
         currentEmployee: true,
+        workplaceId: null,
       },
       {
         fullName: 'Radu ENE',
         jobTitle: 'Vânzător',
         roles: ['workers_representative' as const],
         currentEmployee: false,
+        workplaceId: null,
       },
     ],
   };

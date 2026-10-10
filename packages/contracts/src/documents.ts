@@ -37,8 +37,19 @@ export const documentTypeKeySchema = z.enum(documentTypeKeys);
 
 export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
-/** The built-in documents of the fire-safety set, in the order of the provider's binder. */
+/**
+ * The built-in documents of the fire-safety set, in the order of the provider's binder: the
+ * decisions (section 1), the means and the posted sheets (section 5), the registers (section 6).
+ */
 export const fireSafetyDocumentTypeKeys = [
+  'fire_cover_decisions',
+  'fire_decision_organization',
+  'fire_decision_training',
+  'fire_decision_open_fire',
+  'fire_decision_seasons',
+  'fire_decision_waste',
+  'fire_means_list',
+  'fire_workplace_organization',
   'fire_cover_registers',
   'fire_registers',
   'fire_work_permit',
@@ -86,6 +97,40 @@ export const decisionTypeKeys = [
   'decision_imminent_danger',
   'decision_workers_representative',
 ] as const satisfies readonly DocumentTypeKey[];
+
+/**
+ * Each fire-safety decision's place in the provider's binder (ADR 018). It prints the first
+ * decision number plus its ordinal minus one, so the decisions still to come (4, 6, 7 and 9)
+ * take their places without renumbering these.
+ */
+export const fireDecisionOrdinals = {
+  organization: 1,
+  training: 2,
+  openFire: 3,
+  seasons: 5,
+  waste: 8,
+} as const;
+
+export type FireDecision = keyof typeof fireDecisionOrdinals;
+
+export const fireDecisionTypeKeys = {
+  organization: 'fire_decision_organization',
+  training: 'fire_decision_training',
+  openFire: 'fire_decision_open_fire',
+  seasons: 'fire_decision_seasons',
+  waste: 'fire_decision_waste',
+} as const satisfies Record<FireDecision, FireSafetyDocumentTypeKey>;
+
+// The binder holds nine fire-safety decisions, and the ninth's number must fit in four digits.
+export const maxFirstFireDecisionNumber = 9991;
+
+/** The number a fire-safety decision prints, or null for any other document. */
+export function fireDecisionNumber(typeKey: string, firstDecisionNumber: number) {
+  const decision = (Object.keys(fireDecisionTypeKeys) as FireDecision[]).find(
+    (key) => fireDecisionTypeKeys[key] === typeKey
+  );
+  return decision === undefined ? null : firstDecisionNumber + fireDecisionOrdinals[decision] - 1;
+}
 
 /**
  * What a client's documentation cannot be generated without, by where it is filled in: the
@@ -301,8 +346,8 @@ export type ClientDocument = z.infer<typeof clientDocumentSchema>;
 /** One set's documents, in its order. A client has a few dozen at most: not paginated. */
 export const clientDocumentListResponseSchema = z.object({
   items: z.array(clientDocumentSchema),
-  // What the set's last generation asked, to fill the form in again. The fire-safety set has
-  // no decisions yet, so no first number.
+  // What the set's last generation asked, to fill the form in again. A fire-safety generation
+  // made before its decisions existed has no first number.
   lastGeneration: z
     .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999).nullable() })
     .nullable(),
@@ -317,8 +362,9 @@ export type ClientDocumentListResponse = z.infer<typeof clientDocumentListRespon
 export const generateDocumentsRequestSchema = z.object({
   // The date the documents carry, usually the start of the contract.
   issueDate: z.iso.date(),
-  // Decisions are numbered from here: "Decizia nr. 1 SSM". Not read for the fire-safety set.
-  firstDecisionNumber: z.int().min(1).max(9995).default(1),
+  // Decisions are numbered from here: "Decizia nr. 1 SSM". Left out, the occupational safety
+  // set starts from 1; the fire-safety set requires it, at most `maxFirstFireDecisionNumber`.
+  firstDecisionNumber: z.int().min(1).max(9995).optional(),
 });
 
 export type GenerateDocumentsRequest = z.infer<typeof generateDocumentsRequestSchema>;

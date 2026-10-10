@@ -6,8 +6,12 @@ import {
   documentSetQuerySchema,
   documentSets,
   documentSetTypeKeys,
+  fireDecisionNumber,
+  fireDecisionOrdinals,
+  fireDecisionTypeKeys,
   fireSafetyDocumentTypeKeys,
   generateDocumentsRequestSchema,
+  maxFirstFireDecisionNumber,
 } from './documents';
 
 describe('documentSetOf', () => {
@@ -41,10 +45,36 @@ describe('the sets', () => {
 });
 
 describe('generateDocumentsRequestSchema', () => {
-  it('needs only the issue date', () => {
+  it('leaves the first decision number to the set, which decides whether it is required', () => {
     expect(generateDocumentsRequestSchema.parse({ issueDate: '2026-10-06' })).toEqual({
       issueDate: '2026-10-06',
-      firstDecisionNumber: 1,
     });
+    expect(
+      generateDocumentsRequestSchema.parse({ issueDate: '2026-10-06', firstDecisionNumber: 4 })
+    ).toEqual({ issueDate: '2026-10-06', firstDecisionNumber: 4 });
+  });
+});
+
+describe('the fire-safety decisions', () => {
+  it('keep their places in the binder, whatever is built between them', () => {
+    expect(
+      Object.values(fireDecisionTypeKeys).map((typeKey) => fireDecisionNumber(typeKey, 1))
+    ).toEqual([1, 2, 3, 5, 8]);
+    expect(fireDecisionNumber('fire_decision_waste', 11)).toBe(18);
+    expect(fireDecisionNumber('fire_means_list', 11)).toBeNull();
+    expect(fireDecisionNumber('decision_training', 11)).toBeNull();
+  });
+
+  it('are fire-safety types of the set', () => {
+    expect(
+      Object.values(fireDecisionTypeKeys).filter(
+        (typeKey) => !(fireSafetyDocumentTypeKeys as readonly string[]).includes(typeKey)
+      )
+    ).toEqual([]);
+  });
+
+  it('leave room for the ninth decision under the four-digit limit', () => {
+    expect(maxFirstFireDecisionNumber + 9 - 1).toBe(9999);
+    expect(Math.max(...Object.values(fireDecisionOrdinals))).toBeLessThanOrEqual(9);
   });
 });
