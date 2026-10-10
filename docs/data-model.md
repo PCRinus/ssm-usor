@@ -194,9 +194,10 @@ columns a member may write, which still leaves out `name` and the accepted terms
 
 ## Fire-safety data
 
-Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and not built yet: this section
-describes what the migrations of the fire-safety set's second stage will create. The documents
-of that stage print these facts; the occupational safety set reads none of them.
+Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by the migrations
+`20261010100000_fire_safety_roles` and `20261010100100_fire_safety_data`. The documents of the
+fire-safety set's second stage print these facts; the occupational safety set reads none of
+them.
 
 **The client's fire-safety facts.** `client_fire_safety` holds one row per client, keyed by
 `client_id`, with the denormalized `organization_id` and a composite foreign key on
@@ -280,7 +281,13 @@ an `exterior_hydrants` row.
 The three tables, `client_fire_safety`, `fire_equipment` and `fire_installations`, are guarded
 as `client_workplaces` is: members of the organization read and write them under the same
 policies, `set_updated_at` keeps `updated_at`, the lead trigger refuses a row under a lead
-(`CLL01`), and the archived-client trigger freezes them (`CLA01`).
+(`CLL01`), and the archived-client trigger freezes them (`CLA01`). Equipment and installations
+also have a delete policy, since they are deleted rather than archived. Members update only the
+columns that are not keys, as on `job_position_equipment`: the freeze reads the client of the
+row before the change, so a row never moves to another client, while a unit may move to
+another workplace of the same one. The API also refuses to tie a unit or a person to an
+archived workplace, which the foreign key alone would take, and leaves units of an archived
+workplace out of its lists.
 
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
