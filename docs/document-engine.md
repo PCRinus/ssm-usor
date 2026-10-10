@@ -289,6 +289,37 @@ LibreOffice fails to save the file once the new content grows past where that ch
 saying nothing more, and a reloaded document saves. `subheadings` are patterns for headings
 of a spec's own that stay left-aligned: bold, 12 pt above, kept with what follows.
 
+A section's `content`, or a drawn document's, can copy a passage of another template
+([ADR 019](architecture/adr-019-fire-safety-stage-three.md)): the fire-safety set prints the
+first aid of the own instructions (3.2) this way, so there is one text to correct.
+
+```json
+{
+  "copy": "3.2_own_instructions.docx",
+  "first": "^Primul ajutor este ajutorul imediat",
+  "last": "^Dacă sunt mai mulți salvatori"
+}
+```
+
+`copy` is a template's path under `templates/`, never an original: what is copied is the text
+the other set prints. The passage runs from the body's first paragraph matching `first` to the
+next one matching `last`, both included, with no table between them; the patterns are read
+both by Python, at import, and by JavaScript, in the test, so they keep to what the two share.
+The import copies it through the office's own copy and paste, its formatting and lists
+included, after the wording pass and the `corrections`, which the source has already been
+through and which would change it a second time (the shared pass makes "a doua victimă" "a
+două"), and before the typesetting. Its list styles are renamed after the template on the way,
+since every imported file names its lists `WWNum1`, `WWNum2` and so on and the document's own
+style of the same name would win. Its articles join the document's article list, so a spec
+that copies needs `articles: true`, and the import fails without it.
+
+The import lists every copy in `templates/copied-passages.json`, the template, its source and
+the two patterns, replacing the entries of the template it writes: the specs live outside the
+repository, and the list does not. `src/copied-passages.test.ts` reads the list and compares each
+copied passage with its source paragraph by paragraph, by their text without list labels, and
+fails on the first word that differs, so a correction to 3.2 fails the test until every
+template that copies from it is imported again.
+
 A decision's spec may set `articles: true`: every paragraph that opens with a typed article
 label ("Art. 3.") or is numbered by a list of the original's own ("Art.3") joins one list
 numbered "Art. %1.", as the other decisions' are, so an article added or deleted in the editor
