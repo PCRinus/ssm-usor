@@ -59,7 +59,7 @@ async function activeWorkplaceOrder(db: DataClient, clientId: string) {
 }
 
 const fireSafetyColumns =
-  'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, waste_kinds, waste_contractor';
+  'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor';
 
 type FireSafetyRow = Pick<
   Tables['client_fire_safety']['Row'],
@@ -70,6 +70,7 @@ type FireSafetyRow = Pick<
   | 'training_day_from'
   | 'training_day_to'
   | 'smoking_policy'
+  | 'smoking_place'
   | 'waste_kinds'
   | 'waste_contractor'
 >;
@@ -82,6 +83,7 @@ const toFireSafety = (row: FireSafetyRow): ClientFireSafety => ({
   trainingDayFrom: row.training_day_from,
   trainingDayTo: row.training_day_to,
   smokingPolicy: row.smoking_policy,
+  smokingPlace: row.smoking_place,
   wasteKinds: row.waste_kinds,
   wasteContractor: row.waste_contractor,
 });
@@ -94,6 +96,7 @@ const noFireSafety: ClientFireSafety = {
   trainingDayFrom: null,
   trainingDayTo: null,
   smokingPolicy: null,
+  smokingPlace: null,
   wasteKinds: [],
   wasteContractor: null,
 };
@@ -106,6 +109,8 @@ const fireSafetyFields = (body: UpdateClientFireSafetyRequest) => ({
   training_day_from: body.trainingDayFrom ?? null,
   training_day_to: body.trainingDayTo ?? null,
   smoking_policy: body.smokingPolicy ?? null,
+  // Dropped rather than refused, so switching to another policy saves without emptying the field first (ADR 019).
+  smoking_place: body.smokingPolicy === 'designated_places' ? (body.smokingPlace ?? null) : null,
   waste_kinds: body.wasteKinds,
   waste_contractor: body.wasteContractor ?? null,
 });

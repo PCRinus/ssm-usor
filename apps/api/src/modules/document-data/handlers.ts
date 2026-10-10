@@ -116,7 +116,7 @@ export const updateOrganizationCompanyDetails: RouteHandler<
 };
 
 const authorizationsColumns =
-  'authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, fire_safety_technician_name, fire_safety_technician_certificate';
+  'authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization';
 
 type AuthorizationsRow = Pick<
   Tables['organizations']['Row'],
@@ -125,6 +125,7 @@ type AuthorizationsRow = Pick<
   | 'authorization_certificate_issuer'
   | 'fire_safety_technician_name'
   | 'fire_safety_technician_certificate'
+  | 'fire_safety_authorization'
 >;
 
 function toAuthorizations(row: AuthorizationsRow): OrganizationAuthorizations {
@@ -134,6 +135,7 @@ function toAuthorizations(row: AuthorizationsRow): OrganizationAuthorizations {
     authorizationCertificateIssuer: row.authorization_certificate_issuer,
     fireSafetyTechnicianName: row.fire_safety_technician_name,
     fireSafetyTechnicianCertificate: row.fire_safety_technician_certificate,
+    fireSafetyAuthorization: row.fire_safety_authorization,
   };
 }
 
@@ -162,6 +164,7 @@ export const updateOrganizationAuthorizations: RouteHandler<
       authorization_certificate_issuer: body.authorizationCertificateIssuer ?? null,
       fire_safety_technician_name: body.fireSafetyTechnicianName ?? null,
       fire_safety_technician_certificate: body.fireSafetyTechnicianCertificate ?? null,
+      fire_safety_authorization: body.fireSafetyAuthorization ?? null,
     })
     .eq('id', c.get('membership').organizationId)
     .select(authorizationsColumns)

@@ -2557,6 +2557,8 @@ export type OrganizationAuthorizationsResponseAuthorizations = {
   fireSafetyTechnicianName: string | null;
   /** @nullable */
   fireSafetyTechnicianCertificate: string | null;
+  /** @nullable */
+  fireSafetyAuthorization: string | null;
 };
 
 export interface OrganizationAuthorizationsResponse {
@@ -2590,6 +2592,12 @@ export interface UpdateOrganizationAuthorizationsRequest {
    * @nullable
    */
   fireSafetyTechnicianCertificate?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   * @nullable
+   */
+  fireSafetyAuthorization?: string | null;
 }
 
 export type ClientDocumentDetailsResponseDocumentDetails = {
@@ -3176,6 +3184,8 @@ export type ClientFireSafetyResponseFireSafety = {
   trainingDayTo: number | null;
   /** @nullable */
   smokingPolicy: ClientFireSafetyResponseFireSafetySmokingPolicy;
+  /** @nullable */
+  smokingPlace: string | null;
   wasteKinds: string[];
   /** @nullable */
   wasteContractor: string | null;
@@ -3237,6 +3247,12 @@ export interface UpdateClientFireSafetyRequest {
   trainingDayTo?: number | null;
   /** @nullable */
   smokingPolicy?: UpdateClientFireSafetyRequestSmokingPolicy;
+  /**
+   * @minLength 2
+   * @maxLength 240
+   * @nullable
+   */
+  smokingPlace?: string | null;
   /**
    * @maxItems 12
    * @items.minLength 2

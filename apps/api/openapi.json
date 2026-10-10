@@ -3698,6 +3698,10 @@
               "fireSafetyTechnicianCertificate": {
                 "type": "string",
                 "nullable": true
+              },
+              "fireSafetyAuthorization": {
+                "type": "string",
+                "nullable": true
               }
             },
             "required": [
@@ -3705,7 +3709,8 @@
               "authorizationCertificateDate",
               "authorizationCertificateIssuer",
               "fireSafetyTechnicianName",
-              "fireSafetyTechnicianCertificate"
+              "fireSafetyTechnicianCertificate",
+              "fireSafetyAuthorization"
             ]
           }
         },
@@ -3742,6 +3747,12 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 80
+          },
+          "fireSafetyAuthorization": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 200
           }
         }
       },
@@ -4547,6 +4558,10 @@
                 "nullable": true,
                 "enum": ["forbidden_everywhere", "designated_places", null]
               },
+              "smokingPlace": {
+                "type": "string",
+                "nullable": true
+              },
               "wasteKinds": {
                 "type": "array",
                 "items": {
@@ -4566,6 +4581,7 @@
               "trainingDayFrom",
               "trainingDayTo",
               "smokingPolicy",
+              "smokingPlace",
               "wasteKinds",
               "wasteContractor"
             ]
@@ -4619,6 +4635,12 @@
             "type": "string",
             "nullable": true,
             "enum": ["forbidden_everywhere", "designated_places", null]
+          },
+          "smokingPlace": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 240
           },
           "wasteKinds": {
             "type": "array",
