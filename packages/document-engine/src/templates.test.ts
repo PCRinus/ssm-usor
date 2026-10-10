@@ -460,8 +460,8 @@ describe('fire-safety set', () => {
     const text = documentText(merged);
     expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(2);
     expect(text).toContain('Anexă la Decizia nr. 10 PSI din 19.01.2026');
-    expect(text).toContain(
-      'Locul de muncă: Depozit, Gelaterie, Timișoara, județul Timiș, Str. Lungă 5'
+    expect(text).toMatch(
+      /^Locul de muncă: Depozit, Gelaterie\nAdresa: Timișoara, județul Timiș, Str. Lungă 5$/m
     );
     expect(text).toContain('Stingător tip P50 – Pulbere, 50 kg, carosabil: 1 buc.;');
     expect(text).toMatch(/^P50\nPulbere\n50 kg, carosabil\n1$/m);
@@ -523,6 +523,16 @@ describe('fire-safety set', () => {
     );
   });
 
+  it('marks an unset specific measure with a dash on the posted sheet', () => {
+    const sheet = 'fire/5.2_fire_workplace_organization.docx';
+    expect(documentText(renderDocument(read(sheet), stageTwoData))).toMatch(
+      /^5\. Măsuri specifice\nVitrinele se opresc noaptea\.$/m
+    );
+    expect(documentText(renderDocument(read(sheet), { ...stageTwoData, fire: sparse }))).toMatch(
+      /^5\. Măsuri specifice\n—$/m
+    );
+  });
+
   it.each(fireFiles)('%s keeps no author, company or title of the original', (name) => {
     const zip = new PizZip(read(name));
     const core = zip.file('docProps/core.xml')?.asText() ?? '';
@@ -572,6 +582,9 @@ describe('fire-safety set', () => {
       '50-60',
       'haloni',
       'Tehnici de securitate la incendiu',
+      'spumă chimică',
+      'funcționează prin răsturnare',
+      'tip S',
     ]) {
       expect(text).not.toContain(gone);
     }
@@ -613,7 +626,7 @@ describe('fire-safety set', () => {
 
   it.each([
     ['fire/4.1_fire_test_hiring.docx', 12, 'A'],
-    ['fire/4.2_fire_test_annual.docx', 11, 'BC'],
+    ['fire/4.2_fire_test_annual.docx', 10, 'A'],
   ])(
     '%s asks %i questions, one row per question on the sheet and in the key',
     (name, count, last) => {
@@ -631,6 +644,7 @@ describe('fire-safety set', () => {
         'termenul de valabilitate',
         'culorii',
         'bătăile inimii',
+        'Spuma chimică',
       ]) {
         expect(text).not.toContain(gone);
       }

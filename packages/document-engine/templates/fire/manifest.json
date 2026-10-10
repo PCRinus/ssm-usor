@@ -44,8 +44,8 @@
       "title": "Decizia privind lucrul cu foc deschis",
       "file": "1.3_fire_decision_open_fire.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Temeiul legal și numele reprezentantului legal nu mai sunt scrise cu litere înclinate."
       }
     },
     {
@@ -81,7 +81,7 @@
       "file": "1.6_fire_decision_technician.docx",
       "change": {
         "kind": "correction",
-        "note": "Versiunea inițială."
+        "note": "Art. 3 spune limpede că activitatea cadrului tehnic se desfășoară în limitele Legii 307/2006 art. 27 și ale certificatului său, iar obligațiile din art. 27 alin. (1) sunt redate în anexă."
       }
     },
     {
@@ -94,8 +94,8 @@
       "title": "Decizia privind instrucțiunile de apărare împotriva incendiilor",
       "file": "1.7_fire_decision_instructions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Adresa locului de muncă are un rând al ei în instrucțiunile afișate, iar un loc de muncă fără adresă nu mai lasă o liniuță după activitate."
       }
     },
     {
@@ -143,7 +143,7 @@
       "file": "2.1_fire_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Versiunea inițială."
+        "note": "Capitolul XVII nu mai descrie stingătoarele cu spumă chimică (tip „S”) și cele care funcționează prin răsturnare, pe care OMAI 135/2023 art. 20 le interzice; ghilimelele, liniile de pauză și trimiterile la alineate din textele citate sunt corectate, iar art. 152 își numerotează și primul alineat."
       }
     },
     {
@@ -190,8 +190,8 @@
       "title": "Test la angajare",
       "file": "4.1_fire_test_hiring.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială."
+        "kind": "layout",
+        "note": "Variantele de răspuns ale unei întrebări rămân pe aceeași pagină cu întrebarea."
       }
     },
     {
@@ -203,7 +203,7 @@
       "file": "4.2_fire_test_annual.docx",
       "change": {
         "kind": "correction",
-        "note": "Versiunea inițială."
+        "note": "Testul are 10 întrebări: întrebarea despre spuma chimică a fost scoasă, deoarece OMAI 135/2023 art. 20 interzice stingătoarele cu spumă chimică; variantele de răspuns rămân pe aceeași pagină cu întrebarea."
       }
     },
     {
@@ -227,7 +227,7 @@
       "file": "5.2_fire_workplace_organization.docx",
       "change": {
         "kind": "correction",
-        "note": "Măsurile generale spun regula fumatului stabilită pentru client și trimit la decizia privind fumatul."
+        "note": "Măsurile generale spun regula fumatului stabilită pentru client și trimit la decizia privind fumatul. Adresa locului de muncă are un rând al ei, iar un loc de muncă fără adresă sau fără măsuri specifice arată o liniuță în locul lor."
       }
     },
     {
