@@ -673,23 +673,31 @@ list of `factors`, `measures` and `plan`. Generating the training themes again a
 instructions revision to cite, `documents.own_instructions`
 ([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
 the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
-(default 1) and is `409` with the reason `missing_document_data` until that list is empty,
+(1 when left out) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template of the set is registered
 (`pnpm templates:register`).
 
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
-code a service contract covering fire safety uses), `client.representativeName` and
-`client.representativeRole`. The codes of its second stage (ADR 018), `fire.trainingSchedule`,
-`fire.waste`, `fire.workplaces`, `fire.equipment`, `responsible.fire_safety_coordinator`,
-`responsible.fire_intervention_leader`, `responsible.workplace_manager` and `positions.any`,
-are in its list but not checked until the documents that print them exist. Its readiness lists nothing else, and its `undecidedJobPositions`,
-`incompleteRiskEvaluations` and `workersRepresentativeClash` are empty. Its generation reads
-`issueDate` only: it has no decisions yet, so it records no first number and its
-`lastGeneration.firstDecisionNumber` is null. Its templates are merged with a context of their
-own, `client`, `provider`, `fireSafetyTechnician.name`, `issueDate` and `branding`, and never
-with the occupational safety set's names, so an edit to positions or equipment never marks a
-fire-safety draft. Its list has no `notApplicable` document.
+code a service contract covering fire safety uses), `client.representativeName`,
+`client.representativeRole`, and the client data of its second stage (ADR 018):
+`fire.trainingSchedule` (the duration, both intervals, the first month and both days of the
+"Instruire PSI" card), `fire.waste` (at least one kind), `responsible.workplace_manager`,
+`responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
+`positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
+area, norm, assembly point and the three texts of the posted sheet) and `fire.equipment` (an
+extinguisher in every active workplace). Any of them refuses the whole set. Its readiness lists
+nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
+`workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
+9991 so that the binder's ninth decision still fits in four digits, and is `400`
+(`validation_error`, the issue on `firstDecisionNumber`) without it. Each fire-safety decision
+keeps its place in the provider's binder (`fireDecisionOrdinals`: 1, 2, 3, 5 and 8 now) and is
+numbered the first number plus that ordinal minus one; its `decisionNumber` says so, and a
+decision generated again keeps it. Its templates are merged with a context of their own,
+`client`, `provider`, `fireSafetyTechnician.name`, `issueDate`, `branding` and `fire`, and
+never with the occupational safety set's names, so an edit to positions or equipment never
+marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does. Its
+list has no `notApplicable` document.
 
 Generating creates every document type the client does not have yet as revision 1, in draft:
 the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private

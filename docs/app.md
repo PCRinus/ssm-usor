@@ -634,10 +634,13 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   its built type keys and its planned documents, and "Alte documente PSI" for a type this build
   does not know. A built document the client does not have yet is a muted "Negenerat" row named
   from `notGeneratedTitles` (held to the fire-safety manifest by a test); a planned one is a
-  muted "În pregătire" row; neither has a link or a menu, and planned rows never count as
-  missing. Until something is generated, a hint under the heading replaces the empty state. Its dialog
-  has no headcount notice and asks only the date; the four missing codes lead to their fields
-  as in the SSM dialog, and the toast of a save leads back to this tab's form. A `503` says that
+  muted "În pregătire" row, placed after the built document it follows in the binder
+  (`after`), so the decisions read 1 to 9 whichever are built; neither has a link or a menu, and
+  planned rows never count as missing. Until something is generated, a hint under the heading
+  replaces the empty state. Its dialog has no headcount notice and asks the date and "Numărul
+  primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);
+  every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
+  to this tab's form. A `503` says that
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
   the clients list's "Documentație" counts the occupational safety set only.
 
