@@ -264,7 +264,7 @@ function GenerateDocumentsForm({
                 hint={
                   occupationalSafety
                     ? 'Deciziile primesc numere consecutive.'
-                    : 'Celelalte decizii primesc numere după locul lor în bibliorafti.'
+                    : 'Celelalte decizii primesc numere după locul lor în biblioraft.'
                 }
                 error={errors.firstDecisionNumber}
               >
