@@ -838,6 +838,52 @@ describe('typesetting', () => {
     expect([...languages]).toEqual(['ro-RO']);
   });
 
+  // A label takes its size from its list level, or without one from its paragraph's end mark,
+  // which the originals left at 9 pt under 10 pt text.
+  it.each(['3.2_own_instructions.docx', ...fireFiles])(
+    '%s prints its list labels at the size of their text, and its dashes as en dashes',
+    (name) => {
+      const zip = new PizZip(read(name));
+      const numbering = zip.file('word/numbering.xml')?.asText() ?? '';
+      const abstractOf = new Map(
+        [
+          ...numbering.matchAll(/<w:num w:numId="(\d+)"[^>]*>\s*<w:abstractNumId w:val="(\d+)"/g),
+        ].map(([, num, abstract]) => [num!, abstract!])
+      );
+      const levels = new Map(
+        [
+          ...numbering.matchAll(
+            /<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g
+          ),
+        ].flatMap(([, abstract, body = '']) =>
+          [...body.matchAll(/<w:lvl w:ilvl="(\d)"[^>]*>([\s\S]*?)<\/w:lvl>/g)].map(
+            ([, level, definition = '']) => [`${abstract}/${level}`, definition] as const
+          )
+        )
+      );
+      const sizeOf = (properties = '') => /<w:sz w:val="(\d+)"\/>/.exec(properties)?.[1];
+      const mismatched: string[] = [];
+      for (const paragraph of bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []) {
+        const properties = /^<w:p\b[^>]*>\s*(<w:pPr>[\s\S]*?<\/w:pPr>)/.exec(paragraph)?.[1] ?? '';
+        const num = /<w:numId w:val="(\d+)"/.exec(properties)?.[1];
+        const level = levels.get(
+          `${abstractOf.get(num ?? '')}/${/<w:ilvl w:val="(\d)"/.exec(properties)?.[1] ?? '0'}`
+        );
+        const text = /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >][^<]/.exec(
+          paragraph.slice(paragraph.indexOf(properties) + properties.length)
+        )?.[0];
+        if (!level || !text || /<w:lvlText w:val=""\/>/.test(level)) continue;
+        const label =
+          sizeOf(/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(level)?.[1]) ??
+          sizeOf(/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(properties)?.[1]);
+        if ((label && label !== sizeOf(text)) || /<w:lvlText w:val="-"\/>/.test(level)) {
+          mismatched.push(documentTextOf(paragraph).slice(0, 40));
+        }
+      }
+      expect(mismatched).toEqual([]);
+    }
+  );
+
   it.each(typesetFiles)('%s justifies nothing', (name) => {
     // Without hyphenation a justified line opens uneven gaps between words.
     expect(bodyOf(name)).not.toContain('<w:jc w:val="both"/>');
