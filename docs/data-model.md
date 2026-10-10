@@ -224,7 +224,7 @@ columns of `clients`.
 
 **Workplaces.** `client_workplaces` gains eight nullable columns. `activity` ("Gelaterie",
 "Birouri", 2 to 160 characters) is printed by decision 5, the list of means and the posted
-sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilată". `extinguisher_norm` is
+sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilă". `extinguisher_norm` is
 the row of OMAI 163/2007 annex 6 that applies, the list's "Norma de dotare", as
 `fire_extinguisher_norm`: `administrative_300`, `commercial_200`, `residential_level`,
 `mixed_300` or `other_150`. `assembly_point` (2 to 240) is printed by the posted sheet and
