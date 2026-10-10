@@ -80,16 +80,16 @@ describe('the chapters the training themes cite', () => {
       start,
       (chapterStarts[index + 1] ?? total + 1) - 1,
     ]);
-    const rows = [...text.matchAll(/^IPSU Art\. (\d+)(?: – (\d+))?$/gm)].map(([, from, to]) => [
+    const rows = [...text.matchAll(/^IPSU art\. (\d+)(?:–(\d+))?$/gm)].map(([, from, to]) => [
       Number(from),
       Number(to ?? from),
     ]);
     expect([...rows].sort((a, b) => a[0]! - b[0]!)).toEqual(chapters);
     const summaries = [
-      ...text.matchAll(/^CONȚINUTUL MATERIALULUI DE INSTRUIRE: IPSU Art\. ([^;]+);/gm),
+      ...text.matchAll(/^CONȚINUTUL MATERIALULUI DE INSTRUIRE: IPSU art\. ([^;]+);/gm),
     ]
       .flatMap(([, list]) => list!.split(', '))
-      .map((range) => range.split(' – ').map(Number));
+      .map((range) => range.split('–').map(Number));
     const covered = summaries.flatMap(([from, to]) =>
       Array.from({ length: (to ?? from!) - from! + 1 }, (_, index) => from! + index)
     );
