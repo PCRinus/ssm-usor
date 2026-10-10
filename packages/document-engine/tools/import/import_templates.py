@@ -1674,6 +1674,190 @@ def style_branding(xml):
     return re.sub(r'<w:p(?:\s[^>]*)?(?<!/)>(?:(?!</w:p>).)*</w:p>', paragraph, xml, flags=re.S)
 
 
+PARAGRAPH = re.compile(r'<w:p(?:\s[^>]*)?(?<!/)>(?:(?!</w:p>).)*</w:p>', re.S)
+TEXT_RUN = re.compile(r'<w:r\b[^>]*>(?:(?!</w:r>).)*?<w:t\b[^>]*>[^<]+</w:t>', re.S)
+SIZE = re.compile(r'<w:sz w:val="(\d+)"/>')
+COMPLEX_SIZE = re.compile(r'<w:szCs w:val="(\d+)"/>')
+BOLD_ON = re.compile(r'<w:b(?: w:val="(?:true|1|on)")?/>')
+LEVEL = re.compile(r'<w:lvl w:ilvl="(\d)"[^>]*>.*?</w:lvl>', re.S)
+DASH_BULLETS = ('-', '–')
+WIDE_HANG = 567  # twips, 1 cm
+
+
+def run_properties(xml):
+    properties = re.search(r'<w:rPr>(.*?)</w:rPr>', xml, flags=re.S)
+    return properties.group(1) if properties else None
+
+
+def size_of(properties):
+    size = SIZE.search(properties or '')
+    return size and size.group(1)
+
+
+def style_sizes(styles):
+    """The size a paragraph or character style gives its text, through what it is based on, as
+    a function of the style's id and kind; a paragraph without a style takes the default one."""
+    definitions, default = {}, None
+    for match in re.finditer(r'<w:style\b([^>]*)>(.*?)</w:style>', styles, flags=re.S):
+        attributes, body = match.groups()
+        kind = re.search(r'w:type="(\w+)"', attributes)
+        name = re.search(r'w:styleId="([^"]+)"', attributes)
+        if not kind or not name:
+            continue
+        based_on = re.search(r'<w:basedOn w:val="([^"]+)"', body)
+        definitions[(kind.group(1), name.group(1))] = (based_on and based_on.group(1), size_of(run_properties(body)))
+        if kind.group(1) == 'paragraph' and re.search(r'w:default="(1|true)"', attributes):
+            default = name.group(1)
+    defaults = re.search(r'<w:rPrDefault>(.*?)</w:rPrDefault>', styles, flags=re.S)
+    fallback = defaults and size_of(defaults.group(1))
+
+    def resolve(kind, name, seen=()):
+        if kind == 'paragraph' and name is None:
+            name = default
+        if (kind, name) not in definitions or name in seen:
+            return fallback if kind == 'paragraph' else None
+        based_on, own = definitions[(kind, name)]
+        if own:
+            return own
+        return resolve(kind, based_on, seen + (name,)) if based_on else \
+            (fallback if kind == 'paragraph' else None)
+
+    return resolve
+
+
+def with_level_properties(level, properties):
+    if run_properties(level) is None:
+        return level.replace('</w:lvl>', f'<w:rPr>{properties}</w:rPr></w:lvl>')
+    return re.sub(r'<w:rPr>.*?</w:rPr>', lambda _: f'<w:rPr>{properties}</w:rPr>', level, count=1, flags=re.S)
+
+
+def with_mark_size(paragraph, size, complex_size):
+    properties = own_properties(paragraph)
+    mark = re.search(r'<w:rPr>(.*?)</w:rPr>', properties, flags=re.S)
+    inner = mark.group(1) if mark else ''
+    inner = set_run_property(inner, 'sz', f'<w:sz w:val="{size}"/>')
+    inner = set_run_property(inner, 'szCs', f'<w:szCs w:val="{complex_size}"/>')
+    if mark:
+        changed = properties[:mark.start()] + f'<w:rPr>{inner}</w:rPr>' + properties[mark.end():]
+    else:
+        # Word refuses paragraph properties out of the schema's order, which puts these last.
+        tail = re.search(r'<w:sectPr\b|<w:pPrChange\b|</w:pPr>$', properties)
+        changed = properties[:tail.start()] + f'<w:rPr>{inner}</w:rPr>' + properties[tail.start():]
+    return paragraph.replace(properties, changed, 1)
+
+
+def widen_hang(level):
+    """At the body size a label of two numbers in bold ("1.1.") fills the list's 6.35 mm hang
+    and touches its text: it hangs 1 cm instead, from where it stood."""
+    indent = re.search(r'<w:ind\b[^>]*/>', level)
+    hanging = indent and re.search(r'w:hanging="(\d+)"', indent.group(0))
+    left = indent and re.search(r'w:left="(-?\d+)"', indent.group(0))
+    if not hanging or not left or int(hanging.group(1)) >= WIDE_HANG:
+        return level
+    more = WIDE_HANG - int(hanging.group(1))
+    widened = indent.group(0).replace(hanging.group(0), f'w:hanging="{WIDE_HANG}"') \
+        .replace(left.group(0), f'w:left="{int(left.group(1)) + more}"')
+    level = level.replace(indent.group(0), widened)
+    return re.sub(r'(<w:tab w:val="num" w:pos=")(\d+)"', lambda tab: f'{tab.group(1)}{int(tab.group(2)) + more}"', level)
+
+
+def size_list_labels(xml, numbering, styles):
+    """Prints every list label at the size of its item's text, and a dash bullet as a plain en
+    dash. Word and LibreOffice size a label by its list level, or without one by its paragraph's
+    end mark, which the originals left at 9 pt under 10 pt text and the import does not reach."""
+    style_size = style_sizes(styles)
+    abstracts = {match.group(1): match.group(0) for match in
+                 re.finditer(r'<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>.*?</w:abstractNum>', numbering, re.S)}
+    nums = {match.group(1): match.group(0) for match in
+            re.finditer(r'<w:num w:numId="(\d+)"[^>]*>.*?</w:num>', numbering, re.S)}
+
+    def level_key(num_id, ilvl):
+        num = nums.get(num_id)
+        if num is None:
+            return None
+        if re.search(rf'<w:lvlOverride w:ilvl="{ilvl}">(?:(?!</w:lvlOverride>).)*?<w:lvl\b', num, re.S):
+            return ('num', num_id, ilvl)
+        abstract = re.search(r'<w:abstractNumId w:val="(\d+)"', num)
+        return abstract and abstract.group(1) in abstracts and ('abstract', abstract.group(1), ilvl)
+
+    def level_of(key):
+        container = nums[key[1]] if key[0] == 'num' else abstracts[key[1]]
+        return next((level.group(0) for level in LEVEL.finditer(container) if level.group(1) == key[2]), None)
+
+    items = collections.defaultdict(list)
+    for match in PARAGRAPH.finditer(xml):
+        paragraph = match.group(0)
+        properties = own_properties(paragraph)
+        num_id = re.search(r'<w:numId w:val="(\d+)"', properties)
+        # A paragraph that holds a text box holds other paragraphs, and a match would end inside it.
+        if not num_id or re.search(r'<w:p[ >]', paragraph[4:]):
+            continue
+        ilvl = re.search(r'<w:ilvl w:val="(\d)"', properties)
+        key = level_key(num_id.group(1), ilvl.group(1) if ilvl else '0')
+        if not key or level_of(key) is None:
+            continue
+        style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
+        paragraph_size = style_size('paragraph', style and style.group(1))
+        run = TEXT_RUN.search(paragraph, paragraph.index(properties) + len(properties))
+        text = run and run_properties(run.group(0))
+        size = size_of(text) or paragraph_size
+        complex_size = COMPLEX_SIZE.search(text or '')
+        mark = run_properties(properties)
+        items[key].append({
+            'span': match.span(),
+            'size': size if run else None,
+            'complexSize': complex_size.group(1) if complex_size else size,
+            'mark': size_of(mark) or paragraph_size,
+            'markBold': bool(mark and BOLD_ON.search(mark)),
+        })
+
+    levels, marks = {}, []
+    for key, group in items.items():
+        level = original = level_of(key)
+        if '<w:numFmt w:val="none"/>' in level or '<w:lvlText w:val=""/>' in level:
+            continue
+        properties = run_properties(level) or ''
+        if '<w:numFmt w:val="bullet"/>' in level \
+                and re.search(r'<w:lvlText w:val="([^"]*)"/>', level).group(1) in DASH_BULLETS:
+            level = level.replace('<w:lvlText w:val="-"/>', '<w:lvlText w:val="–"/>')
+            if BOLD_ON.search(properties) or ('<w:b ' not in properties and any(item['markBold'] for item in group)):
+                properties = set_run_property(properties, 'b', '<w:b w:val="false"/>')
+            font = re.search(r'<w:rFonts [^>]*w:ascii="([^"]+)"', properties)
+            if font and font.group(1) != FONT:
+                properties = set_run_property(properties, 'rFonts', f'<w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}" w:cs="{FONT}"/>')
+        character = re.search(r'<w:rStyle w:val="([^"]+)"', properties)
+        own = size_of(properties) or (character and style_size('character', character.group(1)))
+        text_sizes = {item['size'] for item in group}
+        if any(item['size'] and (own or item['mark']) != item['size'] for item in group):
+            if re.search(r'<w:lvlText w:val="[^"]*%\d[^"]*%\d', level):
+                level = widen_hang(level)
+            if not own:
+                marks += [item for item in group if item['size'] and item['mark'] != item['size']]
+            elif len(text_sizes) == 1:
+                properties = set_run_property(properties, 'sz', f'<w:sz w:val="{group[0]["size"]}"/>')
+                properties = set_run_property(properties, 'szCs', f'<w:szCs w:val="{group[0]["complexSize"]}"/>')
+            elif None not in text_sizes and size_of(properties):
+                properties = COMPLEX_SIZE.sub('', SIZE.sub('', properties))
+                marks += [item for item in group if item['mark'] != item['size']]
+        if properties != (run_properties(level) or ''):
+            level = with_level_properties(level, properties)
+        if level != original:
+            levels[key] = level
+
+    for item in sorted(marks, key=lambda item: item['span'], reverse=True):
+        start, end = item['span']
+        xml = xml[:start] + with_mark_size(xml[start:end], item['size'], item['complexSize']) + xml[end:]
+
+    def replace_levels(container, kind, identifier):
+        return LEVEL.sub(lambda level: levels.get((kind, identifier, level.group(1)), level.group(0)), container)
+
+    numbering = re.sub(r'<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>.*?</w:abstractNum>',
+                       lambda match: replace_levels(match.group(0), 'abstract', match.group(1)), numbering, flags=re.S)
+    numbering = re.sub(r'<w:num w:numId="(\d+)"[^>]*>.*?</w:num>',
+                       lambda match: replace_levels(match.group(0), 'num', match.group(1)), numbering, flags=re.S)
+    return xml, numbering
+
+
 # A paragraph holding only this marker becomes a page break of its own. A break set on a
 # paragraph is saved as a break run at the end of the paragraph before it, which may be a loop
 # tag's: inside a section of its own, the break can be left out for one item of a loop.
@@ -1687,15 +1871,22 @@ def sweep(path):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
-    and its own fonts as the defaults of the styles. Then three rules every template keeps: a
-    line ending in ":" keeps with the list item after it, no run of paragraphs kept with the
-    next longer than `KEEP_CHAIN` unless its lines are short, and the branding line small and
-    grey. Safe to run again."""
+    its own fonts as the defaults of the styles, and list labels smaller than their text. Then
+    three rules every template keeps: a line ending in ":" keeps with the list item after it,
+    no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
+    short, and the branding line small and grey. Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
+        labelled = {}
+        if 'word/numbering.xml' in archive.namelist():
+            labelled['word/document.xml'], labelled['word/numbering.xml'] = size_list_labels(
+                archive.read('word/document.xml').decode('utf8'), archive.read('word/numbering.xml').decode('utf8'),
+                styles)
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
         for item, data in entries:
+            if item.filename in labelled:
+                data = labelled[item.filename].encode('utf8')
             if re.fullmatch(r'word/(document|header\d*|footer\d*)\.xml', item.filename):
                 xml = data.decode('utf8')
                 xml = re.sub(r'<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>', r'\1', xml, flags=re.S)

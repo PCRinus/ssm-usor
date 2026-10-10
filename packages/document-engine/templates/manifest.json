@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Liniuțele listelor au mărimea textului (unele erau mai mici, altele mai mari) și sunt tipărite ca în celelalte documente: „–”, în Arial, neîngroșat."
       }
     },
     {
@@ -68,8 +68,8 @@
       "title": "Decizia privind reprezentanții lucrătorilor",
       "file": "1.5_decision_workers_representative.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor (literele) au mărimea textului, nu mai mici."
       }
     },
     {
@@ -92,8 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.2_general_training_material.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor („Art. N.”, numerele și literele) au mărimea textului, nu mai mici, iar liniuțele sunt tipărite ca în celelalte documente: „–”, neîngroșat."
       }
     },
     {
@@ -116,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.2_own_instructions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor („Art. N.”, numerele, literele și liniuțele) au mărimea textului, nu mai mici, iar liniuțele sunt tipărite ca în celelalte documente: „–”, neîngroșat."
       }
     },
     {
@@ -164,8 +164,8 @@
       "title": "Test de verificare a cunoștințelor la angajare",
       "file": "5.1_test_hiring.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor (literele răspunsurilor) au mărimea textului, nu mai mici."
       }
     },
     {
@@ -188,8 +188,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor („Art. N.”, literele și liniuțele) au mărimea textului, nu mai mici."
       }
     },
     {
@@ -236,8 +236,8 @@
       "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
       "file": "9_risk_assessment.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor (numerele titlurilor și liniuțele) au mărimea textului, nu mai mici; liniuțele sunt tipărite ca „–”, iar titlurile „1.1.”, „1.2.” au mai mult loc între număr și text, iar rândul unui post din tabelul posturilor nu se mai rupe între două pagini."
       }
     },
     {
@@ -272,8 +272,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11_employer_briefing.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor („Art. N.”, numerele și literele) au mărimea textului, nu mai mici."
       }
     },
     {
@@ -284,8 +284,8 @@
       "title": "Regulament intern privind controlul propriu",
       "file": "12_control_regulation.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Etichetele listelor (numerele) au mărimea textului, nu mai mici."
       }
     }
   ]
