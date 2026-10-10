@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 
-import { documentTypeKeys, fireSafetyDocumentTypeKeys } from '@ssm-usor/contracts';
+import {
+  documentTypeKeys,
+  fireSafetyDocumentTypeKeys,
+  fireSafetyMissingDocumentData,
+} from '@ssm-usor/contracts';
 import {
   annexTitlePage,
   documentText,
@@ -21,7 +25,12 @@ import {
 } from '../../src/modules/documents/context';
 import { facts, workshopId } from '../../src/modules/documents/context.fixture';
 import { merge } from '../../src/modules/documents/documents';
-import { buildFireSafetyContext } from '../../src/modules/documents/fire-safety';
+import {
+  buildFireSafetyContext,
+  buildPartialFireSafetyContext,
+  fireSafetyGapConcerns,
+  missingFireSafetyData,
+} from '../../src/modules/documents/fire-safety';
 import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
 
 // Lives with the scripts because it reads the repository's files, which the Worker's own
@@ -30,6 +39,18 @@ import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
 const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8')) as {
   templates: { typeKey: string; title: string; file: string }[];
+};
+
+const refusedFor = (merging: () => unknown) => {
+  try {
+    merging();
+    return [];
+  } catch (error) {
+    if (error instanceof ApiError && error.reason === 'missing_document_data') {
+      return error.missing;
+    }
+    throw error;
+  }
 };
 
 describe('the built-in templates', () => {
@@ -182,18 +203,6 @@ describe('a document generated again while the set lacks data', () => {
       },
     ],
   ];
-
-  const refusedFor = (merging: () => unknown) => {
-    try {
-      merging();
-      return [];
-    } catch (error) {
-      if (error instanceof ApiError && error.reason === 'missing_document_data') {
-        return error.missing;
-      }
-      throw error;
-    }
-  };
 
   it('covers every gap of the occupational safety set', () => {
     const gaps = new Set(
@@ -863,6 +872,70 @@ describe('the fire-safety templates', () => {
       'personalul administrativ (Contabil) va fi instruit la 6 LUNI, respectiv în lunile februarie și august, în perioada (zilele) 2 – 7 ale lunii;'
     );
   });
+
+  const fireGaps: [string, DocumentFacts][] = [
+    [
+      'everything of the second stage',
+      {
+        ...facts,
+        responsiblePersons: [],
+        jobPositions: [],
+        workplaces: facts.workplaces.map((workplace) => ({ ...workplace, activity: null })),
+        fireSafety: { card: null, equipment: [], installations: [] },
+      },
+    ],
+    [
+      'the provider, its technician and the client',
+      {
+        ...facts,
+        organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: null },
+        client: { ...facts.client, representativeName: null, representativeRole: null },
+      },
+    ],
+  ];
+
+  it('cover every gap of the fire-safety set', () => {
+    expect(fireGaps.flatMap(([, variant]) => missingFireSafetyData(variant)).sort()).toEqual(
+      [...fireSafetyMissingDocumentData].sort()
+    );
+  });
+
+  // As for the occupational safety set: the names a template printed from the whole context are
+  // what its snapshot keeps, so a refusal here is also what marks its draft as changed.
+  it.each(
+    fireManifest.templates.flatMap((entry) =>
+      fireGaps.map(([label, variant]) => [entry.typeKey, label, entry.file, variant] as const)
+    )
+  )(
+    '%s is generated again or refused for exactly the gaps it prints, lacking %s',
+    (typeKey, _, file, variant) => {
+      const template = readFileSync(new URL(file, fireUrl));
+      const { usedNames } = renderTemplate(template, { ...buildFireSafetyContext(facts) });
+      const missing = missingFireSafetyData(variant);
+      expect(
+        refusedFor(() =>
+          merge(template, { ...buildPartialFireSafetyContext(variant) }, typeKey, (absentNames) =>
+            missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
+          )
+        )
+      ).toEqual(missing.filter((code) => fireSafetyGapConcerns(code, usedNames)));
+    },
+    30_000
+  );
+
+  it('leave the registers cover to be generated again without the second stage data', () => {
+    const [, lacking] = fireGaps[0]!;
+    const cover = fireManifest.templates.find((entry) => entry.typeKey === 'fire_cover_registers')!;
+    const text = documentText(
+      merge(
+        readFileSync(new URL(cover.file, fireUrl)),
+        { ...buildPartialFireSafetyContext(lacking) },
+        'fire_cover_registers'
+      ).bytes
+    );
+    expect(text).toContain('PIPETECH');
+    expect(text).toContain('Radu STAN');
+  }, 30_000);
 
   it('name the fire-safety technician on the cover, not the legal representative', () => {
     const cover = fireManifest.templates.find((entry) => entry.typeKey === 'fire_cover_registers')!;

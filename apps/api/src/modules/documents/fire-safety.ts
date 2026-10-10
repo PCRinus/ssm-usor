@@ -307,22 +307,52 @@ function otherEquipmentGroups(units: FireSafetyClientFacts['equipment']) {
 export function buildFireSafetyContext(facts: FireSafetySetFacts): FireSafetyContext {
   const missing = missingFireSafetyData(facts);
   if (missing.length > 0) throw new Error(`Missing document data: ${missing.join(', ')}`);
+  return fireSafetyContextWithout(facts, []) as FireSafetyContext;
+}
+
+/**
+ * The data one fire-safety document is merged with when it is generated again: what the gaps of
+ * `missingFireSafetyData` cover is left out rather than left blank, so a template that prints
+ * any of it has no value for it.
+ */
+export function buildPartialFireSafetyContext(
+  facts: FireSafetySetFacts
+): Partial<FireSafetyContext> {
+  return fireSafetyContextWithout(facts, missingFireSafetyData(facts));
+}
+
+function fireSafetyContextWithout(
+  facts: FireSafetySetFacts,
+  gaps: readonly FireSafetyMissingData[]
+): Partial<FireSafetyContext> {
+  const leftOut = new Set(gaps.map((code) => printedAs[code]));
+  return Object.fromEntries(
+    Object.entries(fireSafetyContextParts(facts)).flatMap(([name, part]) =>
+      leftOut.has(name as keyof FireSafetyContext) ? [] : [[name, part()]]
+    )
+  );
+}
+
+// A part is only called when no gap leaves it out, which is what makes its `!` safe.
+function fireSafetyContextParts(facts: FireSafetySetFacts): {
+  [Name in keyof FireSafetyContext]: () => FireSafetyContext[Name];
+} {
   const { organization, client } = facts;
   return {
-    branding: facts.branding,
-    issueDate: printedDate(facts.issueDate),
-    client: {
+    branding: () => facts.branding,
+    issueDate: () => printedDate(facts.issueDate),
+    client: () => ({
       legalName: client.legalName.trim(),
       representativeName: client.representativeName!.trim(),
       representativeRole: client.representativeRole!.trim(),
-    },
-    provider: {
+    }),
+    provider: () => ({
       legalName: organization.legalName!.trim(),
       representativeName: organization.representativeName?.trim() ?? '',
       representativeRole: organization.representativeRole?.trim() ?? '',
-    },
-    fireSafetyTechnician: { name: organization.fireSafetyTechnicianName!.trim() },
-    fire: fireContext(facts),
+    }),
+    fireSafetyTechnician: () => ({ name: organization.fireSafetyTechnicianName!.trim() }),
+    fire: () => fireContext(facts),
   };
 }
 

@@ -30,6 +30,7 @@ vi.mock('@ssm-usor/document-engine', () => {
     prevention_plan: ['riskAssessment'],
     fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding'],
     fire_registers: ['branding'],
+    fire_decision_waste: ['fire'],
     event_registers: ['branding'],
   };
   class TemplateError extends Error {
@@ -2895,9 +2896,108 @@ describe('the fire-safety set', () => {
     });
     const response = await request(`/documents/${fireDocumentId}/regenerate`, 'POST', {});
     expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
-      'missing_document_data'
+    expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
+      reason: 'missing_document_data',
+      missing: ['provider.fireSafetyTechnician'],
+    });
+  });
+
+  const stageTwoGaps: Partial<Record<Upstream, Handler>> = {
+    fireSafety: () => Response.json(null),
+    persons: () => Response.json([]),
+    positions: () => Response.json([]),
+    workplaces: () => Response.json([{ ...workplaceRow, assembly_point: null }]),
+    fireEquipment: () => Response.json([]),
+  };
+  const stageTwoCodes = [
+    'fire.trainingSchedule',
+    'fire.waste',
+    'responsible.workplace_manager',
+    'responsible.fire_safety_coordinator',
+    'responsible.fire_intervention_leader',
+    'positions.any',
+    'fire.workplaces',
+    'fire.equipment',
+  ];
+  const wasteDecisionRow = {
+    ...fireDocumentRow,
+    id: crypto.randomUUID(),
+    type_key: 'fire_decision_waste',
+    decision_number: 11,
+    document_revisions: [
+      {
+        ...fireDocumentRow.document_revisions[0]!,
+        data_snapshot: { fire: {} },
+        document_generations: { issue_date: '2026-10-01', first_decision_number: 4 },
+      },
+    ],
+  };
+  const wasteTemplateRow = {
+    type_key: 'fire_decision_waste',
+    title: 'fire_decision_waste',
+    document_template_versions: [
+      { id: 'f9', version: 1, storage_path: 'built-in/fire_decision_waste/one.docx' },
+    ],
+  };
+
+  it('regenerates a document that prints none of the fire object while all of it is missing', async () => {
+    mockUpstream(stageTwoGaps);
+    const readiness = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await readiness.json()).missing).toEqual(
+      stageTwoCodes
     );
+
+    mockUpstream({
+      ...stageTwoGaps,
+      templates: () => Response.json(fireTemplateRows),
+      documents: () => Response.json(fireDocumentRow),
+    });
+    const response = await request(`/documents/${fireDocumentId}/regenerate`, 'POST', {});
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH')).toMatchObject({
+      template_version_id: 'f1',
+      data_snapshot: printedFireSafety,
+    });
+  });
+
+  it('refuses a document that prints the fire object for every gap in it, and only those', async () => {
+    mockUpstream({
+      ...stageTwoGaps,
+      organizations: () => Response.json({ ...organizationRow, legal_name: null }),
+      templates: () => Response.json([wasteTemplateRow]),
+      documents: () => Response.json(wasteDecisionRow),
+    });
+    const response = await request(`/documents/${wasteDecisionRow.id}/regenerate`, 'POST', {});
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
+      reason: 'missing_document_data',
+      missing: stageTwoCodes,
+    });
+    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('marks a draft for the fire gaps as generating it again would refuse it', async () => {
+    const changed = async (changes: Partial<Record<Upstream, Handler>>) => {
+      mockUpstream({
+        documents: () => Response.json([fireDocumentRow, wasteDecisionRow]),
+        ...changes,
+      });
+      const body = clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents?set=fire_safety`)).json()
+      );
+      return Object.fromEntries(body.items.map((item) => [item.typeKey, item.draft!.dataChanged]));
+    };
+    expect(await changed(stageTwoGaps)).toEqual({
+      fire_cover_registers: false,
+      fire_decision_waste: true,
+    });
+    expect(
+      await changed({
+        ...stageTwoGaps,
+        clients: () => Response.json({ ...clientRow, legal_name: 'S.C. PIPETECH NOU S.R.L.' }),
+      })
+    ).toEqual({ fire_cover_registers: true, fire_decision_waste: true });
   });
 
   it('issues a fire-safety draft', async () => {

@@ -14,7 +14,7 @@ import {
   missingDocumentData,
 } from './context';
 import {
-  buildFireSafetyContext,
+  buildPartialFireSafetyContext,
   fireSafetyGapConcerns,
   missingFireSafetyData,
 } from './fire-safety';
@@ -45,8 +45,8 @@ export const setRules: Record<DocumentSet, SetRules> = {
   fire_safety: {
     missing: (facts) => missingFireSafetyData(facts),
     concerns: fireSafetyGapConcerns,
-    data: (facts) => ({ ...buildFireSafetyContext(facts) }),
-    buildsWithGaps: false,
+    data: (facts) => ({ ...buildPartialFireSafetyContext(facts) }),
+    buildsWithGaps: true,
   },
 };
 
