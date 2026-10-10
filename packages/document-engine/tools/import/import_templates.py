@@ -128,6 +128,9 @@ SMALL_PRINT = 8.0
 # A table drawn from a definition has the sizes it was given.
 DRAWN = 'Drawn'
 DRAWN_SIZES = {}
+# The room above a drawn table, in points, where a table's own `above` asks for more than the
+# paragraph's distance.
+DRAWN_ABOVE = {}
 
 SIGNATURE_BLOCK = [
     '{{client.legalName}}',
@@ -149,6 +152,17 @@ BRANDING_COLOR = 0x7A7A7A
 # some with paragraph indents on top, so each level drifts. The label hangs 6.35 mm to the left.
 LIST_TIERS = [1270, 1905, 3175]
 LIST_HANG = -635
+TYPED_DASH = re.compile(r'^[–-][ \t]')
+LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
+BULLET = 6  # NumberingType: a character, not a number
+TEXT_BULLETS = '-–•'
+# The bold face the PDFs are made with lacks ⁰ and ⁴ to ⁹, so a label such as "r¹⁶)" mixed
+# fonts; digits set as superscript read the same in every face.
+SUPERSCRIPT_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
+SUPERSCRIPT_RAISE = 33
+SUPERSCRIPT_HEIGHT = 58
+ITEM_LABEL = 'ItemLabel'
+DASH_LABEL = 'DashLabel'
 
 
 def prop(name, value):
@@ -524,6 +538,8 @@ def rebuild_table(document, definition, following=None):
         ('Loop' if definition.get('loop') else '')
     table.Name = f"{DRAWN}{flags}{definition.get('replaceTable', len(DRAWN_SIZES) + 100)}"
     DRAWN_SIZES[table.Name] = definition.get('size', BODY_SIZE)
+    if definition.get('above'):
+        DRAWN_ABOVE[table.Name] = definition['above']
     total, position = sum(definition['widths']), 0
     separators = table.TableColumnSeparators
     for separator, width in zip(separators, definition['widths']):
@@ -617,6 +633,16 @@ def replace_handover(document, sides=None):
         if index and body[index - 1].supportsService('com.sun.star.text.Paragraph'):
             # The title above: a Word file has no space around a table.
             body[index - 1].ParaBottomMargin = round(12 * POINT)
+            if LOOP_TAGS_ONLY.fullmatch(body[index - 1].getString().strip()):
+                # Loop tags leave nothing behind once merged, nor the room under them: the
+                # table the loop repeats would touch the block. An empty line keeps the room.
+                end = document.Text.createTextCursorByRange(body[index - 1].getEnd())
+                document.Text.insertControlCharacter(end, PARAGRAPH_BREAK, False)
+                spacer = list(_elements(document.Text))[index]
+                set_text(spacer, '')
+                spacer.CharHeight = 1.0
+                spacer.ParaTopMargin = 0
+                spacer.ParaBottomMargin = round(12 * POINT)
         after = body[index + len(block)] if index + len(block) < len(body) else None
         if after is not None and after.supportsService('com.sun.star.text.TextTable'):
             # Straight into a table: one line stays between them, or they are saved as one.
@@ -904,6 +930,72 @@ def snap_list_indent(paragraph, tier=None):
         paragraph.ParaTabStops = tuple(stop for stop in stops if stop.Position >= tier)
 
 
+def set_list_level(paragraph, changes):
+    """Changes properties of the paragraph's list level, in the list's own definition."""
+    numbering = paragraph.NumberingRules
+    level = paragraph.NumberingLevel
+    properties = {item.Name: item for item in numbering.getByIndex(level)}
+    for name, value in changes.items():
+        properties[name] = prop(name, value)
+    uno.invoke(numbering, 'replaceByIndex',
+               (level, uno.Any('[]com.sun.star.beans.PropertyValue', tuple(properties.values()))))
+    paragraph.NumberingRules = numbering
+
+
+def list_level(paragraph):
+    return {item.Name: item.Value for item in paragraph.NumberingRules.getByIndex(paragraph.NumberingLevel)}
+
+
+def is_bullet(paragraph):
+    return bool(paragraph.NumberingIsNumber and paragraph.NumberingRules is not None
+                and list_level(paragraph).get('NumberingType') == BULLET)
+
+
+def is_list_paragraph(paragraph):
+    """A list item, numbered, bulleted or typed and hung from its label; an article is not."""
+    if paragraph.NumberingIsNumber and paragraph.ListLabelString:
+        return not paragraph.ListLabelString.startswith('Art.')
+    return is_bullet(paragraph) or (paragraph.ParaFirstLineIndent == LIST_HANG
+                                    and paragraph.ParaLeftMargin in LIST_TIERS)
+
+
+def hang_typed_dash(paragraph):
+    """A dash typed by hand hangs from the nearest tier like a list's label, a tab after it, so
+    a long item's lines run under its text and not back under the dash."""
+    paragraph.ParaLeftMargin = min(LIST_TIERS, key=lambda tier: abs(tier - paragraph.ParaLeftMargin))
+    paragraph.ParaFirstLineIndent = LIST_HANG
+    paragraph.setPropertyToDefault('ParaTabStops')
+    cursor = paragraph.getText().createTextCursorByRange(paragraph.getStart())
+    cursor.goRight(1, False)
+    cursor.goRight(1, True)
+    cursor.setString('\t')
+
+
+def label_style(document, name, bold):
+    characters = document.StyleFamilies.getByName('CharacterStyles')
+    if not characters.hasByName(name):
+        style = document.createInstance('com.sun.star.style.CharacterStyle')
+        characters.insertByName(name, style)
+        style.CharWeight = 150 if bold else 100
+        style.CharFontName = FONT
+        style.CharHeight = BODY_SIZE
+    return name
+
+
+def format_superscripts(document):
+    search = document.createSearchDescriptor()
+    search.SearchRegularExpression = True
+    search.SearchString = f'[{SUPERSCRIPT_DIGITS}]+'
+    found = document.findAll(search)
+    for index in range(found.getCount()):
+        match = found.getByIndex(index)
+        cursor = match.getText().createTextCursorByRange(match)
+        digits = cursor.getString().translate(str.maketrans(SUPERSCRIPT_DIGITS, '0123456789'))
+        cursor.setString(digits)
+        cursor.CharEscapement = SUPERSCRIPT_RAISE
+        cursor.CharEscapementHeight = SUPERSCRIPT_HEIGHT
+
+
 def matches(text, patterns):
     return any(re.search(pattern, text) for pattern in patterns)
 
@@ -1040,6 +1132,11 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             listed[0].ParaLeftMargin = 0
             listed[0].ParaFirstLineIndent = 0
 
+    # What the document opens with, past loop tags and page breaks: a page's first line.
+    opening = next((element for element in _elements(document.Text)
+                    if not element.supportsService('com.sun.star.text.Paragraph')
+                    or element.getString().strip() not in ('', PAGE_BREAK_MARKER)
+                    and not LOOP_TAGS_ONLY.fullmatch(element.getString().strip())), None)
     seen_title = False
     after_question = False
     under_number = False
@@ -1056,6 +1153,11 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
         # Again on the paragraph: its end mark keeps formatting of its own, out of a cursor's
         # reach, and that is where a stray language or size survives.
         paragraph.CharFontName = FONT
+        if is_bullet(paragraph) and list_level(paragraph).get('BulletChar') in TEXT_BULLETS:
+            # The originals ask for Times New Roman, which the PDFs print in a serif face.
+            font = list_level(paragraph)['BulletFont']
+            font.Name = FONT
+            set_list_level(paragraph, {'BulletFont': font, 'BulletFontName': FONT})
         if not in_table:
             # In a table the size went on with the rest of the characters: a wide one is smaller.
             paragraph.CharHeight = BODY_SIZE
@@ -1115,6 +1217,9 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
                 # Dashes under a letter: one tier further in.
                 paragraph.ParaLeftMargin = LIST_TIERS[letter_tier + 1]
                 paragraph.ParaFirstLineIndent = LIST_HANG
+        elif paragraph.ParaLeftMargin and TYPED_DASH.match(text):
+            hang_typed_dash(paragraph)
+            paragraph.ParaBottomMargin = round(2 * POINT)
         elif paragraph.ParaLeftMargin:
             # A note inside a list: "(Preluare din H.G. 1425/2006 – Art. 98)".
             paragraph.ParaBottomMargin = round(2 * POINT)
@@ -1165,25 +1270,38 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             paragraph.ParaLeftMargin = 0
             paragraph.ParaRightMargin = 0
             paragraph.ParaFirstLineIndent = 0
-            paragraph.ParaTopMargin = round(24 * POINT) if position == 0 else 0
-            paragraph.ParaBottomMargin = [0, round(12 * POINT), round(24 * POINT)][position]
+            # A client's name that opens a page is a title block, not a signature: LibreOffice
+            # drops space above it after a page break, and the first page would sit lower.
+            opens = opening is not None and opening.supportsService('com.sun.star.text.Paragraph') \
+                and document.Text.compareRegionStarts(opening.getStart(), paragraph.getStart()) == 0
+            paragraph.ParaTopMargin = round(24 * POINT) if position == 0 and not opens else 0
+            # Little room under the name, so the acknowledgement after it, kept whole, fits on
+            # the signature's page more often.
+            paragraph.ParaBottomMargin = [0, round(12 * POINT), round(6 * POINT)][position]
             paragraph.ParaKeepTogether = position < 2
 
     # A list sits close under the paragraph that introduces it, and what follows a list starts
-    # at a paragraph's distance.
-    flow = [item for item in _elements(document.Text)]
-    for index, element in enumerate(flow[:-1]):
-        following = flow[index + 1]
-        if not (element.supportsService('com.sun.star.text.Paragraph')
-                and following.supportsService('com.sun.star.text.Paragraph')):
+    # at a paragraph's distance. Loop tags leave nothing behind once merged, so the paragraphs on
+    # either side of them meet.
+    flow = list(_elements(document.Text))
+    tags = [element.supportsService('com.sun.star.text.Paragraph')
+            and LOOP_TAGS_ONLY.fullmatch(element.getString().strip()) is not None for element in flow]
+    for index, element in enumerate(flow):
+        if tags[index] or not element.supportsService('com.sun.star.text.Paragraph'):
             continue
-        is_item = lambda item: bool(item.NumberingIsNumber and item.ListLabelString
-                                    and not item.ListLabelString.startswith('Art.')) or \
-            (item.ParaFirstLineIndent == LIST_HANG and item.ParaLeftMargin == LIST_TIERS[0])
-        if not is_item(element) and is_item(following) and element.ParaBottomMargin > round(3 * POINT):
+        after = next((position for position in range(index + 1, len(flow)) if not tags[position]), None)
+        if after is None or not flow[after].supportsService('com.sun.star.text.Paragraph'):
+            continue
+        following = flow[after]
+        if not is_list_paragraph(element) and is_list_paragraph(following) \
+                and element.ParaBottomMargin > round(3 * POINT):
             element.ParaBottomMargin = round(3 * POINT)
-        elif is_item(element) and not is_item(following) and following.getString().strip():
-            element.ParaBottomMargin = round(6 * POINT)
+        elif is_list_paragraph(element) and not is_list_paragraph(following) and following.getString().strip():
+            if after > index + 1:
+                # An item a loop repeats would carry the room after the list to every repetition.
+                following.ParaTopMargin = max(following.ParaTopMargin, round(6 * POINT))
+            else:
+                element.ParaBottomMargin = round(6 * POINT)
 
     # A Word file has no space around a table: it comes from the paragraphs beside it.
     elements = list(_elements(document.Text))
@@ -1193,7 +1311,8 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
         if index and elements[index - 1].supportsService('com.sun.star.text.Paragraph'):
             before = elements[index - 1]
             if before.getString().strip():
-                before.ParaBottomMargin = max(before.ParaBottomMargin, round(6 * POINT))
+                above = DRAWN_ABOVE.get(element.Name, 6)
+                before.ParaBottomMargin = max(before.ParaBottomMargin, round(above * POINT))
                 if 'Loop' in element.Name:
                     # Repeated per item, the heading comes right after the previous item's table.
                     before.ParaTopMargin = round(12 * POINT)
@@ -1253,6 +1372,7 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
         end.ParaTopMargin = 0
         end.ParaBottomMargin = 0
         end.ParaKeepTogether = False
+    format_superscripts(document)
     return removed
 
 
@@ -1600,6 +1720,59 @@ def number_articles(document):
     return found
 
 
+def set_tiers(document, entries):
+    """`tiers` puts the list items matching each `pattern` at a `tier`, where the original nests
+    parallel parts differently: decision 2 of the fire-safety set sets the letters of one
+    training flush with its heading and of the next one tier in. A tier belongs to a list's
+    level, so items of one level sent to different tiers move to a copy of their list."""
+    body = [element for element, in_table in paragraphs(document.Text) if not in_table]
+    labels = [element.ListLabelString for element in body]
+    listed = [element for element in body if element.NumberingIsNumber and element.NumberingRules is not None
+              and (element.ListLabelString or is_bullet(element))]
+    wanted = {}
+    for entry in entries:
+        hits = [index for index, element in enumerate(listed) if re.search(entry['pattern'], element.getString())]
+        if not hits:
+            raise RuntimeError(f'tiers: no list item matches {entry["pattern"]!r}')
+        for index in hits:
+            wanted[index] = entry['tier']
+    levels = collections.defaultdict(list)
+    for index, element in enumerate(listed):
+        levels[(element.NumberingStyleName, element.NumberingLevel)].append(index)
+    styles = document.StyleFamilies.getByName('NumberingStyles')
+    for (style, level), members in levels.items():
+        tiers = {wanted.get(index) for index in members}
+        if tiers == {None}:
+            continue
+        if len(tiers) == 1:
+            tier = tiers.pop()
+            # Each paragraph, for the tab stops of its own a deeper tier must drop.
+            for index in members:
+                snap_list_indent(listed[index], LIST_TIERS[tier])
+            continue
+        if not style:
+            raise RuntimeError(f'tiers: {listed[members[0]].getString()[:40]!r} is in a list without a style')
+        for tier in tiers - {None}:
+            name = f'{style} tier {tier}'
+            if not styles.hasByName(name):
+                styles.insertByName(name, document.createInstance('com.sun.star.style.NumberingStyle'))
+                source, clone = styles.getByName(style).NumberingRules, styles.getByName(name)
+                rules = clone.NumberingRules
+                for number in range(source.getCount()):
+                    uno.invoke(rules, 'replaceByIndex', (number, uno.Any(
+                        '[]com.sun.star.beans.PropertyValue', tuple(source.getByIndex(number)))))
+                clone.NumberingRules = rules
+            moved = [listed[index] for index in members if wanted.get(index) == tier]
+            for element in moved:
+                element.NumberingStyleName = name
+                element.NumberingLevel = level
+                snap_list_indent(element, LIST_TIERS[tier])
+    changed = [(before, element.ListLabelString) for before, element in zip(labels, body)
+               if before != element.ListLabelString]
+    if changed:
+        raise RuntimeError(f'tiers: list labels changed: {changed[:5]}')
+
+
 def cut_tail(document, pattern):
     """Removes everything from the first paragraph matching `pattern` to the end of the body:
     the chapter a document no longer carries, annexed as separate files instead (ADR 012)."""
@@ -1744,16 +1917,42 @@ def copy_passage(desktop, document, marker, item):
         pasted = list(_elements(document.Text))[position:position + len(found)]
         if [paragraph.getString() for paragraph in pasted] != [paragraph.getString() for paragraph in found]:
             raise RuntimeError(f'copy: the passage from {item["first"]!r} was not pasted whole')
+        if item.get('restyle'):
+            restyle_paragraphs(pasted)
         if item.get('numbering') == 'dashes':
             flatten_lists(document, pasted, articles)
-            return
-        for index in articles:
-            pasted[index].NumberingStyleName = ARTICLES
-            pasted[index].NumberingLevel = 0
-            pasted[index].ParaLeftMargin = 0
-            pasted[index].ParaFirstLineIndent = 0
+        else:
+            for index in articles:
+                pasted[index].NumberingStyleName = ARTICLES
+                pasted[index].NumberingLevel = 0
+                pasted[index].ParaLeftMargin = 0
+                pasted[index].ParaFirstLineIndent = 0
+        if item.get('restyle'):
+            restyle_labels(document, [paragraph for index, paragraph in enumerate(pasted) if index not in articles])
     finally:
         source.close(True)
+
+
+def restyle_paragraphs(pasted):
+    """A copy set like the document it joins: the source's articles are in a bold heading style,
+    where this document sets only their "Art. N." label bold."""
+    for paragraph in pasted:
+        if paragraph.ParaStyleName != 'Standard':
+            paragraph.ParaStyleName = 'Standard'
+        cursor = paragraph.getText().createTextCursorByRange(paragraph.getStart())
+        cursor.gotoEndOfParagraph(True)
+        cursor.CharWeight = 100
+
+
+def restyle_labels(document, pasted):
+    """List labels like the ones this document types: a bold letter or number, a plain dash, at
+    the body's size. The source's take the size of their paragraph's end mark, 9 pt."""
+    for paragraph in pasted:
+        if not paragraph.NumberingIsNumber or paragraph.NumberingRules is None:
+            continue
+        name = label_style(document, DASH_LABEL, False) if is_bullet(paragraph) \
+            else label_style(document, ITEM_LABEL, True)
+        set_list_level(paragraph, {'CharStyleName': name})
 
 
 def flatten_lists(document, pasted, articles):
@@ -1895,6 +2094,7 @@ def import_template(desktop, spec_path, wording, output, registry, template):
         else 'private:factory/swriter'
     document = desktop.loadComponentFromURL(source, '_blank', 0, (prop('Hidden', True),))
     DRAWN_SIZES.clear()
+    DRAWN_ABOVE.clear()
     try:
         problems = []
         copies = []
@@ -1954,6 +2154,8 @@ def import_template(desktop, spec_path, wording, output, registry, template):
                 copy_passage(desktop, document, marker, item)
         removed = typeset(document, parts, spec.get('emptyParagraphs') == 'shrink',
                           spec.get('subheadings', []))
+        if spec.get('tiers'):
+            set_tiers(document, spec['tiers'])
         # A table that still does not fit at the small print, by its place in the body.
         body_tables = [item for item in _elements(document.Text) if item.supportsService('com.sun.star.text.TextTable')]
         for index, size in spec.get('tableSizes', {}).items():
