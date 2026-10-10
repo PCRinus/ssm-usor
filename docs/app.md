@@ -148,7 +148,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/organization/index.tsx`                                             | `/organization`                                             | Redirects to the team.                                                                                                                                                                                      |
 | `routes/_authenticated/organization/team.tsx`                                              | `/organization/team`                                        | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                                                                      |
 | `routes/_authenticated/organization/company.tsx`                                           | `/organization/company`                                     | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                                                            |
-| `routes/_authenticated/organization/authorizations.tsx`                                    | `/organization/authorizations`                              | "Abilitări": the certificate of authorization and the fire-safety technician. Owners edit.                                                                                                                  |
+| `routes/_authenticated/organization/authorizations.tsx`                                    | `/organization/authorizations`                              | "Abilitări": the certificate of authorization, the fire-safety technician and their authorization. Owners edit.                                                                                             |
 | `routes/_authenticated/profile.tsx`                                                        | `/profile`                                                  | The user's name and professional title (editable), email, and organization.                                                                                                                                 |
 | `routes/_authenticated/clients.tsx`                                                        | pathless                                                    | Clients section layout carrying the breadcrumb title.                                                                                                                                                       |
 | `routes/_authenticated/clients/index.tsx`                                                  | `/clients`                                                  | Protected, paginated and sortable list of the organization's active clients.                                                                                                                                |
@@ -518,7 +518,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
 - "Instruire PSI", the card after the occupational safety schedule (ADR 018), edits
   `GET`/`PUT /clients/{clientId}/fire-safety` in place: the duration in hours, the interval of
   each staff category (one to six months), the first month and the days, the smoking rule
-  (which may stay "Nestabilit"), the kinds of waste as chips (Enter adds one, a text left in
+  (which may stay "Nestabilit") and, under "Permis numai în locuri amenajate" only, the
+  optional "Locul pentru fumat" (ADR 019; picking another rule hides it and the save sends it
+  as null, so the API clears it), the kinds of waste as chips (Enter adds one, a text left in
   the field is added on save) and the firm that collects them. While the API says no row
   exists the card reads "Necompletat", and its form opens on two hours, three months for both
   categories and the occupational safety schedule's first month and days, with the note
@@ -754,7 +756,8 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   an emptied input clears what was saved. The IBAN is checked as typed, with or without
   spaces, and shown in groups of four once saved.
 - `/organization/authorizations` ("Abilitări"): the certificate of authorization and, in a
-  section of its own, the one fire-safety technician (issue #170), from
+  section of its own, the one fire-safety technician (issue #170) with the optional "Autorizație
+  ISU" under Legea 307/2006 art. 12² (ADR 019), from
   `GET /organization/authorizations`, with the same rules. The contract card's notice of
   missing data links to whichever of the two sections holds what is missing.
 - `/instructions`: the organization's instruction library
