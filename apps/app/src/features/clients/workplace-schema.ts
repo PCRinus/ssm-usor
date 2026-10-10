@@ -1,9 +1,25 @@
-import { type CountyCode, countyCodes, romanianCounties } from '@ssm-usor/contracts';
+import {
+  type CountyCode,
+  countyCodes,
+  type FireExtinguisherNorm,
+  fireExtinguisherNorms,
+  romanianCounties,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { WorkplaceListResponse, WorkplaceRequest } from '@/api/generated/api';
 
 export type Workplace = WorkplaceListResponse['items'][number];
+
+const optionalText = (max: number, what: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, `${what} are cel mult ${max} de caractere.`)
+    .refine(
+      (value) => value.length === 0 || value.length >= 2,
+      `${what} are cel puțin 2 caractere.`
+    );
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 export const workplaceFormSchema = z.object({
@@ -21,6 +37,27 @@ export const workplaceFormSchema = z.object({
     ),
   locality: z.string().trim().max(120, 'Localitatea are cel mult 120 de caractere.'),
   addressLine: z.string().trim().max(240, 'Adresa are cel mult 240 de caractere.'),
+  activity: optionalText(160, 'Activitatea'),
+  floorAreaM2: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === '' ||
+        (/^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 1_000_000),
+      'Introdu suprafața în metri pătrați, un număr întreg de la 1 la 1.000.000.'
+    ),
+  extinguisherNorm: z
+    .string()
+    .refine(
+      (value) => value === '' || (fireExtinguisherNorms as readonly string[]).includes(value),
+      'Alege o normă din listă.'
+    ),
+  assemblyPoint: optionalText(240, 'Punctul de adunare'),
+  combustibleMaterials: optionalText(600, 'Textul'),
+  ignitionSources: optionalText(600, 'Textul'),
+  fireRiskEquipment: optionalText(600, 'Textul'),
+  specificMeasures: optionalText(600, 'Textul'),
 });
 
 export type WorkplaceFormValues = z.infer<typeof workplaceFormSchema>;
@@ -31,6 +68,14 @@ export const emptyWorkplaceForm: WorkplaceFormValues = {
   countyCode: '',
   locality: '',
   addressLine: '',
+  activity: '',
+  floorAreaM2: '',
+  extinguisherNorm: '',
+  assemblyPoint: '',
+  combustibleMaterials: '',
+  ignitionSources: '',
+  fireRiskEquipment: '',
+  specificMeasures: '',
 };
 
 export function toWorkplaceForm(workplace: Workplace): WorkplaceFormValues {
@@ -40,6 +85,14 @@ export function toWorkplaceForm(workplace: Workplace): WorkplaceFormValues {
     countyCode: workplace.countyCode ?? '',
     locality: workplace.locality ?? '',
     addressLine: workplace.addressLine ?? '',
+    activity: workplace.activity ?? '',
+    floorAreaM2: workplace.floorAreaM2?.toString() ?? '',
+    extinguisherNorm: workplace.extinguisherNorm ?? '',
+    assemblyPoint: workplace.assemblyPoint ?? '',
+    combustibleMaterials: workplace.combustibleMaterials ?? '',
+    ignitionSources: workplace.ignitionSources ?? '',
+    fireRiskEquipment: workplace.fireRiskEquipment ?? '',
+    specificMeasures: workplace.specificMeasures ?? '',
   };
 }
 
@@ -50,7 +103,35 @@ export function toWorkplaceRequest(values: WorkplaceFormValues): WorkplaceReques
     countyCode: values.countyCode ? (values.countyCode as CountyCode) : null,
     locality: values.locality || null,
     addressLine: values.addressLine || null,
+    activity: values.activity || null,
+    floorAreaM2: values.floorAreaM2 ? Number(values.floorAreaM2) : null,
+    extinguisherNorm: (values.extinguisherNorm || null) as FireExtinguisherNorm | null,
+    assemblyPoint: values.assemblyPoint || null,
+    combustibleMaterials: values.combustibleMaterials || null,
+    ignitionSources: values.ignitionSources || null,
+    fireRiskEquipment: values.fireRiskEquipment || null,
+    specificMeasures: values.specificMeasures || null,
   };
+}
+
+// The route replaces the whole row, so a change made outside the dialog sends the rest as saved.
+export const workplaceRequestOf = (workplace: Workplace) =>
+  toWorkplaceRequest(toWorkplaceForm(workplace));
+
+// What generating the fire-safety set asks of every workplace (ADR 018), in the dialog's order;
+// the specific measures are optional.
+const requiredFireFields = [
+  ['activity', 'workplace-activity'],
+  ['floorAreaM2', 'workplace-floor-area'],
+  ['extinguisherNorm', 'workplace-norm'],
+  ['assemblyPoint', 'workplace-assembly-point'],
+  ['combustibleMaterials', 'workplace-combustible-materials'],
+  ['ignitionSources', 'workplace-ignition-sources'],
+  ['fireRiskEquipment', 'workplace-fire-risk-equipment'],
+] as const satisfies readonly (readonly [keyof Workplace, string])[];
+
+export function firstMissingFireField(workplace: Workplace) {
+  return requiredFireFields.find(([field]) => workplace[field] === null)?.[1] ?? null;
 }
 
 const countyNames = new Map<string, string>(

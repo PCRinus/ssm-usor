@@ -18,7 +18,13 @@ export const contractFocus = [
   'contract-representative-role',
 ] as const;
 
-export const clientDetailsFocus = [...legalRepresentativeFocus, ...companyFocus] as const;
+export const workplacesFocus = ['add-workplace', 'workplace-fire-data'] as const;
+
+export const clientDetailsFocus = [
+  ...legalRepresentativeFocus,
+  ...companyFocus,
+  ...workplacesFocus,
+] as const;
 
 export const trainingFocus = [
   'training-schedule',
@@ -61,6 +67,7 @@ export type LegalRepresentativeFocus = (typeof legalRepresentativeFocus)[number]
 export type CompanyFocus = (typeof companyFocus)[number];
 export type ContractFocus = (typeof contractFocus)[number];
 export type ClientDetailsFocus = (typeof clientDetailsFocus)[number];
+export type WorkplacesFocus = (typeof workplacesFocus)[number];
 export type TrainingFocus = (typeof trainingFocus)[number];
 export type OrganizationCompanyFocus = (typeof organizationCompanyFocus)[number];
 export type AuthorizationsFocus = (typeof authorizationsFocus)[number];

@@ -28,7 +28,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   type ClientResponse,
@@ -41,19 +41,30 @@ import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
+import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
 
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
-import { differingClientAddress, type Workplace, workplaceAddress } from './workplace-schema';
+import {
+  differingClientAddress,
+  firstMissingFireField,
+  type Workplace,
+  workplaceAddress,
+  workplaceRequestOf,
+} from './workplace-schema';
+
+const workplaceRowId = (id: string) => `workplace-${id}`;
 
 // `readOnly` is an archived client.
 export function WorkplacesCard({
   client,
   userId,
   readOnly,
+  focus,
 }: {
   client: ClientResponse['client'];
   userId: string;
   readOnly: boolean;
+  focus?: WorkplacesFocus;
 }) {
   const clientId = client.id;
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -66,6 +77,27 @@ export function WorkplacesCard({
   const [editing, setEditing] = useState<WorkplaceEditing>(null);
   const [archiving, setArchiving] = useState<Workplace | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+
+  const incomplete =
+    focus === 'workplace-fire-data'
+      ? workplaces.data?.items.find((workplace) => firstMissingFireField(workplace) !== null)
+      : undefined;
+  const nothingYet = workplaces.data?.items.length === 0;
+  useFocusRequest(focus !== undefined, {
+    ready: !workplaces.isPending,
+    anchor: () =>
+      incomplete ? document.getElementById(workplaceRowId(incomplete.id)) : addRef.current,
+    open:
+      readOnly || (focus === 'workplace-fire-data' && !incomplete && !nothingYet)
+        ? undefined
+        : () => setEditing(incomplete ?? 'new'),
+    field: readOnly
+      ? undefined
+      : incomplete
+        ? (firstMissingFireField(incomplete) ?? undefined)
+        : 'workplace-name',
+  });
 
   async function adoptClientAddress(
     workplace: Workplace,
@@ -76,7 +108,7 @@ export function WorkplacesCard({
       await update.mutateAsync({
         clientId,
         workplaceId: workplace.id,
-        data: { name: workplace.name, isRegisteredOffice: true, ...address },
+        data: { ...workplaceRequestOf(workplace), isRegisteredOffice: true, ...address },
       });
       toast.success(`Adresa pentru ${workplace.name} a fost actualizată.`);
     } catch {
@@ -109,6 +141,7 @@ export function WorkplacesCard({
       action={
         !readOnly && (
           <Button
+            ref={addRef}
             variant="tonal"
             size="sm"
             data-testid="workplace-add"
@@ -167,6 +200,7 @@ export function WorkplacesCard({
               return (
                 <TableRow
                   key={workplace.id}
+                  id={workplaceRowId(workplace.id)}
                   data-testid="workplace-row"
                   {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
                   className={cn(
@@ -181,6 +215,14 @@ export function WorkplacesCard({
                         <Badge variant="secondary">Sediu social</Badge>
                       )}
                     </span>
+                    {firstMissingFireField(workplace) !== null && (
+                      <span
+                        data-testid="workplace-fire-incomplete"
+                        className="mt-0.5 block text-xs font-normal text-muted-foreground"
+                      >
+                        Date PSI incomplete
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:whitespace-normal">
                     {workplaceAddress(workplace) || '—'}
