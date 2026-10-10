@@ -50,8 +50,11 @@ test('the fire-safety set asks for its own data and the first decision number, a
   await expect(page.getByTestId('document-not-generated')).toHaveCount(5);
   await expect(page.getByTestId('document-row')).toHaveCount(0);
   await page.getByTestId('documents-generate').click();
-  await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
-  await expect(page.getByTestId('generate-missing-row')).toHaveText(/^Cadrul tehnic PSI/);
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('2 date de completat');
+  await expect(page.getByTestId('generate-missing-row')).toHaveText([
+    /^Cadrul tehnic PSI/,
+    /^Certificatul cadrului tehnic PSI/,
+  ]);
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
   await nameFireSafetyTechnician(organizationId);
