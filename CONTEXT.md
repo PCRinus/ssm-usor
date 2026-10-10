@@ -90,7 +90,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-work permit** (_permis de lucru cu foc_): the form that allows one job with open flame for one day, in the model of the general fire-safety norms. The fire-safety set holds it blank. Avoid: hot-work permit, authorization.
 
-**Own control** (_controlul propriu_): the checks a client makes of its own fire-safety rules, by whom and how often, as decision 9 of the fire-safety set schedules them: the coordinator and the technician quarterly, every extinguisher monthly, the heads of the workplaces and the execution staff daily, the representative yearly. Avoid: inspection and control on their own, which are the inspectorate's, and internal audit.
+**Own control** (_controlul propriu_): the checks a client makes of its own fire-safety rules, by whom and how often, as decision 9 of the fire-safety set schedules them: the coordinator and the technician quarterly, every extinguisher monthly, the heads of the workplaces and the execution staff daily, the representative yearly. ADR 019. Avoid: inspection and control on their own, which are the inspectorate's, and internal audit.
 
 **Posted workplace sheet** (_organizarea apărării împotriva incendiilor la locul de muncă_): the page posted at a workplace that says what can burn there, what can set it alight, and who does what when it does, in the model of OMAI 163/2007 annex 1. Completed by the workplace manager as head of the workplace and approved by the fire-safety technician. One document of the fire-safety set, with a page per workplace. ADR 018. Avoid: posted instructions (_instrucțiuni de afișat_), which are decision 7, and fire plan.
 
