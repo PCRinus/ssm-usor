@@ -1045,7 +1045,7 @@ describe('typesetting', () => {
     '%s keeps a heading, what follows it, and its table on one page',
     (name) => {
       const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
-        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE LA CUNOȘTINȚĂ')
+        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE DE CUNOȘTINȚĂ')
       );
       expect(heading).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
       // A table that may not split is written as rows that keep with the next one.

@@ -110,7 +110,7 @@ KINDS = {
 HANDOVER = (
     (['Am întocmit și predat un exemplar', 'Am informat angajatorul'],
      '{{provider.representativeName}}', '{{provider.representativeRole}} al {{provider.legalName}}'),
-    (['Am primit un exemplar', 'Am luat la cunoștință'],
+    (['Am primit un exemplar', 'Am luat cunoștință'],
      '{{client.representativeName}}', '{{client.representativeRole}} al {{client.legalName}}'),
 )
 # Who signs for the provider, where a spec names someone other than the legal representative:
