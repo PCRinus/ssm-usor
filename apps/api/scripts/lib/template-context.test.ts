@@ -354,7 +354,7 @@ describe('decision 1.4', () => {
     fullName: string,
     jobTitle: string,
     roles: (typeof facts)['responsiblePersons'][number]['roles']
-  ) => ({ fullName, jobTitle, roles, currentEmployee: true });
+  ) => ({ fullName, jobTitle, roles, currentEmployee: true, workplaceId: null });
   const roza = 'Roza URSU, având funcția de Director general';
   const ion = 'Ion MARIN, având funcția de Șef atelier';
   const article2 = (...responsiblePersons: (typeof facts)['responsiblePersons']) =>
