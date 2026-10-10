@@ -1,5 +1,5 @@
 begin;
-select plan(27);
+select plan(33);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -84,6 +84,34 @@ select throws_ok(
 select throws_ok(
   $$ update public.client_fire_safety set client_id = 'c1c1c1c1-0000-4000-8000-000000000002' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
   '42501', null, 'the facts never move to another client'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety
+     set smoking_policy = 'designated_places', smoking_place = 'În curtea interioară, lângă poarta de acces auto'
+     where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'a client that allows smoking in designated places says where'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set smoking_place = repeat('x', 241) where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23514', null, 'the smoking place fits in 240 characters'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set smoking_policy = 'forbidden_everywhere' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23514', null, 'a client that forbids smoking everywhere keeps no smoking place'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set smoking_policy = null where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23514', null, 'nor does a client with no smoking rule'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety set smoking_policy = 'forbidden_everywhere', smoking_place = null
+     where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'forbidding smoking drops the place in the same save'
 );
 
 select lives_ok(
@@ -177,6 +205,12 @@ select throws_ok(
 select throws_ok(
   $$ update public.client_fire_safety set periodic_training_hours = 3 where client_id = 'c1c1c1c1-0000-4000-8000-000000000003' $$,
   'CLA01', null, 'the fire-safety facts of an archived client are frozen'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set smoking_policy = 'designated_places', smoking_place = 'Lângă poartă'
+     where client_id = 'c1c1c1c1-0000-4000-8000-000000000003' $$,
+  'CLA01', null, 'its smoking place too'
 );
 
 select throws_ok(

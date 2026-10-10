@@ -1,5 +1,5 @@
 begin;
-select plan(5);
+select plan(8);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -46,12 +46,32 @@ select throws_ok(
   'the name stays out of reach, as before'
 );
 
+select lives_ok(
+  $$ update public.organizations set fire_safety_authorization = 'nr. 12 din 15.09.2026, ISU Cluj'
+     where id = '11111111-0000-4000-8000-000000000001' $$,
+  'an owner records the fire-safety authorization'
+);
+
+select throws_ok(
+  $$ update public.organizations set fire_safety_authorization = repeat('x', 201)
+     where id = '11111111-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'the fire-safety authorization fits in 200 characters'
+);
+
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
 
 select is_empty(
   $$ update public.organizations set iban = null
      where id = '11111111-0000-4000-8000-000000000001' returning id $$,
   'a specialist changes none of it'
+);
+
+select is_empty(
+  $$ update public.organizations set fire_safety_authorization = null
+     where id = '11111111-0000-4000-8000-000000000001' returning id $$,
+  'the fire-safety authorization included'
 );
 
 select results_eq(

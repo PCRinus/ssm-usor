@@ -145,6 +145,7 @@ export type Database = {
           created_by: string | null;
           organization_id: string;
           periodic_training_hours: number | null;
+          smoking_place: string | null;
           smoking_policy: Database['public']['Enums']['fire_smoking_policy'] | null;
           training_day_from: number | null;
           training_day_to: number | null;
@@ -161,6 +162,7 @@ export type Database = {
           created_by?: string | null;
           organization_id: string;
           periodic_training_hours?: number | null;
+          smoking_place?: string | null;
           smoking_policy?: Database['public']['Enums']['fire_smoking_policy'] | null;
           training_day_from?: number | null;
           training_day_to?: number | null;
@@ -177,6 +179,7 @@ export type Database = {
           created_by?: string | null;
           organization_id?: string;
           periodic_training_hours?: number | null;
+          smoking_place?: string | null;
           smoking_policy?: Database['public']['Enums']['fire_smoking_policy'] | null;
           training_day_from?: number | null;
           training_day_to?: number | null;
@@ -1885,6 +1888,7 @@ export type Database = {
           county_code: string | null;
           created_at: string;
           cui: string | null;
+          fire_safety_authorization: string | null;
           fire_safety_technician_certificate: string | null;
           fire_safety_technician_name: string | null;
           iban: string | null;
@@ -1911,6 +1915,7 @@ export type Database = {
           county_code?: string | null;
           created_at?: string;
           cui?: string | null;
+          fire_safety_authorization?: string | null;
           fire_safety_technician_certificate?: string | null;
           fire_safety_technician_name?: string | null;
           iban?: string | null;
@@ -1937,6 +1942,7 @@ export type Database = {
           county_code?: string | null;
           created_at?: string;
           cui?: string | null;
+          fire_safety_authorization?: string | null;
           fire_safety_technician_certificate?: string | null;
           fire_safety_technician_name?: string | null;
           iban?: string | null;
