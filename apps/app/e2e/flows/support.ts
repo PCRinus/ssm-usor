@@ -184,6 +184,49 @@ export async function completeDocumentData(
   await evaluateRisks(organizationId, clientId);
 }
 
+// What the fire-safety set prints about the client (ADR 018): its training schedule and waste,
+// one workplace with its facts and an extinguisher, and a person in each of the set's roles.
+export async function completeFireSafetyData(organizationId: string, clientId: string) {
+  const base = { organization_id: organizationId, client_id: clientId };
+  const workplaceId = await createWorkplace(organizationId, clientId, {
+    name: 'Magazin',
+    is_registered_office: true,
+    activity: 'Gelaterie',
+    floor_area_m2: 120,
+    extinguisher_norm: 'commercial_200',
+    assembly_point: 'Parcarea din fața magazinului',
+    combustible_materials: 'Ambalaje din carton și hârtie',
+    ignition_sources: 'Instalația electrică',
+    fire_risk_equipment: 'Vitrine frigorifice',
+  });
+  const card = await admin.from('client_fire_safety').insert({
+    ...base,
+    periodic_training_hours: 2,
+    administrative_training_interval_months: 3,
+    worker_training_interval_months: 3,
+    training_first_month: 2,
+    training_day_from: 2,
+    training_day_to: 7,
+    waste_kinds: ['deșeuri de carton, hârtie, plastic'],
+  });
+  if (card.error) throw card.error;
+  const extinguisher = await admin.from('fire_equipment').insert({
+    ...base,
+    workplace_id: workplaceId,
+    kind: 'extinguisher',
+    agent: 'powder',
+    capacity: 6,
+  });
+  if (extinguisher.error) throw extinguisher.error;
+  const person = await admin.from('client_responsible_persons').insert({
+    ...base,
+    full_name: 'Ion VLAD',
+    job_title: 'Șef magazin',
+    roles: ['fire_safety_coordinator', 'fire_intervention_leader'],
+  });
+  if (person.error) throw person.error;
+}
+
 export async function createWorkplace(
   organizationId: string,
   clientId: string,

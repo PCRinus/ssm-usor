@@ -7,6 +7,7 @@ import {
   documentSections,
   fireSafetyDocumentSectionIds,
   fireSafetyDocumentSections,
+  inBinderOrder,
   sectionOf,
   type SectionRow,
   sectionSummary,
@@ -45,7 +46,7 @@ describe('document sections', () => {
       ['6', 'registers', 'Registre și formulare PSI'],
     ]);
     expect(fireSafetyDocumentSections.map((section) => section.planned.length)).toEqual([
-      10, 2, 2, 3, 2, 0,
+      4, 2, 2, 3, 0, 0,
     ]);
     expect(fireSafetyDocumentSectionIds).toEqual([
       'other',
@@ -56,6 +57,17 @@ describe('document sections', () => {
       'means',
       'registers',
     ]);
+  });
+
+  it('place each planned document right after the one it follows in the binder', () => {
+    const row = (key: string) => ({ key });
+    const planned = (id: string, after?: string) => ({ id, title: id, after, row: row(id) });
+    expect(
+      inBinderOrder(
+        [row('a'), row('b'), row('c')],
+        [planned('last'), planned('after-a', 'a'), planned('then', 'after-a'), planned('lost', 'z')]
+      ).map((each) => each.key)
+    ).toEqual(['a', 'after-a', 'then', 'b', 'c', 'last', 'lost']);
   });
 
   it('give each planned fire-safety document an id and a title of its own', () => {

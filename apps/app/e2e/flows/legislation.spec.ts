@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   cleanUp,
   completeDocumentData,
+  completeFireSafetyData,
   createAccount,
   createClientCompany,
   createOrganization,
@@ -23,6 +24,7 @@ test('a document behind its template is regenerated for every client from the Le
   const clientName = 'S.C. ÎN URMĂ E2E S.R.L.';
   const clientId = await createClientCompany(organizationId, clientName);
   await completeDocumentData(organizationId, owner.id, clientId);
+  await completeFireSafetyData(organizationId, clientId);
   await nameFireSafetyTechnician(organizationId);
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -32,7 +34,7 @@ test('a document behind its template is regenerated for every client from the Le
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 5 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 13 documente.')).toBeVisible();
 
   const title = 'Registru de evidență a controlului stingătoarelor de incendiu';
   const version = await putBehindItsTemplate(clientId, 'fire_extinguisher_register');

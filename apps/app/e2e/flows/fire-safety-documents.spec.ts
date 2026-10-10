@@ -3,6 +3,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
   cleanUp,
   completeDocumentData,
+  completeFireSafetyData,
   createAccount,
   createClientCompany,
   createOrganization,
@@ -21,7 +22,7 @@ async function act(page: Page, row: Locator, action: string) {
 
 // The fire-safety set (ADR 016), against the real templates registered in the local stack.
 
-test('the fire-safety set asks for its technician alone, and is generated apart from the other set', async ({
+test('the fire-safety set asks for its own data and the first decision number, and is generated apart from the other set', async ({
   page,
 }) => {
   const owner = await createAccount('fire-documents', 'Dana Documente');
@@ -31,6 +32,7 @@ test('the fire-safety set asks for its technician alone, and is generated apart 
   await completeDocumentData(organizationId, owner.id, clientId, {
     periodic_training_minutes: null,
   });
+  await completeFireSafetyData(organizationId, clientId);
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto(`/clients/${clientId}`);
@@ -41,8 +43,9 @@ test('the fire-safety set asks for its technician alone, and is generated apart 
   await expect(page.getByTestId('documents-empty')).toHaveCount(0);
   await expect(page.getByTestId('document-section')).toHaveCount(6);
   await openDocumentSection(page, '1');
-  await expect(page.getByTestId('document-planned')).toHaveCount(10);
+  await expect(page.getByTestId('document-planned')).toHaveCount(4);
   await expect(page.getByTestId('document-planned').first()).toContainText('În pregătire');
+  await expect(page.getByTestId('document-not-generated')).toHaveCount(6);
   await openDocumentSection(page, '6');
   await expect(page.getByTestId('document-not-generated')).toHaveCount(5);
   await expect(page.getByTestId('document-row')).toHaveCount(0);
@@ -54,12 +57,19 @@ test('the fire-safety set asks for its technician alone, and is generated apart 
   await nameFireSafetyTechnician(organizationId);
   await page.reload();
   await page.getByTestId('documents-generate').click();
-  await expect(page.getByTestId('generate-first-number')).toHaveCount(0);
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
+  await page.getByTestId('generate-first-number').fill('4');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 5 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 13 documente.')).toBeVisible();
 
   await expect(page.getByTestId('document-section')).toHaveCount(6);
+  await openDocumentSection(page, '1');
+  const decisions = page.getByTestId('document-row');
+  await expect(decisions).toHaveCount(6);
+  await expect(decisions.nth(1)).toContainText('Decizia nr. 4 PSI');
+  await expect(decisions.nth(5)).toContainText('Decizia nr. 11 PSI');
+  await openDocumentSection(page, '5');
+  await expect(page.getByTestId('document-row')).toHaveCount(2);
   await openDocumentSection(page, '6');
   const rows = page.getByTestId('document-row');
   await expect(rows).toHaveCount(5);

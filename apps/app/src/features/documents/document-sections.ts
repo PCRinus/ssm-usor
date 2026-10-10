@@ -86,7 +86,8 @@ export const documentSections = [
   typeKeys: readonly DocumentTypeKey[];
 }[];
 
-type PlannedDocument = { id: string; title: string };
+// `after`: the built document it follows in the binder; without one, it closes the section.
+type PlannedDocument = { id: string; title: string; after?: string };
 
 // The whole binder, so a specialist sees what the documentation will hold. A document the app
 // cannot write yet is planned; once it is built, its entry moves to the type keys.
@@ -95,29 +96,30 @@ export const fireSafetyDocumentSections = [
     id: 'decisions',
     number: '1',
     title: 'Decizii interne',
-    typeKeys: [],
+    typeKeys: [
+      'fire_cover_decisions',
+      'fire_decision_organization',
+      'fire_decision_training',
+      'fire_decision_open_fire',
+      'fire_decision_seasons',
+      'fire_decision_waste',
+    ],
     planned: [
       {
-        id: 'cover-decisions',
-        title: 'Copertă – Deciziile interne în domeniul situațiilor de urgență',
+        id: 'decision-smoking',
+        title: 'Decizia privind fumatul',
+        after: 'fire_decision_open_fire',
       },
       {
-        id: 'decision-organization',
-        title: 'Decizia privind organizarea apărării împotriva incendiilor',
+        id: 'decision-technician',
+        title: 'Decizia privind cadrul tehnic PSI',
+        after: 'fire_decision_seasons',
       },
-      {
-        id: 'decision-training',
-        title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
-      },
-      { id: 'decision-open-fire', title: 'Decizia privind lucrul cu foc deschis' },
-      { id: 'decision-smoking', title: 'Decizia privind fumatul' },
-      { id: 'decision-seasons', title: 'Decizia privind perioadele caniculare și sezonul rece' },
-      { id: 'decision-technician', title: 'Decizia privind cadrul tehnic PSI' },
       {
         id: 'decision-instructions',
         title: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
+        after: 'decision-technician',
       },
-      { id: 'decision-waste', title: 'Decizia privind colectarea deșeurilor' },
       { id: 'decision-control', title: 'Decizia privind controlul propriu' },
     ],
   },
@@ -165,14 +167,8 @@ export const fireSafetyDocumentSections = [
     id: 'means',
     number: '5',
     title: 'Mijloace de apărare și organizarea la locul de muncă',
-    typeKeys: [],
-    planned: [
-      { id: 'means-list', title: 'Lista mijloacelor de apărare împotriva incendiilor' },
-      {
-        id: 'workplace-organization',
-        title: 'Organizarea apărării împotriva incendiilor la locul de muncă',
-      },
-    ],
+    typeKeys: ['fire_means_list', 'fire_workplace_organization'],
+    planned: [],
   },
   {
     id: 'registers',
@@ -253,6 +249,26 @@ export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
 
 const counted = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
+
+/** The section's rows in binder order: each planned document right after the one it follows. */
+export function inBinderOrder<Row extends { key: string }>(
+  built: readonly Row[],
+  planned: readonly (PlannedDocument & { row: Row })[]
+) {
+  const rows: Row[] = [];
+  const follow = (key: string) => {
+    for (const item of planned.filter((each) => each.after === key)) {
+      rows.push(item.row);
+      follow(item.id);
+    }
+  };
+  for (const row of built) {
+    rows.push(row);
+    follow(row.key);
+  }
+  rows.push(...planned.filter((item) => !rows.includes(item.row)).map((item) => item.row));
+  return rows;
+}
 
 export type SectionRow =
   | { kind: 'document'; key: string; title: string; document: ClientDocument }
