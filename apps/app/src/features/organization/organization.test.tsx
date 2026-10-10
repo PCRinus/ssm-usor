@@ -61,6 +61,7 @@ const authorizations = {
   authorizationCertificateIssuer: null,
   fireSafetyTechnicianName: null,
   fireSafetyTechnicianCertificate: null,
+  fireSafetyAuthorization: null,
 };
 
 const anafCompany = {
@@ -576,6 +577,48 @@ describe('authorizations', () => {
       authorizationCertificateNumber: '17664',
       authorizationCertificateDate: '2022-09-30',
     });
+  });
+
+  it('saves the fire-safety technician with the authorization beside them, trimmed', async () => {
+    mockApi();
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    await user.type(
+      within(form).getByTestId('authorizations-fireSafetyTechnicianName'),
+      'Radu Stan'
+    );
+    await user.type(
+      within(form).getByTestId('authorizations-fireSafetyAuthorization'),
+      ' nr. 12 din 15.09.2026, ISU Cluj '
+    );
+    expect(within(form).getByText(/Legea 307\/2006 art\. 12²/)).toBeTruthy();
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+    ).toEqual({
+      ...authorizations,
+      fireSafetyTechnicianName: 'Radu Stan',
+      fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Cluj',
+    });
+  });
+
+  it('refuses an authorization of one character', async () => {
+    mockApi();
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    await user.type(within(form).getByTestId('authorizations-fireSafetyAuthorization'), 'x');
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect(
+      (await screen.findByTestId('authorizations-fireSafetyAuthorization-error')).textContent
+    ).toBe('Autorizația are cel puțin 2 caractere.');
+    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
   });
 
   it('shows a specialist the authorizations read-only', async () => {
