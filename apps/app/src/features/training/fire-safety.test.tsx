@@ -331,6 +331,7 @@ describe('the fire-safety training card', () => {
 
   it.each([
     ['fire-waste', 'fire-waste-input'],
+    ['fire-smoking', 'fire-smoking'],
     ['fire-training-schedule', 'fire-first-month'],
   ])('opens the form for ?focus=%s and focuses the field to fill', async (focus, field) => {
     mockApi({ details: { ...occupationalDetails, trainingFirstMonth: null } });

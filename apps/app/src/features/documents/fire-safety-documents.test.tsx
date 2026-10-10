@@ -436,6 +436,7 @@ describe('client fire-safety documents', () => {
         missing: [
           'provider.legalName',
           'provider.fireSafetyTechnician',
+          'provider.fireSafetyTechnicianCertificate',
           'client.representativeName',
           'client.representativeRole',
         ],
@@ -446,7 +447,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
-      '4 date de completat'
+      '5 date de completat'
     );
     const places = screen.getAllByTestId('generate-missing-place');
     expect(places.map((place) => within(place).getByRole('heading').textContent)).toEqual([
@@ -458,6 +459,10 @@ describe('client fire-safety documents', () => {
       ['Denumirea legală', '/organization/company?focus=legal-name'],
       [
         'Cadrul tehnic PSINumele lui apare pe documentele PSI.',
+        '/organization/authorizations?focus=fire-safety-technician',
+      ],
+      [
+        'Certificatul cadrului tehnic PSIDecizia de numire a cadrului tehnic PSI îl tipărește.',
         '/organization/authorizations?focus=fire-safety-technician',
       ],
       [
@@ -532,6 +537,7 @@ describe('client fire-safety documents', () => {
         ready: false,
         missing: [
           'fire.trainingSchedule',
+          'fire.smokingPolicy',
           'fire.waste',
           'responsible.workplace_manager',
           'responsible.fire_safety_coordinator',
@@ -547,7 +553,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
-      '8 date de completat'
+      '9 date de completat'
     );
     const rows = screen.getAllByTestId('generate-missing-row');
     expect(rows.at(-1)!.textContent).toBe(
@@ -558,6 +564,7 @@ describe('client fire-safety documents', () => {
       `${client}/details?focus=workplace-fire-data`,
       `${client}/fire-safety-means?focus=fire-equipment`,
       `${client}/training?focus=fire-training-schedule`,
+      `${client}/training?focus=fire-smoking`,
       `${client}/training?focus=fire-waste`,
       `${client}/training?focus=workplace-manager`,
       `${client}/training?focus=fire-safety-coordinator`,

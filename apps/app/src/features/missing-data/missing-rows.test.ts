@@ -32,6 +32,8 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'provider.representativeName': '/organization/company?focus=representative-name',
   'provider.representativeRole': '/organization/company?focus=representative-role',
   'provider.fireSafetyTechnician': '/organization/authorizations?focus=fire-safety-technician',
+  'provider.fireSafetyTechnicianCertificate':
+    '/organization/authorizations?focus=fire-safety-technician',
   'specialist.name': '/profile?focus=full-name',
   'specialist.professionalTitle': '/profile?focus=professional-title',
   'client.representativeName': `${details}legal-representative-name`,
@@ -55,6 +57,7 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'responsible.fire_safety_coordinator': `${training}fire-safety-coordinator`,
   'responsible.fire_intervention_leader': `${training}fire-intervention-leader`,
   'fire.trainingSchedule': `${training}fire-training-schedule`,
+  'fire.smokingPolicy': `${training}fire-smoking`,
   'fire.waste': `${training}fire-waste`,
   'fire.workplaces': `${details}workplace-fire-data`,
   'fire.equipment': `/clients/${clientId}/fire-safety-means?focus=fire-equipment`,
@@ -75,7 +78,10 @@ describe('the rows of the generation form', () => {
   it('group the fire-safety codes by the page that fills them in', () => {
     const groups = documentMissingGroups({
       missing: [
+        'provider.fireSafetyTechnician',
+        'provider.fireSafetyTechnicianCertificate',
         'fire.trainingSchedule',
+        'fire.smokingPolicy',
         'fire.waste',
         'fire.workplaces',
         'fire.equipment',
@@ -88,12 +94,14 @@ describe('the rows of the generation form', () => {
       canEditOrganization: true,
     });
     expect(groups.map((group) => [group.heading, group.rows.map((row) => row.label)])).toEqual([
+      ['Datele organizației', ['Cadrul tehnic PSI', 'Certificatul cadrului tehnic PSI']],
       ['Detaliile clientului', ['Datele PSI ale locurilor de muncă']],
       ['Mijloacele PSI', ['Stingătoarele locurilor de muncă']],
       [
         'Instruire și responsabili',
         [
           'Programul instruirii PSI',
+          'Regula privind fumatul',
           'Deșeurile colectate',
           'Coordonator privind apărarea împotriva incendiilor',
           'Șef echipă de primă intervenție',

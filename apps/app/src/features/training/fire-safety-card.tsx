@@ -127,7 +127,9 @@ function FireSafetyCard({
       ? undefined
       : focus === 'fire-waste'
         ? 'fire-waste-input'
-        : firstFireScheduleField(start),
+        : focus === 'fire-smoking'
+          ? 'fire-smoking'
+          : firstFireScheduleField(start),
   });
 
   return (
@@ -497,7 +499,7 @@ function FireSafetyForm({
           Fumat și deșeuri
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="fire-smoking" label="Fumatul" mark="optional" error={errors.smokingPolicy}>
+          <Field id="fire-smoking" label="Fumatul" mark="required" error={errors.smokingPolicy}>
             <NativeSelect
               id="fire-smoking"
               data-testid="fire-smoking-select"
