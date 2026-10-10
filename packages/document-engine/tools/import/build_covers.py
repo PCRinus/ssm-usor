@@ -116,6 +116,16 @@ def compose(desktop, definition, cover, placing=None):
             cursor.ParaLineSpacing = LineSpacing(FIX, placing['items'][index])
             paragraph(text, cursor, f'{{{{/{condition}}}}}', adjust=LEFT, below=0)
 
+    intro = cover.get('intro')
+    if intro:
+        paragraph(text, cursor, intro['lead'], adjust=LEFT, above=12, below=2, keep=True)
+        for line in intro['items']:
+            paragraph(text, cursor, line, adjust=LEFT, below=0)
+            cursor.gotoStartOfParagraph(False)
+            cursor.ParaLeftMargin = 1270
+            cursor.ParaFirstLineIndent = -635
+            cursor.gotoEndOfParagraph(False)
+
     handover = definition['handover']
     # The block starts at the same height on every cover, whatever the title and the contents
     # above it take, so the covers of a binder differ only in those.
