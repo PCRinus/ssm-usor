@@ -518,7 +518,8 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
 - "Instruire PSI", the card after the occupational safety schedule (ADR 018), edits
   `GET`/`PUT /clients/{clientId}/fire-safety` in place: the duration in hours, the interval of
   each staff category (one to six months), the first month and the days, the smoking rule
-  (which may stay "Nestabilit") and, under "Permis numai în locuri amenajate" only, the
+  (which may stay "Nestabilit" until the set is generated, which asks for it;
+  `?focus=fire-smoking` opens the form on it) and, under "Permis numai în locuri amenajate" only, the
   optional "Locul pentru fumat" (ADR 019; picking another rule hides it and the save sends it
   as null, so the API clears it), the kinds of waste as chips (Enter adds one, a text left in
   the field is added on save) and the firm that collects them. While the API says no row
@@ -759,7 +760,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   section of its own, the one fire-safety technician (issue #170) with the optional "Autorizație
   ISU" under Legea 307/2006 art. 12² (ADR 019), from
   `GET /organization/authorizations`, with the same rules. The contract card's notice of
-  missing data links to whichever of the two sections holds what is missing.
+  missing data links to whichever of the two sections holds what is missing; the PSI
+  generation's rows for the technician and the technician's certificate both open
+  `?focus=fire-safety-technician`, at the name until it is saved and at the certificate then.
 - `/instructions`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by

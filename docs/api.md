@@ -683,10 +683,12 @@ the set makes the own instructions first. `POST …/documents/generate` takes `i
 
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
-code a service contract covering fire safety uses), `client.representativeName`,
-`client.representativeRole`, and the client data of its second stage (ADR 018):
-`fire.trainingSchedule` (the duration, both intervals, the first month and both days of the
-"Instruire PSI" card), `fire.waste` (at least one kind), `responsible.workplace_manager`,
+code a service contract covering fire safety uses), `provider.fireSafetyTechnicianCertificate`
+(the technician's certificate, which decision 6 prints; ADR 019), `client.representativeName`,
+`client.representativeRole`, and the client data of its second and third stages (ADR 018,
+ADR 019): `fire.trainingSchedule` (the duration, both intervals, the first month and both days
+of the "Instruire PSI" card), `fire.smokingPolicy` (a smoking rule chosen; the place never),
+`fire.waste` (at least one kind), `responsible.workplace_manager`,
 `responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
 `positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
 area, norm, assembly point and the three texts of the posted sheet) and `fire.equipment` (an
@@ -695,10 +697,12 @@ nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
 `workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
 9991 so that the binder's ninth decision still fits in four digits, and is `400`
 (`validation_error`, the issue on `firstDecisionNumber`) without it. Each fire-safety decision
-keeps its place in the provider's binder (`fireDecisionOrdinals`: 1, 2, 3, 5 and 8 now) and is
-numbered the first number plus that ordinal minus one; its `decisionNumber` says so, and a
+keeps its place in the provider's binder (`fireDecisionOrdinals`, 1 to 9, each decision's
+number printed in `fire` before its template exists) and is numbered the first number plus that
+ordinal minus one; its `decisionNumber` says so, and a
 decision generated again keeps it. Its templates are merged with a context of their own,
-`client`, `provider`, `fireSafetyTechnician.name`, `issueDate`, `branding` and `fire`, and
+`client`, `provider`, `fireSafetyTechnician` (`name`, `certificate`, `authorization`),
+`issueDate`, `branding` and `fire`, and
 never with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does. Its
 list has no `notApplicable` document.

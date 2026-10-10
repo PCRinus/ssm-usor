@@ -321,7 +321,7 @@ authorization is ever asked for.
 category and nothing else of them. The data snapshot keeps the whole `fire` value, so an edit
 of any fact above marks the set's drafts "Date modificate" and leaves the occupational safety
 ones alone. Fire-safety decisions print the generation's `first_decision_number` plus their
-fixed ordinal in the binder (1, 2, 3, 5, 8) minus one, and the fire-safety generation asks for
+fixed ordinal in the binder (1 to 9) minus one, and the fire-safety generation asks for
 that number. A fire-safety decision stores its printed number in `decision_number`, and a
 document of the set is compared with its snapshot, and generated again, with the first number
 it was made with.
