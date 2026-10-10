@@ -43,12 +43,13 @@ test('the fire-safety set asks for its own data and the first decision number, a
   await expect(page.getByTestId('documents-empty')).toHaveCount(0);
   await expect(page.getByTestId('document-section')).toHaveCount(6);
   await openDocumentSection(page, '1');
-  await expect(page.getByTestId('document-planned')).toHaveCount(0);
   await expect(page.getByTestId('document-not-generated')).toHaveCount(10);
   await openDocumentSection(page, '2');
   await expect(page.getByTestId('document-not-generated')).toHaveCount(2);
   await openDocumentSection(page, '3');
-  await expect(page.getByTestId('document-planned').first()).toContainText('În pregătire');
+  await expect(page.getByTestId('document-not-generated')).toHaveCount(2);
+  await openDocumentSection(page, '4');
+  await expect(page.getByTestId('document-not-generated')).toHaveCount(3);
   await openDocumentSection(page, '6');
   await expect(page.getByTestId('document-not-generated')).toHaveCount(5);
   await expect(page.getByTestId('document-row')).toHaveCount(0);
@@ -66,7 +67,7 @@ test('the fire-safety set asks for its own data and the first decision number, a
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('4');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 19 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 24 de documente.')).toBeVisible();
 
   await expect(page.getByTestId('document-section')).toHaveCount(6);
   await openDocumentSection(page, '1');
@@ -78,6 +79,10 @@ test('the fire-safety set asks for its own data and the first decision number, a
   await expect(decisions.nth(9)).toContainText('Decizia nr. 12 PSI');
   await openDocumentSection(page, '2');
   await expect(page.getByTestId('document-row')).toHaveCount(2);
+  await openDocumentSection(page, '3');
+  await expect(page.getByTestId('document-row')).toHaveCount(2);
+  await openDocumentSection(page, '4');
+  await expect(page.getByTestId('document-row')).toHaveCount(3);
   await openDocumentSection(page, '5');
   await expect(page.getByTestId('document-row')).toHaveCount(2);
   await openDocumentSection(page, '6');
