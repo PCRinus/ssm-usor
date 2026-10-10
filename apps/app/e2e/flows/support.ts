@@ -184,6 +184,20 @@ export async function completeDocumentData(
   await evaluateRisks(organizationId, clientId);
 }
 
+export async function createWorkplace(
+  organizationId: string,
+  clientId: string,
+  values: Record<string, unknown>
+) {
+  const workplace = await admin
+    .from('client_workplaces')
+    .insert({ organization_id: organizationId, client_id: clientId, ...values })
+    .select('id')
+    .single();
+  if (workplace.error) throw workplace.error;
+  return workplace.data.id as string;
+}
+
 // A gap left after the documentation was generated, as a member could leave one.
 export async function updateClient(clientId: string, values: Record<string, unknown>) {
   const { error } = await admin.from('clients').update(values).eq('id', clientId);
@@ -475,6 +489,9 @@ export async function cleanUp() {
     await admin.from('document_generations').delete().eq('organization_id', id);
     // Clients restrict the deletion of their organization, and their rows that of the client.
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
+    await admin.from('fire_equipment').delete().eq('organization_id', id);
+    await admin.from('fire_installations').delete().eq('organization_id', id);
+    await admin.from('client_fire_safety').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
     // Their factors and measures go with them; a position's would go with the position.
