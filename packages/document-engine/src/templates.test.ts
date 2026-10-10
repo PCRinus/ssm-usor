@@ -948,18 +948,23 @@ describe('typesetting', () => {
   const blocksOf = (name: string) =>
     bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
 
-  // A heading, the paragraph that introduces a table, and a loop tag between them. A longer run
-  // moves to the next page whole and leaves most of a page empty before it.
-  it.each(typesetFiles)('%s keeps at most three paragraphs in a row with the next', (name) => {
-    const paragraphKeeps = keepingOf(name);
-    let run = 0;
-    let longest = 0;
-    for (const block of blocksOf(name)) {
-      run = paragraphKeeps(block) ? run + 1 : 0;
-      longest = Math.max(longest, run);
+  // A heading, the paragraph that introduces a table, and a loop tag between them, or more lines
+  // as short as a staff category's heading and the lines naming its place, posts and trainer. A
+  // longer run moves to the next page whole and leaves most of a page empty before it.
+  it.each(typesetFiles)(
+    '%s keeps at most three paragraphs in a row with the next, or a few short lines',
+    (name) => {
+      const paragraphKeeps = keepingOf(name);
+      const runs: string[][] = [[]];
+      for (const block of blocksOf(name)) {
+        if (paragraphKeeps(block)) runs.at(-1)!.push(documentTextOf(block).trim());
+        else runs.push([]);
+      }
+      for (const run of runs.filter((each) => each.length > 3)) {
+        expect(run.join('').replace(/\{\{[^}]*\}\}/g, '').length).toBeLessThanOrEqual(400);
+      }
     }
-    expect(longest).toBeLessThanOrEqual(3);
-  });
+  );
 
   it.each(typesetFiles)('%s keeps a line ending in ":" with the list item after it', (name) => {
     const paragraphKeeps = keepingOf(name);

@@ -116,11 +116,14 @@ export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
   return workplaceManagersTrainer(names.workplaceManagers);
 }
 
-/** At least one name. */
-export function workplaceManagersTrainer(names: readonly string[]) {
+/**
+ * At least one name. `space` joins the words of "loc de muncă": a no-break one by default, for
+ * a line that ends on them and would otherwise leave "muncă" alone on the last line.
+ */
+export function workplaceManagersTrainer(names: readonly string[], space = '\u00a0') {
   return names.length === 1
-    ? `${names[0]} – conducătorul locului\u00a0de\u00a0muncă`
-    : `${listed(names)} – conducătorii locurilor\u00a0de\u00a0muncă`;
+    ? `${names[0]} – conducătorul locului${space}de${space}muncă`
+    : `${listed(names)} – conducătorii locurilor${space}de${space}muncă`;
 }
 
 export function themeIntervalLabel(months: number | null) {

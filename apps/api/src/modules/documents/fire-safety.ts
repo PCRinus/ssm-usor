@@ -615,7 +615,8 @@ function fireThemes({
   /** At least one. */
   workplaceManagers: readonly string[];
 }): FireThemesContext[] {
-  const managers = workplaceManagersTrainer(workplaceManagers);
+  // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
+  const managers = workplaceManagersTrainer(workplaceManagers, ' ');
   return (['technical_administrative', 'execution'] as const)
     .filter((category) => staff[category].length > 0)
     .map((category) => {

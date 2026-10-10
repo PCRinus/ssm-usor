@@ -10,6 +10,7 @@ to the house style, with the wording corrected, from one definition per document
 """
 
 import json
+import re
 import sys
 
 import uno
@@ -101,7 +102,8 @@ def compose(desktop, definition, cover, placing=None):
         condition = item.get('when') if isinstance(item, dict) and placing else None
         if condition:
             paragraph(text, cursor, f'{{{{#{condition}}}}}', adjust=LEFT, below=0)
-        paragraph(text, cursor, f'{index}. {item["text"] if isinstance(item, dict) else item}',
+        # A tab after the number, so a long item's lines run under its text and not under the number.
+        paragraph(text, cursor, f'{index}.\t{item["text"] if isinstance(item, dict) else item}',
                   adjust=LEFT, below=3)
         cursor.gotoStartOfParagraph(False)
         cursor.ParaLeftMargin = 1270
@@ -120,7 +122,7 @@ def compose(desktop, definition, cover, placing=None):
     if intro:
         paragraph(text, cursor, intro['lead'], adjust=LEFT, above=12, below=2, keep=True)
         for line in intro['items']:
-            paragraph(text, cursor, line, adjust=LEFT, below=0)
+            paragraph(text, cursor, re.sub(r'^(\S+\)) ', '\\1\t', line), adjust=LEFT, below=0)
             cursor.gotoStartOfParagraph(False)
             cursor.ParaLeftMargin = 1270
             cursor.ParaFirstLineIndent = -635
@@ -178,7 +180,7 @@ def measure(desktop, definition, cover):
     items = {}
     for index, item in enumerate(cover.get('items', []), start=1):
         if isinstance(item, dict) and item.get('when'):
-            position = next(at for at, (said, _) in enumerate(found) if said.startswith(f'{index}. '))
+            position = next(at for at, (said, _) in enumerate(found) if said.startswith(f'{index}.\t'))
             items[index] = found[position + 1][1] - found[position][1]
     return heading, items
 
