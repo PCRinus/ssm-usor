@@ -288,6 +288,7 @@ describe('fire-safety set', () => {
       'fire/1.4_fire_decision_smoking.docx': '7 PSI',
       'fire/1.5_fire_decision_seasons.docx': '8 PSI',
       'fire/1.6_fire_decision_technician.docx': '9 PSI',
+      'fire/1.7_fire_decision_instructions.docx': '10 PSI',
       'fire/1.8_fire_decision_waste.docx': '11 PSI',
       'fire/1.9_fire_decision_control.docx': '12 PSI',
     };
@@ -406,6 +407,68 @@ describe('fire-safety set', () => {
     expect(without).not.toContain('cântărire');
     for (const month of ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'])
       expect(without).toMatch(new RegExp(`^${month}$`, 'm'));
+  });
+
+  it('posts the instructions of every workplace on pages of their own, its means said alike twice', () => {
+    const decision = 'fire/1.7_fire_decision_instructions.docx';
+    const merged = renderDocument(read(decision), stageTwoData);
+    const xml = new PizZip(merged).file('word/document.xml')!.asText();
+    expect(xml.match(/<w:br w:type="page"\/>/g)).toHaveLength(2);
+    const text = documentText(merged);
+    expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(2);
+    expect(text).toContain('Anexă la Decizia nr. 10 PSI din 19.01.2026');
+    expect(text).toContain(
+      'Locul de muncă: Depozit, Gelaterie, Timișoara, județul Timiș, Str. Lungă 5'
+    );
+    expect(text).toContain('Stingător tip P50 – Pulbere, 50 kg, carosabil: 1 buc.;');
+    expect(text).toMatch(/^P50\nPulbere\n50 kg, carosabil\n1$/m);
+    expect(text).toMatch(/^Total\n3$/m);
+    expect(text).toContain(
+      'personalul de execuție la 3 LUNI, respectiv în lunile februarie, mai, august și noiembrie, conform Deciziei nr. 5 PSI;'
+    );
+    expect(text).toContain('redate în Decizia nr. 9 PSI.');
+    expect(text).toContain('(Preluare din Legea 307/2006 – Art. 19 alin. (1))');
+    expect(text).toMatch(/^r¹⁶\)/m);
+    expect(text).toContain(
+      'Fumatul este permis numai în locurile amenajate în exteriorul clădirilor (în curtea interioară)'
+    );
+    expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(2);
+    expect(text).not.toContain('50-60');
+    const sparseText = documentText(
+      renderDocument(read(decision), { ...stageTwoData, fire: sparse })
+    );
+    expect(sparseText).toContain(
+      'Fumatul este interzis în toate spațiile și pe întreaga incintă a S.C. CLIENT DEMO S.R.L., conform Deciziei nr. 7 PSI.'
+    );
+    expect(sparseText).not.toContain('LOC PENTRU FUMAT');
+    expect(sparseText).not.toContain('Măsuri specifice locului de muncă');
+  });
+
+  // The engine repeats a list's paragraphs under one numbering: a counted list would count on
+  // from one workplace to the next.
+  it('counts no list in the posted instructions, which repeat per workplace', () => {
+    const zip = new PizZip(read('fire/1.7_fire_decision_instructions.docx'));
+    const xml = zip.file('word/document.xml')!.asText();
+    const numbering = zip.file('word/numbering.xml')!.asText();
+    const firstLevelFormat = (numId: string) => {
+      const num = new RegExp(`<w:num w:numId="${numId}"[^>]*>[\\s\\S]*?</w:num>`).exec(
+        numbering
+      )![0];
+      const override = /<w:lvlOverride w:ilvl="0">[\s\S]*?<w:numFmt w:val="(\w+)"/.exec(num)?.[1];
+      if (override) return override;
+      const abstractId = /<w:abstractNumId w:val="(\d+)"/.exec(num)![1];
+      const abstract = new RegExp(
+        `<w:abstractNum [^>]*w:abstractNumId="${abstractId}"[\\s\\S]*?</w:abstractNum>`
+      ).exec(numbering)![0];
+      return /<w:lvl w:ilvl="0"[\s\S]*?<w:numFmt w:val="(\w+)"/.exec(abstract)![1];
+    };
+    const posted = xml.slice(xml.indexOf('INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR'));
+    const numIds = new Set(
+      [...posted.matchAll(/<w:numId w:val="(\d+)"\/>/g)].map((match) => match[1]!)
+    );
+    numIds.delete('0');
+    expect(numIds.size).toBeGreaterThan(0);
+    expect([...numIds].map(firstLevelFormat).filter((format) => format !== 'bullet')).toEqual([]);
   });
 
   it('gives every workplace a page of its own on the posted sheet', () => {

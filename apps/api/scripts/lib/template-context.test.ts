@@ -842,6 +842,7 @@ describe('the fire-safety templates', () => {
       fire_decision_smoking: '8 PSI',
       fire_decision_seasons: '9 PSI',
       fire_decision_technician: '10 PSI',
+      fire_decision_instructions: '11 PSI',
       fire_decision_waste: '12 PSI',
       fire_decision_control: '13 PSI',
     };
@@ -915,6 +916,27 @@ describe('the fire-safety templates', () => {
     };
     expect(documentText(renderDocument(file('fire_decision_control'), noGas))).not.toContain(
       'cântărire'
+    );
+  });
+
+  it('post the instructions of each workplace with its own means, the schedule and first aid', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_decision_instructions')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(
+      facts.workplaces.length
+    );
+    expect(text).toContain('Locul de muncă: Atelier Ghiroda, Atelier de sudură');
+    expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
+    expect(text).toContain('Ladă cu nisip: 1 buc.;');
+    expect(text).toContain('redate în Decizia nr. 10 PSI.');
+    expect(text).toContain('conform Deciziei nr. 8 PSI:');
+    expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(
+      facts.workplaces.length
     );
   });
 

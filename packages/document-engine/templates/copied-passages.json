@@ -1,3 +1,28 @@
 {
-  "passages": []
+  "passages": [
+    {
+      "template": "fire/1.7_fire_decision_instructions.docx",
+      "from": "3.2_own_instructions.docx",
+      "first": "^Conduita salvatorului cuprinde",
+      "last": "^Lucrătorii trebuie să știe unde se află cel mai apropiat defibrilator"
+    },
+    {
+      "template": "fire/1.7_fire_decision_instructions.docx",
+      "from": "3.2_own_instructions.docx",
+      "first": "^La arsurile produse de flacără",
+      "last": "^Se sună la 112 sau victima este dusă la medic dacă arsura"
+    },
+    {
+      "template": "fire/1.7_fire_decision_instructions.docx",
+      "from": "3.2_own_instructions.docx",
+      "first": "^Intoxicația cu gaze sau vapori",
+      "last": "^orice persoană intoxicată cu gaze merge la medic"
+    },
+    {
+      "template": "fire/1.7_fire_decision_instructions.docx",
+      "from": "3.2_own_instructions.docx",
+      "first": "^La electrocutare, salvatorul",
+      "last": "^Orice persoană electrocutată merge la medic"
+    }
+  ]
 }

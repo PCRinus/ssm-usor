@@ -49,6 +49,7 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_decision_smoking',
   'fire_decision_seasons',
   'fire_decision_technician',
+  'fire_decision_instructions',
   'fire_decision_waste',
   'fire_decision_control',
   'fire_means_list',
@@ -127,10 +128,10 @@ export const fireDecisionTypeKeys = {
   smoking: 'fire_decision_smoking',
   seasons: 'fire_decision_seasons',
   technician: 'fire_decision_technician',
+  instructions: 'fire_decision_instructions',
   waste: 'fire_decision_waste',
   control: 'fire_decision_control',
-  // Only the decisions built so far: a type key joins the set with its template (ADR 019).
-} as const satisfies Partial<Record<FireDecision, FireSafetyDocumentTypeKey>>;
+} as const satisfies Record<FireDecision, FireSafetyDocumentTypeKey>;
 
 // The binder holds nine fire-safety decisions, and the ninth's number must fit in four digits.
 export const maxFirstFireDecisionNumber = 9991;

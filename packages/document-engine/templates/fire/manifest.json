@@ -85,6 +85,20 @@
       }
     },
     {
+      "number": "1.7",
+      "originals": [
+        "1.7._Decizia_7_P.S.I._-_Instructiuni de aparare si atributii  personal ptr. afisat"
+      ],
+      "stage": 3,
+      "typeKey": "fire_decision_instructions",
+      "title": "Decizia privind instrucțiunile de apărare împotriva incendiilor",
+      "file": "1.7_fire_decision_instructions.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "1.8",
       "originals": ["1.8._Decizia_8_P.S.I._-_Deseuri"],
       "stage": 2,

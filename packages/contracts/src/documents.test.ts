@@ -59,7 +59,7 @@ describe('the fire-safety decisions', () => {
   it('keep their places in the binder, whatever is built between them', () => {
     expect(
       Object.values(fireDecisionTypeKeys).map((typeKey) => fireDecisionNumber(typeKey, 1))
-    ).toEqual([1, 2, 3, 4, 5, 6, 8, 9]);
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(fireDecisionNumber('fire_decision_waste', 11)).toBe(18);
     expect(fireDecisionNumber('fire_means_list', 11)).toBeNull();
     expect(fireDecisionNumber('decision_training', 11)).toBeNull();

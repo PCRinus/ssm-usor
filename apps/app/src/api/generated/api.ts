@@ -3725,6 +3725,7 @@ export const StartRegenerationRequestTypeKey = {
   fire_decision_smoking: 'fire_decision_smoking',
   fire_decision_seasons: 'fire_decision_seasons',
   fire_decision_technician: 'fire_decision_technician',
+  fire_decision_instructions: 'fire_decision_instructions',
   fire_decision_waste: 'fire_decision_waste',
   fire_decision_control: 'fire_decision_control',
   fire_means_list: 'fire_means_list',
@@ -18125,6 +18126,7 @@ export const getUploadClientDocumentUrl = (
     | 'fire_decision_smoking'
     | 'fire_decision_seasons'
     | 'fire_decision_technician'
+    | 'fire_decision_instructions'
     | 'fire_decision_waste'
     | 'fire_decision_control'
     | 'fire_means_list'
@@ -18176,6 +18178,7 @@ export const uploadClientDocument = async (
     | 'fire_decision_smoking'
     | 'fire_decision_seasons'
     | 'fire_decision_technician'
+    | 'fire_decision_instructions'
     | 'fire_decision_waste'
     | 'fire_decision_control'
     | 'fire_means_list'
@@ -18295,6 +18298,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_decision_smoking'
     | 'fire_decision_seasons'
     | 'fire_decision_technician'
+    | 'fire_decision_instructions'
     | 'fire_decision_waste'
     | 'fire_decision_control'
     | 'fire_means_list'
