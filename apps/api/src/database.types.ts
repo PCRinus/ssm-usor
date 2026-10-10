@@ -2545,9 +2545,10 @@ export type Database = {
           documentation_generated_type_keys: string[] | null;
           documentation_issued_count: number | null;
           documentation_last_generated_at: string | null;
+          fire_safety_generated_type_keys: string[] | null;
+          fire_safety_issued_count: number | null;
+          fire_safety_last_generated_at: string | null;
           id: string | null;
-          job_position_count: number | null;
-          job_positions_needing_work_count: number | null;
           legal_name: string | null;
           legal_representative_name: string | null;
           locality: string | null;

@@ -227,19 +227,18 @@ reason `client_is_lead`. `POST /clients/{clientId}/promote` turns an active lead
 lead, up to 5000 characters, never readable by a specialist, before or after promotion.
 
 Each client of `GET /clients` also says what is left to do, from the view `client_list` in one
-read (no request and no query per row): `jobPositionCount`, the positions not archived;
-`jobPositionsNeedingWorkCount`, those with the equipment or the instructions undecided or
-without a risk evaluation (whether an evaluation is complete is not asked: that needs the risk
-levels); and `documentation` with `state` (`none` while no document of the set has a revision,
-`issued` when every document that applies has an issued revision, `in_progress` otherwise),
-`issuedCount`, `totalCount` and `lastGeneratedAt`. The total is `documentationProgress` in
-`modules/documents/context.ts`: the built-in documents that apply, decision 1.5 from 10 current
-employees or once it has a revision, plus any other document the set holds, as the "Documente
-SSM" tab lists them; training themes waiting for generated own instructions count as not done.
-`clientSince` is when the company became a client: its promotion for a former lead, otherwise
-its creation. A lead carries null for all four. `sort=documentation` orders by the issued count
-and `sort=jobPositionCount` by the positions, each with the name next; `sort=clientSince` by
-`clientSince`.
+read (no request and no query per row): `documentation` for the occupational safety set and
+`fireSafetyDocumentation` for the fire-safety set, each with `state` (`none` while no document
+of the set has a revision, `issued` when every document that applies has an issued revision,
+`in_progress` otherwise), `issuedCount`, `totalCount` and `lastGeneratedAt`. The total is
+`documentationProgress` in `modules/documents/context.ts`, counted over what the set's tab
+lists: the built-in documents that apply, plus any other document the set holds. In the
+occupational safety set, decision 1.5 applies from 10 current employees or once it has a
+revision, and training themes waiting for generated own instructions count as not done; every
+fire-safety document applies. `clientSince` is when the company became a client: its promotion
+for a former lead, otherwise its creation. A lead carries null for all three.
+`sort=documentation` and `sort=fireSafetyDocumentation` order by the set's issued count, with
+the name next; `sort=clientSince` by `clientSince`.
 
 The service contract of a client or a lead (ADR 007) is an owner's. `GET
 /clients/{clientId}/service-contract` returns what the app reads about it (`contract`: number,

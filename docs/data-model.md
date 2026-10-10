@@ -75,18 +75,17 @@ follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 
 The list of clients reads the view `client_list`: the columns of `clients` the list shows, and
 what each client still needs, every count one grouped read: `current_employee_count`,
-`job_position_count` (positions not archived), `job_positions_needing_work_count` (of those,
-the ones with `needs_protective_equipment` or `needs_instructions` null, or without a risk
-evaluation), `documentation_generated_type_keys` (type keys of the occupational safety set
-that have a revision), `documentation_issued_count` (documents of that set with an issued
-revision, the sort of `sort=documentation`), `documentation_last_generated_at` (the newest
-`document_generations.created_at` of that set) and `client_since`
-(`coalesce(promoted_at, created_at)`). The contract is `other` and the fire-safety set is
-`fire_safety_set`, so neither counts (ADR 016). The view is `security_invoker`, so each table
-inside answers to the caller's policies, and only `authenticated` selects from it. These were
-computed fields of `clients` at first, one query per client per column, which made the list
-slow; `current_employee_count(clients)` remains for the read of a single client and for the
-documents.
+`documentation_generated_type_keys` (type keys of the occupational safety set that have a
+revision), `documentation_issued_count` (documents of that set with an issued revision, the
+sort of `sort=documentation`), `documentation_last_generated_at` (the newest
+`document_generations.created_at` of that set), the same three for the fire-safety set
+(`fire_safety_generated_type_keys`, `fire_safety_issued_count`, the sort of
+`sort=fireSafetyDocumentation`, and `fire_safety_last_generated_at`), and `client_since`
+(`coalesce(promoted_at, created_at)`). The contract is `other`, so it counts in neither set.
+The view is `security_invoker`, so each table inside answers to the caller's policies, and
+only `authenticated` selects from it. These were computed fields of `clients` at first, one
+query per client per column, which made the list slow; `current_employee_count(clients)`
+remains for the read of a single client and for the documents.
 
 Every member corrects a client's data, and only an owner archives or restores one: the update
 policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change

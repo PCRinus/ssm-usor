@@ -128,22 +128,23 @@ const sortColumns: Record<ClientSortKey, string[]> = {
   legalName: ['legal_name'],
   cui: ['cui'],
   currentEmployeeCount: ['current_employee_count', 'legal_name'],
-  jobPositionCount: ['job_position_count', 'legal_name'],
   documentation: ['documentation_issued_count', 'legal_name'],
+  fireSafetyDocumentation: ['fire_safety_issued_count', 'legal_name'],
   clientSince: ['client_since'],
 };
 
 const workColumns =
-  'client_since, job_position_count, job_positions_needing_work_count, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at';
+  'client_since, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at, fire_safety_generated_type_keys, fire_safety_issued_count, fire_safety_last_generated_at';
 
 type WorkRow = Pick<
   Database['public']['Views']['client_list']['Row'],
   | 'client_since'
-  | 'job_position_count'
-  | 'job_positions_needing_work_count'
   | 'documentation_generated_type_keys'
   | 'documentation_issued_count'
   | 'documentation_last_generated_at'
+  | 'fire_safety_generated_type_keys'
+  | 'fire_safety_issued_count'
+  | 'fire_safety_last_generated_at'
 >;
 
 type ListedRow = SelectedClientRow & ContractDocuments & Partial<WorkRow>;
@@ -158,23 +159,29 @@ function toClientListItem(row: ListedRow) {
   const item: ClientListItem = {
     ...toClient(row),
     clientSince: null,
-    jobPositionCount: null,
-    jobPositionsNeedingWorkCount: null,
     documentation: null,
+    fireSafetyDocumentation: null,
   };
   if (row.stage === 'lead') return item;
+  const currentEmployeeCount = row.current_employee_count ?? 0;
   return {
     ...item,
     clientSince: row.client_since ?? row.created_at,
-    jobPositionCount: row.job_position_count ?? 0,
-    jobPositionsNeedingWorkCount: row.job_positions_needing_work_count ?? 0,
     documentation: {
-      ...documentationProgress({
-        currentEmployeeCount: row.current_employee_count ?? 0,
+      ...documentationProgress('occupational_safety', {
+        currentEmployeeCount,
         generatedTypeKeys: row.documentation_generated_type_keys ?? [],
         issuedCount: row.documentation_issued_count ?? 0,
       }),
       lastGeneratedAt: row.documentation_last_generated_at ?? null,
+    },
+    fireSafetyDocumentation: {
+      ...documentationProgress('fire_safety', {
+        currentEmployeeCount,
+        generatedTypeKeys: row.fire_safety_generated_type_keys ?? [],
+        issuedCount: row.fire_safety_issued_count ?? 0,
+      }),
+      lastGeneratedAt: row.fire_safety_last_generated_at ?? null,
     },
   };
 }

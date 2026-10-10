@@ -51,11 +51,17 @@ insert into public.document_generations (organization_id, client_id, issue_date,
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '2026-09-01', '2026-09-20 10:00+00'),
   ('22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', '2026-09-01', '2026-09-25 10:00+00');
 
+insert into public.document_generations (organization_id, client_id, issue_date, first_decision_number, document_group, created_at) values
+  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '2026-09-01', 1, 'fire_safety_set', '2026-09-22 10:00+00');
+
 insert into public.client_documents (id, organization_id, client_id, type_key, title, document_group, owners_only) values
   ('d1d1d1d1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'cover_decisions', 'Coperta', 'documentation_set', false),
   ('d1d1d1d1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'decision_training', 'Decizia', 'documentation_set', false),
   ('d1d1d1d1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'decision_first_aid', 'Failed', 'documentation_set', false),
   ('d1d1d1d1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'service_contract', 'Contract', 'other', true),
+  ('d1d1d1d1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'fire_cover_decisions', 'Coperta', 'fire_safety_set', false),
+  ('d1d1d1d1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'fire_decision_training', 'Decizia', 'fire_safety_set', false),
+  ('d1d1d1d1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'fire_registers', 'Failed', 'fire_safety_set', false),
   ('d2d2d2d2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'cover_decisions', 'Coperta', 'documentation_set', false);
 
 insert into public.document_revisions (organization_id, document_id, revision, status, docx_path, issued_at, docx_sha256) values
@@ -65,6 +71,10 @@ insert into public.document_revisions (organization_id, document_id, revision, s
    '11111111-0000-4000-8000-000000000001/c1/d2/1.docx', null, null),
   ('11111111-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000004', 1, 'issued',
    '11111111-0000-4000-8000-000000000001/c1/d4/1.docx', now(), repeat('b', 64)),
+  ('11111111-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000005', 1, 'issued',
+   '11111111-0000-4000-8000-000000000001/c1/d5/1.docx', now(), repeat('d', 64)),
+  ('11111111-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000006', 1, 'draft',
+   '11111111-0000-4000-8000-000000000001/c1/d6/1.docx', null, null),
   ('22222222-0000-4000-8000-000000000002', 'd2d2d2d2-0000-4000-8000-000000000001', 1, 'issued',
    '22222222-0000-4000-8000-000000000002/c2/d1/1.docx', now(), repeat('c', 64));
 
@@ -82,11 +92,6 @@ select results_eq(
   'a specialist lists the clients without the lead, counting current employees only'
 );
 
-select results_eq(
-  $$ select job_position_count, job_positions_needing_work_count from public.client_list order by legal_name $$,
-  $$ values (0, 0), (4, 3) $$,
-  'current positions, and those with a decision open or no evaluation'
-);
 
 select results_eq(
   $$ select documentation_generated_type_keys from public.client_list order by legal_name $$,
@@ -104,6 +109,14 @@ select results_eq(
   $$ select documentation_last_generated_at from public.client_list order by legal_name $$,
   $$ values (null::timestamptz), ('2026-09-20 10:00+00'::timestamptz) $$,
   'the last generation, or null before the first'
+);
+
+select results_eq(
+  $$ select fire_safety_generated_type_keys, fire_safety_issued_count, fire_safety_last_generated_at
+     from public.client_list order by legal_name $$,
+  $$ values ('{}'::text[], 0, null::timestamptz),
+            ('{fire_cover_decisions,fire_decision_training}'::text[], 1, '2026-09-22 10:00+00'::timestamptz) $$,
+  'the fire-safety set counted and dated on its own, without a failed generation'
 );
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
@@ -125,10 +138,10 @@ select is_empty(
 );
 
 select results_eq(
-  $$ select legal_name, current_employee_count, job_position_count, job_positions_needing_work_count,
-            documentation_issued_count, documentation_last_generated_at
+  $$ select legal_name, current_employee_count, documentation_issued_count, documentation_last_generated_at,
+            fire_safety_issued_count, fire_safety_last_generated_at
      from public.client_list $$,
-  $$ values ('Client of B', 1, 1, 1, 1, '2026-09-25 10:00+00'::timestamptz) $$,
+  $$ values ('Client of B', 1, 1, '2026-09-25 10:00+00'::timestamptz, 0, null::timestamptz) $$,
   'another organization lists only its own client, with its own numbers'
 );
 

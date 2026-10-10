@@ -14,13 +14,19 @@ const documentationStateBadges: Record<
   issued: { label: 'Emisă', variant: 'secondary' },
 };
 
-export function DocumentationBadge({ state }: { state: DocumentationState }) {
+export function DocumentationBadge({
+  state,
+  testId,
+}: {
+  state: DocumentationState;
+  testId: string;
+}) {
   const badge = documentationStateBadges[state];
   return (
     <Badge
       variant={badge.variant}
       className={badge.className}
-      data-testid="clients-documentation"
+      data-testid={testId}
       data-state={state}
     >
       {badge.label}

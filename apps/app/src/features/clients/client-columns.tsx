@@ -32,9 +32,38 @@ function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'locality'>) {
   return [client.locality, county].filter(Boolean).join(', ');
 }
 
+function documentationColumn(
+  id: 'documentation' | 'fireSafetyDocumentation',
+  header: string,
+  testId: string
+) {
+  return helper.accessor((client) => client[id]?.issuedCount ?? 0, {
+    id,
+    header,
+    meta: { skeletonClassName: 'w-24' },
+    cell: ({ row }) => {
+      const documentation = row.original[id];
+      if (!documentation) return null;
+      return (
+        <span className="flex items-center gap-2">
+          <DocumentationBadge state={documentation.state} testId={testId} />
+          {documentation.state !== 'none' && (
+            <span
+              data-testid={`${testId}-progress`}
+              className="text-xs text-muted-foreground tabular-nums"
+            >
+              {`${documentation.issuedCount} din ${documentation.totalCount} ${documentation.issuedCount === 1 ? 'emis' : 'emise'}`}
+            </span>
+          )}
+        </span>
+      );
+    },
+  });
+}
+
 // Sortable column ids are the API sort keys: legalName, cui, currentEmployeeCount,
-// jobPositionCount, documentation, clientSince. `onArchiveChange` is left out for a member who
-// is not an owner.
+// documentation, fireSafetyDocumentation, clientSince. `onArchiveChange` is left out for a
+// member who is not an owner.
 export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) => void) {
   return helper.columns([
     helper.accessor('legalName', {
@@ -78,50 +107,12 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
       meta: numeric,
       cell: ({ getValue }) => getValue(),
     }),
-    helper.accessor((client) => client.jobPositionCount ?? 0, {
-      id: 'jobPositionCount',
-      header: 'Posturi',
-      meta: numeric,
-      cell: ({ row, getValue }) => {
-        const count = getValue();
-        const needingWork = row.original.jobPositionsNeedingWorkCount ?? 0;
-        return (
-          <>
-            {count}
-            {(count === 0 || needingWork > 0) && (
-              <span
-                data-testid="clients-positions-work"
-                className="mt-0.5 block text-xs text-warning-foreground"
-              >
-                {count === 0 ? 'de adăugat' : `${needingWork} de completat`}
-              </span>
-            )}
-          </>
-        );
-      },
-    }),
-    helper.accessor((client) => client.documentation?.issuedCount ?? 0, {
-      id: 'documentation',
-      header: 'Documentație',
-      meta: { skeletonClassName: 'w-24' },
-      cell: ({ row }) => {
-        const documentation = row.original.documentation;
-        if (!documentation) return null;
-        return (
-          <span className="flex items-center gap-2">
-            <DocumentationBadge state={documentation.state} />
-            {documentation.state !== 'none' && (
-              <span
-                data-testid="clients-documentation-progress"
-                className="text-xs text-muted-foreground tabular-nums"
-              >
-                {`${documentation.issuedCount} din ${documentation.totalCount} ${documentation.issuedCount === 1 ? 'emis' : 'emise'}`}
-              </span>
-            )}
-          </span>
-        );
-      },
-    }),
+    documentationColumn('documentation', 'Documentație SSM', 'clients-documentation'),
+    documentationColumn(
+      'fireSafetyDocumentation',
+      'Documentație PSI',
+      'clients-fire-safety-documentation'
+    ),
     helper.accessor('clientSince', {
       id: 'clientSince',
       header: 'Adăugat',

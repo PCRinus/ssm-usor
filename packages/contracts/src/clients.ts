@@ -96,30 +96,30 @@ export const clientResponseSchema = z.object({ client: clientSchema });
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
-// Where a client's documentation set stands: nothing generated yet, some of it, or every
-// document that applies issued.
+// Where one of a client's documentation sets stands: nothing generated yet, some of it, or
+// every document that applies issued.
 export const documentationStates = ['none', 'in_progress', 'issued'] as const;
 export type DocumentationState = (typeof documentationStates)[number];
 
 export const clientDocumentationSchema = z.object({
   state: z.enum(documentationStates),
   issuedCount: z.int().min(0),
-  // The documents of the set that apply to the client, as the "Documente SSM" tab lists them.
+  // The documents of the set that apply to the client, as its tab ("Documente SSM" or
+  // "Documente PSI") lists them.
   totalCount: z.int().min(0),
   lastGeneratedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
 export type ClientDocumentation = z.infer<typeof clientDocumentationSchema>;
 
-// What the list of clients adds to each, to show which still need work. A lead has no job
-// positions and no documentation set, and is not a client yet, so all four are null for a lead.
+// What the list of clients adds to each, to show which still need work. A lead has no
+// documentation set and is not a client yet, so all three are null for a lead.
 export const clientListItemSchema = clientSchema.extend({
   // When the company became a client: its promotion for a former lead, otherwise its creation.
   clientSince: z.iso.datetime({ offset: true }).nullable(),
-  jobPositionCount: z.int().min(0).nullable(),
-  // Equipment or instructions undecided, or no risk evaluation; not whether one is complete.
-  jobPositionsNeedingWorkCount: z.int().min(0).nullable(),
+  // The occupational safety set.
   documentation: clientDocumentationSchema.nullable(),
+  fireSafetyDocumentation: clientDocumentationSchema.nullable(),
 });
 
 export type ClientListItem = z.infer<typeof clientListItemSchema>;
@@ -128,9 +128,9 @@ export const clientSortKeys = [
   'legalName',
   'cui',
   'currentEmployeeCount',
-  'jobPositionCount',
-  // By the number of issued documents, so that ascending puts the least done first.
+  // Both by the number of issued documents, so that ascending puts the least done first.
   'documentation',
+  'fireSafetyDocumentation',
   'clientSince',
 ] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
