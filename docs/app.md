@@ -634,12 +634,11 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   requests and query keys as they were (`?set=fire_safety` for the other). It lists the whole
   pack at all times, with no empty state: the six sections of the provider's binder under their
   numbers (`fireSafetyDocumentSections`, whose ids are the route's `?section=`), each holding
-  its built type keys and its planned documents, and "Alte documente PSI" for a type this build
-  does not know. A built document the client does not have yet is a muted "Negenerat" row named
-  from `notGeneratedTitles` (held to the fire-safety manifest by a test); a planned one is a
-  muted "În pregătire" row, placed after the built document it follows in the binder
-  (`after`), so the decisions read 1 to 9 whichever are built; neither has a link or a menu, and
-  planned rows never count as missing. Until something is generated, a hint under the heading
+  its type keys in the binder's order, and "Alte documente PSI" for a type this build does not
+  know. A document the client does not have yet is a muted "Negenerat" row named from
+  `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
+  document of the binder is built since ADR 019, so the tab plans nothing and the "În
+  pregătire" rows it showed until then are gone. Until something is generated, a hint under the heading
   replaces the empty state. Its dialog has no headcount notice and asks the date and "Numărul
   primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);
   every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
