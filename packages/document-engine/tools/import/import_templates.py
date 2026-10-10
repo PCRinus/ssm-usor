@@ -1681,6 +1681,7 @@ COMPLEX_SIZE = re.compile(r'<w:szCs w:val="(\d+)"/>')
 BOLD_ON = re.compile(r'<w:b(?: w:val="(?:true|1|on)")?/>')
 LEVEL = re.compile(r'<w:lvl w:ilvl="(\d)"[^>]*>.*?</w:lvl>', re.S)
 DASH_BULLETS = ('-', '–')
+WIDE_HANG = 567  # twips, 1 cm
 
 
 def run_properties(xml):
@@ -1743,6 +1744,21 @@ def with_mark_size(paragraph, size, complex_size):
         tail = re.search(r'<w:sectPr\b|<w:pPrChange\b|</w:pPr>$', properties)
         changed = properties[:tail.start()] + f'<w:rPr>{inner}</w:rPr>' + properties[tail.start():]
     return paragraph.replace(properties, changed, 1)
+
+
+def widen_hang(level):
+    """At the body size a label of two numbers in bold ("1.1.") fills the list's 6.35 mm hang
+    and touches its text: it hangs 1 cm instead, from where it stood."""
+    indent = re.search(r'<w:ind\b[^>]*/>', level)
+    hanging = indent and re.search(r'w:hanging="(\d+)"', indent.group(0))
+    left = indent and re.search(r'w:left="(-?\d+)"', indent.group(0))
+    if not hanging or not left or int(hanging.group(1)) >= WIDE_HANG:
+        return level
+    more = WIDE_HANG - int(hanging.group(1))
+    widened = indent.group(0).replace(hanging.group(0), f'w:hanging="{WIDE_HANG}"') \
+        .replace(left.group(0), f'w:left="{int(left.group(1)) + more}"')
+    level = level.replace(indent.group(0), widened)
+    return re.sub(r'(<w:tab w:val="num" w:pos=")(\d+)"', lambda tab: f'{tab.group(1)}{int(tab.group(2)) + more}"', level)
 
 
 def size_list_labels(xml, numbering, styles):
@@ -1813,6 +1829,8 @@ def size_list_labels(xml, numbering, styles):
         own = size_of(properties) or (character and style_size('character', character.group(1)))
         text_sizes = {item['size'] for item in group}
         if any(item['size'] and (own or item['mark']) != item['size'] for item in group):
+            if re.search(r'<w:lvlText w:val="[^"]*%\d[^"]*%\d', level):
+                level = widen_hang(level)
             if not own:
                 marks += [item for item in group if item['size'] and item['mark'] != item['size']]
             elif len(text_sizes) == 1:
