@@ -101,7 +101,7 @@ export function fireMeansFor(
 
 export const fireSafetyTechnician = {
   fire_safety_technician_name: 'Radu Stan',
-  fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+  fire_safety_technician_certificate: 'CT 1234/2024',
 } satisfies Tables['organizations']['Update'];
 
 export const fireSafetyAuthorization = 'nr. 12 din 15.09.2026, ISU Timiș';

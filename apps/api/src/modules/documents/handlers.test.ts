@@ -93,7 +93,7 @@ const organizationRow = {
   legal_representative_name: 'Maria POPESCU',
   legal_representative_role: 'Administrator',
   fire_safety_technician_name: 'Radu STAN',
-  fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+  fire_safety_technician_certificate: 'CT 1234/2024',
   fire_safety_authorization: null,
 };
 const clientRow = {
@@ -2516,7 +2516,7 @@ describe('the fire-safety set', () => {
     provider: printedProvider,
     fireSafetyTechnician: {
       name: 'Radu STAN',
-      certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+      certificate: 'CT 1234/2024',
       authorization: null,
     },
     branding: true,
@@ -3052,7 +3052,7 @@ describe('the fire-safety set', () => {
       })
     ).toEqual({ fire_cover_registers: true, fire_registers: false });
     for (const edit of [
-      { fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 99/2026' },
+      { fire_safety_technician_certificate: 'CT 99/2026' },
       { fire_safety_authorization: 'nr. 12 din 15.09.2026, ISU Cluj' },
     ]) {
       expect(

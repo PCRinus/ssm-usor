@@ -897,7 +897,7 @@ describe('the fire-safety templates', () => {
       'prin autorizația nr. 12 din 15.09.2026, ISU Timiș, pentru îndeplinirea atribuțiilor'
     );
     expect(technician).toContain(
-      'de Radu STAN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, certificat Certificat cadru tehnic PSI nr. 1234/2024'
+      'de Radu STAN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, certificat CT 1234/2024'
     );
     expect(
       documentText(renderDocument(file('fire_decision_technician'), fewestData))

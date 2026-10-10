@@ -120,7 +120,7 @@ export async function nameFireSafetyTechnician(organizationId: string) {
     .from('organizations')
     .update({
       fire_safety_technician_name: 'Radu STAN',
-      fire_safety_technician_certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+      fire_safety_technician_certificate: 'CT 1234/2024',
     })
     .eq('id', organizationId);
   if (organization.error) throw organization.error;

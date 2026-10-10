@@ -178,7 +178,7 @@ describe('the fire-safety context', () => {
       },
       fireSafetyTechnician: {
         name: 'Radu STAN',
-        certificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+        certificate: 'CT 1234/2024',
         authorization: 'nr. 12 din 15.09.2026, ISU Timiș',
       },
     });

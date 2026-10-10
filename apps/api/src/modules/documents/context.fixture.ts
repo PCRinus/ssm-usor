@@ -17,7 +17,7 @@ export const facts: DocumentFacts = {
     representativeName: 'Ana IONESCU',
     representativeRole: 'Administrator',
     fireSafetyTechnicianName: 'Radu STAN',
-    fireSafetyTechnicianCertificate: 'Certificat cadru tehnic PSI nr. 1234/2024',
+    fireSafetyTechnicianCertificate: 'CT 1234/2024',
     fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Timiș',
   },
   specialist: { fullName: 'Dan MARIN', professionalTitle: 'Evaluator de risc SSM' },
