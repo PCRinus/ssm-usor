@@ -26,6 +26,11 @@ export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>>
   fire_cover_own_instructions:
     'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
   fire_own_instructions: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+  fire_cover_training_themes: 'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+  fire_training_themes: 'Tematica de instruire în domeniul situațiilor de urgență',
+  fire_cover_tests: 'Copertă – Testele de verificare a cunoștințelor',
+  fire_test_hiring: 'Test la angajare',
+  fire_test_annual: 'Test anual',
   fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
   fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
   fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',

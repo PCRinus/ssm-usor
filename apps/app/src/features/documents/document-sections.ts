@@ -86,11 +86,7 @@ export const documentSections = [
   typeKeys: readonly DocumentTypeKey[];
 }[];
 
-// `after`: the built document it follows in the binder; without one, it closes the section.
-type PlannedDocument = { id: string; title: string; after?: string };
-
-// The whole binder, so a specialist sees what the documentation will hold. A document the app
-// cannot write yet is planned; once it is built, its entry moves to the type keys.
+// The whole binder, so a specialist sees what the documentation will hold.
 export const fireSafetyDocumentSections = [
   {
     id: 'decisions',
@@ -108,48 +104,30 @@ export const fireSafetyDocumentSections = [
       'fire_decision_waste',
       'fire_decision_control',
     ],
-    planned: [],
   },
   {
     id: 'own-instructions',
     number: '2',
     title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
     typeKeys: ['fire_cover_own_instructions', 'fire_own_instructions'],
-    planned: [],
   },
   {
     id: 'training-themes',
     number: '3',
     title: 'Tematica de instruire',
-    typeKeys: [],
-    planned: [
-      {
-        id: 'cover-training-themes',
-        title: 'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
-      },
-      {
-        id: 'training-themes',
-        title: 'Tematica de instruire în domeniul situațiilor de urgență',
-      },
-    ],
+    typeKeys: ['fire_cover_training_themes', 'fire_training_themes'],
   },
   {
     id: 'tests',
     number: '4',
     title: 'Teste de verificare a cunoștințelor',
-    typeKeys: [],
-    planned: [
-      { id: 'cover-tests', title: 'Copertă – Testele de verificare a cunoștințelor' },
-      { id: 'test-hiring', title: 'Test la angajare' },
-      { id: 'test-annual', title: 'Test anual' },
-    ],
+    typeKeys: ['fire_cover_tests', 'fire_test_hiring', 'fire_test_annual'],
   },
   {
     id: 'means',
     number: '5',
     title: 'Mijloace de apărare și organizarea la locul de muncă',
     typeKeys: ['fire_means_list', 'fire_workplace_organization'],
-    planned: [],
   },
   {
     id: 'registers',
@@ -162,14 +140,12 @@ export const fireSafetyDocumentSections = [
       'fire_installation_register',
       'fire_extinguisher_register',
     ],
-    planned: [],
   },
 ] as const satisfies readonly {
   id: string;
   number: string;
   title: string;
   typeKeys: readonly FireSafetyDocumentTypeKey[];
-  planned: readonly PlannedDocument[];
 }[];
 
 // A document type the API knows before this build of the app does.
@@ -202,7 +178,6 @@ type SectionList = readonly {
   number: string;
   title: string;
   typeKeys: readonly string[];
-  planned?: readonly PlannedDocument[];
 }[];
 
 // `listsWholePack`: every document of the set is listed, existing or not, and nothing
@@ -231,30 +206,10 @@ export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
 const counted = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
-/** The section's rows in binder order: each planned document right after the one it follows. */
-export function inBinderOrder<Row extends { key: string }>(
-  built: readonly Row[],
-  planned: readonly (PlannedDocument & { row: Row })[]
-) {
-  const rows: Row[] = [];
-  const follow = (key: string) => {
-    for (const item of planned.filter((each) => each.after === key)) {
-      rows.push(item.row);
-      follow(item.id);
-    }
-  };
-  for (const row of built) {
-    rows.push(row);
-    follow(row.key);
-  }
-  rows.push(...planned.filter((item) => !rows.includes(item.row)).map((item) => item.row));
-  return rows;
-}
-
 export type SectionRow =
   | { kind: 'document'; key: string; title: string; document: ClientDocument }
   | {
-      kind: 'notApplicable' | 'notGenerated' | 'planned';
+      kind: 'notApplicable' | 'notGenerated';
       key: string;
       title: string;
       document: null;
@@ -264,8 +219,7 @@ export function sectionSummary(rows: readonly Pick<SectionRow, 'kind' | 'documen
   const documents = rows.flatMap((row) => (row.document ? [row.document] : []));
   const missing = rows.filter((row) => row.kind === 'notGenerated').length;
   if (documents.length === 0) {
-    if (rows.length === 0 || missing > 0) return 'negenerat';
-    return rows.every((row) => row.kind === 'planned') ? 'în pregătire' : 'nu se aplică';
+    return rows.length === 0 || missing > 0 ? 'negenerat' : 'nu se aplică';
   }
   const issued = documents.filter((document) => document.issued).length;
   const drafts = documents.filter((document) => document.draft).length;

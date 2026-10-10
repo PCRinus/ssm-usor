@@ -198,6 +198,14 @@ const allBuilt = [
         'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
       ],
       ['fire_own_instructions', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
+      [
+        'fire_cover_training_themes',
+        'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+      ],
+      ['fire_training_themes', 'Tematica de instruire în domeniul situațiilor de urgență'],
+      ['fire_cover_tests', 'Copertă – Testele de verificare a cunoștințelor'],
+      ['fire_test_hiring', 'Test la angajare'],
+      ['fire_test_annual', 'Test anual'],
       ['fire_means_list', 'Lista mijloacelor de apărare împotriva incendiilor'],
       [
         'fire_workplace_organization',
@@ -258,7 +266,7 @@ describe('client fire-safety documents', () => {
     expect(tab.querySelector('svg')!.getAttribute('class')).toContain('lucide-fire-extinguisher');
     expect(screen.getByRole('heading', { name: 'Documentația PSI' })).toBeTruthy();
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
-      'Generează documentația ca să obții registrele și formularele. Documentele în pregătire vor putea fi generate pe măsură ce sunt adăugate în aplicație.'
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului.'
     );
     expect(screen.queryByTestId('documents-empty')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
@@ -286,8 +294,8 @@ describe('client fire-safety documents', () => {
     expect(sections.map((section) => section.textContent)).toEqual([
       '1. Decizii internenegenerat',
       '2. Instrucțiuni proprii în domeniul situațiilor de urgențănegenerat',
-      '3. Tematica de instruireîn pregătire',
-      '4. Teste de verificare a cunoștințelorîn pregătire',
+      '3. Tematica de instruirenegenerat',
+      '4. Teste de verificare a cunoștințelornegenerat',
       '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
       '6. Registre și formulare PSInegenerat',
     ]);
@@ -297,7 +305,7 @@ describe('client fire-safety documents', () => {
     expect(screen.queryByTestId('document-row')).toBeNull();
   });
 
-  it('shows a document not generated yet and one the app cannot write yet, muted and inert', async () => {
+  it('shows a document not generated yet, muted and inert', async () => {
     mockApi({ fireItems: [registers] });
     mount();
     const user = userEvent.setup();
@@ -363,18 +371,15 @@ describe('client fire-safety documents', () => {
     ]);
 
     await openSection(user, '3');
-    const planned = await screen.findAllByTestId('document-planned');
-    expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
+    expect(
+      within(sectionOf('3'))
+        .getAllByTestId('document-not-generated')
+        .map((row) => row.querySelector('td')!.textContent)
+    ).toEqual([
       'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
       'Tematica de instruire în domeniul situațiilor de urgență',
     ]);
-    for (const row of planned) {
-      expect(within(row).queryByRole('link')).toBeNull();
-      expect(within(row).queryByTestId('document-actions')).toBeNull();
-      expect(row.querySelector('td')!.className).toContain('text-muted-foreground');
-      const state = within(row).getByText('În pregătire');
-      expect(state.getAttribute('title')).toBe('Aplicația nu poate genera încă acest document.');
-    }
+    expect(screen.queryByTestId('document-planned')).toBeNull();
     expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentele lipsă'
@@ -396,7 +401,7 @@ describe('client fire-safety documents', () => {
     ]);
     expect(
       within(sectionOf('4'))
-        .getAllByTestId('document-planned')
+        .getAllByTestId('document-not-generated')
         .map((row) => row.querySelector('td')!.textContent)
     ).toEqual([
       'Copertă – Testele de verificare a cunoștințelor',
@@ -427,6 +432,12 @@ describe('client fire-safety documents', () => {
     expect(
       sectionOf('2').querySelector('[data-testid="document-section-summary"]')!.textContent
     ).toBe('2 ciorne');
+    expect(
+      sectionOf('3').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('2 ciorne');
+    expect(
+      sectionOf('4').querySelector('[data-testid="document-section-summary"]')!.textContent
+    ).toBe('3 ciorne');
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {

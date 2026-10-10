@@ -75,7 +75,6 @@ import {
 } from './document-labels';
 import { DocumentMissingRows } from './document-missing-rows';
 import {
-  inBinderOrder,
   type SectionIdOf,
   type SectionRow,
   sectionSummary,
@@ -262,18 +261,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     ...setSectionList.map((section) => ({
       id: section.id,
       title: `${section.number}. ${section.title}`,
-      rows: inBinderOrder(
-        packRows.filter((row) => section.typeKeys.includes(row.key)),
-        (section.planned ?? []).map((planned) => ({
-          ...planned,
-          row: {
-            kind: 'planned',
-            key: planned.id,
-            title: planned.title,
-            document: null,
-          } as SectionRow,
-        }))
-      ),
+      rows: packRows.filter((row) => section.typeKeys.includes(row.key)),
     })),
     ...(otherRows.length > 0 ? [{ ...other, rows: otherRows }] : []),
   ];
@@ -520,25 +508,6 @@ export function DocumentsCard<Set extends DocumentSet>({
                                   {title}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">Negenerat</TableCell>
-                                <TableCell />
-                                <TableCell />
-                              </TableRow>
-                            );
-                          }
-                          if (kind === 'planned') {
-                            return (
-                              <TableRow key={key} data-testid="document-planned">
-                                <TableCell className="font-medium text-muted-foreground">
-                                  {title}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant="outline"
-                                    title="Aplicația nu poate genera încă acest document."
-                                  >
-                                    În pregătire
-                                  </Badge>
-                                </TableCell>
                                 <TableCell />
                                 <TableCell />
                               </TableRow>

@@ -78,7 +78,7 @@ export const documentSetCopy = {
     backLabel: 'Înapoi la documentele PSI',
     name: 'PSI',
     emptyHint:
-      'Generează documentația ca să obții registrele și formularele. Documentele în pregătire vor putea fi generate pe măsură ce sunt adăugate în aplicație.',
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului.',
     templatesUnavailable:
       'Documentele PSI nu pot fi generate încă: șabloanele lor nu sunt disponibile. Nu a fost generat niciun document.',
   },
