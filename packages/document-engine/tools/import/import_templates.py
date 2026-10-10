@@ -721,9 +721,15 @@ def join_typed_answers(document, rules):
         if element.supportsService('com.sun.star.text.Paragraph') and not element.ListLabelString \
                 and matches(element.getString(), rules['answers']):
             cursor = document.Text.createTextCursorByRange(element.getStart())
-            cursor.goRight(2, False)
+            cursor.goRight(len(typed_label(element.getString())), False)
             cursor.goRight(1, True)
             cursor.setString('\t')
+
+
+def typed_label(text):
+    """The letter an answer or a quoted list item was typed with: "a)", or "r¹⁶)" for a letter
+    the law inserted later."""
+    return re.match(r'[^\s)]*\)', text).group(0)
 
 
 def strip_spacing(document):
@@ -1138,7 +1144,7 @@ def typeset(document, rules, shrink_empty=False, subheadings=()):
             paragraph.ParaBottomMargin = round(2 * POINT)
             paragraph.setPropertyToDefault('ParaTabStops')
             label = paragraph.getText().createTextCursorByRange(paragraph.getStart())
-            label.goRight(2, True)
+            label.goRight(len(typed_label(text)), True)
             label.CharWeight = 150
         elif matches(text, subheadings):
             paragraph.CharWeight = 150
@@ -1738,6 +1744,9 @@ def copy_passage(desktop, document, marker, item):
         pasted = list(_elements(document.Text))[position:position + len(found)]
         if [paragraph.getString() for paragraph in pasted] != [paragraph.getString() for paragraph in found]:
             raise RuntimeError(f'copy: the passage from {item["first"]!r} was not pasted whole')
+        if item.get('numbering') == 'dashes':
+            flatten_lists(document, pasted, articles)
+            return
         for index in articles:
             pasted[index].NumberingStyleName = ARTICLES
             pasted[index].NumberingLevel = 0
@@ -1745,6 +1754,32 @@ def copy_passage(desktop, document, marker, item):
             pasted[index].ParaFirstLineIndent = 0
     finally:
         source.close(True)
+
+
+def flatten_lists(document, pasted, articles):
+    """A copy's articles lose their labels and its numbered items become dashes, for a copy
+    inside a loop: the engine repeats a list's paragraphs under the same numbering, so the
+    second workplace's posted instructions would count on from the first's. The lists keep
+    their own styles, which `copy_passage` renamed, and only their first level changes."""
+    styles = document.StyleFamilies.getByName('NumberingStyles')
+    for name in sorted({paragraph.NumberingStyleName for index, paragraph in enumerate(pasted)
+                        if index not in articles and paragraph.NumberingIsNumber
+                        and paragraph.NumberingStyleName}):
+        style = styles.getByName(name)
+        rules = style.NumberingRules
+        level = {entry.Name: entry for entry in rules.getByIndex(0)}
+        for key, value in (('NumberingType', 6),  # a character, not a number
+                           ('BulletChar', '–'), ('BulletFontName', FONT),
+                           ('Prefix', ''), ('Suffix', ''), ('ListFormat', '')):
+            level[key] = prop(key, value)
+        uno.invoke(rules, 'replaceByIndex',
+                   (0, uno.Any('[]com.sun.star.beans.PropertyValue', tuple(level.values()))))
+        style.NumberingRules = rules
+    for index in articles:
+        pasted[index].NumberingStyleName = ''
+        pasted[index].NumberingIsNumber = False
+        pasted[index].ParaLeftMargin = 0
+        pasted[index].ParaFirstLineIndent = 0
 
 
 def fill_section(document, marker, content):
