@@ -104,16 +104,11 @@ export const fireSafetyDocumentSections = [
       'fire_decision_smoking',
       'fire_decision_seasons',
       'fire_decision_technician',
+      'fire_decision_instructions',
       'fire_decision_waste',
       'fire_decision_control',
     ],
-    planned: [
-      {
-        id: 'decision-instructions',
-        title: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-        after: 'fire_decision_technician',
-      },
-    ],
+    planned: [],
   },
   {
     id: 'own-instructions',

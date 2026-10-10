@@ -20,6 +20,7 @@ export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>>
   fire_decision_smoking: 'Decizia privind fumatul',
   fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
   fire_decision_technician: 'Decizia privind cadrul tehnic PSI',
+  fire_decision_instructions: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
   fire_decision_waste: 'Decizia privind colectarea deșeurilor',
   fire_decision_control: 'Decizia privind controlul propriu',
   fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',

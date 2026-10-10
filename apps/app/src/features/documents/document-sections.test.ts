@@ -46,7 +46,7 @@ describe('document sections', () => {
       ['6', 'registers', 'Registre și formulare PSI'],
     ]);
     expect(fireSafetyDocumentSections.map((section) => section.planned.length)).toEqual([
-      1, 2, 2, 3, 0, 0,
+      0, 2, 2, 3, 0, 0,
     ]);
     expect(fireSafetyDocumentSectionIds).toEqual([
       'other',

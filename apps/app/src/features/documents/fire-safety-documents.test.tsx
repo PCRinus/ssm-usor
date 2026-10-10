@@ -187,6 +187,10 @@ const allBuilt = [
       ['fire_decision_smoking', 'Decizia privind fumatul'],
       ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['fire_decision_technician', 'Decizia privind cadrul tehnic PSI'],
+      [
+        'fire_decision_instructions',
+        'Decizia privind instrucțiunile de apărare împotriva incendiilor',
+      ],
       ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
       ['fire_decision_control', 'Decizia privind controlul propriu'],
       ['fire_means_list', 'Lista mijloacelor de apărare împotriva incendiilor'],
@@ -321,10 +325,6 @@ describe('client fire-safety documents', () => {
     }
 
     await openSection(user, '1');
-    const planned = await screen.findAllByTestId('document-planned');
-    expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
-      'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-    ]);
     expect(
       within(sectionOf('1'))
         .getAllByRole('row')
@@ -338,9 +338,16 @@ describe('client fire-safety documents', () => {
       ['document-not-generated', 'Decizia privind fumatul'],
       ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['document-not-generated', 'Decizia privind cadrul tehnic PSI'],
-      ['document-planned', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
+      ['document-not-generated', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
       ['document-not-generated', 'Decizia privind controlul propriu'],
+    ]);
+
+    await openSection(user, '2');
+    const planned = await screen.findAllByTestId('document-planned');
+    expect(planned.map((row) => row.querySelector('td')!.textContent)).toEqual([
+      'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+      'Instrucțiuni proprii în domeniul situațiilor de urgență',
     ]);
     for (const row of planned) {
       expect(within(row).queryByRole('link')).toBeNull();
@@ -397,7 +404,7 @@ describe('client fire-safety documents', () => {
     ).toBe('2 ciorne');
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('9 ciorne');
+    ).toBe('10 ciorne');
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
