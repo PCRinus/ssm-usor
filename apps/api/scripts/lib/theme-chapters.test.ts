@@ -71,6 +71,37 @@ describe('the chapters the training themes cite', () => {
     });
   });
 
+  it('are the chapters the fire-safety training themes template prints, each once', () => {
+    const text = documentXml('fire/3.1_fire_training_themes.docx')
+      .replace(/<\/w:p>/g, '\n')
+      .replace(/<[^>]+>/g, '');
+    const { chapterStarts, total } = articlesByChapter(fireOwnInstructions);
+    const chapters = chapterStarts.map((start, index) => [
+      start,
+      (chapterStarts[index + 1] ?? total + 1) - 1,
+    ]);
+    const rows = [...text.matchAll(/^IPSU Art\. (\d+)(?: – (\d+))?$/gm)].map(([, from, to]) => [
+      Number(from),
+      Number(to ?? from),
+    ]);
+    expect([...rows].sort((a, b) => a[0]! - b[0]!)).toEqual(chapters);
+    const summaries = [
+      ...text.matchAll(/^CONȚINUTUL MATERIALULUI DE INSTRUIRE: IPSU Art\. ([^;]+);/gm),
+    ]
+      .flatMap(([, list]) => list!.split(', '))
+      .map((range) => range.split(' – ').map(Number));
+    const covered = summaries.flatMap(([from, to]) =>
+      Array.from({ length: (to ?? from!) - from! + 1 }, (_, index) => from! + index)
+    );
+    expect([...covered].sort((a, b) => a - b)).toEqual(
+      Array.from({ length: total }, (_, index) => index + 1)
+    );
+    for (const [from, to] of summaries) {
+      expect(chapterStarts).toContain(from);
+      expect([...chapterStarts.slice(1).map((start) => start - 1), total]).toContain(to ?? from);
+    }
+  });
+
   it('are the ranges the training themes template prints', () => {
     const text = documentXml('4.2_training_themes.docx')
       .replace(/<\/w:p>/g, '\n')
