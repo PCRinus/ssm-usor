@@ -192,6 +192,103 @@ may not be a member. The name is also what the fire-safety set prints for the pr
 (ADR 016). The owners' update policy covers them, and they are added to the list of
 columns a member may write, which still leaves out `name` and the accepted terms.
 
+## Fire-safety data
+
+Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and not built yet: this section
+describes what the migrations of the fire-safety set's second stage will create. The documents
+of that stage print these facts; the occupational safety set reads none of them.
+
+**The client's fire-safety facts.** `client_fire_safety` holds one row per client, keyed by
+`client_id`, with the denormalized `organization_id` and a composite foreign key on
+`(client_id, organization_id)` to `clients`. The row is created on the first save. Every column
+but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
+
+| Column                                    | Notes                                                                                                    |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `periodic_training_hours`                 | 2 to 8: OMAI 712/2005 art. 21 asks two hours at least.                                                   |
+| `administrative_training_interval_months` | 1 to 6, the range of art. 26.                                                                            |
+| `worker_training_interval_months`         | 1 to 6.                                                                                                  |
+| `training_first_month`                    | 1 to 12.                                                                                                 |
+| `training_day_from`, `training_day_to`    | 1 to 31, ordered by a check, the same shape as the occupational safety columns on `clients`.             |
+| `smoking_policy`                          | `fire_smoking_policy`: `forbidden_everywhere` or `designated_places`; no default. Nothing prints it yet. |
+| `waste_kinds`                             | A `text[]` of at most 12 entries of 2 to 80 characters each; `'{}'` by default.                          |
+| `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                   |
+
+This is the fire-safety training schedule, and it is not linked to the occupational safety one
+on `clients`: the app fills the form from those columns only while no row exists, as a
+suggestion, and never reads them for a fire-safety document. Members of the organization read
+and write the row; the lead trigger refuses one under a lead (`CLL01`) and the archived-client
+trigger freezes it (`CLA01`), as on `client_workplaces`.
+
+**Workplaces.** `client_workplaces` gains seven nullable columns. `activity` ("Gelaterie",
+"Birouri", 2 to 160 characters) is printed by decision 5, the list of means and the posted
+sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilată". `extinguisher_norm` is
+the row of OMAI 163/2007 annex 6 that applies, the list's "Norma de dotare", as
+`fire_extinguisher_norm`: `administrative_300`, `commercial_200`, `residential_level`,
+`mixed_300` or `other_150`. `assembly_point` (2 to 240) is printed by the posted sheet and
+decision 5. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
+each) are points I.1, I.2 and I.3 of the posted sheet. A unique index on `(id, client_id)`
+lets the tables below, and a responsible person, point at a workplace of the same client.
+The fire risk level is not stored: no document prints it.
+
+From the area and the norm the app shows the orientative minimum of extinguishers,
+`ceil(floor_area_m2 / divisor)` with 300, 200, 300 or 150 as the divisor and at least one; a
+`residential_level` workplace has no divisor and the hint reads "cel puțin unul pe nivel". It is
+never stored, never printed and never a reason to refuse generation.
+
+**Responsible persons.** `responsible_person_role` gains `fire_safety_coordinator` and
+`fire_intervention_leader`, and the check on `roles` becomes one to six. A person gains an
+optional `workplace_id`, tied by a composite foreign key on `(workplace_id, client_id)` to
+`client_workplaces (id, client_id)`, so it names a workplace of the same client or none. None
+means every workplace: the posted sheet of a workplace prints the persons whose `workplace_id`
+is that workplace or null. The head of the workplace is the existing `workplace_manager`.
+
+**Equipment.** `fire_equipment` holds one row per unit, with `id`, `organization_id` and
+`client_id` and the composite foreign key to `clients`, and a required `workplace_id` with the
+composite foreign key to `client_workplaces`. Rows are deleted, not archived.
+
+| Column                               | Notes                                                                                                                       |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `kind`                               | `fire_equipment_kind`: `extinguisher`, `sand_box`, `fire_post`, `fire_blanket` or `other`.                                  |
+| `agent`                              | `fire_extinguishing_agent`: `powder`, `co2`, `foam`, `water` or `clean_agent`. Set exactly for an extinguisher, by a check. |
+| `capacity`                           | 1 to 250, in kilograms or litres. Set exactly for an extinguisher, by a check.                                              |
+| `wheeled`                            | A wheeled extinguisher (_stingător carosabil_); false by default, and only for extinguishers.                               |
+| `label`                              | Optional, 1 to 80 characters: the unit's inventory number or serial.                                                        |
+| `location`                           | Optional, 2 to 160: where it hangs, "lângă casa de marcat".                                                                 |
+| `manufactured_year`                  | Optional, 1990 to 2100.                                                                                                     |
+| `last_service_on`, `next_service_on` | Optional dates of the maintainer's service (OMAI 163/2007 art. 133), not of the monthly check.                              |
+| `maintainer`                         | Optional, 2 to 160: the authorized servicing firm.                                                                          |
+
+An extinguisher prints as its agent's letters and its capacity: `P` for powder ("P6"), `G` for
+CO₂ ("G3"), `SM` for foam ("SM6"), `AP` for water ("AP9"), `GI` for a clean agent ("GI2"). The
+documents group units by agent, capacity and `wheeled` and print counts.
+
+**Installations.** `fire_installations` holds one row per installation, with the same keys as
+the equipment and deleted the same way. `kind` is a `fire_installation_kind`:
+`detection_alarm`, `interior_hydrants`, `exterior_hydrants`, `sprinklers`, `smoke_exhaust`,
+`emergency_lighting`, `lightning_protection`, `gas_detection` or `other`. `description` (2 to
+240, "4 hidranți interiori, parter și etaj") is required for `other` and optional otherwise;
+`maintainer` (2 to 160) and `last_check_on` and `next_check_on` are optional. A client may have
+none. The list of means prints its exterior-hydrant accessories table only when a workplace has
+an `exterior_hydrants` row.
+
+**Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
+`fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
+month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
+columns above set on every active workplace), `fire.equipment` (an extinguisher in every active
+workplace), `responsible.fire_safety_coordinator` and `responsible.fire_intervention_leader`
+(an active person in each role). It also asks the existing `responsible.workplace_manager` and
+`positions.any`. Any of them refuses the whole set's generation.
+
+**What the templates read.** Fire-safety templates read these facts from one merge object,
+`fire`, and nothing else about the client beyond `client`, `provider`, `fireSafetyTechnician`,
+`issueDate` and `branding`. Its `staff` holds the names of the current job positions by staff
+category and nothing else of them. The data snapshot keeps the whole `fire` value, so an edit
+of any fact above marks the set's drafts "Date modificate" and leaves the occupational safety
+ones alone. Fire-safety decisions print the generation's `first_decision_number` plus their
+fixed ordinal in the binder (1, 2, 3, 5, 8) minus one, and the fire-safety generation now asks
+for that number.
+
 ## Employees
 
 `employees` stores the people employed by a client, one row per employment. A person working
