@@ -84,7 +84,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                            |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                       |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                  |
-| `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization and the fire-safety technician                            |
+| `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization, the fire-safety technician and authorization             |
 | `PUT /organization/authorizations`                                     | Owner                                 | The authorizations after replacing them                                                                                   |
 | `GET /legislation/acts`                                                | Verified user with a membership       | `{ "items": [ … ] }`, the watched acts by name with what the portal showed; not paginated                                 |
 | `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`; not paginated                                      |
@@ -99,7 +99,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                                                      |
 | `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                                       |
 | `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                                                  |
-| `GET /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | `{ "fireSafety": { … }, "exists" }`: the fire-safety training schedule, smoking policy and waste                          |
+| `GET /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | `{ "fireSafety": { … }, "exists" }`: the fire-safety training schedule, smoking rule and waste                            |
 | `PUT /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | The same after replacing them; the first save creates them                                                                |
 | `GET /clients/{clientId}/fire-equipment`                               | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace, kind, agent, capacity and label                                  |
 | `POST /clients/{clientId}/fire-equipment`                              | Verified user with a membership       | `201 { "equipment": { … } }`                                                                                              |
@@ -203,8 +203,9 @@ What is known about the provider is two resources, as the organization page show
 the ANAF lookup fills and which decides the sentence about VAT beside the prices of a
 contract, the registered office, `phone`, the legal representative, and `iban` with
 `bankName`. `/organization/authorizations` is the certificate of authorization
-(`authorizationCertificateNumber`, `…Date`, `…Issuer`) and the fire-safety technician with
-their certificate, as text (issue #170). Every member reads both and an owner writes them:
+(`authorizationCertificateNumber`, `…Date`, `…Issuer`), the fire-safety technician with
+their certificate, as text (issue #170), and `fireSafetyAuthorization`, the inspectorate's
+authorization under Legea 307/2006 art. 12^2, one text of up to 200 characters (ADR 019). Every member reads both and an owner writes them:
 none of it is secret, and what is owners-only about a contract is the contract. Everything is
 optional and `PUT` replaces all of a resource; generating a document or a contract is what
 asks for them. The
@@ -627,7 +628,10 @@ the first `PUT` creates the row; the app then opens the form on its starting val
 three months for both categories, and the occupational safety schedule's first month and days),
 which `fireSafetyStartingValues` names. The `PUT` replaces the whole set like the details above,
 with OMAI 712/2005's bounds: two to eight hours, one to six months for each category, the days
-in order, at most twelve distinct kinds of waste. Equipment and installations are one row per
+in order, at most twelve distinct kinds of waste. `smokingPlace` (up to 240 characters) is kept
+only when `smokingPolicy` is `designated_places`; with the other policy or none the `PUT` stores
+it as null rather than refusing it, so a switch to `forbidden_everywhere` saves the card in one
+request and clears the place (ADR 019). Equipment and installations are one row per
 unit, each on a workplace in `workplaceId`, which must be an active workplace of the client
 (`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
 `agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
