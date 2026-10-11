@@ -58,6 +58,12 @@ export interface Faq {
   a: string;
 }
 
+export interface Pack {
+  title: string;
+  count: string;
+  sections: string[];
+}
+
 export const copy = {
   lede: 'Adaugi clientul și angajații, creezi documentele și testele, semnezi cu toată lumea. Într-un singur loc.',
   steps: [
@@ -102,7 +108,9 @@ export const copy = {
   trust: [
     'Datele rămân ale tale: export PDF și Word oricând.',
     'Găzduire în Uniunea Europeană.',
-    'Șabloane revizuite cu specialiști SSM.',
+    'Documente pornite din dosarele reale ale unui serviciu extern și revizuite cu specialiști SSM.',
+    'Legislația citată în documente este urmărită zilnic pe Portalul Legislativ.',
+    'Fiecare document emis își păstrează revizia și PDF-ul de la data emiterii.',
   ],
   faq: [
     {
@@ -122,8 +130,64 @@ export const copy = {
       a: 'Da, din Excel sau CSV, cu verificare înainte de import.',
     },
     {
+      q: 'Faceți și documentația PSI?',
+      a: 'Da. Pe lângă dosarul SSM, fiecare client are dosarul de apărare împotriva incendiilor: decizii, instrucțiuni proprii, tematică, teste, lista mijloacelor și registrele, generate din aceleași date.',
+    },
+    {
+      q: 'Ce metodă de evaluare a riscurilor folosiți?',
+      a: 'Metoda I.N.C.D.P.M. București. Tu alegi clasele de gravitate și de probabilitate ale fiecărui factor; nivelurile, media postului și lista factorilor inacceptabili le calculează platforma.',
+    },
+    {
       q: 'Cât costă?',
       a: 'Prețurile nu sunt publicate încă. Vizăm un abonament lunar per serviciu extern, în funcție de angajații gestionați.',
     },
   ] satisfies Faq[],
+};
+
+export const packs = {
+  title: 'Dosarul SSM și dosarul PSI, din aceleași date.',
+  intro:
+    'Firma, punctele de lucru, posturile, angajații, responsabilii și mijloacele de stingere se introduc o singură dată. Din ele, platforma generează ambele dosare, document cu document, și îți spune ce date lipsesc înainte să genereze.',
+  ssm: {
+    title: 'Dosarul SSM',
+    count: '24 de documente în 12 secțiuni',
+    sections: [
+      'Deciziile interne: instruire, echipa de evaluare, prim ajutor, pericol grav și iminent, reprezentanții lucrătorilor',
+      'Materialul de instruire introductiv-generală',
+      'Instrucțiunile proprii, asamblate din modulele tale',
+      'Tematica și programul de instruire',
+      'Testele la angajare și periodice',
+      'Lista internă de dotare cu echipament individual de protecție',
+      'Registrele de evidență a evenimentelor',
+      'Referatul de control',
+      'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+      'Planul de prevenire și protecție',
+      'Materialul de informare a angajatorului',
+      'Regulamentul intern privind controlul propriu',
+    ],
+  } satisfies Pack,
+  psi: {
+    title: 'Dosarul PSI',
+    count: '24 de documente în 6 secțiuni',
+    sections: [
+      'Nouă decizii: organizarea apărării, instruire, foc deschis, fumat, caniculă și sezon rece, cadrul tehnic, instrucțiuni, deșeuri, control propriu',
+      'Instrucțiunile proprii în domeniul situațiilor de urgență',
+      'Tematica de instruire',
+      'Testele la angajare și anuale',
+      'Lista mijloacelor de apărare împotriva incendiilor și organizarea apărării la fiecare loc de muncă',
+      'Registrele: exerciții, controale, permise de lucru cu foc, instalații, stingătoare',
+    ],
+  } satisfies Pack,
+  note: 'Documentele condiționate de numărul de angajați apar singure când clientul trece pragul. Dosarul PSI este semnat pentru furnizor de cadrul tehnic PSI.',
+};
+
+export const risk = {
+  title: 'Evaluarea riscurilor, după metoda I.N.C.D.P.M.',
+  points: [
+    'Pentru fiecare factor de risc alegi clasa de gravitate, de la 1 la 7, și clasa de probabilitate, de la 1 la 6. Nivelul de risc se citește din grila metodei.',
+    'Un factor peste nivelul 3 este inacceptabil și cere măsuri. Nivelul global al postului este media ponderată a metodei, Σ R² / Σ R, cu limita acceptată 3,5.',
+    'Din aceeași evaluare ies evaluarea riscurilor și planul de prevenire și protecție, cu coloanele anexei 7 la H.G. 1425/2006.',
+    'Un post evaluat se salvează în biblioteca ta și se aplică la alți clienți, cu clasele ajustate pe loc.',
+  ],
+  caption: 'Grila metodei: clasa de gravitate pe rânduri, clasa de probabilitate pe coloane.',
 };
