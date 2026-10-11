@@ -262,6 +262,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     workplaces,
     hasExteriorHydrants: long,
     hasGasExtinguishers: true,
+    hasThirdParties: long,
     smoking: long
       ? {
           policy: 'forbidden_everywhere',

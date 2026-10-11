@@ -59,7 +59,7 @@ async function activeWorkplaceOrder(db: DataClient, clientId: string) {
 }
 
 const fireSafetyColumns =
-  'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors';
+  'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors, has_third_parties';
 
 type FireSafetyRow = Pick<
   Tables['client_fire_safety']['Row'],
@@ -74,6 +74,7 @@ type FireSafetyRow = Pick<
   | 'waste_kinds'
   | 'waste_contractor'
   | 'waste_collectors'
+  | 'has_third_parties'
 >;
 
 const toFireSafety = (row: FireSafetyRow): ClientFireSafety => ({
@@ -88,6 +89,7 @@ const toFireSafety = (row: FireSafetyRow): ClientFireSafety => ({
   wasteKinds: row.waste_kinds,
   wasteContractor: row.waste_contractor,
   wasteCollectors: row.waste_collectors,
+  hasThirdParties: row.has_third_parties,
 });
 
 const noFireSafety: ClientFireSafety = {
@@ -102,6 +104,7 @@ const noFireSafety: ClientFireSafety = {
   wasteKinds: [],
   wasteContractor: null,
   wasteCollectors: null,
+  hasThirdParties: false,
 };
 
 const fireSafetyFields = (body: UpdateClientFireSafetyRequest) => ({
@@ -117,6 +120,7 @@ const fireSafetyFields = (body: UpdateClientFireSafetyRequest) => ({
   waste_kinds: body.wasteKinds,
   waste_contractor: body.wasteContractor ?? null,
   waste_collectors: body.wasteCollectors ?? null,
+  has_third_parties: body.hasThirdParties,
 });
 
 export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, ApiEnv> = async (

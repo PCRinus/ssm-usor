@@ -418,6 +418,13 @@ describe('the fire-safety context', () => {
     });
   });
 
+  it('says whether other firms work on the premises, for decision 9 to control them', () => {
+    expect(buildFireSafetyContext(facts).fire.hasThirdParties).toBe(true);
+    expect(buildFireSafetyContext(withCard({ hasThirdParties: false })).fire.hasThirdParties).toBe(
+      false
+    );
+  });
+
   it('leaves who collects the waste null when it is blank, for decision 8 to name the workers on duty', () => {
     expect(buildFireSafetyContext(withCard({ wasteCollectors: '  ' })).fire.waste.collectors).toBe(
       null

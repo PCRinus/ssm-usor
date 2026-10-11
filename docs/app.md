@@ -521,7 +521,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   optional "Locul pentru fumat" (ADR 019; picking another rule hides it and the save sends it
   as null, so the API clears it), the kinds of waste as chips (Enter adds one, a text left in
   the field is added on save), the firm that collects them and the optional "Cine colectează
-  deșeurile", empty for the workers on duty, which decision 8 then names. While the API says no row
+  deșeurile", empty for the workers on duty, which decision 8 then names, and the checkbox "În
+  spațiile clientului lucrează și alte firme (chiriași, prestatori)", which adds their quarterly
+  control to decision 9. While the API says no row
   exists the card reads "Necompletat", and its form opens on two hours, three months for both
   categories and the occupational safety schedule's first month and days, with the note
   "Valori de pornire; salvează pentru a le păstra.". Nothing links the two schedules after

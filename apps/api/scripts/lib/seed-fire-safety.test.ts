@@ -42,6 +42,19 @@ describe('fireSafetyFor', () => {
     ).toBe(true);
   });
 
+  it('has other firms on the premises of every other client, so decision 9 reads both ways', () => {
+    const client = {
+      id: clientId,
+      training_first_month: null,
+      training_day_from: null,
+      training_day_to: null,
+    };
+    expect([0, 1].map((index) => fireSafetyFor(client, userId, index).has_third_parties)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
   it('names who collects the waste at every other client, so decision 8 reads both ways', () => {
     const client = {
       id: clientId,

@@ -804,6 +804,7 @@ describe('the fire-safety templates', () => {
         smokingPlace: null,
         wasteContractor: null,
         wasteCollectors: null,
+        hasThirdParties: false,
       },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
@@ -921,6 +922,13 @@ describe('the fire-safety templates', () => {
     };
     expect(documentText(renderDocument(file('fire_decision_control'), noGas))).not.toContain(
       'cântărire'
+    );
+    const thirdParties = 'la persoanele juridice care desfășoară activități în spațiile';
+    expect(documentText(renderDocument(file('fire_decision_control'), data))).toContain(
+      thirdParties
+    );
+    expect(documentText(renderDocument(file('fire_decision_control'), fewestData))).not.toContain(
+      thirdParties
     );
   });
 

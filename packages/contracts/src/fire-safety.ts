@@ -193,6 +193,8 @@ export const clientFireSafetySchema = z.object({
   wasteContractor: z.string().nullable(),
   // Null where decision 8 names the workers on duty.
   wasteCollectors: z.string().nullable(),
+  // Other firms work on the premises, which decision 9 then controls quarterly (ADR 019).
+  hasThirdParties: z.boolean(),
 });
 
 export type ClientFireSafety = z.infer<typeof clientFireSafetySchema>;
@@ -228,6 +230,7 @@ export const updateClientFireSafetyRequestSchema = z
       .default([]),
     wasteContractor: optionalText(2, 160),
     wasteCollectors: optionalText(2, 160),
+    hasThirdParties: z.boolean().default(false),
   })
   .refine(
     (value) =>

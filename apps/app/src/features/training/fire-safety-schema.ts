@@ -114,6 +114,7 @@ export const fireSafetyFormSchema = z
         (value) => value.length === 0 || value.length >= 2,
         'Textul are cel puțin 2 caractere.'
       ),
+    hasThirdParties: z.boolean(),
   })
   .superRefine((values, context) => {
     if (
@@ -186,6 +187,7 @@ export function toFireSafetyForm(start: FireSafety): FireSafetyFormValues {
     wasteDraft: '',
     wasteContractor: start.wasteContractor ?? '',
     wasteCollectors: start.wasteCollectors ?? '',
+    hasThirdParties: start.hasThirdParties,
   };
 }
 
@@ -208,6 +210,7 @@ export function toFireSafetyRequest(values: FireSafetyFormValues): UpdateClientF
     wasteKinds: draft ? [...values.wasteKinds, draft] : values.wasteKinds,
     wasteContractor: values.wasteContractor.trim() || null,
     wasteCollectors: values.wasteCollectors.trim() || null,
+    hasThirdParties: values.hasThirdParties,
   };
 }
 

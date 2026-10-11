@@ -234,6 +234,7 @@ export const facts: DocumentFacts = {
       wasteKinds: ['deșeuri de carton, hârtie, plastic', ' deșeuri menajere '],
       wasteContractor: 'S.C. ECO COLECT S.R.L.',
       wasteCollectors: ' muncitorii necalificați și șeful de șantier ',
+      hasThirdParties: true,
     },
     equipment: [
       {

@@ -1,5 +1,5 @@
 begin;
-select plan(37);
+select plan(39);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -99,6 +99,17 @@ select lives_ok(
 select throws_ok(
   $$ update public.client_fire_safety set waste_collectors = repeat('x', 161) where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
   '23514', null, 'in 160 characters at most'
+);
+
+select is(
+  (select has_third_parties from public.client_fire_safety where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  false,
+  'a client has no other firms on its premises until a member says so'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety set has_third_parties = true where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'a member says other firms work on the premises'
 );
 
 select throws_ok(

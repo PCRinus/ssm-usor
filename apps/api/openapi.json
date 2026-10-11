@@ -4590,6 +4590,9 @@
               "wasteCollectors": {
                 "type": "string",
                 "nullable": true
+              },
+              "hasThirdParties": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -4603,7 +4606,8 @@
               "smokingPlace",
               "wasteKinds",
               "wasteContractor",
-              "wasteCollectors"
+              "wasteCollectors",
+              "hasThirdParties"
             ]
           },
           "exists": {
@@ -4683,6 +4687,10 @@
             "nullable": true,
             "minLength": 2,
             "maxLength": 160
+          },
+          "hasThirdParties": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

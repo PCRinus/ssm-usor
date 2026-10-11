@@ -48,6 +48,7 @@ const fireSafetyRow = {
   waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   waste_contractor: 'Salubris S.A.',
   waste_collectors: null,
+  has_third_parties: false,
 };
 
 const unit = (id: string, workplaceId: string, fields: Record<string, unknown>) => ({
@@ -231,6 +232,7 @@ describe('/clients/{clientId}/fire-safety', () => {
         wasteKinds: [],
         wasteContractor: null,
         wasteCollectors: null,
+        hasThirdParties: false,
       },
     });
   });
@@ -262,6 +264,7 @@ describe('/clients/{clientId}/fire-safety', () => {
       waste_kinds: ['deșeuri de carton, hârtie, plastic'],
       waste_contractor: 'Salubris S.A.',
       waste_collectors: null,
+      has_third_parties: false,
     });
     const [update] = calls('client_fire_safety', 'PATCH').map(
       ([input]) => new URL(String(input)).searchParams
@@ -283,6 +286,20 @@ describe('/clients/{clientId}/fire-safety', () => {
       wasteCollectors: collectors,
     });
     expect(sent('client_fire_safety', 'PATCH')).toMatchObject({ waste_collectors: collectors });
+  });
+
+  it('saves whether other firms work on the premises, and reads it back', async () => {
+    mockUpstream({
+      fireSafety: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ ...fireSafetyRow, has_third_parties: true })
+          : undefined,
+    });
+    const response = await request(path, 'PUT', { ...body, hasThirdParties: true });
+    expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
+      hasThirdParties: true,
+    });
+    expect(sent('client_fire_safety', 'PATCH')).toMatchObject({ has_third_parties: true });
   });
 
   it('keeps the smoking place with designated places and drops it with any other policy', async () => {

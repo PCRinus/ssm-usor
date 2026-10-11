@@ -48,6 +48,7 @@ const emptyFireSafety = {
   wasteKinds: [] as string[],
   wasteContractor: null as string | null,
   wasteCollectors: null as string | null,
+  hasThirdParties: false,
 };
 
 const savedFireSafety = {
@@ -62,6 +63,7 @@ const savedFireSafety = {
   wasteKinds: ['deșeuri de carton', 'uleiuri uzate'],
   wasteContractor: 'Salubris SA',
   wasteCollectors: null as string | null,
+  hasThirdParties: false,
 };
 
 const firePath = `/clients/${clientId}/fire-safety`;
@@ -175,6 +177,7 @@ describe('the fire-safety training card', () => {
           wasteKinds: ['deșeuri de carton', 'uleiuri uzate'],
           wasteContractor: null,
           wasteCollectors: null,
+          hasThirdParties: false,
         },
       ])
     );
@@ -283,6 +286,24 @@ describe('the fire-safety training card', () => {
     expect((await screen.findByTestId('fire-waste-collectors')).textContent).toBe(
       'muncitorii necalificați și șeful de șantier'
     );
+  });
+
+  it('says whether other firms work on the premises', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Nu');
+    await user.click(screen.getByTestId('fire-safety-edit'));
+    await user.click(
+      screen.getByLabelText('În spațiile clientului lucrează și alte firme (chiriași, prestatori)')
+    );
+    await user.click(screen.getByTestId('fire-safety-save'));
+
+    await waitFor(() =>
+      expect(requests(firePath, 'PUT')).toEqual([{ ...savedFireSafety, hasThirdParties: true }])
+    );
+    expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Da');
   });
 
   it('takes a waste kind off the list and clears the rest of the card on save', async () => {

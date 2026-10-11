@@ -1,13 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
+import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import type { KeyboardEvent, ReactNode } from 'react';
-import { type FieldError, useForm, useWatch } from 'react-hook-form';
+import { Controller, type FieldError, useForm, useWatch } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
@@ -239,6 +241,9 @@ function FireSafetySummary({ saved, exists }: { saved: FireSafety; exists: boole
         </Fact>
         <Fact label="Cine colectează deșeurile" testId="fire-waste-collectors">
           {saved.wasteCollectors ?? unset('Lucrătorii aflați la program')}
+        </Fact>
+        <Fact label="Alte firme în spațiile clientului" testId="fire-third-parties">
+          {saved.hasThirdParties ? 'Da' : 'Nu'}
         </Fact>
         <Fact label="Deșeuri colectate" wide testId="fire-waste-kinds">
           {saved.wasteKinds.length === 0 ? unset() : <WasteChips kinds={saved.wasteKinds} />}
@@ -626,6 +631,31 @@ function FireSafetyForm({
             </Button>
           </div>
         </Field>
+        <div className="grid gap-1">
+          <div className="flex items-center gap-3">
+            <Controller
+              control={form.control}
+              name="hasThirdParties"
+              render={({ field }) => (
+                <Checkbox
+                  id="fire-third-parties-input"
+                  data-testid="fire-third-parties-input"
+                  checked={field.value}
+                  disabled={busy}
+                  aria-describedby="fire-third-parties-hint"
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+            <Label htmlFor="fire-third-parties-input">
+              În spațiile clientului lucrează și alte firme (chiriași, prestatori)
+            </Label>
+          </div>
+          <p id="fire-third-parties-hint" className="pl-7 text-xs text-muted-foreground">
+            Decizia privind controlul propriu adaugă controlul trimestrial al acestor firme.
+          </p>
+        </div>
       </section>
 
       {errors.root?.server && (

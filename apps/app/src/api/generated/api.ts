@@ -3207,6 +3207,7 @@ export type ClientFireSafetyResponseFireSafety = {
   wasteContractor: string | null;
   /** @nullable */
   wasteCollectors: string | null;
+  hasThirdParties: boolean;
 };
 
 export interface ClientFireSafetyResponse {
@@ -3289,6 +3290,7 @@ export interface UpdateClientFireSafetyRequest {
    * @nullable
    */
   wasteCollectors?: string | null;
+  hasThirdParties?: boolean;
 }
 
 export type FireEquipmentListResponseItemsItemKind =

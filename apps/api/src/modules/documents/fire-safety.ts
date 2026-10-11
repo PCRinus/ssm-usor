@@ -61,6 +61,7 @@ export type FireSafetyClientFacts = {
     wasteKinds: string[];
     wasteContractor: string | null;
     wasteCollectors: string | null;
+    hasThirdParties: boolean;
   } | null;
   /** An archived workplace's units too, which no document prints. */
   equipment: {
@@ -186,6 +187,8 @@ export type FireContext = {
   hasExteriorHydrants: boolean;
   /** Some active workplace has a CO₂ or clean-agent extinguisher, which is weighed. */
   hasGasExtinguishers: boolean;
+  /** Other firms work on the client's premises, which decision 9 controls quarterly. */
+  hasThirdParties: boolean;
   smoking: {
     policy: FireSmokingPolicy;
     forbiddenEverywhere: boolean;
@@ -588,6 +591,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
         unit.kind === 'extinguisher' &&
         (unit.agent === 'co2' || unit.agent === 'clean_agent')
     ),
+    hasThirdParties: card.hasThirdParties,
     smoking: {
       policy: card.smokingPolicy!,
       forbiddenEverywhere: card.smokingPolicy === 'forbidden_everywhere',

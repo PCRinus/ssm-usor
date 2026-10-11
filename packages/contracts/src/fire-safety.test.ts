@@ -105,6 +105,7 @@ describe('updateClientFireSafetyRequestSchema', () => {
     expect(updateClientFireSafetyRequestSchema.parse({ periodicTrainingHours: 2 })).toEqual({
       periodicTrainingHours: 2,
       wasteKinds: [],
+      hasThirdParties: false,
     });
   });
 
