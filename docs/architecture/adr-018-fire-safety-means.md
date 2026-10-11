@@ -106,7 +106,7 @@ The snapshot keeps the whole `fire` value, so any edit of the facts above marks 
 
 ### Fire-safety decisions keep their place in the binder
 
-Each fire-safety decision has a fixed ordinal, its number in the provider's binder: 1, 2, 3, 5 and 8 now, 4, 6, 7 and 9 with stage 3. Its printed number is the first decision number plus its ordinal minus one. Numbering the decisions one after another in the order of what exists, as `decisionTypeKeys` does for the occupational safety set, was rejected: decision 4 arriving in stage 3 would renumber decisions 5 and 8 on their next generation while the issued copies on the client's shelf keep the old numbers.
+Each fire-safety decision has a fixed ordinal, its number in the provider's binder: 1, 2, 3, 5 and 8 now, 4, 6, 7 and 9 with stage 3. (Amended 2026-10-11. [ADR 020](adr-020-fire-safety-from-ten-employees.md) reorders the ordinals once, while hosted holds test data only, so that the two decisions required from ten employees come last: 5 the technician, 6 the instructions, 7 the waste, 8 the seasons, 9 the control. A client under ten prints 1 to 7 and nothing is renumbered when it grows.) Its printed number is the first decision number plus its ordinal minus one. Numbering the decisions one after another in the order of what exists, as `decisionTypeKeys` does for the occupational safety set, was rejected: decision 4 arriving in stage 3 would renumber decisions 5 and 8 on their next generation while the issued copies on the client's shelf keep the old numbers.
 
 From this stage the fire-safety generation asks for the first decision number, in the field `document_generations.first_decision_number` that the occupational safety set already uses.
 
@@ -137,3 +137,35 @@ From this stage the fire-safety generation asks for the first decision number, i
 2. The data: the migrations for `client_fire_safety`, the workplace columns, the two roles and the person's workplace, `fire_equipment` and `fire_installations`, with their pgTAP tests; the contracts, the API routes and their tests, the seed, and `docs/api.md`.
 3. The screens: the "Instruire PSI" card, the roles and workplace in the responsible-person dialog, the fire-safety group in the workplace dialog, and the "Mijloace PSI" tab, with unit tests and a flow.
 4. The documents: the `fire` object, the readiness codes, the fixed-ordinal numbering and the first decision number in the generation dialog, the snapshot, the eight templates and their manifest, and the move of the eight type keys from planned to built on the _Documente PSI_ tab. After the merge, the templates are registered on hosted.
+
+## Amendment 2026-10-11: workplaces that are not buildings, the substances list and the schedules
+
+Two provider packs read on 2026-10-11, an auto workshop's from 2016 and a construction firm's from 2025, and the review of what OMAI 163/2007 asks and the set lacks, add three things to this stage's data. The documents they feed, and the headcount from which two of them are required, are decided in [ADR 020](adr-020-fire-safety-from-ten-employees.md).
+
+### A workplace is a fixed space or a temporary site
+
+A workplace gains a **kind**: `fixed_space` (_spațiu fix_), the default and what every workplace is today, or `mobile_site` (_șantier temporar sau mobil_), the construction firm's case. A mobile site has no floor area and no row in annex 6, so the readiness of `fire.workplaces` stops asking it for either; it still asks the activity, the assembly point and the texts of the posted sheet, which a site has as much as a shop does. The norm choice gains a value for a fixed space too, `none` (_fără normă din anexa 6_), for a space the annex has no row for, such as a workshop; with it the hint of the "Mijloace PSI" tab prints no minimum. What generation requires of a mobile site is what it requires of every workplace: at least one extinguisher.
+
+The list of means 5.1 prints a mobile site's row with its counts, "—" where the area and the norm were, and the posted sheet 5.2 and the seasons decision print its activity as its sector, as they do for a fixed space. The equipment norms of the construction regulation (C 300/1994) are not computed: the hint of annex 6 is a guide figure already, and a site's figure would be a second guide from a text the app does not hold. (Unverified: the number and year of that regulation are from the review notes, not from a text read.)
+
+### The list of dangerous substances
+
+A client has a **substances list** (_lista cu substanțele periculoase_), one entry per substance, on a table `fire_substances` of its own: the name and its classification under the CLP regulation, the quantity held, required; the physical and chemical properties, the identification codes, the risks to health and the environment, the recommended protection means, the intervention and first-aid measures, the agents for extinguishing, neutralizing or decontaminating, the storage place and the way it is handled, optional texts, each labelled in the dialog with the section of the safety data sheet it is copied from. The required three are what a provider can see on the product; the optional eight are what Legea 307/2006 art. 19 lit. f) asks the list to mention (unverified against the text in force: the letter and its wording are from the review notes of 2026-10-11, to be checked when the template is imported), and an empty one prints as a gap. OMAI 163/2007 asks the list of every operator, art. 18 lit. p) from ten employees and art. 20 (3) lit. g) under ten.
+
+`client_fire_safety` gains a **substances state**: `undecided`, the starting value, `none` (_nu se utilizează substanțe periculoase_) or `listed`, kept as the position's equipment state is kept, and the readiness code `fire.substances` requires a decided state, with at least one entry when it is `listed`. A declared `none` is a declaration, not an empty list: cleaning agents, fuels, paints and gas cylinders are classified substances, and the dialog says so beside the choice. The document, 5.3 in the binder, type key `fire_substances_list`, is generated in both states: with `listed` the table of entries, with `none` one page stating the declaration, signed by the representative, because an inspector asks for the list by name and an absent document reads as a missing one. The site sheet of ADR 020 prints the same entries in its section 2.
+
+The dialog lives on the "Mijloace PSI" tab, as a section after the workplaces' means, since substances are means of risk kept where the means of defence are, and the state sits at the head of that section.
+
+### The maintenance and check schedules
+
+The **schedules** (_graficele de întreținere și verificare_, art. 18 lit. q)) are one document per client, 5.4 in the binder, type key `fire_maintenance_schedules`, required from ten employees (ADR 020). Its rows derive from the inventory: every extinguisher checked monthly by the coordinator with the technician "după caz", the CO₂ and clean-agent units weighed at most every six months, both as decision 9 already prints them from OMAI 135/2023 art. 8; each unit's service by its maintainer at its next service date, and its recharge at the producer's term; each installation checked by its maintainer at its next check date, or "conform instrucțiunilor producătorului" when no next check is recorded. No interval per installation kind is invented. Below the derived rows each workplace may have **free rows** (`fire_maintenance_items`: what, interval, who, optional) for what the inventory does not hold, the yearly check of the gas installation or the chimney among them; they never block readiness.
+
+### What the readiness asks from now on
+
+`fire.substances`, the decided state, is the one new blocking code. The kind of a workplace, the building block of ADR 020 and the free rows block nothing, and a mobile site is no longer blocked on an area and a norm it cannot have.
+
+### Order of work
+
+1. The kind and the `none` norm on the workplace, in the migration, the contracts, the API, the dialog, the hint, the readiness and the three templates that print a workplace's area and norm.
+2. The substances table and state, their API and dialog, the readiness code, the template 5.3 in both states.
+3. The free rows, the schedules' merge data and the template 5.4, in ADR 020's second step.

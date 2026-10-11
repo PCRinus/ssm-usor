@@ -110,7 +110,7 @@ The text is copied at import: a fire-safety spec names the passage of `3.2_own_i
 The **fire-safety training themes** keep the sample's three chapters as one document per client.
 
 - Chapter I, the introductory general training: one block for the whole staff, trained by the technician, then a plan citing the IPSU by article range, a test and the signing of the training sheets.
-- Chapter II, the workplace training: one block per staff category that has current posts, naming the posts from `fire.staff`. The technical-administrative category is trained by the technician and the execution category by every workplace manager, "Name și Name – conducători loc de muncă", as decision 2 designates them. The material cites the IPSU by article range, the workplace's posted instructions (decision 7 by its number) and its posted sheet, where the sample cited the missing annex 1, then the practical demonstrations and the test.
+- Chapter II, the workplace training: one block per staff category that has current posts, naming the posts from `fire.staff`. The technical-administrative category is trained by the technician and the execution category by every workplace manager, "Name și Name – conducători loc de muncă", as decision 2 designates them. (Amended 2026-10-11. The rule stays, by [ADR 020](adr-020-fire-safety-from-ten-employees.md). The construction firm.s pack of 2025 has the administrator training an administrative post, a known deviation the app does not reproduce; a change would be for both sets at once.) The material cites the IPSU by article range, the workplace's posted instructions (decision 7 by its number) and its posted sheet, where the sample cited the missing annex 1, then the practical demonstrations and the test.
 - Chapter III, the periodic training: one block per staff category with posts, its interval and trainer as decision 2 prints them, then one row per **training session**: the months decision 2 prints, each citing a group of IPSU chapters dealt out as ADR 014 deals 3.2's, plus the posted instructions and the posted sheet, each lasting the client's periodic duration, "Testare." on the last.
 
 Both eight-hour plans count training only: their rows add up to 480 minutes and the breaks are listed without minutes, where the sample counted 120 to 130 minutes of breaks towards OMAI 712/2005 art. 13 and 18. The household topic and the firefighters' tactics go with their chapters.
@@ -155,12 +155,12 @@ Once all eleven exist, the set gets the pass ADR 016 planned and the first set h
 
 - A workplace test, the monthly sessions of the first-intervention team and the half-yearly evacuation exercise in the themes. Decision 2 already says the team is updated monthly; the exercises are a living record.
 - The individual training sheet (OMAI 712/2005 annex), one per employee: a document that exists many times per client (ADR 005), and the training records of #183 come first.
-- The half-yearly evaluation report, the list of dangerous substances, fire-safety duties in job descriptions (OMAI 163/2007 art. 9) and the evacuation plan.
+- The half-yearly evaluation report, the list of dangerous substances, fire-safety duties in job descriptions (OMAI 163/2007 art. 9) and the evacuation plan. (2026-10-11: the substances list is the amendment to [ADR 018](adr-018-fire-safety-means.md); the annual report and the plans are in [ADR 020](adr-020-fire-safety-from-ten-employees.md), the plans still left out.)
 - The registration of each contract on the inspectorate's platform, and any check that the provider is authorized.
 - A client bound to employ a technician under OMAI 106/2007: decision 6 is written for a contracted provider.
-- The shorter list of OMAI 163/2007 art. 20 for clients under ten employees (question 5): every client still gets the whole set.
+- The shorter list of OMAI 163/2007 art. 20 for clients under ten employees (question 5): every client still gets the whole set. (Taken up 2026-10-11 by [ADR 020](adr-020-fire-safety-from-ten-employees.md).)
 - A smoking place per workplace.
-- The instruction library for fire safety, and any activity annex.
+- The instruction library for fire safety, and any activity annex. (Taken up 2026-10-11 by the amendment to [ADR 012](adr-012-own-instructions.md).)
 - Computing decision 9's months from the issue date.
 
 ## Consequences
