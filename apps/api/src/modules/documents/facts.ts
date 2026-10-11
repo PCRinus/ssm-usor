@@ -126,7 +126,7 @@ export async function loadDocumentFacts(
     db
       .from('client_fire_safety')
       .select(
-        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor'
+        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors'
       )
       .eq('client_id', clientId)
       .maybeSingle(),
@@ -239,6 +239,7 @@ export async function loadDocumentFacts(
         smokingPlace: fireSafety.data.smoking_place,
         wasteKinds: fireSafety.data.waste_kinds,
         wasteContractor: fireSafety.data.waste_contractor,
+        wasteCollectors: fireSafety.data.waste_collectors,
       },
       equipment: fireEquipment.data.map((unit) => ({
         workplaceId: unit.workplace_id,

@@ -799,7 +799,12 @@ describe('the fire-safety templates', () => {
       workplaceId: workshopId,
     })),
     fireSafety: {
-      card: { ...facts.fireSafety.card!, smokingPlace: null, wasteContractor: null },
+      card: {
+        ...facts.fireSafety.card!,
+        smokingPlace: null,
+        wasteContractor: null,
+        wasteCollectors: null,
+      },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
     },

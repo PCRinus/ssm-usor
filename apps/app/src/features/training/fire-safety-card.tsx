@@ -237,6 +237,9 @@ function FireSafetySummary({ saved, exists }: { saved: FireSafety; exists: boole
         <Fact label="Firma care preia deșeurile" testId="fire-waste-contractor">
           {saved.wasteContractor}
         </Fact>
+        <Fact label="Cine colectează deșeurile" testId="fire-waste-collectors">
+          {saved.wasteCollectors ?? unset('Lucrătorii aflați la program')}
+        </Fact>
         <Fact label="Deșeuri colectate" wide testId="fire-waste-kinds">
           {saved.wasteKinds.length === 0 ? unset() : <WasteChips kinds={saved.wasteKinds} />}
         </Fact>
@@ -553,6 +556,28 @@ function FireSafetyForm({
               aria-invalid={Boolean(errors.wasteContractor)}
               aria-describedby={describedBy('fire-waste-contractor-input', errors.wasteContractor)}
               {...form.register('wasteContractor')}
+            />
+          </Field>
+          <Field
+            id="fire-waste-collectors-input"
+            label="Cine colectează deșeurile"
+            mark="optional"
+            hint="Dacă îl lași gol, decizia privind deșeurile numește „lucrătorii aflați la program din cadrul unității”."
+            error={errors.wasteCollectors}
+          >
+            <Input
+              id="fire-waste-collectors-input"
+              data-testid="fire-waste-collectors-input"
+              autoComplete="off"
+              placeholder="de exemplu, muncitorii necalificați și șeful de șantier"
+              disabled={busy}
+              aria-invalid={Boolean(errors.wasteCollectors)}
+              aria-describedby={describedBy(
+                'fire-waste-collectors-input',
+                errors.wasteCollectors,
+                true
+              )}
+              {...form.register('wasteCollectors')}
             />
           </Field>
         </div>

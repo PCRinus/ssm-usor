@@ -233,6 +233,7 @@ export const facts: DocumentFacts = {
       smokingPlace: ' în curtea interioară, lângă poarta de acces auto ',
       wasteKinds: ['deșeuri de carton, hârtie, plastic', ' deșeuri menajere '],
       wasteContractor: 'S.C. ECO COLECT S.R.L.',
+      wasteCollectors: ' muncitorii necalificați și șeful de șantier ',
     },
     equipment: [
       {

@@ -45,6 +45,7 @@ export function fireSafetyFor(
     ...smokingRules[index % smokingRules.length],
     waste_kinds: ['deșeuri de carton, hârtie și plastic', 'deșeuri menajere'],
     waste_contractor: 'Salubritate Demo S.R.L.',
+    waste_collectors: index % 2 === 1 ? 'personalul de curățenie și gestionarul depozitului' : null,
     created_by: createdBy,
   };
 }

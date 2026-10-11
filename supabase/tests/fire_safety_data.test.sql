@@ -1,5 +1,5 @@
 begin;
-select plan(35);
+select plan(37);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -89,6 +89,16 @@ select throws_ok(
 select throws_ok(
   $$ update public.client_fire_safety set waste_kinds = array_fill('hârtie'::text, array[13]) where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
   '23514', null, 'at most twelve kinds of waste'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety set waste_collectors = 'muncitorii necalificați și șeful de șantier' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'a member names who collects the waste'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set waste_collectors = repeat('x', 161) where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23514', null, 'in 160 characters at most'
 );
 
 select throws_ok(

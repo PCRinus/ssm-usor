@@ -218,6 +218,7 @@ const fireSafetyRow = {
   smoking_place: null,
   waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   waste_contractor: null,
+  waste_collectors: null,
 };
 const fireEquipmentRow = {
   workplace_id: workplaceRow.id,

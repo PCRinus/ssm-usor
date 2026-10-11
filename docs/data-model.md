@@ -205,6 +205,8 @@ Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by t
 `20261010100000_fire_safety_roles` and `20261010100100_fire_safety_data`; the smoking place is
 [ADR 019](architecture/adr-019-fire-safety-stage-three.md)'s, created by
 `20261010130000_fire_safety_smoking_place` with the organization's `fire_safety_authorization`.
+`20261011090000_fire_safety_waste_kinds_length` lengthens a kind of waste and
+`20261011090100_fire_safety_waste_collectors` adds who collects the waste, both amending ADR 018.
 The documents of the fire-safety set's second and third stages print these facts; the
 occupational safety set reads none of them.
 
@@ -224,6 +226,7 @@ but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
 | `smoking_place`                           | Where smoking is allowed, 2 to 240 characters; set only with `designated_places`, by a check.           |
 | `waste_kinds`                             | A `text[]` of at most 12 entries of 2 to 240 characters each; `'{}'` by default.                        |
 | `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                  |
+| `waste_collectors`                        | Who collects the waste at the client, 2 to 160 characters; null for the workers on duty.                |
 
 The smoking place is optional even with `designated_places`: without it decision 4 says the
 places are those marked "LOC PENTRU FUMAT". The API clears it whenever the card is saved with the

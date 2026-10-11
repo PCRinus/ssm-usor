@@ -106,6 +106,14 @@ export const fireSafetyFormSchema = z
         (value) => value.length === 0 || value.length >= 2,
         'Denumirea are cel puțin 2 caractere.'
       ),
+    wasteCollectors: z
+      .string()
+      .trim()
+      .max(160, 'Textul are cel mult 160 de caractere.')
+      .refine(
+        (value) => value.length === 0 || value.length >= 2,
+        'Textul are cel puțin 2 caractere.'
+      ),
   })
   .superRefine((values, context) => {
     if (
@@ -177,6 +185,7 @@ export function toFireSafetyForm(start: FireSafety): FireSafetyFormValues {
     wasteKinds: start.wasteKinds,
     wasteDraft: '',
     wasteContractor: start.wasteContractor ?? '',
+    wasteCollectors: start.wasteCollectors ?? '',
   };
 }
 
@@ -198,6 +207,7 @@ export function toFireSafetyRequest(values: FireSafetyFormValues): UpdateClientF
       values.smokingPolicy === 'designated_places' ? values.smokingPlace.trim() || null : null,
     wasteKinds: draft ? [...values.wasteKinds, draft] : values.wasteKinds,
     wasteContractor: values.wasteContractor.trim() || null,
+    wasteCollectors: values.wasteCollectors.trim() || null,
   };
 }
 

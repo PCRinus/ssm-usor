@@ -3205,6 +3205,8 @@ export type ClientFireSafetyResponseFireSafety = {
   wasteKinds: string[];
   /** @nullable */
   wasteContractor: string | null;
+  /** @nullable */
+  wasteCollectors: string | null;
 };
 
 export interface ClientFireSafetyResponse {
@@ -3281,6 +3283,12 @@ export interface UpdateClientFireSafetyRequest {
    * @nullable
    */
   wasteContractor?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  wasteCollectors?: string | null;
 }
 
 export type FireEquipmentListResponseItemsItemKind =

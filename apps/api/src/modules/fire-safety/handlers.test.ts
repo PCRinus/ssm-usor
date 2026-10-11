@@ -47,6 +47,7 @@ const fireSafetyRow = {
   smoking_place: null,
   waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   waste_contractor: 'Salubris S.A.',
+  waste_collectors: null,
 };
 
 const unit = (id: string, workplaceId: string, fields: Record<string, unknown>) => ({
@@ -229,6 +230,7 @@ describe('/clients/{clientId}/fire-safety', () => {
         smokingPlace: null,
         wasteKinds: [],
         wasteContractor: null,
+        wasteCollectors: null,
       },
     });
   });
@@ -259,12 +261,28 @@ describe('/clients/{clientId}/fire-safety', () => {
       smoking_place: null,
       waste_kinds: ['deșeuri de carton, hârtie, plastic'],
       waste_contractor: 'Salubris S.A.',
+      waste_collectors: null,
     });
     const [update] = calls('client_fire_safety', 'PATCH').map(
       ([input]) => new URL(String(input)).searchParams
     );
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
     expect(calls('client_fire_safety', 'POST')).toHaveLength(0);
+  });
+
+  it('saves who collects the waste, trimmed, and reads it back', async () => {
+    const collectors = 'muncitorii necalificați și șeful de șantier';
+    mockUpstream({
+      fireSafety: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ ...fireSafetyRow, waste_collectors: collectors })
+          : undefined,
+    });
+    const response = await request(path, 'PUT', { ...body, wasteCollectors: ` ${collectors} ` });
+    expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
+      wasteCollectors: collectors,
+    });
+    expect(sent('client_fire_safety', 'PATCH')).toMatchObject({ waste_collectors: collectors });
   });
 
   it('keeps the smoking place with designated places and drops it with any other policy', async () => {

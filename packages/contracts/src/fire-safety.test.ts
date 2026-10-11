@@ -138,6 +138,17 @@ describe('updateClientFireSafetyRequestSchema', () => {
     ).toBe(false);
   });
 
+  it('takes who collects the waste in up to 160 characters, trimmed', () => {
+    expect(
+      updateClientFireSafetyRequestSchema.parse({
+        wasteCollectors: ' muncitorii necalificați și șeful de șantier ',
+      }).wasteCollectors
+    ).toBe('muncitorii necalificați și șeful de șantier');
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteCollectors: 'x'.repeat(161) }).success
+    ).toBe(false);
+  });
+
   it('takes a smoking place of up to 240 characters, trimmed', () => {
     expect(
       updateClientFireSafetyRequestSchema.parse({

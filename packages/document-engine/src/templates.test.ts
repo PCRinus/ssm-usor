@@ -193,7 +193,11 @@ describe('fire-safety set', () => {
       designatedPlaces: true,
       place: 'în curtea interioară',
     },
-    waste: { kinds: ['deșeuri de carton'], contractor: 'S.C. ECO S.R.L.' },
+    waste: {
+      kinds: ['deșeuri de carton'],
+      contractor: 'S.C. ECO S.R.L.',
+      collectors: 'muncitorii necalificați și șeful de șantier',
+    },
     themes: [
       {
         staffCategory: 'technical_administrative',
@@ -263,7 +267,7 @@ describe('fire-safety set', () => {
       designatedPlaces: false,
       place: null,
     },
-    waste: { kinds: ['deșeuri menajere'], contractor: null },
+    waste: { kinds: ['deșeuri menajere'], contractor: null, collectors: null },
     themes: fire.themes.slice(1),
   };
   const stageTwoData = {
@@ -373,14 +377,16 @@ describe('fire-safety set', () => {
     expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 luni');
   });
 
-  it('names the contractor of the waste, or the contracted firm', () => {
+  it('names who collects the waste and its contractor, or the workers on duty and the contracted firm', () => {
     const decision = 'fire/1.8_fire_decision_waste.docx';
     expect(documentText(renderDocument(read(decision), stageTwoData))).toContain(
-      'și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
+      'De modul de colectare și neutralizare a deșeurilor răspund muncitorii necalificați și șeful de șantier și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
     );
     expect(
       documentText(renderDocument(read(decision), { ...stageTwoData, fire: sparse }))
-    ).toContain('și firma contractată, autorizată în acest domeniu.');
+    ).toContain(
+      'De modul de colectare și neutralizare a deșeurilor răspund lucrătorii aflați la program din cadrul unității și firma contractată, autorizată în acest domeniu.'
+    );
   });
 
   it('prints the exterior-hydrant accessories only for a client with exterior hydrants', () => {

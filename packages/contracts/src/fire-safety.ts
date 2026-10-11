@@ -191,6 +191,8 @@ export const clientFireSafetySchema = z.object({
   smokingPlace: z.string().nullable(),
   wasteKinds: z.array(z.string()),
   wasteContractor: z.string().nullable(),
+  // Null where decision 8 names the workers on duty.
+  wasteCollectors: z.string().nullable(),
 });
 
 export type ClientFireSafety = z.infer<typeof clientFireSafetySchema>;
@@ -225,6 +227,7 @@ export const updateClientFireSafetyRequestSchema = z
       )
       .default([]),
     wasteContractor: optionalText(2, 160),
+    wasteCollectors: optionalText(2, 160),
   })
   .refine(
     (value) =>

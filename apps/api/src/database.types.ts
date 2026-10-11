@@ -151,6 +151,7 @@ export type Database = {
           training_day_to: number | null;
           training_first_month: number | null;
           updated_at: string;
+          waste_collectors: string | null;
           waste_contractor: string | null;
           waste_kinds: string[];
           worker_training_interval_months: number | null;
@@ -168,6 +169,7 @@ export type Database = {
           training_day_to?: number | null;
           training_first_month?: number | null;
           updated_at?: string;
+          waste_collectors?: string | null;
           waste_contractor?: string | null;
           waste_kinds?: string[];
           worker_training_interval_months?: number | null;
@@ -185,6 +187,7 @@ export type Database = {
           training_day_to?: number | null;
           training_first_month?: number | null;
           updated_at?: string;
+          waste_collectors?: string | null;
           waste_contractor?: string | null;
           waste_kinds?: string[];
           worker_training_interval_months?: number | null;

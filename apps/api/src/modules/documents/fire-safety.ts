@@ -60,6 +60,7 @@ export type FireSafetyClientFacts = {
     smokingPlace: string | null;
     wasteKinds: string[];
     wasteContractor: string | null;
+    wasteCollectors: string | null;
   } | null;
   /** An archived workplace's units too, which no document prints. */
   equipment: {
@@ -192,7 +193,8 @@ export type FireContext = {
     /** Null where the client names no place, and always where smoking is forbidden. */
     place: string | null;
   };
-  waste: { kinds: string[]; contractor: string | null };
+  /** `collectors` null where decision 8 names the workers on duty. */
+  waste: { kinds: string[]; contractor: string | null; collectors: string | null };
   /** One per staff category with current posts, technical-administrative first. */
   themes: FireThemesContext[];
 };
@@ -595,6 +597,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
     waste: {
       kinds: card.wasteKinds.map((kind) => kind.trim()).filter(Boolean),
       contractor: card.wasteContractor?.trim() || null,
+      collectors: card.wasteCollectors?.trim() || null,
     },
     themes: fireThemes({
       staff: { technical_administrative: administrative, execution },

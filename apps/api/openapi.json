@@ -4586,6 +4586,10 @@
               "wasteContractor": {
                 "type": "string",
                 "nullable": true
+              },
+              "wasteCollectors": {
+                "type": "string",
+                "nullable": true
               }
             },
             "required": [
@@ -4598,7 +4602,8 @@
               "smokingPolicy",
               "smokingPlace",
               "wasteKinds",
-              "wasteContractor"
+              "wasteContractor",
+              "wasteCollectors"
             ]
           },
           "exists": {
@@ -4668,6 +4673,12 @@
             "default": []
           },
           "wasteContractor": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "wasteCollectors": {
             "type": "string",
             "nullable": true,
             "minLength": 2,

@@ -42,6 +42,22 @@ describe('fireSafetyFor', () => {
     ).toBe(true);
   });
 
+  it('names who collects the waste at every other client, so decision 8 reads both ways', () => {
+    const client = {
+      id: clientId,
+      training_first_month: null,
+      training_day_from: null,
+      training_day_to: null,
+    };
+    const named = fireSafetyFor(client, userId, 1);
+    expect(fireSafetyFor(client, userId, 0).waste_collectors).toBeNull();
+    expect(named.waste_collectors).toBe('personalul de curățenie și gestionarul depozitului');
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteCollectors: named.waste_collectors })
+        .success
+    ).toBe(true);
+  });
+
   it('forbids smoking, allows it in a named place, and allows it with no place, in turn', () => {
     const client = {
       id: clientId,

@@ -72,6 +72,7 @@ describe('what the fire-safety set is missing', () => {
     expect(missingFireSafetyData(withCard({ wasteKinds: [] }))).toEqual(['fire.waste']);
     expect(missingFireSafetyData(withCard({ wasteKinds: ['  '] }))).toEqual(['fire.waste']);
     expect(missingFireSafetyData(withCard({ wasteContractor: null }))).toEqual([]);
+    expect(missingFireSafetyData(withCard({ wasteCollectors: null }))).toEqual([]);
     expect(missingFireSafetyData(withCard(null))).toEqual([
       'fire.trainingSchedule',
       'fire.smokingPolicy',
@@ -413,7 +414,17 @@ describe('the fire-safety context', () => {
     expect(fire.waste).toEqual({
       kinds: ['deșeuri de carton, hârtie, plastic', 'deșeuri menajere'],
       contractor: 'S.C. ECO COLECT S.R.L.',
+      collectors: 'muncitorii necalificați și șeful de șantier',
     });
+  });
+
+  it('leaves who collects the waste null when it is blank, for decision 8 to name the workers on duty', () => {
+    expect(buildFireSafetyContext(withCard({ wasteCollectors: '  ' })).fire.waste.collectors).toBe(
+      null
+    );
+    expect(buildFireSafetyContext(withCard({ wasteCollectors: null })).fire.waste.collectors).toBe(
+      null
+    );
   });
 
   it('words the smoking rule with a flag for each policy, and the place only where smoking is allowed', () => {
