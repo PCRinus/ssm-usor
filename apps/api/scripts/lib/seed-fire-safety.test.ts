@@ -4,6 +4,7 @@ import {
   fireInstallationRequestSchema,
   updateClientFireSafetyRequestSchema,
   updateOrganizationAuthorizationsRequestSchema,
+  workplaceRequestSchema,
 } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -13,6 +14,7 @@ import {
   fireSafetyAuthorization,
   fireSafetyFor,
   fireSafetyTechnician,
+  mobileSiteFor,
 } from './seed-fire-safety';
 
 const userId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
@@ -129,6 +131,29 @@ describe('fireMeansFor', () => {
     expect(installations).toHaveLength(1);
     expect(
       fireInstallationRequestSchema.safeParse({ ...installations[0], workplaceId }).success
+    ).toBe(true);
+  });
+});
+
+describe('mobileSiteFor', () => {
+  it('is a mobile site with no area and no norm from annex 6, which the workplace dialog accepts', () => {
+    const site = mobileSiteFor(clientId, userId);
+    expect(site).toMatchObject({ kind: 'mobile_site', extinguisher_norm: 'none' });
+    expect(site.floor_area_m2).toBeUndefined();
+    expect(
+      workplaceRequestSchema.safeParse({
+        name: site.name,
+        countyCode: site.county_code,
+        locality: site.locality,
+        addressLine: site.address_line,
+        kind: site.kind,
+        activity: site.activity,
+        extinguisherNorm: site.extinguisher_norm,
+        assemblyPoint: site.assembly_point,
+        combustibleMaterials: site.combustible_materials,
+        ignitionSources: site.ignition_sources,
+        fireRiskEquipment: site.fire_risk_equipment,
+      }).success
     ).toBe(true);
   });
 });

@@ -620,7 +620,10 @@ an active workplace of the client is `400` with the issue on `workplaceId`. A wo
 carries the fire-safety facts of [ADR 018](architecture/adr-018-fire-safety-means.md), all
 optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
 `combustibleMaterials`, `ignitionSources`, `fireRiskEquipment` and `specificMeasures`; the
-`PUT` clears those left out, as it does the address.
+`PUT` clears those left out, as it does the address. Its `kind` is `fixed_space`, the default
+when left out, or `mobile_site`, and `extinguisherNorm` may be `none` beside the five rows of
+annex 6. A mobile site keeps an area and a norm it is sent, which the fire-safety set neither
+asks for nor prints.
 
 The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
 `GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
@@ -693,7 +696,8 @@ of the "Instruire PSI" card), `fire.smokingPolicy` (a smoking rule chosen; the p
 `fire.waste` (at least one kind), `responsible.workplace_manager`,
 `responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
 `positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
-area, norm, assembly point and the three texts of the posted sheet) and `fire.equipment` (an
+assembly point and the three texts of the posted sheet, and a fixed space with its area and
+its norm, which may be `none`) and `fire.equipment` (an
 extinguisher in every active workplace). Any of them refuses the whole set. Its readiness lists
 nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
 `workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most

@@ -3982,6 +3982,10 @@
                   "type": "string",
                   "nullable": true
                 },
+                "kind": {
+                  "type": "string",
+                  "enum": ["fixed_space", "mobile_site"]
+                },
                 "floorAreaM2": {
                   "type": "integer",
                   "nullable": true
@@ -3995,6 +3999,7 @@
                     "residential_level",
                     "mixed_300",
                     "other_150",
+                    "none",
                     null
                   ]
                 },
@@ -4036,6 +4041,7 @@
                 "locality",
                 "addressLine",
                 "activity",
+                "kind",
                 "floorAreaM2",
                 "extinguisherNorm",
                 "assemblyPoint",
@@ -4132,6 +4138,10 @@
                 "type": "string",
                 "nullable": true
               },
+              "kind": {
+                "type": "string",
+                "enum": ["fixed_space", "mobile_site"]
+              },
               "floorAreaM2": {
                 "type": "integer",
                 "nullable": true
@@ -4145,6 +4155,7 @@
                   "residential_level",
                   "mixed_300",
                   "other_150",
+                  "none",
                   null
                 ]
               },
@@ -4186,6 +4197,7 @@
               "locality",
               "addressLine",
               "activity",
+              "kind",
               "floorAreaM2",
               "extinguisherNorm",
               "assemblyPoint",
@@ -4279,6 +4291,11 @@
             "minLength": 2,
             "maxLength": 160
           },
+          "kind": {
+            "type": "string",
+            "enum": ["fixed_space", "mobile_site"],
+            "default": "fixed_space"
+          },
           "floorAreaM2": {
             "type": "integer",
             "nullable": true,
@@ -4294,6 +4311,7 @@
               "residential_level",
               "mixed_300",
               "other_150",
+              "none",
               null
             ]
           },

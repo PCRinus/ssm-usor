@@ -7,6 +7,7 @@ type Tables = Database['public']['Tables'];
 type FireSafetyInsert = Tables['client_fire_safety']['Insert'];
 type SmokingRule = Pick<FireSafetyInsert, 'smoking_policy' | 'smoking_place'>;
 type WorkplaceUpdate = Tables['client_workplaces']['Update'];
+type WorkplaceInsert = Tables['client_workplaces']['Insert'];
 type EquipmentInsert = Tables['fire_equipment']['Insert'];
 type InstallationInsert = Tables['fire_installations']['Insert'];
 
@@ -60,6 +61,29 @@ export const workplaceFireFacts = {
   ignition_sources: 'Aparatură electrică, prize și prelungitoare, scurtcircuite',
   fire_risk_equipment: 'Calculatoare, imprimante, aparate de climatizare',
 } satisfies WorkplaceUpdate;
+
+export const mobileSiteName = 'Șantier Dumbrăvița';
+
+// The construction firm's case of ADR 018's amendment, so the previews print a workplace with no
+// area and no norm.
+export function mobileSiteFor(clientId: string, createdBy: string): WorkplaceInsert {
+  return {
+    organization_id: seedOrganizationId,
+    client_id: clientId,
+    name: mobileSiteName,
+    county_code: 'TM',
+    locality: 'Dumbrăvița',
+    address_line: 'Str. Petőfi Sándor 50',
+    kind: 'mobile_site',
+    activity: 'Lucrări de construcții și instalații',
+    extinguisher_norm: 'none',
+    assembly_point: 'Zona de acces în șantier, lângă containerul de birou',
+    combustible_materials: 'Cofraje și schele din lemn, ambalaje, carburanți pentru utilaje',
+    ignition_sources: 'Lucrări de sudură și tăiere, instalația electrică provizorie',
+    fire_risk_equipment: 'Grup electrogen, aparat de sudură, polizor unghiular',
+    created_by: createdBy,
+  };
+}
 
 // The sample pack's workplace: two P6 and one G3, and an alarm system.
 export function fireMeansFor(
@@ -160,6 +184,7 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     facts: 0,
     smoking: 0,
     workplaces: 0,
+    sites: 0,
     persons: 0,
     equipment: 0,
     installations: 0,
@@ -203,6 +228,25 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   if (filled.error) throw new Error(`Could not seed workplace facts: ${filled.error.message}`);
   counts.workplaces = filled.data.length;
 
+  // Every third client from the second, so most clients keep the one workplace they have.
+  const siteClientIds = clientIds.filter((_, index) => index % 3 === 1);
+  if (siteClientIds.length > 0) {
+    const existing = await db
+      .from('client_workplaces')
+      .select('client_id')
+      .in('client_id', siteClientIds)
+      .eq('name', mobileSiteName);
+    if (existing.error) throw new Error(`Could not read workplaces: ${existing.error.message}`);
+    const sites = siteClientIds
+      .filter((clientId) => !existing.data.some((row) => row.client_id === clientId))
+      .map((clientId) => mobileSiteFor(clientId, createdBy));
+    if (sites.length > 0) {
+      const { error } = await db.from('client_workplaces').insert(sites);
+      if (error) throw new Error(`Could not seed a mobile site: ${error.message}`);
+    }
+    counts.sites = sites.length;
+  }
+
   const persons = await db
     .from('client_responsible_persons')
     .select('id, client_id, roles')
@@ -227,7 +271,7 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
 
   const workplaces = await db
     .from('client_workplaces')
-    .select('id, client_id, fire_equipment(count), fire_installations(count)')
+    .select('id, client_id, kind, fire_equipment(count), fire_installations(count)')
     .in('client_id', clientIds)
     .is('archived_at', null);
   if (workplaces.error) throw new Error(`Could not read workplaces: ${workplaces.error.message}`);
@@ -236,7 +280,9 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   for (const workplace of workplaces.data) {
     const means = fireMeansFor(workplace, createdBy);
     if (workplace.fire_equipment[0]?.count === 0) equipment.push(...means.equipment);
-    if (workplace.fire_installations[0]?.count === 0) installations.push(...means.installations);
+    if (workplace.kind === 'fixed_space' && workplace.fire_installations[0]?.count === 0) {
+      installations.push(...means.installations);
+    }
   }
   if (equipment.length > 0) {
     const { error } = await db.from('fire_equipment').insert(equipment);

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { responsiblePersonRequestSchema, workplaceRequestSchema } from './document-data';
 import {
   extinguisherCode,
+  fireAnnexNorms,
   fireEquipmentRequestSchema,
-  fireExtinguisherNorms,
   fireInstallationRequestSchema,
   minimumExtinguishers,
   updateClientFireSafetyRequestSchema,
@@ -33,7 +33,7 @@ describe('minimumExtinguishers', () => {
   });
 
   it('asks for one at least, and has no area figure for dwellings', () => {
-    for (const norm of fireExtinguisherNorms.filter((norm) => norm !== 'residential_level')) {
+    for (const norm of fireAnnexNorms.filter((norm) => norm !== 'residential_level')) {
       expect(minimumExtinguishers(1, norm)).toBe(1);
     }
     expect(minimumExtinguishers(400, 'residential_level')).toBeNull();
@@ -194,5 +194,19 @@ describe('the fire-safety fields elsewhere', () => {
       workplaceRequestSchema.safeParse({ name: 'Gelaterie', extinguisherNorm: 'commercial_250' })
         .success
     ).toBe(false);
+  });
+
+  it('makes a workplace a fixed space unless it says it is a mobile site, and allows no norm', () => {
+    expect(workplaceRequestSchema.parse({ name: 'Gelaterie' }).kind).toBe('fixed_space');
+    expect(
+      workplaceRequestSchema.parse({
+        name: 'Șantier',
+        kind: 'mobile_site',
+        extinguisherNorm: 'none',
+      })
+    ).toMatchObject({ kind: 'mobile_site', extinguisherNorm: 'none' });
+    expect(workplaceRequestSchema.safeParse({ name: 'Șantier', kind: 'vehicle' }).success).toBe(
+      false
+    );
   });
 });

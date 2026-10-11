@@ -127,7 +127,7 @@ try {
       user.id
     );
     console.log(
-      `Added fire-safety facts to ${fire.facts} clients, a smoking rule to ${fire.smoking} and facts to ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
+      `Added fire-safety facts to ${fire.facts} clients, a smoking rule to ${fire.smoking} and facts to ${fire.workplaces} workplaces, ${fire.sites} mobile sites, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
     );
     const provider = await seedFireSafetyProvider(client);
     console.log(

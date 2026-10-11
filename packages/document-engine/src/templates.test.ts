@@ -128,7 +128,7 @@ describe('fire-safety set', () => {
     activity: 'Gelaterie',
     activityRunOn: 'gelaterie',
     address: 'Timișoara, județul Timiș, Str. Lungă 5',
-    floorAreaM2: 120,
+    areaLabel: '120\u00a0m²',
     normLabel: 'Clădiri comerciale (1 buc./200 m²)',
     assemblyPoint: 'Parcarea din spate',
     combustibleMaterials: 'Cartoane',
@@ -405,6 +405,33 @@ describe('fire-safety set', () => {
     expect(
       documentText(renderDocument(read(list), { ...stageTwoData, fire: sparse }))
     ).not.toContain(accessories);
+  });
+
+  it('prints a dash for the area and the norm of a mobile site, and its activity as its sector', () => {
+    const site = {
+      ...fire,
+      workplaces: [
+        {
+          ...workplace,
+          name: 'Șantier Dumbrăvița',
+          activity: 'Lucrări de construcții',
+          activityRunOn: 'lucrări de construcții',
+          areaLabel: '—',
+          normLabel: '—',
+        },
+      ],
+    };
+    const list = documentText(
+      renderDocument(read('fire/5.1_fire_means_list.docx'), { ...stageTwoData, fire: site })
+    );
+    expect(list).toContain('Șantier Dumbrăvița (lucrări de construcții)');
+    expect(list).toContain('Aria utilă\n—\nNorma de dotare (OMAI 163/2007, anexa 6)\n—\n');
+    expect(list).toContain('Total stingătoare\nbuc.\n3');
+    for (const file of ['5.2_fire_workplace_organization', '1.8_fire_decision_seasons']) {
+      expect(
+        documentText(renderDocument(read(`fire/${file}.docx`), { ...stageTwoData, fire: site }))
+      ).toContain('Șantier Dumbrăvița (lucrări de construcții)');
+    }
   });
 
   it('prints the smoking rule of decision 4 and of the posted sheet', () => {

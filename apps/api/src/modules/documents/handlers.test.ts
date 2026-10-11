@@ -199,6 +199,7 @@ const workplaceRow = {
   locality: 'Timișoara',
   address_line: 'Str. Lungă 5',
   activity: 'Gelaterie',
+  kind: 'fixed_space',
   floor_area_m2: 120,
   extinguisher_norm: 'commercial_200',
   assembly_point: 'Parcarea din spate',

@@ -359,6 +359,7 @@ export type Database = {
           id: string;
           ignition_sources: string | null;
           is_registered_office: boolean;
+          kind: Database['public']['Enums']['workplace_kind'];
           locality: string | null;
           name: string;
           organization_id: string;
@@ -381,6 +382,7 @@ export type Database = {
           id?: string;
           ignition_sources?: string | null;
           is_registered_office?: boolean;
+          kind?: Database['public']['Enums']['workplace_kind'];
           locality?: string | null;
           name: string;
           organization_id: string;
@@ -403,6 +405,7 @@ export type Database = {
           id?: string;
           ignition_sources?: string | null;
           is_registered_office?: boolean;
+          kind?: Database['public']['Enums']['workplace_kind'];
           locality?: string | null;
           name?: string;
           organization_id?: string;
@@ -2858,7 +2861,12 @@ export type Database = {
       equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
       fire_equipment_kind: 'extinguisher' | 'sand_box' | 'fire_post' | 'fire_blanket' | 'other';
       fire_extinguisher_norm:
-        'administrative_300' | 'commercial_200' | 'residential_level' | 'mixed_300' | 'other_150';
+        | 'administrative_300'
+        | 'commercial_200'
+        | 'residential_level'
+        | 'mixed_300'
+        | 'other_150'
+        | 'none';
       fire_extinguishing_agent: 'powder' | 'co2' | 'foam' | 'water' | 'clean_agent';
       fire_installation_kind:
         | 'detection_alarm'
@@ -2885,6 +2893,7 @@ export type Database = {
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       staff_category: 'technical_administrative' | 'execution';
       work_system_component: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
+      workplace_kind: 'fixed_space' | 'mobile_site';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -3018,6 +3027,7 @@ export const Constants = {
         'residential_level',
         'mixed_300',
         'other_150',
+        'none',
       ],
       fire_extinguishing_agent: ['powder', 'co2', 'foam', 'water', 'clean_agent'],
       fire_installation_kind: [
@@ -3047,6 +3057,7 @@ export const Constants = {
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       staff_category: ['technical_administrative', 'execution'],
       work_system_component: ['executant', 'work_task', 'means_of_production', 'work_environment'],
+      workplace_kind: ['fixed_space', 'mobile_site'],
     },
   },
 } as const;

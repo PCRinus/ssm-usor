@@ -2762,6 +2762,14 @@ export const WorkplaceListResponseItemsItemCountyCode = {
   VN: 'VN',
 } as const;
 
+export type WorkplaceListResponseItemsItemKind =
+  (typeof WorkplaceListResponseItemsItemKind)[keyof typeof WorkplaceListResponseItemsItemKind];
+
+export const WorkplaceListResponseItemsItemKind = {
+  fixed_space: 'fixed_space',
+  mobile_site: 'mobile_site',
+} as const;
+
 /**
  * @nullable
  */
@@ -2775,6 +2783,7 @@ export const WorkplaceListResponseItemsItemExtinguisherNorm = {
   residential_level: 'residential_level',
   mixed_300: 'mixed_300',
   other_150: 'other_150',
+  none: 'none',
 } as const;
 
 export type WorkplaceListResponseItemsItem = {
@@ -2790,6 +2799,7 @@ export type WorkplaceListResponseItemsItem = {
   addressLine: string | null;
   /** @nullable */
   activity: string | null;
+  kind: WorkplaceListResponseItemsItemKind;
   /** @nullable */
   floorAreaM2: number | null;
   /** @nullable */
@@ -2864,6 +2874,14 @@ export const WorkplaceResponseWorkplaceCountyCode = {
   VN: 'VN',
 } as const;
 
+export type WorkplaceResponseWorkplaceKind =
+  (typeof WorkplaceResponseWorkplaceKind)[keyof typeof WorkplaceResponseWorkplaceKind];
+
+export const WorkplaceResponseWorkplaceKind = {
+  fixed_space: 'fixed_space',
+  mobile_site: 'mobile_site',
+} as const;
+
 /**
  * @nullable
  */
@@ -2877,6 +2895,7 @@ export const WorkplaceResponseWorkplaceExtinguisherNorm = {
   residential_level: 'residential_level',
   mixed_300: 'mixed_300',
   other_150: 'other_150',
+  none: 'none',
 } as const;
 
 export type WorkplaceResponseWorkplace = {
@@ -2892,6 +2911,7 @@ export type WorkplaceResponseWorkplace = {
   addressLine: string | null;
   /** @nullable */
   activity: string | null;
+  kind: WorkplaceResponseWorkplaceKind;
   /** @nullable */
   floorAreaM2: number | null;
   /** @nullable */
@@ -2965,6 +2985,13 @@ export const WorkplaceRequestCountyCode = {
   VN: 'VN',
 } as const;
 
+export type WorkplaceRequestKind = (typeof WorkplaceRequestKind)[keyof typeof WorkplaceRequestKind];
+
+export const WorkplaceRequestKind = {
+  fixed_space: 'fixed_space',
+  mobile_site: 'mobile_site',
+} as const;
+
 /**
  * @nullable
  */
@@ -2977,6 +3004,7 @@ export const WorkplaceRequestExtinguisherNorm = {
   residential_level: 'residential_level',
   mixed_300: 'mixed_300',
   other_150: 'other_150',
+  none: 'none',
 } as const;
 
 export interface WorkplaceRequest {
@@ -3006,6 +3034,7 @@ export interface WorkplaceRequest {
    * @nullable
    */
   activity?: string | null;
+  kind?: WorkplaceRequestKind;
   /**
    * @minimum 1
    * @maximum 1000000

@@ -37,6 +37,7 @@ const office = {
   locality: 'București',
   addressLine: 'Calea Victoriei 122A',
   activity: 'Birouri',
+  kind: 'fixed_space',
   floorAreaM2: 450 as number | null,
   extinguisherNorm: 'administrative_300' as string | null,
   assemblyPoint: null,
@@ -55,6 +56,7 @@ const shop = {
   locality: 'Timișoara',
   addressLine: 'Str. Goethe 2',
   activity: 'Gelaterie',
+  kind: 'fixed_space',
   floorAreaM2: null,
   extinguisherNorm: null,
 };
@@ -193,18 +195,40 @@ afterEach(() => {
 });
 
 describe('the minimum-extinguisher hint', () => {
+  const fixed = 'fixed_space' as const;
+
   it('rounds the area up by the norm, and counts dwellings by level', () => {
-    expect(extinguisherHint(2, { floorAreaM2: 450, extinguisherNorm: 'administrative_300' })).toBe(
-      '2 stingătoare · minim orientativ 2 (anexa 6)'
+    expect(
+      extinguisherHint(2, { kind: fixed, floorAreaM2: 450, extinguisherNorm: 'administrative_300' })
+    ).toBe('2 stingătoare · minim orientativ 2 (anexa 6)');
+    expect(
+      extinguisherHint(1, { kind: fixed, floorAreaM2: 60, extinguisherNorm: 'commercial_200' })
+    ).toBe('1 stingător · minim orientativ 1 (anexa 6)');
+    expect(
+      extinguisherHint(0, { kind: fixed, floorAreaM2: 90, extinguisherNorm: 'residential_level' })
+    ).toBe('Niciun stingător · cel puțin unul pe nivel (anexa 6)');
+    expect(
+      extinguisherHint(3, { kind: fixed, floorAreaM2: null, extinguisherNorm: 'other_150' })
+    ).toBeNull();
+    expect(
+      extinguisherHint(3, { kind: fixed, floorAreaM2: 100, extinguisherNorm: null })
+    ).toBeNull();
+  });
+
+  it('gives no minimum for a space with no norm or a mobile site, whatever it kept', () => {
+    expect(extinguisherHint(1, { kind: fixed, floorAreaM2: 80, extinguisherNorm: 'none' })).toBe(
+      '1 stingător · fără normă din anexa 6'
     );
-    expect(extinguisherHint(1, { floorAreaM2: 60, extinguisherNorm: 'commercial_200' })).toBe(
-      '1 stingător · minim orientativ 1 (anexa 6)'
-    );
-    expect(extinguisherHint(0, { floorAreaM2: 90, extinguisherNorm: 'residential_level' })).toBe(
-      'Niciun stingător · cel puțin unul pe nivel (anexa 6)'
-    );
-    expect(extinguisherHint(3, { floorAreaM2: null, extinguisherNorm: 'other_150' })).toBeNull();
-    expect(extinguisherHint(3, { floorAreaM2: 100, extinguisherNorm: null })).toBeNull();
+    expect(
+      extinguisherHint(2, {
+        kind: 'mobile_site',
+        floorAreaM2: 450,
+        extinguisherNorm: 'commercial_200',
+      })
+    ).toBe('2 stingătoare · fără normă din anexa 6');
+    expect(
+      extinguisherHint(0, { kind: 'mobile_site', floorAreaM2: null, extinguisherNorm: null })
+    ).toBe('Niciun stingător · fără normă din anexa 6');
   });
 });
 

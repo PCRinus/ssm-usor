@@ -73,6 +73,7 @@ const workplaceRow = {
   locality: 'București',
   address_line: 'Calea Victoriei 122A',
   activity: 'Birouri',
+  kind: 'fixed_space',
   floor_area_m2: 120,
   extinguisher_norm: 'administrative_300',
   assembly_point: 'Parcarea din fața clădirii',
@@ -409,6 +410,7 @@ describe('/clients/{clientId}/workplaces', () => {
         locality: 'București',
         addressLine: 'Calea Victoriei 122A',
         activity: 'Birouri',
+        kind: 'fixed_space',
         floorAreaM2: 120,
         extinguisherNorm: 'administrative_300',
         assemblyPoint: 'Parcarea din fața clădirii',
@@ -446,6 +448,7 @@ describe('/clients/{clientId}/workplaces', () => {
       locality: null,
       address_line: null,
       activity: null,
+      kind: 'fixed_space',
       floor_area_m2: null,
       extinguisher_norm: null,
       assembly_point: null,
@@ -480,9 +483,29 @@ describe('/clients/{clientId}/workplaces', () => {
     });
   });
 
-  it('refuses an area of nothing and a norm annex 6 does not have', async () => {
+  it('stores a mobile site with no norm, and keeps an area typed before', async () => {
+    mockUpstream({ workplaces: () => Response.json(workplaceRow) });
+    const response = await request(`${path}/${workplaceRow.id}`, 'PUT', {
+      name: 'Șantier Dumbrăvița',
+      kind: 'mobile_site',
+      floorAreaM2: 85,
+      extinguisherNorm: 'none',
+    });
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/client_workplaces')).toMatchObject({
+      kind: 'mobile_site',
+      floor_area_m2: 85,
+      extinguisher_norm: 'none',
+    });
+  });
+
+  it('refuses an area of nothing, a norm annex 6 does not have and an unknown kind', async () => {
     mockUpstream({});
-    for (const fields of [{ floorAreaM2: 0 }, { extinguisherNorm: 'commercial_250' }]) {
+    for (const fields of [
+      { floorAreaM2: 0 },
+      { extinguisherNorm: 'commercial_250' },
+      { kind: 'vehicle' },
+    ]) {
       expect((await request(path, 'POST', { name: 'Gelaterie', ...fields })).status).toBe(400);
     }
     expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);

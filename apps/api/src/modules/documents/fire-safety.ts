@@ -19,6 +19,8 @@ import {
   samePersonName,
   type StaffCategory,
   trainingMonths,
+  workplaceHasAreaAndNorm,
+  type WorkplaceKind,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
@@ -38,6 +40,7 @@ type FireSafetyMissingData = (typeof fireSafetyMissingDocumentData)[number];
 export type FireWorkplaceFacts = {
   id: string;
   activity: string | null;
+  kind: WorkplaceKind;
   floorAreaM2: number | null;
   extinguisherNorm: FireExtinguisherNorm | null;
   assemblyPoint: string | null;
@@ -93,8 +96,9 @@ type FireWorkplaceContext = {
   activityRunOn: string;
   /** The printed address, or a dash. */
   address: string;
-  floorAreaM2: number;
-  /** "Clădiri comerciale (1 buc./200 m²)". */
+  /** "450 m²", or a dash for a mobile site. */
+  areaLabel: string;
+  /** "Clădiri comerciale (1 buc./200 m²)", or a dash for a mobile site and a space with no norm. */
   normLabel: string;
   assemblyPoint: string;
   /** The three texts of section I end without a stop: the posted instructions list them as items. */
@@ -250,13 +254,16 @@ const filled = (value: string | null | undefined): value is string =>
 
 const requiredWorkplaceFacts = [
   'activity',
-  'floorAreaM2',
-  'extinguisherNorm',
   'assemblyPoint',
   'combustibleMaterials',
   'ignitionSources',
   'fireRiskEquipment',
 ] as const satisfies readonly (keyof FireWorkplaceFacts)[];
+
+const workplaceComplete = (workplace: FireWorkplaceFacts) =>
+  requiredWorkplaceFacts.every((name) => filled(workplace[name])) &&
+  (!workplaceHasAreaAndNorm(workplace.kind) ||
+    (workplace.floorAreaM2 !== null && workplace.extinguisherNorm !== null));
 
 export function missingFireSafetyData(
   facts: Omit<FireSafetySetFacts, 'issueDate' | 'firstDecisionNumber' | 'branding'>
@@ -288,14 +295,7 @@ export function missingFireSafetyData(
     'responsible.fire_intervention_leader': held.has('fire_intervention_leader'),
     'positions.any': facts.jobPositions.length > 0,
     // The means list and the posted sheet print one block per workplace: none prints nothing.
-    'fire.workplaces':
-      facts.workplaces.length > 0 &&
-      facts.workplaces.every((workplace) =>
-        requiredWorkplaceFacts.every((name) => {
-          const value = workplace[name];
-          return typeof value === 'string' ? filled(value) : value !== null;
-        })
-      ),
+    'fire.workplaces': facts.workplaces.length > 0 && facts.workplaces.every(workplaceComplete),
     'fire.equipment': facts.workplaces.every((workplace) =>
       facts.fireSafety.equipment.some(
         (unit) => unit.workplaceId === workplace.id && unit.kind === 'extinguisher'
@@ -529,7 +529,8 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
         servesAt(workplace.id)(person) && person.roles.includes('fire_intervention_leader')
     );
     const interventionLeaderName = leaderHere ? asPerson(leaderHere).name : interventionLeader.name;
-    const norm = fireExtinguisherNormLabels[workplace.extinguisherNorm!];
+    const hasAreaAndNorm = workplaceHasAreaAndNorm(workplace.kind);
+    const norm = hasAreaAndNorm ? fireExtinguisherNormLabels[workplace.extinguisherNorm!] : null;
     const extinguishers = extinguisherGroups(units);
     return {
       first: index === 0,
@@ -537,8 +538,8 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       activity: workplace.activity!.trim(),
       activityRunOn: runOn(workplace.activity!.trim()),
       address: printedAddress(workplace) || '—',
-      floorAreaM2: workplace.floorAreaM2!,
-      normLabel: `${norm.label} (${norm.rate})`,
+      areaLabel: hasAreaAndNorm ? `${workplace.floorAreaM2!}\u00a0m²` : '—',
+      normLabel: norm?.rate ? `${norm.label} (${norm.rate})` : '—',
       assemblyPoint: workplace.assemblyPoint!.trim(),
       combustibleMaterials: withoutFinalStop(workplace.combustibleMaterials!.trim()),
       ignitionSources: withoutFinalStop(workplace.ignitionSources!.trim()),

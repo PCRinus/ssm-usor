@@ -119,8 +119,9 @@ function evaluation(roman: string, name: string, heading: string, count: number)
   };
 }
 
-// The `fire` object of the fire-safety set (ADR 018): one workplace for the short sample, two
-// for the long one, the second without a manager of its own and with interior hydrants.
+// The `fire` object of the fire-safety set (ADR 018): one workplace for the short sample, three
+// for the long one, the second without a manager of its own and with interior hydrants, the
+// third a mobile site.
 function fireSample(people: ReturnType<typeof person>[], long: boolean) {
   const [first] = people;
   const workplace = (name: string, activity: string, extra: Record<string, unknown> = {}) => ({
@@ -129,7 +130,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     activity,
     activityRunOn: runOn(activity),
     address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
-    floorAreaM2: 180,
+    areaLabel: '180\u00a0m²',
     normLabel: 'Clădiri comerciale (1 buc./200 m²)',
     assemblyPoint: 'Parcarea din fața clădirii',
     combustibleMaterials: 'Ambalaje din carton și hârtie, mobilier din lemn, textile.',
@@ -164,7 +165,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
         workplace('Punct de lucru Calea Aradului', 'Gelaterie și cofetărie cu laborator propriu'),
         workplace('Depozit central', 'Depozitare de materii prime și ambalaje', {
           first: false,
-          floorAreaM2: 1250,
+          areaLabel: '1250\u00a0m²',
           normLabel: 'Alte amenajări (1 buc./150 m²)',
           specificMeasures: 'Stivuirea ambalajelor la cel puțin 1 m de corpurile de iluminat.',
           specificMeasuresRunOn: 'stivuirea ambalajelor la cel puțin 1 m de corpurile de iluminat.',
@@ -214,6 +215,26 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           })),
           firstInterventionNames: listed(people.slice(1).map(({ name }) => name)),
           interventionLeaderName: people[1]!.name,
+        }),
+        workplace('Șantier Dumbrăvița', 'Lucrări de construcții și instalații', {
+          first: false,
+          address: 'Dumbrăvița, județul Timiș, Str. Petőfi Sándor 50',
+          areaLabel: '—',
+          normLabel: '—',
+          assemblyPoint: 'Zona de acces în șantier, lângă containerul de birou',
+          combustibleMaterials: 'Cofraje și schele din lemn, ambalaje, carburanți pentru utilaje.',
+          ignitionSources: 'Lucrări de sudură și tăiere, instalația electrică provizorie.',
+          fireRiskEquipment: 'Grup electrogen, aparat de sudură, polizor unghiular.',
+          extinguishers: [
+            {
+              code: 'P6',
+              agentLabel: 'Pulbere',
+              capacityLabel: '6\u00a0kg',
+              wheeled: false,
+              count: 2,
+            },
+          ],
+          extinguisherCount: 2,
         }),
       ]
     : [workplace('Punct de lucru', 'Gelaterie')];

@@ -122,6 +122,19 @@ describe('what the fire-safety set is missing', () => {
     }
   });
 
+  it('asks a mobile site for neither an area nor a norm, and a fixed space for a norm that may be none', () => {
+    const lacking = (changes: Partial<DocumentFacts['workplaces'][number]>) =>
+      missingFireSafetyData({
+        ...facts,
+        workplaces: [facts.workplaces[0]!, { ...facts.workplaces[1]!, ...changes }],
+      });
+    expect(lacking({ kind: 'mobile_site', floorAreaM2: null, extinguisherNorm: null })).toEqual([]);
+    expect(lacking({ kind: 'mobile_site', extinguisherNorm: 'none' })).toEqual([]);
+    expect(lacking({ kind: 'mobile_site', assemblyPoint: null })).toEqual(['fire.workplaces']);
+    expect(lacking({ extinguisherNorm: 'none' })).toEqual([]);
+    expect(lacking({ extinguisherNorm: 'none', floorAreaM2: null })).toEqual(['fire.workplaces']);
+  });
+
   it('asks every active workplace for an extinguisher, which no other unit stands for', () => {
     const equipment = facts.fireSafety.equipment.filter(
       (unit) => unit.workplaceId !== officeId || unit.kind !== 'extinguisher'
@@ -397,7 +410,7 @@ describe('the fire-safety context', () => {
       activity: 'Atelier de sudură',
       activityRunOn: 'atelier de sudură',
       address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
-      floorAreaM2: 420,
+      areaLabel: '420\u00a0m²',
       normLabel: 'Alte amenajări (1 buc./150 m²)',
       assemblyPoint: 'Parcarea din fața atelierului',
       specificMeasures: 'Sudura numai cu permis de lucru cu foc.',
@@ -441,6 +454,31 @@ describe('the fire-safety context', () => {
       contractor: 'S.C. ECO COLECT S.R.L.',
       collectors: 'muncitorii necalificați și șeful de șantier',
     });
+  });
+
+  it('prints a dash for the area and the norm of a mobile site, whatever it kept, and counts its means', () => {
+    const fire = buildFireSafetyContext({
+      ...facts,
+      workplaces: [
+        {
+          ...facts.workplaces[0]!,
+          kind: 'mobile_site',
+          activity: 'Lucrări de construcții',
+          floorAreaM2: 420,
+          extinguisherNorm: 'other_150',
+        },
+        { ...facts.workplaces[1]!, extinguisherNorm: 'none' },
+      ],
+    }).fire;
+    const [site, office] = fire.workplaces;
+    expect(site).toMatchObject({
+      activity: 'Lucrări de construcții',
+      activityRunOn: 'lucrări de construcții',
+      areaLabel: '—',
+      normLabel: '—',
+    });
+    expect(site!.extinguisherCount).toBeGreaterThan(0);
+    expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: '—' });
   });
 
   it('says whether other firms work on the premises, for decision 9 to control them', () => {

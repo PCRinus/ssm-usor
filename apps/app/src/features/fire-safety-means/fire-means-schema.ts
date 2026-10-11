@@ -10,6 +10,8 @@ import {
   type FireInstallationKind,
   fireInstallationKinds,
   minimumExtinguishers,
+  workplaceHasAreaAndNorm,
+  type WorkplaceKind,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -56,9 +58,16 @@ export function extinguisherCountLabel(count: number) {
 // Annex 6 is orientative, so this is a hint beside the count and never a warning.
 export function extinguisherHint(
   count: number,
-  workplace: { floorAreaM2: number | null; extinguisherNorm: FireExtinguisherNorm | null }
+  workplace: {
+    kind: WorkplaceKind;
+    floorAreaM2: number | null;
+    extinguisherNorm: FireExtinguisherNorm | null;
+  }
 ) {
-  const { floorAreaM2, extinguisherNorm } = workplace;
+  const { kind, floorAreaM2, extinguisherNorm } = workplace;
+  if (!workplaceHasAreaAndNorm(kind) || extinguisherNorm === 'none') {
+    return `${extinguisherCountLabel(count)} · fără normă din anexa 6`;
+  }
   if (floorAreaM2 === null || extinguisherNorm === null) return null;
   const minimum = minimumExtinguishers(floorAreaM2, extinguisherNorm);
   return minimum === null

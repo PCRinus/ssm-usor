@@ -1,5 +1,5 @@
 begin;
-select plan(39);
+select plan(41);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -151,6 +151,18 @@ select lives_ok(
          combustible_materials = 'Ambalaje de carton', ignition_sources = 'Aparate electrice', fire_risk_equipment = 'Vitrine frigorifice'
      where id = 'd1d1d1d1-0000-4000-8000-000000000002' $$,
   'a workplace records its fire-safety facts'
+);
+
+select is(
+  (select kind::text from public.client_workplaces where id = 'd1d1d1d1-0000-4000-8000-000000000002'),
+  'fixed_space',
+  'a workplace is a fixed space unless it says otherwise'
+);
+
+select lives_ok(
+  $$ update public.client_workplaces set kind = 'mobile_site', extinguisher_norm = 'none'
+     where id = 'd1d1d1d1-0000-4000-8000-000000000002' $$,
+  'a mobile site keeps its area and may declare no norm from annex 6'
 );
 
 select lives_ok(

@@ -4,6 +4,8 @@ import {
   type FireExtinguisherNorm,
   fireExtinguisherNorms,
   romanianCounties,
+  workplaceHasAreaAndNorm,
+  workplaceKinds,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -21,44 +23,52 @@ const optionalText = (max: number, what: string) =>
       `${what} are cel puțin 2 caractere.`
     );
 
+const validArea = (value: string) =>
+  /^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 1_000_000;
+
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
-export const workplaceFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, 'Introdu denumirea (cel puțin 2 caractere).')
-    .max(160, 'Denumirea are cel mult 160 de caractere.'),
-  isRegisteredOffice: z.boolean(),
-  countyCode: z
-    .string()
-    .refine(
-      (value) => value === '' || (countyCodes as readonly string[]).includes(value),
-      'Alege un județ din listă.'
-    ),
-  locality: z.string().trim().max(120, 'Localitatea are cel mult 120 de caractere.'),
-  addressLine: z.string().trim().max(240, 'Adresa are cel mult 240 de caractere.'),
-  activity: optionalText(160, 'Activitatea'),
-  floorAreaM2: z
-    .string()
-    .trim()
-    .refine(
-      (value) =>
-        value === '' ||
-        (/^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 1_000_000),
-      'Introdu suprafața în metri pătrați, un număr întreg de la 1 la 1.000.000.'
-    ),
-  extinguisherNorm: z
-    .string()
-    .refine(
-      (value) => value === '' || (fireExtinguisherNorms as readonly string[]).includes(value),
-      'Alege o normă din listă.'
-    ),
-  assemblyPoint: optionalText(240, 'Punctul de adunare'),
-  combustibleMaterials: optionalText(600, 'Textul'),
-  ignitionSources: optionalText(600, 'Textul'),
-  fireRiskEquipment: optionalText(600, 'Textul'),
-  specificMeasures: optionalText(600, 'Textul'),
-});
+export const workplaceFormSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, 'Introdu denumirea (cel puțin 2 caractere).')
+      .max(160, 'Denumirea are cel mult 160 de caractere.'),
+    isRegisteredOffice: z.boolean(),
+    countyCode: z
+      .string()
+      .refine(
+        (value) => value === '' || (countyCodes as readonly string[]).includes(value),
+        'Alege un județ din listă.'
+      ),
+    locality: z.string().trim().max(120, 'Localitatea are cel mult 120 de caractere.'),
+    addressLine: z.string().trim().max(240, 'Adresa are cel mult 240 de caractere.'),
+    activity: optionalText(160, 'Activitatea'),
+    kind: z.enum(workplaceKinds),
+    floorAreaM2: z.string().trim(),
+    extinguisherNorm: z
+      .string()
+      .refine(
+        (value) => value === '' || (fireExtinguisherNorms as readonly string[]).includes(value),
+        'Alege o normă din listă.'
+      ),
+    assemblyPoint: optionalText(240, 'Punctul de adunare'),
+    combustibleMaterials: optionalText(600, 'Textul'),
+    ignitionSources: optionalText(600, 'Textul'),
+    fireRiskEquipment: optionalText(600, 'Textul'),
+    specificMeasures: optionalText(600, 'Textul'),
+  })
+  // A mobile site hides the area, so a bad one typed before must not block the save.
+  .refine(
+    (values) =>
+      !workplaceHasAreaAndNorm(values.kind) ||
+      values.floorAreaM2 === '' ||
+      validArea(values.floorAreaM2),
+    {
+      path: ['floorAreaM2'],
+      message: 'Introdu suprafața în metri pătrați, un număr întreg de la 1 la 1.000.000.',
+    }
+  );
 
 export type WorkplaceFormValues = z.infer<typeof workplaceFormSchema>;
 
@@ -69,6 +79,7 @@ export const emptyWorkplaceForm: WorkplaceFormValues = {
   locality: '',
   addressLine: '',
   activity: '',
+  kind: 'fixed_space',
   floorAreaM2: '',
   extinguisherNorm: '',
   assemblyPoint: '',
@@ -86,6 +97,7 @@ export function toWorkplaceForm(workplace: Workplace): WorkplaceFormValues {
     locality: workplace.locality ?? '',
     addressLine: workplace.addressLine ?? '',
     activity: workplace.activity ?? '',
+    kind: workplace.kind,
     floorAreaM2: workplace.floorAreaM2?.toString() ?? '',
     extinguisherNorm: workplace.extinguisherNorm ?? '',
     assemblyPoint: workplace.assemblyPoint ?? '',
@@ -104,7 +116,8 @@ export function toWorkplaceRequest(values: WorkplaceFormValues): WorkplaceReques
     locality: values.locality || null,
     addressLine: values.addressLine || null,
     activity: values.activity || null,
-    floorAreaM2: values.floorAreaM2 ? Number(values.floorAreaM2) : null,
+    kind: values.kind,
+    floorAreaM2: validArea(values.floorAreaM2) ? Number(values.floorAreaM2) : null,
     extinguisherNorm: (values.extinguisherNorm || null) as FireExtinguisherNorm | null,
     assemblyPoint: values.assemblyPoint || null,
     combustibleMaterials: values.combustibleMaterials || null,
@@ -119,7 +132,7 @@ export const workplaceRequestOf = (workplace: Workplace) =>
   toWorkplaceRequest(toWorkplaceForm(workplace));
 
 // What generating the fire-safety set asks of every workplace (ADR 018), in the dialog's order;
-// the specific measures are optional.
+// the specific measures are optional, and a mobile site has no area and no norm.
 const requiredFireFields = [
   ['activity', 'workplace-activity'],
   ['floorAreaM2', 'workplace-floor-area'],
@@ -130,8 +143,13 @@ const requiredFireFields = [
   ['fireRiskEquipment', 'workplace-fire-risk-equipment'],
 ] as const satisfies readonly (readonly [keyof Workplace, string])[];
 
+const areaAndNorm = new Set<keyof Workplace>(['floorAreaM2', 'extinguisherNorm']);
+
 export function firstMissingFireField(workplace: Workplace) {
-  return requiredFireFields.find(([field]) => workplace[field] === null)?.[1] ?? null;
+  const asked = workplaceHasAreaAndNorm(workplace.kind)
+    ? requiredFireFields
+    : requiredFireFields.filter(([field]) => !areaAndNorm.has(field));
+  return asked.find(([field]) => workplace[field] === null)?.[1] ?? null;
 }
 
 const countyNames = new Map<string, string>(

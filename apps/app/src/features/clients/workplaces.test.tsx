@@ -36,6 +36,7 @@ const emptyDetails = {
 
 const noFireData = {
   activity: null,
+  kind: 'fixed_space',
   floorAreaM2: null,
   extinguisherNorm: null,
   assemblyPoint: null,
@@ -70,6 +71,7 @@ const shop = {
 
 const fireData = {
   activity: 'Gelaterie',
+  kind: 'fixed_space',
   floorAreaM2: 60,
   extinguisherNorm: 'commercial_200',
   assemblyPoint: 'Parcarea din fața magazinului',
@@ -374,6 +376,70 @@ describe('client workplaces', () => {
       'Date PSI incomplete'
     );
     expect(within(rows[1]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
+  });
+
+  it('asks a mobile site for neither an area nor a norm', async () => {
+    mockApi({
+      items: [
+        office,
+        { ...shop, ...fireData, kind: 'mobile_site', floorAreaM2: null, extinguisherNorm: null },
+      ],
+    });
+    mount();
+
+    const rows = await screen.findAllByTestId('workplace-row');
+    expect(within(rows[0]!).getByTestId('workplace-fire-incomplete')).toBeTruthy();
+    expect(within(rows[1]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
+  });
+
+  it('hides the area and the norm of a mobile site, and keeps what was saved for them', async () => {
+    mockApi({ items: [office, { ...shop, ...fireData }] });
+    mount();
+    const user = userEvent.setup();
+
+    await openRowMenu(user, 'Magazin Timișoara');
+    await user.click(await screen.findByTestId('workplace-edit'));
+    const dialog = await screen.findByTestId('workplace-dialog');
+    await user.selectOptions(within(dialog).getByTestId('workplace-kind'), 'mobile_site');
+    expect(within(dialog).queryByTestId('workplace-floor-area')).toBeNull();
+    expect(within(dialog).queryByTestId('workplace-norm')).toBeNull();
+    expect(within(dialog).getByText(/Un șantier nu are suprafață utilă/)).toBeTruthy();
+    await user.click(within(dialog).getByTestId('workplace-save'));
+
+    await waitFor(() =>
+      expect(requests(`${listPath}/${shop.id}`, 'PUT')).toEqual([
+        expect.objectContaining({
+          kind: 'mobile_site',
+          floorAreaM2: 60,
+          extinguisherNorm: 'commercial_200',
+        }),
+      ])
+    );
+  });
+
+  it('offers no norm from annex 6 beside its rows, and saves a bad area hidden by a mobile site as none', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await openRowMenu(user, 'Magazin Timișoara');
+    await user.click(await screen.findByTestId('workplace-edit'));
+    const dialog = await screen.findByTestId('workplace-dialog');
+    await user.selectOptions(within(dialog).getByTestId('workplace-norm'), 'none');
+    expect(within(dialog).getByText(/de exemplu un atelier/)).toBeTruthy();
+    await user.type(within(dialog).getByTestId('workplace-floor-area'), '60,5');
+    await user.selectOptions(within(dialog).getByTestId('workplace-kind'), 'mobile_site');
+    await user.click(within(dialog).getByTestId('workplace-save'));
+
+    await waitFor(() =>
+      expect(requests(`${listPath}/${shop.id}`, 'PUT')).toEqual([
+        expect.objectContaining({
+          kind: 'mobile_site',
+          floorAreaM2: null,
+          extinguisherNorm: 'none',
+        }),
+      ])
+    );
   });
 
   it('saves the fire-safety data with the rest of the workplace', async () => {

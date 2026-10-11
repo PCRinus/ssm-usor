@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput } from './cui';
-import { fireExtinguisherNormSchema } from './fire-safety';
+import { fireExtinguisherNormSchema, workplaceKindSchema } from './fire-safety';
 import { isValidIban } from './iban';
 
 // Every field is optional while it is being filled in; generating a document is what
@@ -206,6 +206,8 @@ export const workplaceSchema = z.object({
   locality: z.string().nullable(),
   addressLine: z.string().nullable(),
   activity: z.string().nullable(),
+  kind: workplaceKindSchema,
+  // Kept when the workplace becomes a mobile site, which neither prints nor asks for them.
   floorAreaM2: z.int().nullable(),
   extinguisherNorm: fireExtinguisherNormSchema.nullable(),
   assemblyPoint: z.string().nullable(),
@@ -235,6 +237,7 @@ export const workplaceRequestSchema = z.object({
   locality: optionalText(1, 120),
   addressLine: optionalText(1, 240),
   activity: optionalText(2, 160),
+  kind: workplaceKindSchema.default('fixed_space'),
   floorAreaM2: z.int().min(1).max(1_000_000).nullish(),
   extinguisherNorm: fireExtinguisherNormSchema.nullish(),
   assemblyPoint: optionalText(2, 240),

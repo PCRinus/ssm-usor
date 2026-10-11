@@ -110,6 +110,19 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
     '1 stingător · minim orientativ 3 (anexa 6)'
   );
 
+  await page.getByTestId('client-section').filter({ hasText: 'Detalii' }).click();
+  await row.click();
+  await workplace.getByTestId('workplace-kind').selectOption('mobile_site');
+  await expect(workplace.getByTestId('workplace-floor-area')).toHaveCount(0);
+  await expect(workplace.getByTestId('workplace-norm')).toHaveCount(0);
+  await workplace.getByTestId('workplace-save').click();
+  await expect(workplace).toHaveCount(0);
+  await expect(row.getByTestId('workplace-fire-incomplete')).toHaveCount(0);
+  await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
+  await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
+    '1 stingător · fără normă din anexa 6'
+  );
+
   await page.reload();
   await expect(means.getByTestId('fire-equipment-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-installation-row')).toHaveCount(1);

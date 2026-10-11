@@ -11,14 +11,30 @@ export const fireSmokingPolicyLabels: Record<FireSmokingPolicy, string> = {
   designated_places: 'Fumatul este permis numai în locurile amenajate și marcate',
 };
 
+export const workplaceKinds = ['fixed_space', 'mobile_site'] as const;
+
+export const workplaceKindSchema = z.enum(workplaceKinds);
+
+export type WorkplaceKind = z.infer<typeof workplaceKindSchema>;
+
+export const workplaceKindLabels: Record<WorkplaceKind, string> = {
+  fixed_space: 'Spațiu fix',
+  mobile_site: 'Șantier temporar sau mobil',
+};
+
 /** The rows of OMAI 163/2007 annex 6, named by the built area one extinguisher covers. */
-export const fireExtinguisherNorms = [
+export const fireAnnexNorms = [
   'administrative_300',
   'commercial_200',
   'residential_level',
   'mixed_300',
   'other_150',
 ] as const;
+
+export type FireAnnexNorm = (typeof fireAnnexNorms)[number];
+
+/** An annex 6 row, or `none` for a space the annex has no row for, such as a workshop. */
+export const fireExtinguisherNorms = [...fireAnnexNorms, 'none'] as const;
 
 export const fireExtinguisherNormSchema = z.enum(fireExtinguisherNorms);
 
@@ -27,7 +43,7 @@ export type FireExtinguisherNorm = z.infer<typeof fireExtinguisherNormSchema>;
 /** As annex 6 words its rows: the category, what it covers, and the orientative minimum. */
 export const fireExtinguisherNormLabels: Record<
   FireExtinguisherNorm,
-  { label: string; description: string; rate: string }
+  { label: string; description: string; rate: string | null }
 > = {
   administrative_300: {
     label: 'Clădiri administrative',
@@ -57,10 +73,16 @@ export const fireExtinguisherNormLabels: Record<
       'Circuri mobile; scene și tribune amenajate provizoriu în aer liber (pentru spectacole, mitinguri, competiții sportive etc.); studiouri de radio, televiziune, îndeosebi cu public.',
     rate: '1 buc./150 m²',
   },
+  none: {
+    label: 'Fără normă din anexa 6',
+    description:
+      'Spațiul nu se încadrează în niciuna dintre categoriile anexei 6, de exemplu un atelier. Nu se calculează un minim orientativ.',
+    rate: null,
+  },
 };
 
 // Annex 6 counts dwellings by level or apartment, not by area.
-const squareMetresPerExtinguisher: Record<FireExtinguisherNorm, number | null> = {
+const squareMetresPerExtinguisher: Record<FireAnnexNorm, number | null> = {
   administrative_300: 300,
   commercial_200: 200,
   residential_level: null,
@@ -72,11 +94,14 @@ const squareMetresPerExtinguisher: Record<FireExtinguisherNorm, number | null> =
  * Annex 6's orientative minimum of extinguishers for a floor area, at least one; null for a
  * dwelling. A hint for the app only: never printed and never a reason to refuse generation.
  */
-export function minimumExtinguishers(floorAreaM2: number, norm: FireExtinguisherNorm) {
+export function minimumExtinguishers(floorAreaM2: number, norm: FireAnnexNorm) {
   const divisor = squareMetresPerExtinguisher[norm];
   if (divisor === null) return null;
   return Math.max(1, Math.ceil(floorAreaM2 / divisor));
 }
+
+/** A mobile site has neither a floor area nor an annex 6 norm, whatever it kept from before. */
+export const workplaceHasAreaAndNorm = (kind: WorkplaceKind) => kind === 'fixed_space';
 
 export const fireEquipmentKinds = [
   'extinguisher',

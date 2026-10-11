@@ -331,7 +331,7 @@ export const documentMissingData: Record<
     place: 'clientDetails',
     label: 'Datele PSI ale locurilor de muncă',
     detail:
-      'Activitatea, suprafața, norma de dotare, punctul de adunare și textele fișei de la locul de muncă.',
+      'Activitatea, punctul de adunare și textele fișei de la locul de muncă, iar la un spațiu fix și suprafața și norma de dotare.',
     target: ({ clientId }) => to.clientDetails(clientId, 'workplace-fire-data'),
   },
   'fire.equipment': {

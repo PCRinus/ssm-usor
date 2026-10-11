@@ -244,12 +244,17 @@ state: 2 hours, 3 months for both categories, and `clients.training_first_month`
 interval allows up to 12 months where OMAI 712/2005 allows 6. No fire-safety document reads the
 columns of `clients`.
 
-**Workplaces.** `client_workplaces` gains eight nullable columns. `activity` ("Gelaterie",
+**Workplaces.** `client_workplaces` gains eight nullable columns, and from the amendment of
+2026-10-11 a `kind`, `workplace_kind`: `fixed_space`, the default, or `mobile_site`, a
+temporary or mobile site with no floor area and no annex 6 norm. A mobile site keeps an area
+or a norm saved before it became one, and the fire-safety set neither asks for them nor prints
+them; no check forbids them, so turning it back into a fixed space restores them. `activity` ("Gelaterie",
 "Birouri", 2 to 160 characters) is printed by decision 8, the list of means and the posted
 sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilă". `extinguisher_norm` is
 the row of OMAI 163/2007 annex 6 that applies, the list's "Norma de dotare", as
 `fire_extinguisher_norm`: `administrative_300`, `commercial_200`, `residential_level`,
-`mixed_300` or `other_150`. `assembly_point` (2 to 240) is printed by the posted sheet and
+`mixed_300` or `other_150`, or `none` for a space the annex has no row for, such as a
+workshop, which the list prints as "—". `assembly_point` (2 to 240) is printed by the posted sheet and
 decision 8. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
 each) are points I.1, I.2 and I.3 of the posted sheet, and `specific_measures` (2 to 600) is
 its point I.5, printed empty when null. Point I.4, the general measures, is template text, the
@@ -259,8 +264,9 @@ The fire risk level is not stored: no document prints it.
 
 From the area and the norm the app shows the orientative minimum of extinguishers,
 `ceil(floor_area_m2 / divisor)` with 300, 200, 300 or 150 as the divisor and at least one; a
-`residential_level` workplace has no divisor and the hint reads "cel puțin unul pe nivel". It is
-never stored, never printed and never a reason to refuse generation.
+`residential_level` workplace has no divisor and the hint reads "cel puțin unul pe nivel". A
+workplace with the norm `none` and a mobile site get no minimum, and the hint reads "fără normă
+din anexa 6". It is never stored, never printed and never a reason to refuse generation.
 
 **Responsible persons.** `responsible_person_role` gains `fire_safety_coordinator` and
 `fire_intervention_leader`, seven roles in all, and the check on `roles` follows the list: from

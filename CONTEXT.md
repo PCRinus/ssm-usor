@@ -48,7 +48,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 
-**Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Avoid: location, site, and "loc de muncă".
+**Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Its kind is a **fixed space** (_spațiu fix_) or a **temporary or mobile site** (_șantier temporar sau mobil_), which has no floor area and no row in annex 6 of OMAI 163/2007. ADR 018. Avoid: location, site on its own, and "loc de muncă".
 
 **Fire-safety means** (_mijloace de apărare împotriva incendiilor_): the equipment and installations a workplace has against fire, recorded one unit per row: each extinguisher, sand box, fire post or fire blanket, and each installation, such as the alarm system or the interior hydrants. They have a tab of their own, _Mijloace PSI_. ADR 018. Avoid: inventory, _dotări_ as a word users see, and PSI equipment, which collides with protective equipment.
 
