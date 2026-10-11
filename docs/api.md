@@ -627,7 +627,7 @@ the first `PUT` creates the row; the app then opens the form on its starting val
 three months for both categories, and the occupational safety schedule's first month and days),
 which `fireSafetyStartingValues` names. The `PUT` replaces the whole set like the details above,
 with OMAI 712/2005's bounds: two to eight hours, one to six months for each category, the days
-in order, at most twelve distinct kinds of waste. `smokingPlace` (up to 240 characters) is kept
+in order, at most twelve distinct kinds of waste of up to 240 characters each. `smokingPlace` (up to 240 characters) is kept
 only when `smokingPolicy` is `designated_places`; with the other policy or none the `PUT` stores
 it as null rather than refusing it, so a switch to `forbidden_everywhere` saves the card in one
 request and clears the place (ADR 019). Equipment and installations are one row per

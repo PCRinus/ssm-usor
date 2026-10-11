@@ -3272,7 +3272,7 @@ export interface UpdateClientFireSafetyRequest {
   /**
    * @maxItems 12
    * @items.minLength 2
-   * @items.maxLength 80
+   * @items.maxLength 240
    */
   wasteKinds?: string[];
   /**

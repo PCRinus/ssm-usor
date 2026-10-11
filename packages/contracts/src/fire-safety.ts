@@ -217,7 +217,7 @@ export const updateClientFireSafetyRequestSchema = z
     // Kept only with designated places; the API drops it with any other policy (ADR 019).
     smokingPlace: optionalText(2, 240),
     wasteKinds: z
-      .array(z.string().trim().min(2).max(80))
+      .array(z.string().trim().min(2).max(240))
       .max(12)
       .refine(
         (kinds) => new Set(kinds.map((kind) => kind.toLocaleLowerCase('ro'))).size === kinds.length,

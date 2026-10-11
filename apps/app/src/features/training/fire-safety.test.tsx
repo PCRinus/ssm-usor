@@ -233,6 +233,24 @@ describe('the fire-safety training card', () => {
     expect(screen.getByTestId('fire-waste-contractor').textContent).toBe('Salubris SA');
   });
 
+  it('adds a kind of waste of up to 240 characters and refuses a longer one', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+    const long = `deșeuri din construcții și demolări ${'x'.repeat(240)}`.slice(0, 240);
+
+    await user.click(await screen.findByTestId('fire-safety-edit'));
+    await user.click(screen.getByTestId('fire-waste-input'));
+    await user.paste(`${long}y`);
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('fire-waste-input-error').textContent).toBe(
+      'Un tip de deșeu are cel mult 240 de caractere.'
+    );
+    await user.keyboard('{Backspace}{Enter}');
+    expect(screen.queryByTestId('fire-waste-input-error')).toBeNull();
+    expect(screen.getByRole('button', { name: `Scoate „${long}”` })).toBeTruthy();
+  });
+
   it('takes a waste kind off the list and clears the rest of the card on save', async () => {
     mockApi({ fireSafety: savedFireSafety, exists: true });
     mount();

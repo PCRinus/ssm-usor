@@ -1,5 +1,5 @@
 begin;
-select plan(33);
+select plan(35);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -74,6 +74,16 @@ select throws_ok(
 select throws_ok(
   $$ update public.client_fire_safety set waste_kinds = '{"x"}' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
   '23514', null, 'a kind of waste has two characters at least'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety set waste_kinds = array[repeat('x', 240)] where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'a kind of waste may run to 240 characters'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set waste_kinds = array[repeat('x', 241)] where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23514', null, 'but no further'
 );
 
 select throws_ok(

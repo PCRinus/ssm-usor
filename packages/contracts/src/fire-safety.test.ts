@@ -119,6 +119,15 @@ describe('updateClientFireSafetyRequestSchema', () => {
     }
   });
 
+  it('takes a kind of waste of up to 240 characters', () => {
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: ['x'.repeat(240)] }).success
+    ).toBe(true);
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: ['x'.repeat(241)] }).success
+    ).toBe(false);
+  });
+
   it('takes at most twelve kinds of waste, each once', () => {
     const kinds = Array.from({ length: 13 }, (_, index) => `deșeu ${index}`);
     expect(updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: kinds }).success).toBe(

@@ -52,7 +52,7 @@ Every client gets the full set of art. 17 acts whatever its headcount, and the s
 
 The smoking policy, `forbidden_everywhere` or `designated_places`, is stored now and may stay empty. Nothing prints it until the smoking decision of stage 3, which waits on ADR 016's question 3, and no readiness asks for it; it sits on this card because that is where a specialist settles the client's fire-safety rules. (Amended 2026-10-10. [ADR 019](adr-019-fire-safety-stage-three.md) prints it: decision 4 is the client's smoking rule, and the posted workplace sheet and the posted instructions repeat it. The set requires it from then on, as the readiness code `fire.smokingPolicy`. With `designated_places`, an optional text on the same card, `smoking_place`, says where the places are.)
 
-The waste is a list of kinds, at most twelve short texts ("deșeuri de carton, hârtie, plastic"), and the firm that collects them, optional. Decision 8 prints both.
+The waste is a list of kinds, at most twelve short texts ("deșeuri de carton, hârtie, plastic"), and the firm that collects them, optional. Decision 8 prints both. (Amended 2026-10-11. A kind may run to 240 characters, not 80: the provider's packs reviewed that day list, for a construction firm, one kind of 176 characters that names the materials it holds.)
 
 `client_fire_safety`, `fire_equipment` and `fire_installations` follow `client_workplaces` alike: members of the organization read and write them under the same row policies, `updated_at` is kept by the same trigger, a lead has none of them, and an archived client's rows are frozen (`CLA01`).
 

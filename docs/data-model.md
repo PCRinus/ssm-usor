@@ -222,7 +222,7 @@ but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
 | `training_day_from`, `training_day_to`    | 1 to 31, ordered by a check, the same shape as the occupational safety columns on `clients`.            |
 | `smoking_policy`                          | `fire_smoking_policy`: `forbidden_everywhere` or `designated_places`; no default. Decision 4 prints it. |
 | `smoking_place`                           | Where smoking is allowed, 2 to 240 characters; set only with `designated_places`, by a check.           |
-| `waste_kinds`                             | A `text[]` of at most 12 entries of 2 to 80 characters each; `'{}'` by default.                         |
+| `waste_kinds`                             | A `text[]` of at most 12 entries of 2 to 240 characters each; `'{}'` by default.                        |
 | `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                  |
 
 The smoking place is optional even with `designated_places`: without it decision 4 says the
