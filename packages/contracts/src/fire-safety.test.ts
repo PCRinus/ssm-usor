@@ -105,6 +105,7 @@ describe('updateClientFireSafetyRequestSchema', () => {
     expect(updateClientFireSafetyRequestSchema.parse({ periodicTrainingHours: 2 })).toEqual({
       periodicTrainingHours: 2,
       wasteKinds: [],
+      hasThirdParties: false,
     });
   });
 
@@ -119,6 +120,15 @@ describe('updateClientFireSafetyRequestSchema', () => {
     }
   });
 
+  it('takes a kind of waste of up to 240 characters', () => {
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: ['x'.repeat(240)] }).success
+    ).toBe(true);
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: ['x'.repeat(241)] }).success
+    ).toBe(false);
+  });
+
   it('takes at most twelve kinds of waste, each once', () => {
     const kinds = Array.from({ length: 13 }, (_, index) => `deșeu ${index}`);
     expect(updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: kinds }).success).toBe(
@@ -126,6 +136,17 @@ describe('updateClientFireSafetyRequestSchema', () => {
     );
     expect(
       updateClientFireSafetyRequestSchema.safeParse({ wasteKinds: ['Carton', 'carton'] }).success
+    ).toBe(false);
+  });
+
+  it('takes who collects the waste in up to 160 characters, trimmed', () => {
+    expect(
+      updateClientFireSafetyRequestSchema.parse({
+        wasteCollectors: ' muncitorii necalificați și șeful de șantier ',
+      }).wasteCollectors
+    ).toBe('muncitorii necalificați și șeful de șantier');
+    expect(
+      updateClientFireSafetyRequestSchema.safeParse({ wasteCollectors: 'x'.repeat(161) }).success
     ).toBe(false);
   });
 

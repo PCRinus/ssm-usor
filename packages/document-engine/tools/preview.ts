@@ -262,6 +262,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     workplaces,
     hasExteriorHydrants: long,
     hasGasExtinguishers: true,
+    hasThirdParties: long,
     smoking: long
       ? {
           policy: 'forbidden_everywhere',
@@ -277,12 +278,20 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
         },
     waste: long
       ? {
-          kinds: ['deșeuri de carton, hârtie, plastic', 'deșeuri menajere', 'uleiuri uzate'],
+          kinds: [
+            'deșeuri de carton, hârtie, plastic',
+            'diverse materiale (ciment, cărămizi, ceramică, roci, ipsos, resturi de tâmplărie, soluții de lăcuit, vopsit și izolante, materiale de construcții cu termen de valabilitate expirat)',
+            'deșeuri menajere',
+            'uleiuri uzate',
+          ],
           contractor: null,
+          collectors:
+            'muncitorii necalificați, șeful de șantier și gestionarul depozitului de materiale',
         }
       : {
           kinds: ['deșeuri de carton, hârtie, plastic', 'deșeuri menajere'],
           contractor: 'S.C. ECO COLECT S.R.L.',
+          collectors: null,
         },
   };
 }

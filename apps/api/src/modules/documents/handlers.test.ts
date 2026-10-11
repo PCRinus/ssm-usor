@@ -218,6 +218,8 @@ const fireSafetyRow = {
   smoking_place: null,
   waste_kinds: ['deșeuri de carton, hârtie, plastic'],
   waste_contractor: null,
+  waste_collectors: null,
+  has_third_parties: false,
 };
 const fireEquipmentRow = {
   workplace_id: workplaceRow.id,

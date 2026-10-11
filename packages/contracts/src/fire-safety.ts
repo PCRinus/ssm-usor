@@ -191,6 +191,10 @@ export const clientFireSafetySchema = z.object({
   smokingPlace: z.string().nullable(),
   wasteKinds: z.array(z.string()),
   wasteContractor: z.string().nullable(),
+  // Null where decision 8 names the workers on duty.
+  wasteCollectors: z.string().nullable(),
+  // Other firms work on the premises, which decision 9 then controls quarterly (ADR 019).
+  hasThirdParties: z.boolean(),
 });
 
 export type ClientFireSafety = z.infer<typeof clientFireSafetySchema>;
@@ -217,7 +221,7 @@ export const updateClientFireSafetyRequestSchema = z
     // Kept only with designated places; the API drops it with any other policy (ADR 019).
     smokingPlace: optionalText(2, 240),
     wasteKinds: z
-      .array(z.string().trim().min(2).max(80))
+      .array(z.string().trim().min(2).max(240))
       .max(12)
       .refine(
         (kinds) => new Set(kinds.map((kind) => kind.toLocaleLowerCase('ro'))).size === kinds.length,
@@ -225,6 +229,8 @@ export const updateClientFireSafetyRequestSchema = z
       )
       .default([]),
     wasteContractor: optionalText(2, 160),
+    wasteCollectors: optionalText(2, 160),
+    hasThirdParties: z.boolean().default(false),
   })
   .refine(
     (value) =>

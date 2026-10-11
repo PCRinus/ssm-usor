@@ -60,6 +60,8 @@ export type FireSafetyClientFacts = {
     smokingPlace: string | null;
     wasteKinds: string[];
     wasteContractor: string | null;
+    wasteCollectors: string | null;
+    hasThirdParties: boolean;
   } | null;
   /** An archived workplace's units too, which no document prints. */
   equipment: {
@@ -185,6 +187,8 @@ export type FireContext = {
   hasExteriorHydrants: boolean;
   /** Some active workplace has a CO₂ or clean-agent extinguisher, which is weighed. */
   hasGasExtinguishers: boolean;
+  /** Other firms work on the client's premises, which decision 9 controls quarterly. */
+  hasThirdParties: boolean;
   smoking: {
     policy: FireSmokingPolicy;
     forbiddenEverywhere: boolean;
@@ -192,7 +196,8 @@ export type FireContext = {
     /** Null where the client names no place, and always where smoking is forbidden. */
     place: string | null;
   };
-  waste: { kinds: string[]; contractor: string | null };
+  /** `collectors` null where decision 8 names the workers on duty. */
+  waste: { kinds: string[]; contractor: string | null; collectors: string | null };
   /** One per staff category with current posts, technical-administrative first. */
   themes: FireThemesContext[];
 };
@@ -586,6 +591,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
         unit.kind === 'extinguisher' &&
         (unit.agent === 'co2' || unit.agent === 'clean_agent')
     ),
+    hasThirdParties: card.hasThirdParties,
     smoking: {
       policy: card.smokingPolicy!,
       forbiddenEverywhere: card.smokingPolicy === 'forbidden_everywhere',
@@ -595,6 +601,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
     waste: {
       kinds: card.wasteKinds.map((kind) => kind.trim()).filter(Boolean),
       contractor: card.wasteContractor?.trim() || null,
+      collectors: card.wasteCollectors?.trim() || null,
     },
     themes: fireThemes({
       staff: { technical_administrative: administrative, execution },

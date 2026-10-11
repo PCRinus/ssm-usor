@@ -187,13 +187,18 @@ describe('fire-safety set', () => {
     workplaces: [workplace, { ...workplace, first: false, name: 'Depozit' }],
     hasExteriorHydrants: true,
     hasGasExtinguishers: true,
+    hasThirdParties: true,
     smoking: {
       policy: 'designated_places',
       forbiddenEverywhere: false,
       designatedPlaces: true,
       place: 'în curtea interioară',
     },
-    waste: { kinds: ['deșeuri de carton'], contractor: 'S.C. ECO S.R.L.' },
+    waste: {
+      kinds: ['deșeuri de carton'],
+      contractor: 'S.C. ECO S.R.L.',
+      collectors: 'muncitorii necalificați și șeful de șantier',
+    },
     themes: [
       {
         staffCategory: 'technical_administrative',
@@ -257,13 +262,14 @@ describe('fire-safety set', () => {
     ],
     hasExteriorHydrants: false,
     hasGasExtinguishers: false,
+    hasThirdParties: false,
     smoking: {
       policy: 'forbidden_everywhere',
       forbiddenEverywhere: true,
       designatedPlaces: false,
       place: null,
     },
-    waste: { kinds: ['deșeuri menajere'], contractor: null },
+    waste: { kinds: ['deșeuri menajere'], contractor: null, collectors: null },
     themes: fire.themes.slice(1),
   };
   const stageTwoData = {
@@ -373,14 +379,16 @@ describe('fire-safety set', () => {
     expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 luni');
   });
 
-  it('names the contractor of the waste, or the contracted firm', () => {
+  it('names who collects the waste and its contractor, or the workers on duty and the contracted firm', () => {
     const decision = 'fire/1.8_fire_decision_waste.docx';
     expect(documentText(renderDocument(read(decision), stageTwoData))).toContain(
-      'și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
+      'De modul de colectare și neutralizare a deșeurilor răspund muncitorii necalificați și șeful de șantier și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
     );
     expect(
       documentText(renderDocument(read(decision), { ...stageTwoData, fire: sparse }))
-    ).toContain('și firma contractată, autorizată în acest domeniu.');
+    ).toContain(
+      'De modul de colectare și neutralizare a deșeurilor răspund lucrătorii aflați la program din cadrul unității și firma contractată, autorizată în acest domeniu.'
+    );
   });
 
   it('prints the exterior-hydrant accessories only for a client with exterior hydrants', () => {
@@ -455,6 +463,36 @@ describe('fire-safety set', () => {
     expect(without).not.toContain('cântărire');
     for (const month of ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'])
       expect(without).toMatch(new RegExp(`^${month}$`, 'm'));
+  });
+
+  it('controls the firms working on the premises in decision 9 only for a client that has some, its letters running on', () => {
+    const decision = 'fire/1.9_fire_decision_control.docx';
+    const item =
+      'b) coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic – trimestrial, în lunile martie, iunie, septembrie și decembrie, la persoanele juridice care desfășoară activități în spațiile S.C. CLIENT DEMO S.R.L.;';
+    const row =
+      /^Coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic\nTRIMESTRIAL\nLa persoanele juridice care desfășoară activități în perimetru\n–\n–\nX\n–\n–\nX\n–\n–\nX\n–\n–\nX$/m;
+    const letters = (text: string) =>
+      text
+        .slice(
+          text.indexOf('Periodicitatea planificării controalelor:'),
+          text.indexOf('Controlul efectuat se finalizează')
+        )
+        .match(/^[a-z]\) /gm);
+    const text = documentText(renderDocument(read(decision), stageTwoData));
+    expect(text).toContain(item);
+    expect(text).toMatch(row);
+    expect(text).toMatch(
+      /^c\) coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic/m
+    );
+    expect(text).toMatch(/^f\) Maria POPESCU, în calitate de administrator/m);
+    expect(letters(text)).toEqual(['a) ', 'b) ', 'c) ', 'd) ', 'e) ', 'f) ']);
+    const without = documentText(renderDocument(read(decision), { ...stageTwoData, fire: sparse }));
+    expect(without).not.toContain('persoanele juridice');
+    expect(without).toMatch(
+      /^b\) coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic/m
+    );
+    expect(without).toMatch(/^e\) Maria POPESCU, în calitate de administrator/m);
+    expect(letters(without)).toEqual(['a) ', 'b) ', 'c) ', 'd) ', 'e) ']);
   });
 
   it('posts the instructions of every workplace on pages of their own, its means said alike twice', () => {

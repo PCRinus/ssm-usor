@@ -47,6 +47,8 @@ const emptyFireSafety = {
   smokingPlace: null as string | null,
   wasteKinds: [] as string[],
   wasteContractor: null as string | null,
+  wasteCollectors: null as string | null,
+  hasThirdParties: false,
 };
 
 const savedFireSafety = {
@@ -60,6 +62,8 @@ const savedFireSafety = {
   smokingPlace: 'în curtea interioară, lângă poarta de acces auto',
   wasteKinds: ['deșeuri de carton', 'uleiuri uzate'],
   wasteContractor: 'Salubris SA',
+  wasteCollectors: null as string | null,
+  hasThirdParties: false,
 };
 
 const firePath = `/clients/${clientId}/fire-safety`;
@@ -172,6 +176,8 @@ describe('the fire-safety training card', () => {
           smokingPlace: null,
           wasteKinds: ['deșeuri de carton', 'uleiuri uzate'],
           wasteContractor: null,
+          wasteCollectors: null,
+          hasThirdParties: false,
         },
       ])
     );
@@ -231,6 +237,73 @@ describe('the fire-safety training card', () => {
       'Ianuarie, Iulie'
     );
     expect(screen.getByTestId('fire-waste-contractor').textContent).toBe('Salubris SA');
+  });
+
+  it('adds a kind of waste of up to 240 characters and refuses a longer one', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+    const long = `deșeuri din construcții și demolări ${'x'.repeat(240)}`.slice(0, 240);
+
+    await user.click(await screen.findByTestId('fire-safety-edit'));
+    await user.click(screen.getByTestId('fire-waste-input'));
+    await user.paste(`${long}y`);
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('fire-waste-input-error').textContent).toBe(
+      'Un tip de deșeu are cel mult 240 de caractere.'
+    );
+    await user.keyboard('{Backspace}{Enter}');
+    expect(screen.queryByTestId('fire-waste-input-error')).toBeNull();
+    expect(screen.getByRole('button', { name: `Scoate „${long}”` })).toBeTruthy();
+  });
+
+  it('names who collects the waste, and says the workers on duty do while it is empty', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('fire-waste-collectors')).textContent).toBe(
+      'Lucrătorii aflați la program'
+    );
+    await user.click(screen.getByTestId('fire-safety-edit'));
+    await user.type(screen.getByTestId('fire-waste-collectors-input'), 'x');
+    await user.click(screen.getByTestId('fire-safety-save'));
+    expect((await screen.findByTestId('fire-waste-collectors-input-error')).textContent).toBe(
+      'Textul are cel puțin 2 caractere.'
+    );
+    await user.clear(screen.getByTestId('fire-waste-collectors-input'));
+    await user.type(
+      screen.getByTestId('fire-waste-collectors-input'),
+      ' muncitorii necalificați și șeful de șantier '
+    );
+    await user.click(screen.getByTestId('fire-safety-save'));
+
+    await waitFor(() =>
+      expect(requests(firePath, 'PUT')).toEqual([
+        { ...savedFireSafety, wasteCollectors: 'muncitorii necalificați și șeful de șantier' },
+      ])
+    );
+    expect((await screen.findByTestId('fire-waste-collectors')).textContent).toBe(
+      'muncitorii necalificați și șeful de șantier'
+    );
+  });
+
+  it('says whether other firms work on the premises', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Nu');
+    await user.click(screen.getByTestId('fire-safety-edit'));
+    await user.click(
+      screen.getByLabelText('În spațiile clientului lucrează și alte firme (chiriași, prestatori)')
+    );
+    await user.click(screen.getByTestId('fire-safety-save'));
+
+    await waitFor(() =>
+      expect(requests(firePath, 'PUT')).toEqual([{ ...savedFireSafety, hasThirdParties: true }])
+    );
+    expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Da');
   });
 
   it('takes a waste kind off the list and clears the rest of the card on save', async () => {

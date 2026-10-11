@@ -40,13 +40,16 @@ export const monthChoices = monthNames.map((label, index) => ({
 
 export const maxWasteKinds = 12;
 
+const maxWasteKindLength = 240;
+
 const maxSmokingPlaceLength = 240;
 
 // Null when the kind can be added; otherwise what is wrong with it.
 export function wasteKindProblem(kind: string, kinds: readonly string[]) {
   const trimmed = kind.trim();
   if (trimmed.length < 2) return 'Un tip de deșeu are cel puțin 2 caractere.';
-  if (trimmed.length > 80) return 'Un tip de deșeu are cel mult 80 de caractere.';
+  if (trimmed.length > maxWasteKindLength)
+    return `Un tip de deșeu are cel mult ${maxWasteKindLength} de caractere.`;
   const lower = trimmed.toLocaleLowerCase('ro');
   if (kinds.some((other) => other.toLocaleLowerCase('ro') === lower)) {
     return 'Acest tip de deșeu este deja în listă.';
@@ -103,6 +106,15 @@ export const fireSafetyFormSchema = z
         (value) => value.length === 0 || value.length >= 2,
         'Denumirea are cel puțin 2 caractere.'
       ),
+    wasteCollectors: z
+      .string()
+      .trim()
+      .max(160, 'Textul are cel mult 160 de caractere.')
+      .refine(
+        (value) => value.length === 0 || value.length >= 2,
+        'Textul are cel puțin 2 caractere.'
+      ),
+    hasThirdParties: z.boolean(),
   })
   .superRefine((values, context) => {
     if (
@@ -174,6 +186,8 @@ export function toFireSafetyForm(start: FireSafety): FireSafetyFormValues {
     wasteKinds: start.wasteKinds,
     wasteDraft: '',
     wasteContractor: start.wasteContractor ?? '',
+    wasteCollectors: start.wasteCollectors ?? '',
+    hasThirdParties: start.hasThirdParties,
   };
 }
 
@@ -195,6 +209,8 @@ export function toFireSafetyRequest(values: FireSafetyFormValues): UpdateClientF
       values.smokingPolicy === 'designated_places' ? values.smokingPlace.trim() || null : null,
     wasteKinds: draft ? [...values.wasteKinds, draft] : values.wasteKinds,
     wasteContractor: values.wasteContractor.trim() || null,
+    wasteCollectors: values.wasteCollectors.trim() || null,
+    hasThirdParties: values.hasThirdParties,
   };
 }
 

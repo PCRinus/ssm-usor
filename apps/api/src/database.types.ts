@@ -143,6 +143,7 @@ export type Database = {
           client_id: string;
           created_at: string;
           created_by: string | null;
+          has_third_parties: boolean;
           organization_id: string;
           periodic_training_hours: number | null;
           smoking_place: string | null;
@@ -151,6 +152,7 @@ export type Database = {
           training_day_to: number | null;
           training_first_month: number | null;
           updated_at: string;
+          waste_collectors: string | null;
           waste_contractor: string | null;
           waste_kinds: string[];
           worker_training_interval_months: number | null;
@@ -160,6 +162,7 @@ export type Database = {
           client_id: string;
           created_at?: string;
           created_by?: string | null;
+          has_third_parties?: boolean;
           organization_id: string;
           periodic_training_hours?: number | null;
           smoking_place?: string | null;
@@ -168,6 +171,7 @@ export type Database = {
           training_day_to?: number | null;
           training_first_month?: number | null;
           updated_at?: string;
+          waste_collectors?: string | null;
           waste_contractor?: string | null;
           waste_kinds?: string[];
           worker_training_interval_months?: number | null;
@@ -177,6 +181,7 @@ export type Database = {
           client_id?: string;
           created_at?: string;
           created_by?: string | null;
+          has_third_parties?: boolean;
           organization_id?: string;
           periodic_training_hours?: number | null;
           smoking_place?: string | null;
@@ -185,6 +190,7 @@ export type Database = {
           training_day_to?: number | null;
           training_first_month?: number | null;
           updated_at?: string;
+          waste_collectors?: string | null;
           waste_contractor?: string | null;
           waste_kinds?: string[];
           worker_training_interval_months?: number | null;

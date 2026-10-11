@@ -3205,6 +3205,9 @@ export type ClientFireSafetyResponseFireSafety = {
   wasteKinds: string[];
   /** @nullable */
   wasteContractor: string | null;
+  /** @nullable */
+  wasteCollectors: string | null;
+  hasThirdParties: boolean;
 };
 
 export interface ClientFireSafetyResponse {
@@ -3272,7 +3275,7 @@ export interface UpdateClientFireSafetyRequest {
   /**
    * @maxItems 12
    * @items.minLength 2
-   * @items.maxLength 80
+   * @items.maxLength 240
    */
   wasteKinds?: string[];
   /**
@@ -3281,6 +3284,13 @@ export interface UpdateClientFireSafetyRequest {
    * @nullable
    */
   wasteContractor?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  wasteCollectors?: string | null;
+  hasThirdParties?: boolean;
 }
 
 export type FireEquipmentListResponseItemsItemKind =
