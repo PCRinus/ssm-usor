@@ -148,6 +148,38 @@ mail Worker. The pages under `/abonare/` are where that link lands; they are `no
 left out of the sitemap. When the consent sentence changes, bump `waitlist.consentVersion` in
 `copy.ts`, because the version is stored with every subscription.
 
+## Analytics
+
+The site sends page views, Web Vitals and a few named events to the same EU PostHog project as
+the SPA, through the managed proxy `e.ssmusor.ro`, in PostHog's cookieless mode: nothing is
+stored in the visitor's browser, and PostHog derives a daily visitor id on its servers from the
+IP address, the user agent and a rotating salt, then drops the IP. The project setting
+**Cookieless server hash mode** (Project settings, Web analytics) must stay on, or every event
+from the site is dropped. Autocapture, session replay, surveys, feature flags and exception
+capture are off; nobody is ever identified. `src/lib/analytics.ts` holds the setup.
+
+| Name                           | Value                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_POSTHOG_PROJECT_TOKEN` | The project's public token, from the `VITE_POSTHOG_PROJECT_TOKEN` variable. Without it nothing is sent. |
+
+Events are sent only from `ssmusor.ro`. Opening the site once with `?analytics=off` keeps that
+browser out of the numbers (PostHog has no cookie to filter the owner's own visits on, so the
+choice lives in the site's own local storage); `?analytics=on` makes a local build with a token
+send, for trying changes; `?analytics=auto` forgets the choice.
+
+Named events, all without personal data:
+
+| Event                                              | When                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------- |
+| `cta_clicked` (`target`, `placement`)              | A login or "Anunță-mă" link is clicked, with where on the page it was.    |
+| `section_viewed` (`section`)                       | A section with an id is a third visible, once per page view.              |
+| `faq_opened` (`question`)                          | A question of the FAQ is expanded.                                        |
+| `waitlist_started`, `waitlist_submitted`           | The form is focused for the first time; the form is submitted.            |
+| `waitlist_succeeded`, `waitlist_failed` (`reason`) | The API accepted the address, or not: `challenge`, `rejected`, `network`. |
+| `waitlist_confirmed`                               | The confirmation page after the emailed link is opened.                   |
+
+Conversion is `waitlist_confirmed`; the funnel runs through the five waitlist events.
+
 ## Legislation Worker
 
 The daily legislation check ([ADR 017](architecture/adr-017-legislation-monitoring.md)) is the
