@@ -1,5 +1,5 @@
 -- ADR 018, amended 2026-10-11: a workplace is a fixed space or a temporary or mobile site, and
--- a space annex 6 has no row for declares no norm.
+-- a fixed space that annex 6 has no row for declares no norm.
 
 create type public.workplace_kind as enum ('fixed_space', 'mobile_site');
 
