@@ -4,13 +4,15 @@ import FluxLayout from '../../layouts/FluxLayout.astro';
 interface Props {
   title: string;
   action: { href: string; label: string };
+  /** An analytics event sent when the page is opened. */
+  trackView?: string;
 }
 
-const { title, action } = Astro.props;
+const { title, action, trackView } = Astro.props;
 ---
 
 <FluxLayout title={`${title} — SSM Ușor`} description={title} noindex>
-  <section class="notice wrap">
+  <section class="notice wrap" data-track-view={trackView}>
     <h1>{title}</h1>
     <p>
       <slot />

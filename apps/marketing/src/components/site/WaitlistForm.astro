@@ -52,6 +52,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'https://api.ssmusor.ro';
 )}
 
 <script>
+  import { track } from '../../lib/analytics';
+
   type Turnstile = {
     render(
       container: HTMLElement,
@@ -119,27 +121,43 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'https://api.ssmusor.ro';
       form.dataset.state = state;
     };
 
-    form.addEventListener('focusin', () => void loadTurnstile().catch(() => {}), { once: true });
+    form.addEventListener(
+      'focusin',
+      () => {
+        track('waitlist_started');
+        void loadTurnstile().catch(() => {});
+      },
+      { once: true }
+    );
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       button.disabled = true;
       show(sending!, 'pending');
+      track('waitlist_submitted');
 
       try {
         const turnstileToken = await nextToken();
-        if (!turnstileToken) return show(challengeFailed!, 'failed');
+        if (!turnstileToken) {
+          track('waitlist_failed', { reason: 'challenge' });
+          return show(challengeFailed!, 'failed');
+        }
 
         const response = await fetch(endpoint!, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: input.value, consentVersion, turnstileToken }),
         });
-        if (!response.ok) return show(error!, 'failed');
+        if (!response.ok) {
+          track('waitlist_failed', { reason: 'rejected', status: response.status });
+          return show(error!, 'failed');
+        }
 
+        track('waitlist_succeeded');
         show(success!, 'done');
         input.value = '';
       } catch {
+        track('waitlist_failed', { reason: 'network' });
         show(error!, 'failed');
       } finally {
         // A Turnstile token is valid for one request only.

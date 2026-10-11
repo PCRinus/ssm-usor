@@ -21,7 +21,13 @@ const { home = '/' } = Astro.props;
       <a href={`${home}#intrebari`}>Întrebări</a>
     </nav>
     <div class="auth">
-      <a class="button quiet small" href={links.login}>
+      <a
+        class="button quiet small"
+        href={links.login}
+        data-track="cta_clicked"
+        data-track-prop-target="login"
+        data-track-prop-placement="header"
+      >
         {cta.login}
       </a>
       <span class="button primary small soon" aria-disabled="true">

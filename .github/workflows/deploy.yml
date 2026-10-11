@@ -144,6 +144,8 @@ jobs:
       POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
       # Optional: without it the marketing waitlist form falls back to a mailto link.
       PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+      # The same EU project as the SPA, in cookieless mode; without it the site sends nothing.
+      PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ vars.VITE_POSTHOG_PROJECT_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 

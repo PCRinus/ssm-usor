@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="23 septembrie 2026"
+  updated="12 octombrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -73,6 +73,15 @@ const M = legalEntity.filled ? 'span' : 'mark';
       securitatea și funcționarea site-ului. Temei: interesul legitim.
     </li>
     <li>
+      <strong>Analiză pe site-ul de prezentare.</strong> Folosim PostHog, fără cookie-uri și fără
+      stocare în browser, ca să numărăm vizitele, să vedem ce pagini și secțiuni sunt citite, de
+      unde vin vizitatorii, cât de repede se încarcă paginile și câți vizitatori lasă adresa în
+      formularul de anunțuri. Un vizitator este recunoscut în cursul aceleiași zile printr-un cod
+      calculat pe serverele PostHog din adresa IP, browser și site, cu o cheie care se schimbă
+      zilnic; adresa IP nu se păstrează și nu poate fi reconstituită din cod. Nu asociem aceste date
+      cu o persoană. Temei: interesul legitim de a ști dacă site-ul este vizitat și înțeles.
+    </li>
+    <li>
       <strong>Analiză, erori și asistență în platformă.</strong> După autentificare, folosim PostHog
       pentru evenimente de utilizare, pagini și adrese URL accesate, erori JavaScript, detalii
       tehnice despre cererile de rețea, înregistrări ale sesiunii și mesajele trimise prin
@@ -92,10 +101,13 @@ const M = legalEntity.filled ? 'span' : 'mark';
 
   <h2>4. Cookie-uri</h2>
   <p>
-    Site-ul de prezentare nu folosește cookie-uri de urmărire sau de publicitate. Platforma
-    folosește stocarea locală pentru autentificare și, după autentificare, pentru PostHog:
-    identificarea sesiunii, analiza utilizării, înregistrări ale sesiunii și conversațiile de
-    asistență. PostHog nu se încarcă pe paginile de autentificare sau pe site-ul de prezentare.
+    Site-ul de prezentare nu folosește cookie-uri de urmărire sau de publicitate; analiza de pe el
+    nu scrie nimic în browser. Dacă nu vrei să fii numărat, deschide site-ul cu
+    <code>?analytics=off</code> la sfârșitul adresei; alegerea se reține în stocarea locală a
+    browserului și se șterge cu <code>?analytics=auto</code>. Platforma folosește stocarea locală
+    pentru autentificare și, după autentificare, pentru PostHog: identificarea sesiunii, analiza
+    utilizării, înregistrări ale sesiunii și conversațiile de asistență. PostHog nu se încarcă pe
+    paginile de autentificare.
   </p>
   <p>
     Formularul de anunțuri este protejat împotriva abuzurilor cu Cloudflare Turnstile, care se
@@ -116,8 +128,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
       email tranzacțional: <M>{legalEntity.emailProvider}</M>.
     </li>
     <li>
-      analiză a platformei, înregistrări de sesiune, urmărirea erorilor și asistență: PostHog, cu
-      proiect găzduit în Uniunea Europeană.
+      analiză a site-ului de prezentare și a platformei, înregistrări de sesiune (doar în
+      platformă), urmărirea erorilor și asistență: PostHog, cu proiect găzduit în Uniunea Europeană.
     </li>
   </ul>
   <p>

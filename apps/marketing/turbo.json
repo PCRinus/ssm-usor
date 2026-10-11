@@ -9,10 +9,20 @@
         ".env.production",
         ".env.production.local"
       ],
-      "env": ["GIT_COMMIT_SHA", "PUBLIC_TURNSTILE_SITE_KEY", "PUBLIC_API_URL"]
+      "env": [
+        "GIT_COMMIT_SHA",
+        "PUBLIC_TURNSTILE_SITE_KEY",
+        "PUBLIC_API_URL",
+        "PUBLIC_POSTHOG_PROJECT_TOKEN"
+      ]
     },
     "dev": {
-      "env": ["GIT_COMMIT_SHA", "PUBLIC_TURNSTILE_SITE_KEY", "PUBLIC_API_URL"]
+      "env": [
+        "GIT_COMMIT_SHA",
+        "PUBLIC_TURNSTILE_SITE_KEY",
+        "PUBLIC_API_URL",
+        "PUBLIC_POSTHOG_PROJECT_TOKEN"
+      ]
     }
   }
 }

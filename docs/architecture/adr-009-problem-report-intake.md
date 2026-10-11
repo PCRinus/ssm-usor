@@ -28,3 +28,7 @@ Retain session replays for 30 days, analytics events and error data for 12 month
 Support tickets and GitHub issues have different purposes and need deliberate linking during triage. Raw report text and session replays do not automatically appear in public issues. Manual issue creation can be reconsidered if report volume grows.
 
 The maintainer receives email notifications for new Support tickets. The initial integration does not send automatic error emails. The maintainer reviews Error Tracking after each production release and revisits error alerting when external members start using the app. Both reported problems and captured errors are manually triaged before a GitHub issue is created.
+
+## Amendment (2026-10-12): the marketing site
+
+The marketing site at `ssmusor.ro` now loads PostHog too, in the same project, in PostHog's cookieless mode: page views, Web Vitals and a few named events around the waitlist form, with autocapture, replay, surveys, flags and identification off, and nothing stored in the visitor's browser. The rule that PostHog starts only inside the authenticated application stands for the SPA, whose public routes can carry tokens; the marketing site has no such routes. Visitor counts are what the site is measured by, and a cookie banner for them would cost more than it tells. The privacy policy describes the processing. Details in [deployment.md](../deployment.md#analytics).

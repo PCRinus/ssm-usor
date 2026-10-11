@@ -26,7 +26,13 @@ const scattered = [
     <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
     <p class="lede">{copy.lede}</p>
     <div class="actions">
-      <a class="button primary" href={links.login}>
+      <a
+        class="button primary"
+        href={links.login}
+        data-track="cta_clicked"
+        data-track-prop-target="login"
+        data-track-prop-placement="hero"
+      >
         {cta.login}
       </a>
       <span class="button quiet soon" aria-disabled="true">
@@ -35,7 +41,14 @@ const scattered = [
       </span>
     </div>
     <p class="notify">
-      <a href="#anunta-ma">{cta.notify}</a>
+      <a
+        href="#anunta-ma"
+        data-track="cta_clicked"
+        data-track-prop-target="notify"
+        data-track-prop-placement="hero"
+      >
+        {cta.notify}
+      </a>
     </p>
 
     <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
@@ -140,7 +153,15 @@ const scattered = [
         <h2>Conturile noi se deschid în curând.</h2>
         <WaitlistForm />
         <p class="have-account">
-          Ai deja cont? <a href={links.login}>{cta.login}</a>
+          Ai deja cont?{' '}
+          <a
+            href={links.login}
+            data-track="cta_clicked"
+            data-track-prop-target="login"
+            data-track-prop-placement="access"
+          >
+            {cta.login}
+          </a>
         </p>
       </div>
       <ul class="trust">

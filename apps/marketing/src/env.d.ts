@@ -6,4 +6,6 @@ interface ImportMetaEnv {
   /** Defaults to https://api.ssmusor.ro. */
   readonly PUBLIC_API_URL?: string;
   readonly PUBLIC_COMMIT_SHA?: string;
+  /** Without it the site sends no analytics. Belongs only in the production build. */
+  readonly PUBLIC_POSTHOG_PROJECT_TOKEN?: string;
 }
