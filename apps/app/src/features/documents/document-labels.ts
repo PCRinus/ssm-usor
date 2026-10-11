@@ -42,6 +42,7 @@ export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>>
   fire_test_annual: 'Test anual',
   fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
   fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
+  fire_substances_list: 'Lista substanțelor periculoase',
   fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
   fire_registers:
     'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',

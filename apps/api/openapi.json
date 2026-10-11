@@ -99,7 +99,8 @@
                 "fire.smokingPolicy",
                 "fire.waste",
                 "fire.workplaces",
-                "fire.equipment"
+                "fire.equipment",
+                "fire.substances"
               ]
             }
           }
@@ -5165,6 +5166,272 @@
         },
         "required": ["workplaceId", "kind"]
       },
+      "FireSubstancesResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none", "listed"]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "classification": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "string"
+                },
+                "physicalChemicalProperties": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "identificationCodes": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "healthEnvironmentRisks": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "protectionMeans": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "interventionMeasures": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "extinguishingAgents": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "storagePlace": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "handling": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "name",
+                "classification",
+                "quantity",
+                "physicalChemicalProperties",
+                "identificationCodes",
+                "healthEnvironmentRisks",
+                "protectionMeans",
+                "interventionMeasures",
+                "extinguishingAgents",
+                "storagePlace",
+                "handling",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["state", "items"]
+      },
+      "FireSubstancesStateResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none", "listed"]
+          }
+        },
+        "required": ["state"]
+      },
+      "UpdateFireSubstancesStateRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none", "listed"]
+          }
+        },
+        "required": ["state"]
+      },
+      "FireSubstanceResponse": {
+        "type": "object",
+        "properties": {
+          "substance": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "classification": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "string"
+              },
+              "physicalChemicalProperties": {
+                "type": "string",
+                "nullable": true
+              },
+              "identificationCodes": {
+                "type": "string",
+                "nullable": true
+              },
+              "healthEnvironmentRisks": {
+                "type": "string",
+                "nullable": true
+              },
+              "protectionMeans": {
+                "type": "string",
+                "nullable": true
+              },
+              "interventionMeasures": {
+                "type": "string",
+                "nullable": true
+              },
+              "extinguishingAgents": {
+                "type": "string",
+                "nullable": true
+              },
+              "storagePlace": {
+                "type": "string",
+                "nullable": true
+              },
+              "handling": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "name",
+              "classification",
+              "quantity",
+              "physicalChemicalProperties",
+              "identificationCodes",
+              "healthEnvironmentRisks",
+              "protectionMeans",
+              "interventionMeasures",
+              "extinguishingAgents",
+              "storagePlace",
+              "handling",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["substance"]
+      },
+      "FireSubstanceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "classification": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "physicalChemicalProperties": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 1000
+          },
+          "identificationCodes": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "healthEnvironmentRisks": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 1000
+          },
+          "protectionMeans": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 1000
+          },
+          "interventionMeasures": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 1000
+          },
+          "extinguishingAgents": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "storagePlace": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 600
+          },
+          "handling": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 1000
+          }
+        },
+        "required": ["name", "classification", "quantity"]
+      },
       "DocumentsBehindResponse": {
         "type": "object",
         "properties": {
@@ -5330,7 +5597,8 @@
                           "fire.smokingPolicy",
                           "fire.waste",
                           "fire.workplaces",
-                          "fire.equipment"
+                          "fire.equipment",
+                          "fire.substances"
                         ]
                       }
                     }
@@ -5403,6 +5671,7 @@
               "fire_test_annual",
               "fire_means_list",
               "fire_workplace_organization",
+              "fire_substances_list",
               "fire_cover_registers",
               "fire_registers",
               "fire_work_permit",
@@ -5455,7 +5724,8 @@
                 "fire.smokingPolicy",
                 "fire.waste",
                 "fire.workplaces",
-                "fire.equipment"
+                "fire.equipment",
+                "fire.substances"
               ]
             }
           },
@@ -5935,6 +6205,7 @@
                 "fire_test_annual",
                 "fire_means_list",
                 "fire_workplace_organization",
+                "fire_substances_list",
                 "fire_cover_registers",
                 "fire_registers",
                 "fire_work_permit",
@@ -16279,7 +16550,7 @@
       "get": {
         "operationId": "getClientFireSafety",
         "summary": "Read a client's fire-safety training schedule, smoking policy and waste",
-        "description": "Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018).",
+        "description": "Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018). A row the substances state alone created does not count as saved.",
         "security": [
           {
             "bearerAuth": []
@@ -17315,6 +17586,558 @@
           },
           "404": {
             "description": "The client or the installation does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-substances": {
+      "get": {
+        "operationId": "listFireSubstances",
+        "summary": "Read a client's dangerous substances and whether it uses any",
+        "description": "`state` is `undecided` until a member says the client uses none (`none`) or lists them (`listed`); the entries are in the order they were added (ADR 018).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The state and the entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireSubstancesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFireSubstance",
+        "summary": "Add a dangerous substance to a client's list",
+        "description": "The name, the CLP classification and the quantity are required; the other texts are copied from the safety data sheet and may be left out. Only under a client whose state is `listed`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireSubstanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireSubstanceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or does not list its substances (`substances_not_listed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-substances/state": {
+      "put": {
+        "operationId": "updateFireSubstancesState",
+        "summary": "Say whether a client uses dangerous substances",
+        "description": "`none` declares that the client uses none, `listed` that it lists them below, `undecided` leaves the question open again. Only `listed` is accepted while the client has entries (`409`, reason `substances_listed`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFireSubstancesStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The state after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireSubstancesStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or still has entries (`substances_listed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-substances/{substanceId}": {
+      "put": {
+        "operationId": "updateFireSubstance",
+        "summary": "Replace a dangerous substance",
+        "description": "A text left out or null is cleared.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "substanceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireSubstanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The entry after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireSubstanceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the substance does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFireSubstance",
+        "summary": "Delete a dangerous substance",
+        "description": "Deleting the last entry leaves the state `listed`, which blocks the fire-safety set until an entry is added or the client declares it uses none.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "substanceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the substance does not exist",
             "content": {
               "application/json": {
                 "schema": {
@@ -19094,6 +19917,7 @@
                 "fire_test_annual",
                 "fire_means_list",
                 "fire_workplace_organization",
+                "fire_substances_list",
                 "fire_cover_registers",
                 "fire_registers",
                 "fire_work_permit",

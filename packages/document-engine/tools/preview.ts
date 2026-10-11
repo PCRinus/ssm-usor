@@ -314,6 +314,45 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           contractor: 'S.C. ECO COLECT S.R.L.',
           collectors: null,
         },
+    // The long sample lists its substances with gaps to fill in; the short one declares none.
+    substances: long
+      ? {
+          state: 'listed',
+          none: false,
+          listed: true,
+          entries: [
+            {
+              name: 'Gaz petrolier lichefiat (propan) în butelii',
+              classification: 'Flam. Gas 1, H220; Press. Gas (Liquefied gas), H280',
+              quantity: '2 butelii de 11 kg',
+              physicalChemicalProperties: 'Gaz incolor, mai greu decât aerul, extrem de inflamabil',
+              identificationCodes: 'Propan, CAS 74-98-6, nr. ONU 1965',
+              healthEnvironmentRisks: 'DE COMPLETAT',
+              protectionMeans: 'DE COMPLETAT',
+              interventionMeasures: 'DE COMPLETAT',
+              extinguishingAgents: 'Pulbere, CO₂; buteliile se răcesc cu apă pulverizată',
+              storagePlace: 'Cușca metalică ventilată din curte, departe de surse de căldură',
+              handling:
+                'Butelia se transportă și se folosește în poziție verticală, cu robinetul închis când nu este folosită',
+            },
+            {
+              name: 'Diluant pentru vopsele (white spirit)',
+              classification: 'Flam. Liq. 3, H226; Asp. Tox. 1, H304; STOT RE 1, H372',
+              quantity: '2 bidoane de 5 l',
+              physicalChemicalProperties:
+                'Lichid incolor, cu miros caracteristic, punct de inflamabilitate 38 °C',
+              identificationCodes: 'DE COMPLETAT',
+              healthEnvironmentRisks:
+                'Poate fi mortal în caz de înghițire și de pătrundere în căile respiratorii; afectează sistemul nervos central la expunere prelungită',
+              protectionMeans: 'Mănuși din nitril, ochelari de protecție, ventilarea încăperii',
+              interventionMeasures: 'DE COMPLETAT',
+              extinguishingAgents: 'Spumă, pulbere, CO₂; nu se folosește jet de apă',
+              storagePlace: 'Dulapul metalic pentru substanțe inflamabile din atelier',
+              handling: 'DE COMPLETAT',
+            },
+          ],
+        }
+      : { state: 'none', none: true, listed: false, entries: [] },
     themes: [
       ...(long
         ? []

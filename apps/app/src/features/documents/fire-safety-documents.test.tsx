@@ -213,6 +213,7 @@ const allBuilt = [
         'fire_workplace_organization',
         'Organizarea apărării împotriva incendiilor la locul de muncă',
       ],
+      ['fire_substances_list', 'Lista substanțelor periculoase'],
     ] as const
   ).map(([typeKey, title], index) =>
     fireDocument(`${index}0e1f2a3-2a6b-4c3d-8e7f-1a2b3c4d5e6f`, typeKey, title)
@@ -496,7 +497,7 @@ describe('client fire-safety documents', () => {
     ).toBe('5 ciorne');
     expect(
       sectionOf('5').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('2 ciorne');
+    ).toBe('3 ciorne');
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
     ).toBe('10 ciorne');
@@ -657,6 +658,7 @@ describe('client fire-safety documents', () => {
           'positions.any',
           'fire.workplaces',
           'fire.equipment',
+          'fire.substances',
         ],
       },
     });
@@ -665,7 +667,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
-      '9 date de completat'
+      '10 date de completat'
     );
     const rows = screen.getAllByTestId('generate-missing-row');
     expect(rows.at(-1)!.textContent).toBe(
@@ -675,6 +677,7 @@ describe('client fire-safety documents', () => {
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
       `${client}/details?focus=workplace-fire-data`,
       `${client}/fire-safety-means?focus=fire-equipment`,
+      `${client}/fire-safety-means?focus=fire-substances`,
       `${client}/training?focus=fire-training-schedule`,
       `${client}/training?focus=fire-smoking`,
       `${client}/training?focus=fire-waste`,

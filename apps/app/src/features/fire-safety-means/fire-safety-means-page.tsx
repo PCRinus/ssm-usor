@@ -28,7 +28,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
-import { useFocusRequest } from '@/features/missing-data/focus';
+import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
 
 import { EquipmentDialog, type EquipmentEditing } from './equipment-dialog';
 import {
@@ -38,6 +38,7 @@ import {
   unitTitle,
 } from './fire-means-schema';
 import { InstallationDialog, type InstallationEditing } from './installation-dialog';
+import { SubstancesCard } from './substances-card';
 import { WorkplaceMeansCard } from './workplace-means-card';
 
 type Deleting =
@@ -54,7 +55,7 @@ export function FireSafetyMeansPage({
   clientId: string;
   userId: string;
   readOnly: boolean;
-  focus: boolean;
+  focus?: FireSafetyMeansFocus;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const workplaces = useListWorkplaces(clientId, {
@@ -85,7 +86,7 @@ export function FireSafetyMeansPage({
           )
       )
     : undefined;
-  useFocusRequest(focus, {
+  useFocusRequest(focus === 'fire-equipment', {
     ready: Boolean(loaded),
     anchor: () =>
       withoutExtinguisher ? document.getElementById(equipmentAddId(withoutExtinguisher.id)) : null,
@@ -165,33 +166,45 @@ export function FireSafetyMeansPage({
     );
   }
 
+  const substances = (
+    <SubstancesCard
+      clientId={clientId}
+      userId={userId}
+      readOnly={readOnly}
+      focus={focus === 'fire-substances'}
+    />
+  );
+
   const activeWorkplaces = workplaces.data.items;
   if (activeWorkplaces.length === 0) {
     return (
-      <Card data-testid="fire-means-page">
-        <CardContent>
-          <EmptyState
-            data-testid="fire-means-no-workplace"
-            icon={MapPin}
-            actions={
-              !readOnly && (
-                <Button asChild variant="tonal">
-                  <Link
-                    to="/clients/$clientId/details"
-                    params={{ clientId }}
-                    search={{ focus: 'add-workplace' }}
-                  >
-                    Adaugă un loc de muncă
-                  </Link>
-                </Button>
-              )
-            }
-          >
-            Stingătoarele și instalațiile se trec pe locuri de muncă. Clientul nu are încă niciun
-            loc de muncă; îl adaugi în Detalii, la Sediu și puncte de lucru.
-          </EmptyState>
-        </CardContent>
-      </Card>
+      <div data-testid="fire-means-page" className="grid gap-6">
+        <Card>
+          <CardContent>
+            <EmptyState
+              data-testid="fire-means-no-workplace"
+              icon={MapPin}
+              actions={
+                !readOnly && (
+                  <Button asChild variant="tonal">
+                    <Link
+                      to="/clients/$clientId/details"
+                      params={{ clientId }}
+                      search={{ focus: 'add-workplace' }}
+                    >
+                      Adaugă un loc de muncă
+                    </Link>
+                  </Button>
+                )
+              }
+            >
+              Stingătoarele și instalațiile se trec pe locuri de muncă. Clientul nu are încă niciun
+              loc de muncă; îl adaugi în Detalii, la Sediu și puncte de lucru.
+            </EmptyState>
+          </CardContent>
+        </Card>
+        {substances}
+      </div>
     );
   }
 
@@ -247,6 +260,7 @@ export function FireSafetyMeansPage({
           }
         />
       ))}
+      {substances}
       <EquipmentDialog
         clientId={clientId}
         workplaces={activeWorkplaces}

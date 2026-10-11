@@ -118,6 +118,24 @@ const alarm = {
 
 const equipmentPath = `/clients/${clientId}/fire-equipment`;
 const installationsPath = `/clients/${clientId}/fire-installations`;
+const substancesPath = `/clients/${clientId}/fire-substances`;
+
+const propane = {
+  ...stamp,
+  id: '4a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+  clientId,
+  name: 'Propan',
+  classification: 'Flam. Gas 1, H220',
+  quantity: '2 butelii de 11 kg',
+  physicalChemicalProperties: null as string | null,
+  identificationCodes: 'CAS 74-98-6' as string | null,
+  healthEnvironmentRisks: null as string | null,
+  protectionMeans: null as string | null,
+  interventionMeasures: null as string | null,
+  extinguishingAgents: null as string | null,
+  storagePlace: 'Cușca metalică din curte' as string | null,
+  handling: null as string | null,
+};
 
 type Route = (init: RequestInit | undefined) => Response;
 
@@ -136,6 +154,14 @@ function mockApi({
   updateEquipment = ((init) =>
     Response.json({ equipment: { ...officeP6, ...JSON.parse(String(init?.body)) } })) as Route,
   deleteEquipment = (() => new Response(null, { status: 204 })) as Route,
+  substancesState = 'none',
+  substances = [] as unknown[],
+  saveState = ((init) => Response.json(JSON.parse(String(init?.body)))) as Route,
+  createSubstance = ((init) =>
+    Response.json(
+      { substance: { ...propane, id: 'new', ...JSON.parse(String(init?.body)) } },
+      { status: 201 }
+    )) as Route,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -163,6 +189,17 @@ function mockApi({
       return method === 'DELETE'
         ? new Response(null, { status: 204 })
         : Response.json({ installation: { ...alarm, ...JSON.parse(String(init?.body)) } });
+    }
+    if (pathname === substancesPath) {
+      return method === 'POST'
+        ? createSubstance(init)
+        : Response.json({ state: substancesState, items: substances });
+    }
+    if (pathname === `${substancesPath}/state`) return saveState(init);
+    if (pathname.startsWith(`${substancesPath}/`)) {
+      return method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : Response.json({ substance: { ...propane, ...JSON.parse(String(init?.body)) } });
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
@@ -489,5 +526,206 @@ describe('client fire-safety means', () => {
     expect(screen.queryByTestId('fire-equipment-add')).toBeNull();
     expect(screen.queryByTestId('fire-installation-add')).toBeNull();
     expect(screen.queryByTestId('fire-equipment-actions')).toBeNull();
+  });
+});
+
+describe('client dangerous substances', () => {
+  const card = async () => {
+    await screen.findByTestId('fire-substances-state');
+    return screen.getByTestId('fire-substances-card');
+  };
+
+  it('asks whether the client uses dangerous substances until a member says so', async () => {
+    mockApi({ substancesState: 'undecided' });
+    mount();
+    const user = userEvent.setup();
+
+    const substances = await card();
+    expect(within(substances).getByTestId('fire-substances-state').textContent).toBe('Nedecis');
+    expect(within(substances).getByTestId('fire-substances-undecided')).toBeTruthy();
+    expect(within(substances).queryByTestId('fire-substance-add')).toBeNull();
+
+    await user.click(within(substances).getByText('Nu se utilizează substanțe periculoase'));
+    await waitFor(() =>
+      expect(requests(`${substancesPath}/state`, 'PUT')).toEqual([{ state: 'none' }])
+    );
+    expect(
+      await screen.findByText('Am notat că clientul nu utilizează substanțe periculoase.')
+    ).toBeTruthy();
+  });
+
+  it('declares none without a list', async () => {
+    mockApi({ substancesState: 'none' });
+    mount();
+
+    const substances = await card();
+    expect(within(substances).getByTestId('fire-substances-state').textContent).toBe(
+      'Nu se utilizează'
+    );
+    expect(within(substances).getByTestId('fire-substances-none').textContent).toContain(
+      'nu utilizează substanțe periculoase'
+    );
+    expect(within(substances).queryByTestId('fire-substance-add')).toBeNull();
+  });
+
+  it('lists the substances with the texts of their data sheet still to fill in', async () => {
+    mockApi({ substancesState: 'listed', substances: [propane] });
+    mount();
+
+    const substances = await card();
+    expect(within(substances).getByTestId('fire-substances-state').textContent).toBe('1 substanță');
+    const row = within(substances).getByTestId('fire-substance-row');
+    expect(row.textContent).toContain('Propan');
+    expect(row.textContent).toContain('Flam. Gas 1, H220');
+    expect(row.textContent).toContain('2 butelii de 11 kg');
+    expect(within(row).getByTestId('fire-substance-details').textContent).toBe(
+      '6 câmpuri de completat în document'
+    );
+    expect(
+      within(substances)
+        .getByTestId<HTMLInputElement>('fire-substances-choice-none')
+        .querySelector('input')!.disabled
+    ).toBe(true);
+  });
+
+  it('adds a substance with its three required fields and the data sheet texts typed', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    const substances = await card();
+    expect(within(substances).getByTestId('fire-substances-empty')).toBeTruthy();
+    await user.click(within(substances).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    expect(dialog.textContent).toContain('fișa cu date de securitate, secțiunea 9');
+    expect(dialog.textContent).toContain('fișa cu date de securitate, secțiunile 4, 5 și 6');
+    await user.click(within(dialog).getByTestId('fire-substance-save'));
+    expect((await within(dialog).findByTestId('fire-substance-name-error')).textContent).toBe(
+      'Scrie denumirea substanței.'
+    );
+    expect(within(dialog).getByTestId('fire-substance-classification-error')).toBeTruthy();
+    expect(within(dialog).getByTestId('fire-substance-quantity-error')).toBeTruthy();
+
+    await user.type(within(dialog).getByTestId('fire-substance-name'), 'Diluant');
+    await user.type(
+      within(dialog).getByTestId('fire-substance-classification'),
+      'Flam. Liq. 2, H225'
+    );
+    await user.type(within(dialog).getByTestId('fire-substance-quantity'), '5 l');
+    await user.type(within(dialog).getByTestId('fire-substance-storage'), 'Dulapul metalic');
+    await user.click(within(dialog).getByTestId('fire-substance-save'));
+
+    await waitFor(() =>
+      expect(requests(substancesPath, 'POST')).toEqual([
+        {
+          name: 'Diluant',
+          classification: 'Flam. Liq. 2, H225',
+          quantity: '5 l',
+          physicalChemicalProperties: null,
+          identificationCodes: null,
+          healthEnvironmentRisks: null,
+          protectionMeans: null,
+          interventionMeasures: null,
+          extinguishingAgents: null,
+          storagePlace: 'Dulapul metalic',
+          handling: null,
+        },
+      ])
+    );
+    expect(await screen.findByText('Substanța a fost adăugată.')).toBeTruthy();
+  });
+
+  it('edits a substance from its row, clearing a text', async () => {
+    mockApi({ substancesState: 'listed', substances: [propane] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText('2 butelii de 11 kg'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.clear(within(dialog).getByTestId('fire-substance-storage'));
+    await user.click(within(dialog).getByTestId('fire-substance-save'));
+    await waitFor(() =>
+      expect(requests(`${substancesPath}/${propane.id}`, 'PUT')).toEqual([
+        expect.objectContaining({
+          name: 'Propan',
+          identificationCodes: 'CAS 74-98-6',
+          storagePlace: null,
+        }),
+      ])
+    );
+  });
+
+  it('deletes after a confirmation that says the list then blocks the documents', async () => {
+    mockApi({ substancesState: 'listed', substances: [propane] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('fire-substance-actions'));
+    await user.click(await screen.findByTestId('fire-substance-delete'));
+    const dialog = await screen.findByTestId('fire-substance-delete-dialog');
+    expect(dialog.textContent).toContain('Este singura din listă');
+    await user.click(within(dialog).getByTestId('fire-substance-delete-confirm'));
+    await waitFor(() =>
+      expect(requests(`${substancesPath}/${propane.id}`, 'DELETE')).toHaveLength(1)
+    );
+    expect(await screen.findByText('Substanța „Propan” a fost ștearsă.')).toBeTruthy();
+  });
+
+  it('says why none is refused while substances are listed', async () => {
+    mockApi({
+      substancesState: 'undecided',
+      saveState: () =>
+        Response.json(
+          { error: 'conflict', message: 'x', reason: 'substances_listed' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByText('Nu se utilizează substanțe periculoase'));
+    expect((await screen.findByTestId('fire-substances-error')).textContent).toContain('șterge-le');
+  });
+
+  it('opens the dialog for ?focus=fire-substances when the list is chosen but empty', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    const runtime = mount('?focus=fire-substances');
+
+    await screen.findByTestId('fire-substance-dialog');
+    await waitFor(() => expect(document.activeElement?.id).toBe('fire-substance-name'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('points at the choice for ?focus=fire-substances while undecided', async () => {
+    mockApi({ substancesState: 'undecided' });
+    mount('?focus=fire-substances');
+
+    await waitFor(() => expect(document.activeElement?.id).toBe('fire-substances-choice-none'));
+    expect(screen.queryByTestId('fire-substance-dialog')).toBeNull();
+  });
+
+  it('is asked also of a client without workplaces', async () => {
+    mockApi({ workplaces: [], equipment: [], installations: [], substancesState: 'undecided' });
+    mount();
+
+    await screen.findByTestId('fire-means-no-workplace');
+    expect(await card()).toBeTruthy();
+  });
+
+  it('shows an archived client its substances without the choice or the actions', async () => {
+    mockApi({
+      client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' },
+      substancesState: 'listed',
+      substances: [propane],
+    });
+    mount();
+
+    const substances = await card();
+    expect(within(substances).getByTestId('fire-substance-row')).toBeTruthy();
+    expect(within(substances).queryByTestId('fire-substance-add')).toBeNull();
+    expect(within(substances).queryByTestId('fire-substance-actions')).toBeNull();
+    for (const input of within(substances).getAllByRole('radio')) {
+      expect(input.matches(':disabled')).toBe(true);
+    }
   });
 });

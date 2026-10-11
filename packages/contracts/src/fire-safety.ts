@@ -368,3 +368,125 @@ export const fireInstallationListResponseSchema = z.object({
 });
 
 export type FireInstallationListResponse = z.infer<typeof fireInstallationListResponseSchema>;
+
+export const fireSubstancesStates = ['undecided', 'none', 'listed'] as const;
+
+export const fireSubstancesStateSchema = z.enum(fireSubstancesStates);
+
+export type FireSubstancesState = z.infer<typeof fireSubstancesStateSchema>;
+
+/**
+ * The texts of a substance besides its name, classification and quantity, in the order the list
+ * prints them, each with the section of the safety data sheet it is copied from. Legea 307/2006
+ * art. 19 lit. f) asks the list to mention them; empty, they print as a gap (ADR 018).
+ */
+export const fireSubstanceDetails = [
+  'physicalChemicalProperties',
+  'identificationCodes',
+  'healthEnvironmentRisks',
+  'protectionMeans',
+  'interventionMeasures',
+  'extinguishingAgents',
+  'storagePlace',
+  'handling',
+] as const;
+
+export type FireSubstanceDetail = (typeof fireSubstanceDetails)[number];
+
+export const fireSubstanceDetailLabels: Record<
+  FireSubstanceDetail,
+  { label: string; dataSheet: string }
+> = {
+  physicalChemicalProperties: {
+    label: 'Proprietăți fizico-chimice',
+    dataSheet: 'fișa cu date de securitate, secțiunea 9',
+  },
+  identificationCodes: {
+    label: 'Coduri de identificare',
+    dataSheet: 'fișa cu date de securitate, secțiunile 1 și 3',
+  },
+  healthEnvironmentRisks: {
+    label: 'Riscuri pentru sănătate și mediu',
+    dataSheet: 'fișa cu date de securitate, secțiunile 2, 11 și 12',
+  },
+  protectionMeans: {
+    label: 'Mijloace de protecție recomandate',
+    dataSheet: 'fișa cu date de securitate, secțiunea 8',
+  },
+  interventionMeasures: {
+    label: 'Măsuri de intervenție și de prim ajutor',
+    dataSheet: 'fișa cu date de securitate, secțiunile 4, 5 și 6',
+  },
+  extinguishingAgents: {
+    label: 'Substanțe pentru stingere, neutralizare sau decontaminare',
+    dataSheet: 'fișa cu date de securitate, secțiunea 5',
+  },
+  storagePlace: {
+    label: 'Locul de depozitare',
+    dataSheet: 'fișa cu date de securitate, secțiunea 7',
+  },
+  handling: {
+    label: 'Modul de manipulare',
+    dataSheet: 'fișa cu date de securitate, secțiunea 7',
+  },
+};
+
+export const fireSubstanceRequestSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  // Under the CLP regulation: the hazard classes and categories with their H statements.
+  classification: z.string().trim().min(2).max(600),
+  quantity: z.string().trim().min(1).max(160),
+  physicalChemicalProperties: optionalText(2, 1000),
+  identificationCodes: optionalText(2, 600),
+  healthEnvironmentRisks: optionalText(2, 1000),
+  protectionMeans: optionalText(2, 1000),
+  interventionMeasures: optionalText(2, 1000),
+  extinguishingAgents: optionalText(2, 600),
+  storagePlace: optionalText(2, 600),
+  handling: optionalText(2, 1000),
+});
+
+export type FireSubstanceRequest = z.infer<typeof fireSubstanceRequestSchema>;
+
+export const fireSubstanceSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  name: z.string(),
+  classification: z.string(),
+  quantity: z.string(),
+  physicalChemicalProperties: z.string().nullable(),
+  identificationCodes: z.string().nullable(),
+  healthEnvironmentRisks: z.string().nullable(),
+  protectionMeans: z.string().nullable(),
+  interventionMeasures: z.string().nullable(),
+  extinguishingAgents: z.string().nullable(),
+  storagePlace: z.string().nullable(),
+  handling: z.string().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+
+export type FireSubstance = z.infer<typeof fireSubstanceSchema>;
+
+export const fireSubstanceResponseSchema = z.object({ substance: fireSubstanceSchema });
+
+export type FireSubstanceResponse = z.infer<typeof fireSubstanceResponseSchema>;
+
+export const fireSubstancesResponseSchema = z.object({
+  state: fireSubstancesStateSchema,
+  items: z.array(fireSubstanceSchema),
+});
+
+export type FireSubstancesResponse = z.infer<typeof fireSubstancesResponseSchema>;
+
+export const updateFireSubstancesStateRequestSchema = z.object({
+  state: fireSubstancesStateSchema,
+});
+
+export type UpdateFireSubstancesStateRequest = z.infer<
+  typeof updateFireSubstancesStateRequestSchema
+>;
+
+export const fireSubstancesStateResponseSchema = z.object({ state: fireSubstancesStateSchema });
+
+export type FireSubstancesStateResponse = z.infer<typeof fireSubstancesStateResponseSchema>;

@@ -809,6 +809,7 @@ describe('the fire-safety templates', () => {
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
       generatedFromTenEmployees: [],
+      substances: { state: 'none', entries: [] },
     },
   };
 
@@ -915,6 +916,24 @@ describe('the fire-safety templates', () => {
     );
   });
 
+  it('print the dangerous substances with their gaps, or the declaration that there are none', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_substances_list')!.file,
+        fireUrl
+      )
+    );
+    const listed = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(listed).toContain('Substanța 1');
+    expect(listed).toContain('Propan');
+    expect(listed).toContain('Diluant pentru vopsele');
+    expect(listed).toContain('Pulbere, CO₂; răcirea buteliilor cu apă pulverizată');
+    expect(listed.match(/DE COMPLETAT/g)).toHaveLength(6);
+    const none = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
+    expect(none).toContain('declară că în activitatea sa nu utilizează substanțe periculoase.');
+    expect(none).not.toContain('Substanța 1');
+  });
+
   it('print the smoking rule, the technician appointed and the controls of the client', () => {
     const file = (typeKey: string) =>
       readFileSync(
@@ -1007,7 +1026,13 @@ describe('the fire-safety templates', () => {
         responsiblePersons: [],
         jobPositions: [],
         workplaces: facts.workplaces.map((workplace) => ({ ...workplace, activity: null })),
-        fireSafety: { card: null, equipment: [], installations: [], generatedFromTenEmployees: [] },
+        fireSafety: {
+          card: null,
+          equipment: [],
+          installations: [],
+          generatedFromTenEmployees: [],
+          substances: { state: 'undecided', entries: [] },
+        },
       },
     ],
     [

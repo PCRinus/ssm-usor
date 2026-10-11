@@ -7,7 +7,12 @@ import {
   fireInstallationListResponseSchema,
   fireInstallationRequestSchema,
   fireInstallationResponseSchema,
+  fireSubstanceRequestSchema,
+  fireSubstanceResponseSchema,
+  fireSubstancesResponseSchema,
+  fireSubstancesStateResponseSchema,
   updateClientFireSafetyRequestSchema,
+  updateFireSubstancesStateRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -17,6 +22,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 const clientParams = z.object({ clientId: z.uuid() });
 const equipmentParams = clientParams.extend({ equipmentId: z.uuid() });
 const installationParams = clientParams.extend({ installationId: z.uuid() });
+const substanceParams = clientParams.extend({ substanceId: z.uuid() });
 
 const noSuchClient = {
   description: 'The client does not exist in the organization',
@@ -28,6 +34,10 @@ const noSuchEquipment = {
 };
 const noSuchInstallation = {
   description: 'The client or the installation does not exist',
+  content: errorContent,
+};
+const noSuchSubstance = {
+  description: 'The client or the substance does not exist',
   content: errorContent,
 };
 const refusedClient = {
@@ -78,7 +88,7 @@ export const getClientFireSafetyRoute = createRoute({
   operationId: 'getClientFireSafety',
   summary: "Read a client's fire-safety training schedule, smoking policy and waste",
   description:
-    'Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018).',
+    'Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018). A row the substances state alone created does not count as saved.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams },
@@ -277,6 +287,147 @@ export const deleteFireInstallationRoute = createRoute({
     204: { description: 'Deleted' },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchInstallation,
+    409: refusedClient,
+    ...membershipErrors,
+  },
+});
+
+const substanceContent = {
+  'application/json': {
+    schema: fireSubstanceResponseSchema.meta({ id: 'FireSubstanceResponse' }),
+  },
+};
+const substanceBody = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: fireSubstanceRequestSchema.meta({ id: 'FireSubstanceRequest' }),
+    },
+  },
+};
+
+export const listFireSubstancesRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/fire-substances',
+  operationId: 'listFireSubstances',
+  summary: "Read a client's dangerous substances and whether it uses any",
+  description:
+    '`state` is `undecided` until a member says the client uses none (`none`) or lists them (`listed`); the entries are in the order they were added (ADR 018).',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams },
+  responses: {
+    200: {
+      description: 'The state and the entries',
+      content: {
+        'application/json': {
+          schema: fireSubstancesResponseSchema.meta({ id: 'FireSubstancesResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const updateFireSubstancesStateRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/fire-substances/state',
+  operationId: 'updateFireSubstancesState',
+  summary: 'Say whether a client uses dangerous substances',
+  description:
+    '`none` declares that the client uses none, `listed` that it lists them below, `undecided` leaves the question open again. Only `listed` is accepted while the client has entries (`409`, reason `substances_listed`).',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: clientParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateFireSubstancesStateRequestSchema.meta({
+            id: 'UpdateFireSubstancesStateRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The state after the change',
+      content: {
+        'application/json': {
+          schema: fireSubstancesStateResponseSchema.meta({ id: 'FireSubstancesStateResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or request body', content: errorContent },
+    404: noSuchClient,
+    409: {
+      description:
+        'The client is archived (`client_archived`) or a lead (`client_is_lead`), or still has entries (`substances_listed`)',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const createFireSubstanceRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/fire-substances',
+  operationId: 'createFireSubstance',
+  summary: "Add a dangerous substance to a client's list",
+  description:
+    'The name, the CLP classification and the quantity are required; the other texts are copied from the safety data sheet and may be left out. Only under a client whose state is `listed`.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams, body: substanceBody },
+  responses: {
+    201: { description: 'The created entry', content: substanceContent },
+    400: { description: 'Invalid path or request body', content: errorContent },
+    404: noSuchClient,
+    409: {
+      description:
+        'The client is archived (`client_archived`) or a lead (`client_is_lead`), or does not list its substances (`substances_not_listed`)',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const updateFireSubstanceRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/fire-substances/{substanceId}',
+  operationId: 'updateFireSubstance',
+  summary: 'Replace a dangerous substance',
+  description: 'A text left out or null is cleared.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: substanceParams, body: substanceBody },
+  responses: {
+    200: { description: 'The entry after the change', content: substanceContent },
+    400: { description: 'Invalid path or request body', content: errorContent },
+    404: noSuchSubstance,
+    409: refusedClient,
+    ...membershipErrors,
+  },
+});
+
+export const deleteFireSubstanceRoute = createRoute({
+  method: 'delete',
+  path: '/clients/{clientId}/fire-substances/{substanceId}',
+  operationId: 'deleteFireSubstance',
+  summary: 'Delete a dangerous substance',
+  description:
+    'Deleting the last entry leaves the state `listed`, which blocks the fire-safety set until an entry is added or the client declares it uses none.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: substanceParams },
+  responses: {
+    204: { description: 'Deleted' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchSubstance,
     409: refusedClient,
     ...membershipErrors,
   },

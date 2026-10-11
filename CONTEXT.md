@@ -52,6 +52,10 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-safety means** (_mijloace de apărare împotriva incendiilor_): the equipment and installations a workplace has against fire, recorded one unit per row: each extinguisher, sand box, fire post or fire blanket, and each installation, such as the alarm system or the interior hydrants. They have a tab of their own, _Mijloace PSI_. ADR 018. Avoid: inventory, _dotări_ as a word users see, and PSI equipment, which collides with protective equipment.
 
+**Substances list** (_lista cu substanțele periculoase_): the dangerous substances a client uses, one entry per substance: its name, its classification under the CLP regulation and the quantity held, and the texts copied from its safety data sheet, each of which the document 5.3 prints as a gap to fill in when empty. Kept on the _Mijloace PSI_ tab and asked of every client, whatever its headcount (OMAI 163/2007 art. 18 lit. p) and art. 20 (3) lit. g)). ADR 018. Avoid: chemicals list, inventory of substances, and hazardous materials.
+
+**Substances state** (_starea listei de substanțe periculoase_): whether a client has said if it uses dangerous substances: **undecided**, which blocks the fire-safety set, **none** (_nu se utilizează substanțe periculoase_), a declaration the list 5.3 prints in their place, or **listed**, which needs at least one entry before the set generates. A declared none is a declaration, not an empty list. ADR 018. Avoid: has substances, as a yes or no.
+
 **Protective equipment** (_echipament individual de protecție_, EIP): what the holders of a job position wear or use against the risks of the post, recorded as entries on the position. A position is **undecided** about it, **needs none**, or is **equipped**. Its internal list is a document of the set. ADR 011. Avoid: PPE, gear, and work clothing (_îmbrăcăminte de lucru_), which the law excludes.
 
 **Equipment entry** (_articol de echipament_): one item a job position receives: the risk it protects against, the item, the quantity granted at once, its duration of use in months, and its allocation mode. Avoid: line, row.

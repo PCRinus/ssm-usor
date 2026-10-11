@@ -6,8 +6,12 @@ import {
   fireAnnexNorms,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
+  fireSubstanceDetailLabels,
+  fireSubstanceDetails,
+  fireSubstanceRequestSchema,
   minimumExtinguishers,
   updateClientFireSafetyRequestSchema,
+  updateFireSubstancesStateRequestSchema,
 } from './fire-safety';
 
 const workplaceId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -206,6 +210,47 @@ describe('the fire-safety fields elsewhere', () => {
       })
     ).toMatchObject({ kind: 'mobile_site', extinguisherNorm: 'none' });
     expect(workplaceRequestSchema.safeParse({ name: 'Șantier', kind: 'vehicle' }).success).toBe(
+      false
+    );
+  });
+});
+
+describe('a dangerous substance', () => {
+  const propane = {
+    name: 'Propan',
+    classification: 'Flam. Gas 1, H220; Press. Gas, H280',
+    quantity: '2 butelii de 11 kg',
+  };
+
+  it('needs its name, classification and quantity, and nothing of its data sheet', () => {
+    expect(fireSubstanceRequestSchema.parse(propane)).toEqual(propane);
+    for (const field of ['name', 'classification', 'quantity'] as const) {
+      expect(fireSubstanceRequestSchema.safeParse({ ...propane, [field]: ' ' }).success).toBe(
+        false
+      );
+    }
+  });
+
+  it('trims a text of the data sheet, refuses a single character and takes null for none', () => {
+    expect(
+      fireSubstanceRequestSchema.parse({ ...propane, storagePlace: '  Cușca din curte  ' })
+        .storagePlace
+    ).toBe('Cușca din curte');
+    expect(fireSubstanceRequestSchema.safeParse({ ...propane, handling: 'x' }).success).toBe(false);
+    expect(fireSubstanceRequestSchema.parse({ ...propane, handling: null }).handling).toBeNull();
+  });
+
+  it('names the section of the safety data sheet for each of its eight texts', () => {
+    expect(fireSubstanceDetails).toHaveLength(8);
+    expect(fireSubstanceDetailLabels.extinguishingAgents.dataSheet).toMatch(/secțiunea 5$/);
+    expect(fireSubstanceDetailLabels.interventionMeasures.dataSheet).toMatch(/4, 5 și 6$/);
+  });
+
+  it('is part of a state that starts undecided and is none or listed', () => {
+    for (const state of ['undecided', 'none', 'listed']) {
+      expect(updateFireSubstancesStateRequestSchema.safeParse({ state }).success).toBe(true);
+    }
+    expect(updateFireSubstancesStateRequestSchema.safeParse({ state: 'empty' }).success).toBe(
       false
     );
   });

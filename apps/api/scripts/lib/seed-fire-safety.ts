@@ -10,6 +10,7 @@ type WorkplaceUpdate = Tables['client_workplaces']['Update'];
 type WorkplaceInsert = Tables['client_workplaces']['Insert'];
 type EquipmentInsert = Tables['fire_equipment']['Insert'];
 type InstallationInsert = Tables['fire_installations']['Insert'];
+type SubstanceInsert = Tables['fire_substances']['Insert'];
 
 interface ClientCalendar {
   id: string;
@@ -125,6 +126,58 @@ export function fireMeansFor(
   };
 }
 
+// A cleaning agent, a gas cylinder and a solvent, each with some texts of its data sheet left
+// out, so the list 5.3 prints its gaps (ADR 018).
+export function substancesFor(clientId: string, createdBy: string): SubstanceInsert[] {
+  const base = { organization_id: seedOrganizationId, client_id: clientId, created_by: createdBy };
+  return [
+    {
+      ...base,
+      sort_order: 0,
+      name: 'Detergent dezinfectant pe bază de hipoclorit de sodiu',
+      classification: 'Skin Corr. 1B, H314; Aquatic Acute 1, H400; EUH031',
+      quantity: '4 flacoane de 1 l',
+      identification_codes: 'Hipoclorit de sodiu, CAS 7681-52-9',
+      health_environment_risks:
+        'Provoacă arsuri grave ale pielii și lezarea ochilor; foarte toxic pentru mediul acvatic; în contact cu acizii degajă un gaz toxic',
+      protection_means: 'Mănuși de protecție, ochelari de protecție',
+      intervention_measures:
+        'Ochii și pielea se clătesc cu multă apă câteva minute; la înghițire se clătește gura, fără a provoca voma, și se cheamă medicul',
+      extinguishing_agents:
+        'Produsul nu este inflamabil; se folosesc mijloacele potrivite incendiului din jur',
+      storage_place: 'Magazia materialelor de curățenie, separat de produsele acide',
+      handling: 'Nu se amestecă cu alte produse de curățenie, mai ales cu cele acide',
+    },
+    {
+      ...base,
+      sort_order: 1,
+      name: 'Gaz petrolier lichefiat (propan) în butelii',
+      classification: 'Flam. Gas 1, H220; Press. Gas (Liquefied gas), H280',
+      quantity: '2 butelii de 11 kg',
+      physical_chemical_properties: 'Gaz incolor, mai greu decât aerul, extrem de inflamabil',
+      identification_codes: 'Propan, CAS 74-98-6, nr. ONU 1965',
+      extinguishing_agents: 'Pulbere, CO₂; buteliile se răcesc cu apă pulverizată',
+      storage_place: 'Cușca metalică ventilată din curte, departe de surse de căldură',
+      handling:
+        'Butelia se transportă și se folosește în poziție verticală, cu robinetul închis când nu este folosită',
+    },
+    {
+      ...base,
+      sort_order: 2,
+      name: 'Diluant pentru vopsele (white spirit)',
+      classification: 'Flam. Liq. 3, H226; Asp. Tox. 1, H304; STOT RE 1, H372',
+      quantity: '2 bidoane de 5 l',
+      physical_chemical_properties:
+        'Lichid incolor, cu miros caracteristic, punct de inflamabilitate 38 °C',
+      health_environment_risks:
+        'Poate fi mortal în caz de înghițire și de pătrundere în căile respiratorii; afectează sistemul nervos central la expunere prelungită',
+      protection_means: 'Mănuși din nitril, ochelari de protecție, ventilarea încăperii',
+      extinguishing_agents: 'Spumă, pulbere, CO₂; nu se folosește jet de apă',
+      storage_place: 'Dulapul metalic pentru substanțe inflamabile din atelier',
+    },
+  ];
+}
+
 export const fireSafetyTechnician = {
   fire_safety_technician_name: 'Radu Stan',
   fire_safety_technician_certificate: 'CT 1234/2024',
@@ -188,6 +241,8 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     persons: 0,
     equipment: 0,
     installations: 0,
+    substancesDeclared: 0,
+    substances: 0,
   };
   if (clientIds.length === 0) return counts;
 
@@ -294,5 +349,41 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   }
   counts.equipment = equipment.length;
   counts.installations = installations.length;
+
+  // Every other client declares none and the rest list theirs, so both forms of 5.3 are seen.
+  for (const [state, ids] of [
+    ['none', clientIds.filter((_, index) => index % 2 === 0)],
+    ['listed', clientIds.filter((_, index) => index % 2 === 1)],
+  ] as const) {
+    if (ids.length === 0) continue;
+    const decided = await db
+      .from('client_fire_safety')
+      .update({ substances_state: state })
+      .in('client_id', ids)
+      .eq('substances_state', 'undecided')
+      .select('client_id');
+    if (decided.error) {
+      throw new Error(`Could not seed the substances state: ${decided.error.message}`);
+    }
+    counts.substancesDeclared += decided.data.length;
+  }
+  const [listing, listed] = await Promise.all([
+    db
+      .from('client_fire_safety')
+      .select('client_id')
+      .in('client_id', clientIds)
+      .eq('substances_state', 'listed'),
+    db.from('fire_substances').select('client_id').in('client_id', clientIds),
+  ]);
+  if (listing.error) throw new Error(`Could not read substances: ${listing.error.message}`);
+  if (listed.error) throw new Error(`Could not read substances: ${listed.error.message}`);
+  const substances = listing.data
+    .filter((row) => !listed.data.some((entry) => entry.client_id === row.client_id))
+    .flatMap((row) => substancesFor(row.client_id, createdBy));
+  if (substances.length > 0) {
+    const { error } = await db.from('fire_substances').insert(substances);
+    if (error) throw new Error(`Could not seed dangerous substances: ${error.message}`);
+  }
+  counts.substances = substances.length;
   return counts;
 }

@@ -2,6 +2,7 @@ import {
   extinguisherCode,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
+  fireSubstanceRequestSchema,
   updateClientFireSafetyRequestSchema,
   updateOrganizationAuthorizationsRequestSchema,
   workplaceRequestSchema,
@@ -15,6 +16,7 @@ import {
   fireSafetyFor,
   fireSafetyTechnician,
   mobileSiteFor,
+  substancesFor,
 } from './seed-fire-safety';
 
 const userId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
@@ -170,5 +172,40 @@ describe('fireRolesToAdd', () => {
         { roles: ['imminent_danger', 'fire_intervention_leader'] },
       ])
     ).toEqual(['fire_safety_coordinator']);
+  });
+});
+
+describe('substancesFor', () => {
+  it('lists a cleaning agent, a gas cylinder and a solvent the API would accept, in order', () => {
+    const rows = substancesFor(clientId, userId);
+    expect(rows.map((row) => row.sort_order)).toEqual([0, 1, 2]);
+    expect(rows.map((row) => row.name)).toEqual([
+      'Detergent dezinfectant pe bază de hipoclorit de sodiu',
+      'Gaz petrolier lichefiat (propan) în butelii',
+      'Diluant pentru vopsele (white spirit)',
+    ]);
+    for (const row of rows) {
+      expect(
+        fireSubstanceRequestSchema.safeParse({
+          name: row.name,
+          classification: row.classification,
+          quantity: row.quantity,
+          physicalChemicalProperties: row.physical_chemical_properties,
+          identificationCodes: row.identification_codes,
+          healthEnvironmentRisks: row.health_environment_risks,
+          protectionMeans: row.protection_means,
+          interventionMeasures: row.intervention_measures,
+          extinguishingAgents: row.extinguishing_agents,
+          storagePlace: row.storage_place,
+          handling: row.handling,
+        }).success
+      ).toBe(true);
+    }
+  });
+
+  it('leaves some texts of the data sheet out, so the list prints its gaps', () => {
+    const [, propane] = substancesFor(clientId, userId);
+    expect(propane!.health_environment_risks).toBeUndefined();
+    expect(propane!.intervention_measures).toBeUndefined();
   });
 });

@@ -88,6 +88,23 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(page.getByText('Instalația a fost adăugată.')).toBeVisible();
   await expect(means.getByTestId('fire-installation-row')).toContainText('Centrală la intrare');
 
+  const substances = page.getByTestId('fire-substances-card');
+  await expect(substances.getByTestId('fire-substances-state')).toHaveText('Nedecis');
+  await substances.getByTestId('fire-substances-choice-listed').click();
+  await expect(
+    page.getByText('Am notat că clientul utilizează substanțe periculoase.')
+  ).toBeVisible();
+  await substances.getByTestId('fire-substance-add').click();
+  const substance = page.getByTestId('fire-substance-dialog');
+  await substance.getByTestId('fire-substance-name').fill('Propan');
+  await substance.getByTestId('fire-substance-classification').fill('Flam. Gas 1, H220');
+  await substance.getByTestId('fire-substance-quantity').fill('2 butelii de 11 kg');
+  await substance.getByTestId('fire-substance-storage').fill('Cușca metalică din curte');
+  await substance.getByTestId('fire-substance-save').click();
+  await expect(page.getByText('Substanța a fost adăugată.')).toBeVisible();
+  await expect(substances.getByTestId('fire-substance-row')).toContainText('Propan');
+  await expect(substances.getByTestId('fire-substances-state')).toHaveText('1 substanță');
+
   await page.getByTestId('client-section').filter({ hasText: 'Detalii' }).click();
   const row = page.getByTestId('workplace-row');
   await expect(row.getByTestId('workplace-fire-incomplete')).toBeVisible();
@@ -126,6 +143,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await page.reload();
   await expect(means.getByTestId('fire-equipment-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-installation-row')).toHaveCount(1);
+  await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
   await page.goto(`/clients/${clientId}/training`);
   await expect(card.getByTestId('fire-smoking-place')).toHaveText(
     'În curtea interioară, lângă poarta de acces auto'

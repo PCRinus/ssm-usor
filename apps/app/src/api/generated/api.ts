@@ -94,6 +94,7 @@ export const ApiErrorResponseMissingItem = {
   firewaste: 'fire.waste',
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
+  firesubstances: 'fire.substances',
 } as const;
 
 export interface ApiErrorResponse {
@@ -3625,6 +3626,168 @@ export interface FireInstallationRequest {
   nextCheckOn?: string | null;
 }
 
+export type FireSubstancesResponseState =
+  (typeof FireSubstancesResponseState)[keyof typeof FireSubstancesResponseState];
+
+export const FireSubstancesResponseState = {
+  undecided: 'undecided',
+  none: 'none',
+  listed: 'listed',
+} as const;
+
+export type FireSubstancesResponseItemsItem = {
+  id: string;
+  clientId: string;
+  name: string;
+  classification: string;
+  quantity: string;
+  /** @nullable */
+  physicalChemicalProperties: string | null;
+  /** @nullable */
+  identificationCodes: string | null;
+  /** @nullable */
+  healthEnvironmentRisks: string | null;
+  /** @nullable */
+  protectionMeans: string | null;
+  /** @nullable */
+  interventionMeasures: string | null;
+  /** @nullable */
+  extinguishingAgents: string | null;
+  /** @nullable */
+  storagePlace: string | null;
+  /** @nullable */
+  handling: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FireSubstancesResponse {
+  state: FireSubstancesResponseState;
+  items: FireSubstancesResponseItemsItem[];
+}
+
+export type FireSubstancesStateResponseState =
+  (typeof FireSubstancesStateResponseState)[keyof typeof FireSubstancesStateResponseState];
+
+export const FireSubstancesStateResponseState = {
+  undecided: 'undecided',
+  none: 'none',
+  listed: 'listed',
+} as const;
+
+export interface FireSubstancesStateResponse {
+  state: FireSubstancesStateResponseState;
+}
+
+export type UpdateFireSubstancesStateRequestState =
+  (typeof UpdateFireSubstancesStateRequestState)[keyof typeof UpdateFireSubstancesStateRequestState];
+
+export const UpdateFireSubstancesStateRequestState = {
+  undecided: 'undecided',
+  none: 'none',
+  listed: 'listed',
+} as const;
+
+export interface UpdateFireSubstancesStateRequest {
+  state: UpdateFireSubstancesStateRequestState;
+}
+
+export type FireSubstanceResponseSubstance = {
+  id: string;
+  clientId: string;
+  name: string;
+  classification: string;
+  quantity: string;
+  /** @nullable */
+  physicalChemicalProperties: string | null;
+  /** @nullable */
+  identificationCodes: string | null;
+  /** @nullable */
+  healthEnvironmentRisks: string | null;
+  /** @nullable */
+  protectionMeans: string | null;
+  /** @nullable */
+  interventionMeasures: string | null;
+  /** @nullable */
+  extinguishingAgents: string | null;
+  /** @nullable */
+  storagePlace: string | null;
+  /** @nullable */
+  handling: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FireSubstanceResponse {
+  substance: FireSubstanceResponseSubstance;
+}
+
+export interface FireSubstanceRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 2
+   * @maxLength 600
+   */
+  classification: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  quantity: string;
+  /**
+   * @minLength 2
+   * @maxLength 1000
+   * @nullable
+   */
+  physicalChemicalProperties?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 600
+   * @nullable
+   */
+  identificationCodes?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 1000
+   * @nullable
+   */
+  healthEnvironmentRisks?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 1000
+   * @nullable
+   */
+  protectionMeans?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 1000
+   * @nullable
+   */
+  interventionMeasures?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 600
+   * @nullable
+   */
+  extinguishingAgents?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 600
+   * @nullable
+   */
+  storagePlace?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 1000
+   * @nullable
+   */
+  handling?: string | null;
+}
+
 export type DocumentsBehindResponseItemsItemNewestVersionKind =
   (typeof DocumentsBehindResponseItemsItemNewestVersionKind)[keyof typeof DocumentsBehindResponseItemsItemNewestVersionKind];
 
@@ -3711,6 +3874,7 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   firewaste: 'fire.waste',
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
+  firesubstances: 'fire.substances',
 } as const;
 
 export type RegenerationJobResponseJobItemsItem = {
@@ -3790,6 +3954,7 @@ export const StartRegenerationRequestTypeKey = {
   fire_test_annual: 'fire_test_annual',
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
+  fire_substances_list: 'fire_substances_list',
   fire_cover_registers: 'fire_cover_registers',
   fire_registers: 'fire_registers',
   fire_work_permit: 'fire_work_permit',
@@ -3838,6 +4003,7 @@ export const DocumentReadinessResponseMissingItem = {
   firewaste: 'fire.waste',
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
+  firesubstances: 'fire.substances',
 } as const;
 
 /**
@@ -4150,6 +4316,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   fire_test_annual: 'fire_test_annual',
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
+  fire_substances_list: 'fire_substances_list',
   fire_cover_registers: 'fire_cover_registers',
   fire_registers: 'fire_registers',
   fire_work_permit: 'fire_work_permit',
@@ -15159,7 +15326,7 @@ export const getGetClientFireSafetyUrl = (clientId: string) => {
 };
 
 /**
- * Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018).
+ * Every field is null and `exists` false until the first save, so the app can open the form on its starting values (ADR 018). A row the substances state alone created does not count as saved.
  * @summary Read a client's fire-safety training schedule, smoking policy and waste
  */
 export const getClientFireSafety = async (
@@ -16285,6 +16452,557 @@ export const useDeleteFireInstallation = <TError = ErrorType<ApiErrorResponse>, 
   TContext
 > => {
   return useMutation(getDeleteFireInstallationMutationOptions(options), queryClient);
+};
+
+export const getListFireSubstancesUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-substances`;
+};
+
+/**
+ * `state` is `undecided` until a member says the client uses none (`none`) or lists them (`listed`); the entries are in the order they were added (ADR 018).
+ * @summary Read a client's dangerous substances and whether it uses any
+ */
+export const listFireSubstances = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireSubstancesResponse> => {
+  return apiFetch<FireSubstancesResponse>(getListFireSubstancesUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListFireSubstancesQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/fire-substances`] as const;
+};
+
+export const getListFireSubstancesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFireSubstances>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireSubstances>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFireSubstancesQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFireSubstances>>> = ({ signal }) =>
+    listFireSubstances(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listFireSubstances>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListFireSubstancesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFireSubstances>>
+>;
+export type ListFireSubstancesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListFireSubstances<
+  TData = Awaited<ReturnType<typeof listFireSubstances>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireSubstances>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFireSubstances>>,
+          TError,
+          Awaited<ReturnType<typeof listFireSubstances>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFireSubstances<
+  TData = Awaited<ReturnType<typeof listFireSubstances>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listFireSubstances>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFireSubstances>>,
+          TError,
+          Awaited<ReturnType<typeof listFireSubstances>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFireSubstances<
+  TData = Awaited<ReturnType<typeof listFireSubstances>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireSubstances>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read a client's dangerous substances and whether it uses any
+ */
+
+export function useListFireSubstances<
+  TData = Awaited<ReturnType<typeof listFireSubstances>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireSubstances>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListFireSubstancesQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateFireSubstanceUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-substances`;
+};
+
+/**
+ * The name, the CLP classification and the quantity are required; the other texts are copied from the safety data sheet and may be left out. Only under a client whose state is `listed`.
+ * @summary Add a dangerous substance to a client's list
+ */
+export const createFireSubstance = async (
+  clientId: string,
+  fireSubstanceRequest: FireSubstanceRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireSubstanceResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<FireSubstanceResponse>(getCreateFireSubstanceUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(fireSubstanceRequest),
+  });
+};
+
+export const getCreateFireSubstanceMutationKey = () => ['createFireSubstance'] as const;
+
+export const getCreateFireSubstanceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFireSubstance>>,
+    TError,
+    CreateFireSubstanceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFireSubstance>>,
+  TError,
+  CreateFireSubstanceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateFireSubstanceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFireSubstance>>,
+    CreateFireSubstanceMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createFireSubstance(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFireSubstanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFireSubstance>>
+>;
+export type CreateFireSubstanceMutationBody = FireSubstanceRequest;
+export type CreateFireSubstanceMutationError = ErrorType<ApiErrorResponse>;
+export type CreateFireSubstanceMutationVariables = { clientId: string; data: FireSubstanceRequest };
+
+/**
+ * @summary Add a dangerous substance to a client's list
+ */
+export const useCreateFireSubstance = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createFireSubstance>>,
+      TError,
+      CreateFireSubstanceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createFireSubstance>>,
+  TError,
+  CreateFireSubstanceMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateFireSubstanceMutationOptions(options), queryClient);
+};
+
+export const getUpdateFireSubstancesStateUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-substances/state`;
+};
+
+/**
+ * `none` declares that the client uses none, `listed` that it lists them below, `undecided` leaves the question open again. Only `listed` is accepted while the client has entries (`409`, reason `substances_listed`).
+ * @summary Say whether a client uses dangerous substances
+ */
+export const updateFireSubstancesState = async (
+  clientId: string,
+  updateFireSubstancesStateRequest: UpdateFireSubstancesStateRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireSubstancesStateResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<FireSubstancesStateResponse>(getUpdateFireSubstancesStateUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateFireSubstancesStateRequest),
+  });
+};
+
+export const getUpdateFireSubstancesStateMutationKey = () => ['updateFireSubstancesState'] as const;
+
+export const getUpdateFireSubstancesStateMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFireSubstancesState>>,
+    TError,
+    UpdateFireSubstancesStateMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFireSubstancesState>>,
+  TError,
+  UpdateFireSubstancesStateMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateFireSubstancesStateMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFireSubstancesState>>,
+    UpdateFireSubstancesStateMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return updateFireSubstancesState(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFireSubstancesStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFireSubstancesState>>
+>;
+export type UpdateFireSubstancesStateMutationBody = UpdateFireSubstancesStateRequest;
+export type UpdateFireSubstancesStateMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateFireSubstancesStateMutationVariables = {
+  clientId: string;
+  data: UpdateFireSubstancesStateRequest;
+};
+
+/**
+ * @summary Say whether a client uses dangerous substances
+ */
+export const useUpdateFireSubstancesState = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateFireSubstancesState>>,
+      TError,
+      UpdateFireSubstancesStateMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateFireSubstancesState>>,
+  TError,
+  UpdateFireSubstancesStateMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateFireSubstancesStateMutationOptions(options), queryClient);
+};
+
+export const getUpdateFireSubstanceUrl = (clientId: string, substanceId: string) => {
+  return `/clients/${clientId}/fire-substances/${substanceId}`;
+};
+
+/**
+ * A text left out or null is cleared.
+ * @summary Replace a dangerous substance
+ */
+export const updateFireSubstance = async (
+  clientId: string,
+  substanceId: string,
+  fireSubstanceRequest: FireSubstanceRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireSubstanceResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<FireSubstanceResponse>(getUpdateFireSubstanceUrl(clientId, substanceId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(fireSubstanceRequest),
+  });
+};
+
+export const getUpdateFireSubstanceMutationKey = () => ['updateFireSubstance'] as const;
+
+export const getUpdateFireSubstanceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFireSubstance>>,
+    TError,
+    UpdateFireSubstanceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFireSubstance>>,
+  TError,
+  UpdateFireSubstanceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateFireSubstanceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFireSubstance>>,
+    UpdateFireSubstanceMutationVariables
+  > = (props) => {
+    const { clientId, substanceId, data } = props ?? {};
+
+    return updateFireSubstance(clientId, substanceId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFireSubstanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFireSubstance>>
+>;
+export type UpdateFireSubstanceMutationBody = FireSubstanceRequest;
+export type UpdateFireSubstanceMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateFireSubstanceMutationVariables = {
+  clientId: string;
+  substanceId: string;
+  data: FireSubstanceRequest;
+};
+
+/**
+ * @summary Replace a dangerous substance
+ */
+export const useUpdateFireSubstance = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateFireSubstance>>,
+      TError,
+      UpdateFireSubstanceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateFireSubstance>>,
+  TError,
+  UpdateFireSubstanceMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateFireSubstanceMutationOptions(options), queryClient);
+};
+
+export const getDeleteFireSubstanceUrl = (clientId: string, substanceId: string) => {
+  return `/clients/${clientId}/fire-substances/${substanceId}`;
+};
+
+/**
+ * Deleting the last entry leaves the state `listed`, which blocks the fire-safety set until an entry is added or the client declares it uses none.
+ * @summary Delete a dangerous substance
+ */
+export const deleteFireSubstance = async (
+  clientId: string,
+  substanceId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteFireSubstanceUrl(clientId, substanceId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteFireSubstanceMutationKey = () => ['deleteFireSubstance'] as const;
+
+export const getDeleteFireSubstanceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFireSubstance>>,
+    TError,
+    DeleteFireSubstanceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFireSubstance>>,
+  TError,
+  DeleteFireSubstanceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteFireSubstanceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFireSubstance>>,
+    DeleteFireSubstanceMutationVariables
+  > = (props) => {
+    const { clientId, substanceId } = props ?? {};
+
+    return deleteFireSubstance(clientId, substanceId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteFireSubstanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteFireSubstance>>
+>;
+
+export type DeleteFireSubstanceMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteFireSubstanceMutationVariables = { clientId: string; substanceId: string };
+
+/**
+ * @summary Delete a dangerous substance
+ */
+export const useDeleteFireSubstance = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteFireSubstance>>,
+      TError,
+      DeleteFireSubstanceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFireSubstance>>,
+  TError,
+  DeleteFireSubstanceMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteFireSubstanceMutationOptions(options), queryClient);
 };
 
 export const getListDocumentsBehindUrl = () => {
@@ -18222,6 +18940,7 @@ export const getUploadClientDocumentUrl = (
     | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
+    | 'fire_substances_list'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'
@@ -18281,6 +19000,7 @@ export const uploadClientDocument = async (
     | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
+    | 'fire_substances_list'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'
@@ -18408,6 +19128,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_test_annual'
     | 'fire_means_list'
     | 'fire_workplace_organization'
+    | 'fire_substances_list'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'

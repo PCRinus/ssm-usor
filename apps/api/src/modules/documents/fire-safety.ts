@@ -15,10 +15,14 @@ import {
   fireSafetyMissingDocumentData,
   type FireSafetyTypeKeyFromTenEmployees,
   type FireSmokingPolicy,
+  type FireSubstanceDetail,
+  fireSubstanceDetails,
+  type FireSubstancesState,
   type ResponsiblePersonRole,
   samePersonName,
   type StaffCategory,
   trainingMonths,
+  unfilledMark,
   workplaceHasAreaAndNorm,
   type WorkplaceKind,
 } from '@ssm-usor/contracts';
@@ -50,8 +54,14 @@ export type FireWorkplaceFacts = {
   specificMeasures: string | null;
 };
 
+type FireSubstanceFacts = {
+  name: string;
+  classification: string;
+  quantity: string;
+} & Record<FireSubstanceDetail, string | null>;
+
 export type FireSafetyClientFacts = {
-  /** Null until the client's "Instruire PSI" card is first saved. */
+  /** Null while the client has no fire-safety row, which the card or the substances state creates. */
   card: {
     periodicTrainingHours: number | null;
     administrativeTrainingIntervalMonths: number | null;
@@ -79,6 +89,8 @@ export type FireSafetyClientFacts = {
   installations: { workplaceId: string; kind: FireInstallationKind; description: string | null }[];
   /** Those of the documents required from ten employees the client has, whatever its count now. */
   generatedFromTenEmployees: FireSafetyTypeKeyFromTenEmployees[];
+  /** `undecided` too while the client has no fire-safety row. */
+  substances: { state: FireSubstancesState; entries: FireSubstanceFacts[] };
 };
 
 type Person = {
@@ -154,6 +166,13 @@ type FireThemesContext = {
   sessions: TrainingSession[];
 };
 
+/** Every text of the data sheet as typed, or the mark the editor finds when it is empty. */
+type FireSubstanceContext = {
+  name: string;
+  classification: string;
+  quantity: string;
+} & Record<FireSubstanceDetail, string>;
+
 export type FireContext = {
   /** "5 PSI": the first decision number plus each decision's ordinal in the binder, minus one. */
   decisionNumbers: Record<FireDecision, string>;
@@ -207,6 +226,13 @@ export type FireContext = {
   waste: { kinds: string[]; contractor: string | null; collectors: string | null };
   /** One per staff category with current posts, technical-administrative first. */
   themes: FireThemesContext[];
+  /** The list 5.3: the declaration with `none`, a block per entry with `listed`. */
+  substances: {
+    state: 'none' | 'listed';
+    none: boolean;
+    listed: boolean;
+    entries: FireSubstanceContext[];
+  };
 };
 
 /**
@@ -301,6 +327,10 @@ export function missingFireSafetyData(
         (unit) => unit.workplaceId === workplace.id && unit.kind === 'extinguisher'
       )
     ),
+    'fire.substances':
+      facts.fireSafety.substances.state === 'none' ||
+      (facts.fireSafety.substances.state === 'listed' &&
+        facts.fireSafety.substances.entries.length > 0),
   };
   return fireSafetyMissingDocumentData.filter((code) => !present[code]);
 }
@@ -320,6 +350,7 @@ const printedAs: Record<FireSafetyMissingData, keyof FireSafetyContext> = {
   'positions.any': 'fire',
   'fire.workplaces': 'fire',
   'fire.equipment': 'fire',
+  'fire.substances': 'fire',
 };
 
 /** Whether a gap is in a name the document printed, which its snapshot keeps. */
@@ -620,6 +651,7 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       contractor: card.wasteContractor?.trim() || null,
       collectors: card.wasteCollectors?.trim() || null,
     },
+    substances: fireSubstances(facts.fireSafety.substances),
     themes: fireThemes({
       staff: { technical_administrative: administrative, execution },
       intervalMonths: {
@@ -631,6 +663,30 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       instructionsDecision: decisionNumbers.instructions,
       workplaceManagers: managerNames,
     }),
+  };
+}
+
+const printedOrGap = (text: string | null) => text?.trim() || unfilledMark;
+
+function fireSubstances({
+  state,
+  entries,
+}: FireSafetyClientFacts['substances']): FireContext['substances'] {
+  const listed = state === 'listed';
+  return {
+    state: listed ? 'listed' : 'none',
+    none: !listed,
+    listed,
+    entries: listed
+      ? entries.map((entry) => ({
+          name: entry.name.trim(),
+          classification: entry.classification.trim(),
+          quantity: entry.quantity.trim(),
+          ...(Object.fromEntries(
+            fireSubstanceDetails.map((detail) => [detail, printedOrGap(entry[detail])])
+          ) as Record<FireSubstanceDetail, string>),
+        }))
+      : [],
   };
 }
 

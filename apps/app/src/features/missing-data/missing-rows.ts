@@ -23,6 +23,7 @@ import type {
   ClientDetailsFocus,
   CompanyFocus,
   ContractFocus,
+  FireSafetyMeansFocus,
   OrganizationCompanyFocus,
   ProfileFocus,
   TrainingFocus,
@@ -33,11 +34,11 @@ const to = {
     linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
     linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
-  fireSafetyMeans: (clientId: string) =>
+  fireSafetyMeans: (clientId: string, focus: FireSafetyMeansFocus) =>
     linkOptions({
       to: '/clients/$clientId/fire-safety-means',
       params: { clientId },
-      search: { focus: 'fire-equipment' as const },
+      search: { focus },
     }),
   clientEvaluations: (clientId: string) =>
     linkOptions({
@@ -338,7 +339,14 @@ export const documentMissingData: Record<
     place: 'fireSafetyMeans',
     label: 'Stingătoarele locurilor de muncă',
     detail: 'Fiecare loc de muncă activ are nevoie de cel puțin un stingător.',
-    target: ({ clientId }) => to.fireSafetyMeans(clientId),
+    target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-equipment'),
+  },
+  'fire.substances': {
+    place: 'fireSafetyMeans',
+    label: 'Substanțele periculoase',
+    detail:
+      'Dacă clientul utilizează substanțe periculoase, cu cel puțin una în listă, sau că nu utilizează niciuna.',
+    target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-substances'),
   },
 };
 

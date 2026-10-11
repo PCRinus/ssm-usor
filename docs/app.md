@@ -177,7 +177,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/modificari.tsx`                                          | `/legislatie/modificari`                                    | "Modificări": the legal changes, newest first.                                                                                                                                                              |
 | `routes/_authenticated/legislatie/acte.tsx`                                                | `/legislatie/acte`                                          | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
-| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace.                                                                                                           |
+| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, and the dangerous substances.                                                                             |
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                          |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
@@ -545,7 +545,13 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   dwellings, once the workplace has an area and a norm; it is a hint and never blocks
   anything. A client without a workplace gets a link to add one in "Detalii".
   `?focus=fire-equipment` opens the equipment dialog of the first workplace without an
-  extinguisher.
+  extinguisher. Below the workplaces, also for a client without one, the card "Substanțe
+  periculoase" (ADR 018, amended 2026-10-11) asks whether the client uses dangerous substances,
+  "Nu se utilizează substanțe periculoase" or "Se utilizează, lista de mai jos", saved on choice;
+  with the second, a table of the substances, each added, edited and deleted through a dialog
+  whose eight optional texts name the section of the safety data sheet they come from. The
+  first choice is disabled while the list has entries. `?focus=fire-substances` points at the
+  choice while undecided, and opens the add dialog when the list is chosen but empty.
 - `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
   pack: title, the decision's number, badges for the issued revision and the draft, the

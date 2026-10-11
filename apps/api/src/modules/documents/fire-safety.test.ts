@@ -12,6 +12,15 @@ import { setOfGroup, setRules } from './sets';
 import { dealChapters, fireOwnInstructionsChapters } from './themes';
 
 const card = facts.fireSafety.card!;
+const withSubstances = (
+  substances: Partial<(typeof facts)['fireSafety']['substances']>
+): DocumentFacts => ({
+  ...facts,
+  fireSafety: {
+    ...facts.fireSafety,
+    substances: { ...facts.fireSafety.substances, ...substances },
+  },
+});
 const withCard = (changes: Partial<typeof card> | null): DocumentFacts => ({
   ...facts,
   fireSafety: { ...facts.fireSafety, card: changes && { ...card, ...changes } },
@@ -39,7 +48,13 @@ describe('what the fire-safety set is missing', () => {
       jobPositions: [],
       riskEvaluations: [],
       workplaces: [],
-      fireSafety: { card: null, equipment: [], installations: [], generatedFromTenEmployees: [] },
+      fireSafety: {
+        card: null,
+        equipment: [],
+        installations: [],
+        generatedFromTenEmployees: [],
+        substances: { state: 'undecided', entries: [] },
+      },
     };
     expect(missingFireSafetyData(lacking)).toEqual([
       'provider.legalName',
@@ -55,6 +70,7 @@ describe('what the fire-safety set is missing', () => {
       'responsible.fire_intervention_leader',
       'positions.any',
       'fire.workplaces',
+      'fire.substances',
     ]);
   });
 
@@ -149,6 +165,16 @@ describe('what the fire-safety set is missing', () => {
         fireSafety: { ...facts.fireSafety, equipment },
       })
     ).toEqual([]);
+  });
+
+  it('asks whether the client uses dangerous substances, and one entry when it lists them', () => {
+    expect(missingFireSafetyData(withSubstances({ state: 'undecided' }))).toEqual([
+      'fire.substances',
+    ]);
+    expect(missingFireSafetyData(withSubstances({ state: 'listed', entries: [] }))).toEqual([
+      'fire.substances',
+    ]);
+    expect(missingFireSafetyData(withSubstances({ state: 'none', entries: [] }))).toEqual([]);
   });
 
   it('never holds back the occupational safety set, nor is held back by it', () => {
@@ -481,6 +507,35 @@ describe('the fire-safety context', () => {
     expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: '—' });
   });
 
+  it('prints each listed substance with its texts trimmed and the empty ones as the mark to fill in', () => {
+    const { substances } = buildFireSafetyContext(facts).fire;
+    expect(substances).toMatchObject({ state: 'listed', listed: true, none: false });
+    expect(substances.entries).toHaveLength(2);
+    expect(substances.entries[0]).toEqual({
+      name: 'Propan',
+      classification: 'Flam. Gas 1, H220; Press. Gas, H280',
+      quantity: '2 butelii de 11 kg',
+      physicalChemicalProperties: 'DE COMPLETAT',
+      identificationCodes: 'CAS 74-98-6, UN 1978',
+      healthEnvironmentRisks: 'DE COMPLETAT',
+      protectionMeans: 'DE COMPLETAT',
+      interventionMeasures: 'DE COMPLETAT',
+      extinguishingAgents: 'Pulbere, CO₂; răcirea buteliilor cu apă pulverizată',
+      storagePlace: 'Cușca metalică ventilată din curte',
+      handling: 'DE COMPLETAT',
+    });
+    expect(substances.entries[1]!.name).toBe('Diluant pentru vopsele');
+  });
+
+  it('prints the declaration alone for a client that uses no dangerous substances', () => {
+    expect(buildFireSafetyContext(withSubstances({ state: 'none' })).fire.substances).toEqual({
+      state: 'none',
+      none: true,
+      listed: false,
+      entries: [],
+    });
+  });
+
   it('says whether other firms work on the premises, for decision 9 to control them', () => {
     expect(buildFireSafetyContext(facts).fire.hasThirdParties).toBe(true);
     expect(buildFireSafetyContext(withCard({ hasThirdParties: false })).fire.hasThirdParties).toBe(
@@ -659,7 +714,13 @@ describe('a fire-safety document generated again', () => {
     responsiblePersons: [],
     jobPositions: [],
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, assemblyPoint: null })),
-    fireSafety: { card: null, equipment: [], installations: [], generatedFromTenEmployees: [] },
+    fireSafety: {
+      card: null,
+      equipment: [],
+      installations: [],
+      generatedFromTenEmployees: [],
+      substances: { state: 'undecided', entries: [] },
+    },
   };
 
   it('is built without the fire object while any of its data is missing, and with the rest', () => {
@@ -673,6 +734,7 @@ describe('a fire-safety document generated again', () => {
       'positions.any',
       'fire.workplaces',
       'fire.equipment',
+      'fire.substances',
     ]);
     const context = buildPartialFireSafetyContext(stageTwoGaps);
     expect(Object.keys(context).sort()).toEqual([

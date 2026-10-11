@@ -214,6 +214,7 @@ export async function completeFireSafetyData(organizationId: string, clientId: s
     training_day_to: 7,
     smoking_policy: 'forbidden_everywhere',
     waste_kinds: ['deșeuri de carton, hârtie, plastic'],
+    substances_state: 'none',
   });
   if (card.error) throw card.error;
   const extinguisher = await admin.from('fire_equipment').insert({

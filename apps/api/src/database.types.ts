@@ -148,6 +148,7 @@ export type Database = {
           periodic_training_hours: number | null;
           smoking_place: string | null;
           smoking_policy: Database['public']['Enums']['fire_smoking_policy'] | null;
+          substances_state: Database['public']['Enums']['fire_substances_state'];
           training_day_from: number | null;
           training_day_to: number | null;
           training_first_month: number | null;
@@ -167,6 +168,7 @@ export type Database = {
           periodic_training_hours?: number | null;
           smoking_place?: string | null;
           smoking_policy?: Database['public']['Enums']['fire_smoking_policy'] | null;
+          substances_state?: Database['public']['Enums']['fire_substances_state'];
           training_day_from?: number | null;
           training_day_to?: number | null;
           training_first_month?: number | null;
@@ -186,6 +188,7 @@ export type Database = {
           periodic_training_hours?: number | null;
           smoking_place?: string | null;
           smoking_policy?: Database['public']['Enums']['fire_smoking_policy'] | null;
+          substances_state?: Database['public']['Enums']['fire_substances_state'];
           training_day_from?: number | null;
           training_day_to?: number | null;
           training_first_month?: number | null;
@@ -1321,6 +1324,98 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'client_workplaces';
             referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
+      fire_substances: {
+        Row: {
+          classification: string;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          extinguishing_agents: string | null;
+          handling: string | null;
+          health_environment_risks: string | null;
+          id: string;
+          identification_codes: string | null;
+          intervention_measures: string | null;
+          name: string;
+          organization_id: string;
+          physical_chemical_properties: string | null;
+          protection_means: string | null;
+          quantity: string;
+          sort_order: number;
+          storage_place: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          classification: string;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          extinguishing_agents?: string | null;
+          handling?: string | null;
+          health_environment_risks?: string | null;
+          id?: string;
+          identification_codes?: string | null;
+          intervention_measures?: string | null;
+          name: string;
+          organization_id: string;
+          physical_chemical_properties?: string | null;
+          protection_means?: string | null;
+          quantity: string;
+          sort_order?: number;
+          storage_place?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          classification?: string;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          extinguishing_agents?: string | null;
+          handling?: string | null;
+          health_environment_risks?: string | null;
+          id?: string;
+          identification_codes?: string | null;
+          intervention_measures?: string | null;
+          name?: string;
+          organization_id?: string;
+          physical_chemical_properties?: string | null;
+          protection_means?: string | null;
+          quantity?: string;
+          sort_order?: number;
+          storage_place?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fire_substances_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -2879,6 +2974,7 @@ export type Database = {
         | 'gas_detection'
         | 'other';
       fire_smoking_policy: 'forbidden_everywhere' | 'designated_places';
+      fire_substances_state: 'undecided' | 'none' | 'listed';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       organization_role: 'owner' | 'specialist';
       prevention_measure_kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
@@ -3042,6 +3138,7 @@ export const Constants = {
         'other',
       ],
       fire_smoking_policy: ['forbidden_everywhere', 'designated_places'],
+      fire_substances_state: ['undecided', 'none', 'listed'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       organization_role: ['owner', 'specialist'],
       prevention_measure_kind: ['technical', 'organizational', 'hygienic_sanitary', 'other'],

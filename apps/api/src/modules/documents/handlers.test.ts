@@ -221,6 +221,20 @@ const fireSafetyRow = {
   waste_contractor: null,
   waste_collectors: null,
   has_third_parties: false,
+  substances_state: 'none',
+};
+const fireSubstanceRow = {
+  name: 'Propan',
+  classification: 'Flam. Gas 1, H220',
+  quantity: '2 butelii de 11 kg',
+  physical_chemical_properties: null,
+  identification_codes: null,
+  health_environment_risks: null,
+  protection_means: null,
+  intervention_measures: null,
+  extinguishing_agents: null,
+  storage_place: 'Cușca metalică din curte',
+  handling: null,
 };
 const fireEquipmentRow = {
   workplace_id: workplaceRow.id,
@@ -333,7 +347,8 @@ type Upstream =
   | 'riskEvaluations'
   | 'fireSafety'
   | 'fireEquipment'
-  | 'fireInstallations';
+  | 'fireInstallations'
+  | 'fireSubstances';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -397,6 +412,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.fireEquipment?.() ?? Response.json([fireEquipmentRow]);
       case '/rest/v1/fire_installations':
         return handlers.fireInstallations?.() ?? Response.json([]);
+      case '/rest/v1/fire_substances':
+        return handlers.fireSubstances?.() ?? Response.json([]);
       case '/rest/v1/client_documents':
         if (method === 'GET' && isConditionalDocumentsRead(url)) {
           return handlers.conditionalDocuments?.() ?? Response.json([]);
@@ -2902,6 +2919,7 @@ describe('the fire-safety set', () => {
       'responsible.fire_intervention_leader',
       'fire.workplaces',
       'fire.equipment',
+      'fire.substances',
     ]);
     expect(searchParam('/rest/v1/fire_equipment', 'client_id')).toBe(`eq.${clientId}`);
   });
@@ -2958,6 +2976,29 @@ describe('the fire-safety set', () => {
     ).toBe(true);
     expect(await changed({ riskEvaluations: () => Response.json([]) })).toBe(false);
     expect(await changed({ fireEquipment: () => Response.json([]) })).toBe(true);
+    expect(
+      await changed({
+        fireSafety: () => Response.json({ ...fireSafetyRow, substances_state: 'listed' }),
+        fireSubstances: () => Response.json([fireSubstanceRow]),
+      })
+    ).toBe(true);
+  });
+
+  it('asks for a listed substance before the fire-safety set generates', async () => {
+    mockUpstream({
+      fireSafety: () => Response.json({ ...fireSafetyRow, substances_state: 'listed' }),
+    });
+    const listedEmpty = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await listedEmpty.json()).missing).toEqual([
+      'fire.substances',
+    ]);
+    mockUpstream({
+      fireSafety: () => Response.json({ ...fireSafetyRow, substances_state: 'listed' }),
+      fireSubstances: () => Response.json([fireSubstanceRow]),
+    });
+    const listed = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await listed.json()).ready).toBe(true);
+    expect(searchParam('/rest/v1/fire_substances', 'client_id')).toBe(`eq.${clientId}`);
   });
 
   it('says so when none of its templates is registered', async () => {
@@ -3023,6 +3064,7 @@ describe('the fire-safety set', () => {
     'positions.any',
     'fire.workplaces',
     'fire.equipment',
+    'fire.substances',
   ];
   const wasteDecisionRow = {
     ...fireDocumentRow,

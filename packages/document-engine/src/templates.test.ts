@@ -203,6 +203,39 @@ describe('fire-safety set', () => {
       contractor: 'S.C. ECO S.R.L.',
       collectors: 'muncitorii necalificați și șeful de șantier',
     },
+    substances: {
+      state: 'listed',
+      none: false,
+      listed: true,
+      entries: [
+        {
+          name: 'Propan',
+          classification: 'Flam. Gas 1, H220; Press. Gas, H280',
+          quantity: '2 butelii de 11 kg',
+          physicalChemicalProperties: 'DE COMPLETAT',
+          identificationCodes: 'CAS 74-98-6, UN 1978',
+          healthEnvironmentRisks: 'DE COMPLETAT',
+          protectionMeans: 'Mănuși de protecție',
+          interventionMeasures: 'DE COMPLETAT',
+          extinguishingAgents: 'Pulbere, CO₂',
+          storagePlace: 'Cușca metalică din curte',
+          handling: 'DE COMPLETAT',
+        },
+        {
+          name: 'Diluant',
+          classification: 'Flam. Liq. 2, H225',
+          quantity: '5 l',
+          physicalChemicalProperties: 'Lichid incolor',
+          identificationCodes: 'DE COMPLETAT',
+          healthEnvironmentRisks: 'Poate provoca somnolență',
+          protectionMeans: 'Mănuși din nitril',
+          interventionMeasures: 'Aerisirea încăperii',
+          extinguishingAgents: 'Spumă, pulbere',
+          storagePlace: 'Dulapul metalic',
+          handling: 'Departe de surse de aprindere',
+        },
+      ],
+    },
     themes: [
       {
         staffCategory: 'technical_administrative',
@@ -274,6 +307,7 @@ describe('fire-safety set', () => {
       place: null,
     },
     waste: { kinds: ['deșeuri menajere'], contractor: null, collectors: null },
+    substances: { state: 'none', none: true, listed: false, entries: [] },
     themes: fire.themes.slice(1),
   };
   const stageTwoData = {
@@ -601,6 +635,45 @@ describe('fire-safety set', () => {
     numIds.delete('0');
     expect(numIds.size).toBeGreaterThan(0);
     expect([...numIds].map(firstLevelFormat).filter((format) => format !== 'bullet')).toEqual([]);
+  });
+
+  it('lists each dangerous substance in a table with every field, the empty ones to fill in', () => {
+    const list = documentText(
+      renderDocument(read('fire/5.3_fire_substances_list.docx'), stageTwoData)
+    );
+    expect(list).toContain('LISTA SUBSTANȚELOR PERICULOASE');
+    expect(list).toContain(
+      'Lista substanțelor periculoase utilizate în cadrul S.C. CLIENT DEMO S.R.L., întocmită în baza prevederilor Legii 307/2006 – art. 19 lit. f) și ale OMAI 163/2007 – art. 18 lit. p) și art. 20 alin. (3) lit. g).'
+    );
+    expect(list).toContain('Substanța 1');
+    expect(list).toContain('Substanța 2');
+    expect(list).toContain('Flam. Gas 1, H220; Press. Gas, H280');
+    expect(list).toContain('Cușca metalică din curte');
+    expect(list.match(/DE COMPLETAT/g)).toHaveLength(5);
+    expect(list).not.toContain('nu utilizează substanțe periculoase');
+    expect(list).toContain('Data: 19.01.2026');
+    expect(list).toContain('Cadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
+    expect(list).toContain('Administrator al S.C. CLIENT DEMO S.R.L.');
+  });
+
+  it('declares in one paragraph that a client uses no dangerous substances, with no table', () => {
+    const declared = renderDocument(read('fire/5.3_fire_substances_list.docx'), {
+      ...stageTwoData,
+      fire: sparse,
+    });
+    const text = documentText(declared);
+    expect(text).toContain(
+      'S.C. CLIENT DEMO S.R.L. declară că în activitatea sa nu utilizează substanțe periculoase.'
+    );
+    expect(text).not.toContain('Substanța 1');
+    expect(text).not.toContain('DE COMPLETAT');
+    expect(text).toContain('Maria POPESCU');
+    expect(
+      new PizZip(declared)
+        .file('word/document.xml')!
+        .asText()
+        .match(/<w:tbl>/g)
+    ).toHaveLength(1);
   });
 
   it('gives every workplace a page of its own on the posted sheet', () => {

@@ -439,6 +439,7 @@ const printedAs = {
   'fire.waste': [],
   'fire.workplaces': [],
   'fire.equipment': [],
+  'fire.substances': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
 /** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */

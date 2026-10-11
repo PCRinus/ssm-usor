@@ -208,7 +208,8 @@ Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by t
 `20261011090000_fire_safety_waste_kinds_length` lengthens a kind of waste and
 `20261011090100_fire_safety_waste_collectors` adds who collects the waste, both amending ADR 018;
 `20261011090200_fire_safety_third_parties` adds whether other firms work on the premises, amending
-ADR 019.
+ADR 019. `20261012090000_workplace_kind` and `20261012100000_fire_substances` add the workplace
+kind and the substances list of ADR 018's amendment of 2026-10-11.
 The documents of the fire-safety set's second and third stages print these facts; the
 occupational safety set reads none of them.
 
@@ -230,6 +231,7 @@ but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
 | `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                  |
 | `waste_collectors`                        | Who collects the waste at the client, 2 to 160 characters; null for the workers on duty.                |
 | `has_third_parties`                       | Other firms work on the client's premises; `false` by default. Decision 9 then controls them.           |
+| `substances_state`                        | `fire_substances_state`: `undecided`, the default, `none` or `listed`. See the substances list below.   |
 
 The smoking place is optional even with `designated_places`: without it decision 4 says the
 places are those marked "LOC PENTRU FUMAT". The API clears it whenever the card is saved with the
@@ -316,6 +318,33 @@ another workplace of the same one. The API also refuses to tie a unit or a perso
 archived workplace, which the foreign key alone would take, and leaves units of an archived
 workplace out of its lists.
 
+**Dangerous substances.** `fire_substances` holds one row per substance a client uses, with
+`id`, `organization_id` and `client_id` and the composite foreign key to `clients`, and no
+workplace. Rows are deleted, not archived.
+
+| Column                         | Notes                                                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| `name`                         | Required, 2 to 160 characters.                                                            |
+| `classification`               | Required, 2 to 600: the CLP hazard classes and H statements, "Flam. Gas 1, H220".         |
+| `quantity`                     | Required, 1 to 160, free text: "2 butelii de 11 kg".                                      |
+| `physical_chemical_properties` | Optional, 2 to 1000; from section 9 of the safety data sheet.                             |
+| `identification_codes`         | Optional, 2 to 600; sections 1 and 3.                                                     |
+| `health_environment_risks`     | Optional, 2 to 1000; sections 2, 11 and 12.                                               |
+| `protection_means`             | Optional, 2 to 1000; section 8.                                                           |
+| `intervention_measures`        | Optional, 2 to 1000: intervention and first aid; sections 4, 5 and 6.                     |
+| `extinguishing_agents`         | Optional, 2 to 600: agents for extinguishing, neutralizing or decontaminating; section 5. |
+| `storage_place`                | Optional, 2 to 600; section 7.                                                            |
+| `handling`                     | Optional, 2 to 1000; section 7.                                                           |
+| `sort_order`                   | The order of the list; the API appends a new entry after the last.                        |
+
+The client's `client_fire_safety.substances_state` says whether it uses any: `undecided` until a
+member says, `none`, a declaration that it uses none, or `listed`. Two triggers keep the two in
+step: a substance is inserted only under a client whose state is `listed` (`SUB02`), and the state
+leaves `listed` only while the client has no substance (`SUB01`). Saving the state creates the
+`client_fire_safety` row when there is none; the API still reports the card as unsaved while the
+row holds nothing of the card, so the card opens on its starting values. Both are guarded as the
+other fire-safety tables are, and the list is asked of every client, under ten employees too.
+
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
@@ -324,7 +353,8 @@ columns above other than `specific_measures` set on every active workplace), `fi
 `responsible.fire_intervention_leader` (an active person in each role). It also asks the existing `responsible.workplace_manager` and
 `positions.any`. Any of them refuses the whole set's generation. ADR 019 adds `fire.smokingPolicy` (a policy
 chosen) and `provider.fireSafetyTechnicianCertificate`; neither the smoking place nor the
-authorization is ever asked for.
+authorization is ever asked for. The amendment of 2026-10-11 adds `fire.substances`: the
+substances state `none`, or `listed` with at least one substance.
 
 **What the templates read.** Fire-safety templates read these facts from one merge object,
 `fire`, and nothing else about the client beyond `client`, `provider`, `fireSafetyTechnician`,

@@ -231,6 +231,18 @@
       }
     },
     {
+      "number": "5.3",
+      "originals": [],
+      "stage": 2,
+      "typeKey": "fire_substances_list",
+      "title": "Lista substanțelor periculoase",
+      "file": "5.3_fire_substances_list.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "6.0",
       "originals": ["7.1._Coperta_Registre"],
       "stage": 1,

@@ -48,6 +48,7 @@ export async function loadDocumentFacts(
     fireSafety,
     fireEquipment,
     fireInstallations,
+    fireSubstances,
     ...employeeCounts
   ] = await Promise.all([
     db
@@ -127,7 +128,7 @@ export async function loadDocumentFacts(
     db
       .from('client_fire_safety')
       .select(
-        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors, has_third_parties'
+        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors, has_third_parties, substances_state'
       )
       .eq('client_id', clientId)
       .maybeSingle(),
@@ -141,6 +142,15 @@ export async function loadDocumentFacts(
       .from('fire_installations')
       .select('workplace_id, kind, description')
       .eq('client_id', clientId)
+      .order('created_at')
+      .order('id'),
+    db
+      .from('fire_substances')
+      .select(
+        'name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
+      )
+      .eq('client_id', clientId)
+      .order('sort_order')
       .order('created_at')
       .order('id'),
     ...categories.map((category) =>
@@ -175,6 +185,9 @@ export async function loadDocumentFacts(
   }
   if (fireInstallations.error) {
     throw fromDatabaseError(fireInstallations.error, 'document facts: fire installations');
+  }
+  if (fireSubstances.error) {
+    throw fromDatabaseError(fireSubstances.error, 'document facts: fire substances');
   }
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
@@ -260,6 +273,22 @@ export async function loadDocumentFacts(
       generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
         generated.has(typeKey)
       ),
+      substances: {
+        state: fireSafety.data?.substances_state ?? 'undecided',
+        entries: fireSubstances.data.map((substance) => ({
+          name: substance.name,
+          classification: substance.classification,
+          quantity: substance.quantity,
+          physicalChemicalProperties: substance.physical_chemical_properties,
+          identificationCodes: substance.identification_codes,
+          healthEnvironmentRisks: substance.health_environment_risks,
+          protectionMeans: substance.protection_means,
+          interventionMeasures: substance.intervention_measures,
+          extinguishingAgents: substance.extinguishing_agents,
+          storagePlace: substance.storage_place,
+          handling: substance.handling,
+        })),
+      },
     },
     responsiblePersons: persons.data.map((person) => ({
       fullName: person.full_name,

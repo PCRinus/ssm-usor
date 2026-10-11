@@ -76,7 +76,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('4');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 21 de documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible();
 
   await expect(page.getByTestId('document-section')).toHaveCount(6);
   await openDocumentSection(page, '1');
@@ -93,7 +93,10 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await openDocumentSection(page, '4');
   await expect(page.getByTestId('document-row')).toHaveCount(3);
   await openDocumentSection(page, '5');
-  await expect(page.getByTestId('document-row')).toHaveCount(2);
+  await expect(page.getByTestId('document-row')).toHaveCount(3);
+  await expect(page.getByTestId('document-row').nth(2)).toContainText(
+    'Lista substanțelor periculoase'
+  );
   await openDocumentSection(page, '6');
   const rows = page.getByTestId('document-row');
   await expect(rows).toHaveCount(4);

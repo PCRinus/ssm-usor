@@ -109,6 +109,11 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/fire-installations`                          | Verified user with a membership       | `201 { "installation": { … } }`                                                                                           |
 | `PUT /clients/{clientId}/fire-installations/{installationId}`          | Verified user with a membership       | `{ "installation": { … } }` after replacing it                                                                            |
 | `DELETE /clients/{clientId}/fire-installations/{installationId}`       | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-substances`                              | Verified user with a membership       | `{ "state", "items": [ … ] }`: whether the client uses dangerous substances, and the list in its order                    |
+| `PUT /clients/{clientId}/fire-substances/state`                        | Verified user with a membership       | `{ "state" }` after setting `undecided`, `none` or `listed`; `none` is `409` while entries exist                          |
+| `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                          |
+| `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                               |
+| `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                   |
 | `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                   |
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                            |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
@@ -641,7 +646,14 @@ unit, each on a workplace in `workplaceId`, which must be an active workplace of
 (`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
 `agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
 kind `other` needs a `description`, all `400` before the database is asked. `DELETE` removes the
-row. Under an archived client or a lead, every write is `409` with the reason `client_archived`
+row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name, a
+CLP classification and a quantity, required, and eight optional texts copied from the safety data
+sheet, which a `PUT` clears when left out. `GET …/fire-substances` answers `state` `undecided`
+while the client has not said, or has no fire-safety row. `PUT …/fire-substances/state` saves it,
+creating the row when there is none without counting as the card's first save; `none` while the
+client has entries is `409` with the reason `substances_listed`, and a new entry under any state
+but `listed` is `409` with `substances_not_listed`. Entries keep the order they were added in.
+Under an archived client or a lead, every write is `409` with the reason `client_archived`
 or `client_is_lead`.
 
 `PATCH /me/profile` also takes `professionalTitle`: left out it stays, `null` clears it.
@@ -697,8 +709,9 @@ of the "Instruire PSI" card), `fire.smokingPolicy` (a smoking rule chosen; the p
 `responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
 `positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
 assembly point and the three texts of the posted sheet, and a fixed space with its area and
-its norm, which may be `none`) and `fire.equipment` (an
-extinguisher in every active workplace). Any of them refuses the whole set. Its readiness lists
+its norm, which may be `none`), `fire.equipment` (an
+extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
+`listed` with an entry; ADR 018, amended). Any of them refuses the whole set. Its readiness lists
 nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
 `workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
 9991 so that the binder's ninth decision still fits in four digits, and is `400`

@@ -61,6 +61,7 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_test_annual',
   'fire_means_list',
   'fire_workplace_organization',
+  'fire_substances_list',
   'fire_cover_registers',
   'fire_registers',
   'fire_work_permit',
@@ -210,6 +211,8 @@ export const missingDocumentData = [
   'fire.workplaces',
   // An active workplace without an extinguisher.
   'fire.equipment',
+  // The substances state undecided, or listed without an entry.
+  'fire.substances',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -232,6 +235,7 @@ export const fireSafetyMissingDocumentData = [
   'positions.any',
   'fire.workplaces',
   'fire.equipment',
+  'fire.substances',
 ] as const satisfies readonly MissingDocumentData[];
 
 export const jobPositionDecisions = ['equipment', 'instructions'] as const;

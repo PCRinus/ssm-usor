@@ -8,6 +8,9 @@ import {
   type FireInstallation,
   fireInstallationKinds,
   type FireInstallationRequest,
+  type FireSubstance,
+  type FireSubstanceRequest,
+  type FireSubstancesState,
   type UpdateClientFireSafetyRequest,
 } from '@ssm-usor/contracts';
 
@@ -19,14 +22,19 @@ import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../documen
 import type {
   createFireEquipmentRoute,
   createFireInstallationRoute,
+  createFireSubstanceRoute,
   deleteFireEquipmentRoute,
   deleteFireInstallationRoute,
+  deleteFireSubstanceRoute,
   getClientFireSafetyRoute,
   listFireEquipmentRoute,
   listFireInstallationsRoute,
+  listFireSubstancesRoute,
   updateClientFireSafetyRoute,
   updateFireEquipmentRoute,
   updateFireInstallationRoute,
+  updateFireSubstanceRoute,
+  updateFireSubstancesStateRoute,
 } from './routes';
 
 type Tables = Database['public']['Tables'];
@@ -123,6 +131,23 @@ const fireSafetyFields = (body: UpdateClientFireSafetyRequest) => ({
   has_third_parties: body.hasThirdParties,
 });
 
+// Saving the substances state alone creates the row too; the card still opens on its starting
+// values then, so a row counts as the card's only once it holds something of the card.
+const holdsCardFacts = (row: FireSafetyRow) =>
+  [
+    row.periodic_training_hours,
+    row.administrative_training_interval_months,
+    row.worker_training_interval_months,
+    row.training_first_month,
+    row.training_day_from,
+    row.training_day_to,
+    row.smoking_policy,
+    row.waste_contractor,
+    row.waste_collectors,
+  ].some((value) => value !== null) ||
+  row.waste_kinds.length > 0 ||
+  row.has_third_parties;
+
 export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, ApiEnv> = async (
   c
 ) => {
@@ -135,10 +160,8 @@ export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, 
     .eq('client_id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'client fire safety');
-  return c.json(
-    { fireSafety: data ? toFireSafety(data) : noFireSafety, exists: data !== null },
-    200
-  );
+  const saved = data !== null && holdsCardFacts(data);
+  return c.json({ fireSafety: saved ? toFireSafety(data) : noFireSafety, exists: saved }, 200);
 };
 
 // Not an upsert: PostgREST's would also set the keys, which members may not update.
@@ -450,5 +473,211 @@ export const deleteFireInstallation: RouteHandler<
     .select('id');
   if (error) throw fromDatabaseError(error, 'delete fire installation');
   if (data.length === 0) throw noSuchInstallation();
+  return c.body(null, 204);
+};
+
+const substanceColumns =
+  'id, client_id, name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling, created_at, updated_at';
+
+type SubstanceRow = Pick<
+  Tables['fire_substances']['Row'],
+  | 'id'
+  | 'client_id'
+  | 'name'
+  | 'classification'
+  | 'quantity'
+  | 'physical_chemical_properties'
+  | 'identification_codes'
+  | 'health_environment_risks'
+  | 'protection_means'
+  | 'intervention_measures'
+  | 'extinguishing_agents'
+  | 'storage_place'
+  | 'handling'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+const toSubstance = (row: SubstanceRow): FireSubstance => ({
+  id: row.id,
+  clientId: row.client_id,
+  name: row.name,
+  classification: row.classification,
+  quantity: row.quantity,
+  physicalChemicalProperties: row.physical_chemical_properties,
+  identificationCodes: row.identification_codes,
+  healthEnvironmentRisks: row.health_environment_risks,
+  protectionMeans: row.protection_means,
+  interventionMeasures: row.intervention_measures,
+  extinguishingAgents: row.extinguishing_agents,
+  storagePlace: row.storage_place,
+  handling: row.handling,
+  createdAt: new Date(row.created_at).toISOString(),
+  updatedAt: new Date(row.updated_at).toISOString(),
+});
+
+const substanceFields = (body: FireSubstanceRequest) => ({
+  name: body.name,
+  classification: body.classification,
+  quantity: body.quantity,
+  physical_chemical_properties: body.physicalChemicalProperties ?? null,
+  identification_codes: body.identificationCodes ?? null,
+  health_environment_risks: body.healthEnvironmentRisks ?? null,
+  protection_means: body.protectionMeans ?? null,
+  intervention_measures: body.interventionMeasures ?? null,
+  extinguishing_agents: body.extinguishingAgents ?? null,
+  storage_place: body.storagePlace ?? null,
+  handling: body.handling ?? null,
+});
+
+const noSuchSubstance = () =>
+  new ApiError('not_found', 'This substance does not exist under this client.');
+
+async function substancesStateOf(db: DataClient, clientId: string) {
+  const { data, error } = await db
+    .from('client_fire_safety')
+    .select('substances_state')
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'fire substances state');
+  return data?.substances_state ?? 'undecided';
+}
+
+export const listFireSubstances: RouteHandler<typeof listFireSubstancesRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const [state, entries] = await Promise.all([
+    substancesStateOf(db, clientId),
+    db
+      .from('fire_substances')
+      .select(substanceColumns)
+      .eq('client_id', clientId)
+      .order('sort_order')
+      .order('created_at')
+      .order('id'),
+  ]);
+  if (entries.error) throw fromDatabaseError(entries.error, 'list fire substances');
+  return c.json({ state, items: entries.data.map(toSubstance) }, 200);
+};
+
+// Not an upsert, as the card's save: PostgREST's would also set the keys.
+export const updateFireSubstancesState: RouteHandler<
+  typeof updateFireSubstancesStateRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const { state } = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const refusal = (error: { code: string }) =>
+    error.code === 'SUB01'
+      ? new ApiError(
+          'conflict',
+          'The client has dangerous substances listed; delete them before saying it uses none.',
+          undefined,
+          'substances_listed'
+        )
+      : fromDatabaseError(error, 'update fire substances state');
+  const update = () =>
+    db
+      .from('client_fire_safety')
+      .update({ substances_state: state })
+      .eq('client_id', clientId)
+      .select('substances_state')
+      .maybeSingle();
+  const respond = (saved: FireSubstancesState) => c.json({ state: saved }, 200);
+  const updated = await update();
+  if (updated.error) throw refusal(updated.error);
+  if (updated.data) return respond(updated.data.substances_state);
+  const inserted = await db
+    .from('client_fire_safety')
+    .insert({
+      client_id: clientId,
+      organization_id: c.get('membership').organizationId,
+      substances_state: state,
+      created_by: c.get('user').id,
+    })
+    .select('substances_state')
+    .single();
+  if (inserted.error?.code === '23505') {
+    const again = await update();
+    if (again.error) throw refusal(again.error);
+    if (again.data) return respond(again.data.substances_state);
+  }
+  if (inserted.error) throw refusal(inserted.error);
+  return respond(inserted.data.substances_state);
+};
+
+export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const last = await db
+    .from('fire_substances')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) throw fromDatabaseError(last.error, 'last fire substance');
+  const { data, error } = await db
+    .from('fire_substances')
+    .insert({
+      ...substanceFields(body),
+      sort_order: (last.data?.sort_order ?? -1) + 1,
+      organization_id: c.get('membership').organizationId,
+      client_id: clientId,
+      created_by: c.get('user').id,
+    })
+    .select(substanceColumns)
+    .single();
+  if (error?.code === 'SUB02') {
+    throw new ApiError(
+      'conflict',
+      'The client does not list its dangerous substances; say it uses some first.',
+      undefined,
+      'substances_not_listed'
+    );
+  }
+  if (error) throw fromDatabaseError(error, 'create fire substance');
+  return c.json({ substance: toSubstance(data) }, 201);
+};
+
+export const updateFireSubstance: RouteHandler<typeof updateFireSubstanceRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, substanceId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { data, error } = await db
+    .from('fire_substances')
+    .update(substanceFields(c.req.valid('json')))
+    .eq('id', substanceId)
+    .eq('client_id', clientId)
+    .select(substanceColumns)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'update fire substance');
+  if (!data) throw noSuchSubstance();
+  return c.json({ substance: toSubstance(data) }, 200);
+};
+
+export const deleteFireSubstance: RouteHandler<typeof deleteFireSubstanceRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, substanceId } = c.req.valid('param');
+  const { data, error } = await createDataClient(c)
+    .from('fire_substances')
+    .delete()
+    .eq('id', substanceId)
+    .eq('client_id', clientId)
+    .select('id');
+  if (error) throw fromDatabaseError(error, 'delete fire substance');
+  if (data.length === 0) throw noSuchSubstance();
   return c.body(null, 204);
 };

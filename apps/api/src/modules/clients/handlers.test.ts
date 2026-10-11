@@ -171,7 +171,7 @@ describe('GET /clients', () => {
           fireSafetyDocumentation: {
             state: 'none',
             issuedCount: 0,
-            totalCount: 21,
+            totalCount: 22,
             lastGeneratedAt: null,
           },
         },
@@ -296,8 +296,8 @@ describe('GET /clients', () => {
       })
     ).toEqual({
       state: 'issued',
-      issuedCount: 21,
-      totalCount: 21,
+      issuedCount: 22,
+      totalCount: 22,
       lastGeneratedAt: '2026-10-01T10:00:00+00:00',
     });
     expect(
@@ -306,14 +306,14 @@ describe('GET /clients', () => {
         fire_safety_generated_type_keys: generated,
         fire_safety_issued_count: generated.length,
       })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 21, totalCount: 24 });
+    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 25 });
     expect(
       await fireSafetyDocumentationOf({
         current_employee_count: 3,
         fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys, 'fire_own_annex'],
-        fire_safety_issued_count: 25,
+        fire_safety_issued_count: 26,
       })
-    ).toMatchObject({ state: 'issued', issuedCount: 25, totalCount: 25 });
+    ).toMatchObject({ state: 'issued', issuedCount: 26, totalCount: 26 });
   });
 
   it('keeps the two sets apart', async () => {
@@ -324,7 +324,7 @@ describe('GET /clients', () => {
       fire_safety_issued_count: fireSafetyDocumentTypeKeys.length,
     });
     expect(item.documentation).toMatchObject({ state: 'none', totalCount: 23 });
-    expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 24 });
+    expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 25 });
   });
 
   it('answers a page past the end with no rows and the real total', async () => {

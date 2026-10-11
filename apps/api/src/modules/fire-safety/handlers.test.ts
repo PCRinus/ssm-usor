@@ -5,6 +5,9 @@ import {
   fireEquipmentResponseSchema,
   fireInstallationListResponseSchema,
   fireInstallationResponseSchema,
+  fireSubstanceResponseSchema,
+  fireSubstancesResponseSchema,
+  fireSubstancesStateResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -112,8 +115,37 @@ const installation = (id: string, workplaceId: string, kind: string, description
   updated_at: '2026-10-10T10:00:00+00:00',
 });
 
+const substance = (id: string, fields: Record<string, unknown>) => ({
+  id,
+  client_id: clientId,
+  name: 'Propan',
+  classification: 'Flam. Gas 1, H220',
+  quantity: '2 butelii de 11 kg',
+  physical_chemical_properties: null,
+  identification_codes: null,
+  health_environment_risks: null,
+  protection_means: null,
+  intervention_measures: null,
+  extinguishing_agents: null,
+  storage_place: null,
+  handling: null,
+  created_at: '2026-10-12T10:00:00+00:00',
+  updated_at: '2026-10-12T10:00:00+00:00',
+  ...fields,
+});
+
+const propane = substance('20000000-0000-4000-8000-000000000001', {
+  storage_place: 'Cușca metalică din curte',
+});
+const solvent = substance('20000000-0000-4000-8000-000000000002', {
+  name: 'Diluant',
+  classification: 'Flam. Liq. 2, H225',
+  quantity: '5 l',
+});
+
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
-type Upstream = 'clients' | 'workplaces' | 'fireSafety' | 'equipment' | 'installations';
+type Upstream =
+  'clients' | 'workplaces' | 'fireSafety' | 'equipment' | 'installations' | 'substances';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -148,6 +180,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
             installation('10000000-0000-4000-8000-000000000001', shopId, 'detection_alarm')
           )
         );
+      case '/rest/v1/fire_substances':
+        return custom('substances') ?? Response.json(propane);
       default:
         throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
     }
@@ -235,6 +269,28 @@ describe('/clients/{clientId}/fire-safety', () => {
         hasThirdParties: false,
       },
     });
+  });
+
+  it('answers as before the first save while the row holds only the substances state', async () => {
+    mockUpstream({
+      fireSafety: () =>
+        Response.json([
+          {
+            ...fireSafetyRow,
+            periodic_training_hours: null,
+            administrative_training_interval_months: null,
+            worker_training_interval_months: null,
+            training_first_month: null,
+            training_day_from: null,
+            training_day_to: null,
+            waste_kinds: [],
+            waste_contractor: null,
+          },
+        ]),
+    });
+    const parsed = clientFireSafetyResponseSchema.parse(await (await request(path)).json());
+    expect(parsed.exists).toBe(false);
+    expect(parsed.fireSafety.wasteKinds).toEqual([]);
   });
 
   it('answers 404 for a client of another organization', async () => {
@@ -651,5 +707,188 @@ describe('/clients/{clientId}/fire-installations', () => {
 
     mockUpstream({ installations: () => Response.json([]) });
     expect((await request(item, 'DELETE')).status).toBe(404);
+  });
+});
+
+describe('/clients/{clientId}/fire-substances', () => {
+  const path = `/clients/${clientId}/fire-substances`;
+  const statePath = `${path}/state`;
+  const entryPath = `${path}/${propane.id}`;
+  const body = {
+    name: ' Propan ',
+    classification: 'Flam. Gas 1, H220',
+    quantity: '2 butelii de 11 kg',
+    storagePlace: 'Cușca metalică din curte',
+  };
+
+  it('reads the state and the entries in the order they were added', async () => {
+    mockUpstream({
+      fireSafety: () => Response.json({ substances_state: 'listed' }),
+      substances: () => Response.json([propane, solvent]),
+    });
+    const response = await request(path);
+    expect(response.status).toBe(200);
+    const parsed = fireSubstancesResponseSchema.parse(await response.json());
+    expect(parsed.state).toBe('listed');
+    expect(parsed.items.map((item) => item.name)).toEqual(['Propan', 'Diluant']);
+    expect(parsed.items[0]).toMatchObject({
+      storagePlace: 'Cușca metalică din curte',
+      handling: null,
+    });
+    const [list] = calls('fire_substances', 'GET').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(list!.get('order')).toBe('sort_order.asc,created_at.asc,id.asc');
+  });
+
+  it('is undecided while the client has no fire-safety row', async () => {
+    mockUpstream({
+      fireSafety: () => Response.json(null),
+      substances: () => Response.json([]),
+    });
+    expect(fireSubstancesResponseSchema.parse(await (await request(path)).json())).toEqual({
+      state: 'undecided',
+      items: [],
+    });
+  });
+
+  it('answers 404 for a client of another organization', async () => {
+    mockUpstream({ clients: noClient });
+    expect((await request(path)).status).toBe(404);
+    expect((await request(statePath, 'PUT', { state: 'none' })).status).toBe(404);
+    expect((await request(path, 'POST', body)).status).toBe(404);
+    expect(calls('fire_substances', 'POST')).toHaveLength(0);
+  });
+
+  it('saves the state on the fire-safety row', async () => {
+    mockUpstream({
+      fireSafety: (init) =>
+        init?.method === 'PATCH' ? Response.json({ substances_state: 'none' }) : undefined,
+    });
+    const response = await request(statePath, 'PUT', { state: 'none' });
+    expect(response.status).toBe(200);
+    expect(fireSubstancesStateResponseSchema.parse(await response.json())).toEqual({
+      state: 'none',
+    });
+    expect(sent('client_fire_safety', 'PATCH')).toEqual({ substances_state: 'none' });
+    expect(calls('client_fire_safety', 'POST')).toHaveLength(0);
+  });
+
+  it('creates the row with the state alone when the client has none', async () => {
+    mockUpstream({
+      fireSafety: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(null)
+          : init?.method === 'POST'
+            ? Response.json({ substances_state: 'listed' }, { status: 201 })
+            : undefined,
+    });
+    const response = await request(statePath, 'PUT', { state: 'listed' });
+    expect(fireSubstancesStateResponseSchema.parse(await response.json()).state).toBe('listed');
+    expect(sent('client_fire_safety', 'POST')).toEqual({
+      client_id: clientId,
+      organization_id: organizationId,
+      substances_state: 'listed',
+      created_by: user.id,
+    });
+  });
+
+  it('refuses to declare none while entries are listed', async () => {
+    mockUpstream({ fireSafety: () => databaseError('SUB01', 400) });
+    const response = await request(statePath, 'PUT', { state: 'none' });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('substances_listed');
+  });
+
+  it('adds an entry after the last one, trimmed, with the texts left out as null', async () => {
+    mockUpstream({
+      substances: (init) =>
+        init?.method === 'POST'
+          ? Response.json(propane, { status: 201 })
+          : Response.json({ sort_order: 4 }),
+    });
+    const response = await request(path, 'POST', body);
+    expect(response.status).toBe(201);
+    expect(fireSubstanceResponseSchema.parse(await response.json()).substance.name).toBe('Propan');
+    expect(sent('fire_substances', 'POST')).toEqual({
+      name: 'Propan',
+      classification: 'Flam. Gas 1, H220',
+      quantity: '2 butelii de 11 kg',
+      physical_chemical_properties: null,
+      identification_codes: null,
+      health_environment_risks: null,
+      protection_means: null,
+      intervention_measures: null,
+      extinguishing_agents: null,
+      storage_place: 'Cușca metalică din curte',
+      handling: null,
+      sort_order: 5,
+      organization_id: organizationId,
+      client_id: clientId,
+      created_by: user.id,
+    });
+  });
+
+  it('refuses an entry while the client does not list its substances', async () => {
+    mockUpstream({
+      substances: (init) =>
+        init?.method === 'POST' ? databaseError('SUB02', 400) : Response.json(null),
+    });
+    const response = await request(path, 'POST', body);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'substances_not_listed'
+    );
+    expect(sent('fire_substances', 'POST')).toMatchObject({ sort_order: 0 });
+  });
+
+  it('refuses an entry without its classification', async () => {
+    mockUpstream();
+    const response = await request(path, 'POST', { ...body, classification: ' ' });
+    expect(response.status).toBe(400);
+    expect(calls('fire_substances', 'POST')).toHaveLength(0);
+  });
+
+  it('replaces an entry, clearing the texts left out', async () => {
+    mockUpstream({
+      substances: (init) =>
+        init?.method === 'PATCH' ? Response.json({ ...propane, storage_place: null }) : undefined,
+    });
+    const response = await request(entryPath, 'PUT', { ...body, storagePlace: null });
+    expect(response.status).toBe(200);
+    expect(sent('fire_substances', 'PATCH')).toMatchObject({ storage_place: null });
+    const [update] = calls('fire_substances', 'PATCH').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(update!.get('id')).toBe(`eq.${propane.id}`);
+    expect(update!.get('client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it('answers 404 for an entry of another client', async () => {
+    mockUpstream({ substances: () => Response.json(null) });
+    expect((await request(entryPath, 'PUT', body)).status).toBe(404);
+    mockUpstream({ substances: () => Response.json([]) });
+    expect((await request(entryPath, 'DELETE')).status).toBe(404);
+  });
+
+  it('deletes an entry', async () => {
+    mockUpstream({ substances: () => Response.json([{ id: propane.id }]) });
+    expect((await request(entryPath, 'DELETE')).status).toBe(204);
+  });
+
+  it('refuses every change under an archived client', async () => {
+    mockUpstream({
+      fireSafety: () => databaseError('CLA01', 400),
+      substances: (init) => (isGet(init) ? Response.json(null) : databaseError('CLA01', 400)),
+    });
+    for (const response of [
+      await request(statePath, 'PUT', { state: 'none' }),
+      await request(path, 'POST', body),
+      await request(entryPath, 'PUT', body),
+      await request(entryPath, 'DELETE'),
+    ]) {
+      expect(response.status).toBe(409);
+      expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+    }
   });
 });
