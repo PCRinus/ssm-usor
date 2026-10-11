@@ -339,14 +339,11 @@ export async function listClientDocuments(
   if (generation.error) throw fromDatabaseError(generation.error, 'last document generation');
   return {
     items: (await presentDocuments(db, documents, facts)).sort(inSetOrder(set)),
-    notApplicable:
-      set === 'occupational_safety'
-        ? documentSetTypeKeys.occupational_safety.filter(
-            (typeKey) =>
-              !documentApplies(facts, typeKey) &&
-              !documents.some((document) => document.type_key === typeKey)
-          )
-        : [],
+    notApplicable: documentSetTypeKeys[set].filter(
+      (typeKey) =>
+        !documentApplies(facts, typeKey) &&
+        !documents.some((document) => document.type_key === typeKey)
+    ),
     currentEmployeeCount: facts.currentEmployeeCount,
     lastGeneration: generation.data
       ? {
@@ -474,9 +471,7 @@ export async function generateClientDocuments(
     existing.filter((document) => document.document_revisions.length > 0).map((d) => d.type_key)
   );
   const wanted = templates.filter(
-    (template) =>
-      !complete.has(template.typeKey) &&
-      (set !== 'occupational_safety' || documentApplies(facts, template.typeKey))
+    (template) => !complete.has(template.typeKey) && documentApplies(facts, template.typeKey)
   );
   if (wanted.length === 0) return { created: [], skipped: [...complete] };
 

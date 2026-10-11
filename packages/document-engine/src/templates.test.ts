@@ -101,6 +101,7 @@ describe('fire-safety set', () => {
     'client.representativeRole',
     'fireSafetyTechnician.name',
     'provider.legalName',
+    'installationRegister',
   ];
   const data = {
     branding: true,
@@ -111,6 +112,9 @@ describe('fire-safety set', () => {
     },
     provider: { legalName: 'S.C. SERVICIU EXTERN S.R.L.' },
     fireSafetyTechnician: { name: 'Dan MARIN' },
+    seasonsDecision: true,
+    controlDecision: true,
+    installationRegister: true,
   };
   const technician = {
     name: 'Dan MARIN',
@@ -154,10 +158,10 @@ describe('fire-safety set', () => {
       training: '5 PSI',
       openFire: '6 PSI',
       smoking: '7 PSI',
-      seasons: '8 PSI',
-      technician: '9 PSI',
-      instructions: '10 PSI',
-      waste: '11 PSI',
+      technician: '8 PSI',
+      instructions: '9 PSI',
+      waste: '10 PSI',
+      seasons: '11 PSI',
       control: '12 PSI',
     },
     schedule: {
@@ -294,12 +298,15 @@ describe('fire-safety set', () => {
     );
   });
 
-  it.each(stageOne)('%s asks only for the shared facts and the technician', (name) => {
-    expect(
-      templatePlaceholders(read(name)).filter((placeholder) => !allowed.includes(placeholder))
-    ).toEqual([]);
-    expect(documentText(renderDocument(read(name), data))).not.toContain('{{');
-  });
+  it.each(stageOne)(
+    '%s asks only for the shared facts, the technician and whether the set holds the installation register',
+    (name) => {
+      expect(
+        templatePlaceholders(read(name)).filter((placeholder) => !allowed.includes(placeholder))
+      ).toEqual([]);
+      expect(documentText(renderDocument(read(name), data))).not.toContain('{{');
+    }
+  );
 
   // Inside a loop a name is the item's, so only the dotted ones are held to the list.
   it.each(stageTwo)('%s asks for the shared facts and the `fire` object only', (name) => {
@@ -339,10 +346,10 @@ describe('fire-safety set', () => {
       'fire/1.2_fire_decision_training.docx': '5 PSI',
       'fire/1.3_fire_decision_open_fire.docx': '6 PSI',
       'fire/1.4_fire_decision_smoking.docx': '7 PSI',
-      'fire/1.5_fire_decision_seasons.docx': '8 PSI',
-      'fire/1.6_fire_decision_technician.docx': '9 PSI',
-      'fire/1.7_fire_decision_instructions.docx': '10 PSI',
-      'fire/1.8_fire_decision_waste.docx': '11 PSI',
+      'fire/1.5_fire_decision_technician.docx': '8 PSI',
+      'fire/1.6_fire_decision_instructions.docx': '9 PSI',
+      'fire/1.7_fire_decision_waste.docx': '10 PSI',
+      'fire/1.8_fire_decision_seasons.docx': '11 PSI',
       'fire/1.9_fire_decision_control.docx': '12 PSI',
     };
     for (const [name, number] of Object.entries(numbers)) {
@@ -380,7 +387,7 @@ describe('fire-safety set', () => {
   });
 
   it('names who collects the waste and its contractor, or the workers on duty and the contracted firm', () => {
-    const decision = 'fire/1.8_fire_decision_waste.docx';
+    const decision = 'fire/1.7_fire_decision_waste.docx';
     expect(documentText(renderDocument(read(decision), stageTwoData))).toContain(
       'De modul de colectare și neutralizare a deșeurilor răspund muncitorii necalificați și șeful de șantier și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
     );
@@ -431,7 +438,7 @@ describe('fire-safety set', () => {
   });
 
   it('appoints the technician with the certificate, and the authorization only when it is set', () => {
-    const decision = 'fire/1.6_fire_decision_technician.docx';
+    const decision = 'fire/1.5_fire_decision_technician.docx';
     const text = documentText(renderDocument(read(decision), stageTwoData));
     expect(text).toContain(
       'de Dan MARIN, cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor, titular al certificatului seria A nr. 1234/2024'
@@ -496,13 +503,13 @@ describe('fire-safety set', () => {
   });
 
   it('posts the instructions of every workplace on pages of their own, its means said alike twice', () => {
-    const decision = 'fire/1.7_fire_decision_instructions.docx';
+    const decision = 'fire/1.6_fire_decision_instructions.docx';
     const merged = renderDocument(read(decision), stageTwoData);
     const xml = new PizZip(merged).file('word/document.xml')!.asText();
     expect(xml.match(/<w:br w:type="page"\/>/g)).toHaveLength(2);
     const text = documentText(merged);
     expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(2);
-    expect(text).toContain('Anexă la Decizia nr. 10 PSI din 19.01.2026');
+    expect(text).toContain('Anexă la Decizia nr. 9 PSI din 19.01.2026');
     expect(text).toMatch(
       /^Locul de muncă: Depozit \(gelaterie\)\nAdresa: Timișoara, județul Timiș, Str. Lungă 5$/m
     );
@@ -512,7 +519,7 @@ describe('fire-safety set', () => {
     expect(text).toContain(
       'personalul de execuție la 3 luni, respectiv în lunile februarie, mai, august și noiembrie, conform Deciziei nr. 5 PSI;'
     );
-    expect(text).toContain('redate în Decizia nr. 9 PSI.');
+    expect(text).toContain('redate în Decizia nr. 8 PSI.');
     expect(text).toContain('(Preluare din Legea 307/2006 – art. 19 alin. (1))');
     expect(text).toMatch(/^r¹⁶\)/m);
     expect(text).toContain(
@@ -530,10 +537,22 @@ describe('fire-safety set', () => {
     expect(sparseText).not.toContain('Măsuri specifice locului de muncă');
   });
 
+  it('cites decision 9 for the internal controls only while the set holds it', () => {
+    const decision = read('fire/1.6_fire_decision_instructions.docx');
+    expect(documentText(renderDocument(decision, stageTwoData))).toContain(
+      'a) executarea controalelor interne conform planificării, Decizia nr. 12 PSI;'
+    );
+    const without = documentText(
+      renderDocument(decision, { ...stageTwoData, controlDecision: false })
+    );
+    expect(without).toContain('a) executarea controalelor interne;');
+    expect(without).not.toContain('12 PSI');
+  });
+
   // The engine repeats a list's paragraphs under one numbering: a counted list would count on
   // from one workplace to the next.
   it('counts no list in the posted instructions, which repeat per workplace', () => {
-    const zip = new PizZip(read('fire/1.7_fire_decision_instructions.docx'));
+    const zip = new PizZip(read('fire/1.6_fire_decision_instructions.docx'));
     const xml = zip.file('word/document.xml')!.asText();
     const numbering = zip.file('word/numbering.xml')!.asText();
     const firstLevelFormat = (numId: string) => {
@@ -597,9 +616,49 @@ describe('fire-safety set', () => {
     expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
   });
 
-  it('lists the nine decisions of the binder on their cover', () => {
-    const text = documentText(read('fire/1.0_fire_cover_decisions.docx'));
-    for (let item = 1; item <= 9; item++) expect(text).toMatch(new RegExp(`^${item}\\. `, 'm'));
+  it('lists the decisions the set holds on their cover, the two required from ten employees last', () => {
+    const cover = (seasonsDecision: boolean, controlDecision: boolean) =>
+      documentText(
+        renderDocument(read('fire/1.0_fire_cover_decisions.docx'), {
+          ...data,
+          seasonsDecision,
+          controlDecision,
+        })
+      ).match(/^\d\. .*$/gm);
+    const nine = cover(true, true)!;
+    expect(nine.map((item) => item.slice(0, 2))).toEqual([
+      '1.',
+      '2.',
+      '3.',
+      '4.',
+      '5.',
+      '6.',
+      '7.',
+      '8.',
+      '9.',
+    ]);
+    expect(nine[4]).toMatch(/^5\. Numirea cadrului tehnic/);
+    expect(nine[7]).toMatch(/^8\. Modul de reglementare a lucrărilor în timpul sezonului rece/);
+    expect(nine[8]).toMatch(/^9\. Controlul propriu/);
+    expect(nine.every((item) => item.endsWith('.'))).toBe(true);
+    expect(cover(false, false)).toEqual(nine.slice(0, 7));
+    expect(cover(false, true)).toEqual([...nine.slice(0, 7), nine[8]!.replace(/^9\./, '8.')]);
+  });
+
+  it('lists the installation register on the cover of the registers only while the set holds it', () => {
+    const cover = (installationRegister: boolean) =>
+      documentText(
+        renderDocument(read('fire/6.0_fire_cover_registers.docx'), {
+          ...data,
+          installationRegister,
+        })
+      ).match(/^\d\. .*$/gm);
+    expect(cover(true)).toHaveLength(6);
+    expect(cover(true)![4]).toMatch(/^5\. Registru de control pentru instalațiile/);
+    expect(cover(false)).toEqual([
+      ...cover(true)!.slice(0, 4),
+      '5. Registru de evidență a situației constatate la stingătoarele de incendiu în urma controlului.',
+    ]);
   });
 
   it('keeps the general chapters of the own instructions, its contents without page numbers', () => {
@@ -643,7 +702,7 @@ describe('fire-safety set', () => {
     expect(text).toContain(
       'CINE EFECTUEAZĂ INSTRUIREA: Ion VLAD – conducătorul locului de muncă sau, după caz, S.C. SERVICIU EXTERN S.R.L. – Dan MARIN (cadru tehnic PSI)'
     );
-    expect(text).toContain('Decizia nr. 10 PSI');
+    expect(text).toContain('Decizia nr. 9 PSI');
     expect(text).toMatch(/^NOIEMBRIE\nIPSU Art. 236 – 257; Afișate; Testare.\n120 min$/m);
     const sparseText = documentText(
       renderDocument(read(themes), { ...stageTwoData, fire: sparse })

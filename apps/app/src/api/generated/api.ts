@@ -3747,10 +3747,10 @@ export const StartRegenerationRequestTypeKey = {
   fire_decision_training: 'fire_decision_training',
   fire_decision_open_fire: 'fire_decision_open_fire',
   fire_decision_smoking: 'fire_decision_smoking',
-  fire_decision_seasons: 'fire_decision_seasons',
   fire_decision_technician: 'fire_decision_technician',
   fire_decision_instructions: 'fire_decision_instructions',
   fire_decision_waste: 'fire_decision_waste',
+  fire_decision_seasons: 'fire_decision_seasons',
   fire_decision_control: 'fire_decision_control',
   fire_cover_own_instructions: 'fire_cover_own_instructions',
   fire_own_instructions: 'fire_own_instructions',
@@ -4102,6 +4102,30 @@ export const ClientDocumentListResponseNotApplicableItem = {
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
   control_regulation: 'control_regulation',
+  fire_cover_decisions: 'fire_cover_decisions',
+  fire_decision_organization: 'fire_decision_organization',
+  fire_decision_training: 'fire_decision_training',
+  fire_decision_open_fire: 'fire_decision_open_fire',
+  fire_decision_smoking: 'fire_decision_smoking',
+  fire_decision_technician: 'fire_decision_technician',
+  fire_decision_instructions: 'fire_decision_instructions',
+  fire_decision_waste: 'fire_decision_waste',
+  fire_decision_seasons: 'fire_decision_seasons',
+  fire_decision_control: 'fire_decision_control',
+  fire_cover_own_instructions: 'fire_cover_own_instructions',
+  fire_own_instructions: 'fire_own_instructions',
+  fire_cover_training_themes: 'fire_cover_training_themes',
+  fire_training_themes: 'fire_training_themes',
+  fire_cover_tests: 'fire_cover_tests',
+  fire_test_hiring: 'fire_test_hiring',
+  fire_test_annual: 'fire_test_annual',
+  fire_means_list: 'fire_means_list',
+  fire_workplace_organization: 'fire_workplace_organization',
+  fire_cover_registers: 'fire_cover_registers',
+  fire_registers: 'fire_registers',
+  fire_work_permit: 'fire_work_permit',
+  fire_installation_register: 'fire_installation_register',
+  fire_extinguisher_register: 'fire_extinguisher_register',
 } as const;
 
 export interface ClientDocumentListResponse {
@@ -18155,10 +18179,10 @@ export const getUploadClientDocumentUrl = (
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
     | 'fire_decision_smoking'
-    | 'fire_decision_seasons'
     | 'fire_decision_technician'
     | 'fire_decision_instructions'
     | 'fire_decision_waste'
+    | 'fire_decision_seasons'
     | 'fire_decision_control'
     | 'fire_cover_own_instructions'
     | 'fire_own_instructions'
@@ -18214,10 +18238,10 @@ export const uploadClientDocument = async (
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
     | 'fire_decision_smoking'
-    | 'fire_decision_seasons'
     | 'fire_decision_technician'
     | 'fire_decision_instructions'
     | 'fire_decision_waste'
+    | 'fire_decision_seasons'
     | 'fire_decision_control'
     | 'fire_cover_own_instructions'
     | 'fire_own_instructions'
@@ -18341,10 +18365,10 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_decision_training'
     | 'fire_decision_open_fire'
     | 'fire_decision_smoking'
-    | 'fire_decision_seasons'
     | 'fire_decision_technician'
     | 'fire_decision_instructions'
     | 'fire_decision_waste'
+    | 'fire_decision_seasons'
     | 'fire_decision_control'
     | 'fire_cover_own_instructions'
     | 'fire_own_instructions'

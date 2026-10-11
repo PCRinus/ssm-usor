@@ -1,8 +1,12 @@
-import { documentTypeKeys, fireSafetyDocumentTypeKeys } from '@ssm-usor/contracts';
+import {
+  documentTypeKeys,
+  fireSafetyDocumentTypeKeys,
+  fireSafetyTypeKeysFromTenEmployees,
+} from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import fireManifest from '../../../../../packages/document-engine/templates/fire/manifest.json';
-import { type ClientDocument, notGeneratedTitles } from './document-labels';
+import { type ClientDocument, notApplicableTitles, notGeneratedTitles } from './document-labels';
 import {
   documentSections,
   fireSafetyDocumentSectionIds,
@@ -61,6 +65,12 @@ describe('document sections', () => {
         fireManifest.templates.map((template) => [template.typeKey, template.title])
       )
     );
+  });
+
+  it('name a fire-safety document that does not apply by its template title', () => {
+    for (const typeKey of fireSafetyTypeKeysFromTenEmployees) {
+      expect(notApplicableTitles[typeKey]).toBe(notGeneratedTitles[typeKey]);
+    }
   });
 
   it('place a type in the sections of its own set', () => {

@@ -9,7 +9,7 @@
       "file": "1.0_fire_cover_decisions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”, iar decizia 8 este „Modul de colectare…, precum și de distrugere a acestora”."
+        "note": "Deciziile privind perioadele caniculare și sezonul rece și controlul propriu sunt ultimele, 8 și 9, și apar pe copertă doar când fac parte din documentație: de la 10 angajați sau dacă au fost deja generate; fiecare punct se încheie cu punct."
       }
     },
     {
@@ -62,52 +62,52 @@
     },
     {
       "number": "1.5",
-      "originals": ["1.5._Decizia_5_P.S.I._-_Perioada_caniculara"],
-      "stage": 2,
-      "typeKey": "fire_decision_seasons",
-      "title": "Decizia privind perioadele caniculare și sezonul rece",
-      "file": "1.5_fire_decision_seasons.docx",
-      "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință”, „Nr. crt.” și „art.” cu literă mică în trimiterile la lege, fraza de după „DECIDE:” refăcută, activitatea locului de muncă în paranteză, „buteliilor” fără „recipiente”, literele a)–b) cu literă mică și formulări mai clare la art. 5 și 6."
-      }
-    },
-    {
-      "number": "1.6",
       "originals": ["1.6._Decizia_6_P.S.I._-_Numire_cadru_tehnic"],
       "stage": 3,
       "typeKey": "fire_decision_technician",
       "title": "Decizia privind cadrul tehnic PSI",
-      "file": "1.6_fire_decision_technician.docx",
+      "file": "1.5_fire_decision_technician.docx",
       "change": {
         "kind": "correction",
         "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință”, „Nr. crt.” și „art.” cu literă mică în trimiterile la lege, funcțiile scrise cu literă mică în text și cadrul tehnic „titular al certificatului”."
       }
     },
     {
-      "number": "1.7",
+      "number": "1.6",
       "originals": [
         "1.7._Decizia_7_P.S.I._-_Instructiuni de aparare si atributii  personal ptr. afisat"
       ],
       "stage": 3,
       "typeKey": "fire_decision_instructions",
       "title": "Decizia privind instrucțiunile de apărare împotriva incendiilor",
-      "file": "1.7_fire_decision_instructions.docx",
+      "file": "1.6_fire_decision_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință”, „Nr. crt.” și „art.” cu literă mică în trimiterile la lege, funcțiile și activitatea locului de muncă scrise cu literă mică în text, art. 12 reformulat, „să nu se producă ori să nu se propage incendiul”, punctuația listelor de la cap. VII și XV, iar primul ajutor preia corecturile din instrucțiunile proprii SSM (ghilimele „…”, acordul, lista DEA)."
+        "note": "Printre atribuțiile coordonatorului, controalele interne trimit la decizia privind controlul propriu doar când aceasta face parte din documentație: de la 10 angajați sau dacă a fost deja generată."
       }
     },
     {
-      "number": "1.8",
+      "number": "1.7",
       "originals": ["1.8._Decizia_8_P.S.I._-_Deseuri"],
       "stage": 2,
       "typeKey": "fire_decision_waste",
       "title": "Decizia privind colectarea deșeurilor",
-      "file": "1.8_fire_decision_waste.docx",
+      "file": "1.7_fire_decision_waste.docx",
       "change": {
         "kind": "correction",
         "note": "Decizia numește cine colectează deșeurile, așa cum este trecut în „Instruire PSI”; dacă nu este trecut, rămân „lucrătorii aflați la program din cadrul unității”."
+      }
+    },
+    {
+      "number": "1.8",
+      "originals": ["1.5._Decizia_5_P.S.I._-_Perioada_caniculara"],
+      "stage": 2,
+      "typeKey": "fire_decision_seasons",
+      "title": "Decizia privind perioadele caniculare și sezonul rece",
+      "file": "1.8_fire_decision_seasons.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință”, „Nr. crt.” și „art.” cu literă mică în trimiterile la lege, fraza de după „DECIDE:” refăcută, activitatea locului de muncă în paranteză, „buteliilor” fără „recipiente”, literele a)–b) cu literă mică și formulări mai clare la art. 5 și 6."
       }
     },
     {
@@ -239,7 +239,7 @@
       "file": "6.0_fire_cover_registers.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "note": "Registrul de control pentru instalații apare pe copertă doar când face parte din documentație: de la 10 angajați sau dacă a fost deja generat; registrul stingătoarelor își ia numărul după el."
       }
     },
     {

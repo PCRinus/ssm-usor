@@ -13561,33 +13561,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.5_fire_decision_seasons.docx",
-      "typeKey": "fire_decision_seasons",
-      "paragraph": 2,
-      "lastParagraph": 2,
-      "block": null,
-      "form": "reference",
-      "act": "lege-307-2006",
-      "article": "19",
-      "locator": null,
-      "text": null
-    },
-    {
-      "manifest": "fire",
-      "file": "fire/1.5_fire_decision_seasons.docx",
-      "typeKey": "fire_decision_seasons",
-      "paragraph": 2,
-      "lastParagraph": 2,
-      "block": null,
-      "form": "reference",
-      "act": "omai-163-2007",
-      "article": "17",
-      "locator": null,
-      "text": null
-    },
-    {
-      "manifest": "fire",
-      "file": "fire/1.6_fire_decision_technician.docx",
+      "file": "fire/1.5_fire_decision_technician.docx",
       "typeKey": "fire_decision_technician",
       "paragraph": 2,
       "lastParagraph": 2,
@@ -13600,7 +13574,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.6_fire_decision_technician.docx",
+      "file": "fire/1.5_fire_decision_technician.docx",
       "typeKey": "fire_decision_technician",
       "paragraph": 2,
       "lastParagraph": 2,
@@ -13613,7 +13587,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.6_fire_decision_technician.docx",
+      "file": "fire/1.5_fire_decision_technician.docx",
       "typeKey": "fire_decision_technician",
       "paragraph": 5,
       "lastParagraph": 5,
@@ -13626,7 +13600,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.6_fire_decision_technician.docx",
+      "file": "fire/1.5_fire_decision_technician.docx",
       "typeKey": "fire_decision_technician",
       "paragraph": 5,
       "lastParagraph": 5,
@@ -13639,7 +13613,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.6_fire_decision_technician.docx",
+      "file": "fire/1.5_fire_decision_technician.docx",
       "typeKey": "fire_decision_technician",
       "paragraph": 7,
       "lastParagraph": 7,
@@ -13652,7 +13626,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.6_fire_decision_technician.docx",
+      "file": "fire/1.5_fire_decision_technician.docx",
       "typeKey": "fire_decision_technician",
       "paragraph": 37,
       "lastParagraph": 50,
@@ -13665,7 +13639,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 2,
       "lastParagraph": 2,
@@ -13678,7 +13652,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 2,
       "lastParagraph": 2,
@@ -13691,7 +13665,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 28,
       "lastParagraph": 35,
@@ -13704,7 +13678,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 71,
       "lastParagraph": 104,
@@ -13717,7 +13691,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 105,
       "lastParagraph": 105,
@@ -13730,7 +13704,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 142,
       "lastParagraph": 142,
@@ -13743,7 +13717,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 189,
       "lastParagraph": 193,
@@ -13756,7 +13730,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 195,
       "lastParagraph": 202,
@@ -13769,7 +13743,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 257,
       "lastParagraph": 257,
@@ -13782,7 +13756,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.7_fire_decision_instructions.docx",
+      "file": "fire/1.6_fire_decision_instructions.docx",
       "typeKey": "fire_decision_instructions",
       "paragraph": 449,
       "lastParagraph": 449,
@@ -13795,7 +13769,7 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/1.8_fire_decision_waste.docx",
+      "file": "fire/1.7_fire_decision_waste.docx",
       "typeKey": "fire_decision_waste",
       "paragraph": 2,
       "lastParagraph": 2,
@@ -13803,6 +13777,32 @@
       "form": "reference",
       "act": "omai-163-2007",
       "article": "24",
+      "locator": null,
+      "text": null
+    },
+    {
+      "manifest": "fire",
+      "file": "fire/1.8_fire_decision_seasons.docx",
+      "typeKey": "fire_decision_seasons",
+      "paragraph": 2,
+      "lastParagraph": 2,
+      "block": null,
+      "form": "reference",
+      "act": "lege-307-2006",
+      "article": "19",
+      "locator": null,
+      "text": null
+    },
+    {
+      "manifest": "fire",
+      "file": "fire/1.8_fire_decision_seasons.docx",
+      "typeKey": "fire_decision_seasons",
+      "paragraph": 2,
+      "lastParagraph": 2,
+      "block": null,
+      "form": "reference",
+      "act": "omai-163-2007",
+      "article": "17",
       "locator": null,
       "text": null
     },

@@ -96,14 +96,23 @@ def compose(desktop, definition, cover, placing=None):
     else:
         paragraph(text, cursor, cover['subtitle'], below=6, keep=True)
         paragraph(text, cursor, '{{client.legalName}}', size=CLIENT, bold=True, below=18 if items else 0)
+    conditions_before = []
     for index, item in enumerate(items, start=1):
         # An item for a document only some clients have sits inside a condition of the merge
         # data, its tags alone in their paragraphs so the merge leaves no empty line behind.
         condition = item.get('when') if isinstance(item, dict) and placing else None
         if condition:
             paragraph(text, cursor, f'{{{{#{condition}}}}}', adjust=LEFT, below=0)
+        number = str(index)
+        if conditions_before:
+            # Without the item before it, an item takes its number, so the list has no gap.
+            if len(conditions_before) > 1:
+                raise ValueError(f'{cover["typeKey"]}: item {index} follows more than one condition')
+            before = conditions_before[0]
+            number = (f'{{{{#{before}}}}}{index}{{{{/{before}}}}}'
+                      f'{{{{^{before}}}}}{index - 1}{{{{/{before}}}}}')
         # A tab after the number, so a long item's lines run under its text and not under the number.
-        paragraph(text, cursor, f'{index}.\t{item["text"] if isinstance(item, dict) else item}',
+        paragraph(text, cursor, f'{number}.\t{item["text"] if isinstance(item, dict) else item}',
                   adjust=LEFT, below=3)
         cursor.gotoStartOfParagraph(False)
         cursor.ParaLeftMargin = 1270
@@ -117,6 +126,7 @@ def compose(desktop, definition, cover, placing=None):
             paragraph(text, cursor, '', size=1, adjust=LEFT, below=0)
             cursor.ParaLineSpacing = LineSpacing(FIX, placing['items'][index])
             paragraph(text, cursor, f'{{{{/{condition}}}}}', adjust=LEFT, below=0)
+            conditions_before.append(condition)
 
     intro = cover.get('intro')
     if intro:

@@ -234,8 +234,9 @@ of the set has a revision, `issued` when every document that applies has an issu
 `documentationProgress` in `modules/documents/context.ts`, counted over what the set's tab
 lists: the built-in documents that apply, plus any other document the set holds. In the
 occupational safety set, decision 1.5 applies from 10 current employees or once it has a
-revision, and training themes waiting for generated own instructions count as not done; every
-fire-safety document applies. `clientSince` is when the company became a client: its promotion
+revision, and training themes waiting for generated own instructions count as not done; in the
+fire-safety set, decisions 8 and 9 and the installation register apply the same way (ADR 020),
+every other document always. `clientSince` is when the company became a client: its promotion
 for a former lead, otherwise its creation. A lead carries null for all three.
 `sort=documentation` and `sort=fireSafetyDocumentation` order by the set's issued count, with
 the name next; `sort=clientSince` by `clientSince`.
@@ -685,7 +686,7 @@ the set makes the own instructions first. `POST …/documents/generate` takes `i
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
 code a service contract covering fire safety uses), `provider.fireSafetyTechnicianCertificate`
-(the technician's certificate, which decision 6 prints; ADR 019), `client.representativeName`,
+(the technician's certificate, which decision 5 prints; ADR 019), `client.representativeName`,
 `client.representativeRole`, and the client data of its second and third stages (ADR 018,
 ADR 019): `fire.trainingSchedule` (the duration, both intervals, the first month and both days
 of the "Instruire PSI" card), `fire.smokingPolicy` (a smoking rule chosen; the place never),
@@ -698,15 +699,24 @@ nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
 `workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
 9991 so that the binder's ninth decision still fits in four digits, and is `400`
 (`validation_error`, the issue on `firstDecisionNumber`) without it. Each fire-safety decision
-keeps its place in the provider's binder (`fireDecisionOrdinals`, 1 to 9, each decision's
+keeps its place in the binder (`fireDecisionOrdinals`, 1 to 9, each decision's
 number printed in `fire` before its template exists) and is numbered the first number plus that
 ordinal minus one; its `decisionNumber` says so, and a
-decision generated again keeps it. Its templates are merged with a context of their own,
+decision generated again keeps it. The two decisions required only from ten employees come last
+(ADR 020): 1 organization, 2 training, 3 open fire, 4 smoking, 5 technician, 6 instructions, 7
+waste, 8 seasons, 9 control. Under 10 current employees (`currentEmployeeCount`, the same count
+as decision 1.5's) `fire_decision_seasons`, `fire_decision_control` and
+`fire_installation_register` (`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
+list names them under `notApplicable`; one that exists stays in the list and in the set, and
+generating it again works as for any document. No readiness code belongs to them alone, so the
+readiness is the same either side of ten. Its templates are merged with a context of their own,
 `client`, `provider`, `fireSafetyTechnician` (`name`, `certificate`, `authorization`),
-`issueDate`, `branding` and `fire`, and
-never with the occupational safety set's names, so an edit to positions or equipment never
-marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does. Its
-list has no `notApplicable` document.
+`issueDate`, `branding`, `fire`, and `seasonsDecision`, `controlDecision` and
+`installationRegister`, whether the set holds each of those three (from ten employees, or once
+it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cites decision 9
+only then. It is
+never merged with the occupational safety set's names, so an edit to positions or equipment never
+marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
 
 Generating creates every document type the client does not have yet as revision 1, in draft:
 the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private

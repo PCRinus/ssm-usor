@@ -10,6 +10,7 @@ import {
   fireDecisionOrdinals,
   fireDecisionTypeKeys,
   fireSafetyDocumentTypeKeys,
+  fireSafetyTypeKeysFromTenEmployees,
   generateDocumentsRequestSchema,
   maxFirstFireDecisionNumber,
 } from './documents';
@@ -60,7 +61,7 @@ describe('the fire-safety decisions', () => {
     expect(
       Object.values(fireDecisionTypeKeys).map((typeKey) => fireDecisionNumber(typeKey, 1))
     ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(fireDecisionNumber('fire_decision_waste', 11)).toBe(18);
+    expect(fireDecisionNumber('fire_decision_waste', 11)).toBe(17);
     expect(fireDecisionNumber('fire_means_list', 11)).toBeNull();
     expect(fireDecisionNumber('decision_training', 11)).toBeNull();
   });
@@ -75,6 +76,24 @@ describe('the fire-safety decisions', () => {
 
   it('fill the nine places of the binder, each once', () => {
     expect(Object.values(fireDecisionOrdinals).sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
+  });
+
+  it('end with the ones required from ten employees, so a smaller client has no gap', () => {
+    const fromTen: readonly string[] = fireSafetyTypeKeysFromTenEmployees;
+    expect(
+      Object.values(fireDecisionTypeKeys)
+        .filter((typeKey) => fromTen.includes(typeKey))
+        .map((typeKey) => fireDecisionNumber(typeKey, 1))
+    ).toEqual([8, 9]);
+  });
+
+  it('are listed in the set in the order of their numbers', () => {
+    const decisions = fireSafetyDocumentTypeKeys.filter((typeKey) =>
+      (Object.values(fireDecisionTypeKeys) as string[]).includes(typeKey)
+    );
+    expect(decisions.map((typeKey) => fireDecisionNumber(typeKey, 1))).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9,
     ]);
   });

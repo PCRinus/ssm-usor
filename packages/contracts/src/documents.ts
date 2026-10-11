@@ -47,10 +47,10 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_decision_training',
   'fire_decision_open_fire',
   'fire_decision_smoking',
-  'fire_decision_seasons',
   'fire_decision_technician',
   'fire_decision_instructions',
   'fire_decision_waste',
+  'fire_decision_seasons',
   'fire_decision_control',
   'fire_cover_own_instructions',
   'fire_own_instructions',
@@ -110,19 +110,20 @@ export const decisionTypeKeys = [
 ] as const satisfies readonly DocumentTypeKey[];
 
 /**
- * Each fire-safety decision's place in the provider's binder (ADR 018). It prints the first
- * decision number plus its ordinal minus one, so a decision built later takes its place without
- * renumbering the others.
+ * Each fire-safety decision's place in the binder (ADR 018). It prints the first decision number
+ * plus its ordinal minus one, so a decision built later takes its place without renumbering the
+ * others. The two required only from ten employees come last (ADR 020), so a smaller client's
+ * decisions are 1 to 7 with no gap.
  */
 export const fireDecisionOrdinals = {
   organization: 1,
   training: 2,
   openFire: 3,
   smoking: 4,
-  seasons: 5,
-  technician: 6,
-  instructions: 7,
-  waste: 8,
+  technician: 5,
+  instructions: 6,
+  waste: 7,
+  seasons: 8,
   control: 9,
 } as const;
 
@@ -133,12 +134,24 @@ export const fireDecisionTypeKeys = {
   training: 'fire_decision_training',
   openFire: 'fire_decision_open_fire',
   smoking: 'fire_decision_smoking',
-  seasons: 'fire_decision_seasons',
   technician: 'fire_decision_technician',
   instructions: 'fire_decision_instructions',
   waste: 'fire_decision_waste',
+  seasons: 'fire_decision_seasons',
   control: 'fire_decision_control',
 } as const satisfies Record<FireDecision, FireSafetyDocumentTypeKey>;
+
+/**
+ * The fire-safety documents that rest on OMAI 163/2007 art. 17 or 18 alone, which art. 20 does
+ * not ask of an operator under ten employees (ADR 020).
+ */
+export const fireSafetyTypeKeysFromTenEmployees = [
+  'fire_decision_seasons',
+  'fire_decision_control',
+  'fire_installation_register',
+] as const satisfies readonly FireSafetyDocumentTypeKey[];
+
+export type FireSafetyTypeKeyFromTenEmployees = (typeof fireSafetyTypeKeysFromTenEmployees)[number];
 
 // The binder holds nine fire-safety decisions, and the ninth's number must fit in four digits.
 export const maxFirstFireDecisionNumber = 9991;
@@ -233,12 +246,13 @@ export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
 
 export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
-// For the fire-safety set, only `missing` and `ready` say anything: the lists about positions,
-// evaluations and the workers' representative are empty.
+// For the fire-safety set, only `missing`, `ready` and the count say anything: the lists about
+// positions, evaluations and the workers' representative are empty.
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
-  // What decides whether decision 1.5 is part of the set (ADR 010).
+  // What decides whether decision 1.5 (ADR 010) and the fire-safety documents required from ten
+  // employees (ADR 020) are part of their sets.
   currentEmployeeCount: z.int().min(0),
   // The two names behind `responsible.workers_representative_is_legal_representative`.
   workersRepresentativeClash: z
@@ -375,8 +389,7 @@ export const clientDocumentListResponseSchema = z.object({
     .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999).nullable() })
     .nullable(),
   // Documents of the set this client does not need, such as decision 1.5 under 10 employees.
-  // Always empty for the fire-safety set.
-  notApplicable: z.array(documentTypeKeySchema),
+  notApplicable: z.array(builtInDocumentTypeKeySchema),
   currentEmployeeCount: z.int().min(0),
 });
 

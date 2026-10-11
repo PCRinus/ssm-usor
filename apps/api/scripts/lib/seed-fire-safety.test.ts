@@ -55,7 +55,7 @@ describe('fireSafetyFor', () => {
     ]);
   });
 
-  it('names who collects the waste at every other client, so decision 8 reads both ways', () => {
+  it('names who collects the waste at every other client, so decision 7 reads both ways', () => {
     const client = {
       id: clientId,
       training_first_month: null,

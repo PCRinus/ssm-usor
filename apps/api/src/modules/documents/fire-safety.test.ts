@@ -39,7 +39,7 @@ describe('what the fire-safety set is missing', () => {
       jobPositions: [],
       riskEvaluations: [],
       workplaces: [],
-      fireSafety: { card: null, equipment: [], installations: [] },
+      fireSafety: { card: null, equipment: [], installations: [], generatedFromTenEmployees: [] },
     };
     expect(missingFireSafetyData(lacking)).toEqual([
       'provider.legalName',
@@ -228,10 +228,10 @@ describe('the fire-safety context', () => {
       training: '6 PSI',
       openFire: '7 PSI',
       smoking: '8 PSI',
-      seasons: '9 PSI',
-      technician: '10 PSI',
-      instructions: '11 PSI',
-      waste: '12 PSI',
+      technician: '9 PSI',
+      instructions: '10 PSI',
+      waste: '11 PSI',
+      seasons: '12 PSI',
       control: '13 PSI',
     });
     expect(
@@ -241,11 +241,36 @@ describe('the fire-safety context', () => {
       training: '2 PSI',
       openFire: '3 PSI',
       smoking: '4 PSI',
-      seasons: '5 PSI',
-      technician: '6 PSI',
-      instructions: '7 PSI',
-      waste: '8 PSI',
+      technician: '5 PSI',
+      instructions: '6 PSI',
+      waste: '7 PSI',
+      seasons: '8 PSI',
       control: '9 PSI',
+    });
+  });
+
+  it('holds the documents required from ten employees only from ten, or once they exist', () => {
+    const held = (currentEmployeeCount: number, generatedFromTenEmployees: string[] = []) => {
+      const context = buildFireSafetyContext({
+        ...facts,
+        currentEmployeeCount,
+        fireSafety: {
+          ...facts.fireSafety,
+          generatedFromTenEmployees: generatedFromTenEmployees as never[],
+        },
+      });
+      return {
+        seasons: context.seasonsDecision,
+        control: context.controlDecision,
+        register: context.installationRegister,
+      };
+    };
+    expect(held(9)).toEqual({ seasons: false, control: false, register: false });
+    expect(held(10)).toEqual({ seasons: true, control: true, register: true });
+    expect(held(4, ['fire_decision_control'])).toEqual({
+      seasons: false,
+      control: true,
+      register: false,
     });
   });
 
@@ -425,7 +450,7 @@ describe('the fire-safety context', () => {
     );
   });
 
-  it('leaves who collects the waste null when it is blank, for decision 8 to name the workers on duty', () => {
+  it('leaves who collects the waste null when it is blank, for decision 7 to name the workers on duty', () => {
     expect(buildFireSafetyContext(withCard({ wasteCollectors: '  ' })).fire.waste.collectors).toBe(
       null
     );
@@ -487,7 +512,7 @@ describe('the fire-safety context', () => {
         ({ from, to }) => `IPSU art.\u00a0${from}–${to}`
       );
     const posted =
-      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a011 PSI); organizarea apărării împotriva incendiilor la locul de muncă';
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI); organizarea apărării împotriva incendiilor la locul de muncă';
     const managers = 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă';
     const administrative = ipsu(2);
     const execution = ipsu(4);
@@ -596,7 +621,7 @@ describe('a fire-safety document generated again', () => {
     responsiblePersons: [],
     jobPositions: [],
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, assemblyPoint: null })),
-    fireSafety: { card: null, equipment: [], installations: [] },
+    fireSafety: { card: null, equipment: [], installations: [], generatedFromTenEmployees: [] },
   };
 
   it('is built without the fire object while any of its data is missing, and with the rest', () => {
@@ -615,9 +640,12 @@ describe('a fire-safety document generated again', () => {
     expect(Object.keys(context).sort()).toEqual([
       'branding',
       'client',
+      'controlDecision',
       'fireSafetyTechnician',
+      'installationRegister',
       'issueDate',
       'provider',
+      'seasonsDecision',
     ]);
     expect(buildFireSafetyContext(facts)).toMatchObject(context);
   });
@@ -628,7 +656,15 @@ describe('a fire-safety document generated again', () => {
       organization: { ...facts.organization, fireSafetyTechnicianCertificate: ' ' },
       client: { ...facts.client, representativeRole: null },
     });
-    expect(Object.keys(context).sort()).toEqual(['branding', 'fire', 'issueDate', 'provider']);
+    expect(Object.keys(context).sort()).toEqual([
+      'branding',
+      'controlDecision',
+      'fire',
+      'installationRegister',
+      'issueDate',
+      'provider',
+      'seasonsDecision',
+    ]);
   });
 
   it('keeps the fire object without the provider or its technician, which the template names as trainers', () => {
@@ -636,7 +672,15 @@ describe('a fire-safety document generated again', () => {
       ...facts,
       organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
     });
-    expect(Object.keys(context).sort()).toEqual(['branding', 'client', 'fire', 'issueDate']);
+    expect(Object.keys(context).sort()).toEqual([
+      'branding',
+      'client',
+      'controlDecision',
+      'fire',
+      'installationRegister',
+      'issueDate',
+      'seasonsDecision',
+    ]);
   });
 
   it('is equal to the whole context when nothing is missing', () => {

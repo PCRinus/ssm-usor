@@ -38,7 +38,7 @@ import {
 import { startWayBack } from '@/features/missing-data/way-back';
 import { dateToIso } from '@/lib/dates';
 
-import { workersRepresentativesRule } from './document-labels';
+import { fireSafetyHeadcountRule, workersRepresentativesRule } from './document-labels';
 import { documentSetCopy, setParams } from './document-sets';
 import {
   generateDocumentsFormSchema,
@@ -57,7 +57,7 @@ export function GenerateDocumentsDialog({
   userId,
   open,
   lastGeneration,
-  workersRepresentativeDecisionGenerated,
+  generatedTypeKeys,
   onClose,
 }: {
   set: DocumentSet;
@@ -65,7 +65,7 @@ export function GenerateDocumentsDialog({
   userId: string;
   open: boolean;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
-  workersRepresentativeDecisionGenerated: boolean;
+  generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
   return (
@@ -76,7 +76,7 @@ export function GenerateDocumentsDialog({
           clientId={clientId}
           userId={userId}
           lastGeneration={lastGeneration}
-          workersRepresentativeDecisionGenerated={workersRepresentativeDecisionGenerated}
+          generatedTypeKeys={generatedTypeKeys}
           onClose={onClose}
         />
       )}
@@ -89,14 +89,14 @@ function GenerateDocumentsForm({
   clientId,
   userId,
   lastGeneration,
-  workersRepresentativeDecisionGenerated,
+  generatedTypeKeys,
   onClose,
 }: {
   set: DocumentSet;
   clientId: string;
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
-  workersRepresentativeDecisionGenerated: boolean;
+  generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -202,14 +202,14 @@ function GenerateDocumentsForm({
               Nu am putut verifica datele clientului.
             </Notice>
           ) : (
-            occupationalSafety && (
-              <Notice variant="info" data-testid="generate-headcount">
-                {workersRepresentativesRule(
-                  readiness.data.currentEmployeeCount,
-                  workersRepresentativeDecisionGenerated
-                )}
-              </Notice>
-            )
+            <Notice variant="info" data-testid="generate-headcount">
+              {occupationalSafety
+                ? workersRepresentativesRule(
+                    readiness.data.currentEmployeeCount,
+                    generatedTypeKeys.includes('decision_workers_representative')
+                  )
+                : fireSafetyHeadcountRule(readiness.data.currentEmployeeCount, generatedTypeKeys)}
+            </Notice>
           )}
           {checking || !readiness.data ? null : !ready ? (
             <div data-testid="generate-missing" className="grid gap-4">

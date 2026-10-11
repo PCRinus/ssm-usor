@@ -28,7 +28,7 @@ vi.mock('@ssm-usor/document-engine', () => {
     protective_equipment_list: ['positions', 'equippedPositions', 'unequippedPositionsText'],
     risk_assessment: ['positions', 'riskAssessment'],
     prevention_plan: ['riskAssessment'],
-    fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding'],
+    fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding', 'installationRegister'],
     fire_registers: ['branding'],
     fire_decision_waste: ['fire'],
     event_registers: ['branding'],
@@ -318,7 +318,7 @@ type Upstream =
   | 'employees'
   | 'positions'
   | 'documents'
-  | 'generatedDecision'
+  | 'conditionalDocuments'
   | 'generations'
   | 'templates'
   | 'revisions'
@@ -397,11 +397,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       case '/rest/v1/fire_installations':
         return handlers.fireInstallations?.() ?? Response.json([]);
       case '/rest/v1/client_documents':
-        if (method === 'HEAD') {
-          return (
-            handlers.generatedDecision?.() ??
-            new Response(null, { headers: { 'content-range': '*/0' } })
-          );
+        if (method === 'GET' && isConditionalDocumentsRead(url)) {
+          return handlers.conditionalDocuments?.() ?? Response.json([]);
         }
         return (
           handlers.documents?.(init, url) ??
@@ -470,11 +467,20 @@ const gapsOutsideTheCover: Partial<Record<Upstream, Handler>> = {
   riskEvaluations: () => Response.json([]),
 };
 
+// Not the facts' read of which conditional documents exist, which every listing makes first.
+const isConditionalDocumentsRead = (url: URL) =>
+  url.pathname === '/rest/v1/client_documents' &&
+  Boolean(url.searchParams.get('type_key')?.startsWith('in.'));
+
 const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname.startsWith(pathname) && (init?.method ?? 'GET') === method
-  );
+  fetchMock.mock.calls.filter(([input, init]) => {
+    const url = new URL(String(input));
+    return (
+      url.pathname.startsWith(pathname) &&
+      (init?.method ?? 'GET') === method &&
+      !isConditionalDocumentsRead(url)
+    );
+  });
 
 const sentBody = (pathname: string, index = 0, method = 'POST') =>
   JSON.parse(String(calls(pathname, method)[index]![1]?.body)) as Record<string, unknown>;
@@ -2522,6 +2528,7 @@ describe('the fire-safety set', () => {
       authorization: null,
     },
     branding: true,
+    installationRegister: false,
   };
   const fireDocumentRow = {
     ...documentRow,
@@ -2620,7 +2627,11 @@ describe('the fire-safety set', () => {
       'fire_registers',
     ]);
     expect(body.lastGeneration).toEqual({ issueDate: '2026-10-01', firstDecisionNumber: null });
-    expect(body.notApplicable).toEqual([]);
+    expect(body.notApplicable).toEqual([
+      'fire_decision_seasons',
+      'fire_decision_control',
+      'fire_installation_register',
+    ]);
     expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
     expect(searchParam('/rest/v1/document_generations', 'document_group')).toBe(
       'eq.fire_safety_set'
@@ -2701,10 +2712,13 @@ describe('the fire-safety set', () => {
     expect(Object.keys(merged[0]!).sort()).toEqual([
       'branding',
       'client',
+      'controlDecision',
       'fire',
       'fireSafetyTechnician',
+      'installationRegister',
       'issueDate',
       'provider',
+      'seasonsDecision',
     ]);
     expect(merged[0]).toMatchObject({ issueDate: '01.10.2026', ...printedFireSafety });
   });
@@ -2782,19 +2796,93 @@ describe('the fire-safety set', () => {
       fire_cover_registers: null,
       fire_registers: null,
       fire_decision_organization: 4,
-      fire_decision_waste: 11,
+      fire_decision_waste: 10,
     });
     expect((merged[0]!.fire as { decisionNumbers: unknown }).decisionNumbers).toEqual({
       organization: '4 PSI',
       training: '5 PSI',
       openFire: '6 PSI',
       smoking: '7 PSI',
-      seasons: '8 PSI',
-      technician: '9 PSI',
-      instructions: '10 PSI',
-      waste: '11 PSI',
+      technician: '8 PSI',
+      instructions: '9 PSI',
+      waste: '10 PSI',
+      seasons: '11 PSI',
       control: '12 PSI',
     });
+  });
+
+  it('generates the documents required from ten employees only from ten, and the cover lists them then', async () => {
+    const fromTenTemplates = ['fire_decision_control', 'fire_installation_register'].map(
+      (typeKey) => ({
+        type_key: typeKey,
+        title: typeKey,
+        document_template_versions: [
+          { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+        ],
+      })
+    );
+    const generated = async (employees: number) => {
+      fetchMock.mockClear();
+      mockUpstream({
+        templates: () => Response.json([...fireTemplateRows, ...fromTenTemplates]),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        employees: () => new Response(null, { headers: { 'content-range': `0-0/${employees}` } }),
+      });
+      expect((await generate('fire_safety')).status).toBe(201);
+      const documents = calls('/rest/v1/client_documents', 'POST').map((_, index) =>
+        sentBody('/rest/v1/client_documents', index)
+      );
+      const cover = calls('/rest/v1/document_revisions', 'POST')
+        .map((_, index) => sentBody('/rest/v1/document_revisions', index).data_snapshot)
+        .find(
+          (snapshot) =>
+            snapshot && typeof snapshot === 'object' && 'installationRegister' in snapshot
+        );
+      return {
+        typeKeys: documents.map((document) => document.type_key).sort(),
+        listed: (cover as { installationRegister: boolean }).installationRegister,
+      };
+    };
+    expect(await generated(9)).toEqual({
+      typeKeys: ['fire_cover_registers', 'fire_registers'],
+      listed: false,
+    });
+    expect(await generated(10)).toEqual({
+      typeKeys: [
+        'fire_cover_registers',
+        'fire_decision_control',
+        'fire_installation_register',
+        'fire_registers',
+      ],
+      listed: true,
+    });
+  });
+
+  it('keeps listing a document required from ten employees that exists when the client has fewer', async () => {
+    const register = {
+      ...fireDocumentRow,
+      id: crypto.randomUUID(),
+      type_key: 'fire_installation_register',
+      title: 'Registru de control pentru instalații',
+    };
+    mockUpstream({
+      documents: () => Response.json([fireDocumentRow, register]),
+      conditionalDocuments: () =>
+        Response.json([
+          { type_key: 'fire_installation_register', document_revisions: [{ id: 'r' }] },
+        ]),
+    });
+    const body = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents?set=fire_safety`)).json()
+    );
+    expect(body.currentEmployeeCount).toBe(1);
+    expect(body.items.map((item) => item.typeKey)).toEqual([
+      'fire_cover_registers',
+      'fire_installation_register',
+    ]);
+    expect(body.notApplicable).toEqual(['fire_decision_seasons', 'fire_decision_control']);
+    expect(body.items[0]!.draft!.dataChanged).toBe(true);
   });
 
   it('asks for the fire-safety data of the client, its workplaces and its people', async () => {
@@ -2821,7 +2909,7 @@ describe('the fire-safety set', () => {
     const decision = {
       ...fireDocumentRow,
       type_key: 'fire_decision_waste',
-      decision_number: 11,
+      decision_number: 10,
       document_revisions: [{ ...fireDocumentRow.document_revisions[0]! }],
     };
     let fire: unknown;

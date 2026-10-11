@@ -94,6 +94,8 @@ function mockApi({
   fireItems = [] as unknown[],
   ssmItems = [] as unknown[],
   readiness = { ready: true, missing: [] as string[] },
+  notApplicable = [] as string[],
+  currentEmployeeCount = 12,
   generate = (() =>
     Response.json({ created: [cover, registers], skipped: [] }, { status: 201 })) as Route,
   behind = [] as unknown[],
@@ -118,7 +120,7 @@ function mockApi({
     if (pathname === `/clients/${clientId}/documents`) {
       return Response.json(
         fireSafety
-          ? { items: fireItems, lastGeneration: null, notApplicable: [], currentEmployeeCount: 6 }
+          ? { items: fireItems, lastGeneration: null, notApplicable, currentEmployeeCount }
           : {
               items: ssmItems,
               lastGeneration: null,
@@ -129,7 +131,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}/documents/readiness`) {
       return Response.json({
-        currentEmployeeCount: 6,
+        currentEmployeeCount,
         workersRepresentativeClash: null,
         undecidedJobPositions: [],
         incompleteRiskEvaluations: [],
@@ -185,13 +187,13 @@ const allBuilt = [
       ['fire_decision_training', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['fire_decision_open_fire', 'Decizia privind lucrul cu foc deschis'],
       ['fire_decision_smoking', 'Decizia privind fumatul'],
-      ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['fire_decision_technician', 'Decizia privind cadrul tehnic PSI'],
       [
         'fire_decision_instructions',
         'Decizia privind instrucțiunile de apărare împotriva incendiilor',
       ],
       ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
+      ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['fire_decision_control', 'Decizia privind controlul propriu'],
       [
         'fire_cover_own_instructions',
@@ -349,10 +351,10 @@ describe('client fire-safety documents', () => {
       ['document-not-generated', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['document-not-generated', 'Decizia privind lucrul cu foc deschis'],
       ['document-not-generated', 'Decizia privind fumatul'],
-      ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['document-not-generated', 'Decizia privind cadrul tehnic PSI'],
       ['document-not-generated', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
+      ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['document-not-generated', 'Decizia privind controlul propriu'],
     ]);
 
@@ -383,6 +385,75 @@ describe('client fire-safety documents', () => {
     expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentele lipsă'
+    );
+  });
+
+  it('shows the documents required from ten employees as not applying to a smaller client', async () => {
+    mockApi({
+      fireItems: [registers],
+      currentEmployeeCount: 6,
+      notApplicable: [
+        'fire_decision_seasons',
+        'fire_decision_control',
+        'fire_installation_register',
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '1');
+    const decisions = within(sectionOf('1')).getAllByRole('row').slice(1);
+    expect(decisions.map((row) => row.getAttribute('data-testid'))).toEqual([
+      ...Array(8).fill('document-not-generated'),
+      'document-not-applicable',
+      'document-not-applicable',
+    ]);
+    const [seasons, control] = within(sectionOf('1')).getAllByTestId('document-not-applicable');
+    expect(seasons!.textContent).toBe(
+      'Decizia privind perioadele caniculare și sezonul receNu se aplicăSub 10 angajați'
+    );
+    expect(control!.textContent).toContain('Decizia privind controlul propriu');
+    expect(within(seasons!).getByText('Nu se aplică').getAttribute('title')).toBe(
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+    );
+
+    await openSection(user, '6');
+    expect(
+      within(sectionOf('6'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.getAttribute('data-testid'))
+    ).toEqual([
+      'document-not-generated',
+      'document-row',
+      'document-not-generated',
+      'document-not-applicable',
+      'document-not-generated',
+    ]);
+
+    await user.click(screen.getByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+    );
+  });
+
+  it('says that the documents required from ten employees stay once they exist', async () => {
+    const control = fireDocument(
+      'bd6e7f9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+      'fire_decision_control',
+      'Decizia privind controlul propriu'
+    );
+    mockApi({
+      fireItems: [registers, control],
+      currentEmployeeCount: 9,
+      notApplicable: ['fire_decision_seasons', 'fire_installation_register'],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
+      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
     );
   });
 
@@ -514,7 +585,6 @@ describe('client fire-safety documents', () => {
         `/clients/${clientId}/details?focus=legal-representative-role`,
       ],
     ]);
-    expect(screen.queryByTestId('generate-headcount')).toBeNull();
     expect(screen.queryByTestId('generate-submit')).toBeNull();
     const [asked] = requests('/documents/readiness');
     expect(asked!.url.searchParams.get('set')).toBe('fire_safety');
@@ -552,7 +622,9 @@ describe('client fire-safety documents', () => {
     const number = screen.getByTestId<HTMLInputElement>('generate-first-number');
     expect(number.value).toBe('1');
     expect(screen.getByText('Numărul primei decizii PSI')).toBeTruthy();
-    expect(screen.queryByTestId('generate-headcount')).toBeNull();
+    expect(screen.getByTestId('generate-headcount').textContent).toBe(
+      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații.'
+    );
 
     await user.clear(number);
     await user.type(number, '9992');

@@ -13,6 +13,7 @@ import {
   type FireInstallationKind,
   fireInstallationKindLabels,
   fireSafetyMissingDocumentData,
+  type FireSafetyTypeKeyFromTenEmployees,
   type FireSmokingPolicy,
   type ResponsiblePersonRole,
   samePersonName,
@@ -22,7 +23,7 @@ import {
 
 import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
-import { type DocumentFacts, months, printedDate } from './context';
+import { documentApplies, type DocumentFacts, months, printedDate } from './context';
 import {
   dealChapters,
   fireOwnInstructionsChapters,
@@ -73,6 +74,8 @@ export type FireSafetyClientFacts = {
     wheeled: boolean;
   }[];
   installations: { workplaceId: string; kind: FireInstallationKind; description: string | null }[];
+  /** Those of the documents required from ten employees the client has, whatever its count now. */
+  generatedFromTenEmployees: FireSafetyTypeKeyFromTenEmployees[];
 };
 
 type Person = {
@@ -196,7 +199,7 @@ export type FireContext = {
     /** Null where the client names no place, and always where smoking is forbidden. */
     place: string | null;
   };
-  /** `collectors` null where decision 8 names the workers on duty. */
+  /** `collectors` null where decision 7 names the workers on duty. */
   waste: { kinds: string[]; contractor: string | null; collectors: string | null };
   /** One per staff category with current posts, technical-administrative first. */
   themes: FireThemesContext[];
@@ -219,11 +222,19 @@ export type FireSafetyContext = {
     authorization: string | null;
   };
   fire: FireContext;
+  /**
+   * Whether the set holds each document required from ten employees (ADR 020): the covers list
+   * it, and decision 6 cites decision 9. One that exists stays in the set below ten.
+   */
+  seasonsDecision: boolean;
+  controlDecision: boolean;
+  installationRegister: boolean;
 };
 
 export type FireSafetySetFacts = Pick<
   DocumentFacts,
   | 'issueDate'
+  | 'currentEmployeeCount'
   | 'firstDecisionNumber'
   | 'branding'
   | 'organization'
@@ -412,6 +423,8 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): {
   [Name in keyof FireSafetyContext]: () => FireSafetyContext[Name];
 } {
   const { organization, client } = facts;
+  const inSet = (typeKey: FireSafetyTypeKeyFromTenEmployees) =>
+    documentApplies(facts, typeKey) || facts.fireSafety.generatedFromTenEmployees.includes(typeKey);
   return {
     branding: () => facts.branding,
     issueDate: () => printedDate(facts.issueDate),
@@ -431,6 +444,9 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): {
       authorization: organization.fireSafetyAuthorization?.trim() || null,
     }),
     fire: () => fireContext(facts),
+    seasonsDecision: () => inSet('fire_decision_seasons'),
+    controlDecision: () => inSet('fire_decision_control'),
+    installationRegister: () => inSet('fire_installation_register'),
   };
 }
 
@@ -634,7 +650,7 @@ function fireThemes({
   intervalMonths: Record<StaffCategory, number>;
   firstMonth: number;
   periodicMinutes: number;
-  /** "11 PSI", the number of decision 7, whose annex is the posted instructions. */
+  /** "10 PSI", the number of decision 6, whose annex is the posted instructions. */
   instructionsDecision: string;
   /** At least one. */
   workplaceManagers: readonly string[];

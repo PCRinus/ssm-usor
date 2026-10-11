@@ -1,5 +1,6 @@
 import {
   type EquipmentAllocation,
+  fireSafetyTypeKeysFromTenEmployees,
   type ResponsiblePersonRole,
   type StaffCategory,
 } from '@ssm-usor/contracts';
@@ -39,7 +40,7 @@ export async function loadDocumentFacts(
     profile,
     persons,
     headcount,
-    generatedDecision,
+    conditionalDocuments,
     positions,
     ownInstructions,
     workplaces,
@@ -91,9 +92,9 @@ export async function loadDocumentFacts(
     // A document row without a revision is a failed generation, not a generated document.
     db
       .from('client_documents')
-      .select('id, document_revisions!inner(id)', { count: 'exact', head: true })
+      .select('type_key, document_revisions!inner(id)')
       .eq('client_id', clientId)
-      .eq('type_key', 'decision_workers_representative'),
+      .in('type_key', ['decision_workers_representative', ...fireSafetyTypeKeysFromTenEmployees]),
     // In the order of the positions table, with the entries in the order they were added.
     db
       .from('job_positions')
@@ -162,9 +163,10 @@ export async function loadDocumentFacts(
   if (profile.error) throw fromDatabaseError(profile.error, 'document facts: profile');
   if (persons.error) throw fromDatabaseError(persons.error, 'document facts: responsible persons');
   if (headcount.error) throw fromDatabaseError(headcount.error, 'document facts: employee count');
-  if (generatedDecision.error) {
-    throw fromDatabaseError(generatedDecision.error, 'document facts: generated decision 1.5');
+  if (conditionalDocuments.error) {
+    throw fromDatabaseError(conditionalDocuments.error, 'document facts: conditional documents');
   }
+  const generated = new Set(conditionalDocuments.data.map((document) => document.type_key));
   if (positions.error) throw fromDatabaseError(positions.error, 'document facts: job positions');
   if (workplaces.error) throw fromDatabaseError(workplaces.error, 'document facts: workplaces');
   if (fireSafety.error) throw fromDatabaseError(fireSafety.error, 'document facts: fire safety');
@@ -254,6 +256,9 @@ export async function loadDocumentFacts(
         kind: installation.kind,
         description: installation.description,
       })),
+      generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
+        generated.has(typeKey)
+      ),
     },
     responsiblePersons: persons.data.map((person) => ({
       fullName: person.full_name,
@@ -296,7 +301,7 @@ export async function loadDocumentFacts(
     })),
     staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
     currentEmployeeCount: headcount.count ?? 0,
-    workersRepresentativeDecisionGenerated: (generatedDecision.count ?? 0) > 0,
+    workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
     riskEvaluations,
   };

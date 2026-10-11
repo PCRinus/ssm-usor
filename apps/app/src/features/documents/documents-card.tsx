@@ -69,6 +69,7 @@ import { openDownload } from '@/lib/save-file';
 import { AnnexRow } from './annex-row';
 import {
   type ClientDocument,
+  fireSafetyHeadcountRule,
   notApplicableTitles,
   notGeneratedTitles,
   workersRepresentativesRule,
@@ -522,10 +523,17 @@ export function DocumentsCard<Set extends DocumentSet>({
                                 <TableCell>
                                   <Badge
                                     variant="outline"
-                                    title={workersRepresentativesRule(
-                                      documents.data?.currentEmployeeCount ?? 0,
-                                      false
-                                    )}
+                                    title={
+                                      set === 'fire_safety'
+                                        ? fireSafetyHeadcountRule(
+                                            documents.data?.currentEmployeeCount ?? 0,
+                                            [...existing]
+                                          )
+                                        : workersRepresentativesRule(
+                                            documents.data?.currentEmployeeCount ?? 0,
+                                            false
+                                          )
+                                    }
                                   >
                                     Nu se aplică
                                   </Badge>
@@ -774,10 +782,9 @@ export function DocumentsCard<Set extends DocumentSet>({
         userId={userId}
         open={generating}
         lastGeneration={documents.data?.lastGeneration ?? null}
-        workersRepresentativeDecisionGenerated={items.some(
-          (item) =>
-            item.typeKey === 'decision_workers_representative' && (item.draft || item.issued)
-        )}
+        generatedTypeKeys={items
+          .filter((item) => item.draft || item.issued)
+          .map((item) => item.typeKey)}
         onClose={() => setGenerating(false)}
       />
       <Dialog

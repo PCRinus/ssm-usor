@@ -195,7 +195,7 @@ columns a member may write, which still leaves out `name` and the accepted terms
 authorization of the provider to act as fire-safety technician under contract, Legea 307/2006
 art. 12^2, as the provider writes it: "nr. 12 din 15.09.2026, ISU Cluj". One text, not a number,
 a date and an issuer, while the form of the document the authorization methodology will issue is
-unknown. Decision 6 of the fire-safety set prints it when set, and no readiness asks for it
+unknown. Decision 5 of the fire-safety set prints it when set, and no readiness asks for it
 ([ADR 019](architecture/adr-019-fire-safety-stage-three.md)). It joins the columns a member may
 write, under the same owners' update policy.
 
@@ -245,12 +245,12 @@ interval allows up to 12 months where OMAI 712/2005 allows 6. No fire-safety doc
 columns of `clients`.
 
 **Workplaces.** `client_workplaces` gains eight nullable columns. `activity` ("Gelaterie",
-"Birouri", 2 to 160 characters) is printed by decision 5, the list of means and the posted
+"Birouri", 2 to 160 characters) is printed by decision 8, the list of means and the posted
 sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilă". `extinguisher_norm` is
 the row of OMAI 163/2007 annex 6 that applies, the list's "Norma de dotare", as
 `fire_extinguisher_norm`: `administrative_300`, `commercial_200`, `residential_level`,
 `mixed_300` or `other_150`. `assembly_point` (2 to 240) is printed by the posted sheet and
-decision 5. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
+decision 8. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
 each) are points I.1, I.2 and I.3 of the posted sheet, and `specific_measures` (2 to 600) is
 its point I.5, printed empty when null. Point I.4, the general measures, is template text, the
 same at every workplace, and is not stored. A unique index on `(id, client_id)` lets the
@@ -327,9 +327,18 @@ category and nothing else of them. The data snapshot keeps the whole `fire` valu
 of any fact above marks the set's drafts "Date modificate" and leaves the occupational safety
 ones alone. Fire-safety decisions print the generation's `first_decision_number` plus their
 fixed ordinal in the binder (1 to 9) minus one, and the fire-safety generation asks for
-that number. A fire-safety decision stores its printed number in `decision_number`, and a
-document of the set is compared with its snapshot, and generated again, with the first number
-it was made with.
+that number. The two decisions required only from ten employees take the last ordinals, 8 the
+seasons and 9 the own control (ADR 020). A fire-safety decision stores its printed number in
+`decision_number`, and a document of the set is compared with its snapshot, and generated
+again, with the first number it was made with.
+
+**Documents from ten employees.** Decisions 8 and 9 and the installation register
+(`fire_installation_register`) are part of a client's fire-safety set from 10 current employees,
+the same `current_employee_count(clients)` that decides decision 1.5 (ADR 010, ADR 020), or once
+the client has a revision of them, whatever the count is then. Nothing is stored for it: the
+facts read which of the three have a revision, and the merge data carries `seasonsDecision`,
+`controlDecision` and `installationRegister` beside `fire`, so a draft of a cover is marked
+"Date modificate" when the client crosses ten, not when any other fact changes.
 
 ## Employees
 

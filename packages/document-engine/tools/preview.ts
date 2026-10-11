@@ -224,10 +224,10 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
       training: '2 PSI',
       openFire: '3 PSI',
       smoking: '4 PSI',
-      seasons: '5 PSI',
-      technician: '6 PSI',
-      instructions: '7 PSI',
-      waste: '8 PSI',
+      technician: '5 PSI',
+      instructions: '6 PSI',
+      waste: '7 PSI',
+      seasons: '8 PSI',
       control: '9 PSI',
     },
     schedule: {
@@ -293,6 +293,62 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           contractor: 'S.C. ECO COLECT S.R.L.',
           collectors: null,
         },
+    themes: [
+      ...(long
+        ? []
+        : [
+            {
+              staffCategory: 'technical_administrative',
+              label: 'Personal administrativ',
+              posts: ['Manager magazin'],
+              postsText: 'Manager magazin',
+              workplaceTrainers: { workplaceManagers: null, technician: true },
+              periodicTrainers: { workplaceManagers: null, technician: true },
+              intervalLabel: '3 LUNI',
+              sessions: ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE'].map((month, index) => ({
+                month,
+                content: `IPSU art.\u00a0${index * 64 + 1}–${index * 64 + 64}; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 PSI)${index === 3 ? '; testare.' : ''}`,
+                duration: '120 min',
+              })),
+            },
+          ]),
+      {
+        staffCategory: 'execution',
+        label: 'Personal de execuție',
+        posts: ['Lucrător comercial', 'Barman preparator'],
+        postsText: 'Lucrător comercial, Barman preparator',
+        workplaceTrainers: {
+          workplaceManagers: `${listed(people.map(({ name }) => name))} – ${people.length === 1 ? 'conducătorul locului de muncă' : 'conducătorii locurilor de muncă'}`,
+          technician: false,
+        },
+        periodicTrainers: {
+          workplaceManagers: `${listed(people.map(({ name }) => name))} – ${people.length === 1 ? 'conducătorul locului de muncă' : 'conducătorii locurilor de muncă'}`,
+          technician: true,
+        },
+        intervalLabel: long ? '1 LUNĂ' : '3 LUNI',
+        sessions: (long
+          ? [
+              'IANUARIE',
+              'FEBRUARIE',
+              'MARTIE',
+              'APRILIE',
+              'MAI',
+              'IUNIE',
+              'IULIE',
+              'AUGUST',
+              'SEPTEMBRIE',
+              'OCTOMBRIE',
+              'NOIEMBRIE',
+              'DECEMBRIE',
+            ]
+          : ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE']
+        ).map((month, index, months) => ({
+          month,
+          content: `IPSU art.\u00a0${index * 20 + 1}–${index * 20 + 20}; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 PSI)${index === months.length - 1 ? '; testare.' : ''}`,
+          duration: '120 min',
+        })),
+      },
+    ],
   };
 }
 
@@ -512,6 +568,9 @@ function sample(
         authorization: people.length > 1 ? null : 'nr. 12 din 15.09.2026, ISU Timiș',
       },
       fire: fireSample(people, people.length > 1),
+      seasonsDecision: true,
+      controlDecision: true,
+      installationRegister: true,
       workplaceManagers: people,
       workplaceManagersText: described(people),
       workplaceManagersList: people.map(({ name, jobTitle }) => `${name}, ${jobTitle}`).join('; '),

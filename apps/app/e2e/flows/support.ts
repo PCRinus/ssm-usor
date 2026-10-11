@@ -114,7 +114,7 @@ export async function completeProviderDetails(organizationId: string) {
 }
 
 // The provider's signer on the fire-safety set (ADR 016), the one fact it asks beyond the
-// others', with the certificate decision 6 prints (ADR 019).
+// others', with the certificate decision 5 prints (ADR 019).
 export async function nameFireSafetyTechnician(organizationId: string) {
   const organization = await admin
     .from('organizations')

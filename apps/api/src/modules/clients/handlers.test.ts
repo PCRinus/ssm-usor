@@ -5,6 +5,7 @@ import {
   clientResponseSchema,
   documentTypeKeys,
   fireSafetyDocumentTypeKeys,
+  fireSafetyTypeKeysFromTenEmployees,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -170,7 +171,7 @@ describe('GET /clients', () => {
           fireSafetyDocumentation: {
             state: 'none',
             issuedCount: 0,
-            totalCount: 24,
+            totalCount: 21,
             lastGeneratedAt: null,
           },
         },
@@ -283,23 +284,32 @@ describe('GET /clients', () => {
     ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
   });
 
-  it('counts the whole fire-safety set, whatever the headcount', async () => {
-    const generated = fireSafetyDocumentTypeKeys.slice(0, 20);
+  it('counts the fire-safety documents required from ten employees from ten, or once they exist', async () => {
+    const fromTen: readonly string[] = fireSafetyTypeKeysFromTenEmployees;
+    const generated = fireSafetyDocumentTypeKeys.filter((key) => !fromTen.includes(key));
     expect(
       await fireSafetyDocumentationOf({
-        current_employee_count: 3,
+        current_employee_count: 9,
         fire_safety_generated_type_keys: generated,
-        fire_safety_issued_count: 18,
+        fire_safety_issued_count: generated.length,
         fire_safety_last_generated_at: '2026-10-01T10:00:00+00:00',
       })
     ).toEqual({
-      state: 'in_progress',
-      issuedCount: 18,
-      totalCount: 24,
+      state: 'issued',
+      issuedCount: 21,
+      totalCount: 21,
       lastGeneratedAt: '2026-10-01T10:00:00+00:00',
     });
     expect(
       await fireSafetyDocumentationOf({
+        current_employee_count: 10,
+        fire_safety_generated_type_keys: generated,
+        fire_safety_issued_count: generated.length,
+      })
+    ).toMatchObject({ state: 'in_progress', issuedCount: 21, totalCount: 24 });
+    expect(
+      await fireSafetyDocumentationOf({
+        current_employee_count: 3,
         fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys, 'fire_own_annex'],
         fire_safety_issued_count: 25,
       })

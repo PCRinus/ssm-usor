@@ -191,7 +191,7 @@ export const clientFireSafetySchema = z.object({
   smokingPlace: z.string().nullable(),
   wasteKinds: z.array(z.string()),
   wasteContractor: z.string().nullable(),
-  // Null where decision 8 names the workers on duty.
+  // Null where decision 7 names the workers on duty.
   wasteCollectors: z.string().nullable(),
   // Other firms work on the premises, which decision 9 then controls quarterly (ADR 019).
   hasThirdParties: z.boolean(),

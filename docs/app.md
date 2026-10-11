@@ -521,7 +521,7 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   optional "Locul pentru fumat" (ADR 019; picking another rule hides it and the save sends it
   as null, so the API clears it), the kinds of waste as chips (Enter adds one, a text left in
   the field is added on save), the firm that collects them and the optional "Cine colectează
-  deșeurile", empty for the workers on duty, which decision 8 then names, and the checkbox "În
+  deșeurile", empty for the workers on duty, which decision 7 then names, and the checkbox "În
   spațiile clientului lucrează și alte firme (chiriași, prestatori)", which adds their quarterly
   control to decision 9. While the API says no row
   exists the card reads "Necompletat", and its form opens on two hours, three months for both
@@ -639,8 +639,14 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   know. A document the client does not have yet is a muted "Negenerat" row named from
   `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
   document of the binder is built since ADR 019, so the tab plans nothing and the "În
-  pregătire" rows it showed until then are gone. Until something is generated, a hint under the heading
-  replaces the empty state. Its dialog has no headcount notice and asks the date and "Numărul
+  pregătire" rows it showed until then are gone. Under 10 current employees decisions 8 and 9
+  and the installation register, which the API names under `notApplicable`
+  ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), are "Nu se aplică" rows
+  with "Sub 10 angajați", titled from `notApplicableTitles`, the badge's tooltip saying the rule
+  (`fireSafetyHeadcountRule`). Until something is generated, a hint under the heading
+  replaces the empty state. Its dialog states the headcount and what it means for those three
+  documents (`fireSafetyHeadcountRule`: generated from ten, not generated under ten, kept once
+  they exist), as the SSM dialog does for decision 1.5, and asks the date and "Numărul
   primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);
   every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
   to this tab's form. A `503` says that

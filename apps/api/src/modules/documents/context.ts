@@ -4,6 +4,7 @@ import {
   type DocumentSet,
   documentSetTypeKeys,
   type EquipmentAllocation,
+  fireSafetyTypeKeysFromTenEmployees,
   formatTrainingDuration,
   type InstructionModuleGroup,
   type JobPositionDecision,
@@ -749,16 +750,20 @@ function intervalLabel(months: number | null) {
 
 /**
  * Whether a document belongs in this client's set. Decision 1.5 only does from 10 current
- * employees (ADR 010); a document that already exists is kept regardless.
+ * employees (ADR 010), and so do the fire-safety documents of OMAI 163/2007 art. 17 or 18 alone
+ * (ADR 020); a document that already exists is kept regardless.
  */
 export function documentApplies(
   facts: Pick<DocumentFacts, 'currentEmployeeCount'>,
   typeKey: string
 ): boolean {
-  return (
-    typeKey !== 'decision_workers_representative' ||
-    requiredWorkersRepresentatives(facts.currentEmployeeCount) > 0
-  );
+  if (typeKey === 'decision_workers_representative') {
+    return requiredWorkersRepresentatives(facts.currentEmployeeCount) > 0;
+  }
+  if ((fireSafetyTypeKeysFromTenEmployees as readonly string[]).includes(typeKey)) {
+    return facts.currentEmployeeCount >= 10;
+  }
+  return true;
 }
 
 /**

@@ -808,6 +808,7 @@ describe('the fire-safety templates', () => {
       },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
+      generatedFromTenEmployees: [],
     },
   };
 
@@ -846,10 +847,10 @@ describe('the fire-safety templates', () => {
       fire_decision_training: '6 PSI',
       fire_decision_open_fire: '7 PSI',
       fire_decision_smoking: '8 PSI',
-      fire_decision_seasons: '9 PSI',
-      fire_decision_technician: '10 PSI',
-      fire_decision_instructions: '11 PSI',
-      fire_decision_waste: '12 PSI',
+      fire_decision_technician: '9 PSI',
+      fire_decision_instructions: '10 PSI',
+      fire_decision_waste: '11 PSI',
+      fire_decision_seasons: '12 PSI',
       fire_decision_control: '13 PSI',
     };
     for (const [typeKey, number] of Object.entries(numbers)) {
@@ -861,6 +862,35 @@ describe('the fire-safety templates', () => {
       );
       expect(text).toContain(`Nr. ${number} din 19.01.2026`);
     }
+  });
+
+  it('list decisions 8 and 9 and the installation register, and cite decision 9, only from ten employees', () => {
+    const file = (typeKey: string) =>
+      readFileSync(
+        new URL(fireManifest.templates.find((each) => each.typeKey === typeKey)!.file, fireUrl)
+      );
+    const printed = (currentEmployeeCount: number) => {
+      const data = { ...buildFireSafetyContext({ ...facts, currentEmployeeCount }) };
+      return {
+        decisions: documentText(renderDocument(file('fire_cover_decisions'), data)).match(
+          /^\d\. /gm
+        ),
+        registers: documentText(renderDocument(file('fire_cover_registers'), data)).match(
+          /^\d\. /gm
+        ),
+        instructions: documentText(renderDocument(file('fire_decision_instructions'), data)),
+      };
+    };
+    const small = printed(9);
+    expect(small.decisions).toHaveLength(7);
+    expect(small.registers).toHaveLength(5);
+    expect(small.instructions).toContain('a) executarea controalelor interne;');
+    const large = printed(10);
+    expect(large.decisions).toHaveLength(9);
+    expect(large.registers).toHaveLength(6);
+    expect(large.instructions).toContain(
+      'a) executarea controalelor interne conform planificării, Decizia nr. 13 PSI;'
+    );
   });
 
   it('print the workplaces, their means and their people', () => {
@@ -946,7 +976,7 @@ describe('the fire-safety templates', () => {
     expect(text).toContain('Locul de muncă: Atelier Ghiroda (atelier de sudură)');
     expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
     expect(text).toContain('Ladă cu nisip: 1 buc.;');
-    expect(text).toContain('redate în Decizia nr. 10 PSI.');
+    expect(text).toContain('redate în Decizia nr. 9 PSI.');
     expect(text).toContain('conform Deciziei nr. 8 PSI:');
     expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(
       facts.workplaces.length
@@ -977,7 +1007,7 @@ describe('the fire-safety templates', () => {
         responsiblePersons: [],
         jobPositions: [],
         workplaces: facts.workplaces.map((workplace) => ({ ...workplace, activity: null })),
-        fireSafety: { card: null, equipment: [], installations: [] },
+        fireSafety: { card: null, equipment: [], installations: [], generatedFromTenEmployees: [] },
       },
     ],
     [

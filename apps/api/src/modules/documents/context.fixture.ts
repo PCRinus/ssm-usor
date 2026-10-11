@@ -268,5 +268,6 @@ export const facts: DocumentFacts = {
       { workplaceId: officeId, kind: 'detection_alarm', description: null },
       { workplaceId: officeId, kind: 'interior_hydrants', description: 'Câte unul pe nivel' },
     ],
+    generatedFromTenEmployees: [],
   },
 };
