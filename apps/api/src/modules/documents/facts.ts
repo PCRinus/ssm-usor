@@ -49,6 +49,7 @@ export async function loadDocumentFacts(
     fireEquipment,
     fireInstallations,
     fireSubstances,
+    fireMaintenanceItems,
     ...employeeCounts
   ] = await Promise.all([
     db
@@ -134,13 +135,13 @@ export async function loadDocumentFacts(
       .maybeSingle(),
     db
       .from('fire_equipment')
-      .select('workplace_id, kind, agent, capacity, wheeled')
+      .select('workplace_id, kind, agent, capacity, wheeled, next_service_on, maintainer')
       .eq('client_id', clientId)
       .order('created_at')
       .order('id'),
     db
       .from('fire_installations')
-      .select('workplace_id, kind, description')
+      .select('workplace_id, kind, description, maintainer, last_check_on, next_check_on')
       .eq('client_id', clientId)
       .order('created_at')
       .order('id'),
@@ -149,6 +150,13 @@ export async function loadDocumentFacts(
       .select(
         'name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
       )
+      .eq('client_id', clientId)
+      .order('sort_order')
+      .order('created_at')
+      .order('id'),
+    db
+      .from('fire_maintenance_items')
+      .select('workplace_id, subject, interval_label, checked_by')
       .eq('client_id', clientId)
       .order('sort_order')
       .order('created_at')
@@ -188,6 +196,9 @@ export async function loadDocumentFacts(
   }
   if (fireSubstances.error) {
     throw fromDatabaseError(fireSubstances.error, 'document facts: fire substances');
+  }
+  if (fireMaintenanceItems.error) {
+    throw fromDatabaseError(fireMaintenanceItems.error, 'document facts: fire maintenance items');
   }
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
@@ -264,11 +275,22 @@ export async function loadDocumentFacts(
         agent: unit.agent,
         capacity: unit.capacity,
         wheeled: unit.wheeled,
+        nextServiceOn: unit.next_service_on,
+        maintainer: unit.maintainer,
       })),
       installations: fireInstallations.data.map((installation) => ({
         workplaceId: installation.workplace_id,
         kind: installation.kind,
         description: installation.description,
+        maintainer: installation.maintainer,
+        lastCheckOn: installation.last_check_on,
+        nextCheckOn: installation.next_check_on,
+      })),
+      maintenanceItems: fireMaintenanceItems.data.map((item) => ({
+        workplaceId: item.workplace_id,
+        subject: item.subject,
+        intervalLabel: item.interval_label,
+        checkedBy: item.checked_by,
       })),
       generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
         generated.has(typeKey)

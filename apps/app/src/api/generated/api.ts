@@ -3626,6 +3626,55 @@ export interface FireInstallationRequest {
   nextCheckOn?: string | null;
 }
 
+export type FireMaintenanceItemListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  workplaceId: string;
+  subject: string;
+  intervalLabel: string;
+  checkedBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FireMaintenanceItemListResponse {
+  items: FireMaintenanceItemListResponseItemsItem[];
+}
+
+export type FireMaintenanceItemResponseItem = {
+  id: string;
+  clientId: string;
+  workplaceId: string;
+  subject: string;
+  intervalLabel: string;
+  checkedBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FireMaintenanceItemResponse {
+  item: FireMaintenanceItemResponseItem;
+}
+
+export interface FireMaintenanceItemRequest {
+  workplaceId: string;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  subject: string;
+  /**
+   * @minLength 2
+   * @maxLength 60
+   */
+  intervalLabel: string;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  checkedBy: string;
+}
+
 export type FireSubstancesResponseState =
   (typeof FireSubstancesResponseState)[keyof typeof FireSubstancesResponseState];
 
@@ -3955,6 +4004,7 @@ export const StartRegenerationRequestTypeKey = {
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
   fire_substances_list: 'fire_substances_list',
+  fire_maintenance_schedules: 'fire_maintenance_schedules',
   fire_cover_registers: 'fire_cover_registers',
   fire_registers: 'fire_registers',
   fire_work_permit: 'fire_work_permit',
@@ -4317,6 +4367,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   fire_means_list: 'fire_means_list',
   fire_workplace_organization: 'fire_workplace_organization',
   fire_substances_list: 'fire_substances_list',
+  fire_maintenance_schedules: 'fire_maintenance_schedules',
   fire_cover_registers: 'fire_cover_registers',
   fire_registers: 'fire_registers',
   fire_work_permit: 'fire_work_permit',
@@ -16454,6 +16505,463 @@ export const useDeleteFireInstallation = <TError = ErrorType<ApiErrorResponse>, 
   return useMutation(getDeleteFireInstallationMutationOptions(options), queryClient);
 };
 
+export const getListFireMaintenanceItemsUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-maintenance-items`;
+};
+
+/**
+ * Every row on an active workplace, by workplace in the order of the workplaces list, then in the order they were added. The schedules 5.4 print them below the rows derived from the equipment and the installations (ADR 018).
+ * @summary List the free rows of a client's maintenance and check schedules
+ */
+export const listFireMaintenanceItems = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireMaintenanceItemListResponse> => {
+  return apiFetch<FireMaintenanceItemListResponse>(getListFireMaintenanceItemsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListFireMaintenanceItemsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/fire-maintenance-items`] as const;
+};
+
+export const getListFireMaintenanceItemsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listFireMaintenanceItems>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFireMaintenanceItemsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFireMaintenanceItems>>> = ({
+    signal,
+  }) => listFireMaintenanceItems(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listFireMaintenanceItems>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListFireMaintenanceItemsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFireMaintenanceItems>>
+>;
+export type ListFireMaintenanceItemsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListFireMaintenanceItems<
+  TData = Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listFireMaintenanceItems>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+          TError,
+          Awaited<ReturnType<typeof listFireMaintenanceItems>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFireMaintenanceItems<
+  TData = Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listFireMaintenanceItems>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+          TError,
+          Awaited<ReturnType<typeof listFireMaintenanceItems>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFireMaintenanceItems<
+  TData = Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listFireMaintenanceItems>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the free rows of a client's maintenance and check schedules
+ */
+
+export function useListFireMaintenanceItems<
+  TData = Awaited<ReturnType<typeof listFireMaintenanceItems>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listFireMaintenanceItems>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListFireMaintenanceItemsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateFireMaintenanceItemUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-maintenance-items`;
+};
+
+/**
+ * What is checked, how often as a label ("anual", "la 6 luni") and who checks it, added after the workplace's last row.
+ * @summary Add a free row to a workplace's maintenance and check schedule
+ */
+export const createFireMaintenanceItem = async (
+  clientId: string,
+  fireMaintenanceItemRequest: FireMaintenanceItemRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireMaintenanceItemResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<FireMaintenanceItemResponse>(getCreateFireMaintenanceItemUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(fireMaintenanceItemRequest),
+  });
+};
+
+export const getCreateFireMaintenanceItemMutationKey = () => ['createFireMaintenanceItem'] as const;
+
+export const getCreateFireMaintenanceItemMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFireMaintenanceItem>>,
+    TError,
+    CreateFireMaintenanceItemMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFireMaintenanceItem>>,
+  TError,
+  CreateFireMaintenanceItemMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateFireMaintenanceItemMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFireMaintenanceItem>>,
+    CreateFireMaintenanceItemMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createFireMaintenanceItem(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFireMaintenanceItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFireMaintenanceItem>>
+>;
+export type CreateFireMaintenanceItemMutationBody = FireMaintenanceItemRequest;
+export type CreateFireMaintenanceItemMutationError = ErrorType<ApiErrorResponse>;
+export type CreateFireMaintenanceItemMutationVariables = {
+  clientId: string;
+  data: FireMaintenanceItemRequest;
+};
+
+/**
+ * @summary Add a free row to a workplace's maintenance and check schedule
+ */
+export const useCreateFireMaintenanceItem = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createFireMaintenanceItem>>,
+      TError,
+      CreateFireMaintenanceItemMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createFireMaintenanceItem>>,
+  TError,
+  CreateFireMaintenanceItemMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateFireMaintenanceItemMutationOptions(options), queryClient);
+};
+
+export const getUpdateFireMaintenanceItemUrl = (clientId: string, itemId: string) => {
+  return `/clients/${clientId}/fire-maintenance-items/${itemId}`;
+};
+
+/**
+ * The row may move to another active workplace of the same client.
+ * @summary Replace a free row of the maintenance and check schedules
+ */
+export const updateFireMaintenanceItem = async (
+  clientId: string,
+  itemId: string,
+  fireMaintenanceItemRequest: FireMaintenanceItemRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireMaintenanceItemResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<FireMaintenanceItemResponse>(getUpdateFireMaintenanceItemUrl(clientId, itemId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(fireMaintenanceItemRequest),
+  });
+};
+
+export const getUpdateFireMaintenanceItemMutationKey = () => ['updateFireMaintenanceItem'] as const;
+
+export const getUpdateFireMaintenanceItemMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFireMaintenanceItem>>,
+    TError,
+    UpdateFireMaintenanceItemMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFireMaintenanceItem>>,
+  TError,
+  UpdateFireMaintenanceItemMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateFireMaintenanceItemMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFireMaintenanceItem>>,
+    UpdateFireMaintenanceItemMutationVariables
+  > = (props) => {
+    const { clientId, itemId, data } = props ?? {};
+
+    return updateFireMaintenanceItem(clientId, itemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFireMaintenanceItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFireMaintenanceItem>>
+>;
+export type UpdateFireMaintenanceItemMutationBody = FireMaintenanceItemRequest;
+export type UpdateFireMaintenanceItemMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateFireMaintenanceItemMutationVariables = {
+  clientId: string;
+  itemId: string;
+  data: FireMaintenanceItemRequest;
+};
+
+/**
+ * @summary Replace a free row of the maintenance and check schedules
+ */
+export const useUpdateFireMaintenanceItem = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateFireMaintenanceItem>>,
+      TError,
+      UpdateFireMaintenanceItemMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateFireMaintenanceItem>>,
+  TError,
+  UpdateFireMaintenanceItemMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateFireMaintenanceItemMutationOptions(options), queryClient);
+};
+
+export const getDeleteFireMaintenanceItemUrl = (clientId: string, itemId: string) => {
+  return `/clients/${clientId}/fire-maintenance-items/${itemId}`;
+};
+
+/**
+ * @summary Delete a free row of the maintenance and check schedules
+ */
+export const deleteFireMaintenanceItem = async (
+  clientId: string,
+  itemId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteFireMaintenanceItemUrl(clientId, itemId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteFireMaintenanceItemMutationKey = () => ['deleteFireMaintenanceItem'] as const;
+
+export const getDeleteFireMaintenanceItemMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFireMaintenanceItem>>,
+    TError,
+    DeleteFireMaintenanceItemMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFireMaintenanceItem>>,
+  TError,
+  DeleteFireMaintenanceItemMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteFireMaintenanceItemMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFireMaintenanceItem>>,
+    DeleteFireMaintenanceItemMutationVariables
+  > = (props) => {
+    const { clientId, itemId } = props ?? {};
+
+    return deleteFireMaintenanceItem(clientId, itemId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteFireMaintenanceItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteFireMaintenanceItem>>
+>;
+
+export type DeleteFireMaintenanceItemMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteFireMaintenanceItemMutationVariables = { clientId: string; itemId: string };
+
+/**
+ * @summary Delete a free row of the maintenance and check schedules
+ */
+export const useDeleteFireMaintenanceItem = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteFireMaintenanceItem>>,
+      TError,
+      DeleteFireMaintenanceItemMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFireMaintenanceItem>>,
+  TError,
+  DeleteFireMaintenanceItemMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteFireMaintenanceItemMutationOptions(options), queryClient);
+};
+
 export const getListFireSubstancesUrl = (clientId: string) => {
   return `/clients/${clientId}/fire-substances`;
 };
@@ -18941,6 +19449,7 @@ export const getUploadClientDocumentUrl = (
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_substances_list'
+    | 'fire_maintenance_schedules'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'
@@ -19001,6 +19510,7 @@ export const uploadClientDocument = async (
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_substances_list'
+    | 'fire_maintenance_schedules'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'
@@ -19129,6 +19639,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_means_list'
     | 'fire_workplace_organization'
     | 'fire_substances_list'
+    | 'fire_maintenance_schedules'
     | 'fire_cover_registers'
     | 'fire_registers'
     | 'fire_work_permit'

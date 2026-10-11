@@ -119,6 +119,17 @@ const alarm = {
 const equipmentPath = `/clients/${clientId}/fire-equipment`;
 const installationsPath = `/clients/${clientId}/fire-installations`;
 const substancesPath = `/clients/${clientId}/fire-substances`;
+const maintenancePath = `/clients/${clientId}/fire-maintenance-items`;
+
+const chimney = {
+  ...stamp,
+  id: '5a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+  clientId,
+  workplaceId: office.id,
+  subject: 'Coșul de fum al centralei termice',
+  intervalLabel: 'anual',
+  checkedBy: 'Firmă autorizată de coșerit',
+};
 
 const propane = {
   ...stamp,
@@ -146,6 +157,7 @@ function mockApi({
   workplaces = [office, shop] as unknown[],
   equipment = [officeP6, officeG3, shopSand] as unknown[],
   installations = [alarm] as unknown[],
+  maintenanceItems = [chimney] as unknown[],
   createEquipment = ((init) =>
     Response.json(
       { equipment: { ...unit, id: 'new', ...JSON.parse(String(init?.body)) } },
@@ -189,6 +201,19 @@ function mockApi({
       return method === 'DELETE'
         ? new Response(null, { status: 204 })
         : Response.json({ installation: { ...alarm, ...JSON.parse(String(init?.body)) } });
+    }
+    if (pathname === maintenancePath) {
+      return method === 'POST'
+        ? Response.json(
+            { item: { ...chimney, id: 'new', ...JSON.parse(String(init?.body)) } },
+            { status: 201 }
+          )
+        : Response.json({ items: maintenanceItems });
+    }
+    if (pathname.startsWith(`${maintenancePath}/`)) {
+      return method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : Response.json({ item: { ...chimney, ...JSON.parse(String(init?.body)) } });
     }
     if (pathname === substancesPath) {
       return method === 'POST'
@@ -471,6 +496,98 @@ describe('client fire-safety means', () => {
     );
   });
 
+  it('lists the other periodic checks of each workplace, optional and empty by default', async () => {
+    mockApi();
+    mount();
+
+    const officeCard = await cardOf('Sediu social');
+    const [row] = within(officeCard).getAllByTestId('fire-maintenance-row');
+    expect(row!.textContent).toBe(
+      'Coșul de fum al centralei termiceanualFirmă autorizată de coșerit'
+    );
+    const shopCard = await cardOf('Gelaterie Timișoara');
+    expect(within(shopCard).getByTestId('fire-maintenance-empty').textContent).toContain(
+      'cerute de la 10 angajați'
+    );
+  });
+
+  it('adds a periodic check to the workplace whose card asked, asking all three texts', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(
+      within(await cardOf('Gelaterie Timișoara')).getByTestId('fire-maintenance-add')
+    );
+    const dialog = await screen.findByTestId('fire-maintenance-dialog');
+    expect(within(dialog).getByTestId<HTMLSelectElement>('fire-maintenance-workplace').value).toBe(
+      shop.id
+    );
+    await user.click(within(dialog).getByTestId('fire-maintenance-save'));
+    expect((await within(dialog).findByTestId('fire-maintenance-interval-error')).textContent).toBe(
+      'Scrie cât de des se verifică.'
+    );
+    expect(requests(maintenancePath, 'POST')).toEqual([]);
+
+    await user.type(
+      within(dialog).getByTestId('fire-maintenance-subject'),
+      ' Instalația de gaze naturale '
+    );
+    await user.type(within(dialog).getByTestId('fire-maintenance-interval'), 'anual');
+    await user.type(
+      within(dialog).getByTestId('fire-maintenance-checked-by'),
+      'Operatorul de distribuție'
+    );
+    await user.click(within(dialog).getByTestId('fire-maintenance-save'));
+    await waitFor(() =>
+      expect(requests(maintenancePath, 'POST')).toEqual([
+        {
+          workplaceId: shop.id,
+          subject: 'Instalația de gaze naturale',
+          intervalLabel: 'anual',
+          checkedBy: 'Operatorul de distribuție',
+        },
+      ])
+    );
+    expect(await screen.findByText('Verificarea a fost adăugată.')).toBeTruthy();
+  });
+
+  it('edits a periodic check from its row and deletes one after a confirmation', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText('Coșul de fum al centralei termice'));
+    const dialog = await screen.findByTestId('fire-maintenance-dialog');
+    const interval = within(dialog).getByTestId<HTMLInputElement>('fire-maintenance-interval');
+    expect(interval.value).toBe('anual');
+    await user.clear(interval);
+    await user.type(interval, 'de două ori pe an');
+    await user.click(within(dialog).getByTestId('fire-maintenance-save'));
+    await waitFor(() =>
+      expect(requests(`${maintenancePath}/${chimney.id}`, 'PUT')).toEqual([
+        {
+          workplaceId: office.id,
+          subject: 'Coșul de fum al centralei termice',
+          intervalLabel: 'de două ori pe an',
+          checkedBy: 'Firmă autorizată de coșerit',
+        },
+      ])
+    );
+    await waitFor(() => expect(screen.queryByTestId('fire-maintenance-dialog')).toBeNull());
+
+    await user.click(within(await cardOf('Sediu social')).getByTestId('fire-maintenance-actions'));
+    await user.click(await screen.findByTestId('fire-maintenance-delete'));
+    const confirm = await screen.findByTestId('fire-means-delete-dialog');
+    expect(confirm.textContent).toContain('Ștergi verificarea?');
+    expect(confirm.textContent).toContain('Coșul de fum al centralei termice de la Sediu social');
+    await user.click(within(confirm).getByTestId('fire-means-delete-confirm'));
+    await waitFor(() =>
+      expect(requests(`${maintenancePath}/${chimney.id}`, 'DELETE')).toHaveLength(1)
+    );
+    expect(await screen.findByText('Verificarea a fost ștearsă.')).toBeTruthy();
+  });
+
   it('reports a workplace archived meanwhile on the workplace field', async () => {
     mockApi({
       createEquipment: () =>
@@ -509,7 +626,7 @@ describe('client fire-safety means', () => {
   });
 
   it('points to the details when the client has no workplace', async () => {
-    mockApi({ workplaces: [], equipment: [], installations: [] });
+    mockApi({ workplaces: [], equipment: [], installations: [], maintenanceItems: [] });
     mount();
 
     const empty = await screen.findByTestId('fire-means-no-workplace');
@@ -705,7 +822,13 @@ describe('client dangerous substances', () => {
   });
 
   it('is asked also of a client without workplaces', async () => {
-    mockApi({ workplaces: [], equipment: [], installations: [], substancesState: 'undecided' });
+    mockApi({
+      workplaces: [],
+      equipment: [],
+      installations: [],
+      maintenanceItems: [],
+      substancesState: 'undecided',
+    });
     mount();
 
     await screen.findByTestId('fire-means-no-workplace');

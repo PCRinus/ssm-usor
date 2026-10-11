@@ -243,6 +243,18 @@
       }
     },
     {
+      "number": "5.4",
+      "originals": [],
+      "stage": 2,
+      "typeKey": "fire_maintenance_schedules",
+      "title": "Graficele de întreținere și verificare",
+      "file": "5.4_fire_maintenance_schedules.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială."
+      }
+    },
+    {
       "number": "6.0",
       "originals": ["7.1._Coperta_Registre"],
       "stage": 1,

@@ -16,6 +16,7 @@ export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>
   decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
   fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
   fire_decision_control: 'Decizia privind controlul propriu',
+  fire_maintenance_schedules: 'Graficele de întreținere și verificare',
   fire_installation_register:
     'Registru de control pentru instalațiile de apărare împotriva incendiilor',
 };
@@ -43,6 +44,7 @@ export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>>
   fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
   fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
   fire_substances_list: 'Lista substanțelor periculoase',
+  fire_maintenance_schedules: 'Graficele de întreținere și verificare',
   fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
   fire_registers:
     'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
@@ -72,6 +74,7 @@ export function workersRepresentativesRule(currentEmployeeCount: number, generat
 const fromTenEmployeesNames: Record<FireSafetyTypeKeyFromTenEmployees, string> = {
   fire_decision_seasons: 'decizia privind perioadele caniculare și sezonul rece',
   fire_decision_control: 'decizia privind controlul propriu',
+  fire_maintenance_schedules: 'graficele de întreținere și verificare',
   fire_installation_register: 'registrul de control pentru instalații',
 };
 
@@ -102,8 +105,12 @@ export function fireSafetyHeadcountRule(
       ? `${count}, așa că se generează și ${named(lacking)}.`
       : `${count}. ${sentence(named(generated))} există deja în documentație.`;
   }
-  const one = (typeKeys: readonly unknown[], singular: string, plural: string) =>
-    typeKeys.length === 1 ? singular : plural;
+  // "Graficele" is a plural noun, so it takes the plural verb even alone.
+  const one = (
+    typeKeys: readonly FireSafetyTypeKeyFromTenEmployees[],
+    singular: string,
+    plural: string
+  ) => (typeKeys.length === 1 && typeKeys[0] !== 'fire_maintenance_schedules' ? singular : plural);
   const kept =
     generated.length > 0
       ? ` ${sentence(named(generated))} există deja și ${one(generated, 'rămâne', 'rămân')} în documentație, deși ${one(generated, 'se cere', 'se cer')} doar de la 10 angajați.`

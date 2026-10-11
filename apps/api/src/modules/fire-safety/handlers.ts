@@ -8,6 +8,8 @@ import {
   type FireInstallation,
   fireInstallationKinds,
   type FireInstallationRequest,
+  type FireMaintenanceItem,
+  type FireMaintenanceItemRequest,
   type FireSubstance,
   type FireSubstanceRequest,
   type FireSubstancesState,
@@ -22,17 +24,21 @@ import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../documen
 import type {
   createFireEquipmentRoute,
   createFireInstallationRoute,
+  createFireMaintenanceItemRoute,
   createFireSubstanceRoute,
   deleteFireEquipmentRoute,
   deleteFireInstallationRoute,
+  deleteFireMaintenanceItemRoute,
   deleteFireSubstanceRoute,
   getClientFireSafetyRoute,
   listFireEquipmentRoute,
   listFireInstallationsRoute,
+  listFireMaintenanceItemsRoute,
   listFireSubstancesRoute,
   updateClientFireSafetyRoute,
   updateFireEquipmentRoute,
   updateFireInstallationRoute,
+  updateFireMaintenanceItemRoute,
   updateFireSubstanceRoute,
   updateFireSubstancesStateRoute,
 } from './routes';
@@ -473,6 +479,139 @@ export const deleteFireInstallation: RouteHandler<
     .select('id');
   if (error) throw fromDatabaseError(error, 'delete fire installation');
   if (data.length === 0) throw noSuchInstallation();
+  return c.body(null, 204);
+};
+
+const maintenanceItemColumns =
+  'id, client_id, workplace_id, subject, interval_label, checked_by, sort_order, created_at, updated_at';
+
+type MaintenanceItemRow = Pick<
+  Tables['fire_maintenance_items']['Row'],
+  | 'id'
+  | 'client_id'
+  | 'workplace_id'
+  | 'subject'
+  | 'interval_label'
+  | 'checked_by'
+  | 'sort_order'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+const toMaintenanceItem = (row: MaintenanceItemRow): FireMaintenanceItem => ({
+  id: row.id,
+  clientId: row.client_id,
+  workplaceId: row.workplace_id,
+  subject: row.subject,
+  intervalLabel: row.interval_label,
+  checkedBy: row.checked_by,
+  createdAt: new Date(row.created_at).toISOString(),
+  updatedAt: new Date(row.updated_at).toISOString(),
+});
+
+const maintenanceItemFields = (body: FireMaintenanceItemRequest) => ({
+  workplace_id: body.workplaceId,
+  subject: body.subject,
+  interval_label: body.intervalLabel,
+  checked_by: body.checkedBy,
+});
+
+const noSuchMaintenanceItem = () =>
+  new ApiError('not_found', 'This row of the schedules does not exist under this client.');
+
+export const listFireMaintenanceItems: RouteHandler<
+  typeof listFireMaintenanceItemsRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const workplaces = await activeWorkplaceOrder(db, clientId);
+  const { data, error } = await db
+    .from('fire_maintenance_items')
+    .select(maintenanceItemColumns)
+    .eq('client_id', clientId);
+  if (error) throw fromDatabaseError(error, 'list fire maintenance items');
+  const items = data
+    .filter((row) => workplaces.has(row.workplace_id))
+    .sort(
+      (first, second) =>
+        workplaces.get(first.workplace_id)! - workplaces.get(second.workplace_id)! ||
+        first.sort_order - second.sort_order ||
+        first.created_at.localeCompare(second.created_at) ||
+        first.id.localeCompare(second.id)
+    )
+    .map(toMaintenanceItem);
+  return c.json({ items }, 200);
+};
+
+export const createFireMaintenanceItem: RouteHandler<
+  typeof createFireMaintenanceItemRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const last = await db
+    .from('fire_maintenance_items')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .eq('workplace_id', body.workplaceId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) throw fromDatabaseError(last.error, 'last fire maintenance item');
+  const { data, error } = await db
+    .from('fire_maintenance_items')
+    .insert({
+      ...maintenanceItemFields(body),
+      sort_order: (last.data?.sort_order ?? -1) + 1,
+      organization_id: c.get('membership').organizationId,
+      client_id: clientId,
+      created_by: c.get('user').id,
+    })
+    .select(maintenanceItemColumns)
+    .single();
+  if (error) throw fireSafetyError(error, 'create fire maintenance item');
+  return c.json({ item: toMaintenanceItem(data) }, 201);
+};
+
+export const updateFireMaintenanceItem: RouteHandler<
+  typeof updateFireMaintenanceItemRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId, itemId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const { data, error } = await db
+    .from('fire_maintenance_items')
+    .update(maintenanceItemFields(body))
+    .eq('id', itemId)
+    .eq('client_id', clientId)
+    .select(maintenanceItemColumns)
+    .maybeSingle();
+  if (error) throw fireSafetyError(error, 'update fire maintenance item');
+  if (!data) throw noSuchMaintenanceItem();
+  return c.json({ item: toMaintenanceItem(data) }, 200);
+};
+
+export const deleteFireMaintenanceItem: RouteHandler<
+  typeof deleteFireMaintenanceItemRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId, itemId } = c.req.valid('param');
+  const { data, error } = await createDataClient(c)
+    .from('fire_maintenance_items')
+    .delete()
+    .eq('id', itemId)
+    .eq('client_id', clientId)
+    .select('id');
+  if (error) throw fromDatabaseError(error, 'delete fire maintenance item');
+  if (data.length === 0) throw noSuchMaintenanceItem();
   return c.body(null, 204);
 };
 

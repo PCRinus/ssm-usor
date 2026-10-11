@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+import { fireSafetyHeadcountRule } from './document-labels';
+
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
   id: clientId,
@@ -214,6 +216,7 @@ const allBuilt = [
         'Organizarea apărării împotriva incendiilor la locul de muncă',
       ],
       ['fire_substances_list', 'Lista substanțelor periculoase'],
+      ['fire_maintenance_schedules', 'Graficele de întreținere și verificare'],
     ] as const
   ).map(([typeKey, title], index) =>
     fireDocument(`${index}0e1f2a3-2a6b-4c3d-8e7f-1a2b3c4d5e6f`, typeKey, title)
@@ -396,6 +399,7 @@ describe('client fire-safety documents', () => {
       notApplicable: [
         'fire_decision_seasons',
         'fire_decision_control',
+        'fire_maintenance_schedules',
         'fire_installation_register',
       ],
     });
@@ -415,7 +419,23 @@ describe('client fire-safety documents', () => {
     );
     expect(control!.textContent).toContain('Decizia privind controlul propriu');
     expect(within(seasons!).getByText('Nu se aplică').getAttribute('title')).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+    );
+
+    await openSection(user, '5');
+    expect(
+      within(sectionOf('5'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.getAttribute('data-testid'))
+    ).toEqual([
+      'document-not-generated',
+      'document-not-generated',
+      'document-not-generated',
+      'document-not-applicable',
+    ]);
+    expect(within(sectionOf('5')).getByTestId('document-not-applicable').textContent).toBe(
+      'Graficele de întreținere și verificareNu se aplicăSub 10 angajați'
     );
 
     await openSection(user, '6');
@@ -434,7 +454,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(screen.getByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
     );
   });
 
@@ -447,14 +467,18 @@ describe('client fire-safety documents', () => {
     mockApi({
       fireItems: [registers, control],
       currentEmployeeCount: 9,
-      notApplicable: ['fire_decision_seasons', 'fire_installation_register'],
+      notApplicable: [
+        'fire_decision_seasons',
+        'fire_maintenance_schedules',
+        'fire_installation_register',
+      ],
     });
     mount();
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
+      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
     );
   });
 
@@ -497,7 +521,7 @@ describe('client fire-safety documents', () => {
     ).toBe('5 ciorne');
     expect(
       sectionOf('5').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('3 ciorne');
+    ).toBe('4 ciorne');
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
     ).toBe('10 ciorne');
@@ -624,7 +648,7 @@ describe('client fire-safety documents', () => {
     expect(number.value).toBe('1');
     expect(screen.getByText('Numărul primei decizii PSI')).toBeTruthy();
     expect(screen.getByTestId('generate-headcount').textContent).toBe(
-      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații.'
+      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații.'
     );
 
     await user.clear(number);
@@ -755,5 +779,13 @@ describe('client fire-safety documents', () => {
     expect(await screen.findAllByTestId('document-section')).toHaveLength(6);
     expect(screen.queryByTestId('documents-empty')).toBeNull();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
+  });
+});
+
+describe('fireSafetyHeadcountRule', () => {
+  it('speaks of the schedules in the plural, even when they are the only document kept', () => {
+    expect(fireSafetyHeadcountRule(4, ['fire_maintenance_schedules'])).toBe(
+      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
+    );
   });
 });

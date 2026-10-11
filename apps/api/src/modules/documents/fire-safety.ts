@@ -85,8 +85,24 @@ export type FireSafetyClientFacts = {
     /** Kilograms or litres. */
     capacity: number | null;
     wheeled: boolean;
+    nextServiceOn: string | null;
+    maintainer: string | null;
   }[];
-  installations: { workplaceId: string; kind: FireInstallationKind; description: string | null }[];
+  installations: {
+    workplaceId: string;
+    kind: FireInstallationKind;
+    description: string | null;
+    maintainer: string | null;
+    lastCheckOn: string | null;
+    nextCheckOn: string | null;
+  }[];
+  /** The free rows of the schedules, in their order on the workplace; an archived workplace's too. */
+  maintenanceItems: {
+    workplaceId: string;
+    subject: string;
+    intervalLabel: string;
+    checkedBy: string;
+  }[];
   /** Those of the documents required from ten employees the client has, whatever its count now. */
   generatedFromTenEmployees: FireSafetyTypeKeyFromTenEmployees[];
   /** `undecided` too while the client has no fire-safety row. */
@@ -166,6 +182,17 @@ type FireThemesContext = {
   sessions: TrainingSession[];
 };
 
+type FireScheduleRow = { what: string; interval: string; who: string; basis: string };
+
+type FireScheduleContext = {
+  name: string;
+  activity: string;
+  /** The extinguishers' rows, then one per installation, then the free rows. */
+  rows: FireScheduleRow[];
+  hasRows: boolean;
+  empty: boolean;
+};
+
 /** Every text of the data sheet as typed, or the mark the editor finds when it is empty. */
 type FireSubstanceContext = {
   name: string;
@@ -226,6 +253,8 @@ export type FireContext = {
   waste: { kinds: string[]; contractor: string | null; collectors: string | null };
   /** One per staff category with current posts, technical-administrative first. */
   themes: FireThemesContext[];
+  /** The schedules 5.4, a block per active workplace in the order of `workplaces`. */
+  schedules: FireScheduleContext[];
   /** The list 5.3: the declaration with `none`, a block per entry with `listed`. */
   substances: {
     state: 'none' | 'listed';
@@ -652,6 +681,20 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       collectors: card.wasteCollectors?.trim() || null,
     },
     substances: fireSubstances(facts.fireSafety.substances),
+    schedules: facts.workplaces.map((workplace) =>
+      fireSchedule({
+        name: workplace.name.trim(),
+        activity: workplace.activity!.trim(),
+        equipment: facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id),
+        installations: facts.fireSafety.installations.filter(
+          (installation) => installation.workplaceId === workplace.id
+        ),
+        items: facts.fireSafety.maintenanceItems.filter(
+          (item) => item.workplaceId === workplace.id
+        ),
+        coordinatorName: coordinator.name,
+      })
+    ),
     themes: fireThemes({
       staff: { technical_administrative: administrative, execution },
       intervalMonths: {
@@ -688,6 +731,159 @@ function fireSubstances({
         }))
       : [],
   };
+}
+
+const producerTerms = 'conform instrucțiunilor producătorului';
+const attestedFirm = 'firmă atestată';
+
+/** "anual", "la 6 luni", "la 2 ani": the interval between two checks, or null under a month. */
+function checkInterval(lastOn: string, nextOn: string) {
+  const days = (Date.parse(nextOn) - Date.parse(lastOn)) / 86_400_000;
+  const months = Math.round(days / (365.25 / 12));
+  if (months < 1) return null;
+  if (months === 1) return 'lunar';
+  if (months === 12) return 'anual';
+  return months % 12 === 0
+    ? `la ${countOf(months / 12, 'an', 'ani')}`
+    : `la ${countOf(months, 'lună', 'luni')}`;
+}
+
+const firmsOf = (names: readonly (string | null)[]) => {
+  const firms: string[] = [];
+  for (const name of names) {
+    const firm = name?.trim();
+    if (
+      firm &&
+      !firms.some((each) => each.toLocaleLowerCase('ro') === firm.toLocaleLowerCase('ro'))
+    ) {
+      firms.push(firm);
+    }
+  }
+  return firms.length > 0 ? listed(firms) : attestedFirm;
+};
+
+// Grouped as the list of means groups them, keeping each unit's service facts.
+function scheduledExtinguishers(units: FireSafetyClientFacts['equipment']) {
+  const groups = new Map<
+    string,
+    { label: string; gas: boolean; units: FireSafetyClientFacts['equipment'] }
+  >();
+  const extinguishers = units
+    .filter((unit) => unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null)
+    .sort(
+      (a, b) =>
+        fireExtinguishingAgents.indexOf(a.agent!) - fireExtinguishingAgents.indexOf(b.agent!) ||
+        Number(a.wheeled) - Number(b.wheeled) ||
+        a.capacity! - b.capacity!
+    );
+  for (const unit of extinguishers) {
+    const key = `${unit.agent}|${unit.capacity}|${unit.wheeled}`;
+    const group = groups.get(key) ?? {
+      label: `${extinguisherCode(unit.agent!, unit.capacity!)}${unit.wheeled ? ' carosabil' : ''}`,
+      gas: unit.agent === 'co2' || unit.agent === 'clean_agent',
+      units: [],
+    };
+    group.units.push(unit);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
+function fireSchedule({
+  name,
+  activity,
+  equipment,
+  installations,
+  items,
+  coordinatorName,
+}: {
+  name: string;
+  activity: string;
+  equipment: FireSafetyClientFacts['equipment'];
+  installations: FireSafetyClientFacts['installations'];
+  items: FireSafetyClientFacts['maintenanceItems'];
+  coordinatorName: string;
+}): FireScheduleContext {
+  const groups = scheduledExtinguishers(equipment);
+  const counted = (list: typeof groups) =>
+    list.map((group) => `${group.label} – ${group.units.length}\u00a0buc.`).join(', ');
+  // Decision 9 has the coordinator check every extinguisher and weigh the gas ones (OMAI 135/2023 art. 8).
+  const checker = `${coordinatorName}, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz`;
+  const gasGroups = groups.filter((group) => group.gas);
+  const extinguisherRows: FireScheduleRow[] =
+    groups.length === 0
+      ? []
+      : [
+          {
+            what: `Controlul fiecărui stingător de incendiu (${counted(groups)})`,
+            interval: 'lunar',
+            who: checker,
+            basis:
+              'OMAI 135/2023 – art. 8; rezultatele se înscriu în registrul de evidență a controlului stingătoarelor',
+          },
+          ...(gasGroups.length > 0
+            ? [
+                {
+                  what: `Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat (${counted(gasGroups)})`,
+                  interval: 'la cel mult 6 luni, în iunie și decembrie',
+                  who: checker,
+                  basis: 'OMAI 135/2023 – art. 8 alin. (3)',
+                },
+              ]
+            : []),
+          ...groups.map((group) => {
+            const dates = [
+              ...new Set(
+                group.units.flatMap((unit) => (unit.nextServiceOn ? [unit.nextServiceOn] : []))
+              ),
+            ]
+              .sort()
+              .map(printedDate);
+            return {
+              what: `Verificarea stingătoarelor de către o firmă atestată (${counted([group])})`,
+              interval: 'anual',
+              who: firmsOf(group.units.map((unit) => unit.maintainer)),
+              basis: `OMAI 135/2023 – art. 9; ${dates.length > 0 ? `următorul service: ${listed(dates)}` : producerTerms}`,
+            };
+          }),
+          {
+            what: `Reîncărcarea stingătoarelor (${counted(groups)})`,
+            interval: 'la termenul producătorului',
+            who: firmsOf(groups.flatMap((group) => group.units.map((unit) => unit.maintainer))),
+            basis: 'OMAI 135/2023 – art. 12',
+          },
+        ];
+  const installationRows = installations.map((installation): FireScheduleRow => {
+    const description = installation.description?.trim();
+    const interval =
+      installation.lastCheckOn && installation.nextCheckOn
+        ? checkInterval(installation.lastCheckOn, installation.nextCheckOn)
+        : null;
+    return {
+      what:
+        installation.kind === 'other' && description
+          ? description
+          : [fireInstallationKindLabels[installation.kind], description]
+              .filter(Boolean)
+              .join(' – '),
+      interval: interval ?? producerTerms,
+      who: firmsOf([installation.maintainer]),
+      basis: installation.nextCheckOn
+        ? `următoarea verificare: ${printedDate(installation.nextCheckOn)}`
+        : '—',
+    };
+  });
+  const rows = [
+    ...extinguisherRows,
+    ...installationRows,
+    ...items.map((item) => ({
+      what: item.subject.trim(),
+      interval: item.intervalLabel.trim(),
+      who: item.checkedBy.trim(),
+      basis: '—',
+    })),
+  ];
+  return { name, activity, rows, hasRows: rows.length > 0, empty: rows.length === 0 };
 }
 
 const staffCategoryLabels: Record<StaffCategory, string> = {

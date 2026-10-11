@@ -52,6 +52,7 @@ describe('what the fire-safety set is missing', () => {
         card: null,
         equipment: [],
         installations: [],
+        maintenanceItems: [],
         generatedFromTenEmployees: [],
         substances: { state: 'undecided', entries: [] },
       },
@@ -576,7 +577,13 @@ describe('the fire-safety context', () => {
     const withEquipment = (equipment: DocumentFacts['fireSafety']['equipment']) =>
       buildFireSafetyContext({ ...facts, fireSafety: { ...facts.fireSafety, equipment } }).fire
         .hasGasExtinguishers;
-    const unit = { workplaceId: officeId, capacity: 6, wheeled: false };
+    const unit = {
+      workplaceId: officeId,
+      capacity: 6,
+      wheeled: false,
+      nextServiceOn: null,
+      maintainer: null,
+    };
     expect(buildFireSafetyContext(facts).fire.hasGasExtinguishers).toBe(true);
     expect(
       withEquipment([
@@ -597,6 +604,113 @@ describe('the fire-safety context', () => {
         { ...unit, workplaceId: 'archived-workplace', kind: 'extinguisher', agent: 'co2' },
       ])
     ).toBe(false);
+  });
+
+  it('schedules the checks of each workplace: its extinguishers, its installations, then its free rows', () => {
+    const [workshop, office] = buildFireSafetyContext(facts).fire.schedules;
+    const coordinator =
+      'Florin Cristian TALOȘ, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz';
+    expect(workshop).toEqual({
+      name: 'Atelier Ghiroda',
+      activity: 'Atelier de sudură',
+      hasRows: true,
+      empty: false,
+      rows: [
+        {
+          what: 'Controlul fiecărui stingător de incendiu (P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.)',
+          interval: 'lunar',
+          who: coordinator,
+          basis:
+            'OMAI 135/2023 – art. 8; rezultatele se înscriu în registrul de evidență a controlului stingătoarelor',
+        },
+        {
+          what: 'Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat (G5 – 1\u00a0buc.)',
+          interval: 'la cel mult 6 luni, în iunie și decembrie',
+          who: coordinator,
+          basis: 'OMAI 135/2023 – art. 8 alin. (3)',
+        },
+        {
+          what: 'Verificarea stingătoarelor de către o firmă atestată (P6 – 2\u00a0buc.)',
+          interval: 'anual',
+          who: 'S.C. FOC STOP S.R.L.',
+          basis: 'OMAI 135/2023 – art. 9; următorul service: 15.01.2027 și 12.03.2027',
+        },
+        {
+          what: 'Verificarea stingătoarelor de către o firmă atestată (P50 carosabil – 1\u00a0buc.)',
+          interval: 'anual',
+          who: 'S.C. Foc Stop S.R.L.',
+          basis: 'OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului',
+        },
+        {
+          what: 'Verificarea stingătoarelor de către o firmă atestată (G5 – 1\u00a0buc.)',
+          interval: 'anual',
+          who: 'firmă atestată',
+          basis: 'OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului',
+        },
+        {
+          what: 'Reîncărcarea stingătoarelor (P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.)',
+          interval: 'la termenul producătorului',
+          who: 'S.C. FOC STOP S.R.L.',
+          basis: 'OMAI 135/2023 – art. 12',
+        },
+        {
+          what: 'Hidranți exteriori – Doi hidranți în curte',
+          interval: 'conform instrucțiunilor producătorului',
+          who: 'firmă atestată',
+          basis: '—',
+        },
+      ],
+    });
+    expect(office!.rows.slice(-3)).toEqual([
+      {
+        what: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+        interval: 'la 6 luni',
+        who: 'S.C. ALARM SERVICE S.R.L.',
+        basis: 'următoarea verificare: 12.09.2026',
+      },
+      {
+        what: 'Hidranți interiori – Câte unul pe nivel',
+        interval: 'conform instrucțiunilor producătorului',
+        who: 'firmă atestată',
+        basis: 'următoarea verificare: 12.03.2027',
+      },
+      {
+        what: 'Instalația de utilizare a gazelor naturale',
+        interval: 'anual',
+        who: 'Operatorul de distribuție',
+        basis: '—',
+      },
+    ]);
+    expect(office!.rows.map((row) => row.what)).not.toContainEqual(
+      expect.stringContaining('cântărire')
+    );
+  });
+
+  it('derives an installation interval from its last and next check, and invents none', () => {
+    const intervalOf = (lastCheckOn: string | null, nextCheckOn: string | null) =>
+      buildFireSafetyContext({
+        ...facts,
+        fireSafety: {
+          ...facts.fireSafety,
+          installations: [
+            {
+              workplaceId: officeId,
+              kind: 'other',
+              description: 'Instalație de stingere cu gaz inert',
+              maintainer: null,
+              lastCheckOn,
+              nextCheckOn,
+            },
+          ],
+        },
+      }).fire.schedules[1]!.rows.find((row) => row.what === 'Instalație de stingere cu gaz inert')!
+        .interval;
+    expect(intervalOf('2026-03-12', '2027-03-10')).toBe('anual');
+    expect(intervalOf('2026-01-01', '2026-02-01')).toBe('lunar');
+    expect(intervalOf('2026-01-01', '2026-04-01')).toBe('la 3 luni');
+    expect(intervalOf('2026-01-01', '2028-01-01')).toBe('la 2 ani');
+    expect(intervalOf('2026-01-01', '2026-01-05')).toBe('conform instrucțiunilor producătorului');
+    expect(intervalOf(null, '2027-01-01')).toBe('conform instrucțiunilor producătorului');
   });
 
   it('gives the training themes a block per staff category with posts, and a session per month of its schedule', () => {
@@ -718,6 +832,7 @@ describe('a fire-safety document generated again', () => {
       card: null,
       equipment: [],
       installations: [],
+      maintenanceItems: [],
       generatedFromTenEmployees: [],
       substances: { state: 'undecided', entries: [] },
     },

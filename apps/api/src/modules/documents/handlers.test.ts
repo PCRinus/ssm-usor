@@ -242,6 +242,8 @@ const fireEquipmentRow = {
   agent: 'powder',
   capacity: 6,
   wheeled: false,
+  next_service_on: null,
+  maintainer: null,
 };
 
 const evaluationRow = (
@@ -348,7 +350,8 @@ type Upstream =
   | 'fireSafety'
   | 'fireEquipment'
   | 'fireInstallations'
-  | 'fireSubstances';
+  | 'fireSubstances'
+  | 'fireMaintenanceItems';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -414,6 +417,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.fireInstallations?.() ?? Response.json([]);
       case '/rest/v1/fire_substances':
         return handlers.fireSubstances?.() ?? Response.json([]);
+      case '/rest/v1/fire_maintenance_items':
+        return handlers.fireMaintenanceItems?.() ?? Response.json([]);
       case '/rest/v1/client_documents':
         if (method === 'GET' && isConditionalDocumentsRead(url)) {
           return handlers.conditionalDocuments?.() ?? Response.json([]);
@@ -2648,6 +2653,7 @@ describe('the fire-safety set', () => {
     expect(body.notApplicable).toEqual([
       'fire_decision_seasons',
       'fire_decision_control',
+      'fire_maintenance_schedules',
       'fire_installation_register',
     ]);
     expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
@@ -2830,15 +2836,17 @@ describe('the fire-safety set', () => {
   });
 
   it('generates the documents required from ten employees only from ten, and the cover lists them then', async () => {
-    const fromTenTemplates = ['fire_decision_control', 'fire_installation_register'].map(
-      (typeKey) => ({
-        type_key: typeKey,
-        title: typeKey,
-        document_template_versions: [
-          { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
-        ],
-      })
-    );
+    const fromTenTemplates = [
+      'fire_decision_control',
+      'fire_maintenance_schedules',
+      'fire_installation_register',
+    ].map((typeKey) => ({
+      type_key: typeKey,
+      title: typeKey,
+      document_template_versions: [
+        { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+      ],
+    }));
     const generated = async (employees: number) => {
       fetchMock.mockClear();
       mockUpstream({
@@ -2871,6 +2879,7 @@ describe('the fire-safety set', () => {
         'fire_cover_registers',
         'fire_decision_control',
         'fire_installation_register',
+        'fire_maintenance_schedules',
         'fire_registers',
       ],
       listed: true,
@@ -2899,7 +2908,11 @@ describe('the fire-safety set', () => {
       'fire_cover_registers',
       'fire_installation_register',
     ]);
-    expect(body.notApplicable).toEqual(['fire_decision_seasons', 'fire_decision_control']);
+    expect(body.notApplicable).toEqual([
+      'fire_decision_seasons',
+      'fire_decision_control',
+      'fire_maintenance_schedules',
+    ]);
     expect(body.items[0]!.draft!.dataChanged).toBe(true);
   });
 
@@ -2980,6 +2993,19 @@ describe('the fire-safety set', () => {
       await changed({
         fireSafety: () => Response.json({ ...fireSafetyRow, substances_state: 'listed' }),
         fireSubstances: () => Response.json([fireSubstanceRow]),
+      })
+    ).toBe(true);
+    expect(
+      await changed({
+        fireMaintenanceItems: () =>
+          Response.json([
+            {
+              workplace_id: workplaceRow.id,
+              subject: 'Coșul de fum',
+              interval_label: 'anual',
+              checked_by: 'Firmă autorizată de coșerit',
+            },
+          ]),
       })
     ).toBe(true);
   });

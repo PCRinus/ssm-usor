@@ -2,6 +2,7 @@ import {
   extinguisherCode,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
+  fireMaintenanceItemRequestSchema,
   fireSubstanceRequestSchema,
   updateClientFireSafetyRequestSchema,
   updateOrganizationAuthorizationsRequestSchema,
@@ -15,6 +16,7 @@ import {
   fireSafetyAuthorization,
   fireSafetyFor,
   fireSafetyTechnician,
+  maintenanceItemsFor,
   mobileSiteFor,
   substancesFor,
 } from './seed-fire-safety';
@@ -134,6 +136,28 @@ describe('fireMeansFor', () => {
     expect(
       fireInstallationRequestSchema.safeParse({ ...installations[0], workplaceId }).success
     ).toBe(true);
+  });
+});
+
+describe('maintenanceItemsFor', () => {
+  it('gives a workplace the gas installation, the chimney and the emergency lighting, in order, as the API accepts them', () => {
+    const items = maintenanceItemsFor({ id: workplaceId, client_id: clientId }, userId);
+    expect(items.map((item) => item.subject)).toEqual([
+      'Instalația de utilizare a gazelor naturale',
+      'Coșul de fum al centralei termice',
+      'Testarea funcționării iluminatului de siguranță',
+    ]);
+    expect(items.map((item) => item.sort_order)).toEqual([0, 1, 2]);
+    for (const item of items) {
+      expect(
+        fireMaintenanceItemRequestSchema.safeParse({
+          workplaceId: item.workplace_id,
+          subject: item.subject,
+          intervalLabel: item.interval_label,
+          checkedBy: item.checked_by,
+        }).success
+      ).toBe(true);
+    }
   });
 });
 

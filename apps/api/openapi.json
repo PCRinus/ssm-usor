@@ -5166,6 +5166,134 @@
         },
         "required": ["workplaceId", "kind"]
       },
+      "FireMaintenanceItemListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workplaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "intervalLabel": {
+                  "type": "string"
+                },
+                "checkedBy": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "workplaceId",
+                "subject",
+                "intervalLabel",
+                "checkedBy",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "FireMaintenanceItemResponse": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "workplaceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "intervalLabel": {
+                "type": "string"
+              },
+              "checkedBy": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "workplaceId",
+              "subject",
+              "intervalLabel",
+              "checkedBy",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["item"]
+      },
+      "FireMaintenanceItemRequest": {
+        "type": "object",
+        "properties": {
+          "workplaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "intervalLabel": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "checkedBy": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          }
+        },
+        "required": ["workplaceId", "subject", "intervalLabel", "checkedBy"]
+      },
       "FireSubstancesResponse": {
         "type": "object",
         "properties": {
@@ -5672,6 +5800,7 @@
               "fire_means_list",
               "fire_workplace_organization",
               "fire_substances_list",
+              "fire_maintenance_schedules",
               "fire_cover_registers",
               "fire_registers",
               "fire_work_permit",
@@ -6206,6 +6335,7 @@
                 "fire_means_list",
                 "fire_workplace_organization",
                 "fire_substances_list",
+                "fire_maintenance_schedules",
                 "fire_cover_registers",
                 "fire_registers",
                 "fire_work_permit",
@@ -17627,6 +17757,442 @@
         }
       }
     },
+    "/clients/{clientId}/fire-maintenance-items": {
+      "get": {
+        "operationId": "listFireMaintenanceItems",
+        "summary": "List the free rows of a client's maintenance and check schedules",
+        "description": "Every row on an active workplace, by workplace in the order of the workplaces list, then in the order they were added. The schedules 5.4 print them below the rows derived from the equipment and the installations (ADR 018).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireMaintenanceItemListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFireMaintenanceItem",
+        "summary": "Add a free row to a workplace's maintenance and check schedule",
+        "description": "What is checked, how often as a label (\"anual\", \"la 6 luni\") and who checks it, added after the workplace's last row.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireMaintenanceItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireMaintenanceItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or `workplaceId` is not an active workplace of this client (an issue on `workplaceId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-maintenance-items/{itemId}": {
+      "put": {
+        "operationId": "updateFireMaintenanceItem",
+        "summary": "Replace a free row of the maintenance and check schedules",
+        "description": "The row may move to another active workplace of the same client.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "itemId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireMaintenanceItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The row after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireMaintenanceItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or `workplaceId` is not an active workplace of this client (an issue on `workplaceId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the row does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFireMaintenanceItem",
+        "summary": "Delete a free row of the maintenance and check schedules",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "itemId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the row does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/fire-substances": {
       "get": {
         "operationId": "listFireSubstances",
@@ -19918,6 +20484,7 @@
                 "fire_means_list",
                 "fire_workplace_organization",
                 "fire_substances_list",
+                "fire_maintenance_schedules",
                 "fire_cover_registers",
                 "fire_registers",
                 "fire_work_permit",

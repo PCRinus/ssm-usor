@@ -56,6 +56,10 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Substances state** (_starea listei de substanțe periculoase_): whether a client has said if it uses dangerous substances: **undecided**, which blocks the fire-safety set, **none** (_nu se utilizează substanțe periculoase_), a declaration the list 5.3 prints in their place, or **listed**, which needs at least one entry before the set generates. A declared none is a declaration, not an empty list. ADR 018. Avoid: has substances, as a yes or no.
 
+**Maintenance item** (_verificare periodică_): a free row of a workplace's maintenance and check schedules, for a check the fire-safety means do not hold, such as the yearly check of the gas installation or the chimney: what is checked, how often as printed ("anual", "la 6 luni") and who checks it. Typed under "Alte verificări periodice" on the _Mijloace PSI_ tab, optional, never blocking; the schedules 5.4 print them below the rows they derive from the extinguishers and installations. ADR 018, amended 2026-10-11. Avoid: task, maintenance plan.
+
+**Schedules** (_graficele de întreținere și verificare_): document 5.4 of the fire-safety set, one table per active workplace of what is checked, how often, by whom and on what basis: the extinguishers' monthly check, weighing, yearly service and recharge, each installation at its next check, then the maintenance items. Required from ten employees (OMAI 163/2007 art. 18 lit. q), ADR 020).
+
 **Protective equipment** (_echipament individual de protecție_, EIP): what the holders of a job position wear or use against the risks of the post, recorded as entries on the position. A position is **undecided** about it, **needs none**, or is **equipped**. Its internal list is a document of the set. ADR 011. Avoid: PPE, gear, and work clothing (_îmbrăcăminte de lucru_), which the law excludes.
 
 **Equipment entry** (_articol de echipament_): one item a job position receives: the risk it protects against, the item, the quantity granted at once, its duration of use in months, and its allocation mode. Avoid: line, row.

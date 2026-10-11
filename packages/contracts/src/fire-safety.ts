@@ -490,3 +490,40 @@ export type UpdateFireSubstancesStateRequest = z.infer<
 export const fireSubstancesStateResponseSchema = z.object({ state: fireSubstancesStateSchema });
 
 export type FireSubstancesStateResponse = z.infer<typeof fireSubstancesStateResponseSchema>;
+
+/**
+ * A free row of a workplace's maintenance and check schedule, for what the inventory does not
+ * hold; optional, it never blocks generation (ADR 018).
+ */
+export const fireMaintenanceItemRequestSchema = z.object({
+  workplaceId: z.uuid(),
+  subject: z.string().trim().min(2).max(160),
+  // As printed: "anual", "la 6 luni".
+  intervalLabel: z.string().trim().min(2).max(60),
+  checkedBy: z.string().trim().min(2).max(160),
+});
+
+export type FireMaintenanceItemRequest = z.infer<typeof fireMaintenanceItemRequestSchema>;
+
+export const fireMaintenanceItemSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  workplaceId: z.uuid(),
+  subject: z.string(),
+  intervalLabel: z.string(),
+  checkedBy: z.string(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+
+export type FireMaintenanceItem = z.infer<typeof fireMaintenanceItemSchema>;
+
+export const fireMaintenanceItemResponseSchema = z.object({ item: fireMaintenanceItemSchema });
+
+export type FireMaintenanceItemResponse = z.infer<typeof fireMaintenanceItemResponseSchema>;
+
+export const fireMaintenanceItemListResponseSchema = z.object({
+  items: z.array(fireMaintenanceItemSchema),
+});
+
+export type FireMaintenanceItemListResponse = z.infer<typeof fireMaintenanceItemListResponseSchema>;

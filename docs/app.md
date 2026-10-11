@@ -177,7 +177,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/modificari.tsx`                                          | `/legislatie/modificari`                                    | "Modificări": the legal changes, newest first.                                                                                                                                                              |
 | `routes/_authenticated/legislatie/acte.tsx`                                                | `/legislatie/acte`                                          | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
-| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, and the dangerous substances.                                                                             |
+| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, and the dangerous substances.                                                |
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                          |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
@@ -545,7 +545,10 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   dwellings, once the workplace has an area and a norm; it is a hint and never blocks
   anything. A client without a workplace gets a link to add one in "Detalii".
   `?focus=fire-equipment` opens the equipment dialog of the first workplace without an
-  extinguisher. Below the workplaces, also for a client without one, the card "Substanțe
+  extinguisher. Each card ends with "Alte verificări periodice" (ADR 018, amended 2026-10-11):
+  the workplace's free rows of the schedules 5.4, what is checked, how often and who checks it,
+  each added, edited and deleted through a dialog of three required texts; optional, and the
+  empty state says the schedules are required from ten employees. Below the workplaces, also for a client without one, the card "Substanțe
   periculoase" (ADR 018, amended 2026-10-11) asks whether the client uses dangerous substances,
   "Nu se utilizează substanțe periculoase" or "Se utilizează, lista de mai jos", saved on choice;
   with the second, a table of the substances, each added, edited and deleted through a dialog
@@ -645,12 +648,12 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   know. A document the client does not have yet is a muted "Negenerat" row named from
   `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
   document of the binder is built since ADR 019, so the tab plans nothing and the "În
-  pregătire" rows it showed until then are gone. Under 10 current employees decisions 8 and 9
-  and the installation register, which the API names under `notApplicable`
+  pregătire" rows it showed until then are gone. Under 10 current employees decisions 8 and 9,
+  the schedules 5.4 and the installation register, which the API names under `notApplicable`
   ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), are "Nu se aplică" rows
   with "Sub 10 angajați", titled from `notApplicableTitles`, the badge's tooltip saying the rule
   (`fireSafetyHeadcountRule`). Until something is generated, a hint under the heading
-  replaces the empty state. Its dialog states the headcount and what it means for those three
+  replaces the empty state. Its dialog states the headcount and what it means for those four
   documents (`fireSafetyHeadcountRule`: generated from ten, not generated under ten, kept once
   they exist), as the SSM dialog does for decision 1.5, and asks the date and "Numărul
   primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);

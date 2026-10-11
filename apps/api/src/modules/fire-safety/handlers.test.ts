@@ -5,6 +5,8 @@ import {
   fireEquipmentResponseSchema,
   fireInstallationListResponseSchema,
   fireInstallationResponseSchema,
+  fireMaintenanceItemListResponseSchema,
+  fireMaintenanceItemResponseSchema,
   fireSubstanceResponseSchema,
   fireSubstancesResponseSchema,
   fireSubstancesStateResponseSchema,
@@ -143,9 +145,30 @@ const solvent = substance('20000000-0000-4000-8000-000000000002', {
   quantity: '5 l',
 });
 
+const maintenanceItem = (id: string, workplaceId: string, fields: Record<string, unknown>) => ({
+  id,
+  client_id: clientId,
+  workplace_id: workplaceId,
+  subject: 'Coșul de fum',
+  interval_label: 'anual',
+  checked_by: 'Firmă autorizată de coșerit',
+  sort_order: 0,
+  created_at: '2026-10-12T10:00:00+00:00',
+  updated_at: '2026-10-12T10:00:00+00:00',
+  ...fields,
+});
+
+const chimney = maintenanceItem('30000000-0000-4000-8000-000000000001', shopId, {});
+
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
 type Upstream =
-  'clients' | 'workplaces' | 'fireSafety' | 'equipment' | 'installations' | 'substances';
+  | 'clients'
+  | 'workplaces'
+  | 'fireSafety'
+  | 'equipment'
+  | 'installations'
+  | 'substances'
+  | 'maintenanceItems';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -182,6 +205,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         );
       case '/rest/v1/fire_substances':
         return custom('substances') ?? Response.json(propane);
+      case '/rest/v1/fire_maintenance_items':
+        return custom('maintenanceItems') ?? Response.json(chimney);
       default:
         throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
     }
@@ -886,6 +911,132 @@ describe('/clients/{clientId}/fire-substances', () => {
       await request(path, 'POST', body),
       await request(entryPath, 'PUT', body),
       await request(entryPath, 'DELETE'),
+    ]) {
+      expect(response.status).toBe(409);
+      expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+    }
+  });
+});
+
+describe('/clients/{clientId}/fire-maintenance-items', () => {
+  const path = `/clients/${clientId}/fire-maintenance-items`;
+  const itemPath = `${path}/${chimney.id}`;
+  const body = {
+    workplaceId: shopId,
+    subject: ' Coșul de fum ',
+    intervalLabel: 'anual',
+    checkedBy: 'Firmă autorizată de coșerit',
+  };
+
+  it('lists the rows by workplace, then in the order they were added', async () => {
+    const gas = maintenanceItem('30000000-0000-4000-8000-000000000002', shopId, {
+      subject: 'Instalația de gaze naturale',
+      sort_order: 1,
+    });
+    const lighting = maintenanceItem('30000000-0000-4000-8000-000000000003', officeId, {
+      subject: 'Testarea iluminatului de siguranță',
+      sort_order: 4,
+    });
+    const archived = maintenanceItem(
+      '30000000-0000-4000-8000-000000000004',
+      archivedWorkplaceId,
+      {}
+    );
+    mockUpstream({
+      maintenanceItems: () => Response.json([gas, archived, chimney, lighting]),
+    });
+    const response = await request(path);
+    expect(response.status).toBe(200);
+    const { items } = fireMaintenanceItemListResponseSchema.parse(await response.json());
+    expect(items.map((item) => item.id)).toEqual([lighting.id, chimney.id, gas.id]);
+    expect(items[1]).toMatchObject({
+      intervalLabel: 'anual',
+      checkedBy: 'Firmă autorizată de coșerit',
+    });
+  });
+
+  it('answers 404 for a client of another organization', async () => {
+    mockUpstream({ clients: noClient });
+    expect((await request(path)).status).toBe(404);
+    expect((await request(path, 'POST', body)).status).toBe(404);
+    expect(calls('fire_maintenance_items', 'POST')).toHaveLength(0);
+  });
+
+  it("adds a row after the workplace's last one, trimmed", async () => {
+    mockUpstream({
+      maintenanceItems: (init) =>
+        init?.method === 'POST'
+          ? Response.json(chimney, { status: 201 })
+          : Response.json({ sort_order: 2 }),
+    });
+    const response = await request(path, 'POST', body);
+    expect(response.status).toBe(201);
+    expect(fireMaintenanceItemResponseSchema.parse(await response.json()).item.subject).toBe(
+      'Coșul de fum'
+    );
+    expect(sent('fire_maintenance_items', 'POST')).toEqual({
+      workplace_id: shopId,
+      subject: 'Coșul de fum',
+      interval_label: 'anual',
+      checked_by: 'Firmă autorizată de coșerit',
+      sort_order: 3,
+      organization_id: organizationId,
+      client_id: clientId,
+      created_by: user.id,
+    });
+    const [last] = calls('fire_maintenance_items', 'GET').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(last!.get('workplace_id')).toBe(`eq.${shopId}`);
+  });
+
+  it('refuses a row without its interval, and a workplace that is not an active one of this client', async () => {
+    mockUpstream();
+    expect((await request(path, 'POST', { ...body, intervalLabel: ' ' })).status).toBe(400);
+    mockUpstream({ workplaces: () => Response.json([]) });
+    expect((await request(path, 'POST', body)).status).toBe(400);
+    expect(calls('fire_maintenance_items', 'POST')).toHaveLength(0);
+  });
+
+  it('replaces a row scoped to the client, and answers 404 when it is not there', async () => {
+    mockUpstream({
+      maintenanceItems: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ ...chimney, interval_label: 'la 6 luni' })
+          : undefined,
+    });
+    const response = await request(itemPath, 'PUT', { ...body, intervalLabel: 'la 6 luni' });
+    expect(response.status).toBe(200);
+    expect(sent('fire_maintenance_items', 'PATCH')).toEqual({
+      workplace_id: shopId,
+      subject: 'Coșul de fum',
+      interval_label: 'la 6 luni',
+      checked_by: 'Firmă autorizată de coșerit',
+    });
+    const [update] = calls('fire_maintenance_items', 'PATCH').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(update!.get('client_id')).toBe(`eq.${clientId}`);
+
+    mockUpstream({ maintenanceItems: () => Response.json(null) });
+    expect((await request(itemPath, 'PUT', body)).status).toBe(404);
+  });
+
+  it('deletes a row, and answers 404 when it is not there', async () => {
+    mockUpstream({ maintenanceItems: () => Response.json([{ id: chimney.id }]) });
+    expect((await request(itemPath, 'DELETE')).status).toBe(204);
+    mockUpstream({ maintenanceItems: () => Response.json([]) });
+    expect((await request(itemPath, 'DELETE')).status).toBe(404);
+  });
+
+  it('refuses every change under an archived client', async () => {
+    mockUpstream({
+      maintenanceItems: (init) => (isGet(init) ? Response.json(null) : databaseError('CLA01', 400)),
+    });
+    for (const response of [
+      await request(path, 'POST', body),
+      await request(itemPath, 'PUT', body),
+      await request(itemPath, 'DELETE'),
     ]) {
       expect(response.status).toBe(409);
       expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');

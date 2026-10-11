@@ -6,6 +6,7 @@ import {
   fireAnnexNorms,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
+  fireMaintenanceItemRequestSchema,
   fireSubstanceDetailLabels,
   fireSubstanceDetails,
   fireSubstanceRequestSchema,
@@ -253,5 +254,32 @@ describe('a dangerous substance', () => {
     expect(updateFireSubstancesStateRequestSchema.safeParse({ state: 'empty' }).success).toBe(
       false
     );
+  });
+});
+
+describe('a free row of the maintenance schedules', () => {
+  const chimney = {
+    workplaceId,
+    subject: 'Coșul de fum al centralei termice',
+    intervalLabel: 'anual',
+    checkedBy: 'Firmă autorizată de coșerit',
+  };
+
+  it('needs what is checked, how often and who checks it, trimmed', () => {
+    expect(
+      fireMaintenanceItemRequestSchema.parse({ ...chimney, intervalLabel: ' la 6 luni ' })
+    ).toEqual({ ...chimney, intervalLabel: 'la 6 luni' });
+    for (const field of ['subject', 'intervalLabel', 'checkedBy'] as const) {
+      expect(fireMaintenanceItemRequestSchema.safeParse({ ...chimney, [field]: 'x' }).success).toBe(
+        false
+      );
+    }
+  });
+
+  it('keeps the interval a short label', () => {
+    expect(
+      fireMaintenanceItemRequestSchema.safeParse({ ...chimney, intervalLabel: 'a'.repeat(61) })
+        .success
+    ).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 begin;
-select plan(53);
+select plan(61);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -42,6 +42,8 @@ insert into public.fire_equipment (id, organization_id, client_id, workplace_id,
   ('e3e3e3e3-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'extinguisher', 'powder', 6);
 insert into public.fire_installations (id, organization_id, client_id, workplace_id, kind) values
   ('f3f3f3f3-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'detection_alarm');
+insert into public.fire_maintenance_items (id, organization_id, client_id, workplace_id, subject, interval_label, checked_by) values
+  ('a4a4a4a4-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'Coșul de fum', 'anual', 'Firmă autorizată');
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000003';
 
 create or replace function pg_temp.act_as(user_id text)
@@ -282,6 +284,46 @@ select throws_ok(
 );
 
 select lives_ok(
+  $$ insert into public.fire_maintenance_items (id, organization_id, client_id, workplace_id, subject, interval_label, checked_by)
+     values ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Instalația de utilizare a gazelor naturale', 'anual', 'Operatorul de distribuție') $$,
+  'a workplace has a free row of its schedule: what, how often and who'
+);
+
+select throws_ok(
+  $$ insert into public.fire_maintenance_items (organization_id, client_id, workplace_id, subject, checked_by)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Coșul de fum', 'Firmă autorizată') $$,
+  '23502', null, 'a free row says how often'
+);
+
+select throws_ok(
+  $$ update public.fire_maintenance_items set interval_label = 'x' where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  '23514', null, 'in two characters at least'
+);
+
+select throws_ok(
+  $$ insert into public.fire_maintenance_items (organization_id, client_id, workplace_id, subject, interval_label, checked_by)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000003', 'Coșul de fum', 'anual', 'Firmă autorizată') $$,
+  '23503', null, 'a free row cannot be on a workplace of another client'
+);
+
+select lives_ok(
+  $$ update public.fire_maintenance_items set workplace_id = 'd1d1d1d1-0000-4000-8000-000000000001', sort_order = 2
+     where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  'a free row moves to another workplace of the same client'
+);
+
+select throws_ok(
+  $$ update public.fire_maintenance_items set client_id = 'c1c1c1c1-0000-4000-8000-000000000002' where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  '42501', null, 'but never to another client'
+);
+
+select throws_ok(
+  $$ insert into public.fire_maintenance_items (organization_id, client_id, workplace_id, subject, interval_label, checked_by)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'Coșul de fum', 'anual', 'Firmă autorizată') $$,
+  'CLA01', null, 'a free row is not added under an archived client'
+);
+
+select lives_ok(
   $$ insert into public.client_responsible_persons (organization_id, client_id, employee_id, workplace_id, full_name, job_title, roles)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Ion Popescu', 'Manager magazin',
              '{workplace_manager,first_aid,risk_evaluation_team,imminent_danger,workers_representative,fire_safety_coordinator,fire_intervention_leader}') $$,
@@ -333,13 +375,19 @@ select throws_ok(
   'CLA01', null, 'nor its dangerous substances edited'
 );
 
+select throws_ok(
+  $$ update public.fire_maintenance_items set interval_label = 'la 6 luni' where id = 'a4a4a4a4-0000-4000-8000-000000000001' $$,
+  'CLA01', null, 'nor the free rows of its schedules'
+);
+
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
 
 select is(
   (select count(*)::int from public.client_fire_safety)
     + (select count(*)::int from public.fire_equipment)
     + (select count(*)::int from public.fire_installations)
-    + (select count(*)::int from public.fire_substances),
+    + (select count(*)::int from public.fire_substances)
+    + (select count(*)::int from public.fire_maintenance_items),
   0,
   'a member of another organization reads none of it'
 );

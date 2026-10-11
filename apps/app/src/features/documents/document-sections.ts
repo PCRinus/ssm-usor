@@ -127,7 +127,12 @@ export const fireSafetyDocumentSections = [
     id: 'means',
     number: '5',
     title: 'Mijloace de apărare și organizarea la locul de muncă',
-    typeKeys: ['fire_means_list', 'fire_workplace_organization', 'fire_substances_list'],
+    typeKeys: [
+      'fire_means_list',
+      'fire_workplace_organization',
+      'fire_substances_list',
+      'fire_maintenance_schedules',
+    ],
   },
   {
     id: 'registers',

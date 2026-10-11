@@ -7,6 +7,9 @@ import {
   fireInstallationListResponseSchema,
   fireInstallationRequestSchema,
   fireInstallationResponseSchema,
+  fireMaintenanceItemListResponseSchema,
+  fireMaintenanceItemRequestSchema,
+  fireMaintenanceItemResponseSchema,
   fireSubstanceRequestSchema,
   fireSubstanceResponseSchema,
   fireSubstancesResponseSchema,
@@ -23,6 +26,7 @@ const clientParams = z.object({ clientId: z.uuid() });
 const equipmentParams = clientParams.extend({ equipmentId: z.uuid() });
 const installationParams = clientParams.extend({ installationId: z.uuid() });
 const substanceParams = clientParams.extend({ substanceId: z.uuid() });
+const maintenanceItemParams = clientParams.extend({ itemId: z.uuid() });
 
 const noSuchClient = {
   description: 'The client does not exist in the organization',
@@ -428,6 +432,105 @@ export const deleteFireSubstanceRoute = createRoute({
     204: { description: 'Deleted' },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchSubstance,
+    409: refusedClient,
+    ...membershipErrors,
+  },
+});
+
+const noSuchMaintenanceItem = {
+  description: 'The client or the row does not exist',
+  content: errorContent,
+};
+const maintenanceItemContent = {
+  'application/json': {
+    schema: fireMaintenanceItemResponseSchema.meta({ id: 'FireMaintenanceItemResponse' }),
+  },
+};
+const maintenanceItemBody = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: fireMaintenanceItemRequestSchema.meta({ id: 'FireMaintenanceItemRequest' }),
+    },
+  },
+};
+
+export const listFireMaintenanceItemsRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/fire-maintenance-items',
+  operationId: 'listFireMaintenanceItems',
+  summary: "List the free rows of a client's maintenance and check schedules",
+  description:
+    'Every row on an active workplace, by workplace in the order of the workplaces list, then in the order they were added. The schedules 5.4 print them below the rows derived from the equipment and the installations (ADR 018).',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams },
+  responses: {
+    200: {
+      description: 'The rows',
+      content: {
+        'application/json': {
+          schema: fireMaintenanceItemListResponseSchema.meta({
+            id: 'FireMaintenanceItemListResponse',
+          }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const createFireMaintenanceItemRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/fire-maintenance-items',
+  operationId: 'createFireMaintenanceItem',
+  summary: "Add a free row to a workplace's maintenance and check schedule",
+  description:
+    'What is checked, how often as a label ("anual", "la 6 luni") and who checks it, added after the workplace\'s last row.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams, body: maintenanceItemBody },
+  responses: {
+    201: { description: 'The created row', content: maintenanceItemContent },
+    400: invalidBody,
+    404: noSuchClient,
+    409: refusedClient,
+    ...membershipErrors,
+  },
+});
+
+export const updateFireMaintenanceItemRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/fire-maintenance-items/{itemId}',
+  operationId: 'updateFireMaintenanceItem',
+  summary: 'Replace a free row of the maintenance and check schedules',
+  description: 'The row may move to another active workplace of the same client.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: maintenanceItemParams, body: maintenanceItemBody },
+  responses: {
+    200: { description: 'The row after the change', content: maintenanceItemContent },
+    400: invalidBody,
+    404: noSuchMaintenanceItem,
+    409: refusedClient,
+    ...membershipErrors,
+  },
+});
+
+export const deleteFireMaintenanceItemRoute = createRoute({
+  method: 'delete',
+  path: '/clients/{clientId}/fire-maintenance-items/{itemId}',
+  operationId: 'deleteFireMaintenanceItem',
+  summary: 'Delete a free row of the maintenance and check schedules',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: maintenanceItemParams },
+  responses: {
+    204: { description: 'Deleted' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchMaintenanceItem,
     409: refusedClient,
     ...membershipErrors,
   },

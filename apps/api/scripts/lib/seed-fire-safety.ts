@@ -11,6 +11,7 @@ type WorkplaceInsert = Tables['client_workplaces']['Insert'];
 type EquipmentInsert = Tables['fire_equipment']['Insert'];
 type InstallationInsert = Tables['fire_installations']['Insert'];
 type SubstanceInsert = Tables['fire_substances']['Insert'];
+type MaintenanceItemInsert = Tables['fire_maintenance_items']['Insert'];
 
 interface ClientCalendar {
   id: string;
@@ -124,6 +125,42 @@ export function fireMeansFor(
     ],
     installations: [{ ...base, kind: 'detection_alarm', maintainer: 'Alarm Service Demo S.R.L.' }],
   };
+}
+
+// What the inventory does not hold, so the schedules 5.4 print free rows below the derived ones.
+export function maintenanceItemsFor(
+  workplace: { id: string; client_id: string },
+  createdBy: string
+): MaintenanceItemInsert[] {
+  const base = {
+    organization_id: seedOrganizationId,
+    client_id: workplace.client_id,
+    workplace_id: workplace.id,
+    created_by: createdBy,
+  };
+  return [
+    {
+      ...base,
+      subject: 'Instalația de utilizare a gazelor naturale',
+      interval_label: 'anual',
+      checked_by: 'Operatorul de distribuție a gazelor naturale',
+      sort_order: 0,
+    },
+    {
+      ...base,
+      subject: 'Coșul de fum al centralei termice',
+      interval_label: 'anual, înainte de sezonul rece',
+      checked_by: 'Firmă autorizată de coșerit',
+      sort_order: 1,
+    },
+    {
+      ...base,
+      subject: 'Testarea funcționării iluminatului de siguranță',
+      interval_label: 'la 6 luni',
+      checked_by: 'Electricianul autorizat al unității',
+      sort_order: 2,
+    },
+  ];
 }
 
 // A cleaning agent, a gas cylinder and a solvent, each with some texts of its data sheet left
@@ -241,6 +278,7 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     persons: 0,
     equipment: 0,
     installations: 0,
+    maintenanceItems: 0,
     substancesDeclared: 0,
     substances: 0,
   };
@@ -326,17 +364,23 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
 
   const workplaces = await db
     .from('client_workplaces')
-    .select('id, client_id, kind, fire_equipment(count), fire_installations(count)')
+    .select(
+      'id, client_id, kind, fire_equipment(count), fire_installations(count), fire_maintenance_items(count)'
+    )
     .in('client_id', clientIds)
     .is('archived_at', null);
   if (workplaces.error) throw new Error(`Could not read workplaces: ${workplaces.error.message}`);
   const equipment: EquipmentInsert[] = [];
   const installations: InstallationInsert[] = [];
+  const maintenanceItems: MaintenanceItemInsert[] = [];
   for (const workplace of workplaces.data) {
     const means = fireMeansFor(workplace, createdBy);
     if (workplace.fire_equipment[0]?.count === 0) equipment.push(...means.equipment);
     if (workplace.kind === 'fixed_space' && workplace.fire_installations[0]?.count === 0) {
       installations.push(...means.installations);
+    }
+    if (workplace.kind === 'fixed_space' && workplace.fire_maintenance_items[0]?.count === 0) {
+      maintenanceItems.push(...maintenanceItemsFor(workplace, createdBy));
     }
   }
   if (equipment.length > 0) {
@@ -347,8 +391,13 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     const { error } = await db.from('fire_installations').insert(installations);
     if (error) throw new Error(`Could not seed fire installations: ${error.message}`);
   }
+  if (maintenanceItems.length > 0) {
+    const { error } = await db.from('fire_maintenance_items').insert(maintenanceItems);
+    if (error) throw new Error(`Could not seed the free rows of the schedules: ${error.message}`);
+  }
   counts.equipment = equipment.length;
   counts.installations = installations.length;
+  counts.maintenanceItems = maintenanceItems.length;
 
   // Every other client declares none and the rest list theirs, so both forms of 5.3 are seen.
   for (const [state, ids] of [

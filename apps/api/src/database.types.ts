@@ -1327,6 +1327,84 @@ export type Database = {
           },
         ];
       };
+      fire_maintenance_items: {
+        Row: {
+          checked_by: string;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          interval_label: string;
+          organization_id: string;
+          sort_order: number;
+          subject: string;
+          updated_at: string;
+          workplace_id: string;
+        };
+        Insert: {
+          checked_by: string;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          interval_label: string;
+          organization_id: string;
+          sort_order?: number;
+          subject: string;
+          updated_at?: string;
+          workplace_id: string;
+        };
+        Update: {
+          checked_by?: string;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          interval_label?: string;
+          organization_id?: string;
+          sort_order?: number;
+          subject?: string;
+          updated_at?: string;
+          workplace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fire_maintenance_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplaces';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
       fire_substances: {
         Row: {
           classification: string;

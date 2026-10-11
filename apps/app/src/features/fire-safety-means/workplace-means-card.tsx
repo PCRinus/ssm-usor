@@ -32,6 +32,7 @@ import {
   extinguisherHint,
   type FireEquipment,
   type FireInstallation,
+  type FireMaintenanceItem,
   unitTitle,
 } from './fire-means-schema';
 
@@ -50,6 +51,7 @@ export function WorkplaceMeansCard({
   workplace,
   equipment,
   installations,
+  maintenanceItems,
   readOnly,
   onAddEquipment,
   onEditEquipment,
@@ -57,10 +59,14 @@ export function WorkplaceMeansCard({
   onAddInstallation,
   onEditInstallation,
   onDeleteInstallation,
+  onAddMaintenanceItem,
+  onEditMaintenanceItem,
+  onDeleteMaintenanceItem,
 }: {
   workplace: Workplace;
   equipment: readonly FireEquipment[];
   installations: readonly FireInstallation[];
+  maintenanceItems: readonly FireMaintenanceItem[];
   readOnly: boolean;
   onAddEquipment: () => void;
   onEditEquipment: (unit: FireEquipment) => void;
@@ -68,6 +74,9 @@ export function WorkplaceMeansCard({
   onAddInstallation: () => void;
   onEditInstallation: (installation: FireInstallation) => void;
   onDeleteInstallation: (installation: FireInstallation) => void;
+  onAddMaintenanceItem: () => void;
+  onEditMaintenanceItem: (item: FireMaintenanceItem) => void;
+  onDeleteMaintenanceItem: (item: FireMaintenanceItem) => void;
 }) {
   const extinguishers = equipment.filter((unit) => unit.kind === 'extinguisher').length;
   const hint = extinguisherHint(extinguishers, workplace);
@@ -250,6 +259,75 @@ export function WorkplaceMeansCard({
                         testId="fire-installation"
                         onEdit={() => onEditInstallation(installation)}
                         onDelete={() => onDeleteInstallation(installation)}
+                      />
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </section>
+
+      <section
+        className="grid gap-3 border-t pt-5"
+        aria-label={`Alte verificări periodice, ${workplace.name}`}
+      >
+        <BlockHeading
+          title="Alte verificări periodice"
+          action={
+            !readOnly && (
+              <Button
+                variant="tonal"
+                size="sm"
+                data-testid="fire-maintenance-add"
+                onClick={onAddMaintenanceItem}
+              >
+                <Plus aria-hidden="true" />
+                Adaugă
+              </Button>
+            )
+          }
+        />
+        {maintenanceItems.length === 0 ? (
+          <p data-testid="fire-maintenance-empty" className="text-sm text-muted-foreground">
+            Opțional: ce nu reiese din stingătoare și instalații, de exemplu instalația de gaze sau
+            coșul de fum. Apar în graficele de întreținere și verificare, cerute de la 10 angajați.
+          </p>
+        ) : (
+          <Table className="max-sm:block">
+            <TableHeader className="max-sm:sr-only">
+              <TableRow>
+                <TableHead className={columns.what}>Ce se verifică</TableHead>
+                <TableHead className={columns.which}>Periodicitatea</TableHead>
+                <TableHead>Cine efectuează</TableHead>
+                {!readOnly && (
+                  <TableHead className="w-12">
+                    <span className="sr-only">Acțiuni</span>
+                  </TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="max-sm:block">
+              {maintenanceItems.map((item) => (
+                <TableRow
+                  key={item.id}
+                  data-testid="fire-maintenance-row"
+                  {...rowClickProps(readOnly ? undefined : () => onEditMaintenanceItem(item))}
+                  className={cn(rowClass, !readOnly && 'cursor-pointer')}
+                >
+                  <TableCell className={cn(stackedCell, 'font-medium')}>{item.subject}</TableCell>
+                  <TableCell className={stackedCell}>{item.intervalLabel}</TableCell>
+                  <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
+                    {item.checkedBy}
+                  </TableCell>
+                  {!readOnly && (
+                    <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                      <RowMenu
+                        name={item.subject}
+                        testId="fire-maintenance"
+                        onEdit={() => onEditMaintenanceItem(item)}
+                        onDelete={() => onDeleteMaintenanceItem(item)}
                       />
                     </TableCell>
                   )}

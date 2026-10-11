@@ -20,10 +20,13 @@ import type {
   FireEquipmentRequest,
   FireInstallationListResponse,
   FireInstallationRequest,
+  FireMaintenanceItemListResponse,
+  FireMaintenanceItemRequest,
 } from '@/api/generated/api';
 
 export type FireEquipment = FireEquipmentListResponse['items'][number];
 export type FireInstallation = FireInstallationListResponse['items'][number];
+export type FireMaintenanceItem = FireMaintenanceItemListResponse['items'][number];
 
 export const equipmentAddId = (workplaceId: string) => `fire-equipment-add-${workplaceId}`;
 
@@ -252,5 +255,46 @@ export function toInstallationRequest(values: InstallationFormValues): FireInsta
     maintainer: values.maintainer || null,
     lastCheckOn: values.lastCheckOn || null,
     nextCheckOn: values.nextCheckOn || null,
+  };
+}
+
+const requiredText = (min: number, max: number, empty: string, what: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, empty)
+    .min(min, `${what} are cel puțin ${min} caractere.`)
+    .max(max, `${what} are cel mult ${max} de caractere.`);
+
+export const maintenanceItemFormSchema = z.object({
+  workplaceId: z.string().min(1, 'Alege locul de muncă.'),
+  subject: requiredText(2, 160, 'Scrie ce se verifică.', 'Descrierea'),
+  intervalLabel: requiredText(2, 60, 'Scrie cât de des se verifică.', 'Periodicitatea'),
+  checkedBy: requiredText(2, 160, 'Scrie cine efectuează verificarea.', 'Numele'),
+});
+
+export type MaintenanceItemFormValues = z.infer<typeof maintenanceItemFormSchema>;
+
+export function newMaintenanceItemForm(workplaceId: string): MaintenanceItemFormValues {
+  return { workplaceId, subject: '', intervalLabel: '', checkedBy: '' };
+}
+
+export function toMaintenanceItemForm(item: FireMaintenanceItem): MaintenanceItemFormValues {
+  return {
+    workplaceId: item.workplaceId,
+    subject: item.subject,
+    intervalLabel: item.intervalLabel,
+    checkedBy: item.checkedBy,
+  };
+}
+
+export function toMaintenanceItemRequest(
+  values: MaintenanceItemFormValues
+): FireMaintenanceItemRequest {
+  return {
+    workplaceId: values.workplaceId,
+    subject: values.subject,
+    intervalLabel: values.intervalLabel,
+    checkedBy: values.checkedBy,
   };
 }

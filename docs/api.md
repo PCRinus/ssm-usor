@@ -114,6 +114,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                          |
 | `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                               |
 | `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-maintenance-items`                       | Verified user with a membership       | `{ "items": [ … ] }`: the free rows of the schedules 5.4, by workplace, in their order                                    |
+| `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                   |
+| `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                    |
+| `DELETE /clients/{clientId}/fire-maintenance-items/{itemId}`           | Verified user with a membership       | `204` after deleting it                                                                                                   |
 | `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                   |
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                            |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
@@ -653,6 +657,10 @@ while the client has not said, or has no fire-safety row. `PUT …/fire-substanc
 creating the row when there is none without counting as the card's first save; `none` while the
 client has entries is `409` with the reason `substances_listed`, and a new entry under any state
 but `listed` is `409` with `substances_not_listed`. Entries keep the order they were added in.
+The free rows of the maintenance and check schedules (`fire-maintenance-items`, ADR 018, amended
+2026-10-11) sit on a workplace like the units, with the same `workplaceId` checks, and carry three
+required texts: `subject` (2 to 160), `intervalLabel` (2 to 60, printed as typed) and `checkedBy`
+(2 to 160). They are optional: no readiness code asks for them.
 Under an archived client or a lead, every write is `409` with the reason `client_archived`
 or `client_is_lead`.
 
@@ -722,8 +730,9 @@ ordinal minus one; its `decisionNumber` says so, and a
 decision generated again keeps it. The two decisions required only from ten employees come last
 (ADR 020): 1 organization, 2 training, 3 open fire, 4 smoking, 5 technician, 6 instructions, 7
 waste, 8 seasons, 9 control. Under 10 current employees (`currentEmployeeCount`, the same count
-as decision 1.5's) `fire_decision_seasons`, `fire_decision_control` and
-`fire_installation_register` (`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
+as decision 1.5's) `fire_decision_seasons`, `fire_decision_control`,
+`fire_maintenance_schedules` and `fire_installation_register`
+(`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
 list names them under `notApplicable`; one that exists stays in the list and in the set, and
 generating it again works as for any document. No readiness code belongs to them alone, so the
 readiness is the same either side of ten. Its templates are merged with a context of their own,

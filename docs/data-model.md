@@ -209,7 +209,8 @@ Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by t
 `20261011090100_fire_safety_waste_collectors` adds who collects the waste, both amending ADR 018;
 `20261011090200_fire_safety_third_parties` adds whether other firms work on the premises, amending
 ADR 019. `20261012090000_workplace_kind` and `20261012100000_fire_substances` add the workplace
-kind and the substances list of ADR 018's amendment of 2026-10-11.
+kind and the substances list of ADR 018's amendment of 2026-10-11, and
+`20261012110000_fire_maintenance_items` the free rows of its schedules.
 The documents of the fire-safety set's second and third stages print these facts; the
 occupational safety set reads none of them.
 
@@ -345,6 +346,23 @@ leaves `listed` only while the client has no substance (`SUB01`). Saving the sta
 row holds nothing of the card, so the card opens on its starting values. Both are guarded as the
 other fire-safety tables are, and the list is asked of every client, under ten employees too.
 
+**Maintenance items.** `fire_maintenance_items` holds the free rows of a workplace's
+maintenance and check schedules (ADR 018, amended 2026-10-11): what the inventory does not hold,
+such as the yearly check of the gas installation or the chimney. It has `id`, `organization_id`,
+`client_id` and `workplace_id` with the composite foreign keys of `fire_installations`, so a row
+never sits on another client's workplace, and may move to another workplace of the same client.
+
+| Column           | Notes                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `subject`        | What is checked, required, 2 to 160 characters.                                          |
+| `interval_label` | How often, as printed: "anual", "la 6 luni"; required, 2 to 60. No interval is computed. |
+| `checked_by`     | Who checks it, required, 2 to 160.                                                       |
+| `sort_order`     | The order on the workplace; the API appends a new row after the workplace's last.        |
+
+Rows are deleted, not archived, and guarded as the other fire-safety tables are. They are
+optional: no readiness code asks for them, and the schedules 5.4 print them below the rows they
+derive from the equipment and the installations.
+
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
@@ -368,11 +386,12 @@ seasons and 9 the own control (ADR 020). A fire-safety decision stores its print
 `decision_number`, and a document of the set is compared with its snapshot, and generated
 again, with the first number it was made with.
 
-**Documents from ten employees.** Decisions 8 and 9 and the installation register
-(`fire_installation_register`) are part of a client's fire-safety set from 10 current employees,
+**Documents from ten employees.** Decisions 8 and 9, the schedules (`fire_maintenance_schedules`)
+and the installation register (`fire_installation_register`) are part of a client's fire-safety
+set from 10 current employees,
 the same `current_employee_count(clients)` that decides decision 1.5 (ADR 010, ADR 020), or once
 the client has a revision of them, whatever the count is then. Nothing is stored for it: the
-facts read which of the three have a revision, and the merge data carries `seasonsDecision`,
+facts read which of the four have a revision, and the merge data carries `seasonsDecision`,
 `controlDecision` and `installationRegister` beside `fire`, so a draft of a cover is marked
 "Date modificate" when the client crosses ten, not when any other fact changes.
 

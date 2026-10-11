@@ -203,6 +203,35 @@ describe('fire-safety set', () => {
       contractor: 'S.C. ECO S.R.L.',
       collectors: 'muncitorii necalificați și șeful de șantier',
     },
+    schedules: [
+      {
+        name: 'Magazin',
+        activity: 'Gelaterie',
+        hasRows: true,
+        empty: false,
+        rows: [
+          {
+            what: 'Controlul fiecărui stingător de incendiu (P6 – 2 buc., G3 – 1 buc.)',
+            interval: 'lunar',
+            who: 'Ion VLAD, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
+            basis: 'OMAI 135/2023 – art. 8',
+          },
+          {
+            what: 'Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat (G3 – 1 buc.)',
+            interval: 'la cel mult 6 luni, în iunie și decembrie',
+            who: 'Ion VLAD, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
+            basis: 'OMAI 135/2023 – art. 8 alin. (3)',
+          },
+          {
+            what: 'Instalația de utilizare a gazelor naturale',
+            interval: 'anual',
+            who: 'Operatorul de distribuție',
+            basis: '—',
+          },
+        ],
+      },
+      { name: 'Depozit', activity: 'Depozitare', hasRows: false, empty: true, rows: [] },
+    ],
     substances: {
       state: 'listed',
       none: false,
@@ -291,6 +320,22 @@ describe('fire-safety set', () => {
         otherEquipment: [],
         installations: [],
         hasInstallations: false,
+        schedules: [
+          {
+            name: 'Magazin',
+            activity: 'Gelaterie',
+            hasRows: true,
+            empty: false,
+            rows: [
+              {
+                what: 'Controlul fiecărui stingător de incendiu (P6 – 1 buc.)',
+                interval: 'lunar',
+                who: 'Ion VLAD, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
+                basis: 'OMAI 135/2023 – art. 8',
+              },
+            ],
+          },
+        ],
         hasExteriorHydrants: false,
         hasInteriorHydrants: false,
         manager: null,
@@ -674,6 +719,31 @@ describe('fire-safety set', () => {
         .asText()
         .match(/<w:tbl>/g)
     ).toHaveLength(1);
+  });
+
+  it('schedules the checks of each workplace in one table, or says there is nothing to schedule', () => {
+    const rendered = renderDocument(read('fire/5.4_fire_maintenance_schedules.docx'), stageTwoData);
+    const text = documentText(rendered);
+    expect(text).toContain('GRAFICELE DE ÎNTREȚINERE ȘI VERIFICARE');
+    expect(text).toContain(
+      'Graficele de întreținere și verificare a mijloacelor tehnice de apărare împotriva incendiilor din dotarea S.C. CLIENT DEMO S.R.L., întocmite în baza prevederilor OMAI 163/2007 – art. 18 lit. q) și ale OMAI 135/2023 – art. 8, art. 9 și art. 12'
+    );
+    expect(text).toContain('Magazin (Gelaterie)');
+    expect(text).toContain('Ce se verifică\nPeriodicitatea\nCine efectuează\nTemei / observații');
+    expect(text).toContain('la cel mult 6 luni, în iunie și decembrie');
+    expect(text).toContain(
+      'Instalația de utilizare a gazelor naturale\nanual\nOperatorul de distribuție\n—'
+    );
+    expect(text).toContain('Depozit (Depozitare)');
+    expect(text).toContain(
+      'La acest loc de muncă nu există mijloace sau instalații de apărare împotriva incendiilor care să necesite întreținere ori verificare periodică.'
+    );
+    expect(text).toContain('Data: 19.01.2026');
+    expect(text).toContain('Cadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
+    expect(text).toContain('Administrator al S.C. CLIENT DEMO S.R.L.');
+    const xml = new PizZip(rendered).file('word/document.xml')!.asText();
+    expect(xml.match(/<w:tbl>/g)).toHaveLength(2);
+    expect(xml.match(/<w:tblHeader w:val="true"\/>/g)).toHaveLength(1);
   });
 
   it('gives every workplace a page of its own on the posted sheet', () => {

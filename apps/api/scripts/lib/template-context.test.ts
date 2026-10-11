@@ -808,6 +808,7 @@ describe('the fire-safety templates', () => {
       },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
+      maintenanceItems: [],
       generatedFromTenEmployees: [],
       substances: { state: 'none', entries: [] },
     },
@@ -934,6 +935,25 @@ describe('the fire-safety templates', () => {
     expect(none).not.toContain('Substanța 1');
   });
 
+  it('schedule the checks of every workplace from its extinguishers, installations and free rows', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_maintenance_schedules')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(text).toContain('Atelier Ghiroda (Atelier de sudură)');
+    expect(text).toContain('Sediul social (Birouri)');
+    expect(text).toContain('Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat');
+    expect(text).toContain('următorul service: 15.01.2027 și 12.03.2027');
+    expect(text).toContain('următoarea verificare: 12.09.2026');
+    expect(text).toContain('Instalația de utilizare a gazelor naturale');
+    const fewer = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
+    expect(fewer).toContain('conform instrucțiunilor producătorului');
+    expect(fewer).not.toContain('Instalația de utilizare a gazelor naturale');
+  });
+
   it('print the smoking rule, the technician appointed and the controls of the client', () => {
     const file = (typeKey: string) =>
       readFileSync(
@@ -1030,6 +1050,7 @@ describe('the fire-safety templates', () => {
           card: null,
           equipment: [],
           installations: [],
+          maintenanceItems: [],
           generatedFromTenEmployees: [],
           substances: { state: 'undecided', entries: [] },
         },

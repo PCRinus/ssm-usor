@@ -62,6 +62,7 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_means_list',
   'fire_workplace_organization',
   'fire_substances_list',
+  'fire_maintenance_schedules',
   'fire_cover_registers',
   'fire_registers',
   'fire_work_permit',
@@ -149,6 +150,7 @@ export const fireDecisionTypeKeys = {
 export const fireSafetyTypeKeysFromTenEmployees = [
   'fire_decision_seasons',
   'fire_decision_control',
+  'fire_maintenance_schedules',
   'fire_installation_register',
 ] as const satisfies readonly FireSafetyDocumentTypeKey[];
 

@@ -314,6 +314,95 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           contractor: 'S.C. ECO COLECT S.R.L.',
           collectors: null,
         },
+    // The long sample has a workplace with CO₂ units, one with only free rows and an empty one.
+    schedules: [
+      {
+        name: workplaces[0]!.name,
+        activity: workplaces[0]!.activity,
+        hasRows: true,
+        empty: false,
+        rows: [
+          {
+            what: 'Controlul fiecărui stingător de incendiu (P6 – 2\u00a0buc., G5 – 1\u00a0buc.)',
+            interval: 'lunar',
+            who: `${first!.name}, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz`,
+            basis:
+              'OMAI 135/2023 – art. 8; rezultatele se înscriu în registrul de evidență a controlului stingătoarelor',
+          },
+          {
+            what: 'Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat (G5 – 1\u00a0buc.)',
+            interval: 'la cel mult 6 luni, în iunie și decembrie',
+            who: `${first!.name}, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz`,
+            basis: 'OMAI 135/2023 – art. 8 alin. (3)',
+          },
+          {
+            what: 'Verificarea stingătoarelor de către o firmă atestată (P6 – 2\u00a0buc.)',
+            interval: 'anual',
+            who: 'S.C. FOC STOP S.R.L.',
+            basis: 'OMAI 135/2023 – art. 9; următorul service: 15.01.2027 și 12.03.2027',
+          },
+          {
+            what: 'Verificarea stingătoarelor de către o firmă atestată (G5 – 1\u00a0buc.)',
+            interval: 'anual',
+            who: 'firmă atestată',
+            basis: 'OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului',
+          },
+          {
+            what: 'Reîncărcarea stingătoarelor (P6 – 2\u00a0buc., G5 – 1\u00a0buc.)',
+            interval: 'la termenul producătorului',
+            who: 'S.C. FOC STOP S.R.L.',
+            basis: 'OMAI 135/2023 – art. 12',
+          },
+          ...(long
+            ? [
+                {
+                  what: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+                  interval: 'la 6 luni',
+                  who: 'S.C. ALARM SERVICE S.R.L.',
+                  basis: 'următoarea verificare: 12.03.2027',
+                },
+                {
+                  what: 'Instalația de utilizare a gazelor naturale',
+                  interval: 'anual',
+                  who: 'Operatorul de distribuție',
+                  basis: '—',
+                },
+              ]
+            : []),
+        ],
+      },
+      ...(long
+        ? [
+            {
+              name: workplaces[1]!.name,
+              activity: workplaces[1]!.activity,
+              hasRows: true,
+              empty: false,
+              rows: [
+                {
+                  what: 'Coșul de fum al centralei termice',
+                  interval: 'anual, înainte de sezonul rece',
+                  who: 'Firmă autorizată de coșerit',
+                  basis: '—',
+                },
+                {
+                  what: 'Testarea funcționării iluminatului de siguranță',
+                  interval: 'la 6 luni',
+                  who: 'Electricianul autorizat al unității',
+                  basis: '—',
+                },
+              ],
+            },
+            {
+              name: workplaces[2]!.name,
+              activity: workplaces[2]!.activity,
+              hasRows: false,
+              empty: true,
+              rows: [],
+            },
+          ]
+        : []),
+    ],
     // The long sample lists its substances with gaps to fill in; the short one declares none.
     substances: long
       ? {
