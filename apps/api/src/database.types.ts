@@ -1688,6 +1688,7 @@ export type Database = {
           archived_at: string | null;
           created_at: string;
           created_by: string | null;
+          domain: Database['public']['Enums']['instruction_domain'];
           id: string;
           module_group: Database['public']['Enums']['instruction_module_group'];
           organization_id: string;
@@ -1698,6 +1699,7 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           module_group: Database['public']['Enums']['instruction_module_group'];
           organization_id: string;
@@ -1708,6 +1710,7 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           module_group?: Database['public']['Enums']['instruction_module_group'];
           organization_id?: string;
@@ -1810,6 +1813,7 @@ export type Database = {
           client_id: string;
           created_at: string;
           created_by: string | null;
+          domain: Database['public']['Enums']['instruction_domain'];
           id: string;
           job_position_id: string;
           module_id: string;
@@ -1819,6 +1823,7 @@ export type Database = {
           client_id: string;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           job_position_id: string;
           module_id: string;
@@ -1828,6 +1833,7 @@ export type Database = {
           client_id?: string;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           job_position_id?: string;
           module_id?: string;
@@ -1887,6 +1893,7 @@ export type Database = {
           created_by: string | null;
           id: string;
           name: string;
+          needs_fire_instructions: boolean | null;
           needs_instructions: boolean | null;
           needs_protective_equipment: boolean | null;
           organization_id: string;
@@ -1903,6 +1910,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name: string;
+          needs_fire_instructions?: boolean | null;
           needs_instructions?: boolean | null;
           needs_protective_equipment?: boolean | null;
           organization_id: string;
@@ -1919,6 +1927,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name?: string;
+          needs_fire_instructions?: boolean | null;
           needs_instructions?: boolean | null;
           needs_protective_equipment?: boolean | null;
           organization_id?: string;
@@ -3156,6 +3165,7 @@ export type Database = {
         | 'other';
       fire_smoking_policy: 'forbidden_everywhere' | 'designated_places';
       fire_substances_state: 'undecided' | 'none' | 'listed';
+      instruction_domain: 'ssm' | 'psi';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       organization_role: 'owner' | 'specialist';
       prevention_measure_kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
@@ -3321,6 +3331,7 @@ export const Constants = {
       ],
       fire_smoking_policy: ['forbidden_everywhere', 'designated_places'],
       fire_substances_state: ['undecided', 'none', 'listed'],
+      instruction_domain: ['ssm', 'psi'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       organization_role: ['owner', 'specialist'],
       prevention_measure_kind: ['technical', 'organizational', 'hygienic_sanitary', 'other'],

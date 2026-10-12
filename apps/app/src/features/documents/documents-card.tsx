@@ -613,6 +613,7 @@ export function DocumentsCard<Set extends DocumentSet>({
           <AnnexRow
             key={annex.version.id}
             annex={annex}
+            typeKey={document.typeKey}
             onDownload={() => void downloadAnnex(annex)}
           />
         ))}

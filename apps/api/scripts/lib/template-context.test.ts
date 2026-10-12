@@ -315,7 +315,7 @@ describe('the annex title pages', () => {
       'own_instructions'
     );
     const pages = annexTitlePagesData(snapshot as Json).map((data) =>
-      documentText(renderDocument(annexTitlePage(), data))
+      documentText(renderDocument(annexTitlePage('ssm'), data))
     );
     expect(pages).toHaveLength(2);
     expect(pages[0]).toContain('ANEXA 1');
@@ -326,6 +326,23 @@ describe('the annex title pages', () => {
       expect(text).toContain('PIPETECH');
       expect(text).toMatch(/versiunea din \d{2}\.\d{2}\.\d{4}/);
     }
+  }, 30_000);
+
+  it('merge from what the fire-safety own instructions snapshot, its modules only', () => {
+    const { snapshot } = merge(
+      readFileSync(new URL('fire/2.1_fire_own_instructions.docx', templatesUrl)),
+      { ...buildFireSafetyContext(facts) },
+      'fire_own_instructions'
+    );
+    const pages = annexTitlePagesData(snapshot as Json).map((data) =>
+      documentText(renderDocument(annexTitlePage('psi'), data))
+    );
+    expect(pages).toHaveLength(1);
+    expect(pages[0]).toContain('ANEXA 1');
+    expect(pages[0]).toContain('la Instrucțiunile proprii în domeniul situațiilor de urgență');
+    expect(pages[0]).toContain('I.P.S.U. Lucrul cu foc deschis');
+    expect(pages[0]).toContain('versiunea din 11.10.2026');
+    expect(pages[0]).not.toContain('{{');
   }, 30_000);
 });
 
@@ -1118,6 +1135,15 @@ describe('the fire-safety templates', () => {
           fireSafetyTechnicianCertificate: null,
         },
         client: { ...facts.client, representativeName: null, representativeRole: null },
+      },
+    ],
+    [
+      'a position deciding about the fire-safety modules',
+      {
+        ...facts,
+        jobPositions: facts.jobPositions.map((position, index) =>
+          index === 0 ? { ...position, needsFireInstructions: null } : position
+        ),
       },
     ],
   ];

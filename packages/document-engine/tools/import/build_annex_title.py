@@ -1,4 +1,4 @@
-"""Builds the title page printed before each instruction module the own instructions annex (ADR 012).
+"""Builds the title pages printed before each instruction module the own instructions annex (ADR 012).
 
     pnpm --filter @ssm-usor/document-engine build-annex-title
 
@@ -6,8 +6,10 @@ A module is the organization's file and the app writes nothing inside it, so wha
 "Anexa N" of chapter XIII is a page of its own before it, with the same box of document details
 as the common part. That box is built by the import's own code, so the two cannot drift apart;
 only its last cell differs: "Pag. X din Y" would read "Pag. 1 din 1" on a page that stands
-alone, so it names the annex instead. The page lands in `src/annex-title.ts`, base64 like the
-module skeleton, so the API needs no file and no registry entry for it.
+alone, so it names the annex instead. Each set has its page, the occupational safety one for
+3.2 and the fire-safety one for 2.1, which names the fire-safety technician in the box as 2.1
+does. The pages land in `src/annex-title.ts`, base64 like the module skeleton, so the API needs
+no file and no registry entry for them.
 """
 
 import base64
@@ -22,10 +24,7 @@ from import_templates import (  # noqa: E402
     BODY_SIZE, FONT, MARGINS, SMALL_PRINT, _elements, add_branding, build_header, prop, start_office,
     sweep, write_paragraph)
 
-TARGET = '/tmp/annex_title.docx'
-
-
-def build(desktop, definition):
+def build(desktop, definition, target):
     document = desktop.loadComponentFromURL('private:factory/swriter', '_blank', 0, (prop('Hidden', True),))
     build_header(document, definition['header'])
     styles = document.StyleFamilies.getByName('PageStyles')
@@ -58,17 +57,19 @@ def build(desktop, definition):
                         bold=line.get('bold', False), adjust=CENTER, above=line.get('above', 0),
                         below=line.get('below', 6), keep=True, first=index == 0)
 
-    document.storeToURL(uno.systemPathToFileUrl(TARGET), (prop('FilterName', 'MS Word 2007 XML'),))
+    document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
-    sweep(TARGET)
+    sweep(target)
 
 
 def main():
     with open('/work/tools/import/annex-title.ro.json', encoding='utf8') as file:
-        definition = json.load(file)
+        definitions = json.load(file)
+    targets = {domain: f'/tmp/annex_title_{domain}.docx' for domain in definitions}
     process, desktop = start_office()
     try:
-        build(desktop, definition)
+        for domain, definition in definitions.items():
+            build(desktop, definition, targets[domain])
     finally:
         try:
             desktop.terminate()
@@ -76,16 +77,22 @@ def main():
             pass
         process.wait(timeout=30)
 
-    with open(TARGET, 'rb') as file:
-        encoded = base64.b64encode(file.read()).decode('ascii')
-    lines = [encoded[index:index + 100] for index in range(0, len(encoded), 100)]
+    encoded = {}
+    for domain, target in targets.items():
+        with open(target, 'rb') as file:
+            text = base64.b64encode(file.read()).decode('ascii')
+        encoded[domain] = [text[index:index + 100] for index in range(0, len(text), 100)]
     with open('/work/src/annex-title.ts', 'w', encoding='utf8') as file:
         file.write('// Written by tools/import/build_annex_title.py from tools/import/annex-title.ro.json.\n')
-        file.write('// The page printed before each module the own instructions annex (ADR 012).\n\n')
-        file.write('const encoded =\n')
-        file.write('\n'.join(f"  '{line}'{' +' if index < len(lines) - 1 else ';'}" for index, line in enumerate(lines)))
-        file.write('\n\nexport function annexTitlePage(): Uint8Array {\n')
-        file.write('  return Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0));\n}\n')
+        file.write('// The page printed before each module the own instructions of either set annex (ADR 012).\n\n')
+        file.write("export type AnnexDomain = 'ssm' | 'psi';\n\n")
+        file.write('const encoded: Record<AnnexDomain, string> = {\n')
+        for domain, lines in encoded.items():
+            file.write(f'  {domain}:\n')
+            file.write('\n'.join(f"    '{line}'{' +' if index < len(lines) - 1 else ','}" for index, line in enumerate(lines)))
+            file.write('\n')
+        file.write('};\n\nexport function annexTitlePage(domain: AnnexDomain): Uint8Array {\n')
+        file.write('  return Uint8Array.from(atob(encoded[domain]), (char) => char.charCodeAt(0));\n}\n')
     print('src/annex-title.ts')
 
 

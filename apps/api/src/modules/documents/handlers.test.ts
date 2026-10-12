@@ -16,7 +16,7 @@ import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluation
 // client, a decision's number, and the training themes whenever there are any; a template's
 // file is its type key, and some types print more, as their real templates do. A name it prints
 // that the data lacks is refused, as the engine does. A file's text is its bytes read as text. A
-// merged annex title page is its data as JSON.
+// merged annex title page is its data as JSON, with the set whose page it is.
 vi.mock('@ssm-usor/document-engine', () => {
   const printedBy: Record<string, string[]> = {
     cover_decisions: ['branding', 'provider', 'workersRepresentativeDecision'],
@@ -44,12 +44,16 @@ vi.mock('@ssm-usor/document-engine', () => {
   }
   return {
     TemplateError,
-    annexTitlePage: () => new TextEncoder().encode('annex_title_page'),
+    annexTitlePage: (domain: string) => new TextEncoder().encode(`annex_title_page:${domain}`),
     documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
     renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => {
       const typeKey = new TextDecoder().decode(template);
-      if (typeKey === 'annex_title_page') {
-        return { document: new TextEncoder().encode(JSON.stringify(data)), usedNames: [] };
+      if (typeKey.startsWith('annex_title_page:')) {
+        const page = typeKey.slice('annex_title_page:'.length);
+        return {
+          document: new TextEncoder().encode(JSON.stringify({ page, ...data })),
+          usedNames: [],
+        };
       }
       const printed = [
         ...new Set([
@@ -173,10 +177,12 @@ const positionRow = {
   training_interval_months: null,
   needs_protective_equipment: true,
   needs_instructions: true,
+  needs_fire_instructions: false,
   employees: [{ id: '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e' }],
   job_position_instructions: [
     {
       module_id: 'a0a0a0a0-0000-4000-8000-000000000001',
+      domain: 'ssm',
       instruction_modules: {
         title: 'Scări metalice',
         module_group: 'work_equipment',
@@ -1205,6 +1211,7 @@ const annexedModuleVersions = () =>
 const annexTitlePageData = (index: number) => {
   const { number, title, versionDate } = ownInstructionsSnapshot.annexes[index]!;
   return {
+    page: 'ssm',
     branding: true,
     issueDate: '19.01.2026',
     provider: printedProvider,
@@ -1898,6 +1905,65 @@ describe('POST /documents/{documentId}/issue', () => {
       `/storage/v1/object/sign/instruction-modules/${organizationId}/m-ladders/2.docx`,
       `/storage/v1/object/sign/instruction-modules/${organizationId}/m-offices/1.docx`,
     ]);
+  });
+
+  it('annexes the fire-safety modules of the IPSU after the fire-safety title page', async () => {
+    const technician = {
+      name: 'Dan POP',
+      certificate: 'seria A nr. 1234/2024',
+      authorization: null,
+    };
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          type_key: 'fire_own_instructions',
+          document_group: 'fire_safety_set',
+          document_revisions: [
+            {
+              ...revisionRow,
+              data_snapshot: {
+                branding: true,
+                issueDate: '19.01.2026',
+                provider: printedProvider,
+                client: printedClient,
+                fireSafetyTechnician: technician,
+                annexes: [ownInstructionsSnapshot.annexes[0]],
+                noAnnexes: false,
+              },
+            },
+          ],
+        }),
+      moduleVersions: annexedModuleVersions,
+    });
+    const convertDocuments = vi.fn(async (files: ArrayBuffer[]) => {
+      void files;
+      return pdfBytes.slice().buffer;
+    });
+    expect((await issueWith(vi.fn(), convertDocuments)).status).toBe(200);
+    expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
+      '\u0001\u0002\u0003',
+      { ...annexTitlePageData(0), page: 'psi', fireSafetyTechnician: technician },
+      'm-ladders',
+    ]);
+  });
+
+  it('annexes nothing to a document that is not one of the own instructions', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          type_key: 'training_themes',
+          document_revisions: [{ ...revisionRow, data_snapshot: ownInstructionsSnapshot }],
+        }),
+      moduleVersions: annexedModuleVersions,
+    });
+    const convertDocx = vi.fn(async () => pdfBytes.slice().buffer);
+    const convertDocuments = vi.fn();
+    expect((await issueWith(convertDocx, convertDocuments)).status).toBe(200);
+    expect(convertDocx).toHaveBeenCalledTimes(1);
+    expect(convertDocuments).not.toHaveBeenCalled();
+    expect(calls('/rest/v1/instruction_module_versions', 'GET')).toHaveLength(0);
   });
 
   it('issues nothing when the PDF cannot be made, and ignores the binding unless switched on', async () => {
@@ -2628,6 +2694,21 @@ describe('the fire-safety set', () => {
     });
   });
 
+  it('waits for every position to decide about the fire-safety modules, which the other set never asks', async () => {
+    mockUpstream({
+      positions: () => Response.json([{ ...positionRow, needs_fire_instructions: null }]),
+    });
+    const fire = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await fire.json())).toMatchObject({
+      ready: false,
+      missing: ['fire.instructions'],
+    });
+    const occupational = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await occupational.json()).missing).not.toContain(
+      'fire.instructions'
+    );
+  });
+
   it('is the only set a missing technician blocks', async () => {
     mockUpstream({
       organizations: withoutTechnician,
@@ -2757,6 +2838,7 @@ describe('the fire-safety set', () => {
     expect((await generate('fire_safety')).status).toBe(201);
     expect(merged).toHaveLength(2);
     expect(Object.keys(merged[0]!).sort()).toEqual([
+      'annexes',
       'branding',
       'client',
       'controlDecision',
@@ -2764,9 +2846,11 @@ describe('the fire-safety set', () => {
       'fireSafetyTechnician',
       'installationRegister',
       'issueDate',
+      'noAnnexes',
       'provider',
       'seasonsDecision',
     ]);
+    expect(merged[0]).toMatchObject({ annexes: [], noAnnexes: true });
     expect(merged[0]).toMatchObject({ issueDate: '01.10.2026', ...printedFireSafety });
   });
 

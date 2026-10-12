@@ -95,6 +95,7 @@ export const ApiErrorResponseMissingItem = {
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
   firesubstances: 'fire.substances',
+  fireinstructions: 'fire.instructions',
 } as const;
 
 export interface ApiErrorResponse {
@@ -1197,6 +1198,10 @@ export type JobPositionListResponseItemsItem = {
   needsInstructions: boolean | null;
   /** @minimum 0 */
   instructionCount: number;
+  /** @nullable */
+  needsFireInstructions: boolean | null;
+  /** @minimum 0 */
+  fireInstructionCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1238,6 +1243,10 @@ export type JobPositionResponseJobPosition = {
   needsInstructions: boolean | null;
   /** @minimum 0 */
   instructionCount: number;
+  /** @nullable */
+  needsFireInstructions: boolean | null;
+  /** @minimum 0 */
+  fireInstructionCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1407,6 +1416,14 @@ export const InstructionModuleListResponseItemsItemGroup = {
   protective_equipment: 'protective_equipment',
 } as const;
 
+export type InstructionModuleListResponseItemsItemDomain =
+  (typeof InstructionModuleListResponseItemsItemDomain)[keyof typeof InstructionModuleListResponseItemsItemDomain];
+
+export const InstructionModuleListResponseItemsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export type InstructionModuleListResponseItemsItemVersion = {
   id: string;
   /** @minimum 1 */
@@ -1428,6 +1445,7 @@ export type InstructionModuleListResponseItemsItem = {
    */
   title: string;
   group: InstructionModuleListResponseItemsItemGroup;
+  domain: InstructionModuleListResponseItemsItemDomain;
   /** @nullable */
   archivedAt: string | null;
   version: InstructionModuleListResponseItemsItemVersion;
@@ -1448,6 +1466,14 @@ export const InstructionModuleResponseModuleGroup = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
+} as const;
+
+export type InstructionModuleResponseModuleDomain =
+  (typeof InstructionModuleResponseModuleDomain)[keyof typeof InstructionModuleResponseModuleDomain];
+
+export const InstructionModuleResponseModuleDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
 } as const;
 
 export type InstructionModuleResponseModuleVersion = {
@@ -1471,6 +1497,7 @@ export type InstructionModuleResponseModule = {
    */
   title: string;
   group: InstructionModuleResponseModuleGroup;
+  domain: InstructionModuleResponseModuleDomain;
   /** @nullable */
   archivedAt: string | null;
   version: InstructionModuleResponseModuleVersion;
@@ -1493,6 +1520,14 @@ export const CreateInstructionModuleRequestGroup = {
   protective_equipment: 'protective_equipment',
 } as const;
 
+export type CreateInstructionModuleRequestDomain =
+  (typeof CreateInstructionModuleRequestDomain)[keyof typeof CreateInstructionModuleRequestDomain];
+
+export const CreateInstructionModuleRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export interface CreateInstructionModuleRequest {
   /**
    * @minLength 2
@@ -1500,6 +1535,7 @@ export interface CreateInstructionModuleRequest {
    */
   title: string;
   group: CreateInstructionModuleRequestGroup;
+  domain?: CreateInstructionModuleRequestDomain;
 }
 
 export type UpdateInstructionModuleRequestGroup =
@@ -1511,6 +1547,14 @@ export const UpdateInstructionModuleRequestGroup = {
   protective_equipment: 'protective_equipment',
 } as const;
 
+export type UpdateInstructionModuleRequestDomain =
+  (typeof UpdateInstructionModuleRequestDomain)[keyof typeof UpdateInstructionModuleRequestDomain];
+
+export const UpdateInstructionModuleRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export interface UpdateInstructionModuleRequest {
   /**
    * @minLength 2
@@ -1518,6 +1562,7 @@ export interface UpdateInstructionModuleRequest {
    */
   title?: string;
   group?: UpdateInstructionModuleRequestGroup;
+  domain?: UpdateInstructionModuleRequestDomain;
   archived?: boolean;
 }
 
@@ -1534,6 +1579,14 @@ export interface InstructionModuleFileLinkResponse {
   expiresAt: string;
   version: InstructionModuleFileLinkResponseVersion;
 }
+
+export type PositionInstructionsResponseDomain =
+  (typeof PositionInstructionsResponseDomain)[keyof typeof PositionInstructionsResponseDomain];
+
+export const PositionInstructionsResponseDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
 
 export type PositionInstructionsResponseItemsItemGroup =
   (typeof PositionInstructionsResponseItemsItemGroup)[keyof typeof PositionInstructionsResponseItemsItemGroup];
@@ -1553,21 +1606,49 @@ export type PositionInstructionsResponseItemsItem = {
 };
 
 export interface PositionInstructionsResponse {
+  domain: PositionInstructionsResponseDomain;
   items: PositionInstructionsResponseItemsItem[];
   /** @nullable */
   needsInstructions: boolean | null;
 }
 
+export type ApplyInstructionsRequestDomain =
+  (typeof ApplyInstructionsRequestDomain)[keyof typeof ApplyInstructionsRequestDomain];
+
+export const ApplyInstructionsRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export interface ApplyInstructionsRequest {
+  domain?: ApplyInstructionsRequestDomain;
   /** @maxItems 100 */
   moduleIds: string[];
 }
 
+export type CopyInstructionsRequestDomain =
+  (typeof CopyInstructionsRequestDomain)[keyof typeof CopyInstructionsRequestDomain];
+
+export const CopyInstructionsRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export interface CopyInstructionsRequest {
   fromJobPositionId: string;
+  domain?: CopyInstructionsRequestDomain;
 }
 
+export type InstructionsDecisionDomain =
+  (typeof InstructionsDecisionDomain)[keyof typeof InstructionsDecisionDomain];
+
+export const InstructionsDecisionDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export interface InstructionsDecision {
+  domain?: InstructionsDecisionDomain;
   /** @nullable */
   needsInstructions: boolean | null;
 }
@@ -4091,6 +4172,7 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
   firesubstances: 'fire.substances',
+  fireinstructions: 'fire.instructions',
 } as const;
 
 export type RegenerationJobResponseJobItemsItem = {
@@ -4223,6 +4305,7 @@ export const DocumentReadinessResponseMissingItem = {
   fireworkplaces: 'fire.workplaces',
   fireequipment: 'fire.equipment',
   firesubstances: 'fire.substances',
+  fireinstructions: 'fire.instructions',
 } as const;
 
 /**
@@ -5967,6 +6050,7 @@ export const ListEquipmentSuggestionsField = {
 
 export type ListInstructionModulesParams = {
   archived?: ListInstructionModulesArchived;
+  domain?: ListInstructionModulesDomain;
 };
 
 export type ListInstructionModulesArchived =
@@ -5977,6 +6061,14 @@ export const ListInstructionModulesArchived = {
   false: 'false',
 } as const;
 
+export type ListInstructionModulesDomain =
+  (typeof ListInstructionModulesDomain)[keyof typeof ListInstructionModulesDomain];
+
+export const ListInstructionModulesDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export type UploadInstructionModuleParams = {
   /**
    * @minLength 2
@@ -5984,6 +6076,7 @@ export type UploadInstructionModuleParams = {
    */
   title?: string;
   group?: UploadInstructionModuleGroup;
+  domain?: UploadInstructionModuleDomain;
 };
 
 export type UploadInstructionModuleGroup =
@@ -5995,9 +6088,29 @@ export const UploadInstructionModuleGroup = {
   protective_equipment: 'protective_equipment',
 } as const;
 
+export type UploadInstructionModuleDomain =
+  (typeof UploadInstructionModuleDomain)[keyof typeof UploadInstructionModuleDomain];
+
+export const UploadInstructionModuleDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export type GetInstructionModuleFileLinkParams = {
   versionId?: string;
 };
+
+export type ListPositionInstructionsParams = {
+  domain?: ListPositionInstructionsDomain;
+};
+
+export type ListPositionInstructionsDomain =
+  (typeof ListPositionInstructionsDomain)[keyof typeof ListPositionInstructionsDomain];
+
+export const ListPositionInstructionsDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
 
 export type ListRiskFactorSuggestionsParams = {
   field: ListRiskFactorSuggestionsField;
@@ -9815,7 +9928,7 @@ export const getListInstructionModulesUrl = (params?: ListInstructionModulesPara
 };
 
 /**
- * The library (ADR 012), by group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them.
+ * The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `psi`.
  * @summary List the organization's instruction modules
  */
 export const listInstructionModules = async (
@@ -9949,7 +10062,7 @@ export const getCreateInstructionModuleUrl = () => {
 };
 
 /**
- * A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor. Titles are unique within the organization, ignoring case (reason `instruction_module_title_taken`).
+ * A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor, of the `domain` given, an occupational safety one by default. Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).
  * @summary Start a module from the skeleton
  */
 export const createInstructionModule = async (
@@ -10071,7 +10184,7 @@ export const getUploadInstructionModuleUrl = (params?: UploadInstructionModulePa
 };
 
 /**
- * Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity. One file per request: the app uploads several by calling this once each.
+ * Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity; the domain is `domain`, else occupational safety. One file per request: the app uploads several by calling this once each.
  * @summary Add a module from a Word file
  */
 export const uploadInstructionModule = async (
@@ -10324,8 +10437,8 @@ export const getUpdateInstructionModuleUrl = (moduleId: string) => {
 };
 
 /**
- * Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file.
- * @summary Rename, regroup, archive or restore a module
+ * Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set.
+ * @summary Rename, regroup, move to the other domain, archive or restore a module
  */
 export const updateInstructionModule = async (
   moduleId: string,
@@ -10408,7 +10521,7 @@ export type UpdateInstructionModuleMutationVariables = {
 };
 
 /**
- * @summary Rename, regroup, archive or restore a module
+ * @summary Rename, regroup, move to the other domain, archive or restore a module
  */
 export const useUpdateInstructionModule = <
   TError = ErrorType<ApiErrorResponse>,
@@ -10713,21 +10826,38 @@ export const useSaveInstructionModuleFile = <
   return useMutation(getSaveInstructionModuleFileMutationOptions(options), queryClient);
 };
 
-export const getListPositionInstructionsUrl = (clientId: string, jobPositionId: string) => {
-  return `/clients/${clientId}/job-positions/${jobPositionId}/instructions`;
+export const getListPositionInstructionsUrl = (
+  clientId: string,
+  jobPositionId: string,
+  params?: ListPositionInstructionsParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/job-positions/${jobPositionId}/instructions?${stringifiedParams}`
+    : `/clients/${clientId}/job-positions/${jobPositionId}/instructions`;
 };
 
 /**
- * The modules by group and title, with the position’s decision: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules (ADR 012).
- * @summary List the modules a job position applies
+ * The modules of `domain`, occupational safety by default, by group and title, with the position’s decision for that domain: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules of the domain (ADR 012). A position decides about each domain apart.
+ * @summary List the modules a job position applies in one domain
  */
 export const listPositionInstructions = async (
   clientId: string,
   jobPositionId: string,
+  params?: ListPositionInstructionsParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<PositionInstructionsResponse> => {
   return apiFetch<PositionInstructionsResponse>(
-    getListPositionInstructionsUrl(clientId, jobPositionId),
+    getListPositionInstructionsUrl(clientId, jobPositionId, params),
     {
       ...options,
       method: 'GET',
@@ -10735,8 +10865,15 @@ export const listPositionInstructions = async (
   );
 };
 
-export const getListPositionInstructionsQueryKey = (clientId: string, jobPositionId: string) => {
-  return [`/clients/${clientId}/job-positions/${jobPositionId}/instructions`] as const;
+export const getListPositionInstructionsQueryKey = (
+  clientId: string,
+  jobPositionId: string,
+  params?: ListPositionInstructionsParams
+) => {
+  return [
+    `/clients/${clientId}/job-positions/${jobPositionId}/instructions`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getListPositionInstructionsQueryOptions = <
@@ -10745,6 +10882,7 @@ export const getListPositionInstructionsQueryOptions = <
 >(
   clientId: string,
   jobPositionId: string,
+  params?: ListPositionInstructionsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
@@ -10755,11 +10893,11 @@ export const getListPositionInstructionsQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListPositionInstructionsQueryKey(clientId, jobPositionId);
+    queryOptions?.queryKey ?? getListPositionInstructionsQueryKey(clientId, jobPositionId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPositionInstructions>>> = ({
     signal,
-  }) => listPositionInstructions(clientId, jobPositionId, { signal, ...requestOptions });
+  }) => listPositionInstructions(clientId, jobPositionId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -10786,6 +10924,7 @@ export function useListPositionInstructions<
 >(
   clientId: string,
   jobPositionId: string,
+  params: undefined | ListPositionInstructionsParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
@@ -10808,6 +10947,7 @@ export function useListPositionInstructions<
 >(
   clientId: string,
   jobPositionId: string,
+  params?: ListPositionInstructionsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
@@ -10830,6 +10970,7 @@ export function useListPositionInstructions<
 >(
   clientId: string,
   jobPositionId: string,
+  params?: ListPositionInstructionsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
@@ -10839,7 +10980,7 @@ export function useListPositionInstructions<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the modules a job position applies
+ * @summary List the modules a job position applies in one domain
  */
 
 export function useListPositionInstructions<
@@ -10848,6 +10989,7 @@ export function useListPositionInstructions<
 >(
   clientId: string,
   jobPositionId: string,
+  params?: ListPositionInstructionsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPositionInstructions>>, TError, TData>
@@ -10856,7 +10998,12 @@ export function useListPositionInstructions<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListPositionInstructionsQueryOptions(clientId, jobPositionId, options);
+  const queryOptions = getListPositionInstructionsQueryOptions(
+    clientId,
+    jobPositionId,
+    params,
+    options
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -10870,8 +11017,8 @@ export const getApplyPositionInstructionsUrl = (clientId: string, jobPositionId:
 };
 
 /**
- * Replaces the set. Applying the first module decides that the position needs instructions; an empty set leaves it undecided again. An archived module is refused (reason `instruction_module_archived`).
- * @summary Set the modules a job position applies
+ * Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. Applying the first module decides that the position needs instructions in that domain; an empty set leaves it undecided again. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).
+ * @summary Set the modules a job position applies in one domain
  */
 export const applyPositionInstructions = async (
   clientId: string,
@@ -10959,7 +11106,7 @@ export type ApplyPositionInstructionsMutationVariables = {
 };
 
 /**
- * @summary Set the modules a job position applies
+ * @summary Set the modules a job position applies in one domain
  */
 export const useApplyPositionInstructions = <
   TError = ErrorType<ApiErrorResponse>,
@@ -10989,7 +11136,7 @@ export const getCopyPositionInstructionsUrl = (clientId: string, jobPositionId: 
 };
 
 /**
- * Adds the modules of another position of the same client to this one’s.
+ * Adds the modules of `domain`, occupational safety by default, of another position of the same client to this one’s.
  * @summary Apply another position's modules too
  */
 export const copyPositionInstructions = async (
@@ -11108,8 +11255,8 @@ export const getDecidePositionInstructionsUrl = (clientId: string, jobPositionId
 };
 
 /**
- * `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules are applied is refused (reason `instructions_applied`).
- * @summary Say that a job position needs no module, or take that back
+ * For `domain`, occupational safety by default: `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules of the domain are applied is refused (reason `instructions_applied`).
+ * @summary Say that a job position needs no module of a domain, or take that back
  */
 export const decidePositionInstructions = async (
   clientId: string,
@@ -11195,7 +11342,7 @@ export type DecidePositionInstructionsMutationVariables = {
 };
 
 /**
- * @summary Say that a job position needs no module, or take that back
+ * @summary Say that a job position needs no module of a domain, or take that back
  */
 export const useDecidePositionInstructions = <
   TError = ErrorType<ApiErrorResponse>,

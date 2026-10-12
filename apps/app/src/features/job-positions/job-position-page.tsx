@@ -60,7 +60,7 @@ export function JobPositionPage() {
     request: apiRequest,
     query: { queryKey: [...getListEquipmentQueryKey(clientId, jobPositionId), userId], enabled },
   });
-  const instructions = useListPositionInstructions(clientId, jobPositionId, {
+  const instructions = useListPositionInstructions(clientId, jobPositionId, undefined, {
     request: apiRequest,
     query: {
       queryKey: [...getListPositionInstructionsQueryKey(clientId, jobPositionId), userId],

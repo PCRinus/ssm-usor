@@ -11,10 +11,13 @@ import { documentText } from './text';
 const templatesUrl = new URL('../templates/', import.meta.url);
 // Built into the engine rather than kept in `templates/`, and typeset like the rest.
 const annexTitle = 'annex title page';
+const fireAnnexTitle = 'fire annex title page';
 const read = (name: string) =>
   name === annexTitle
-    ? annexTitlePage()
-    : new Uint8Array(readFileSync(new URL(name, templatesUrl)));
+    ? annexTitlePage('ssm')
+    : name === fireAnnexTitle
+      ? annexTitlePage('psi')
+      : new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 const documentTextOf = (paragraph: string) =>
   [...paragraph.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
 
@@ -33,7 +36,7 @@ const originals =
 // What only the decisions have: a signature block, an acknowledgement table, its wording.
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
 const templateFiles = allTemplateFiles;
-const typesetFiles = [...templateFiles, ...fireFiles, annexTitle];
+const typesetFiles = [...templateFiles, ...fireFiles, annexTitle, fireAnnexTitle];
 
 describe('built-in templates', () => {
   it.each(typesetFiles)('%s carries nothing of the client it was made from', (name) => {
@@ -533,11 +536,17 @@ describe('fire-safety set', () => {
     },
     themes: fire.themes.slice(1),
   };
+  const fireAnnexes = [
+    { number: 1, title: 'Lucrul cu foc deschis', versionId: 'v-1', versionDate: '11.10.2026' },
+    { number: 2, title: 'Depozitarea buteliilor', versionId: 'v-2', versionDate: '02.10.2026' },
+  ];
   const stageTwoData = {
     ...data,
     issueDate: '19.01.2026',
     fireSafetyTechnician: technician,
     fire,
+    annexes: fireAnnexes,
+    noAnnexes: false,
   };
 
   it('are the files of their manifest, named after their numbers and their types', () => {
@@ -1107,11 +1116,40 @@ describe('fire-safety set', () => {
     ]);
   });
 
+  it('lists the fire-safety modules its positions apply as annexes, in the contents and in chapter XXIV', () => {
+    const own = read('fire/2.1_fire_own_instructions.docx');
+    const text = documentText(renderDocument(own, stageTwoData));
+    const chapter = text.slice(text.indexOf('Capitolul XXIV.'), text.indexOf('BIBLIOGRAFIE'));
+    expect(chapter.split('\n').filter(Boolean)).toEqual([
+      'Capitolul XXIV. Instrucțiuni proprii în domeniul situațiilor de urgență specifice activităților și echipamentelor de muncă din cadrul S.C. CLIENT DEMO S.R.L.',
+      'Instrucțiunile specifice posturilor de lucru, întocmite pe activități și echipamente de muncă, sunt anexate prezentelor instrucțiuni proprii și fac parte din ele. Fiecare post de lucru le aplică pe cele care îl privesc.',
+      'Anexa 1. I.P.S.U. Lucrul cu foc deschis (versiunea din 11.10.2026)',
+      'Anexa 2. I.P.S.U. Depozitarea buteliilor (versiunea din 02.10.2026)',
+    ]);
+    expect(text).toMatch(
+      /^XXIII\. Dispoziții finale\nXXIV\. Instrucțiuni proprii .*S\.C\. CLIENT DEMO S\.R\.L\.\nAnexa 1\. I\.P\.S\.U\. Lucrul cu foc deschis\nAnexa 2\. I\.P\.S\.U\. Depozitarea buteliilor\nBibliografie$/m
+    );
+
+    const none = documentText(
+      renderDocument(own, { ...stageTwoData, annexes: [], noAnnexes: true })
+    );
+    expect(
+      none
+        .slice(none.indexOf('Capitolul XXIV.'), none.indexOf('BIBLIOGRAFIE'))
+        .split('\n')
+        .filter(Boolean)
+        .slice(1)
+    ).toEqual([
+      'Niciun post de lucru nu necesită instrucțiuni specifice dincolo de prevederile comune de mai sus.',
+    ]);
+    expect(none).not.toMatch(/^Anexa \d/m);
+  });
+
   it('keeps the general chapters of the own instructions, its contents without page numbers', () => {
     const text = documentText(
       renderDocument(read('fire/2.1_fire_own_instructions.docx'), stageTwoData)
     );
-    expect(text.match(/^Capitolul [IVX]+\. /gm)).toHaveLength(23);
+    expect(text.match(/^Capitolul [IVX]+\. /gm)).toHaveLength(24);
     expect(text).toMatch(/^XXII\. Stingătoarele de incendiu$/m);
     expect(text).toContain('(Preluare din OMAI 135/2023 – Anexa 1)');
     expect(text).toContain('(Preluare din OMAI 712/2005 – art. 21) Instructajul periodic');
@@ -2030,7 +2068,7 @@ describe('cover_decisions', () => {
 });
 
 describe('annex title page', () => {
-  const template = annexTitlePage();
+  const template = annexTitlePage('ssm');
   const data = {
     ...shared,
     provider: { ...shared.provider, representativeRole: 'Administrator' },
@@ -2090,6 +2128,64 @@ describe('annex title page', () => {
     expect(() => renderDocument(template, { ...data, versionDate: undefined })).toThrow(
       /versionDate/
     );
+  });
+});
+
+describe('fire-safety annex title page', () => {
+  const template = annexTitlePage('psi');
+  const data = {
+    ...shared,
+    fireSafetyTechnician: { name: 'Dan POP', certificate: 'seria A nr. 1234/2024' },
+    number: 1,
+    title: 'Lucrul cu foc deschis',
+    versionDate: '11.10.2026',
+  };
+  const headerText = (file: Uint8Array) => {
+    const zip = new PizZip(file);
+    return Object.keys(zip.files)
+      .filter((part) => /word\/header\d*\.xml/.test(part))
+      .map((part) => documentTextOf(zip.file(part)!.asText()));
+  };
+
+  it('asks for the header of the fire-safety own instructions and the annex', () => {
+    expect(templatePlaceholders(template)).toEqual([
+      'branding',
+      'client.legalName',
+      'client.representativeName',
+      'client.representativeRole',
+      'fireSafetyTechnician.name',
+      'issueDate',
+      'number',
+      'provider.legalName',
+      'title',
+      'versionDate',
+    ]);
+  });
+
+  it('names the annex of the IPSU in the body and where 2.1 numbers its pages', () => {
+    const merged = renderDocument(template, data);
+    const body = new PizZip(merged).file('word/document.xml')!.asText();
+    expect((body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf)).toEqual([
+      'ANEXA 1',
+      'la Instrucțiunile proprii în domeniul situațiilor de urgență',
+      'I.P.S.U. Lucrul cu foc deschis',
+      'versiunea din 11.10.2026',
+    ]);
+    for (const text of headerText(merged)) {
+      expect(text).toContain('Cadru tehnic PSIDan POP');
+      expect(text).toContain('Cod document:IPSU');
+      expect(text).toContain(
+        'Denumire document:Instrucțiuni proprii în domeniul situațiilor de urgență'
+      );
+      expect(text).toMatch(/Anexa 1$/);
+      expect(text).not.toContain('Pag.');
+    }
+  });
+
+  it('carries the same box of document details as the fire-safety own instructions', () => {
+    const cells = (file: Uint8Array) =>
+      headerText(file)[0]!.replace(/Pag\. .*$|Anexa \{\{number\}\}$/, '');
+    expect(cells(template)).toBe(cells(read('fire/2.1_fire_own_instructions.docx')));
   });
 });
 

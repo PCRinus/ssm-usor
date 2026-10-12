@@ -45,6 +45,7 @@ const welder = {
   training_interval_months: null as number | null,
   needs_protective_equipment: null as boolean | null,
   needs_instructions: null as boolean | null,
+  needs_fire_instructions: null as boolean | null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };
@@ -79,13 +80,15 @@ function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {})
             id: welderId,
             employees: [{ count: 3 }],
             job_position_equipment: [{ count: 2 }],
-            job_position_instructions: [{ count: 1 }],
+            instructions: [{ count: 1 }],
+            fire_instructions: [{ count: 0 }],
           },
           {
             id: accountantId,
             employees: [{ count: 0 }],
             job_position_equipment: [{ count: 0 }],
-            job_position_instructions: [{ count: 0 }],
+            instructions: [{ count: 0 }],
+            fire_instructions: [{ count: 0 }],
           },
         ]);
       }
@@ -150,6 +153,18 @@ describe('GET /clients/{clientId}/job-positions', () => {
     // People who left, and rows archived as mistakes, are not in a position any more.
     expect(counts!.get('employees.status')).toBe('neq.terminated');
     expect(counts!.get('employees.archived_at')).toBe('is.null');
+    expect(counts!.get('instructions.domain')).toBe('eq.ssm');
+    expect(counts!.get('fire_instructions.domain')).toBe('eq.psi');
+    expect(
+      items.map((item) => [
+        item.instructionCount,
+        item.needsFireInstructions,
+        item.fireInstructionCount,
+      ])
+    ).toEqual([
+      [0, null, 0],
+      [1, null, 0],
+    ]);
   });
 
   it('answers 404 for a client of another organization', async () => {

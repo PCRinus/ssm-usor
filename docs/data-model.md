@@ -534,7 +534,11 @@ another position.
 ([ADR 012](architecture/adr-012-own-instructions.md)): one row per own instruction for a work
 activity, a piece of work equipment or a category of protective equipment, with a `title`,
 unique within the organization among the modules in use ignoring case, a `module_group`
-(`work_activity`, `work_equipment`, `protective_equipment`) and `archived_at`. The file is
+(`work_activity`, `work_equipment`, `protective_equipment`), a `domain` and `archived_at`. The
+**domain** (`instruction_domain`, ADR 012's amendment of 2026-10-11) says whose own instructions
+annex the module: `ssm`, the default and every module made before it, for the occupational
+safety set's 3.2, or `psi` for the fire-safety set's 2.1. There is one library and one title
+space for both. The file is
 the module, kept as its author made it: `instruction_module_versions` holds one row per save
 or upload, numbered from 1 per module, with the `sha256`, `size_bytes` and `article_count` of
 the file (the top-level items of its most used numbered list, which the training themes
@@ -546,17 +550,22 @@ only at a path a version of the caller's organization names.
 
 `job_position_instructions` says which modules a job position applies, one row per pair,
 with the same composite foreign keys as the equipment entries and a third one tying the
-module to the same organization. `job_positions.needs_instructions` is the position's
-decision, kept in step by triggers exactly like the equipment decision: null until decided,
-which blocks generating the own instructions; false when the post needs none beyond the
-common part; true while it applies modules (`INS01` for false with modules applied, `INS02`
-for true without). Applying an archived module is refused (`INS03`), archiving a module a
-current position applies is refused (`INS04`), and an archived module takes no new version
-(`INS05`).
+module to the same organization, and the `domain` the module was applied in (`ssm` when not
+given). A position decides about each domain apart: `job_positions.needs_instructions` is the
+occupational safety decision and `needs_fire_instructions` the fire-safety one, each kept in
+step by triggers with the rows of its own domain exactly like the equipment decision: null
+until decided, which blocks generating that set's own instructions (and the whole fire-safety
+set); false when the post needs none beyond the common part; true while it applies modules of
+the domain (`INS01` for false with modules applied, `INS02` for true without). A row whose
+domain is not its module's is refused (`INS06`), and so is changing the domain of a module a
+current position applies (`INS07`); an archived position's rows keep the domain they were
+applied in, since an archived position is never restored. Applying an archived module is
+refused (`INS03`), archiving a module a current position applies is refused (`INS04`), and an
+archived module takes no new version (`INS05`).
 
 Members read, create and update their organization's modules, add versions, and apply and
-remove modules for positions of active clients; updates are granted on the title, the group
-and `archived_at` only.
+remove modules for positions of active clients; updates are granted on the title, the group,
+the domain and `archived_at` only.
 
 ## Risk evaluations
 

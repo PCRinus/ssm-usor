@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type DocumentFacts, missingDocumentData } from './context';
+import { buildDocumentContext, type DocumentFacts, missingDocumentData } from './context';
 import { facts, officeId, workshopId } from './context.fixture';
 import {
   buildFireSafetyContext,
@@ -858,16 +858,23 @@ describe('a fire-safety document generated again', () => {
     ]);
     const context = buildPartialFireSafetyContext(stageTwoGaps);
     expect(Object.keys(context).sort()).toEqual([
+      'annexes',
       'branding',
       'client',
       'controlDecision',
       'fireSafetyTechnician',
       'installationRegister',
       'issueDate',
+      'noAnnexes',
       'provider',
       'seasonsDecision',
     ]);
-    expect(buildFireSafetyContext(facts)).toMatchObject(context);
+    expect(context).toMatchObject({ annexes: [], noAnnexes: true });
+    expect(buildFireSafetyContext(facts)).toMatchObject({
+      ...context,
+      annexes: expect.any(Array),
+      noAnnexes: false,
+    });
   });
 
   it('leaves out the name of the provider, the technician or the client that a gap is in', () => {
@@ -877,11 +884,13 @@ describe('a fire-safety document generated again', () => {
       client: { ...facts.client, representativeRole: null },
     });
     expect(Object.keys(context).sort()).toEqual([
+      'annexes',
       'branding',
       'controlDecision',
       'fire',
       'installationRegister',
       'issueDate',
+      'noAnnexes',
       'provider',
       'seasonsDecision',
     ]);
@@ -893,14 +902,35 @@ describe('a fire-safety document generated again', () => {
       organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
     });
     expect(Object.keys(context).sort()).toEqual([
+      'annexes',
       'branding',
       'client',
       'controlDecision',
       'fire',
       'installationRegister',
       'issueDate',
+      'noAnnexes',
       'seasonsDecision',
     ]);
+  });
+
+  it('leaves out the annexes while a position has not decided about the fire-safety modules', () => {
+    const undecided = {
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        needsFireInstructions: position.instructions.some((module) => module.domain === 'psi')
+          ? true
+          : null,
+      })),
+    };
+    expect(missingFireSafetyData(undecided)).toEqual(['fire.instructions']);
+    const context = buildPartialFireSafetyContext(undecided);
+    expect(context).not.toHaveProperty('annexes');
+    expect(context).not.toHaveProperty('noAnnexes');
+    expect(context).toHaveProperty('fire');
+    expect(fireSafetyGapConcerns('fire.instructions', ['annexes'])).toBe(true);
+    expect(fireSafetyGapConcerns('fire.instructions', ['fire', 'client'])).toBe(false);
   });
 
   it('is equal to the whole context when nothing is missing', () => {
@@ -950,5 +980,62 @@ describe('setOfGroup', () => {
     expect(setOfGroup('documentation_set')).toBe('occupational_safety');
     expect(setOfGroup('fire_safety_set')).toBe('fire_safety');
     expect(setOfGroup('other')).toBeNull();
+  });
+});
+
+describe('the annexes of the fire-safety own instructions', () => {
+  const psi = (moduleId: string, title: string, group: 'work_activity' | 'work_equipment') => ({
+    moduleId,
+    domain: 'psi' as const,
+    title,
+    group,
+    version: { id: `${moduleId.slice(0, -1)}9`, number: 1, createdAt: '2026-10-01T08:00:00+00:00' },
+  });
+  const cylinders = psi('a0a0a0a0-0000-4000-8000-000000000005', 'Butelii de gaz', 'work_equipment');
+  const storage = psi('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'work_activity');
+
+  it('are the fire-safety modules the positions apply, each once, by group and title', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const context = buildFireSafetyContext({
+      ...facts,
+      jobPositions: [
+        { ...accountant!, instructions: [...accountant!.instructions, cylinders, storage] },
+        { ...welder!, instructions: [cylinders, ...welder!.instructions] },
+      ],
+    });
+    expect(context.annexes.map((annex) => [annex.number, annex.title, annex.versionDate])).toEqual([
+      [1, 'Depozitare', '01.10.2026'],
+      [2, 'Lucrul cu foc deschis', '11.10.2026'],
+      [3, 'Butelii de gaz', '01.10.2026'],
+    ]);
+    expect(context.noAnnexes).toBe(false);
+  });
+
+  it('leave the occupational safety modules to the other set, which leaves these to this one', () => {
+    expect(buildFireSafetyContext(facts).annexes).toEqual([
+      {
+        number: 1,
+        title: 'Lucrul cu foc deschis',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000003',
+        versionDate: '11.10.2026',
+      },
+    ]);
+    expect(buildDocumentContext(facts).annexes.map((annex) => annex.title)).toEqual([
+      'Activități de birou',
+      'Sudură oxiacetilenică',
+    ]);
+  });
+
+  it('say there are none when no position applies a fire-safety module', () => {
+    const context = buildFireSafetyContext({
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        needsFireInstructions: false,
+        instructions: position.instructions.filter((module) => module.domain === 'ssm'),
+      })),
+    });
+    expect(context.annexes).toEqual([]);
+    expect(context.noAnnexes).toBe(true);
   });
 });

@@ -10,6 +10,7 @@ import {
   instructionModuleResponseSchema,
   instructionsDecisionSchema,
   jobPositionResponseSchema,
+  positionInstructionsQuerySchema,
   positionInstructionsResponseSchema,
   updateInstructionModuleRequestSchema,
   uploadInstructionModuleQuerySchema,
@@ -62,7 +63,7 @@ export const listInstructionModulesRoute = createRoute({
   operationId: 'listInstructionModules',
   summary: "List the organization's instruction modules",
   description:
-    'The library (ADR 012), by group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them.',
+    'The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `psi`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: instructionModuleListQuerySchema },
@@ -79,7 +80,7 @@ export const createInstructionModuleRoute = createRoute({
   operationId: 'createInstructionModule',
   summary: 'Start a module from the skeleton',
   description:
-    'A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor. Titles are unique within the organization, ignoring case (reason `instruction_module_title_taken`).',
+    'A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor, of the `domain` given, an occupational safety one by default. Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -108,7 +109,7 @@ export const uploadInstructionModuleRoute = createRoute({
   operationId: 'uploadInstructionModule',
   summary: 'Add a module from a Word file',
   description:
-    'Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity. One file per request: the app uploads several by calling this once each.',
+    'Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity; the domain is `domain`, else occupational safety. One file per request: the app uploads several by calling this once each.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: uploadInstructionModuleQuerySchema, body: docxBody },
@@ -143,9 +144,9 @@ export const updateInstructionModuleRoute = createRoute({
   method: 'patch',
   path: '/instruction-modules/{moduleId}',
   operationId: 'updateInstructionModule',
-  summary: 'Rename, regroup, archive or restore a module',
+  summary: 'Rename, regroup, move to the other domain, archive or restore a module',
   description:
-    'Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file.',
+    'Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -165,7 +166,11 @@ export const updateInstructionModuleRoute = createRoute({
     200: { description: 'The module after the change', content: moduleContent },
     400: { description: 'Invalid path or request body', content: errorContent },
     404: noSuchModule,
-    409: { description: 'The title is taken, or the module is applied', content: errorContent },
+    409: {
+      description:
+        'The title is taken, or the module is applied and can be neither archived nor moved to the other domain',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -220,15 +225,15 @@ export const listPositionInstructionsRoute = createRoute({
   method: 'get',
   path: '/clients/{clientId}/job-positions/{jobPositionId}/instructions',
   operationId: 'listPositionInstructions',
-  summary: 'List the modules a job position applies',
+  summary: 'List the modules a job position applies in one domain',
   description:
-    'The modules by group and title, with the position’s decision: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules (ADR 012).',
+    'The modules of `domain`, occupational safety by default, by group and title, with the position’s decision for that domain: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules of the domain (ADR 012). A position decides about each domain apart.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: positionParams },
+  request: { params: positionParams, query: positionInstructionsQuerySchema },
   responses: {
     200: { description: 'The modules and the decision', content: positionContent },
-    400: { description: 'Invalid path', content: errorContent },
+    400: { description: 'Invalid path or query', content: errorContent },
     404: noSuchJobPosition,
     ...membershipErrors,
   },
@@ -238,9 +243,9 @@ export const applyPositionInstructionsRoute = createRoute({
   method: 'put',
   path: '/clients/{clientId}/job-positions/{jobPositionId}/instructions',
   operationId: 'applyPositionInstructions',
-  summary: 'Set the modules a job position applies',
+  summary: 'Set the modules a job position applies in one domain',
   description:
-    'Replaces the set. Applying the first module decides that the position needs instructions; an empty set leaves it undecided again. An archived module is refused (reason `instruction_module_archived`).',
+    'Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. Applying the first module decides that the position needs instructions in that domain; an empty set leaves it undecided again. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -257,7 +262,8 @@ export const applyPositionInstructionsRoute = createRoute({
   responses: {
     200: { description: 'The modules and the decision', content: positionContent },
     400: {
-      description: 'Invalid path or request body, or a module is not in the library',
+      description:
+        'Invalid path or request body, or a module is not in the library or not of the domain',
       content: errorContent,
     },
     404: noSuchJobPosition,
@@ -271,7 +277,8 @@ export const copyPositionInstructionsRoute = createRoute({
   path: '/clients/{clientId}/job-positions/{jobPositionId}/instructions/copy',
   operationId: 'copyPositionInstructions',
   summary: "Apply another position's modules too",
-  description: 'Adds the modules of another position of the same client to this one’s.',
+  description:
+    'Adds the modules of `domain`, occupational safety by default, of another position of the same client to this one’s.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -301,9 +308,9 @@ export const decidePositionInstructionsRoute = createRoute({
   method: 'patch',
   path: '/clients/{clientId}/job-positions/{jobPositionId}/instructions-decision',
   operationId: 'decidePositionInstructions',
-  summary: 'Say that a job position needs no module, or take that back',
+  summary: 'Say that a job position needs no module of a domain, or take that back',
   description:
-    '`needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules are applied is refused (reason `instructions_applied`).',
+    'For `domain`, occupational safety by default: `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules of the domain are applied is refused (reason `instructions_applied`).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

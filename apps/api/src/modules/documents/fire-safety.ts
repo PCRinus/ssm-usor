@@ -31,7 +31,14 @@ import {
 import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { type AnnualReportContext, buildAnnualReport } from './annual-report';
-import { documentApplies, type DocumentFacts, months, printedDate } from './context';
+import {
+  type AnnexContext,
+  annexedModules,
+  documentApplies,
+  type DocumentFacts,
+  months,
+  printedDate,
+} from './context';
 import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
   dealChapters,
@@ -324,6 +331,13 @@ export type FireSafetyContext = {
   seasonsDecision: boolean;
   controlDecision: boolean;
   installationRegister: boolean;
+  /**
+   * The fire-safety modules the positions apply, each once, in group and title order: what the
+   * own instructions 2.1 annex (ADR 012, amendment of 2026-10-11). Top level, as in the other
+   * set, so only the document that prints them holds them in its snapshot.
+   */
+  annexes: AnnexContext[];
+  noAnnexes: boolean;
 };
 
 export type FireSafetySetFacts = Pick<
@@ -386,6 +400,9 @@ export function missingFireSafetyData(
     'responsible.fire_safety_coordinator': held.has('fire_safety_coordinator'),
     'responsible.fire_intervention_leader': held.has('fire_intervention_leader'),
     'positions.any': facts.jobPositions.length > 0,
+    'fire.instructions': facts.jobPositions.every(
+      (position) => position.needsFireInstructions !== null
+    ),
     // The means list and the posted sheet print one block per workplace: none prints nothing.
     'fire.workplaces': facts.workplaces.length > 0 && facts.workplaces.every(workplaceComplete),
     'fire.equipment': facts.workplaces.every((workplace) =>
@@ -401,28 +418,29 @@ export function missingFireSafetyData(
   return fireSafetyMissingDocumentData.filter((code) => !present[code]);
 }
 
-const printedAs: Record<FireSafetyMissingData, keyof FireSafetyContext> = {
-  'provider.legalName': 'provider',
-  'provider.fireSafetyTechnician': 'fireSafetyTechnician',
-  'provider.fireSafetyTechnicianCertificate': 'fireSafetyTechnician',
-  'client.representativeName': 'client',
-  'client.representativeRole': 'client',
-  'fire.trainingSchedule': 'fire',
-  'fire.smokingPolicy': 'fire',
-  'fire.waste': 'fire',
-  'responsible.workplace_manager': 'fire',
-  'responsible.fire_safety_coordinator': 'fire',
-  'responsible.fire_intervention_leader': 'fire',
-  'positions.any': 'fire',
-  'fire.workplaces': 'fire',
-  'fire.equipment': 'fire',
-  'fire.substances': 'fire',
+const printedAs: Record<FireSafetyMissingData, readonly (keyof FireSafetyContext)[]> = {
+  'provider.legalName': ['provider'],
+  'provider.fireSafetyTechnician': ['fireSafetyTechnician'],
+  'provider.fireSafetyTechnicianCertificate': ['fireSafetyTechnician'],
+  'client.representativeName': ['client'],
+  'client.representativeRole': ['client'],
+  'fire.trainingSchedule': ['fire'],
+  'fire.smokingPolicy': ['fire'],
+  'fire.waste': ['fire'],
+  'responsible.workplace_manager': ['fire'],
+  'responsible.fire_safety_coordinator': ['fire'],
+  'responsible.fire_intervention_leader': ['fire'],
+  'positions.any': ['fire'],
+  'fire.instructions': ['annexes', 'noAnnexes'],
+  'fire.workplaces': ['fire'],
+  'fire.equipment': ['fire'],
+  'fire.substances': ['fire'],
 };
 
 /** Whether a gap is in a name the document printed, which its snapshot keeps. */
 export function fireSafetyGapConcerns(code: string, printedNames: readonly string[]) {
-  const name = printedAs[code as FireSafetyMissingData];
-  return name === undefined || printedNames.includes(name);
+  const names = printedAs[code as FireSafetyMissingData];
+  return names === undefined || names.some((name) => printedNames.includes(name));
 }
 
 const roleLabels: Partial<Record<ResponsiblePersonRole, string>> = {
@@ -507,7 +525,7 @@ function fireSafetyContextWithout(
   facts: FireSafetySetFacts,
   gaps: readonly FireSafetyMissingData[]
 ): Partial<FireSafetyContext> {
-  const leftOut = new Set(gaps.map((code) => printedAs[code]));
+  const leftOut = new Set(gaps.flatMap((code) => printedAs[code]));
   return Object.fromEntries(
     Object.entries(fireSafetyContextParts(facts)).flatMap(([name, part]) =>
       leftOut.has(name as keyof FireSafetyContext) ? [] : [[name, part()]]
@@ -544,6 +562,8 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): {
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),
+    annexes: () => annexedModules(facts, 'psi'),
+    noAnnexes: () => annexedModules(facts, 'psi').length === 0,
   };
 }
 

@@ -126,7 +126,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                    |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                |
-| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes the own instructions' modules                           |
+| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes either set's own instructions' modules                  |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                      |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
 | `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                               |
@@ -155,17 +155,17 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                     |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                           | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the library by group and title; `?archived=true` lists the archived ones instead                    |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`            |
 | `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                      |
-| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=`                                                  |
+| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                          |
 | `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                     |
-| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, archiving or restoring                                                  |
+| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                   |
 | `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                               |
 | `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                            |
-| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "items": [ … ], "needsInstructions" }`, the modules the position applies and its decision                              |
-| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set with `moduleIds`                                                                        |
-| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules                                                                         |
-| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
+| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                        |
+| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                            |
+| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                             |
+| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none of `domain` (`false`) or taking back (`null`)                 |
 | `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                             |
 | `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                   |
 | `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                             |
@@ -383,34 +383,44 @@ recently used first, at most twenty; it filters in the Worker, so a typed `%` or
 character, not a PostgREST operator.
 
 The instruction library ([ADR 012](architecture/adr-012-own-instructions.md)) is the
-organization's own instructions, one Word file each, kept as their author made them. `GET
-/instruction-modules` lists the modules in use by group and title, each with its current
-version (`number`, `sha256`, `sizeBytes`, `articleCount`, the top-level items of the file's
-most used numbered list) and `appliedCount`, how many current positions across the
-organization's clients apply it; `?archived=true` lists the archived ones instead. `POST
+organization's own instructions, one Word file each, kept as their author made them. Each
+module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
+instructions annex it, 3.2 or 2.1. `GET /instruction-modules` lists the modules in use by
+domain, group and title, each with its current version (`number`, `sha256`, `sizeBytes`,
+`articleCount`, the top-level items of the file's most used numbered list) and
+`appliedCount`, how many current positions across the organization's clients apply it;
+`?archived=true` lists the archived ones instead, and `?domain=` one domain's only. `POST
 /instruction-modules` starts a module from the skeleton the app ships, in the house style
 with the Labour Inspection's headings; `POST /instruction-modules/upload` takes the bytes of
 a `.docx` as the body, one file per request, sweeps its fonts to the house font and nothing
 else, and titles it after `?title=` or the first line of the file, in `?group=` or a work
-activity. A title the library already has answers `409` with the reason
+activity; both take a `domain`, `ssm` when left out. A title the library already has, of
+either domain, answers `409` with the reason
 `instruction_module_title_taken`. `PUT …/file` stores the body as the next version, which is
 what the editor saves; versions are never replaced, so documents generated before keep
-citing the one they annexed. `PATCH` renames, regroups, archives (`archived: true`) or
-restores; archiving a module a current position applies answers `409` with the reason
-`instruction_module_applied`, and a file for an archived module answers `409` with
+citing the one they annexed. `PATCH` renames, regroups, moves to the other domain, archives
+(`archived: true`) or restores; archiving a module a current position applies answers `409`
+with the reason `instruction_module_applied`, moving one to the other domain `409` with
+`instruction_module_domain_applied` (the position applied it as part of its decision for the
+other set), and a file for an archived module answers `409` with
 `instruction_module_archived`. `GET …/file-link` signs a one-minute link to the current file,
 named after the module.
 
-A job position applies modules through `GET`/`PUT …/instructions`: `PUT` takes `moduleIds`
-and replaces the set, adding first so a swap never passes through "undecided"; the first
-module applied decides "needs instructions" by itself, an empty set leaves the position
-undecided again, an archived module answers `409` with `instruction_module_archived`, and a
-module not in the library `400` on `moduleIds`. `POST …/instructions/copy` adds another
-position's modules, with `400` on `fromJobPositionId` for the position itself or one of
-another client. `PATCH …/instructions-decision` takes `needsInstructions: false` or `null`;
-`true` answers `400` with the reason `instructions_decided_by_modules`, and `false` while
-modules are applied `409` with `instructions_applied`. Job positions carry
-`needsInstructions` and `instructionCount` in every response.
+A job position decides about each domain apart, and every route below takes the `domain` it
+is about, `ssm` when left out (`?domain=` on `GET`, in the body otherwise); the other domain's
+modules and decision are never touched. A position applies modules through `GET`/`PUT
+…/instructions`: `PUT` takes `moduleIds` and replaces the domain's set, adding first so a swap
+never passes through "undecided"; the first module applied decides "needs instructions" for
+the domain by itself, an empty set leaves the position undecided again, an archived module
+answers `409` with `instruction_module_archived`, a module of the other domain `400` with
+`instruction_module_other_domain`, naming it, and a module not in the library `400` on
+`moduleIds`. `POST …/instructions/copy` adds another position's modules of the domain, with
+`400` on `fromJobPositionId` for the position itself or one of another client. `PATCH
+…/instructions-decision` takes `needsInstructions: false` or `null`; `true` answers `400` with
+the reason `instructions_decided_by_modules`, and `false` while modules of the domain are
+applied `409` with `instructions_applied`. Job positions carry `needsInstructions` and
+`instructionCount` for the occupational safety modules and `needsFireInstructions` and
+`fireInstructionCount` for the fire-safety ones in every response.
 
 Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)) belong to the client.
 `POST …/risk-evaluations` takes a `kind`: `job_position` with a `jobPositionId` (a current
@@ -726,7 +736,10 @@ ADR 019): `fire.trainingSchedule` (the duration, both intervals, the first month
 of the "Instruire PSI" card), `fire.smokingPolicy` (a smoking rule chosen; the place never),
 `fire.waste` (at least one kind), `responsible.workplace_manager`,
 `responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
-`positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
+`positions.any`, `fire.instructions` (a current position undecided about the fire-safety
+instruction modules, ADR 012's amendment of 2026-10-11; the occupational safety set's
+`positions.instructions` is about the other domain and never blocks this set),
+`fire.workplaces` (an active workplace at least, each with its activity,
 assembly point and the three texts of the posted sheet, and a fixed space with its area and
 its norm, which may be `none`), `fire.equipment` (an
 extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
@@ -751,7 +764,11 @@ readiness is the same either side of ten. Its templates are merged with a contex
 `issueDate`, `branding`, `fire`, and `seasonsDecision`, `controlDecision` and
 `installationRegister`, whether the set holds each of those three (from ten employees, or once
 it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cites decision 9
-only then. It is
+only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `psi` modules
+the current positions apply, each once, by group, title and id, numbered from 1, as the other
+set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
+only its draft. Issuing 2.1 merges, like 3.2, an annex title page before each annexed module
+version into one PDF, the fire-safety page naming the technician in its box. It is
 never merged with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
 

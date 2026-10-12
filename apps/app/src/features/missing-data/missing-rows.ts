@@ -341,6 +341,12 @@ export const documentMissingData: Record<
     detail: 'Fiecare loc de muncă activ are nevoie de cel puțin un stingător.',
     target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-equipment'),
   },
+  'fire.instructions': {
+    place: 'jobPositions',
+    label: 'Instrucțiunile specifice PSI ale posturilor',
+    detail: 'Fiecare post aplică instrucțiuni specifice PSI sau nu are nevoie de ele.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
   'fire.substances': {
     place: 'fireSafetyMeans',
     label: 'Substanțele periculoase',

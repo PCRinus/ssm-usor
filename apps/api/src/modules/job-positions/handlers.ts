@@ -27,16 +27,27 @@ type JobPositionRow = Pick<
   | 'training_interval_months'
   | 'needs_protective_equipment'
   | 'needs_instructions'
+  | 'needs_fire_instructions'
   | 'created_at'
   | 'updated_at'
 >;
 
 export const jobPositionColumns =
-  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, created_at, updated_at';
+  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, created_at, updated_at';
 
-export type JobPositionCounts = { employees: number; equipment: number; instructions: number };
+export type JobPositionCounts = {
+  employees: number;
+  equipment: number;
+  instructions: number;
+  fireInstructions: number;
+};
 
-const noCounts: JobPositionCounts = { employees: 0, equipment: 0, instructions: 0 };
+const noCounts: JobPositionCounts = {
+  employees: 0,
+  equipment: 0,
+  instructions: 0,
+  fireInstructions: 0,
+};
 
 export const toJobPosition = (
   row: JobPositionRow,
@@ -54,6 +65,8 @@ export const toJobPosition = (
   equipmentCount: counts.equipment,
   needsInstructions: row.needs_instructions,
   instructionCount: counts.instructions,
+  needsFireInstructions: row.needs_fire_instructions,
+  fireInstructionCount: counts.fireInstructions,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -80,7 +93,7 @@ const nameTaken = () =>
 export async function findJobPosition(db: DataClient, clientId: string, jobPositionId: string) {
   const { data, error } = await db
     .from('job_positions')
-    .select('id, needs_protective_equipment, needs_instructions')
+    .select('id, needs_protective_equipment, needs_instructions, needs_fire_instructions')
     .eq('id', jobPositionId)
     .eq('client_id', clientId)
     .is('archived_at', null)
@@ -101,23 +114,28 @@ async function findClient(db: DataClient, clientId: string) {
   return data;
 }
 
-/** How many current employees, equipment entries and applied modules each of the client's positions has. */
+/** How many current employees, equipment entries and applied modules of each domain each of the client's positions has. */
 export async function jobPositionCounts(db: DataClient, clientId: string, jobPositionId?: string) {
   // Counted by the database, one row per position, so a large client is not cut short by the
   // limit on rows a request returns.
   let query = db
     .from('job_positions')
-    .select('id, employees(count), job_position_equipment(count), job_position_instructions(count)')
+    .select(
+      'id, employees(count), job_position_equipment(count), instructions:job_position_instructions(count), fire_instructions:job_position_instructions(count)'
+    )
     .eq('client_id', clientId)
     .neq('employees.status', 'terminated')
-    .is('employees.archived_at', null);
+    .is('employees.archived_at', null)
+    .eq('instructions.domain', 'ssm')
+    .eq('fire_instructions.domain', 'psi');
   if (jobPositionId) query = query.eq('id', jobPositionId);
   const { data, error } = await query.returns<
     {
       id: string;
       employees: { count: number }[];
       job_position_equipment: { count: number }[];
-      job_position_instructions: { count: number }[];
+      instructions: { count: number }[];
+      fire_instructions: { count: number }[];
     }[]
   >();
   if (error) throw fromDatabaseError(error, 'count by job position');
@@ -127,7 +145,8 @@ export async function jobPositionCounts(db: DataClient, clientId: string, jobPos
       {
         employees: row.employees[0]?.count ?? 0,
         equipment: row.job_position_equipment[0]?.count ?? 0,
-        instructions: row.job_position_instructions[0]?.count ?? 0,
+        instructions: row.instructions[0]?.count ?? 0,
+        fireInstructions: row.fire_instructions[0]?.count ?? 0,
       },
     ])
   );

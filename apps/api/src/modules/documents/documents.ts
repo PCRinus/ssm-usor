@@ -44,7 +44,7 @@ import {
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
 import { buildFireSafetyContext } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
-import { annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
+import { annexDomainOf, annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
 type RevisionRow = Pick<
@@ -155,9 +155,13 @@ type AnnexLookup = { annexed: Map<string, ModuleVersion>; current: Map<string, M
 async function annexLookup(db: DataClient, documents: DocumentRow[]): Promise<AnnexLookup> {
   const versionIds = [
     ...new Set(
-      documents.flatMap((document) =>
-        document.document_revisions.flatMap((revision) => annexedVersionIds(revision.data_snapshot))
-      )
+      documents
+        .filter((document) => annexDomainOf(document.type_key))
+        .flatMap((document) =>
+          document.document_revisions.flatMap((revision) =>
+            annexedVersionIds(revision.data_snapshot)
+          )
+        )
     ),
   ];
   const lookup: AnnexLookup = { annexed: new Map(), current: new Map() };
@@ -180,7 +184,12 @@ async function annexLookup(db: DataClient, documents: DocumentRow[]): Promise<An
   return lookup;
 }
 
-function toAnnexes(revision: RevisionRow, lookup: AnnexLookup): DocumentAnnex[] {
+function toAnnexes(
+  document: DocumentRow,
+  revision: RevisionRow,
+  lookup: AnnexLookup
+): DocumentAnnex[] {
+  if (!annexDomainOf(document.type_key)) return [];
   return (snapshotAnnexes(revision.data_snapshot) ?? []).flatMap((annex) => {
     const version = lookup.annexed.get(annex.versionId);
     // Out of reach only for a snapshot naming another organization's module.
@@ -226,7 +235,7 @@ function toRevision(
       kind: revision.document_template_versions.kind as TemplateVersionKind,
       note: revision.document_template_versions.note,
     },
-    annexes: toAnnexes(revision, lookup),
+    annexes: toAnnexes(document, revision, lookup),
     createdAt: revision.created_at,
   };
 }
@@ -931,7 +940,7 @@ export async function issueDocument(
   // second try.
   let pdfFile: { path: string; hash: string } | null = null;
   if (pdf) {
-    const annexes = await readAnnexes(db, files, draft.data_snapshot);
+    const annexes = await readAnnexes(db, files, document.type_key, draft.data_snapshot);
     const converted = await pdf.convertDocuments([bytes, ...annexes]);
     const path = pdfPathOf(draft.docx_path);
     await files.writeDocument(path, converted, { replace: true });
@@ -966,7 +975,7 @@ export async function printDocument(
   // The draft's annexes, or the issued revision's when there is no draft: what the binder
   // holds, printed with the file as shown.
   const revision = newest(document);
-  const annexes = await readAnnexes(db, files, revision?.data_snapshot ?? null);
+  const annexes = await readAnnexes(db, files, document.type_key, revision?.data_snapshot ?? null);
   return pdf.convertDocuments([bytes, ...annexes]);
 }
 
@@ -974,11 +983,17 @@ export async function printDocument(
  * A module's own file is never written to (ADR 012), so a title page before it is what names
  * it "Anexa N".
  */
-async function readAnnexes(db: DataClient, files: FileStore, snapshot: Json | null) {
-  const versionIds = annexedVersionIds(snapshot);
-  if (versionIds.length === 0) return [];
+async function readAnnexes(
+  db: DataClient,
+  files: FileStore,
+  typeKey: string,
+  snapshot: Json | null
+) {
+  const domain = annexDomainOf(typeKey);
+  const versionIds = domain ? annexedVersionIds(snapshot) : [];
+  if (!domain || versionIds.length === 0) return [];
   const titlePages = annexTitlePagesData(snapshot).map(
-    (data) => merge(annexTitlePage(), data, 'annex_title_page').bytes
+    (data) => merge(annexTitlePage(domain), data, `annex_title_page_${domain}`).bytes
   );
   const { data, error } = await db
     .from('instruction_module_versions')

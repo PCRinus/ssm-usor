@@ -6,6 +6,7 @@ import {
   type EquipmentAllocation,
   fireSafetyTypeKeysFromTenEmployees,
   formatTrainingDuration,
+  type InstructionDomain,
   type InstructionModuleGroup,
   type JobPositionDecision,
   jobPositionDecisions,
@@ -106,9 +107,12 @@ export type DocumentFacts = {
     needsProtectiveEquipment: boolean | null;
     /** Null until decided; false when the post needs none; true while it applies modules (ADR 012). */
     needsInstructions: boolean | null;
-    /** The instruction modules the post applies, each with its current version. */
+    /** The same for the fire-safety modules, decided apart (ADR 012, amendment of 2026-10-11). */
+    needsFireInstructions: boolean | null;
+    /** The instruction modules the post applies, of both domains, each with its current version. */
     instructions: {
       moduleId: string;
+      domain: InstructionDomain;
       title: string;
       group: InstructionModuleGroup;
       version: { id: string; number: number; createdAt: string };
@@ -153,8 +157,8 @@ type EquippedPositionContext = PositionContext & {
   equipment: { risk: string; item: string; quantityLabel: string; allocationLabel: string }[];
 };
 
-/** One annexed instruction module of the own instructions (ADR 012). */
-type AnnexContext = {
+/** One annexed instruction module of either set's own instructions (ADR 012). */
+export type AnnexContext = {
   number: number;
   title: string;
   /** The module version the document annexes; what issuing merges into the PDF. */
@@ -238,7 +242,7 @@ export type DocumentContext = {
    * Contabil", "posturile de lucru Contabil și Șofer". Null when every position is equipped.
    */
   unequippedPositionsText: string | null;
-  /** The modules the positions apply, each once, in the order of the groups and titles. */
+  /** The occupational safety modules the positions apply, each once, in group and title order. */
   annexes: AnnexContext[];
   noAnnexes: boolean;
   /** Absent without an own instructions revision, which only the training themes need. */
@@ -452,6 +456,7 @@ const printedAs = {
   'fire.workplaces': [],
   'fire.equipment': [],
   'fire.substances': [],
+  'fire.instructions': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
 /** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
@@ -556,7 +561,7 @@ function contextParts(facts: DocumentFacts): ContextParts {
   let builtRisks: DocumentContext['unitRisks'] | undefined;
   const risks = () => (builtRisks ??= unitRisks(facts.riskEvaluations, facts.jobPositions));
   let builtAnnexes: AnnexContext[] | undefined;
-  const annexes = () => (builtAnnexes ??= annexedModules(facts));
+  const annexes = () => (builtAnnexes ??= annexedModules(facts, 'ssm'));
   return {
     branding: () => facts.branding,
     issueDate: () => printedDate(facts.issueDate),
@@ -685,7 +690,9 @@ function contextParts(facts: DocumentFacts): ContextParts {
               name: position.name,
               staffCategory: position.staffCategory,
               intervalMonths: intervalOf(position),
-              moduleIds: position.instructions.map((module) => module.moduleId),
+              moduleIds: position.instructions
+                .filter((module) => module.domain === 'ssm')
+                .map((module) => module.moduleId),
             })),
             firstMonth: client.trainingFirstMonth!,
             periodicTrainingMinutes: client.periodicTrainingMinutes!,
@@ -739,14 +746,27 @@ const groupOrder: Record<InstructionModuleGroup, number> = {
 };
 const collator = new Intl.Collator('ro');
 
-/** The modules the current positions apply, each once, numbered in group and title order. */
-export function annexedModules(facts: Pick<DocumentFacts, 'jobPositions'>): AnnexContext[] {
+/**
+ * The modules of one domain the current positions apply, each once, numbered in group and title
+ * order: what the own instructions of that domain's set annex.
+ */
+export function annexedModules(
+  facts: Pick<DocumentFacts, 'jobPositions'>,
+  domain: InstructionDomain
+): AnnexContext[] {
   const modules = new Map<string, DocumentFacts['jobPositions'][number]['instructions'][number]>();
   for (const position of facts.jobPositions) {
-    for (const module of position.instructions) modules.set(module.moduleId, module);
+    for (const module of position.instructions) {
+      if (module.domain === domain) modules.set(module.moduleId, module);
+    }
   }
   return [...modules.values()]
-    .sort((a, b) => groupOrder[a.group] - groupOrder[b.group] || collator.compare(a.title, b.title))
+    .sort(
+      (a, b) =>
+        groupOrder[a.group] - groupOrder[b.group] ||
+        collator.compare(a.title, b.title) ||
+        a.moduleId.localeCompare(b.moduleId)
+    )
     .map((module, index) => ({
       number: index + 1,
       title: module.title.trim(),

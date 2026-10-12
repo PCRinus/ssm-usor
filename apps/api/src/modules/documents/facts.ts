@@ -109,7 +109,7 @@ export async function loadDocumentFacts(
     db
       .from('job_positions')
       .select(
-        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
+        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, domain, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -391,6 +391,7 @@ export async function loadDocumentFacts(
       trainingIntervalMonths: position.training_interval_months,
       needsProtectiveEquipment: position.needs_protective_equipment,
       needsInstructions: position.needs_instructions,
+      needsFireInstructions: position.needs_fire_instructions,
       instructions: position.job_position_instructions.flatMap((applied) => {
         const version = applied.instruction_modules.instruction_module_versions[0];
         // A module row is written before its first version; one caught in between annexes nothing.
@@ -398,6 +399,7 @@ export async function loadDocumentFacts(
         return [
           {
             moduleId: applied.module_id,
+            domain: applied.domain,
             title: applied.instruction_modules.title,
             group: applied.instruction_modules.module_group,
             version: { id: version.id, number: version.number, createdAt: version.created_at },

@@ -15,10 +15,19 @@ import { formatRoDate } from '@/lib/dates';
 
 const day = (timestamp: string) => formatRoDate(timestamp.slice(0, 10));
 
-// Named as chapter XIII of the own instructions lists it, and opened at the version the
-// revision cites: what it prints and what the employer approved by name (ADR 012).
-export function AnnexRow({ annex, onDownload }: { annex: DocumentAnnex; onDownload: () => void }) {
-  const label = `Anexa ${annex.number}: I.P.S.S.M. ${annex.title}`;
+// Named as the annex chapter of either set's own instructions lists it, and opened at the
+// version the revision cites: what it prints and what the employer approved by name (ADR 012).
+export function AnnexRow({
+  annex,
+  typeKey,
+  onDownload,
+}: {
+  annex: DocumentAnnex;
+  typeKey: string;
+  onDownload: () => void;
+}) {
+  const code = typeKey === 'fire_own_instructions' ? 'I.P.S.U.' : 'I.P.S.S.M.';
+  const label = `Anexa ${annex.number}: ${code} ${annex.title}`;
   return (
     <TableRow data-testid="document-annex">
       <TableCell className="pl-8">

@@ -1,6 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import type {
   AppliedInstruction,
+  InstructionDomain,
   InstructionModule,
   InstructionModuleGroup,
 } from '@ssm-usor/contracts';
@@ -39,8 +40,9 @@ import type {
 } from './routes';
 
 // The database holds the rules of the library (ADR 012): one title per organization, no
-// archiving a module a position applies, no new file on an archived one, and the position's
-// decision in step with the modules it applies. The handlers word them.
+// archiving a module a position applies, no new file on an archived one, a module applied only
+// in its own domain, and each of the position's two decisions in step with the modules of its
+// domain. The handlers word them.
 
 type VersionRow = Pick<
   Database['public']['Tables']['instruction_module_versions']['Row'],
@@ -49,11 +51,11 @@ type VersionRow = Pick<
 
 type ModuleRow = Pick<
   Database['public']['Tables']['instruction_modules']['Row'],
-  'id' | 'title' | 'module_group' | 'archived_at' | 'created_at' | 'updated_at'
+  'id' | 'title' | 'module_group' | 'domain' | 'archived_at' | 'created_at' | 'updated_at'
 > & { instruction_module_versions: VersionRow[] };
 
 const moduleColumns =
-  'id, title, module_group, archived_at, created_at, updated_at, instruction_module_versions(id, number, sha256, size_bytes, article_count, created_at)';
+  'id, title, module_group, domain, archived_at, created_at, updated_at, instruction_module_versions(id, number, sha256, size_bytes, article_count, created_at)';
 
 const groupOrder: Record<InstructionModuleGroup, number> = {
   work_activity: 0,
@@ -68,6 +70,11 @@ export const byGroupAndTitle = <T extends { group: InstructionModuleGroup; title
   b: T
 ) => groupOrder[a.group] - groupOrder[b.group] || collator.compare(a.title, b.title);
 
+const domainOrder: Record<InstructionDomain, number> = { ssm: 0, psi: 1 };
+
+const byDomainGroupAndTitle = (a: InstructionModule, b: InstructionModule) =>
+  domainOrder[a.domain] - domainOrder[b.domain] || byGroupAndTitle(a, b);
+
 function toModule(row: ModuleRow, appliedCount: number): InstructionModule {
   const version = row.instruction_module_versions[0];
   // The row is written before its first version; a module caught in between is not one yet.
@@ -76,6 +83,7 @@ function toModule(row: ModuleRow, appliedCount: number): InstructionModule {
     id: row.id,
     title: row.title,
     group: row.module_group,
+    domain: row.domain,
     archivedAt: row.archived_at,
     version: {
       id: version.id,
@@ -194,7 +202,7 @@ async function createModule(
   db: DataClient,
   files: FileStore,
   actor: { organizationId: string; userId: string },
-  fields: { title: string; group: InstructionModuleGroup },
+  fields: { title: string; group: InstructionModuleGroup; domain: InstructionDomain },
   bytes: Uint8Array
 ) {
   const { data, error } = await db
@@ -203,6 +211,7 @@ async function createModule(
       organization_id: actor.organizationId,
       title: fields.title,
       module_group: fields.group,
+      domain: fields.domain,
       created_by: actor.userId,
     })
     .select('id')
@@ -217,18 +226,19 @@ export const listInstructionModules: RouteHandler<
   typeof listInstructionModulesRoute,
   ApiEnv
 > = async (c) => {
-  const { archived } = c.req.valid('query');
+  const { archived, domain } = c.req.valid('query');
   const db = createDataClient(c);
   let query = moduleQuery(db);
   query =
     archived === 'true' ? query.not('archived_at', 'is', null) : query.is('archived_at', null);
+  if (domain) query = query.eq('domain', domain);
   const { data, error } = await query;
   if (error) throw fromDatabaseError(error, 'list instruction modules');
   const counts = await appliedCounts(db);
   const items = data
     .filter((row) => row.instruction_module_versions.length > 0)
     .map((row) => toModule(row, counts.get(row.id) ?? 0))
-    .sort(byGroupAndTitle);
+    .sort(byDomainGroupAndTitle);
   return c.json({ items }, 200);
 };
 
@@ -266,7 +276,7 @@ export const uploadInstructionModule: RouteHandler<
     createDataClient(c),
     createFileStore(c),
     actorOf(c),
-    { title, group: query.group },
+    { title, group: query.group, domain: query.domain },
     bytes
   );
   return c.json({ module }, 201);
@@ -289,6 +299,7 @@ export const updateInstructionModule: RouteHandler<
   const changes: Database['public']['Tables']['instruction_modules']['Update'] = {};
   if (body.title !== undefined) changes.title = body.title;
   if (body.group !== undefined) changes.module_group = body.group;
+  if (body.domain !== undefined) changes.domain = body.domain;
   if (body.archived !== undefined) {
     changes.archived_at = body.archived ? new Date().toISOString() : null;
   }
@@ -306,6 +317,14 @@ export const updateInstructionModule: RouteHandler<
         'A job position still applies this module; remove it there first.',
         undefined,
         'instruction_module_applied'
+      );
+    }
+    if (error?.code === 'INS07') {
+      throw new ApiError(
+        'conflict',
+        'A job position applies this module as part of its decision for the set of the current domain; remove it there before moving the module to the other set.',
+        [{ path: 'domain', message: 'Remove the module from the positions that apply it first.' }],
+        'instruction_module_domain_applied'
       );
     }
     if (error) throw fromDatabaseError(error, 'update instruction module');
@@ -369,11 +388,12 @@ type AppliedRow = {
   };
 };
 
-async function listApplied(db: DataClient, jobPositionId: string) {
+async function listApplied(db: DataClient, jobPositionId: string, domain: InstructionDomain) {
   const { data, error } = await db
     .from('job_position_instructions')
     .select('module_id, instruction_modules!inner(title, module_group, archived_at)')
     .eq('job_position_id', jobPositionId)
+    .eq('domain', domain)
     .returns<AppliedRow[]>();
   if (error) throw fromDatabaseError(error, 'list applied instructions');
   return data
@@ -386,14 +406,61 @@ async function listApplied(db: DataClient, jobPositionId: string) {
     .sort(byGroupAndTitle);
 }
 
-async function decisionOf(db: DataClient, jobPositionId: string) {
+const decisionColumns = {
+  ssm: 'needs_instructions',
+  psi: 'needs_fire_instructions',
+} as const satisfies Record<
+  InstructionDomain,
+  keyof Database['public']['Tables']['job_positions']['Row']
+>;
+
+const decisionOf = (
+  position: { needs_instructions: boolean | null; needs_fire_instructions: boolean | null },
+  domain: InstructionDomain
+) => position[decisionColumns[domain]];
+
+async function readDecision(db: DataClient, jobPositionId: string, domain: InstructionDomain) {
   const { data, error } = await db
     .from('job_positions')
-    .select('needs_instructions')
+    .select('needs_instructions, needs_fire_instructions')
     .eq('id', jobPositionId)
     .single();
   if (error) throw fromDatabaseError(error, 'read instructions decision');
-  return data.needs_instructions;
+  return decisionOf(data, domain);
+}
+
+const notInLibrary = () =>
+  new ApiError('validation_error', 'A module is not in the library.', [
+    { path: 'moduleIds', message: 'Choose modules from the library.' },
+  ]);
+
+const domainNames: Record<InstructionDomain, string> = {
+  ssm: 'occupational safety',
+  psi: 'fire-safety',
+};
+
+const otherDomain = (modules: string[], domain: InstructionDomain) =>
+  new ApiError(
+    'validation_error',
+    `Not ${domainNames[domain]} modules: ${modules.join(', ')}. A module is applied only as part of the decision for its own domain.`,
+    [{ path: 'moduleIds', message: `Choose ${domainNames[domain]} modules.` }],
+    'instruction_module_other_domain'
+  );
+
+/** Refuses a module of the other domain by its title, which the database would refuse unnamed. */
+async function requireDomain(db: DataClient, moduleIds: string[], domain: InstructionDomain) {
+  const { data, error } = await db
+    .from('instruction_modules')
+    .select('id, title, domain')
+    .in('id', moduleIds);
+  if (error) throw fromDatabaseError(error, 'read the domains of instruction modules');
+  if (data.length < new Set(moduleIds).size) throw notInLibrary();
+  const other = data.filter((module) => module.domain !== domain);
+  if (other.length > 0)
+    throw otherDomain(
+      other.map((module) => `"${module.title}"`),
+      domain
+    );
 }
 
 async function apply(
@@ -401,24 +468,25 @@ async function apply(
   actor: { organizationId: string; userId: string },
   clientId: string,
   jobPositionId: string,
+  domain: InstructionDomain,
   moduleIds: string[]
 ) {
   if (moduleIds.length === 0) return;
+  await requireDomain(db, moduleIds, domain);
   const { error } = await db.from('job_position_instructions').insert(
     moduleIds.map((moduleId) => ({
       organization_id: actor.organizationId,
       client_id: clientId,
       job_position_id: jobPositionId,
       module_id: moduleId,
+      domain,
       created_by: actor.userId,
     }))
   );
   if (error?.code === 'INS03') throw moduleArchived();
-  if (error?.code === '23503') {
-    throw new ApiError('validation_error', 'A module is not in the library.', [
-      { path: 'moduleIds', message: 'Choose modules from the library.' },
-    ]);
-  }
+  // Only when the module moved to the other domain since `requireDomain` read it.
+  if (error?.code === 'INS06') throw otherDomain(moduleIds, domain);
+  if (error?.code === '23503') throw notInLibrary();
   if (error) throw fromDatabaseError(error, 'apply instructions');
 }
 
@@ -427,10 +495,11 @@ export const listPositionInstructions: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { clientId, jobPositionId } = c.req.valid('param');
+  const { domain } = c.req.valid('query');
   const db = createDataClient(c);
   const position = await findJobPosition(db, clientId, jobPositionId);
-  const items = await listApplied(db, jobPositionId);
-  return c.json({ items, needsInstructions: position.needs_instructions }, 200);
+  const items = await listApplied(db, jobPositionId, domain);
+  return c.json({ domain, items, needsInstructions: decisionOf(position, domain) }, 200);
 };
 
 export const applyPositionInstructions: RouteHandler<
@@ -438,24 +507,32 @@ export const applyPositionInstructions: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { clientId, jobPositionId } = c.req.valid('param');
-  const wanted = new Set(c.req.valid('json').moduleIds);
+  const body = c.req.valid('json');
+  const { domain } = body;
+  const wanted = new Set(body.moduleIds);
   const db = createDataClient(c);
   await findJobPosition(db, clientId, jobPositionId);
-  const current = new Set((await listApplied(db, jobPositionId)).map((item) => item.moduleId));
+  const current = new Set(
+    (await listApplied(db, jobPositionId, domain)).map((item) => item.moduleId)
+  );
   const removed = [...current].filter((moduleId) => !wanted.has(moduleId));
   const added = [...wanted].filter((moduleId) => !current.has(moduleId));
   // Added first: a set that only swaps modules never passes through "undecided".
-  await apply(db, actorOf(c), clientId, jobPositionId, added);
+  await apply(db, actorOf(c), clientId, jobPositionId, domain, added);
   if (removed.length > 0) {
     const { error } = await db
       .from('job_position_instructions')
       .delete()
       .eq('job_position_id', jobPositionId)
+      .eq('domain', domain)
       .in('module_id', removed);
     if (error) throw fromDatabaseError(error, 'remove applied instructions');
   }
-  const items = await listApplied(db, jobPositionId);
-  return c.json({ items, needsInstructions: await decisionOf(db, jobPositionId) }, 200);
+  const items = await listApplied(db, jobPositionId, domain);
+  return c.json(
+    { domain, items, needsInstructions: await readDecision(db, jobPositionId, domain) },
+    200
+  );
 };
 
 export const copyPositionInstructions: RouteHandler<
@@ -463,7 +540,7 @@ export const copyPositionInstructions: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { clientId, jobPositionId } = c.req.valid('param');
-  const { fromJobPositionId } = c.req.valid('json');
+  const { fromJobPositionId, domain } = c.req.valid('json');
   const db = createDataClient(c);
   await findJobPosition(db, clientId, jobPositionId);
   if (fromJobPositionId === jobPositionId) {
@@ -483,13 +560,18 @@ export const copyPositionInstructions: RouteHandler<
       { path: 'fromJobPositionId', message: 'Choose another position of this client.' },
     ]);
   }
-  const current = new Set((await listApplied(db, jobPositionId)).map((item) => item.moduleId));
-  const added = (await listApplied(db, fromJobPositionId))
+  const current = new Set(
+    (await listApplied(db, jobPositionId, domain)).map((item) => item.moduleId)
+  );
+  const added = (await listApplied(db, fromJobPositionId, domain))
     .filter((item) => !item.archivedAt && !current.has(item.moduleId))
     .map((item) => item.moduleId);
-  await apply(db, actorOf(c), clientId, jobPositionId, added);
-  const items = await listApplied(db, jobPositionId);
-  return c.json({ items, needsInstructions: await decisionOf(db, jobPositionId) }, 200);
+  await apply(db, actorOf(c), clientId, jobPositionId, domain, added);
+  const items = await listApplied(db, jobPositionId, domain);
+  return c.json(
+    { domain, items, needsInstructions: await readDecision(db, jobPositionId, domain) },
+    200
+  );
 };
 
 export const decidePositionInstructions: RouteHandler<
@@ -497,7 +579,7 @@ export const decidePositionInstructions: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { clientId, jobPositionId } = c.req.valid('param');
-  const { needsInstructions } = c.req.valid('json');
+  const { needsInstructions, domain } = c.req.valid('json');
   if (needsInstructions === true) {
     throw new ApiError(
       'validation_error',
@@ -510,7 +592,11 @@ export const decidePositionInstructions: RouteHandler<
   await findJobPosition(db, clientId, jobPositionId);
   const { data, error } = await db
     .from('job_positions')
-    .update({ needs_instructions: needsInstructions })
+    .update(
+      domain === 'psi'
+        ? { needs_fire_instructions: needsInstructions }
+        : { needs_instructions: needsInstructions }
+    )
     .eq('id', jobPositionId)
     .eq('client_id', clientId)
     .select(jobPositionColumns)

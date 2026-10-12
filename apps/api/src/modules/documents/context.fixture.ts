@@ -114,9 +114,11 @@ export const facts: DocumentFacts = {
       trainingIntervalMonths: null,
       needsProtectiveEquipment: false,
       needsInstructions: true,
+      needsFireInstructions: false,
       instructions: [
         {
           moduleId: 'a0a0a0a0-0000-4000-8000-000000000002',
+          domain: 'ssm',
           title: 'Activități de birou',
           group: 'work_activity',
           version: {
@@ -138,9 +140,22 @@ export const facts: DocumentFacts = {
       trainingIntervalMonths: 2,
       needsProtectiveEquipment: true,
       needsInstructions: true,
+      needsFireInstructions: true,
       instructions: [
         {
+          moduleId: 'a0a0a0a0-0000-4000-8000-000000000003',
+          domain: 'psi',
+          title: 'Lucrul cu foc deschis',
+          group: 'work_activity',
+          version: {
+            id: 'b0b0b0b0-0000-4000-8000-000000000003',
+            number: 2,
+            createdAt: '2026-10-11T09:00:00+00:00',
+          },
+        },
+        {
           moduleId: 'a0a0a0a0-0000-4000-8000-000000000001',
+          domain: 'ssm',
           title: 'Sudură oxiacetilenică',
           group: 'work_equipment',
           version: {
@@ -151,6 +166,7 @@ export const facts: DocumentFacts = {
         },
         {
           moduleId: 'a0a0a0a0-0000-4000-8000-000000000002',
+          domain: 'ssm',
           title: 'Activități de birou',
           group: 'work_activity',
           version: {

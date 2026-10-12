@@ -1250,17 +1250,26 @@ function sample(
       },
       hasEquippedPositions: true,
       unequippedPositionsText: 'postul de lucru Manager magazin',
-      annexes: [
-        { number: 1, title: 'Activități de birou', versionId: 'v-1', versionDate: '26.09.2026' },
-        { number: 2, title: 'Scări metalice', versionId: 'v-2', versionDate: '12.03.2026' },
-        {
-          number: 3,
-          title: 'Aparat de sudură oxiacetilenică',
-          versionId: 'v-3',
-          versionDate: '26.09.2026',
-        },
-      ],
-      noAnnexes: false,
+      // The short sample annexes nothing, so both own instructions show their sentence for none.
+      annexes:
+        people.length > 1
+          ? [
+              {
+                number: 1,
+                title: 'Activități de birou',
+                versionId: 'v-1',
+                versionDate: '26.09.2026',
+              },
+              { number: 2, title: 'Scări metalice', versionId: 'v-2', versionDate: '12.03.2026' },
+              {
+                number: 3,
+                title: 'Aparat de sudură oxiacetilenică',
+                versionId: 'v-3',
+                versionDate: '26.09.2026',
+              },
+            ]
+          : [],
+      noAnnexes: people.length === 1,
       riskAssessment: {
         unit: {
           activity: '2562 – Fabricarea articolelor de feronerie',

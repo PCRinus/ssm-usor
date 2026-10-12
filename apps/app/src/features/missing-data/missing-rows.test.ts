@@ -62,6 +62,7 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'fire.workplaces': `${details}workplace-fire-data`,
   'fire.equipment': `/clients/${clientId}/fire-safety-means?focus=fire-equipment`,
   'fire.substances': `/clients/${clientId}/fire-safety-means?focus=fire-substances`,
+  'fire.instructions': `/clients/${clientId}/job-positions`,
 };
 
 describe('the rows of the generation form', () => {

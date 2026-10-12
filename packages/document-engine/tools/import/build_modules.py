@@ -177,7 +177,8 @@ def main():
     index = []
     for module in definition['fixtures']:
         build(module, os.path.join(fixtures, f'{module["key"]}.docx'))
-        index.append({'file': f'{module["key"]}.docx', 'title': module['title'], 'group': module['group']})
+        index.append({'file': f'{module["key"]}.docx', 'title': module['title'], 'group': module['group'],
+                      'domain': module.get('domain', 'ssm')})
         print(f'fixtures/instruction-modules/{module["key"]}.docx')
     with open(os.path.join(fixtures, 'index.json'), 'w', encoding='utf8') as file:
         json.dump(index, file, ensure_ascii=False, indent=2)

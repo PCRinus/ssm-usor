@@ -1,4 +1,4 @@
-export { annexTitlePage } from './annex-title';
+export { type AnnexDomain, annexTitlePage } from './annex-title';
 export {
   type ActKind,
   type ActName,

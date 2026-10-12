@@ -64,9 +64,12 @@ describe('the chapters the training themes cite', () => {
     });
   });
 
-  it('fall where the fire-safety own instructions template has them', () => {
+  it('fall where the fire-safety own instructions template has them, chapter XXIV being the annexes', () => {
     expect(articlesByChapter(fireOwnInstructions)).toEqual({
-      chapterStarts: [...fireOwnInstructionsChapters.chapterStarts],
+      chapterStarts: [
+        ...fireOwnInstructionsChapters.chapterStarts,
+        fireOwnInstructionsChapters.articleCount + 1,
+      ],
       total: fireOwnInstructionsChapters.articleCount,
     });
   });
@@ -75,7 +78,8 @@ describe('the chapters the training themes cite', () => {
     const text = documentXml('fire/3.1_fire_training_themes.docx')
       .replace(/<\/w:p>/g, '\n')
       .replace(/<[^>]+>/g, '');
-    const { chapterStarts, total } = articlesByChapter(fireOwnInstructions);
+    const { chapterStarts: starts, total } = articlesByChapter(fireOwnInstructions);
+    const chapterStarts = starts.filter((start) => start <= total);
     const chapters = chapterStarts.map((start, index) => [
       start,
       (chapterStarts[index + 1] ?? total + 1) - 1,

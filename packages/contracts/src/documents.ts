@@ -280,6 +280,8 @@ export const missingDocumentData = [
   'fire.equipment',
   // The substances state undecided, or listed without an entry.
   'fire.substances',
+  // A current position undecided about the fire-safety modules (ADR 012, amendment of 2026-10-11).
+  'fire.instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -300,6 +302,7 @@ export const fireSafetyMissingDocumentData = [
   'responsible.fire_safety_coordinator',
   'responsible.fire_intervention_leader',
   'positions.any',
+  'fire.instructions',
   'fire.workplaces',
   'fire.equipment',
   'fire.substances',
@@ -362,8 +365,8 @@ export const documentRevisionStatusSchema = z.enum(documentRevisionStatuses);
 export type DocumentRevisionStatus = z.infer<typeof documentRevisionStatusSchema>;
 
 /**
- * An instruction module the own instructions annex (ADR 012), as the revision printed it: the
- * version it cites, not the library's current one.
+ * An instruction module either set's own instructions annex (ADR 012), as the revision printed
+ * it: the version it cites, not the library's current one.
  */
 export const documentAnnexSchema = z.object({
   number: z.int().min(1),

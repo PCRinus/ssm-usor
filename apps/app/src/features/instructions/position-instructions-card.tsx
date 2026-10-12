@@ -87,7 +87,7 @@ export function PositionInstructionsCard({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
-  const instructions = useListPositionInstructions(clientId, position.id, {
+  const instructions = useListPositionInstructions(clientId, position.id, undefined, {
     request: apiRequest,
     query: {
       queryKey: [...getListPositionInstructionsQueryKey(clientId, position.id), userId],
