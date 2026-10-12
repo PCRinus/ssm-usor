@@ -1102,6 +1102,9 @@ describe('the fire-safety templates', () => {
       'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
     );
     expect(text).toMatch(/^NOIEMBRIE\nIPSU art\.\u00a0236–257; .+; testare\.\n120 min$/m);
+    expect(text).toMatch(
+      /^FEBRUARIE\nIPSU art\.\u00a01–76; I\.P\.S\.U\. Lucrul cu foc deschis, art\.\u00a01–7; instrucțiunile afișate/m
+    );
   });
 
   const fireGaps: [string, DocumentFacts][] = [
@@ -1146,12 +1149,15 @@ describe('the fire-safety templates', () => {
         ),
       },
     ],
+    ['a generated IPSU', { ...facts, fireOwnInstructions: null }],
   ];
 
   it('cover every gap of the fire-safety set', () => {
-    expect(fireGaps.flatMap(([, variant]) => missingFireSafetyData(variant)).sort()).toEqual(
-      [...fireSafetyMissingDocumentData].sort()
-    );
+    expect(
+      fireGaps
+        .flatMap(([, variant]) => missingFireSafetyData(variant, 'fire_training_themes'))
+        .sort()
+    ).toEqual([...fireSafetyMissingDocumentData].sort());
   });
 
   // As for the occupational safety set: the names a template printed from the whole context are
@@ -1167,12 +1173,12 @@ describe('the fire-safety templates', () => {
       const { usedNames } = renderTemplate(template, {
         ...buildFireSafetyContext(datedFor(typeKey, facts)),
       });
-      const missing = missingFireSafetyData(variant);
+      const missing = missingFireSafetyData(variant, typeKey);
       expect(
         refusedFor(() =>
           merge(
             template,
-            { ...buildPartialFireSafetyContext(datedFor(typeKey, variant)) },
+            { ...buildPartialFireSafetyContext(datedFor(typeKey, variant), typeKey) },
             typeKey,
             (absentNames) => missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
           )

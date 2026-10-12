@@ -222,6 +222,18 @@ export const facts: DocumentFacts = {
       },
     ],
   },
+  fireOwnInstructions: {
+    revisionId: 'd0d0d0d0-0000-4000-8000-000000000002',
+    revisionNumber: 1,
+    annexes: [
+      {
+        moduleId: 'a0a0a0a0-0000-4000-8000-000000000003',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000003',
+        title: 'Lucrul cu foc deschis',
+        articleCount: 7,
+      },
+    ],
+  },
   riskEvaluations: [
     {
       id: 'e0e0e0e0-0000-4000-8000-000000000003',

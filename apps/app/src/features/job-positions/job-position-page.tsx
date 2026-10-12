@@ -39,7 +39,8 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 const sectionLinks = [
   { hash: positionSections.details, label: 'Postul' },
   { hash: positionSections.equipment, label: 'Echipament de protecție' },
-  { hash: positionSections.instructions, label: 'Instrucțiuni' },
+  { hash: positionSections.instructions, label: 'Instrucțiuni SSM' },
+  { hash: positionSections.fireInstructions, label: 'Instrucțiuni PSI' },
   { hash: positionSections.riskEvaluation, label: 'Evaluare de risc' },
 ] as const;
 
@@ -60,13 +61,28 @@ export function JobPositionPage() {
     request: apiRequest,
     query: { queryKey: [...getListEquipmentQueryKey(clientId, jobPositionId), userId], enabled },
   });
-  const instructions = useListPositionInstructions(clientId, jobPositionId, undefined, {
+  const instructionsQuery = (domain: 'ssm' | 'psi') => ({
     request: apiRequest,
     query: {
-      queryKey: [...getListPositionInstructionsQueryKey(clientId, jobPositionId), userId],
+      queryKey: [
+        ...getListPositionInstructionsQueryKey(clientId, jobPositionId, { domain }),
+        userId,
+      ],
       enabled,
     },
   });
+  const instructions = useListPositionInstructions(
+    clientId,
+    jobPositionId,
+    { domain: 'ssm' },
+    instructionsQuery('ssm')
+  );
+  const fireInstructions = useListPositionInstructions(
+    clientId,
+    jobPositionId,
+    { domain: 'psi' },
+    instructionsQuery('psi')
+  );
   const riskEvaluation = useGetJobPositionRiskEvaluation(clientId, jobPositionId, {
     request: apiRequest,
     query: {
@@ -80,6 +96,7 @@ export function JobPositionPage() {
     Boolean(position) &&
       !equipment.isPending &&
       !instructions.isPending &&
+      !fireInstructions.isPending &&
       !riskEvaluation.isPending
   );
   if (!position) return positions.data ? <JobPositionNotFound /> : <JobPositionPending />;
@@ -153,6 +170,15 @@ export function JobPositionPage() {
       />
       <PositionInstructionsCard
         id={positionSections.instructions}
+        domain="ssm"
+        clientId={clientId}
+        position={position}
+        userId={userId}
+        readOnly={readOnly}
+      />
+      <PositionInstructionsCard
+        id={positionSections.fireInstructions}
+        domain="psi"
         clientId={clientId}
         position={position}
         userId={userId}

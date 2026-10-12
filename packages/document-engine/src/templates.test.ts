@@ -428,48 +428,6 @@ describe('fire-safety set', () => {
         },
       ],
     },
-    themes: [
-      {
-        staffCategory: 'technical_administrative',
-        label: 'Personal administrativ',
-        posts: ['Manager magazin'],
-        postsText: 'Manager magazin',
-        workplaceTrainers: { workplaceManagers: null, technician: true },
-        periodicTrainers: { workplaceManagers: null, technician: true },
-        intervalLabel: '6 LUNI',
-        sessions: [
-          { month: 'FEBRUARIE', content: 'IPSU Art. 1 – 130; Afișate', duration: '120 min' },
-          {
-            month: 'AUGUST',
-            content: 'IPSU Art. 131 – 257; Afișate; Testare.',
-            duration: '120 min',
-          },
-        ],
-      },
-      {
-        staffCategory: 'execution',
-        label: 'Personal de execuție',
-        posts: ['Barman'],
-        postsText: 'Barman',
-        workplaceTrainers: {
-          workplaceManagers: 'Ion VLAD – conducătorul locului de muncă',
-          technician: false,
-        },
-        periodicTrainers: {
-          workplaceManagers: 'Ion VLAD – conducătorul locului de muncă',
-          technician: true,
-        },
-        intervalLabel: '3 LUNI',
-        sessions: [
-          { month: 'FEBRUARIE', content: 'IPSU Art. 1 – 76; Afișate', duration: '120 min' },
-          {
-            month: 'NOIEMBRIE',
-            content: 'IPSU Art. 236 – 257; Afișate; Testare.',
-            duration: '120 min',
-          },
-        ],
-      },
-    ],
   };
   // Every condition the other way: no contractor, no manager at a workplace, nothing optional.
   const sparse = {
@@ -534,8 +492,53 @@ describe('fire-safety set', () => {
       noBuildings: true,
       substances: { none: true, listed: false, entries: [] },
     },
-    themes: fire.themes.slice(1),
   };
+  const fireThemes = {
+    ownInstructionsRevision: { id: 'r-1', number: 1, versionIds: ['v-1', 'v-2'] },
+    categories: [
+      {
+        staffCategory: 'technical_administrative',
+        label: 'Personal administrativ',
+        posts: ['Manager magazin'],
+        postsText: 'Manager magazin',
+        workplaceTrainers: { workplaceManagers: null, technician: true },
+        periodicTrainers: { workplaceManagers: null, technician: true },
+        intervalLabel: '6 LUNI',
+        sessions: [
+          { month: 'FEBRUARIE', content: 'IPSU Art. 1 – 130; Afișate', duration: '120 min' },
+          {
+            month: 'AUGUST',
+            content: 'IPSU Art. 131 – 257; Afișate; Testare.',
+            duration: '120 min',
+          },
+        ],
+      },
+      {
+        staffCategory: 'execution',
+        label: 'Personal de execuție',
+        posts: ['Barman'],
+        postsText: 'Barman',
+        workplaceTrainers: {
+          workplaceManagers: 'Ion VLAD – conducătorul locului de muncă',
+          technician: false,
+        },
+        periodicTrainers: {
+          workplaceManagers: 'Ion VLAD – conducătorul locului de muncă',
+          technician: true,
+        },
+        intervalLabel: '3 LUNI',
+        sessions: [
+          { month: 'FEBRUARIE', content: 'IPSU Art. 1 – 76; Afișate', duration: '120 min' },
+          {
+            month: 'NOIEMBRIE',
+            content: 'IPSU Art. 236 – 257; Afișate; Testare.',
+            duration: '120 min',
+          },
+        ],
+      },
+    ],
+  };
+  const sparseThemes = { ...fireThemes, categories: fireThemes.categories.slice(1) };
   const fireAnnexes = [
     { number: 1, title: 'Lucrul cu foc deschis', versionId: 'v-1', versionDate: '11.10.2026' },
     { number: 2, title: 'Depozitarea buteliilor', versionId: 'v-2', versionDate: '02.10.2026' },
@@ -547,6 +550,7 @@ describe('fire-safety set', () => {
     fire,
     annexes: fireAnnexes,
     noAnnexes: false,
+    fireThemes,
   };
 
   it('are the files of their manifest, named after their numbers and their types', () => {
@@ -575,18 +579,22 @@ describe('fire-safety set', () => {
   );
 
   // Inside a loop a name is the item's, so only the dotted ones are held to the list.
-  it.each(stageTwo)('%s asks for the shared facts and the `fire` object only', (name) => {
-    expect(
-      templatePlaceholders(read(name)).filter(
-        (placeholder) =>
-          placeholder.includes('.') &&
-          placeholder !== '.' &&
-          !allowed.includes(placeholder) &&
-          !placeholder.startsWith('fire.') &&
-          !placeholder.startsWith('fireSafetyTechnician.')
-      )
-    ).toEqual([]);
-  });
+  it.each(stageTwo)(
+    '%s asks for the shared facts, the `fire` object and the themes only',
+    (name) => {
+      expect(
+        templatePlaceholders(read(name)).filter(
+          (placeholder) =>
+            placeholder.includes('.') &&
+            placeholder !== '.' &&
+            !allowed.includes(placeholder) &&
+            !placeholder.startsWith('fire.') &&
+            !placeholder.startsWith('fireSafetyTechnician.') &&
+            !placeholder.startsWith('fireThemes.')
+        )
+      ).toEqual([]);
+    }
+  );
 
   it.each(
     stageTwo.flatMap((name) => [
@@ -600,6 +608,7 @@ describe('fire-safety set', () => {
         fireSafetyTechnician:
           variant === sparse ? { ...technician, authorization: null } : technician,
         fire: variant,
+        fireThemes: variant === sparse ? sparseThemes : fireThemes,
       })
     );
     expect(text).not.toContain('{{');
@@ -1189,7 +1198,7 @@ describe('fire-safety set', () => {
     expect(text).toContain('Decizia nr. 9 PSI');
     expect(text).toMatch(/^NOIEMBRIE\nIPSU Art. 236 – 257; Afișate; Testare.\n120 min$/m);
     const sparseText = documentText(
-      renderDocument(read(themes), { ...stageTwoData, fire: sparse })
+      renderDocument(read(themes), { ...stageTwoData, fire: sparse, fireThemes: sparseThemes })
     );
     expect(sparseText).not.toContain('Personal administrativ');
     expect(sparseText.match(/^FUNCȚIA: Personal de execuție \(Barman\)$/gm)).toHaveLength(2);

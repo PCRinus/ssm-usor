@@ -32,6 +32,8 @@ vi.mock('@ssm-usor/document-engine', () => {
     fire_registers: ['branding'],
     fire_decision_waste: ['fire'],
     fire_annual_report: ['fire'],
+    fire_own_instructions: ['annexes', 'noAnnexes'],
+    fire_training_themes: ['fire', 'fireThemes'],
     event_registers: ['branding'],
   };
   class TemplateError extends Error {
@@ -363,6 +365,7 @@ type Upstream =
   | 'signedCopies'
   | 'moduleVersions'
   | 'ownInstructions'
+  | 'fireOwnInstructions'
   | 'workplaces'
   | 'riskEvaluations'
   | 'fireSafety'
@@ -474,7 +477,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       }
       case '/rest/v1/document_revisions':
         if (method === 'GET' && url.searchParams.has('client_documents.type_key')) {
-          return handlers.ownInstructions?.() ?? Response.json([]);
+          return url.searchParams.get('client_documents.type_key') === 'eq.fire_own_instructions'
+            ? (handlers.fireOwnInstructions?.() ?? Response.json([]))
+            : (handlers.ownInstructions?.() ?? Response.json([]));
         }
         return (
           handlers.revisions?.(init, url) ??
@@ -2702,6 +2707,9 @@ describe('the fire-safety set', () => {
     expect(documentReadinessResponseSchema.parse(await fire.json())).toMatchObject({
       ready: false,
       missing: ['fire.instructions'],
+      undecidedJobPositions: [
+        { id: positionRow.id, name: 'Sudor', undecided: ['fire_instructions'] },
+      ],
     });
     const occupational = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await occupational.json()).missing).not.toContain(
@@ -3388,6 +3396,215 @@ describe('the fire-safety set', () => {
     expect(response.status).toBe(200);
     expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
     expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH').edited_by).toBe(user.id);
+  });
+
+  describe('the training themes', () => {
+    const hotWork = {
+      module_id: 'a0a0a0a0-0000-4000-8000-000000000007',
+      domain: 'psi',
+      instruction_modules: {
+        title: 'Lucrul cu foc deschis',
+        module_group: 'work_activity',
+        instruction_module_versions: [
+          {
+            id: 'b0b0b0b0-0000-4000-8000-000000000007',
+            number: 1,
+            created_at: '2026-10-11T09:00:00+00:00',
+          },
+        ],
+      },
+    };
+    const applyingHotWork = () =>
+      Response.json([
+        {
+          ...positionRow,
+          needs_fire_instructions: true,
+          job_position_instructions: [...positionRow.job_position_instructions, hotWork],
+        },
+      ]);
+    const ipsuRevision = {
+      id: 'e1e1e1e1-0000-4000-8000-000000000007',
+      revision: 1,
+      data_snapshot: {
+        annexes: [
+          {
+            number: 1,
+            title: 'Lucrul cu foc deschis',
+            versionId: 'b0b0b0b0-0000-4000-8000-000000000007',
+            versionDate: '11.10.2026',
+          },
+        ],
+      },
+      client_documents: { client_id: clientId, type_key: 'fire_own_instructions' },
+    };
+    const hotWorkVersion = {
+      id: 'b0b0b0b0-0000-4000-8000-000000000007',
+      module_id: 'a0a0a0a0-0000-4000-8000-000000000007',
+      article_count: 7,
+    };
+    const template = (typeKey: string, id: string) => ({
+      type_key: typeKey,
+      title: typeKey,
+      document_template_versions: [
+        { id, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+      ],
+    });
+    const themesId = 'f1f1f1f1-0000-4000-8000-000000000007';
+    const firstNumberFour = {
+      ...revisionRow,
+      document_generations: { issue_date: '2026-01-19', first_decision_number: 4 },
+    };
+    const themesDocument = (snapshot: unknown) => ({
+      ...fireDocumentRow,
+      id: themesId,
+      type_key: 'fire_training_themes',
+      title: 'Tematica de instruire în domeniul situațiilor de urgență',
+      document_revisions: [{ ...firstNumberFour, data_snapshot: snapshot }],
+    });
+    const withIpsu = {
+      positions: applyingHotWork,
+      fireOwnInstructions: () => Response.json([ipsuRevision]),
+      moduleVersions: () => Response.json([hotWorkVersion]),
+      templates: () => Response.json([template('fire_training_themes', 't31')]),
+      generations: (init?: RequestInit) =>
+        init?.method === 'POST'
+          ? Response.json({ id: generationId })
+          : Response.json({ issue_date: '2026-10-01', first_decision_number: 4 }),
+    };
+
+    it('are generated after the IPSU, citing the revision made in the same run', async () => {
+      let reads = 0;
+      mockUpstream({
+        positions: applyingHotWork,
+        templates: () =>
+          Response.json([
+            template('fire_training_themes', 't31'),
+            template('fire_own_instructions', 't21'),
+            fireTemplateRows[0],
+          ]),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        fireOwnInstructions: () => {
+          reads += 1;
+          return Response.json(reads === 1 ? [] : [ipsuRevision]);
+        },
+        moduleVersions: () => Response.json([hotWorkVersion]),
+      });
+      expect((await generate('fire_safety')).status).toBe(201);
+      expect(reads).toBe(2);
+      const created = [0, 1, 2].map(
+        (index) => sentBody('/rest/v1/client_documents', index).type_key
+      );
+      expect(created.slice(0, 2).sort()).toEqual(['fire_own_instructions', 'fire_registers']);
+      expect(created[2]).toBe('fire_training_themes');
+      const snapshots = [0, 1, 2].map(
+        (index) =>
+          sentBody('/rest/v1/document_revisions', index).data_snapshot as Record<string, unknown>
+      );
+      expect(snapshots.slice(0, 2).map((snapshot) => 'fireThemes' in snapshot)).toEqual([
+        false,
+        false,
+      ]);
+      const { fireThemes } = snapshots[2] as {
+        fireThemes: {
+          ownInstructionsRevision: unknown;
+          categories: { sessions: { content: string }[] }[];
+        };
+      };
+      expect(fireThemes.ownInstructionsRevision).toEqual({
+        id: ipsuRevision.id,
+        number: 1,
+        versionIds: [hotWorkVersion.id],
+      });
+      expect(fireThemes.categories[0]!.sessions[0]!.content).toBe(
+        'IPSU art.\u00a01–76; I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a09 PSI); organizarea apărării împotriva incendiilor la locul de muncă'
+      );
+    });
+
+    it('are left out of a generation when the IPSU is an uploaded file', async () => {
+      mockUpstream({
+        templates: () =>
+          Response.json([template('fire_training_themes', 't31'), fireTemplateRows[0]]),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        fireOwnInstructions: () => Response.json([{ ...ipsuRevision, data_snapshot: null }]),
+      });
+      expect((await generate('fire_safety')).status).toBe(201);
+      expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(1);
+      expect(sentBody('/rest/v1/client_documents')).toMatchObject({ type_key: 'fire_registers' });
+    });
+
+    it('are not generated again while the client has no IPSU revision', async () => {
+      mockUpstream({
+        ...withIpsu,
+        fireOwnInstructions: () => Response.json([]),
+        documents: () => Response.json(themesDocument(null)),
+      });
+      const response = await request(`/documents/${themesId}/regenerate`, 'POST', {});
+      expect(response.status).toBe(409);
+      const body = apiErrorResponseSchema.parse(await response.json());
+      expect(body.reason).toBe('missing_document_data');
+      expect(body.missing).toEqual(['documents.fire_own_instructions']);
+      expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+    });
+
+    it('are out of date once the IPSU is generated again, and no other fire-safety document is', async () => {
+      mockUpstream({ ...withIpsu, documents: () => Response.json(themesDocument(null)) });
+      expect((await request(`/documents/${themesId}/regenerate`, 'POST', {})).status).toBe(200);
+      const snapshot = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot;
+      expect(snapshot).toHaveProperty('fireThemes');
+
+      const dataChanged = async (changes: Partial<Record<Upstream, Handler>>) => {
+        mockUpstream({
+          ...withIpsu,
+          documents: () =>
+            Response.json([
+              themesDocument(snapshot),
+              {
+                ...fireDocumentRow,
+                type_key: 'fire_decision_waste',
+                document_revisions: [
+                  {
+                    ...firstNumberFour,
+                    data_snapshot: {
+                      client: printedClient,
+                      fire: (snapshot as { fire: unknown }).fire,
+                    },
+                  },
+                ],
+              },
+            ]),
+          ...changes,
+        });
+        const body = clientDocumentListResponseSchema.parse(
+          await (await request(`/clients/${clientId}/documents?set=fire_safety`)).json()
+        );
+        return body.items.map((item) => [item.typeKey, item.draft!.dataChanged]);
+      };
+      expect(await dataChanged({})).toEqual([
+        ['fire_decision_waste', false],
+        ['fire_training_themes', false],
+      ]);
+      expect(
+        await dataChanged({
+          fireOwnInstructions: () =>
+            Response.json([
+              { ...ipsuRevision, id: 'e1e1e1e1-0000-4000-8000-000000000008', revision: 2 },
+            ]),
+        })
+      ).toEqual([
+        ['fire_decision_waste', false],
+        ['fire_training_themes', true],
+      ]);
+      expect(
+        await dataChanged({
+          moduleVersions: () => Response.json([{ ...hotWorkVersion, article_count: 9 }]),
+        })
+      ).toEqual([
+        ['fire_decision_waste', false],
+        ['fire_training_themes', true],
+      ]);
+    });
   });
 
   describe('a dated document type', () => {

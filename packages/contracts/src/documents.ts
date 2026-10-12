@@ -282,6 +282,9 @@ export const missingDocumentData = [
   'fire.substances',
   // A current position undecided about the fire-safety modules (ADR 012, amendment of 2026-10-11).
   'fire.instructions',
+  // Only for generating the fire-safety training themes again: they cite the modules the
+  // fire-safety own instructions annex (ADR 012, amendment of 2026-10-11).
+  'documents.fire_own_instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -306,9 +309,10 @@ export const fireSafetyMissingDocumentData = [
   'fire.workplaces',
   'fire.equipment',
   'fire.substances',
+  'documents.fire_own_instructions',
 ] as const satisfies readonly MissingDocumentData[];
 
-export const jobPositionDecisions = ['equipment', 'instructions'] as const;
+export const jobPositionDecisions = ['equipment', 'instructions', 'fire_instructions'] as const;
 
 export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
 
@@ -320,8 +324,8 @@ export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
 
 export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
-// For the fire-safety set, only `missing`, `ready` and the count say anything: the lists about
-// positions, evaluations and the workers' representative are empty.
+// For the fire-safety set, the lists about evaluations and the workers' representative are empty,
+// and the positions are those undecided about the fire-safety modules.
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
@@ -332,8 +336,9 @@ export const documentReadinessResponseSchema = z.object({
   workersRepresentativeClash: z
     .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
     .nullable(),
-  // The positions behind `positions.equipment` and `positions.instructions`, each with what it
-  // has not decided yet, so the form can send someone to each section of each position.
+  // The positions behind `positions.equipment`, `positions.instructions` and
+  // `fire.instructions`, each with what it has not decided yet, so the form can send someone to
+  // each section of each position.
   undecidedJobPositions: z.array(
     z.object({
       id: z.uuid(),

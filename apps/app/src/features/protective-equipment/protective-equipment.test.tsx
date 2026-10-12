@@ -196,16 +196,22 @@ describe("a job position's page", () => {
       `${welderPath}#details`,
       `${welderPath}#protective-equipment`,
       `${welderPath}#instructions`,
+      `${welderPath}#fire-instructions`,
       `${welderPath}#risk-evaluation`,
     ]);
     expect(
-      ['details', 'protective-equipment', 'instructions', 'risk-evaluation'].map(
-        (id) => document.getElementById(id)?.querySelector('h3')?.textContent
-      )
+      [
+        'details',
+        'protective-equipment',
+        'instructions',
+        'fire-instructions',
+        'risk-evaluation',
+      ].map((id) => document.getElementById(id)?.querySelector('h3')?.textContent)
     ).toEqual([
       'Postul',
       expect.stringMatching(/^Echipament de protecție/),
-      expect.stringMatching(/^Instrucțiuni/),
+      expect.stringMatching(/^Instrucțiuni specifice SSM/),
+      expect.stringMatching(/^Instrucțiuni specifice PSI/),
       expect.stringMatching(/^Evaluare de risc/),
     ]);
   });

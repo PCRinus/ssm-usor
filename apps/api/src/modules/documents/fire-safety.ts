@@ -205,7 +205,7 @@ type FireTrainers = {
   technician: boolean;
 };
 
-type FireThemesContext = {
+type FireThemesCategoryContext = {
   staffCategory: StaffCategory;
   /** "Personal administrativ", as decision 2 names the category. */
   label: string;
@@ -216,6 +216,17 @@ type FireThemesContext = {
   periodicTrainers: FireTrainers;
   intervalLabel: string;
   sessions: TrainingSession[];
+};
+
+/**
+ * The fire-safety training themes 3.1, apart from `fire` so that a new IPSU revision dates only
+ * them, as the occupational safety themes keep to `themes` (ADR 014).
+ */
+type FireThemesContext = {
+  /** Never printed: what makes the themes out of date when the IPSU changes. */
+  ownInstructionsRevision: { id: string; number: number; versionIds: string[] };
+  /** One per staff category with current posts, technical-administrative first. */
+  categories: FireThemesCategoryContext[];
 };
 
 type FireScheduleRow = { what: string; interval: string; who: string; basis: string };
@@ -287,8 +298,6 @@ export type FireContext = {
   };
   /** `collectors` null where decision 7 names the workers on duty. */
   waste: { kinds: string[]; contractor: string | null; collectors: string | null };
-  /** One per staff category with current posts, technical-administrative first. */
-  themes: FireThemesContext[];
   /** The schedules 5.4, a block per active workplace in the order of `workplaces`. */
   schedules: FireScheduleContext[];
   /** The site sheet 7.1 (ADR 020): every row of OMAI 89/2013 annex 4, filled or a gap. */
@@ -338,6 +347,11 @@ export type FireSafetyContext = {
    */
   annexes: AnnexContext[];
   noAnnexes: boolean;
+  /**
+   * Absent without a generated IPSU, whose annexes the themes cite (ADR 012, amendment of
+   * 2026-10-11).
+   */
+  fireThemes?: FireThemesContext;
 };
 
 export type FireSafetySetFacts = Pick<
@@ -353,6 +367,7 @@ export type FireSafetySetFacts = Pick<
   | 'responsiblePersons'
   | 'jobPositions'
   | 'fireSafety'
+  | 'fireOwnInstructions'
 >;
 
 const filled = (value: string | null | undefined): value is string =>
@@ -371,8 +386,10 @@ const workplaceComplete = (workplace: FireWorkplaceFacts) =>
   (!workplaceHasAreaAndNorm(workplace.kind) ||
     (workplace.floorAreaM2 !== null && workplace.extinguisherNorm !== null));
 
+/** With a type, what generating that one document again also needs. */
 export function missingFireSafetyData(
-  facts: Omit<FireSafetySetFacts, 'issueDate' | 'period' | 'firstDecisionNumber' | 'branding'>
+  facts: Omit<FireSafetySetFacts, 'issueDate' | 'period' | 'firstDecisionNumber' | 'branding'>,
+  typeKey?: string
 ): FireSafetyMissingData[] {
   const { card } = facts.fireSafety;
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
@@ -414,6 +431,8 @@ export function missingFireSafetyData(
       facts.fireSafety.substances.state === 'none' ||
       (facts.fireSafety.substances.state === 'listed' &&
         facts.fireSafety.substances.entries.length > 0),
+    'documents.fire_own_instructions':
+      typeKey !== 'fire_training_themes' || facts.fireOwnInstructions !== null,
   };
   return fireSafetyMissingDocumentData.filter((code) => !present[code]);
 }
@@ -424,17 +443,18 @@ const printedAs: Record<FireSafetyMissingData, readonly (keyof FireSafetyContext
   'provider.fireSafetyTechnicianCertificate': ['fireSafetyTechnician'],
   'client.representativeName': ['client'],
   'client.representativeRole': ['client'],
-  'fire.trainingSchedule': ['fire'],
+  'fire.trainingSchedule': ['fire', 'fireThemes'],
   'fire.smokingPolicy': ['fire'],
   'fire.waste': ['fire'],
-  'responsible.workplace_manager': ['fire'],
+  'responsible.workplace_manager': ['fire', 'fireThemes'],
   'responsible.fire_safety_coordinator': ['fire'],
   'responsible.fire_intervention_leader': ['fire'],
-  'positions.any': ['fire'],
-  'fire.instructions': ['annexes', 'noAnnexes'],
+  'positions.any': ['fire', 'fireThemes'],
+  'fire.instructions': ['annexes', 'noAnnexes', 'fireThemes'],
   'fire.workplaces': ['fire'],
   'fire.equipment': ['fire'],
   'fire.substances': ['fire'],
+  'documents.fire_own_instructions': ['fireThemes'],
 };
 
 /** Whether a gap is in a name the document printed, which its snapshot keeps. */
@@ -516,9 +536,10 @@ export function buildFireSafetyContext(facts: FireSafetySetFacts): FireSafetyCon
  * any of it has no value for it.
  */
 export function buildPartialFireSafetyContext(
-  facts: FireSafetySetFacts
+  facts: FireSafetySetFacts,
+  typeKey?: string
 ): Partial<FireSafetyContext> {
-  return fireSafetyContextWithout(facts, missingFireSafetyData(facts));
+  return fireSafetyContextWithout(facts, missingFireSafetyData(facts, typeKey));
 }
 
 function fireSafetyContextWithout(
@@ -527,15 +548,17 @@ function fireSafetyContextWithout(
 ): Partial<FireSafetyContext> {
   const leftOut = new Set(gaps.flatMap((code) => printedAs[code]));
   return Object.fromEntries(
-    Object.entries(fireSafetyContextParts(facts)).flatMap(([name, part]) =>
-      leftOut.has(name as keyof FireSafetyContext) ? [] : [[name, part()]]
-    )
+    Object.entries(fireSafetyContextParts(facts)).flatMap(([name, part]) => {
+      if (leftOut.has(name as keyof FireSafetyContext)) return [];
+      const value = part();
+      return value === undefined ? [] : [[name, value]];
+    })
   );
 }
 
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
 function fireSafetyContextParts(facts: FireSafetySetFacts): {
-  [Name in keyof FireSafetyContext]: () => FireSafetyContext[Name];
+  [Name in keyof FireSafetyContext]-?: () => FireSafetyContext[Name];
 } {
   const { organization, client } = facts;
   const inSet = (typeKey: FireSafetyTypeKeyFromTenEmployees) =>
@@ -564,6 +587,7 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): {
     installationRegister: () => inSet('fire_installation_register'),
     annexes: () => annexedModules(facts, 'psi'),
     noAnnexes: () => annexedModules(facts, 'psi').length === 0,
+    fireThemes: () => fireThemes(facts),
   };
 }
 
@@ -776,17 +800,6 @@ function fireContext(
         coordinatorName: coordinator.name,
       })
     ),
-    themes: fireThemes({
-      staff: { technical_administrative: administrative, execution },
-      intervalMonths: {
-        technical_administrative: card.administrativeTrainingIntervalMonths!,
-        execution: card.workerTrainingIntervalMonths!,
-      },
-      firstMonth: card.trainingFirstMonth!,
-      periodicMinutes: card.periodicTrainingHours! * 60,
-      instructionsDecision: decisionNumbers.instructions,
-      workplaceManagers: managerNames,
-    }),
   };
 }
 
@@ -972,57 +985,94 @@ const staffCategoryLabels: Record<StaffCategory, string> = {
   execution: 'Personal de execuție',
 };
 
-function fireThemes({
-  staff,
-  intervalMonths,
-  firstMonth,
-  periodicMinutes,
-  instructionsDecision,
-  workplaceManagers,
-}: {
-  staff: Record<StaffCategory, readonly string[]>;
-  intervalMonths: Record<StaffCategory, number>;
-  firstMonth: number;
-  periodicMinutes: number;
-  /** "10 PSI", the number of decision 6, whose annex is the posted instructions. */
-  instructionsDecision: string;
-  /** At least one. */
-  workplaceManagers: readonly string[];
-}): FireThemesContext[] {
+// A file without a numbered list counts no articles, and "art. 1–0" would cite nothing.
+const fireModuleCitation = ({ title, articleCount }: { title: string; articleCount: number }) =>
+  articleCount > 0 ? `I.P.S.U. ${title}, art.\u00a01–${articleCount}` : `I.P.S.U. ${title}`;
+
+/**
+ * A staff category's sessions cite the fire-safety modules its posts apply, each whole, as the
+ * newest IPSU revision annexes them; a module the revision does not annex waits for the IPSU to
+ * be generated again (ADR 014, ADR 012 amendment of 2026-10-11).
+ */
+function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
+  const ipsu = facts.fireOwnInstructions;
+  if (!ipsu) return undefined;
+  const card = facts.fireSafety.card!;
+  const intervalMonths: Record<StaffCategory, number> = {
+    technical_administrative: card.administrativeTrainingIntervalMonths!,
+    execution: card.workerTrainingIntervalMonths!,
+  };
+  const firstMonth = card.trainingFirstMonth!;
+  const periodicMinutes = card.periodicTrainingHours! * 60;
+  const instructionsDecision = `${facts.firstDecisionNumber + fireDecisionOrdinals.instructions - 1} PSI`;
+  const managerNames: string[] = [];
+  for (const person of facts.responsiblePersons) {
+    const name = person.fullName.trim();
+    if (
+      person.roles.includes('workplace_manager') &&
+      !managerNames.some((each) => samePersonName(each, name))
+    ) {
+      managerNames.push(name);
+    }
+  }
   // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
-  const managers = workplaceManagersTrainer(workplaceManagers, ' ');
-  return (['technical_administrative', 'execution'] as const)
-    .filter((category) => staff[category].length > 0)
-    .map((category) => {
+  const managers = workplaceManagersTrainer(managerNames, ' ');
+  return {
+    ownInstructionsRevision: {
+      id: ipsu.revisionId,
+      number: ipsu.revisionNumber,
+      // A draft generated again keeps its id; new module versions still date the themes.
+      versionIds: ipsu.annexes.map((annex) => annex.versionId),
+    },
+    categories: (['technical_administrative', 'execution'] as const).flatMap((category) => {
+      const positions = facts.jobPositions.filter(
+        (position) => position.staffCategory === category
+      );
+      if (positions.length === 0) return [];
+      const posts = positions.map((position) => position.name.trim());
+      const applied = new Set(
+        positions.flatMap((position) =>
+          position.instructions
+            .filter((module) => module.domain === 'psi')
+            .map((module) => module.moduleId)
+        )
+      );
+      const modules = ipsu.annexes
+        .filter((annex) => applied.has(annex.moduleId))
+        .map((annex) => fireModuleCitation({ ...annex, title: annex.title.trim() }));
       const execution = category === 'execution';
       const sessionMonths = trainingMonths(firstMonth, intervalMonths[category]);
       const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);
-      return {
-        staffCategory: category,
-        label: staffCategoryLabels[category],
-        posts: [...staff[category]],
-        postsText: staff[category].join(', '),
-        workplaceTrainers: {
-          workplaceManagers: execution ? managers : null,
-          technician: !execution,
+      return [
+        {
+          staffCategory: category,
+          label: staffCategoryLabels[category],
+          posts,
+          postsText: posts.join(', '),
+          workplaceTrainers: {
+            workplaceManagers: execution ? managers : null,
+            technician: !execution,
+          },
+          // Decision 2 has the heads of the workplaces give the periodic training "și, după caz",
+          // the technician, who alone trains the heads themselves.
+          periodicTrainers: { workplaceManagers: execution ? managers : null, technician: true },
+          intervalLabel: themeIntervalLabel(intervalMonths[category]),
+          sessions: sessionMonths.map((month, index) => {
+            const range = ranges[index]!;
+            return {
+              month: monthNames[month - 1]!.toLocaleUpperCase('ro'),
+              content: [
+                `IPSU art.\u00a0${range.from}–${range.to}`,
+                ...modules,
+                `instrucțiunile afișate la locul de muncă (Decizia nr.\u00a0${instructionsDecision})`,
+                'organizarea apărării împotriva incendiilor la locul de muncă',
+                ...(index === sessionMonths.length - 1 ? ['testare.'] : []),
+              ].join('; '),
+              duration: `${periodicMinutes} min`,
+            };
+          }),
         },
-        // Decision 2 has the heads of the workplaces give the periodic training "și, după caz",
-        // the technician, who alone trains the heads themselves.
-        periodicTrainers: { workplaceManagers: execution ? managers : null, technician: true },
-        intervalLabel: themeIntervalLabel(intervalMonths[category]),
-        sessions: sessionMonths.map((month, index) => {
-          const range = ranges[index]!;
-          return {
-            month: monthNames[month - 1]!.toLocaleUpperCase('ro'),
-            content: [
-              `IPSU art.\u00a0${range.from}–${range.to}`,
-              `instrucțiunile afișate la locul de muncă (Decizia nr.\u00a0${instructionsDecision})`,
-              'organizarea apărării împotriva incendiilor la locul de muncă',
-              ...(index === sessionMonths.length - 1 ? ['testare.'] : []),
-            ].join('; '),
-            duration: `${periodicMinutes} min`,
-          };
-        }),
-      };
-    });
+      ];
+    }),
+  };
 }

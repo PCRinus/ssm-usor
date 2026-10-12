@@ -47,6 +47,7 @@ export async function loadDocumentFacts(
     conditionalDocuments,
     positions,
     ownInstructions,
+    fireOwnInstructions,
     workplaces,
     riskEvaluations,
     fireSafety,
@@ -124,6 +125,7 @@ export async function loadDocumentFacts(
       .order('number', { referencedTable: moduleVersionsPath, ascending: false })
       .limit(1, { referencedTable: moduleVersionsPath }),
     loadOwnInstructions(db, clientId),
+    loadOwnInstructions(db, clientId, 'fire_own_instructions'),
     db
       .from('client_workplaces')
       .select(
@@ -418,6 +420,7 @@ export async function loadDocumentFacts(
     currentEmployeeCount: headcount.count ?? 0,
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
+    fireOwnInstructions,
     riskEvaluations,
   };
 }
@@ -467,19 +470,20 @@ export async function loadRiskEvaluations(
 }
 
 /**
- * The client's newest own instructions revision, draft or issued, with the modules it annexes
- * at the versions it annexed them (ADR 014). Null while there is none, or when the newest is
- * an uploaded file, which annexes nothing the themes could cite.
+ * The client's newest own instructions revision of either set, draft or issued, with the modules
+ * it annexes at the versions it annexed them (ADR 014). Null while there is none, or when the
+ * newest is an uploaded file, which annexes nothing the themes could cite.
  */
 export async function loadOwnInstructions(
   db: DataClient,
-  clientId: string
+  clientId: string,
+  typeKey: 'own_instructions' | 'fire_own_instructions' = 'own_instructions'
 ): Promise<DocumentFacts['ownInstructions']> {
   const revision = await db
     .from('document_revisions')
     .select('id, revision, data_snapshot, client_documents!inner(client_id, type_key)')
     .eq('client_documents.client_id', clientId)
-    .eq('client_documents.type_key', 'own_instructions')
+    .eq('client_documents.type_key', typeKey)
     .order('revision', { ascending: false })
     .limit(1)
     .maybeSingle();

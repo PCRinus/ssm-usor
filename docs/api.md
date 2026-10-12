@@ -744,8 +744,12 @@ assembly point and the three texts of the posted sheet, and a fixed space with i
 its norm, which may be `none`), `fire.equipment` (an
 extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
 `listed` with an entry; ADR 018, amended). Any of them refuses the whole set. Its readiness lists
-nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
-`workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
+nothing else; its `undecidedJobPositions` names the positions behind `fire.instructions`, each
+with `undecided: ['fire_instructions']`, and its `incompleteRiskEvaluations` and
+`workersRepresentativeClash` are empty. Generating the fire-safety themes 3.1 again also needs
+an IPSU revision whose annexes they cite, `documents.fire_own_instructions`, which readiness
+never lists, as generating the set makes the IPSU before the themes (ADR 012, amendment of
+2026-10-11). Its generation requires `firstDecisionNumber`, at most
 9991 so that the binder's ninth decision still fits in four digits, and is `400`
 (`validation_error`, the issue on `firstDecisionNumber`) without it. Each fire-safety decision
 keeps its place in the binder (`fireDecisionOrdinals`, 1 to 9, each decision's

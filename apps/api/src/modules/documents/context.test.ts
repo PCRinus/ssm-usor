@@ -73,15 +73,29 @@ describe('what is missing', () => {
       { id: '7c9e6679-7425-40de-944b-e07fc1f90ae7', name: 'Sudor', undecided: ['instructions'] },
     ]);
     expect(
-      undecidedJobPositions(undecided, 'instructions').map((position) => position.name)
+      undecidedJobPositions(undecided, ['instructions']).map((position) => position.name)
     ).toEqual(['Sudor']);
-    expect(
-      undecidedJobPositions({
-        jobPositions: [
-          { ...facts.jobPositions[0]!, needsProtectiveEquipment: null, needsInstructions: null },
-        ],
-      })[0]!.undecided
-    ).toEqual(['equipment', 'instructions']);
+    const undecidedEverywhere = {
+      jobPositions: [
+        {
+          ...facts.jobPositions[0]!,
+          needsProtectiveEquipment: null,
+          needsInstructions: null,
+          needsFireInstructions: null,
+        },
+      ],
+    };
+    expect(undecidedJobPositions(undecidedEverywhere)[0]!.undecided).toEqual([
+      'equipment',
+      'instructions',
+    ]);
+    expect(undecidedJobPositions(undecidedEverywhere, ['fire_instructions'])).toEqual([
+      {
+        id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+        name: 'Contabil',
+        undecided: ['fire_instructions'],
+      },
+    ]);
   });
 
   it('stops the context from being built', () => {

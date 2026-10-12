@@ -726,7 +726,8 @@ describe('the fire-safety context', () => {
     const managers = 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă';
     const administrative = ipsu(2);
     const execution = ipsu(4);
-    expect(buildFireSafetyContext(facts).fire.themes).toEqual([
+    const hotWork = 'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7';
+    expect(buildFireSafetyContext(facts).fireThemes!.categories).toEqual([
       {
         staffCategory: 'technical_administrative',
         label: 'Personal administrativ',
@@ -754,7 +755,7 @@ describe('the fire-safety context', () => {
         intervalLabel: '3 LUNI',
         sessions: ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE'].map((month, index) => ({
           month,
-          content: `${execution[index]}; ${posted}${index === 3 ? '; testare.' : ''}`,
+          content: `${execution[index]}; ${hotWork}; ${posted}${index === 3 ? '; testare.' : ''}`,
           duration: '120 min',
         })),
       },
@@ -778,7 +779,7 @@ describe('the fire-safety context', () => {
           workplaceId: null,
         },
       ],
-    }).fire.themes;
+    }).fireThemes!.categories;
     expect(themes.map((block) => block.staffCategory)).toEqual(['execution']);
     expect(themes[0]).toMatchObject({
       posts: ['Contabil', 'Sudor'],
@@ -794,6 +795,101 @@ describe('the fire-safety context', () => {
     expect(themes[0]!.sessions.filter((session) => session.content.endsWith('testare.'))).toEqual([
       themes[0]!.sessions[11],
     ]);
+  });
+
+  it('cites the fire-safety modules a category applies as the newest IPSU annexes them, each once', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const storage = {
+      moduleId: 'a0a0a0a0-0000-4000-8000-000000000004',
+      domain: 'psi' as const,
+      title: 'Depozitare',
+      group: 'work_activity' as const,
+      version: {
+        id: 'b0b0b0b0-0000-4000-8000-000000000004',
+        number: 1,
+        createdAt: '2026-10-12T08:00:00+00:00',
+      },
+    };
+    const context = buildFireSafetyContext({
+      ...facts,
+      jobPositions: [
+        {
+          ...accountant!,
+          staffCategory: 'execution',
+          instructions: [...welder!.instructions, storage],
+        },
+        welder!,
+      ],
+      fireOwnInstructions: {
+        ...facts.fireOwnInstructions!,
+        annexes: [
+          ...facts.fireOwnInstructions!.annexes,
+          {
+            moduleId: 'a0a0a0a0-0000-4000-8000-000000000005',
+            versionId: 'b0b0b0b0-0000-4000-8000-000000000005',
+            title: 'Butelii de gaz',
+            articleCount: 4,
+          },
+        ],
+      },
+    }).fireThemes!;
+    expect(context.ownInstructionsRevision).toEqual({
+      id: 'd0d0d0d0-0000-4000-8000-000000000002',
+      number: 1,
+      versionIds: ['b0b0b0b0-0000-4000-8000-000000000003', 'b0b0b0b0-0000-4000-8000-000000000005'],
+    });
+    const [execution] = context.categories;
+    expect(execution!.posts).toEqual(['Contabil', 'Sudor']);
+    expect(execution!.sessions[0]!.content.split('; ').slice(1, 3)).toEqual([
+      'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7',
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI)',
+    ]);
+  });
+
+  it('cites a module without numbered articles by its title alone', () => {
+    const sessions = buildFireSafetyContext({
+      ...facts,
+      fireOwnInstructions: {
+        ...facts.fireOwnInstructions!,
+        annexes: [
+          {
+            ...facts.fireOwnInstructions!.annexes[0]!,
+            title: ' Lucrul cu foc deschis ',
+            articleCount: 0,
+          },
+        ],
+      },
+    }).fireThemes!.categories[1]!.sessions;
+    expect(sessions[0]!.content).toContain('; I.P.S.U. Lucrul cu foc deschis; ');
+  });
+
+  it('leaves the themes out without a generated IPSU, which only generating them again asks for', () => {
+    const withoutIpsu = { ...facts, fireOwnInstructions: null };
+    expect(buildFireSafetyContext(withoutIpsu)).not.toHaveProperty('fireThemes');
+    expect(missingFireSafetyData(withoutIpsu)).toEqual([]);
+    expect(missingFireSafetyData(withoutIpsu, 'fire_decision_training')).toEqual([]);
+    expect(missingFireSafetyData(withoutIpsu, 'fire_training_themes')).toEqual([
+      'documents.fire_own_instructions',
+    ]);
+    expect(setRules.fire_safety.missing(withoutIpsu, 'fire_training_themes')).toEqual([
+      'documents.fire_own_instructions',
+    ]);
+    expect(fireSafetyGapConcerns('documents.fire_own_instructions', ['fire', 'fireThemes'])).toBe(
+      true
+    );
+    expect(fireSafetyGapConcerns('documents.fire_own_instructions', ['fire', 'annexes'])).toBe(
+      false
+    );
+  });
+
+  it('keeps the themes apart from `fire`, so a new IPSU dates no other document', () => {
+    const context = buildFireSafetyContext(facts);
+    const regenerated = buildFireSafetyContext({
+      ...facts,
+      fireOwnInstructions: { ...facts.fireOwnInstructions!, revisionNumber: 2 },
+    });
+    expect(regenerated.fire).toEqual(context.fire);
+    expect(regenerated.fireThemes).not.toEqual(context.fireThemes);
   });
 
   it('leaves a workplace without a manager of its own to the template', () => {
@@ -888,6 +984,7 @@ describe('a fire-safety document generated again', () => {
       'branding',
       'controlDecision',
       'fire',
+      'fireThemes',
       'installationRegister',
       'issueDate',
       'noAnnexes',
@@ -907,6 +1004,7 @@ describe('a fire-safety document generated again', () => {
       'client',
       'controlDecision',
       'fire',
+      'fireThemes',
       'installationRegister',
       'issueDate',
       'noAnnexes',
@@ -928,6 +1026,7 @@ describe('a fire-safety document generated again', () => {
     const context = buildPartialFireSafetyContext(undecided);
     expect(context).not.toHaveProperty('annexes');
     expect(context).not.toHaveProperty('noAnnexes');
+    expect(context).not.toHaveProperty('fireThemes');
     expect(context).toHaveProperty('fire');
     expect(fireSafetyGapConcerns('fire.instructions', ['annexes'])).toBe(true);
     expect(fireSafetyGapConcerns('fire.instructions', ['fire', 'client'])).toBe(false);

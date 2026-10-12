@@ -132,6 +132,8 @@ export type DocumentFacts = {
   workersRepresentativeDecisionGenerated: boolean;
   /** What the training themes cite; null until the own instructions are generated (ADR 014). */
   ownInstructions: OwnInstructionsRevision | null;
+  /** The same for the fire-safety themes and own instructions (ADR 012, amendment of 2026-10-11). */
+  fireOwnInstructions: OwnInstructionsRevision | null;
   /** Every evaluation of the client, archived positions' included (ADR 015). */
   riskEvaluations: RiskEvaluationFacts[];
   fireSafety: FireSafetyClientFacts;
@@ -284,24 +286,27 @@ const described = (people: readonly Person[]) => {
   return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')}, și ${items.at(-1)}`;
 };
 
+const decidedBy = {
+  equipment: 'needsProtectiveEquipment',
+  instructions: 'needsInstructions',
+  fire_instructions: 'needsFireInstructions',
+} as const satisfies Record<JobPositionDecision, keyof DocumentFacts['jobPositions'][number]>;
+
 /**
  * The positions still undecided about their equipment (ADR 011) or their instructions
- * (ADR 012), either of which blocks generating; each once, with what it has not decided.
+ * (ADR 012), which block generating the occupational safety set, or about the fire-safety
+ * modules, which block the other; each once, with what it has not decided of `about`.
  */
 export function undecidedJobPositions(
   facts: Pick<DocumentFacts, 'jobPositions'>,
-  about: JobPositionDecision | 'either' = 'either'
+  about: readonly JobPositionDecision[] = ['equipment', 'instructions']
 ) {
   return facts.jobPositions
     .map((position) => ({
       id: position.id,
       name: position.name.trim(),
       undecided: jobPositionDecisions.filter(
-        (decision) =>
-          (about === 'either' || about === decision) &&
-          (decision === 'equipment'
-            ? position.needsProtectiveEquipment === null
-            : position.needsInstructions === null)
+        (decision) => about.includes(decision) && position[decidedBy[decision]] === null
       ),
     }))
     .filter((position) => position.undecided.length > 0);
@@ -372,8 +377,8 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
       representativesNeeded === 0 || workersRepresentativeClash(facts) === null,
     ],
     ['positions.any', facts.jobPositions.length > 0],
-    ['positions.equipment', undecidedJobPositions(facts, 'equipment').length === 0],
-    ['positions.instructions', undecidedJobPositions(facts, 'instructions').length === 0],
+    ['positions.equipment', undecidedJobPositions(facts, ['equipment']).length === 0],
+    ['positions.instructions', undecidedJobPositions(facts, ['instructions']).length === 0],
     ['positions.risk_evaluation', !lacks('job_position', 'factors')],
     ['risk_evaluations.sensitive_groups', !lacks('sensitive_groups', 'factors')],
     ['risk_evaluations.measures', !lacks(null, 'measures')],
@@ -457,6 +462,7 @@ const printedAs = {
   'fire.equipment': [],
   'fire.substances': [],
   'fire.instructions': [],
+  'documents.fire_own_instructions': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
 /** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */

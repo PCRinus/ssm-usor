@@ -442,7 +442,17 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           ],
         }
       : { state: 'none', none: true, listed: false, entries: [] },
-    themes: [
+  };
+}
+
+// The long sample's IPSU annexes two modules its execution posts apply, cited in every session.
+function fireThemesSample(people: ReturnType<typeof person>[], long: boolean) {
+  const modules = long
+    ? 'I.P.S.U. Scări metalice, art.\u00a01–12; I.P.S.U. Aparat de sudură oxiacetilenică; '
+    : '';
+  return {
+    ownInstructionsRevision: { id: 'r-2', number: 1, versionIds: long ? ['v-2', 'v-3'] : [] },
+    categories: [
       ...(long
         ? []
         : [
@@ -493,7 +503,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           : ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE']
         ).map((month, index, months) => ({
           month,
-          content: `IPSU art.\u00a0${index * 20 + 1}–${index * 20 + 20}; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 PSI)${index === months.length - 1 ? '; testare.' : ''}`,
+          content: `IPSU art.\u00a0${index * 20 + 1}–${index * 20 + 20}; ${modules}instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 PSI)${index === months.length - 1 ? '; testare.' : ''}`,
           duration: '120 min',
         })),
       },
@@ -1386,6 +1396,7 @@ function sample(
         }),
         annualReport: annualReportSample(people, people.length > 1),
       },
+      fireThemes: fireThemesSample(people, people.length > 1),
       seasonsDecision: true,
       controlDecision: true,
       installationRegister: true,

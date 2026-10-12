@@ -38,6 +38,8 @@ const barista = {
   equipmentCount: 2,
   needsInstructions: null as boolean | null,
   instructionCount: 0,
+  needsFireInstructions: false as boolean | null,
+  fireInstructionCount: 0,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
 };
@@ -54,6 +56,7 @@ const manager = {
   equipmentCount: 0,
   needsInstructions: null as boolean | null,
   instructionCount: 0,
+  needsFireInstructions: null as boolean | null,
 };
 
 const listPath = `/clients/${clientId}/job-positions`;
@@ -225,15 +228,16 @@ describe("a client's job positions", () => {
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
-      'Instrucțiuni',
+      'Instrucțiuni SSM',
+      'Instrucțiuni PSI',
       'Evaluare de risc',
       'Modifică',
       'Șterge',
     ]);
-    await user.click(screen.getByTestId('job-position-menu-instructions'));
+    await user.click(screen.getByTestId('job-position-menu-fire-instructions'));
     await screen.findByTestId('job-position-page');
     expect(runtime.router.state.location.pathname).toBe(`${listPath}/${manager.id}`);
-    expect(runtime.router.state.location.hash).toBe('instructions');
+    expect(runtime.router.state.location.hash).toBe('fire-instructions');
   });
 
   it('names the positions still undecided about equipment or instructions, with links', async () => {
@@ -249,13 +253,20 @@ describe("a client's job positions", () => {
     );
     const instructions = screen.getByTestId('job-positions-undecided-instructions');
     expect(instructions.textContent).toBe(
-      '2 posturi nu au instrucțiunile stabilite: Barman preparator și Manager magazin – birou.'
+      '2 posturi nu au instrucțiunile SSM stabilite: Barman preparator și Manager magazin – birou.'
     );
     expect(
       within(instructions)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
     ).toEqual([`${listPath}/${barista.id}#instructions`, `${listPath}/${manager.id}#instructions`]);
+    const fireInstructions = screen.getByTestId('job-positions-undecided-fire-instructions');
+    expect(fireInstructions.textContent).toBe(
+      'Un post nu are instrucțiunile PSI stabilite: Manager magazin – birou.'
+    );
+    expect(within(fireInstructions).getByRole('link').getAttribute('href')).toBe(
+      `${listPath}/${manager.id}#fire-instructions`
+    );
   });
 
   it('names only the first undecided positions when there are many', async () => {
@@ -443,7 +454,8 @@ describe("a client's job positions", () => {
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
-      'Instrucțiuni',
+      'Instrucțiuni SSM',
+      'Instrucțiuni PSI',
       'Evaluare de risc',
     ]);
   });

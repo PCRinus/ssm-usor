@@ -6,6 +6,7 @@ import {
   createAccount,
   createClientCompany,
   createEmployee,
+  createInstructionModule,
   createOrganization,
   evaluateRisks,
   openDocumentSection,
@@ -437,6 +438,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     jobTitle: 'Vânzător',
   });
   await evaluateRisks(organizationId, clientId);
+  await createInstructionModule(organizationId, owner.id, 'Lucrul cu foc deschis', 'psi');
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
 
@@ -477,6 +479,15 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('instructions-pick-option').first().click();
   await page.getByTestId('instructions-pick-save').click();
   await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
+  await page.getByTestId('fire-instructions-pick').click();
+  await expect(page.getByTestId('fire-instructions-pick-option')).toHaveCount(1);
+  await expect(page.getByTestId('fire-instructions-pick-dialog')).toContainText(
+    'Lucrul cu foc deschis'
+  );
+  await page.getByTestId('fire-instructions-pick-option').click();
+  await page.getByTestId('fire-instructions-pick-save').click();
+  await expect(page.getByTestId('fire-instructions-state')).toHaveText('1 instrucțiune');
+  await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
   await page
     .getByRole('navigation', { name: 'breadcrumb' })
     .getByRole('link', { name: 'Posturi de lucru' })
@@ -493,6 +504,8 @@ test("from 10 employees the set includes the decision on the workers' representa
   await expect(page.getByTestId('equipment-none')).toBeVisible();
   await page.getByTestId('instructions-decide-none').click();
   await expect(page.getByTestId('instructions-none')).toBeVisible();
+  await page.getByTestId('fire-instructions-decide-none').click();
+  await expect(page.getByTestId('fire-instructions-none')).toBeVisible();
   await page
     .getByRole('navigation', { name: 'breadcrumb' })
     .getByRole('link', { name: 'Posturi de lucru' })
@@ -500,6 +513,12 @@ test("from 10 employees the set includes the decision on the workers' representa
   await expect(
     positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-equipment')
   ).toHaveText('Nu necesită');
+  await expect(
+    positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-fire-instructions')
+  ).toHaveText('Nu necesită');
+  await expect(
+    positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-fire-instructions')
+  ).toHaveText('1 instrucțiune');
 
   await page.goto(`/clients/${clientId}/training`);
   await page.getByTestId('responsible-add').click();

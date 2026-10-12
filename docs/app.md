@@ -571,7 +571,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
   what is missing, grouped by the page it is filled in on with a link to each (the
   organization, the profile, the client's document data, the client's job positions, whose
-  entry names every position still undecided about its equipment, and "Evaluarea riscurilor",
+  entry names every position still undecided about its equipment or its instructions, each
+  row to that card of the position's page, the PSI set's rows to the "Instrucțiuni specifice
+  PSI" card (`#fire-instructions`) of every position undecided for `psi`, and "Evaluarea riscurilor",
   a row per evaluation and per thing it lacks, to the factors of its page, or to the
   positions page's client-level evaluations while the sensitive groups are not started; a
   specialist is told that the owner fills in the organization's details). When ready it asks for the date and the first
@@ -596,7 +598,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   Generating one document again refused with `missing_document_data` names the codes under
   `missing`; the card shows them as the generation form's rows (`DocumentMissingRows`, which
   asks the readiness for the positions and evaluations behind a code, so a refused code gets
-  the same rows as in the form and the rest of the readiness list none). Following a row starts
+  the same rows as in the form and the rest of the readiness list none; regenerating the PSI
+  themes 3.1 without a generated IPSU names `documents.fire_own_instructions`, a row under
+  "Documentația PSI" to the IPSU's section of the PSI tab). Following a row starts
   the way back with `to: 'document'` and the type key, and the toast of the save offers
   "Înapoi la document", which opens that document's row, pointed at.
   The open section is the `section` search param. `focus` takes `generate` (open the dialog)
@@ -796,28 +800,40 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
 - `/instructions`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by
-  group and title, each module with its version and how many articles the file numbers, and
-  how many current positions apply it; "Arată arhiva" lists the archived ones instead. "Încarcă
-  fișiere" takes several `.docx` files and posts each to `POST /instruction-modules/upload`,
-  which titles it after its first line, or the file name when it has none, and puts it in the
-  work activities group; a notice then says to correct titles and groups from the row menu,
-  which also archives and restores. "Scrie o instrucțiune" asks for a title and a group,
-  starts the module from the skeleton and opens it. A title the library already has is
-  reported on the field. Archiving a module a position applies is refused with the positions
-  counted.
+  domain, group and title, each module with its domain ("SSM" or "PSI", amendment of
+  2026-10-11), its version and how many articles the file numbers, and how many current
+  positions apply it; the "Domeniu" select lists one domain (`?domain=`), and "Arată arhiva"
+  lists the archived ones instead. "Încarcă fișiere" asks which domain, "Instrucțiuni SSM" or
+  "Instrucțiuni PSI", then takes several `.docx` files and posts each to
+  `POST /instruction-modules/upload` with that `domain`, which titles it after its first line,
+  or the file name when it has none, and puts it in the work activities group; a notice then
+  says to correct titles, groups and domains from the row menu, which also archives and
+  restores. "Scrie o instrucțiune" asks for a title, a group and a domain, `SSM` by default,
+  starts the module from the skeleton and opens it. "Titlu, grup și domeniu" changes them; the
+  domain of a module a current position applies is shown read-only with how many positions
+  apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
+  meantime) goes on the field with the reason. A title the library already has is reported on
+  the field. Archiving a module a position applies is refused with the positions counted.
 - `/instructions/:moduleId`: the module in the same editor as a document, loaded through
   `GET …/file-link`. Saving sends the bytes to `PUT …/file` as the next version and keeps
   what the editor shows, so nothing is fetched again; the badge names the version. An archived
-  module opens in view mode. A file the editor cannot lay out is offered for download, to be
-  fixed in Word and uploaded again.
-- On a job position's page, the card "Instrucțiuni specifice" beside the equipment card:
-  `GET …/instructions` with the same three states as equipment ("Nedecis", "Nu necesită",
-  the count), "Alege instrucțiunile" opens the library as a checklist by group with a search
-  box and a "Vezi" link per module, and saves the set through `PUT …/instructions`; a row's
+  module opens in view mode. The header names the domain beside the group. A file the editor
+  cannot lay out is offered for download, to be fixed in Word and uploaded again.
+- On a job position's page, after the equipment card, two cards that differ only in their
+  title, their domain and their wording: "Instrucțiuni specifice SSM" (`#instructions`) and
+  "Instrucțiuni specifice PSI" (`#fire-instructions`), the second deciding the fire-safety
+  modules apart (ADR 012, amendment of 2026-10-11). Each reads `GET …/instructions?domain=`
+  with the same three states as equipment ("De stabilit", "Nu necesită", the count);
+  "Alege instrucțiunile" opens the library's modules of its domain
+  (`GET /instruction-modules?domain=`) as a checklist by group with a search box and a "Vezi"
+  link per module, and saves the set through `PUT …/instructions` with the `domain`; a row's
   cross removes one module the same way; "Copiază de la alt post" adds another position's
-  modules; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go through
-  `PATCH …/instructions-decision`. The positions table has an "Instrucțiuni" column with the
-  state, amber while undecided.
+  modules of the domain; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go
+  through `PATCH …/instructions-decision` with the `domain`. The SSM card keeps the
+  `instructions-*` test ids and the PSI card uses `fire-instructions-*`. The positions table's
+  "Instrucțiuni" column shows both states, "SSM" and "PSI" each before its badge, amber while
+  undecided, each linking to its card; the row menu has both cards, and the notice above the
+  table names the positions undecided for each.
 - Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)), in
   `src/features/risk-evaluations/`. The position page's last card, "Evaluare de risc", reads
   `GET …/job-positions/{id}/risk-evaluation`: without an evaluation it says that generating

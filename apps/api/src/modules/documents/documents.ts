@@ -535,12 +535,28 @@ export async function generateClientDocuments(
         decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
       });
     const dated = wanted.filter((template) => isDatedDocumentType(template.typeKey));
+    // The themes cite the IPSU revision this same run makes, so they come after it.
+    const themes = wanted.find((template) => template.typeKey === 'fire_training_themes');
     createdIds.push(
       ...(await inBatches(
-        wanted.filter((template) => !dated.includes(template)),
+        wanted.filter((template) => !dated.includes(template) && template !== themes),
         fireMerged({ ...buildFireSafetyContext(input) })
       ))
     );
+    if (themes) {
+      current = {
+        ...facts,
+        fireOwnInstructions: await loadOwnInstructions(db, clientId, 'fire_own_instructions'),
+      };
+      // Nothing to cite only when the IPSU is an uploaded file: the themes wait for it.
+      if (current.fireOwnInstructions) {
+        createdIds.push(
+          await fireMerged({ ...buildFireSafetyContext({ ...current, ...asked, period: null }) })(
+            themes
+          )
+        );
+      }
+    }
     // A dated document reports on the set, so it is merged with what this run has just made.
     if (dated.length > 0) {
       current = await loadDocumentFacts(db, clientId, actor);

@@ -83,7 +83,10 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
       )
         ? workersRepresentativeClash(facts)
         : null,
-      undecidedJobPositions: occupational ? undecidedJobPositions(facts) : [],
+      undecidedJobPositions: undecidedJobPositions(
+        facts,
+        occupational ? ['equipment', 'instructions'] : ['fire_instructions']
+      ),
       incompleteRiskEvaluations: occupational
         ? incompleteRiskEvaluations(facts.riskEvaluations, facts.jobPositions)
         : [],

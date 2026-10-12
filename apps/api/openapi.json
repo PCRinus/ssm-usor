@@ -101,7 +101,8 @@
                 "fire.workplaces",
                 "fire.equipment",
                 "fire.substances",
-                "fire.instructions"
+                "fire.instructions",
+                "documents.fire_own_instructions"
               ]
             }
           }
@@ -6038,7 +6039,8 @@
                           "fire.workplaces",
                           "fire.equipment",
                           "fire.substances",
-                          "fire.instructions"
+                          "fire.instructions",
+                          "documents.fire_own_instructions"
                         ]
                       }
                     }
@@ -6169,7 +6171,8 @@
                 "fire.workplaces",
                 "fire.equipment",
                 "fire.substances",
-                "fire.instructions"
+                "fire.instructions",
+                "documents.fire_own_instructions"
               ]
             }
           },
@@ -6206,7 +6209,7 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": ["equipment", "instructions"]
+                    "enum": ["equipment", "instructions", "fire_instructions"]
                   },
                   "minItems": 1
                 }

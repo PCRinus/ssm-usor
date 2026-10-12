@@ -80,6 +80,7 @@ const ladders = {
   id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
   title: 'Scări metalice',
   group: 'work_equipment',
+  domain: 'ssm',
   archivedAt: null as string | null,
   version,
   appliedCount: 2,
@@ -101,6 +102,15 @@ const welding = {
   version: { ...version, number: 1 },
   appliedCount: 0,
 };
+const hotWork = {
+  ...ladders,
+  id: '4d5e6f7a-8b9c-4d0e-8f1a-2b3c4d5e6f70',
+  title: 'Lucrul cu foc deschis',
+  group: 'work_activity',
+  domain: 'psi',
+  version: { ...version, number: 1, articleCount: 7 },
+  appliedCount: 1,
+};
 
 const welder = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
@@ -115,6 +125,8 @@ const welder = {
   equipmentCount: 2,
   needsInstructions: true as boolean | null,
   instructionCount: 1,
+  needsFireInstructions: false as boolean | null,
+  fireInstructionCount: 0,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
 };
@@ -124,6 +136,8 @@ const fitter = {
   name: 'Lăcătuș mecanic',
   needsInstructions: null,
   instructionCount: 0,
+  needsFireInstructions: null,
+  fireInstructionCount: 0,
 };
 
 const applied = (module: typeof ladders) => ({
@@ -138,10 +152,14 @@ type Route = (init: RequestInit | undefined, url: URL) => Response;
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi({
-  modules = [offices, ladders] as unknown[],
-  archived = [] as unknown[],
+  modules = [offices, ladders, hotWork] as (typeof ladders)[],
+  archived = [] as (typeof ladders)[],
   instructions = {
     [welder.id]: { items: [applied(ladders)], needsInstructions: true },
+    [fitter.id]: { items: [], needsInstructions: null },
+  } as Record<string, unknown>,
+  fireInstructions = {
+    [welder.id]: { items: [], needsInstructions: false },
     [fitter.id]: { items: [], needsInstructions: null },
   } as Record<string, unknown>,
   create = (() => Response.json({ module: welding }, { status: 201 })) as Route,
@@ -152,7 +170,9 @@ function mockApi({
     })) as Route,
   apply = ((init) => {
     const { moduleIds } = JSON.parse(String(init?.body)) as { moduleIds: string[] };
-    const items = [offices, ladders].filter((module) => moduleIds.includes(module.id)).map(applied);
+    const items = [offices, ladders, hotWork]
+      .filter((module) => moduleIds.includes(module.id))
+      .map(applied);
     return Response.json({ items, needsInstructions: items.length > 0 ? true : null });
   }) as Route,
   decide = ((init, url) =>
@@ -176,8 +196,11 @@ function mockApi({
     }
     if (pathname === '/instruction-modules') {
       if (method === 'POST') return create(init, url);
+      const domain = url.searchParams.get('domain');
       return Response.json({
-        items: url.searchParams.get('archived') === 'true' ? archived : modules,
+        items: (url.searchParams.get('archived') === 'true' ? archived : modules).filter(
+          (module) => !domain || module.domain === domain
+        ),
       });
     }
     if (pathname === '/instruction-modules/upload') return upload(init, url);
@@ -199,7 +222,7 @@ function mockApi({
         return Response.json({ module: { ...ladders, version: { ...version, number: 3 } } });
       }
       if (method === 'PATCH') return update(init, url);
-      const module = [...(modules as (typeof ladders)[]), welding].find(
+      const module = [...(modules as (typeof ladders)[]), welding, hotWork].find(
         (item) => item.id === moduleId
       );
       return module
@@ -219,7 +242,9 @@ function mockApi({
         return Response.json({ items: [applied(ladders)], needsInstructions: true });
       }
       if (method === 'PUT') return apply(init, url);
-      return Response.json(instructions[positionId]);
+      return Response.json(
+        (url.searchParams.get('domain') === 'psi' ? fireInstructions : instructions)[positionId]
+      );
     }
     if (pathname.endsWith('/equipment')) {
       return Response.json({ items: [], needsProtectiveEquipment: null });
@@ -263,6 +288,12 @@ describe('the instruction library', () => {
     expect(rows.map((row) => within(row).getByTestId('instruction-open').textContent)).toEqual([
       'Activități de birou',
       'Scări metalice',
+      'Lucrul cu foc deschis',
+    ]);
+    expect(rows.map((row) => within(row).getByTestId('instruction-domain').textContent)).toEqual([
+      'SSM',
+      'SSM',
+      'PSI',
     ]);
     expect(within(rows[1]!).getByTestId('instruction-version').textContent).toBe(
       'v2 · 12 articole'
@@ -298,7 +329,7 @@ describe('the instruction library', () => {
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
       expect(bodies('/instruction-modules', 'POST')).toEqual([
-        { title: 'Sudură oxiacetilenică', group: 'work_equipment' },
+        { title: 'Sudură oxiacetilenică', group: 'work_equipment', domain: 'ssm' },
       ])
     );
     expect(await screen.findByTestId('fake-editor')).toBeTruthy();
@@ -317,6 +348,121 @@ describe('the instruction library', () => {
     ]);
     await waitFor(() => expect(requests('/instruction-modules/upload', 'POST')).toHaveLength(2));
     expect(await screen.findByTestId('instruction-uploaded')).toBeTruthy();
+  });
+
+  it('filters the list by domain', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.selectOptions(screen.getByTestId('instruction-domain-filter'), 'psi');
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByTestId('instruction-row')
+          .map((row) => within(row).getByTestId('instruction-open').textContent)
+      ).toEqual(['Lucrul cu foc deschis'])
+    );
+    const listed = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .filter((address) => address.pathname === '/instruction-modules')
+      .map((address) => address.searchParams.get('domain'));
+    expect(listed).toEqual([null, 'psi']);
+  });
+
+  it('uploads into the domain chosen, occupational safety unless told otherwise', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const input = screen.getByTestId('instruction-file-input');
+    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+    await user.upload(input, [
+      new File([new Uint8Array([80, 75, 3, 4])], 'Scari.docx', { type: docxType }),
+    ]);
+    await user.click(screen.getByTestId('instruction-upload'));
+    await user.click(await screen.findByTestId('instruction-upload-psi'));
+    expect(click).toHaveBeenCalledOnce();
+    await user.upload(input, [
+      new File([new Uint8Array([80, 75, 3, 4])], 'Foc.docx', { type: docxType }),
+    ]);
+    await waitFor(() => expect(requests('/instruction-modules/upload', 'POST')).toHaveLength(2));
+    const domains = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .filter((address) => address.pathname === '/instruction-modules/upload')
+      .map((address) => address.searchParams.get('domain'));
+    expect(domains).toEqual(['ssm', 'psi']);
+  });
+
+  it('writes a module of the domain chosen', async () => {
+    mockApi({ create: () => Response.json({ module: hotWork }, { status: 201 }) });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('instruction-write'));
+    expect((screen.getByTestId('instruction-module-domain') as HTMLSelectElement).value).toBe(
+      'ssm'
+    );
+    await user.type(screen.getByTestId('instruction-module-title'), 'Lucrul cu foc deschis');
+    await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'psi');
+    await user.click(screen.getByTestId('instruction-module-submit'));
+    await waitFor(() =>
+      expect(bodies('/instruction-modules', 'POST')).toEqual([
+        { title: 'Lucrul cu foc deschis', group: 'work_activity', domain: 'psi' },
+      ])
+    );
+  });
+
+  it('moves a module no position applies to the other domain, and shows the domain of an applied one only to read', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('instruction-row');
+    await user.click(within(rows[0]!).getByTestId('instruction-actions'));
+    await user.click(await screen.findByTestId('instruction-rename'));
+    await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'psi');
+    await user.click(screen.getByTestId('instruction-module-submit'));
+    await waitFor(() =>
+      expect(bodies(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([
+        { title: 'Activități de birou', group: 'work_activity', domain: 'psi' },
+      ])
+    );
+
+    await waitFor(() => expect(screen.queryByTestId('instruction-module-dialog')).toBeNull());
+    await user.click(within(rows[2]!).getByTestId('instruction-actions'));
+    await user.click(await screen.findByTestId('instruction-rename'));
+    const domain = screen.getByTestId('instruction-module-domain') as HTMLInputElement;
+    expect(domain.readOnly).toBe(true);
+    expect(domain.value).toBe('PSI');
+    expect(screen.getByTestId('instruction-module-dialog').textContent).toContain(
+      'Aplicată la un post ca instrucțiune PSI'
+    );
+    await user.click(screen.getByTestId('instruction-module-submit'));
+    await waitFor(() =>
+      expect(bodies(`/instruction-modules/${hotWork.id}`, 'PATCH')).toEqual([
+        { title: 'Lucrul cu foc deschis', group: 'work_activity' },
+      ])
+    );
+  });
+
+  it('says why a module a position has just applied keeps its domain', async () => {
+    mockApi({
+      update: () =>
+        Response.json(
+          { error: 'conflict', message: 'applied', reason: 'instruction_module_domain_applied' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('instruction-row');
+    await user.click(within(rows[0]!).getByTestId('instruction-actions'));
+    await user.click(await screen.findByTestId('instruction-rename'));
+    await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'psi');
+    await user.click(screen.getByTestId('instruction-module-submit'));
+    expect((await screen.findByTestId('instruction-module-domain-error')).textContent).toContain(
+      'Scoate-o de la posturile care o aplică'
+    );
   });
 
   it('refuses to archive a module a position applies, in words', async () => {
@@ -345,6 +491,7 @@ describe('the module editor', () => {
     const user = userEvent.setup();
     expect(await screen.findByTestId('fake-editor')).toBeTruthy();
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2');
+    expect(screen.getByTestId('fake-editor').textContent).toContain('SSM · Echipamente de muncă');
     await user.click(screen.getByTestId('fake-type'));
     expect(screen.getByTestId('editor-saved-state').textContent).toBe('Modificări nesalvate');
     await user.click(screen.getByTestId('editor-save'));
@@ -396,6 +543,66 @@ describe("a job position's instructions", () => {
     expect(
       rows.map((row) => within(row).getByTestId('job-position-instructions').textContent)
     ).toEqual(['1 instrucțiune', 'De stabilit']);
+    expect(
+      rows.map((row) => within(row).getByTestId('job-position-fire-instructions').textContent)
+    ).toEqual(['Nu necesită', 'De stabilit']);
+    expect(
+      within(rows[1]!).getByTestId('job-position-fire-instructions').getAttribute('href')
+    ).toBe(`${positionsPath}/${fitter.id}#fire-instructions`);
+    expect(screen.getByTestId('job-positions-undecided-fire-instructions').textContent).toBe(
+      'Un post nu are instrucțiunile PSI stabilite: Lăcătuș mecanic.'
+    );
+  });
+
+  it('decides the fire-safety modules on a card of its own, beside the occupational safety one', async () => {
+    mockApi();
+    mount(`${positionsPath}/${fitter.id}`);
+    const user = userEvent.setup();
+    const ssm = await screen.findByTestId('instructions-card');
+    const psi = await screen.findByTestId('fire-instructions-card');
+    expect(within(ssm).getByRole('heading', { level: 3 }).textContent).toContain(
+      'Instrucțiuni specifice SSM'
+    );
+    expect(within(psi).getByRole('heading', { level: 3 }).textContent).toContain(
+      'Instrucțiuni specifice PSI'
+    );
+    expect((await screen.findByTestId('fire-instructions-state')).textContent).toBe('De stabilit');
+    expect(screen.getByTestId('fire-instructions-empty').textContent).toContain(
+      'Documentele PSI nu se pot genera'
+    );
+
+    await user.click(screen.getByTestId('fire-instructions-pick'));
+    const options = await screen.findAllByTestId('fire-instructions-pick-option');
+    expect(options).toHaveLength(1);
+    expect(screen.getByTestId('fire-instructions-pick-dialog').textContent).toContain(
+      'Lucrul cu foc deschis'
+    );
+    const listed = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .filter((address) => address.pathname === '/instruction-modules')
+      .map((address) => address.searchParams.get('domain'));
+    expect(listed).toEqual(['psi']);
+    await user.click(options[0]!);
+    await user.click(screen.getByTestId('fire-instructions-pick-save'));
+    await waitFor(() =>
+      expect(bodies(`${positionsPath}/${fitter.id}/instructions`, 'PUT')).toEqual([
+        { domain: 'psi', moduleIds: [hotWork.id] },
+      ])
+    );
+
+    mockApi({ fireInstructions: { [fitter.id]: { items: [], needsInstructions: false } } });
+    await user.click(screen.getByTestId('fire-instructions-pick'));
+    await user.click(await screen.findByRole('button', { name: 'Renunță' }));
+    await user.click(screen.getByTestId('fire-instructions-decide-none'));
+    await waitFor(() =>
+      expect(bodies(`${positionsPath}/${fitter.id}/instructions-decision`, 'PATCH')).toEqual([
+        { domain: 'psi', needsInstructions: false },
+      ])
+    );
+    expect((await screen.findByTestId('fire-instructions-none')).textContent).toContain(
+      'nu necesită instrucțiuni specifice PSI'
+    );
+    expect(screen.getByTestId('instructions-empty')).toBeTruthy();
   });
 
   it('records that a post needs none, and takes it back', async () => {
@@ -414,7 +621,7 @@ describe("a job position's instructions", () => {
     await user.click(screen.getByTestId('instructions-decide-none'));
     await waitFor(() =>
       expect(bodies(`${positionsPath}/${fitter.id}/instructions-decision`, 'PATCH')).toEqual([
-        { needsInstructions: false },
+        { domain: 'ssm', needsInstructions: false },
       ])
     );
     expect((await screen.findByTestId('instructions-none')).textContent).toContain(
@@ -440,7 +647,7 @@ describe("a job position's instructions", () => {
     await user.click(screen.getByTestId('instructions-pick-save'));
     await waitFor(() =>
       expect(bodies(`${positionsPath}/${welder.id}/instructions`, 'PUT')).toEqual([
-        { moduleIds: [ladders.id, offices.id] },
+        { domain: 'ssm', moduleIds: [ladders.id, offices.id] },
       ])
     );
   });
@@ -453,7 +660,7 @@ describe("a job position's instructions", () => {
     await user.click(screen.getByTestId('instructions-remove'));
     await waitFor(() =>
       expect(bodies(`${positionsPath}/${welder.id}/instructions`, 'PUT')).toEqual([
-        { moduleIds: [] },
+        { domain: 'ssm', moduleIds: [] },
       ])
     );
   });

@@ -96,6 +96,7 @@ export const ApiErrorResponseMissingItem = {
   fireequipment: 'fire.equipment',
   firesubstances: 'fire.substances',
   fireinstructions: 'fire.instructions',
+  documentsfire_own_instructions: 'documents.fire_own_instructions',
 } as const;
 
 export interface ApiErrorResponse {
@@ -4173,6 +4174,7 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   fireequipment: 'fire.equipment',
   firesubstances: 'fire.substances',
   fireinstructions: 'fire.instructions',
+  documentsfire_own_instructions: 'documents.fire_own_instructions',
 } as const;
 
 export type RegenerationJobResponseJobItemsItem = {
@@ -4306,6 +4308,7 @@ export const DocumentReadinessResponseMissingItem = {
   fireequipment: 'fire.equipment',
   firesubstances: 'fire.substances',
   fireinstructions: 'fire.instructions',
+  documentsfire_own_instructions: 'documents.fire_own_instructions',
 } as const;
 
 /**
@@ -4322,6 +4325,7 @@ export type DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem =
 export const DocumentReadinessResponseUndecidedJobPositionsItemUndecidedItem = {
   equipment: 'equipment',
   instructions: 'instructions',
+  fire_instructions: 'fire_instructions',
 } as const;
 
 export type DocumentReadinessResponseUndecidedJobPositionsItem = {

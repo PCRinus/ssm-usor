@@ -75,6 +75,22 @@ test('a client has the posts its employees fill, and a specialist keeps the list
     .getByRole('navigation', { name: 'breadcrumb' })
     .getByRole('link', { name: 'Posturi de lucru' })
     .click();
+  await expect(page.getByTestId('job-positions-undecided-fire-instructions')).toContainText(
+    '2 posturi nu au instrucțiunile PSI stabilite'
+  );
+  await accountant.getByTestId('job-position-fire-instructions').click();
+  await expect(page).toHaveURL(/\/job-positions\/[0-9a-f-]+#fire-instructions$/);
+  await expect(page.getByTestId('fire-instructions-card')).toBeInViewport();
+  await expect(page.getByTestId('fire-instructions-state')).toHaveText('De stabilit');
+  await page.getByTestId('fire-instructions-decide-none').click();
+  await expect(page.getByTestId('fire-instructions-none')).toBeVisible();
+  await expect(page.getByTestId('instructions-state')).toHaveText('De stabilit');
+  await page
+    .getByRole('navigation', { name: 'breadcrumb' })
+    .getByRole('link', { name: 'Posturi de lucru' })
+    .click();
+  await expect(accountant.getByTestId('job-position-fire-instructions')).toHaveText('Nu necesită');
+  await expect(accountant.getByTestId('job-position-instructions')).toHaveText('De stabilit');
   await accountant.getByTestId('job-position-actions').click();
   await page.getByTestId('job-position-menu-equipment').click();
   await expect(page).toHaveURL(/#protective-equipment$/);
