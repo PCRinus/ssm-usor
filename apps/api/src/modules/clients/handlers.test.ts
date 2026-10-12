@@ -306,14 +306,14 @@ describe('GET /clients', () => {
         fire_safety_generated_type_keys: generated,
         fire_safety_issued_count: generated.length,
       })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 27 });
+    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 28 });
     expect(
       await fireSafetyDocumentationOf({
         current_employee_count: 3,
         fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys, 'fire_own_annex'],
-        fire_safety_issued_count: 28,
+        fire_safety_issued_count: 29,
       })
-    ).toMatchObject({ state: 'issued', issuedCount: 28, totalCount: 28 });
+    ).toMatchObject({ state: 'issued', issuedCount: 29, totalCount: 29 });
   });
 
   it('keeps the two sets apart', async () => {
@@ -324,7 +324,7 @@ describe('GET /clients', () => {
       fire_safety_issued_count: fireSafetyDocumentTypeKeys.length,
     });
     expect(item.documentation).toMatchObject({ state: 'none', totalCount: 23 });
-    expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 27 });
+    expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 28 });
   });
 
   it('answers a page past the end with no rows and the real total', async () => {

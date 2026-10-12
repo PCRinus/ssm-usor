@@ -41,15 +41,34 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const fireDocument = (id: string, typeKey: string, title: string) => ({
+const fireDocument = (
+  id: string,
+  typeKey: string,
+  title: string,
+  period: number | null = null
+) => ({
   id,
   clientId,
   typeKey,
   title,
   decisionNumber: null,
+  period,
   draft: revision({ id: id.replace(/^./, 'f') }),
   issued: null,
 });
+
+const reportTitle = 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor';
+const report2026 = fireDocument(
+  'de8f9a0e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+  'fire_annual_report',
+  reportTitle,
+  2026
+);
+const report2025 = {
+  ...fireDocument('ef9a0b1e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', 'fire_annual_report', reportTitle, 2025),
+  draft: null,
+  issued: revision({ id: '0a1b2c3d-2a6b-4c3d-8e7f-1a2b3c4d5e6f', status: 'issued' }),
+};
 
 const registersId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const permit = fireDocument(
@@ -404,6 +423,7 @@ describe('client fire-safety documents', () => {
         'fire_maintenance_schedules',
         'fire_installation_register',
         'fire_site_sheet',
+        'fire_annual_report',
       ],
     });
     mount();
@@ -422,7 +442,7 @@ describe('client fire-safety documents', () => {
     );
     expect(control!.textContent).toContain('Decizia privind controlul propriu');
     expect(within(seasons!).getByText('Nu se aplică').getAttribute('title')).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați.'
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați.'
     );
 
     await openSection(user, '5');
@@ -456,13 +476,18 @@ describe('client fire-safety documents', () => {
     ]);
 
     await openSection(user, '7');
-    expect(within(sectionOf('7')).getByTestId('document-not-applicable').textContent).toBe(
-      'Fișa obiectivuluiNu se aplicăSub 10 angajați'
-    );
+    expect(
+      within(sectionOf('7'))
+        .getAllByTestId('document-not-applicable')
+        .map((row) => row.textContent)
+    ).toEqual([
+      'Fișa obiectivuluiNu se aplicăSub 10 angajați',
+      `${reportTitle}Nu se aplicăSub 10 angajați`,
+    ]);
 
     await user.click(screen.getByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați.'
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați.'
     );
   });
 
@@ -480,6 +505,7 @@ describe('client fire-safety documents', () => {
         'fire_maintenance_schedules',
         'fire_installation_register',
         'fire_site_sheet',
+        'fire_annual_report',
       ],
     });
     mount();
@@ -487,7 +513,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
+      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
     );
   });
 
@@ -516,15 +542,15 @@ describe('client fire-safety documents', () => {
     ]);
   });
 
-  it('has nothing to generate once every built document exists', async () => {
-    mockApi({ fireItems: allBuilt });
+  it('offers only another year of the dated documents once every built document exists', async () => {
+    mockApi({ fireItems: [...allBuilt, report2026] });
     mount();
     const user = userEvent.setup();
 
     await openSection(user, '6');
     expect(await screen.findAllByTestId('document-row')).toHaveLength(5);
     expect(screen.queryByTestId('document-not-generated')).toBeNull();
-    expect(screen.queryByTestId('documents-generate')).toBeNull();
+    expect(screen.getByTestId('documents-generate').textContent).toBe('Generează pentru alt an');
     expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(
       sectionOf('6').querySelector('[data-testid="document-section-summary"]')!.textContent
@@ -658,8 +684,10 @@ describe('client fire-safety documents', () => {
     const number = screen.getByTestId<HTMLInputElement>('generate-first-number');
     expect(number.value).toBe('1');
     expect(screen.getByText('Numărul primei decizii PSI')).toBeTruthy();
+    const period = screen.getByTestId<HTMLInputElement>('generate-period');
+    expect(period.value).toBe(String(new Date().getFullYear()));
     expect(screen.getByTestId('generate-headcount').textContent).toBe(
-      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului.'
+      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare.'
     );
 
     await user.clear(number);
@@ -672,11 +700,22 @@ describe('client fire-safety documents', () => {
 
     await user.clear(number);
     await user.type(number, '4');
+    await user.clear(period);
+    await user.type(period, '1999');
+    await user.click(screen.getByTestId('generate-submit'));
+    expect((await screen.findByTestId('generate-period-error')).textContent).toContain(
+      'Introdu un an între 2000 și 2100.'
+    );
+    await user.clear(period);
+    await user.type(period, '2025');
     await user.click(screen.getByTestId('generate-submit'));
     expect(await screen.findByText('Au fost generate 2 documente.')).toBeTruthy();
     const [call] = requests('/documents/generate', 'POST');
     expect(call!.url.searchParams.get('set')).toBe('fire_safety');
-    expect(JSON.parse(String(call!.init?.body))).toMatchObject({ firstDecisionNumber: 4 });
+    expect(JSON.parse(String(call!.init?.body))).toMatchObject({
+      firstDecisionNumber: 4,
+      period: 2025,
+    });
   });
 
   it('leads each gap in the client data of the set to the field that fills it', async () => {
@@ -780,6 +819,32 @@ describe('client fire-safety documents', () => {
     expect(runtime.router.history.location.search).toBe('?section=registers');
   });
 
+  it('lists the newest year of a dated document, the earlier ones folded under it', async () => {
+    mockApi({ fireItems: [report2026, report2025] });
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '7');
+    const rows = () => within(sectionOf('7')).getAllByTestId('document-row');
+    expect(rows().map((row) => within(row).getByTestId('document-title').textContent)).toEqual([
+      'Raport anual de evaluare 2026',
+    ]);
+    const toggle = within(sectionOf('7')).getByTestId('document-earlier-toggle');
+    expect(toggle.textContent).toBe('Anii anteriori (1)');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    await user.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    const [, earlier] = rows();
+    expect(within(earlier!).getByTestId('document-title').textContent).toBe(
+      'Raport anual de evaluare 2025'
+    );
+    expect(within(earlier!).getByTestId('document-issued').textContent).toBe('Emis · rev. 1');
+    await user.click(within(earlier!).getByTestId('document-actions'));
+    expect(await screen.findByTestId('document-download-issued')).toBeTruthy();
+    expect(screen.queryByTestId('document-download-draft')).toBeNull();
+  });
+
   it('generates nothing for an archived client', async () => {
     mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount();
@@ -796,7 +861,7 @@ describe('client fire-safety documents', () => {
 describe('fireSafetyHeadcountRule', () => {
   it('speaks of the schedules in the plural, even when they are the only document kept', () => {
     expect(fireSafetyHeadcountRule(4, ['fire_maintenance_schedules'])).toBe(
-      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
+      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
     );
   });
 });

@@ -742,8 +742,8 @@ decision generated again keeps it. The two decisions required only from ten empl
 (ADR 020): 1 organization, 2 training, 3 open fire, 4 smoking, 5 technician, 6 instructions, 7
 waste, 8 seasons, 9 control. Under 10 current employees (`currentEmployeeCount`, the same count
 as decision 1.5's) `fire_decision_seasons`, `fire_decision_control`,
-`fire_maintenance_schedules`, `fire_installation_register` and `fire_site_sheet`
-(`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
+`fire_maintenance_schedules`, `fire_installation_register`, `fire_site_sheet` and
+`fire_annual_report` (`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
 list names them under `notApplicable`; one that exists stays in the list and in the set, and
 generating it again works as for any document. No readiness code belongs to them alone, so the
 readiness is the same either side of ten. Its templates are merged with a context of their own,
@@ -754,6 +754,21 @@ it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cite
 only then. It is
 never merged with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
+
+**Dated types** ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)). A type in
+`datedDocumentTypeKeys`, today only `fire_annual_report`, is held once per client and
+**period**, a year, instead of once per client; every document carries `period`, the year for
+a dated one and null for the rest. The generation's optional `period` (2000 to 2100) is the
+year its dated types are made for, the current year in Romania when left out: a dated type
+with no document of that year gets one, beside the documents of other years, and one of that
+year is left alone and listed under `skipped`, like any document that exists. The other types
+ignore it. A dated document is merged after the rest of the run, from the facts read again,
+because it reports on the set: the annual report states every document of the set with its
+revisions. Its data is the set's context with `fire.annualReport` for its year; every other
+document's `fire` has no `annualReport`, so issuing a document marks only the report's draft as
+changed, not the whole set's. Generating a dated document again keeps its period. The list
+returns a dated type once per period, the newest first; the upload takes `?period=` to name
+the year's document, the newest when left out; a download's file name carries the year.
 
 Generating creates every document type the client does not have yet as revision 1, in draft:
 the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private
@@ -816,7 +831,8 @@ document has no draft; an issued file cannot be written by anyone.
 the same checks. `typeKey` is a built-in type of either set, `documentTypeKeys` or
 `fireSafetyDocumentTypeKeys`, and the document is looked for in that type's set. The file replaces the draft, or starts the next draft beside the issued revision,
 keeping the generation and so the date. An uploaded revision has no template and no data
-snapshot, so it never reports `dataChanged`. A document that does not exist yet answers `409`
+snapshot, so it never reports `dataChanged`. For a dated type, `?period=` names the year's
+document, the newest when left out. A document that does not exist yet answers `409`
 with the reason `not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
 downloading and the editor work on an uploaded document as on any other.
 
@@ -830,7 +846,8 @@ than a `legal` or `correction` version of the same template
 ([ADR 017](architecture/adr-017-legislation-monitoring.md)). A `layout` version alone prompts
 nothing, an uploaded file is never behind, and a hand edit changes nothing about it. Only
 active clients count (not archived, not leads), and the service contract never does: its data
-comes from its own page. The database view `documents_behind` decides it, under the caller's
+comes from its own page. Of a dated type only the client's newest period counts (ADR 020): an
+earlier year's report is what was written for that year. The database view `documents_behind` decides it, under the caller's
 policies.
 
 `GET /documents/behind` lists the organization's documents behind by type, in the pack's

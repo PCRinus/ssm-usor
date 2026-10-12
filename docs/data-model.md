@@ -82,6 +82,8 @@ sort of `sort=documentation`), `documentation_last_generated_at` (the newest
 (`fire_safety_generated_type_keys`, `fire_safety_issued_count`, the sort of
 `sort=fireSafetyDocumentation`, and `fire_safety_last_generated_at`), and `client_since`
 (`coalesce(promoted_at, created_at)`). The contract is `other`, so it counts in neither set.
+A dated document counts only for the current calendar year in Romania (ADR 020): a report of
+an earlier year neither stands for this year's nor counts as issued.
 The view is `security_invoker`, so each table inside answers to the caller's policies, and
 only `authenticated` selects from it. These were computed fields of `clients` at first, one
 query per client per column, which made the list slow; `current_employee_count(clients)`
@@ -415,11 +417,12 @@ seasons and 9 the own control (ADR 020). A fire-safety decision stores its print
 again, with the first number it was made with.
 
 **Documents from ten employees.** Decisions 8 and 9, the schedules (`fire_maintenance_schedules`),
-the installation register (`fire_installation_register`) and the site sheet (`fire_site_sheet`)
-are part of a client's fire-safety set from 10 current employees,
+the installation register (`fire_installation_register`), the site sheet (`fire_site_sheet`)
+and the annual report (`fire_annual_report`) are part of a client's fire-safety set from 10
+current employees,
 the same `current_employee_count(clients)` that decides decision 1.5 (ADR 010, ADR 020), or once
 the client has a revision of them, whatever the count is then. Nothing is stored for it: the
-facts read which of the five have a revision, and the merge data carries `seasonsDecision`,
+facts read which of the six have a revision, and the merge data carries `seasonsDecision`,
 `controlDecision` and `installationRegister` beside `fire`, so a draft of a cover is marked
 "Date modificate" when the client crosses ten, not when any other fact changes.
 
@@ -664,9 +667,18 @@ already is, with the kind and note it was first registered with, and a new hash 
 next version. Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
-fire-safety set (ADR 016). `client_documents` holds a document type once per client (a
-unique constraint), with its title, its set in `document_group`, and, for decisions, the
-`decision_number`, which stays the same across revisions. `document_generations` records
+fire-safety set (ADR 016). `client_documents` holds a document type once per client and
+`period`, with its title, its set in `document_group`, and, for decisions, the
+`decision_number`, which stays the same across revisions. `period` is the year a **dated**
+type reports on ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), a
+`smallint` from 2000 to 2100, and null for every other type; the check
+`client_documents_period_only_dated` sets it exactly for the dated types, today
+`fire_annual_report`, mirroring `datedDocumentTypeKeys` in the contracts. The unique
+constraint `client_documents_type_key` is on `(client_id, type_key, period)` with nulls not
+distinct, so an undated type appears once per client and a dated one once per year, each year
+a document with revisions of its own. A year rather than text because the API and the app
+count with it and it sorts as a number; the half-yearly report ADR 020 defers can add its half
+beside it. `document_generations` records
 what was asked when generating: the set in `document_group` (`documentation_set`, the
 default, or `fire_safety_set`, never `other`), the `issue_date` and the
 `first_decision_number`, which the occupational safety set always has and the fire-safety set
@@ -715,7 +727,9 @@ It carries the document, the client's name, the version the revision came from
 (`revision_version`), the template's newest version with its kind and note, and
 `edited_draft`, set when that revision is a draft saved by hand since it was generated. An
 uploaded revision has no template version and is never in it; neither is the service
-contract (group `other`), which is regenerated from its own page.
+contract (group `other`), which is regenerated from its own page, nor a dated document of an
+earlier period than the client's newest of that type (ADR 020): an earlier year's report is
+what was written for that year.
 
 `regeneration_jobs` holds one document type regenerated for every client behind it: the
 organization, `type_key`, `requested_by` (the member the documents name as their specialist),

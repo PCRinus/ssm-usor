@@ -31,6 +31,7 @@ vi.mock('@ssm-usor/document-engine', () => {
     fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding', 'installationRegister'],
     fire_registers: ['branding'],
     fire_decision_waste: ['fire'],
+    fire_annual_report: ['fire'],
     event_registers: ['branding'],
   };
   class TemplateError extends Error {
@@ -314,6 +315,7 @@ const documentRow = {
   type_key: 'decision_first_aid',
   title: 'Decizia privind responsabilii cu primul ajutor',
   decision_number: 3,
+  period: null,
   document_group: 'documentation_set',
   document_revisions: [revisionRow],
 };
@@ -824,6 +826,7 @@ describe('GET /clients/{clientId}/documents', () => {
             ...documentRow,
             type_key: 'own_instructions',
             decision_number: null,
+            period: null,
             document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
           },
         ]),
@@ -1291,6 +1294,7 @@ describe('POST /documents/{documentId}/regenerate', () => {
         ...documentRow,
         type_key: typeKey,
         decision_number: typeKey.startsWith('decision_') ? 3 : null,
+        period: null,
       }),
     templates: () =>
       Response.json([
@@ -1384,6 +1388,7 @@ describe('the risk evaluations', () => {
     type_key: 'general_training_material',
     title: materialTemplate.title,
     decision_number: null,
+    period: null,
     document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
   });
 
@@ -1449,6 +1454,7 @@ describe('"Date modificate"', () => {
     type_key: typeKey,
     title: typeKey,
     decision_number: null,
+    period: null,
     document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
   });
   const snapshotOf = async (typeKey: string) => {
@@ -1595,6 +1601,7 @@ describe('the training themes', () => {
     type_key: 'training_themes',
     title: themesTemplate.title,
     decision_number: null,
+    period: null,
     document_revisions: [{ ...revisionRow, data_snapshot: snapshot }],
   });
   const withOwnInstructions = {
@@ -2572,6 +2579,7 @@ describe('the fire-safety set', () => {
     type_key: 'fire_cover_registers',
     title: 'Copertă – Registre PSI',
     decision_number: null,
+    period: null,
     document_group: 'fire_safety_set',
     document_revisions: [
       {
@@ -2669,6 +2677,7 @@ describe('the fire-safety set', () => {
       'fire_maintenance_schedules',
       'fire_installation_register',
       'fire_site_sheet',
+      'fire_annual_report',
     ]);
     expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
     expect(searchParam('/rest/v1/document_generations', 'document_group')).toBe(
@@ -2929,6 +2938,7 @@ describe('the fire-safety set', () => {
       'fire_decision_control',
       'fire_maintenance_schedules',
       'fire_site_sheet',
+      'fire_annual_report',
     ]);
     expect(body.items[0]!.draft!.dataChanged).toBe(true);
   });
@@ -2959,6 +2969,7 @@ describe('the fire-safety set', () => {
       ...fireDocumentRow,
       type_key: 'fire_decision_waste',
       decision_number: 10,
+      period: null,
       document_revisions: [{ ...fireDocumentRow.document_revisions[0]! }],
     };
     let fire: unknown;
@@ -3135,6 +3146,7 @@ describe('the fire-safety set', () => {
     id: crypto.randomUUID(),
     type_key: 'fire_decision_waste',
     decision_number: 11,
+    period: null,
     document_revisions: [
       {
         ...fireDocumentRow.document_revisions[0]!,
@@ -3292,5 +3304,182 @@ describe('the fire-safety set', () => {
     expect(response.status).toBe(200);
     expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
     expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH').edited_by).toBe(user.id);
+  });
+
+  describe('a dated document type', () => {
+    const datedTemplates = ['fire_decision_waste', 'fire_annual_report'].map((typeKey) => ({
+      type_key: typeKey,
+      title: typeKey,
+      document_template_versions: [
+        { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+      ],
+    }));
+    const reportRow = (period: number) => ({
+      ...fireDocumentRow,
+      id: crypto.randomUUID(),
+      type_key: 'fire_annual_report',
+      title: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+      period,
+    });
+    const tenEmployees = () => new Response(null, { headers: { 'content-range': '0-0/10' } });
+    const conditionalReads = () =>
+      fetchMock.mock.calls.filter(([input]) => isConditionalDocumentsRead(new URL(String(input))));
+    const createdDocuments = () =>
+      calls('/rest/v1/client_documents', 'POST').map((_, index) =>
+        sentBody('/rest/v1/client_documents', index)
+      );
+    const snapshots = () =>
+      calls('/rest/v1/document_revisions', 'POST').map(
+        (_, index) =>
+          sentBody('/rest/v1/document_revisions', index).data_snapshot as {
+            fire?: { annualReport?: { year: number } };
+          }
+      );
+
+    it('is generated for the year asked, last, from the set as the run leaves it', async () => {
+      mockUpstream({
+        templates: () => Response.json([...fireTemplateRows, ...datedTemplates]),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        employees: tenEmployees,
+      });
+      const response = await generate('fire_safety', {
+        issueDate: '2026-10-01',
+        firstDecisionNumber: 4,
+        period: 2025,
+      });
+      expect(response.status).toBe(201);
+      const documents = createdDocuments();
+      expect(documents.map((document) => [document.type_key, document.period])).toEqual([
+        ['fire_registers', null],
+        ['fire_cover_registers', null],
+        ['fire_decision_waste', null],
+        ['fire_annual_report', 2025],
+      ]);
+      const [decision, report] = snapshots().filter((snapshot) => snapshot?.fire);
+      expect(decision!.fire).not.toHaveProperty('annualReport');
+      expect(report!.fire!.annualReport!.year).toBe(2025);
+      expect(conditionalReads()).toHaveLength(2);
+    });
+
+    it('takes the current year when none is asked', async () => {
+      mockUpstream({
+        templates: () => Response.json(datedTemplates.slice(1)),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        employees: tenEmployees,
+      });
+      expect((await generate('fire_safety')).status).toBe(201);
+      const year = Number(
+        new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Europe/Bucharest' }).format(
+          new Date()
+        )
+      );
+      expect(createdDocuments()).toEqual([
+        expect.objectContaining({ type_key: 'fire_annual_report', period: year }),
+      ]);
+    });
+
+    it('makes another document for another year and leaves the one of its year', async () => {
+      const existing = [fireDocumentRow, reportRow(2026)];
+      const generated = async (period: number) => {
+        fetchMock.mockClear();
+        mockUpstream({
+          templates: () => Response.json([fireTemplateRows[1], ...datedTemplates.slice(1)]),
+          documents: (init) =>
+            init?.method === 'POST'
+              ? Response.json({ id: fireDocumentId })
+              : Response.json(existing),
+          employees: tenEmployees,
+        });
+        const response = await generate('fire_safety', {
+          issueDate: '2026-10-01',
+          firstDecisionNumber: 4,
+          period,
+        });
+        expect(response.status).toBe(201);
+        return {
+          created: createdDocuments().map((document) => [document.type_key, document.period]),
+          skipped: generateDocumentsResponseSchema.parse(await response.json()).skipped,
+        };
+      };
+      expect(await generated(2025)).toEqual({
+        created: [['fire_annual_report', 2025]],
+        skipped: ['fire_cover_registers'],
+      });
+      expect(await generated(2026)).toEqual({
+        created: [],
+        skipped: ['fire_cover_registers', 'fire_annual_report'],
+      });
+    });
+
+    it('is listed once per year, the newest first, each with its period', async () => {
+      mockUpstream({
+        documents: () => Response.json([reportRow(2025), fireDocumentRow, reportRow(2026)]),
+        employees: tenEmployees,
+      });
+      const body = clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents?set=fire_safety`)).json()
+      );
+      expect(body.items.map((item) => [item.typeKey, item.period])).toEqual([
+        ['fire_cover_registers', null],
+        ['fire_annual_report', 2026],
+        ['fire_annual_report', 2025],
+      ]);
+    });
+
+    it('names a download after the year, so the years do not share a file name', async () => {
+      mockUpstream({
+        revisions: () =>
+          Response.json({
+            docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
+            revision: 1,
+            client_documents: {
+              title: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+              period: 2025,
+            },
+          }),
+      });
+      const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
+      expect(documentDownloadResponseSchema.parse(await response.json()).fileName).toBe(
+        'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor 2025 - rev. 1.docx'
+      );
+    });
+
+    it("takes an uploaded file as the draft of the year's document named", async () => {
+      const [earlier, newer] = [reportRow(2025), reportRow(2026)];
+      const uploaded = async (query: string) => {
+        fetchMock.mockClear();
+        mockUpstream({
+          documents: (_, url) =>
+            url?.searchParams.has('id')
+              ? Response.json(url.searchParams.get('id') === `eq.${earlier.id}` ? earlier : newer)
+              : Response.json([earlier, newer]),
+        });
+        const response = await createApp().request(
+          `/clients/${clientId}/documents/fire_annual_report/upload${query}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer test-access-token',
+              'Content-Type':
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            },
+            body: new Uint8Array([
+              0x50,
+              0x4b,
+              0x03,
+              0x04,
+              ...new TextEncoder().encode('…word/document.xml…'),
+            ]),
+          },
+          env
+        );
+        expect(response.status).toBe(200);
+        return clientDocumentResponseSchema.parse(await response.json()).document.period;
+      };
+      expect(await uploaded('?period=2025')).toBe(2025);
+      expect(await uploaded('')).toBe(2026);
+    });
   });
 });

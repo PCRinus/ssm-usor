@@ -24,13 +24,28 @@ export function generateDocumentsFormSchema(set: DocumentSet) {
       .trim()
       .regex(/^\d{1,4}$/, outOfRange)
       .refine((value) => Number(value) >= 1 && Number(value) <= max, { message: outOfRange }),
+    // Asked only when the set holds a dated type for this client; otherwise it keeps its default.
+    period: z
+      .string()
+      .trim()
+      .regex(/^\d{4}$/, periodOutOfRange)
+      .refine((value) => Number(value) >= 2000 && Number(value) <= 2100, {
+        message: periodOutOfRange,
+      }),
   });
 }
+
+const periodOutOfRange = 'Introdu un an între 2000 și 2100.';
 
 export type GenerateDocumentsFormValues = z.infer<ReturnType<typeof generateDocumentsFormSchema>>;
 
 export function toGenerateDocumentsRequest(
-  values: GenerateDocumentsFormValues
+  values: GenerateDocumentsFormValues,
+  asksPeriod: boolean
 ): GenerateDocumentsRequest {
-  return { issueDate: values.issueDate, firstDecisionNumber: Number(values.firstDecisionNumber) };
+  return {
+    issueDate: values.issueDate,
+    firstDecisionNumber: Number(values.firstDecisionNumber),
+    ...(asksPeriod ? { period: Number(values.period) } : {}),
+  };
 }

@@ -956,6 +956,201 @@ function siteSheetSample({
   };
 }
 
+// The annual report 7.2 (ADR 020) for 2026, built as the API builds it from the samples' set: the
+// long one with its three workplaces and decision 9, the short one under ten employees, whose
+// set holds no decision 9 and no site sheet.
+function annualReportSample(people: ReturnType<typeof person>[], long: boolean) {
+  const [first] = people;
+  const decision = (number: number, subject: string) => ({
+    title: `Decizia privind ${subject}`,
+    reference: `nr.\u00a0${number}\u00a0PSI din 19.01.2026`,
+  });
+  const subjects = [
+    'organizarea apărării împotriva incendiilor',
+    'instruirea în domeniul situațiilor de urgență',
+    'lucrul cu foc deschis',
+    'fumatul',
+    'cadrul tehnic PSI',
+    'instrucțiunile de apărare împotriva incendiilor',
+    'colectarea deșeurilor',
+    ...(long ? ['perioadele caniculare și sezonul rece', 'controlul propriu'] : []),
+  ];
+  const issued = 'emis, rev.\u00a01 din 19.01.2026';
+  const draft = 'ciornă, rev.\u00a01 din 19.01.2026';
+  const extinguisher = (what: string, count: number, next: string) => ({
+    what,
+    quantity: `${count}\u00a0buc.`,
+    next,
+  });
+  const shop = {
+    name: long ? 'Punct de lucru Calea Aradului' : 'Punct de lucru',
+    place: `${long ? 'Punct de lucru Calea Aradului' : 'Punct de lucru'}, Timișoara, județul Timiș, Str. Gheorghe Lazăr 24`,
+    rows: [
+      extinguisher('Stingător P6 – pulbere, 6\u00a0kg', 2, '15.01.2027, 12.03.2027'),
+      extinguisher('Stingător G5 – dioxid de carbon (CO₂), 5\u00a0kg', 1, '—'),
+    ],
+  };
+  const workplaces = long
+    ? [
+        shop,
+        {
+          name: 'Depozit central',
+          place: 'Depozit central, Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+          rows: [
+            extinguisher('Stingător P6 – pulbere, 6\u00a0kg', 6, '01.04.2027'),
+            extinguisher('Stingător P50 carosabil – pulbere, 50\u00a0kg', 1, '01.04.2027'),
+            extinguisher('Stingător SM9 – spumă mecanică, 9\u00a0l', 2, '—'),
+            { what: 'Ladă cu nisip', quantity: '1\u00a0buc.', next: '—' },
+            { what: 'Post de intervenție PSI', quantity: '1\u00a0buc.', next: '—' },
+            {
+              what: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+              quantity: '1 instalație',
+              next: '12.09.2026',
+            },
+            {
+              what: 'Hidranți interiori – Câte doi pe fiecare nivel',
+              quantity: '1 instalație',
+              next: '12.03.2027',
+            },
+            { what: 'Hidranți exteriori', quantity: '1 instalație', next: '—' },
+          ],
+        },
+        {
+          name: 'Șantier Dumbrăvița',
+          place: 'Șantier Dumbrăvița, Dumbrăvița, județul Timiș, Str. Petőfi Sándor 50',
+          rows: [extinguisher('Stingător P6 – pulbere, 6\u00a0kg', 2, '—')],
+        },
+      ]
+    : [shop];
+  const documents = [
+    ...subjects.map((subject, index) => ({
+      title: `Decizia privind ${subject}`,
+      state: index < 2 ? issued : draft,
+    })),
+    { title: 'Instrucțiuni proprii în domeniul situațiilor de urgență', state: draft },
+    { title: 'Tematica de instruire în domeniul situațiilor de urgență', state: draft },
+    { title: 'Test la angajare', state: draft },
+    { title: 'Test anual', state: draft },
+    { title: 'Lista mijloacelor de apărare împotriva incendiilor', state: draft },
+    {
+      title: 'Organizarea apărării împotriva incendiilor la locul de muncă',
+      state: draft,
+    },
+    { title: 'Lista substanțelor periculoase', state: draft },
+    ...(long ? [{ title: 'Graficele de întreținere și verificare', state: draft }] : []),
+    {
+      title: 'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
+      state: draft,
+    },
+    { title: 'Permis de lucru cu foc', state: draft },
+    ...(long
+      ? [
+          {
+            title: 'Registru de control pentru instalațiile de apărare împotriva incendiilor',
+            state: 'negenerat',
+          },
+        ]
+      : []),
+    { title: 'Registru de evidență a controlului stingătoarelor de incendiu', state: draft },
+    ...(long ? [{ title: 'Fișa obiectivului', state: draft }] : []),
+  ];
+  const coordinator = `${people.at(-1)!.name}, ${people.at(-1)!.jobTitle}`;
+  const controls = [
+    {
+      who: 'Coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic',
+      interval: 'trimestrial: martie, iunie, septembrie, decembrie',
+      scope: 'pe tot perimetrul',
+    },
+    {
+      who: 'Coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic',
+      interval: 'trimestrial: martie, iunie, septembrie, decembrie',
+      scope: 'la persoanele juridice care desfășoară activități în spațiile operatorului',
+    },
+    {
+      who: 'Coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
+      interval: 'lunar',
+      scope: 'fiecare stingător de incendiu',
+    },
+    {
+      who: 'Coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
+      interval: 'la cel mult 6 luni: iunie, decembrie',
+      scope: 'stingătoarele cu CO₂ sau agent curat, prin cântărire',
+    },
+    {
+      who: 'Șefii locurilor de muncă',
+      interval: 'zilnic sau pe schimb',
+      scope: 'locul de muncă condus',
+    },
+    {
+      who: 'Personalul de execuție',
+      interval: 'zilnic',
+      scope: 'zona de lucru, la terminarea programului',
+    },
+    {
+      who: 'Administrator, cu coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic',
+      interval: 'anual: ianuarie',
+      scope: 'pe tot perimetrul',
+    },
+  ];
+  return {
+    year: 2026,
+    nextYear: 2027,
+    decisions: subjects.map((subject, index) => decision(index + 1, subject)),
+    coordinator,
+    interventionLeader: `${first!.name}, ${first!.jobTitle}`,
+    workplaceManagers: listed(people.map(({ name }) => name)),
+    staff: long
+      ? [
+          {
+            label: 'Personal de execuție',
+            posts: 'Barman preparator, Lucrător comercial, Operator montaj linii automate',
+            headcount: '13 angajați',
+          },
+        ]
+      : [
+          { label: 'Personal administrativ', posts: 'Manager magazin', headcount: '1 angajat' },
+          {
+            label: 'Personal de execuție',
+            posts: 'Barman preparator, Lucrător comercial',
+            headcount: '3 angajați',
+          },
+        ],
+    headcount: long ? '14 angajați' : '4 angajați',
+    workplaces,
+    periodicLabel: '2\u00a0ore',
+    training: long
+      ? [
+          {
+            label: 'Personal de execuție',
+            posts: 'Barman preparator, Lucrător comercial, Operator montaj linii automate',
+            interval: 'la 1 lună',
+            months:
+              'ianuarie, februarie, martie, aprilie, mai, iunie, iulie, august, septembrie, octombrie, noiembrie, decembrie',
+          },
+        ]
+      : [
+          {
+            label: 'Personal administrativ',
+            posts: 'Manager magazin',
+            interval: 'la 3 luni',
+            months: 'februarie, mai, august, noiembrie',
+          },
+          {
+            label: 'Personal de execuție',
+            posts: 'Barman preparator, Lucrător comercial',
+            interval: 'la 3 luni',
+            months: 'februarie, mai, august, noiembrie',
+          },
+        ],
+    controls: long ? controls : [],
+    hasControls: long,
+    noControls: !long,
+    documents,
+    missingCount: long ? 1 : 0,
+    allGenerated: !long,
+  };
+}
+
 function sample(
   label: string,
   legalName: string,
@@ -1180,6 +1375,7 @@ function sample(
           people,
           long: people.length > 1,
         }),
+        annualReport: annualReportSample(people, people.length > 1),
       },
       seasonsDecision: true,
       controlDecision: true,

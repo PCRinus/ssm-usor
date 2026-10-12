@@ -4178,6 +4178,7 @@ export const StartRegenerationRequestTypeKey = {
   fire_installation_register: 'fire_installation_register',
   fire_extinguisher_register: 'fire_extinguisher_register',
   fire_site_sheet: 'fire_site_sheet',
+  fire_annual_report: 'fire_annual_report',
 } as const;
 
 export interface StartRegenerationRequest {
@@ -4468,6 +4469,12 @@ export type ClientDocumentListResponseItemsItem = {
   title: string;
   /** @nullable */
   decisionNumber: number | null;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   * @nullable
+   */
+  period: number | null;
   /** @nullable */
   draft: ClientDocumentListResponseItemsItemDraft;
   /** @nullable */
@@ -4542,6 +4549,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   fire_installation_register: 'fire_installation_register',
   fire_extinguisher_register: 'fire_extinguisher_register',
   fire_site_sheet: 'fire_site_sheet',
+  fire_annual_report: 'fire_annual_report',
 } as const;
 
 export interface ClientDocumentListResponse {
@@ -4734,6 +4742,12 @@ export type GenerateDocumentsResponseCreatedItem = {
   title: string;
   /** @nullable */
   decisionNumber: number | null;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   * @nullable
+   */
+  period: number | null;
   /** @nullable */
   draft: GenerateDocumentsResponseCreatedItemDraft;
   /** @nullable */
@@ -4752,6 +4766,11 @@ export interface GenerateDocumentsRequest {
    * @maximum 9995
    */
   firstDecisionNumber?: number;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   */
+  period?: number;
 }
 
 export interface DocumentDownloadResponse {
@@ -4941,6 +4960,12 @@ export type ClientDocumentResponseDocument = {
   title: string;
   /** @nullable */
   decisionNumber: number | null;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   * @nullable
+   */
+  period: number | null;
   /** @nullable */
   draft: ClientDocumentResponseDocumentDraft;
   /** @nullable */
@@ -5324,6 +5349,12 @@ export type ServiceContractResponseDocument = {
   title: string;
   /** @nullable */
   decisionNumber: number | null;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   * @nullable
+   */
+  period: number | null;
   /** @nullable */
   draft: ServiceContractResponseDocumentDraft;
   /** @nullable */
@@ -6035,6 +6066,10 @@ export const GetDocumentDownloadFormat = {
   pdf: 'pdf',
   signed: 'signed',
 } as const;
+
+export type UploadClientDocumentParams = {
+  period?: number;
+};
 
 export type UploadClientFileParams = {
   /**
@@ -18711,7 +18746,7 @@ export const getGenerateClientDocumentsUrl = (
 };
 
 /**
- * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one.
+ * Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one. `period` is the year the set's dated types report on (ADR 020), the current year in Romania when left out: a dated type is generated once per period, so another year makes another document of it beside the earlier ones, merged after the rest of the run so that it reads the set as the run leaves it.
  * @summary Generate the documents one of a client's documentation sets does not have yet
  */
 export const generateClientDocuments = async (
@@ -19952,12 +19987,26 @@ export const getUploadClientDocumentUrl = (
     | 'fire_installation_register'
     | 'fire_extinguisher_register'
     | 'fire_site_sheet'
+    | 'fire_annual_report',
+  params?: UploadClientDocumentParams
 ) => {
-  return `/clients/${clientId}/documents/${typeKey}/upload`;
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/documents/${typeKey}/upload?${stringifiedParams}`
+    : `/clients/${clientId}/documents/${typeKey}/upload`;
 };
 
 /**
- * Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`.
+ * Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`. For a dated type (ADR 020), `period` names the year's document; left out, the newest year's.
  * @summary Take a Word file written elsewhere as a document's draft
  */
 export const uploadClientDocument = async (
@@ -20013,8 +20062,10 @@ export const uploadClientDocument = async (
     | 'fire_work_permit'
     | 'fire_installation_register'
     | 'fire_extinguisher_register'
-    | 'fire_site_sheet',
+    | 'fire_site_sheet'
+    | 'fire_annual_report',
   uploadClientDocumentBody: Blob,
+  params?: UploadClientDocumentParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientDocumentResponse> => {
   const getHeaders = (
@@ -20036,7 +20087,7 @@ export const uploadClientDocument = async (
     }
     return headers;
   };
-  return apiFetch<ClientDocumentResponse>(getUploadClientDocumentUrl(clientId, typeKey), {
+  return apiFetch<ClientDocumentResponse>(getUploadClientDocumentUrl(clientId, typeKey, params), {
     ...options,
     method: 'POST',
     headers: {
@@ -20077,9 +20128,9 @@ export const getUploadClientDocumentMutationOptions = <
     Awaited<ReturnType<typeof uploadClientDocument>>,
     UploadClientDocumentMutationVariables
   > = (props) => {
-    const { clientId, typeKey, data } = props ?? {};
+    const { clientId, typeKey, data, params } = props ?? {};
 
-    return uploadClientDocument(clientId, typeKey, data, requestOptions);
+    return uploadClientDocument(clientId, typeKey, data, params, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -20143,8 +20194,10 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_work_permit'
     | 'fire_installation_register'
     | 'fire_extinguisher_register'
-    | 'fire_site_sheet';
+    | 'fire_site_sheet'
+    | 'fire_annual_report';
   data: Blob;
+  params?: UploadClientDocumentParams;
 };
 
 /**

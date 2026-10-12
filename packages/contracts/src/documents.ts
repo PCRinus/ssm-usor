@@ -70,6 +70,7 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_installation_register',
   'fire_extinguisher_register',
   'fire_site_sheet',
+  'fire_annual_report',
 ] as const;
 
 export const fireSafetyDocumentTypeKeySchema = z.enum(fireSafetyDocumentTypeKeys);
@@ -155,9 +156,70 @@ export const fireSafetyTypeKeysFromTenEmployees = [
   'fire_maintenance_schedules',
   'fire_installation_register',
   'fire_site_sheet',
+  'fire_annual_report',
 ] as const satisfies readonly FireSafetyDocumentTypeKey[];
 
 export type FireSafetyTypeKeyFromTenEmployees = (typeof fireSafetyTypeKeysFromTenEmployees)[number];
+
+/**
+ * The template titles of the fire-safety set, which the documents name each other by before
+ * they exist. Held to the fire-safety manifest by a test.
+ */
+export const fireSafetyDocumentTitles = {
+  fire_cover_decisions: 'Copertă – Deciziile interne în domeniul situațiilor de urgență',
+  fire_decision_organization: 'Decizia privind organizarea apărării împotriva incendiilor',
+  fire_decision_training: 'Decizia privind instruirea în domeniul situațiilor de urgență',
+  fire_decision_open_fire: 'Decizia privind lucrul cu foc deschis',
+  fire_decision_smoking: 'Decizia privind fumatul',
+  fire_decision_technician: 'Decizia privind cadrul tehnic PSI',
+  fire_decision_instructions: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
+  fire_decision_waste: 'Decizia privind colectarea deșeurilor',
+  fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
+  fire_decision_control: 'Decizia privind controlul propriu',
+  fire_cover_own_instructions:
+    'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+  fire_own_instructions: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+  fire_cover_training_themes: 'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+  fire_training_themes: 'Tematica de instruire în domeniul situațiilor de urgență',
+  fire_cover_tests: 'Copertă – Testele de verificare a cunoștințelor',
+  fire_test_hiring: 'Test la angajare',
+  fire_test_annual: 'Test anual',
+  fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
+  fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
+  fire_substances_list: 'Lista substanțelor periculoase',
+  fire_maintenance_schedules: 'Graficele de întreținere și verificare',
+  fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
+  fire_registers:
+    'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
+  fire_work_permit: 'Permis de lucru cu foc',
+  fire_installation_register:
+    'Registru de control pentru instalațiile de apărare împotriva incendiilor',
+  fire_extinguisher_register: 'Registru de evidență a controlului stingătoarelor de incendiu',
+  fire_site_sheet: 'Fișa obiectivului',
+  fire_annual_report: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+} as const satisfies Record<FireSafetyDocumentTypeKey, string>;
+
+/**
+ * The types a client holds once per period rather than once (ADR 020), each period a document
+ * with revisions of its own. Mirrors the check `client_documents_period_only_dated`.
+ */
+export const datedDocumentTypeKeys = [
+  'fire_annual_report',
+] as const satisfies readonly BuiltInDocumentTypeKey[];
+
+export type DatedDocumentTypeKey = (typeof datedDocumentTypeKeys)[number];
+
+export function isDatedDocumentType(typeKey: string): typeKey is DatedDocumentTypeKey {
+  return (datedDocumentTypeKeys as readonly string[]).includes(typeKey);
+}
+
+/** A period is a year; the database holds it to the same range. */
+export const documentPeriodSchema = z.int().min(2000).max(2100);
+
+/** Uploading a dated type names the period's document; left out, the newest period's. */
+export const documentUploadQuerySchema = z.object({
+  period: z.coerce.number().pipe(documentPeriodSchema).optional(),
+});
 
 // The binder holds nine fire-safety decisions, and the ninth's number must fit in four digits.
 export const maxFirstFireDecisionNumber = 9991;
@@ -383,6 +445,8 @@ export const clientDocumentSchema = z.object({
   title: z.string(),
   // Set for decisions.
   decisionNumber: z.int().nullable(),
+  // The year a dated document reports on (ADR 020); null for every other type.
+  period: documentPeriodSchema.nullable(),
   draft: documentRevisionSchema.nullable(),
   issued: documentRevisionSchema.nullable(),
 });
@@ -410,6 +474,10 @@ export const generateDocumentsRequestSchema = z.object({
   // Decisions are numbered from here: "Decizia nr. 1 SSM". Left out, the occupational safety
   // set starts from 1; the fire-safety set requires it, at most `maxFirstFireDecisionNumber`.
   firstDecisionNumber: z.int().min(1).max(9995).optional(),
+  // The year the set's dated documents report on (ADR 020); left out, the current year.
+  // Another year makes another document of each dated type, the documents of other types
+  // being left as they are.
+  period: documentPeriodSchema.optional(),
 });
 
 export type GenerateDocumentsRequest = z.infer<typeof generateDocumentsRequestSchema>;

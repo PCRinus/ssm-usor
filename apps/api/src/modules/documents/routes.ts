@@ -8,6 +8,7 @@ import {
   documentReadinessResponseSchema,
   documentsBehindResponseSchema,
   documentSetQuerySchema,
+  documentUploadQuerySchema,
   generateDocumentsRequestSchema,
   generateDocumentsResponseSchema,
   issueDocumentRequestSchema,
@@ -88,7 +89,7 @@ export const generateClientDocumentsRoute = createRoute({
   operationId: 'generateClientDocuments',
   summary: "Generate the documents one of a client's documentation sets does not have yet",
   description:
-    "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one.",
+    "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one. `period` is the year the set's dated types report on (ADR 020), the current year in Romania when left out: a dated type is generated once per period, so another year makes another document of it beside the earlier ones, merged after the rest of the run so that it reads the set as the run leaves it.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -420,11 +421,12 @@ export const uploadClientDocumentRoute = createRoute({
   operationId: 'uploadClientDocument',
   summary: "Take a Word file written elsewhere as a document's draft",
   description:
-    'Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`.',
+    "Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`. For a dated type (ADR 020), `period` names the year's document; left out, the newest year's.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
     params: uploadParams,
+    query: documentUploadQuerySchema,
     body: {
       required: true,
       content: {

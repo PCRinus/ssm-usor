@@ -30,6 +30,7 @@ import {
 
 import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
+import { type AnnualReportContext, buildAnnualReport } from './annual-report';
 import { documentApplies, type DocumentFacts, months, printedDate } from './context';
 import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
@@ -123,6 +124,16 @@ export type FireSafetyClientFacts = {
   }[];
   /** Those of the documents required from ten employees the client has, whatever its count now. */
   generatedFromTenEmployees: FireSafetyTypeKeyFromTenEmployees[];
+  /** The documents of the set that have a revision, each with its current draft and issued one. */
+  documents: {
+    typeKey: string;
+    title: string;
+    decisionNumber: number | null;
+    period: number | null;
+    /** `issueDate` null for an uploaded file. */
+    draft: { revision: number; issueDate: string | null } | null;
+    issued: { revision: number; issueDate: string | null } | null;
+  }[];
   /** `undecided` too while the client has no fire-safety row. */
   substances: { state: FireSubstancesState; entries: FireSubstanceFacts[] };
 };
@@ -275,6 +286,11 @@ export type FireContext = {
   schedules: FireScheduleContext[];
   /** The site sheet 7.1 (ADR 020): every row of OMAI 89/2013 annex 4, filled or a gap. */
   siteSheet: SiteSheetContext;
+  /**
+   * The annual report 7.2 for its period (ADR 020), only in a dated document's data: it reads
+   * the set's documents, which would otherwise mark every draft changed when one is issued.
+   */
+  annualReport?: AnnualReportContext;
   /** The list 5.3: the declaration with `none`, a block per entry with `listed`. */
   substances: {
     state: 'none' | 'listed';
@@ -313,6 +329,7 @@ export type FireSafetyContext = {
 export type FireSafetySetFacts = Pick<
   DocumentFacts,
   | 'issueDate'
+  | 'period'
   | 'currentEmployeeCount'
   | 'firstDecisionNumber'
   | 'branding'
@@ -341,7 +358,7 @@ const workplaceComplete = (workplace: FireWorkplaceFacts) =>
     (workplace.floorAreaM2 !== null && workplace.extinguisherNorm !== null));
 
 export function missingFireSafetyData(
-  facts: Omit<FireSafetySetFacts, 'issueDate' | 'firstDecisionNumber' | 'branding'>
+  facts: Omit<FireSafetySetFacts, 'issueDate' | 'period' | 'firstDecisionNumber' | 'branding'>
 ): FireSafetyMissingData[] {
   const { card } = facts.fireSafety;
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
@@ -704,6 +721,19 @@ function fireContext(
       collectors: card.wasteCollectors?.trim() || null,
     },
     substances: fireSubstances(facts.fireSafety.substances),
+    ...(facts.period === null
+      ? {}
+      : {
+          annualReport: buildAnnualReport({
+            facts,
+            year: facts.period,
+            coordinator,
+            interventionLeader,
+            workplaceManagerNames: managerNames,
+            representativeRole: facts.client.representativeRole?.trim() ?? '',
+            inSet,
+          }),
+        }),
     siteSheet: buildSiteSheet({
       facts,
       decisionNumbers,

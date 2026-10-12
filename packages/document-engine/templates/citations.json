@@ -16615,6 +16615,32 @@
       "text": null
     },
     {
+      "manifest": "fire",
+      "file": "fire/7.2_fire_annual_report.docx",
+      "typeKey": "fire_annual_report",
+      "paragraph": 2,
+      "lastParagraph": 2,
+      "block": null,
+      "form": "reference",
+      "act": "omai-163-2007",
+      "article": "18",
+      "locator": null,
+      "text": null
+    },
+    {
+      "manifest": "fire",
+      "file": "fire/7.2_fire_annual_report.docx",
+      "typeKey": "fire_annual_report",
+      "paragraph": 2,
+      "lastParagraph": 2,
+      "block": null,
+      "form": "reference",
+      "act": "lege-307-2006",
+      "article": "27",
+      "locator": null,
+      "text": null
+    },
+    {
       "manifest": "other",
       "file": "other/service_contract.docx",
       "typeKey": "service_contract",

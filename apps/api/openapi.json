@@ -6058,7 +6058,8 @@
               "fire_work_permit",
               "fire_installation_register",
               "fire_extinguisher_register",
-              "fire_site_sheet"
+              "fire_site_sheet",
+              "fire_annual_report"
             ]
           }
         },
@@ -6222,6 +6223,12 @@
                   "type": "integer",
                   "nullable": true
                 },
+                "period": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 2000,
+                  "maximum": 2100
+                },
                 "draft": {
                   "type": "object",
                   "nullable": true,
@@ -6517,6 +6524,7 @@
                 "typeKey",
                 "title",
                 "decisionNumber",
+                "period",
                 "draft",
                 "issued"
               ]
@@ -6594,7 +6602,8 @@
                 "fire_work_permit",
                 "fire_installation_register",
                 "fire_extinguisher_register",
-                "fire_site_sheet"
+                "fire_site_sheet",
+                "fire_annual_report"
               ]
             }
           },
@@ -6630,6 +6639,12 @@
                 "decisionNumber": {
                   "type": "integer",
                   "nullable": true
+                },
+                "period": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 2000,
+                  "maximum": 2100
                 },
                 "draft": {
                   "type": "object",
@@ -6926,6 +6941,7 @@
                 "typeKey",
                 "title",
                 "decisionNumber",
+                "period",
                 "draft",
                 "issued"
               ]
@@ -6951,6 +6967,11 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 9995
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 2000,
+            "maximum": 2100
           }
         },
         "required": ["issueDate"]
@@ -6994,6 +7015,12 @@
               "decisionNumber": {
                 "type": "integer",
                 "nullable": true
+              },
+              "period": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 2000,
+                "maximum": 2100
               },
               "draft": {
                 "type": "object",
@@ -7284,7 +7311,16 @@
                 ]
               }
             },
-            "required": ["id", "clientId", "typeKey", "title", "decisionNumber", "draft", "issued"]
+            "required": [
+              "id",
+              "clientId",
+              "typeKey",
+              "title",
+              "decisionNumber",
+              "period",
+              "draft",
+              "issued"
+            ]
           }
         },
         "required": ["document"]
@@ -7651,6 +7687,12 @@
                 "type": "integer",
                 "nullable": true
               },
+              "period": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 2000,
+                "maximum": 2100
+              },
               "draft": {
                 "type": "object",
                 "nullable": true,
@@ -7940,7 +7982,16 @@
                 ]
               }
             },
-            "required": ["id", "clientId", "typeKey", "title", "decisionNumber", "draft", "issued"]
+            "required": [
+              "id",
+              "clientId",
+              "typeKey",
+              "title",
+              "decisionNumber",
+              "period",
+              "draft",
+              "issued"
+            ]
           },
           "lastSend": {
             "type": "object",
@@ -19790,7 +19841,7 @@
       "post": {
         "operationId": "generateClientDocuments",
         "summary": "Generate the documents one of a client's documentation sets does not have yet",
-        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one.",
+        "description": "Every built-in document type of the set named by `set` (the occupational safety one when left out) that the client lacks is merged from its template and stored as revision 1, in draft. Documents that exist are left as they are and listed under `skipped`; the other set is never touched. Refused with the reason `missing_document_data` while the set's readiness list is not empty, which `missing` repeats. `firstDecisionNumber` numbers the decisions: left out, the occupational safety set starts from 1, and the fire-safety set is refused with `validation_error`; each fire-safety decision prints the first number plus its place in the binder minus one. `period` is the year the set's dated types report on (ADR 020), the current year in Romania when left out: a dated type is generated once per period, so another year makes another document of it beside the earlier ones, merged after the rest of the run so that it reads the set as the run leaves it.",
         "security": [
           {
             "bearerAuth": []
@@ -20998,7 +21049,7 @@
       "post": {
         "operationId": "uploadClientDocument",
         "summary": "Take a Word file written elsewhere as a document's draft",
-        "description": "Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`.",
+        "description": "Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`. For a dated type (ADR 020), `period` names the year's document; left out, the newest year's.",
         "security": [
           {
             "bearerAuth": []
@@ -21068,12 +21119,21 @@
                 "fire_work_permit",
                 "fire_installation_register",
                 "fire_extinguisher_register",
-                "fire_site_sheet"
+                "fire_site_sheet",
+                "fire_annual_report"
               ]
             },
             "required": true,
             "name": "typeKey",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "required": false,
+            "name": "period",
+            "in": "query"
           }
         ],
         "requestBody": {

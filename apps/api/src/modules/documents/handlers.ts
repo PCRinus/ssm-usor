@@ -69,6 +69,7 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
   const missing = setRules[set].missing({
     ...facts,
     issueDate: '2000-01-01',
+    period: null,
     firstDecisionNumber: 1,
   });
   const occupational = set === 'occupational_safety';
@@ -212,6 +213,7 @@ export const uploadClientDocument: RouteHandler<typeof uploadClientDocumentRoute
   c
 ) => {
   const { clientId, typeKey } = c.req.valid('param');
+  const { period } = c.req.valid('query');
   const bytes = new Uint8Array(await c.req.arrayBuffer());
   const document = await upload(
     createDataClient(c),
@@ -219,7 +221,8 @@ export const uploadClientDocument: RouteHandler<typeof uploadClientDocumentRoute
     actorOf(c),
     clientId,
     typeKey,
-    bytes
+    bytes,
+    period
   );
   return c.json({ document }, 200);
 };

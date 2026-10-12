@@ -4,6 +4,7 @@ import {
   documentTypeKeys,
   fireSafetyDocumentTypeKeys,
   fireSafetyMissingDocumentData,
+  isDatedDocumentType,
 } from '@ssm-usor/contracts';
 import {
   annexTitlePage,
@@ -821,9 +822,15 @@ describe('the fire-safety templates', () => {
       maintenanceItems: [],
       buildings: [],
       generatedFromTenEmployees: [],
+      documents: [],
       substances: { state: 'none', entries: [] },
     },
   };
+
+  const datedFor = (typeKey: string, variant: DocumentFacts): DocumentFacts => ({
+    ...variant,
+    period: isDatedDocumentType(typeKey) ? 2026 : null,
+  });
 
   it.each(
     fireManifest.templates.flatMap((entry) => [
@@ -832,8 +839,8 @@ describe('the fire-safety templates', () => {
     ])
   )(
     '%s renders from %s with nothing missing',
-    (_typeKey, _, file, variant) => {
-      const data = { ...buildFireSafetyContext(variant) };
+    (typeKey, _, file, variant) => {
+      const data = { ...buildFireSafetyContext(datedFor(typeKey, variant)) };
       const text = documentText(renderDocument(readFileSync(new URL(file, fireUrl)), data));
       expect(text).not.toContain('{{');
       expect(text).toContain('PIPETECH');
@@ -847,7 +854,7 @@ describe('the fire-safety templates', () => {
     for (const entry of fireManifest.templates) {
       const { snapshot } = merge(
         readFileSync(new URL(entry.file, fireUrl)),
-        { ...buildFireSafetyContext(facts) },
+        { ...buildFireSafetyContext(datedFor(entry.typeKey, facts)) },
         entry.typeKey
       );
       expect(names).toEqual(expect.arrayContaining(Object.keys(snapshot as object)));
@@ -1095,6 +1102,7 @@ describe('the fire-safety templates', () => {
           maintenanceItems: [],
           buildings: [],
           generatedFromTenEmployees: [],
+          documents: [],
           substances: { state: 'undecided', entries: [] },
         },
       },
@@ -1130,18 +1138,42 @@ describe('the fire-safety templates', () => {
     '%s is generated again or refused for exactly the gaps it prints, lacking %s',
     (typeKey, _, file, variant) => {
       const template = readFileSync(new URL(file, fireUrl));
-      const { usedNames } = renderTemplate(template, { ...buildFireSafetyContext(facts) });
+      const { usedNames } = renderTemplate(template, {
+        ...buildFireSafetyContext(datedFor(typeKey, facts)),
+      });
       const missing = missingFireSafetyData(variant);
       expect(
         refusedFor(() =>
-          merge(template, { ...buildPartialFireSafetyContext(variant) }, typeKey, (absentNames) =>
-            missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
+          merge(
+            template,
+            { ...buildPartialFireSafetyContext(datedFor(typeKey, variant)) },
+            typeKey,
+            (absentNames) => missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
           )
         )
       ).toEqual(missing.filter((code) => fireSafetyGapConcerns(code, usedNames)));
     },
     30_000
   );
+
+  it('report on the year asked from the set and the inventory, the rest left to fill in', () => {
+    const report = fireManifest.templates.find((entry) => entry.typeKey === 'fire_annual_report')!;
+    const text = documentText(
+      renderDocument(readFileSync(new URL(report.file, fireUrl)), {
+        ...buildFireSafetyContext({ ...facts, currentEmployeeCount: 12, period: 2025 }),
+      })
+    );
+    expect(text).toContain('pe anul 2025');
+    expect(text).toContain(
+      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a05\u00a0PSI din 19.01.2026;'
+    );
+    expect(text).toContain('2.1. Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4');
+    expect(text).toContain(
+      'Lista mijloacelor de apărare împotriva incendiilor\nciornă, rev.\u00a01'
+    );
+    expect(text).toContain('7. Concluzii și măsuri propuse pentru anul 2026');
+    expect(text.match(/DE COMPLETAT/g)).toHaveLength(11);
+  }, 30_000);
 
   it('leave the registers cover to be generated again without the second stage data', () => {
     const [, lacking] = fireGaps[0]!;

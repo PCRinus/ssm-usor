@@ -42,6 +42,8 @@ export type DocumentFacts = {
   /** ISO date, "2026-01-19". */
   issueDate: string;
   firstDecisionNumber: number;
+  /** The year a dated document is merged for (ADR 020); null for every other document. */
+  period: number | null;
   /** Whether the documents carry the "generated with" footer line. */
   branding: boolean;
   organization: {

@@ -96,7 +96,13 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 ## Documents
 
-**Document**: one document type, once, for a client, with its revisions. Part of one of the client's two **documentation sets**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+**Document**: one document type, once, for a client, with its revisions; a dated type once per period. Part of one of the client's two **documentation sets**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+
+**Dated document type**: a document type a client holds once per **period** rather than once, each period a document of its own with its own revisions, so that the report of 2025 stays beside the report of 2026, both asked for at a control. Generating it asks for the year, the current one proposed; another year makes another document, never a revision. The annual report is the only one. ADR 020. Avoid: revisions for the years, which say a report replaced the one before it.
+
+**Period** (_anul de referință_): the year a dated document reports on, part of its identity beside the client and the type. Avoid: issue date, which is the date a document carries, and year of the set.
+
+**Annual report** (_raportul anual de evaluare a nivelului de apărare împotriva incendiilor_): document 7.2 of the fire-safety set, a dated type: the decisions, the people with duties and the staff, the means of each workplace, the planned training and controls and the state of the set's documents as the app holds them for the year, and a gap for each part of the analysis of OMAI 163/2007 art. 152 the technician writes. Required from ten employees (art. 18 lit. c), ADR 020). Avoid: annual analysis on its own, which is the meeting the report is presented at, and half-yearly report, which is not built.
 
 **Documentation set** (_documentația_): the documents the app generates for a client in one field, with a tab, a generation and a readiness of its own. A client has two: the **occupational safety set** (_Documente SSM_) and the **fire-safety set** (_Documente PSI_). Every client has both; a lead has neither. "The set" on its own, in the ADRs before 016, is the occupational safety one. ADR 016. Avoid: pack and dossier (_dosar PSI_) as something users see, and SU (_situații de urgență_), which the source documents use for the field the interface calls PSI.
 

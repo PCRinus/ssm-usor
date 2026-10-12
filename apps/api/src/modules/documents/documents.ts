@@ -11,6 +11,7 @@ import {
   documentSetTypeKeys,
   fireDecisionNumber,
   type GenerateDocumentsRequest,
+  isDatedDocumentType,
   type IssueDocumentRequest,
   maxFirstFireDecisionNumber,
   type MissingDocumentData,
@@ -74,11 +75,11 @@ type RevisionRow = Pick<
 };
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
-  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'document_group'
+  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'period' | 'document_group'
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date, first_decision_number), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
+  'id, client_id, type_key, title, decision_number, period, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date, first_decision_number), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
 const typeOrders = Object.fromEntries(
   Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
@@ -113,6 +114,7 @@ function dataChanged(
   const input = {
     ...facts,
     issueDate: revision.document_generations.issue_date,
+    period: document.period,
     firstDecisionNumber:
       set === 'fire_safety'
         ? (fireFirstDecisionNumber(document, revision.document_generations.first_decision_number) ??
@@ -245,6 +247,7 @@ function toDocument(
     typeKey: document.type_key,
     title: document.title,
     decisionNumber: document.decision_number,
+    period: document.period,
     draft: current('draft'),
     issued: current('issued'),
   };
@@ -268,13 +271,24 @@ async function presentDocument(
   return presented!;
 }
 
-// The pack's own order first, then anything a provider added, by title.
+// The pack's own order first, then anything a provider added, by title; a dated type's newest
+// period first.
 const inSetOrder = (set: DocumentSet) => {
   const typeOrder = typeOrders[set];
   return (a: ClientDocument, b: ClientDocument) =>
     (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
-    a.title.localeCompare(b.title, 'ro');
+    a.title.localeCompare(b.title, 'ro') ||
+    (b.period ?? 0) - (a.period ?? 0);
 };
+
+/** The year it is in Romania, which the documents are dated by. */
+function currentYear() {
+  return Number(
+    new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Europe/Bucharest' }).format(
+      new Date()
+    )
+  );
+}
 
 // The service contract has routes of its own (ADR 007).
 async function readDocuments(db: DataClient, clientId: string, set: DocumentSet) {
@@ -454,7 +468,9 @@ export async function generateClientDocuments(
     issueDate: request.issueDate,
     firstDecisionNumber: request.firstDecisionNumber ?? 1,
   };
-  const input = { ...facts, ...asked };
+  const period = request.period ?? currentYear();
+  const periodOf = (typeKey: string) => (isDatedDocumentType(typeKey) ? period : null);
+  const input = { ...facts, ...asked, period: null };
   const missing = setRules[set].missing(input);
   if (missing.length > 0) throw missingDocumentDataError(missing);
 
@@ -466,9 +482,13 @@ export async function generateClientDocuments(
     console.error('No built-in templates are registered: run pnpm templates:register.');
     throw new ApiError('service_unavailable', 'The document templates are not available yet.');
   }
-  // A document without a revision is what a failed generation leaves behind: finish it.
+  // A document without a revision is what a failed generation leaves behind: finish it. A dated
+  // type's documents of other periods are neither complete nor in the way.
+  const ofAskedPeriod = (document: DocumentRow) => document.period === periodOf(document.type_key);
   const complete = new Set(
-    existing.filter((document) => document.document_revisions.length > 0).map((d) => d.type_key)
+    existing
+      .filter((document) => ofAskedPeriod(document) && document.document_revisions.length > 0)
+      .map((d) => d.type_key)
   );
   const wanted = templates.filter(
     (template) => !complete.has(template.typeKey) && documentApplies(facts, template.typeKey)
@@ -491,21 +511,37 @@ export async function generateClientDocuments(
 
   const create = (template: Template, merged: Merged) =>
     createDocument(db, files, actor, clientId, generation.data.id, template, merged, {
-      existingId: existing.find((document) => document.type_key === template.typeKey)?.id,
+      existingId: existing.find(
+        (document) => document.type_key === template.typeKey && ofAskedPeriod(document)
+      )?.id,
+      period: periodOf(template.typeKey),
       set,
     });
   const createdIds: string[] = [];
   let current = facts;
   if (fire) {
-    const data = { ...buildFireSafetyContext(input) };
+    const fireMerged = (data: Record<string, unknown>) => (template: Template) =>
+      create(template, {
+        data,
+        decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
+      });
+    const dated = wanted.filter((template) => isDatedDocumentType(template.typeKey));
     createdIds.push(
-      ...(await inBatches(wanted, (template) =>
-        create(template, {
-          data,
-          decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
-        })
+      ...(await inBatches(
+        wanted.filter((template) => !dated.includes(template)),
+        fireMerged({ ...buildFireSafetyContext(input) })
       ))
     );
+    // A dated document reports on the set, so it is merged with what this run has just made.
+    if (dated.length > 0) {
+      current = await loadDocumentFacts(db, clientId, actor);
+      createdIds.push(
+        ...(await inBatches(
+          dated,
+          fireMerged({ ...buildFireSafetyContext({ ...current, ...asked, period }) })
+        ))
+      );
+    }
   } else {
     const context = buildDocumentContext(input);
     const fromContext = (built: typeof context, typeKey: string): Merged => {
@@ -525,7 +561,7 @@ export async function generateClientDocuments(
       // Nothing to cite only when the own instructions are an uploaded file: the themes wait
       // for them to be generated.
       if (current.ownInstructions) {
-        const themesContext = buildDocumentContext({ ...current, ...asked });
+        const themesContext = buildDocumentContext({ ...current, ...asked, period: null });
         createdIds.push(await create(themes, fromContext(themesContext, themes.typeKey)));
       }
     }
@@ -563,7 +599,7 @@ async function createDocument(
   generationId: string,
   template: Template,
   { data, decisionNumber }: Merged,
-  options: { existingId?: string; set: DocumentSet }
+  options: { existingId?: string; period: number | null; set: DocumentSet }
 ) {
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
@@ -581,6 +617,7 @@ async function createDocument(
         type_key: template.typeKey,
         title: template.title,
         decision_number: decisionNumber,
+        period: options.period,
         document_group: documentSetGroups[options.set],
         created_by: actor.createdBy,
       })
@@ -801,7 +838,12 @@ export async function regenerateDocument(
             previous.data?.first_decision_number
         )
       : null;
-  const input = { ...facts, issueDate, firstDecisionNumber: fireFirstNumber ?? 1 };
+  const input = {
+    ...facts,
+    issueDate,
+    period: document.period,
+    firstDecisionNumber: fireFirstNumber ?? 1,
+  };
   const missing = rules.missing(input, document.type_key);
   const [template] = await builtInTemplates(db, [document.type_key]);
   if (!template) {
@@ -993,16 +1035,21 @@ export async function uploadDocumentFile(
   actor: Actor,
   clientId: string,
   typeKey: BuiltInDocumentTypeKey,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  period?: number
 ) {
   requireDocx(bytes);
   const facts = await loadDocumentFacts(db, clientId, actor);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
   }
-  const existing = (await readDocuments(db, clientId, documentSetOf(typeKey))).find(
-    (document) => document.type_key === typeKey
-  );
+  // Without a period, a dated type's newest one.
+  const existing = (await readDocuments(db, clientId, documentSetOf(typeKey)))
+    .filter(
+      (document) =>
+        document.type_key === typeKey && (period === undefined || document.period === period)
+    )
+    .sort((a, b) => (b.period ?? 0) - (a.period ?? 0))[0];
   if (existing?.document_revisions.some((revision) => revision.status === 'draft')) {
     return saveDraftFile(db, files, actor, existing.id, bytes);
   }
@@ -1230,7 +1277,7 @@ export async function documentDownloadLink(
   const { data, error } = await db
     .from('document_revisions')
     .select(
-      'docx_path, pdf_path, revision, client_documents(title), document_signed_copies(storage_path)'
+      'docx_path, pdf_path, revision, client_documents(title, period), document_signed_copies(storage_path)'
     )
     .eq('id', revisionId)
     .eq('document_id', documentId)
@@ -1250,11 +1297,15 @@ export async function documentDownloadLink(
     );
   }
   const expiresInSeconds = 60;
+  // A dated document's year tells its files apart from the other years'.
+  const name = fileNameOf(
+    [data.client_documents.title, data.client_documents.period].filter(Boolean).join(' ')
+  );
   // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
   const fileName =
     format === 'signed'
-      ? `${fileNameOf(data.client_documents.title)} - rev. ${data.revision} - semnat.pdf`
-      : `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
+      ? `${name} - rev. ${data.revision} - semnat.pdf`
+      : `${name} - rev. ${data.revision}.${format}`;
   return {
     url: await files.documentLink(path, expiresInSeconds),
     fileName,

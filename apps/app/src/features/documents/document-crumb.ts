@@ -7,6 +7,7 @@ import {
 } from '@/api/generated/api';
 import type { ApiRequestOptions } from '@/api/http';
 
+import { datedTitle } from './document-labels';
 import { setParams } from './document-sets';
 
 // There is no request for one document: the loader warms the list the editor page reads, under
@@ -33,7 +34,8 @@ export async function documentCrumb({
         query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
       })
     );
-    return { crumb: items.find((item) => item.id === documentId)?.title };
+    const item = items.find((each) => each.id === documentId);
+    return { crumb: item && (item.period === null ? item.title : datedTitle(item)) };
   } catch {
     return { crumb: undefined };
   }

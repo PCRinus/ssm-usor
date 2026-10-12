@@ -11,6 +11,7 @@ import {
 export const facts: DocumentFacts = {
   issueDate: '2026-01-19',
   firstDecisionNumber: 5,
+  period: null,
   branding: true,
   organization: {
     legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.',
@@ -363,6 +364,40 @@ export const facts: DocumentFacts = {
       },
     ],
     generatedFromTenEmployees: [],
+    documents: [
+      {
+        typeKey: 'fire_decision_organization',
+        title: 'Decizia privind organizarea apărării împotriva incendiilor',
+        decisionNumber: 5,
+        period: null,
+        draft: null,
+        issued: { revision: 1, issueDate: '2026-01-19' },
+      },
+      {
+        typeKey: 'fire_decision_training',
+        title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
+        decisionNumber: 6,
+        period: null,
+        draft: { revision: 2, issueDate: '2026-06-02' },
+        issued: { revision: 1, issueDate: '2026-01-19' },
+      },
+      {
+        typeKey: 'fire_means_list',
+        title: 'Lista mijloacelor de apărare împotriva incendiilor',
+        decisionNumber: null,
+        period: null,
+        draft: { revision: 1, issueDate: null },
+        issued: null,
+      },
+      {
+        typeKey: 'fire_annual_report',
+        title: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+        decisionNumber: null,
+        period: 2025,
+        draft: null,
+        issued: { revision: 1, issueDate: '2025-12-15' },
+      },
+    ],
     substances: {
       state: 'listed',
       entries: [

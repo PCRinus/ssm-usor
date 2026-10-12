@@ -1,7 +1,10 @@
 import {
   type BuiltInDocumentTypeKey,
+  type DatedDocumentTypeKey,
+  fireSafetyDocumentTitles,
   type FireSafetyTypeKeyFromTenEmployees,
   fireSafetyTypeKeysFromTenEmployees,
+  isDatedDocumentType,
   requiredWorkersRepresentatives,
 } from '@ssm-usor/contracts';
 
@@ -20,41 +23,44 @@ export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>
   fire_installation_register:
     'Registru de control pentru instalațiile de apărare împotriva incendiilor',
   fire_site_sheet: 'Fișa obiectivului',
+  fire_annual_report: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
 };
 
 // The template titles, held to the fire-safety manifest by a test.
-export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
-  fire_cover_decisions: 'Copertă – Deciziile interne în domeniul situațiilor de urgență',
-  fire_decision_organization: 'Decizia privind organizarea apărării împotriva incendiilor',
-  fire_decision_training: 'Decizia privind instruirea în domeniul situațiilor de urgență',
-  fire_decision_open_fire: 'Decizia privind lucrul cu foc deschis',
-  fire_decision_smoking: 'Decizia privind fumatul',
-  fire_decision_technician: 'Decizia privind cadrul tehnic PSI',
-  fire_decision_instructions: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
-  fire_decision_waste: 'Decizia privind colectarea deșeurilor',
-  fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
-  fire_decision_control: 'Decizia privind controlul propriu',
-  fire_cover_own_instructions:
-    'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
-  fire_own_instructions: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
-  fire_cover_training_themes: 'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
-  fire_training_themes: 'Tematica de instruire în domeniul situațiilor de urgență',
-  fire_cover_tests: 'Copertă – Testele de verificare a cunoștințelor',
-  fire_test_hiring: 'Test la angajare',
-  fire_test_annual: 'Test anual',
-  fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
-  fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
-  fire_substances_list: 'Lista substanțelor periculoase',
-  fire_maintenance_schedules: 'Graficele de întreținere și verificare',
-  fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
-  fire_registers:
-    'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
-  fire_work_permit: 'Permis de lucru cu foc',
-  fire_installation_register:
-    'Registru de control pentru instalațiile de apărare împotriva incendiilor',
-  fire_extinguisher_register: 'Registru de evidență a controlului stingătoarelor de incendiu',
-  fire_site_sheet: 'Fișa obiectivului',
+export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>> =
+  fireSafetyDocumentTitles;
+
+// A dated type's row is named for its year (ADR 020): "Raport anual de evaluare 2026".
+const datedLabels: Record<DatedDocumentTypeKey, string> = {
+  fire_annual_report: 'Raport anual de evaluare',
 };
+
+const datedNames: Record<DatedDocumentTypeKey, string> = {
+  fire_annual_report: 'raportul anual de evaluare',
+};
+
+export function datedTitle(document: Pick<ClientDocument, 'typeKey' | 'title' | 'period'>) {
+  const label = isDatedDocumentType(document.typeKey) ? datedLabels[document.typeKey] : null;
+  return `${label ?? document.title} ${document.period}`;
+}
+
+export function periodHint(typeKeys: readonly DatedDocumentTypeKey[]) {
+  const names = typeKeys.map((typeKey) => datedNames[typeKey]);
+  const listed =
+    names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} și ${names.at(-1)}`;
+  return `Anul pentru care se întocmește ${listed}; un alt an face un document nou.`;
+}
+
+/** Mirrors the API's `documentApplies`, which decides what a generation makes. */
+export function appliesAt(typeKey: string, currentEmployeeCount: number) {
+  if (typeKey === 'decision_workers_representative') {
+    return requiredWorkersRepresentatives(currentEmployeeCount) > 0;
+  }
+  if ((fireSafetyTypeKeysFromTenEmployees as readonly string[]).includes(typeKey)) {
+    return currentEmployeeCount >= 10;
+  }
+  return true;
+}
 
 /** What the employee count means for decision 1.5, said where documents are generated. */
 export function workersRepresentativesRule(currentEmployeeCount: number, generated: boolean) {
@@ -79,6 +85,7 @@ const fromTenEmployeesNames: Record<FireSafetyTypeKeyFromTenEmployees, string> =
   fire_maintenance_schedules: 'graficele de întreținere și verificare',
   fire_installation_register: 'registrul de control pentru instalații',
   fire_site_sheet: 'fișa obiectivului',
+  fire_annual_report: 'raportul anual de evaluare',
 };
 
 function named(typeKeys: readonly FireSafetyTypeKeyFromTenEmployees[]) {
@@ -104,9 +111,11 @@ export function fireSafetyHeadcountRule(
     (typeKey) => !generatedTypeKeys.includes(typeKey)
   );
   if (currentEmployeeCount >= 10) {
-    return lacking.length > 0
-      ? `${count}, așa că se generează și ${named(lacking)}.`
-      : `${count}. ${sentence(named(generated))} există deja în documentație.`;
+    // A dated type is made for every year asked, so it is always among those generated.
+    const due = fireSafetyTypeKeysFromTenEmployees.filter(
+      (typeKey) => isDatedDocumentType(typeKey) || !generatedTypeKeys.includes(typeKey)
+    );
+    return `${count}, așa că se generează și ${named(due)}.`;
   }
   // "Graficele" is a plural noun, so it takes the plural verb even alone.
   const one = (

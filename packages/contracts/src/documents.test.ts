@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  datedDocumentTypeKeys,
   documentSetGroups,
   documentSetOf,
   documentSetQuerySchema,
   documentSets,
   documentSetTypeKeys,
+  documentUploadQuerySchema,
   fireDecisionNumber,
   fireDecisionOrdinals,
   fireDecisionTypeKeys,
   fireSafetyDocumentTypeKeys,
   fireSafetyTypeKeysFromTenEmployees,
   generateDocumentsRequestSchema,
+  isDatedDocumentType,
   maxFirstFireDecisionNumber,
 } from './documents';
 
@@ -53,6 +56,30 @@ describe('generateDocumentsRequestSchema', () => {
     expect(
       generateDocumentsRequestSchema.parse({ issueDate: '2026-10-06', firstDecisionNumber: 4 })
     ).toEqual({ issueDate: '2026-10-06', firstDecisionNumber: 4 });
+  });
+});
+
+describe('the dated document types', () => {
+  it('are built-in types of a set, the annual report first', () => {
+    const builtIn: readonly string[] = [
+      ...documentSetTypeKeys.occupational_safety,
+      ...documentSetTypeKeys.fire_safety,
+    ];
+    expect(datedDocumentTypeKeys.filter((typeKey) => !builtIn.includes(typeKey))).toEqual([]);
+    expect(isDatedDocumentType('fire_annual_report')).toBe(true);
+    expect(isDatedDocumentType('fire_site_sheet')).toBe(false);
+  });
+
+  it('take a year from 2000 to 2100 as their period, at generation and at upload', () => {
+    expect(generateDocumentsRequestSchema.parse({ issueDate: '2026-10-06', period: 2025 })).toEqual(
+      { issueDate: '2026-10-06', period: 2025 }
+    );
+    expect(
+      generateDocumentsRequestSchema.safeParse({ issueDate: '2026-10-06', period: 1999 }).success
+    ).toBe(false);
+    expect(documentUploadQuerySchema.parse({ period: '2025' })).toEqual({ period: 2025 });
+    expect(documentUploadQuerySchema.parse({})).toEqual({});
+    expect(documentUploadQuerySchema.safeParse({ period: '25' }).success).toBe(false);
   });
 });
 

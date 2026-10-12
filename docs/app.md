@@ -654,15 +654,24 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
   document of the binder is built since ADR 019, so the tab plans nothing and the "În
   pregătire" rows it showed until then are gone. Section 7, "Documente pentru inspectorat", holds
-  the site sheet 7.1, with no cover. Under 10 current employees decisions 8 and 9,
-  the schedules 5.4, the installation register and the site sheet, which the API names under `notApplicable`
+  the site sheet 7.1 and the annual report 7.2, with no cover. The report is a dated type (ADR
+  020): its newest year is the row, titled "Raport anual de evaluare 2026" from `datedTitle`
+  with the year from the document (the editor's breadcrumb names it the same way), and the earlier years fold under a "Anii anteriori (n)" row,
+  closed until clicked, each year a row of its own with its own menu; an upload from a year's
+  row sends that year as `?period=`. The section's summary counts the newest year only. Under
+  10 current employees decisions 8 and 9, the schedules 5.4, the installation register, the
+  site sheet and the annual report, which the API names under `notApplicable`
   ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), are "Nu se aplică" rows
   with "Sub 10 angajați", titled from `notApplicableTitles`, the badge's tooltip saying the rule
   (`fireSafetyHeadcountRule`). Until something is generated, a hint under the heading
-  replaces the empty state. Its dialog states the headcount and what it means for those five
-  documents (`fireSafetyHeadcountRule`: generated from ten, not generated under ten, kept once
-  they exist), as the SSM dialog does for decision 1.5, and asks the date and "Numărul
-  primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);
+  replaces the empty state. Its dialog states the headcount and what it means for those six
+  documents (`fireSafetyHeadcountRule`: generated from ten, the report for every year asked,
+  not generated under ten, kept once they exist), as the SSM dialog does for decision 1.5, and
+  asks the date, "Numărul primei decizii PSI" (1 to 9991, the other decisions numbered by their
+  places in the binder) and, while the client has ten employees or more (`appliesAt`), "Anul de
+  referință", the year the report is made for, the current year proposed and sent as `period`.
+  Once nothing else is missing the card keeps a "Generează pentru alt an" button while a dated
+  type applies, since another year is always one more document;
   every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
   to this tab's form. A `503` says that
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;

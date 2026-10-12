@@ -203,6 +203,80 @@ describe('fire-safety set', () => {
       contractor: 'S.C. ECO S.R.L.',
       collectors: 'muncitorii necalificați și șeful de șantier',
     },
+    annualReport: {
+      year: 2026,
+      nextYear: 2027,
+      decisions: [
+        {
+          title: 'Decizia privind organizarea apărării împotriva incendiilor',
+          reference: 'nr.\u00a04\u00a0PSI din 19.01.2026',
+        },
+        {
+          title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
+          reference: 'nr.\u00a05\u00a0PSI din 19.01.2026',
+        },
+      ],
+      coordinator: 'Ion VLAD, Șef magazin',
+      interventionLeader: 'Ion VLAD, Șef magazin',
+      workplaceManagers: 'Ion VLAD',
+      staff: [
+        { label: 'Personal administrativ', posts: 'Contabil', headcount: '2 angajați' },
+        { label: 'Personal de execuție', posts: 'Lucrător comercial', headcount: '10 angajați' },
+      ],
+      headcount: '12 angajați',
+      workplaces: [
+        {
+          name: 'Magazin',
+          place: 'Magazin, Timișoara, Str. Lungă 5',
+          rows: [
+            {
+              what: 'Stingător P6 – pulbere, 6\u00a0kg',
+              quantity: '2\u00a0buc.',
+              next: '15.01.2027',
+            },
+            { what: 'Hidranți interiori', quantity: '1 instalație', next: '12.03.2027' },
+          ],
+        },
+        {
+          name: 'Depozit',
+          place: 'Depozit, Timișoara, Str. Scurtă 2',
+          rows: [
+            {
+              what: 'Stingător G5 – dioxid de carbon (CO₂), 5\u00a0kg',
+              quantity: '1\u00a0buc.',
+              next: '—',
+            },
+          ],
+        },
+      ],
+      periodicLabel: '2\u00a0ore',
+      training: [
+        {
+          label: 'Personal administrativ',
+          posts: 'Contabil',
+          interval: 'la 6 luni',
+          months: 'februarie, august',
+        },
+      ],
+      controls: [
+        {
+          who: 'Șefii locurilor de muncă',
+          interval: 'zilnic sau pe schimb',
+          scope: 'locul de muncă condus',
+        },
+      ],
+      hasControls: true,
+      noControls: false,
+      documents: [
+        {
+          title: 'Decizia privind organizarea apărării împotriva incendiilor',
+          state: 'emis, rev.\u00a01 din 19.01.2026',
+        },
+        { title: 'Fișa obiectivului', state: 'negenerat' },
+      ],
+      missingCount: 1,
+      allGenerated: false,
+    },
     siteSheet: {
       identity: [
         {
@@ -439,6 +513,18 @@ describe('fire-safety set', () => {
     },
     waste: { kinds: ['deșeuri menajere'], contractor: null, collectors: null },
     substances: { state: 'none', none: true, listed: false, entries: [] },
+    annualReport: {
+      ...fire.annualReport,
+      decisions: [],
+      staff: [],
+      training: [],
+      controls: [],
+      hasControls: false,
+      noControls: true,
+      documents: [],
+      missingCount: 0,
+      allGenerated: true,
+    },
     siteSheet: {
       ...fire.siteSheet,
       buildings: [],
@@ -865,6 +951,50 @@ describe('fire-safety set', () => {
     );
     expect(sparseText).not.toContain('Date constructive');
     expect(sparseText).not.toContain('Substanța 1');
+  });
+
+  it('reports on the year from what the app holds, each section of art. 152 left to fill in', () => {
+    const file = read('fire/7.2_fire_annual_report.docx');
+    const text = documentText(renderDocument(file, stageTwoData));
+    expect(text).toContain(
+      'RAPORTUL ANUAL DE EVALUARE A NIVELULUI DE APĂRARE ÎMPOTRIVA INCENDIILOR\npe anul 2026'
+    );
+    expect(text).toContain(
+      'Raport întocmit pentru S.C. CLIENT DEMO S.R.L. în baza prevederilor OMAI 163/2007 – art. 18 lit. c), art. 151 și art. 152 și ale Legii 307/2006 – art. 27 alin. (1) lit. j)'
+    );
+    expect(text).toContain(
+      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0PSI din 19.01.2026;'
+    );
+    expect(text).toContain(
+      'Cadrul tehnic PSI\nDan MARIN, certificat seria A nr. 1234/2024, reprezentant al S.C. SERVICIU EXTERN S.R.L.'
+    );
+    expect(text).toContain('2.1. Magazin, Timișoara, Str. Lungă 5');
+    expect(text).toContain('2.2. Depozit, Timișoara, Str. Scurtă 2');
+    expect(text).toContain('Hidranți interiori\n1 instalație\n12.03.2027');
+    expect(text).toContain('Personal administrativ\nContabil\nla 6 luni\nfebruarie, august');
+    expect(text).toContain('Controalele planificate prin decizia privind controlul propriu:');
+    expect(text).toContain(
+      'Incendii și alte evenimente produse în anul 2026\nDE COMPLETAT(data, locul, cauza și urmările'
+    );
+    expect(text).toContain('Fișa obiectivului\nnegenerat');
+    expect(text).toContain('Documente neîntocmite încă: 1.');
+    expect(text).toContain('7. Concluzii și măsuri propuse pentru anul 2027');
+    expect(text).toContain('Data: 19.01.2026');
+    expect(text).toContain('Aprobat\nMaria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
+    expect(text).not.toContain('Documentația nu cuprinde o decizie privind controlul propriu');
+    expect(text.split('DE COMPLETAT')).toHaveLength(12);
+
+    const sparseText = documentText(
+      renderDocument(file, {
+        ...stageTwoData,
+        fire: { ...fire, annualReport: sparse.annualReport },
+      })
+    );
+    expect(sparseText).toContain(
+      'Documentația nu cuprinde o decizie privind controlul propriu; controlul se face de persoanele desemnate prin decizia privind organizarea apărării împotriva incendiilor.'
+    );
+    expect(sparseText).toContain('Toate documentele cerute operatorului sunt întocmite.');
+    expect(sparseText).not.toContain('Controalele planificate');
   });
 
   it('schedules the checks of each workplace in one table, or says there is nothing to schedule', () => {

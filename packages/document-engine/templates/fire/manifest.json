@@ -329,6 +329,18 @@
         "kind": "correction",
         "note": "Versiunea inițială, după modelul din anexa 4 la regulamentul aprobat prin OMAI 89/2013."
       }
+    },
+    {
+      "number": "7.2",
+      "originals": [],
+      "stage": 2,
+      "typeKey": "fire_annual_report",
+      "title": "Raportul anual de evaluare a nivelului de apărare împotriva incendiilor",
+      "file": "7.2_fire_annual_report.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială: raportul anual de evaluare după OMAI 163/2007 art. 18 lit. c), art. 151 și art. 152, cu datele anului din aplicație și câmpuri de completat."
+      }
     }
   ]
 }

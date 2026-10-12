@@ -150,7 +150,7 @@ export const fireSafetyDocumentSections = [
     id: 'inspectorate',
     number: '7',
     title: 'Documente pentru inspectorat',
-    typeKeys: ['fire_site_sheet'],
+    typeKeys: ['fire_site_sheet', 'fire_annual_report'],
   },
 ] as const satisfies readonly {
   id: string;
@@ -218,7 +218,14 @@ const counted = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
 export type SectionRow =
-  | { kind: 'document'; key: string; title: string; document: ClientDocument }
+  | {
+      kind: 'document';
+      key: string;
+      title: string;
+      document: ClientDocument;
+      // A dated type's earlier years, newest first (ADR 020).
+      earlier?: ClientDocument[];
+    }
   | {
       kind: 'notApplicable' | 'notGenerated';
       key: string;

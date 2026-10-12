@@ -110,6 +110,7 @@ const documentRow = {
   type_key: 'service_contract',
   title: 'Contract de prestări servicii',
   decision_number: null,
+  period: null,
   document_group: 'other',
   document_revisions: [draftRow],
 };

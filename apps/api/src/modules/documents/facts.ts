@@ -1,5 +1,6 @@
 import {
   type EquipmentAllocation,
+  fireSafetyDocumentTypeKeys,
   fireSafetyTypeKeysFromTenEmployees,
   type ResponsiblePersonRole,
   type StaffCategory,
@@ -14,7 +15,10 @@ import { snapshotAnnexes } from './snapshot';
 // Row-level security scopes every query to the caller's organization. With the secret key
 // nothing does but the ids: the client's must already be known to be the preparer's.
 
-export type StoredDocumentFacts = Omit<DocumentFacts, 'issueDate' | 'firstDecisionNumber'> & {
+export type StoredDocumentFacts = Omit<
+  DocumentFacts,
+  'issueDate' | 'firstDecisionNumber' | 'period'
+> & {
   clientArchived: boolean;
 };
 
@@ -92,12 +96,15 @@ export async function loadDocumentFacts(
       .eq('client_id', clientId)
       .eq('status', 'active')
       .is('archived_at', null),
-    // A document row without a revision is a failed generation, not a generated document.
+    // A document row without a revision is a failed generation, not a generated document. The
+    // fire-safety set's whole, which its annual report lists (ADR 020).
     db
       .from('client_documents')
-      .select('type_key, document_revisions!inner(id)')
+      .select(
+        'type_key, title, decision_number, period, document_revisions!inner(revision, status, document_generations(issue_date))'
+      )
       .eq('client_id', clientId)
-      .in('type_key', ['decision_workers_representative', ...fireSafetyTypeKeysFromTenEmployees]),
+      .in('type_key', ['decision_workers_representative', ...fireSafetyDocumentTypeKeys]),
     // In the order of the positions table, with the entries in the order they were added.
     db
       .from('job_positions')
@@ -328,6 +335,27 @@ export async function loadDocumentFacts(
       generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
         generated.has(typeKey)
       ),
+      documents: conditionalDocuments.data
+        .filter((document) => document.type_key.startsWith('fire_'))
+        .map((document) => {
+          const current = (status: 'draft' | 'issued') => {
+            const revision = document.document_revisions.find((each) => each.status === status);
+            return revision
+              ? {
+                  revision: revision.revision,
+                  issueDate: revision.document_generations?.issue_date ?? null,
+                }
+              : null;
+          };
+          return {
+            typeKey: document.type_key,
+            title: document.title,
+            decisionNumber: document.decision_number,
+            period: document.period,
+            draft: current('draft'),
+            issued: current('issued'),
+          };
+        }),
       substances: {
         state: fireSafety.data?.substances_state ?? 'undecided',
         entries: fireSubstances.data.map((substance) => ({

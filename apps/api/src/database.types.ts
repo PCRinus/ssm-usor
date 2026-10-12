@@ -13,6 +13,7 @@ export type Database = {
           id: string;
           organization_id: string;
           owners_only: boolean;
+          period: number | null;
           title: string;
           type_key: string;
         };
@@ -25,6 +26,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           owners_only?: boolean;
+          period?: number | null;
           title: string;
           type_key: string;
         };
@@ -37,6 +39,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           owners_only?: boolean;
+          period?: number | null;
           title?: string;
           type_key?: string;
         };
