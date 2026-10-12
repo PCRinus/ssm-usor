@@ -150,6 +150,8 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
     '1 stingător · minim orientativ 3 (anexa 6)'
   );
+  await page.reload();
+  await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
 
   await page.getByTestId('client-section').filter({ hasText: 'Detalii' }).click();
   await row.click();
@@ -168,7 +170,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-equipment-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-installation-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-maintenance-row')).toHaveCount(1);
-  await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
+  await expect(means.getByTestId('fire-building-edit')).toHaveCount(0);
   await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
   await page.goto(`/clients/${clientId}/training`);
   await expect(card.getByTestId('fire-smoking-place')).toHaveText(
