@@ -39,7 +39,8 @@ export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
 /**
  * The built-in documents of the fire-safety set, in the order of the provider's binder: the
- * decisions (section 1), the means and the posted sheets (section 5), the registers (section 6).
+ * decisions (section 1), the means and the posted sheets (section 5), the registers (section 6),
+ * the documents for the inspectorate (section 7).
  */
 export const fireSafetyDocumentTypeKeys = [
   'fire_cover_decisions',
@@ -68,6 +69,7 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_work_permit',
   'fire_installation_register',
   'fire_extinguisher_register',
+  'fire_site_sheet',
 ] as const;
 
 export const fireSafetyDocumentTypeKeySchema = z.enum(fireSafetyDocumentTypeKeys);
@@ -152,6 +154,7 @@ export const fireSafetyTypeKeysFromTenEmployees = [
   'fire_decision_control',
   'fire_maintenance_schedules',
   'fire_installation_register',
+  'fire_site_sheet',
 ] as const satisfies readonly FireSafetyDocumentTypeKey[];
 
 export type FireSafetyTypeKeyFromTenEmployees = (typeof fireSafetyTypeKeysFromTenEmployees)[number];

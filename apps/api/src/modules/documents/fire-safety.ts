@@ -1,5 +1,6 @@
 import {
   extinguisherCode,
+  type FireBuildingClassification,
   type FireDecision,
   fireDecisionOrdinals,
   type FireEquipmentKind,
@@ -30,6 +31,7 @@ import {
 import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { documentApplies, type DocumentFacts, months, printedDate } from './context';
+import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
   dealChapters,
   fireOwnInstructionsChapters,
@@ -102,6 +104,22 @@ export type FireSafetyClientFacts = {
     subject: string;
     intervalLabel: string;
     checkedBy: string;
+  }[];
+  /** One per workplace at most; a mobile site's or an archived workplace's too, which no document prints. */
+  buildings: {
+    workplaceId: string;
+    yearBuilt: number | null;
+    builtAreaM2: number | null;
+    levels: string | null;
+    classification: FireBuildingClassification | null;
+    structure: string | null;
+    heatingFuel: string | null;
+    gasUse: string | null;
+    electricalMaintainer: string | null;
+    electricalLastCheckOn: string | null;
+    /** Cubic metres; 0 where the building has no reserve of its own. */
+    waterReserveM3: number | null;
+    notes: string | null;
   }[];
   /** Those of the documents required from ten employees the client has, whatever its count now. */
   generatedFromTenEmployees: FireSafetyTypeKeyFromTenEmployees[];
@@ -255,6 +273,8 @@ export type FireContext = {
   themes: FireThemesContext[];
   /** The schedules 5.4, a block per active workplace in the order of `workplaces`. */
   schedules: FireScheduleContext[];
+  /** The site sheet 7.1 (ADR 020): every row of OMAI 89/2013 annex 4, filled or a gap. */
+  siteSheet: SiteSheetContext;
   /** The list 5.3: the declaration with `none`, a block per entry with `listed`. */
   substances: {
     state: 'none' | 'listed';
@@ -503,14 +523,17 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): {
       certificate: organization.fireSafetyTechnicianCertificate!.trim(),
       authorization: organization.fireSafetyAuthorization?.trim() || null,
     }),
-    fire: () => fireContext(facts),
+    fire: () => fireContext(facts, inSet),
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),
   };
 }
 
-function fireContext(facts: FireSafetySetFacts): FireContext {
+function fireContext(
+  facts: FireSafetySetFacts,
+  inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean
+): FireContext {
   const card = facts.fireSafety.card!;
   const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
     name: person.fullName.trim(),
@@ -681,6 +704,14 @@ function fireContext(facts: FireSafetySetFacts): FireContext {
       collectors: card.wasteCollectors?.trim() || null,
     },
     substances: fireSubstances(facts.fireSafety.substances),
+    siteSheet: buildSiteSheet({
+      facts,
+      decisionNumbers,
+      coordinatorName: coordinator.name,
+      interventionLeaderName: interventionLeader.name,
+      workplaceManagerNames: managerNames,
+      inSet,
+    }),
     schedules: facts.workplaces.map((workplace) =>
       fireSchedule({
         name: workplace.name.trim(),

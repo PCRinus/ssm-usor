@@ -1,5 +1,7 @@
 import {
   extinguisherCode,
+  type FireBuildingClassification,
+  fireBuildingClassifications,
   type FireEquipmentKind,
   fireEquipmentKindLabels,
   fireEquipmentKinds,
@@ -16,6 +18,8 @@ import {
 import { z } from 'zod';
 
 import type {
+  FireBuildingListResponse,
+  FireBuildingRequest,
   FireEquipmentListResponse,
   FireEquipmentRequest,
   FireInstallationListResponse,
@@ -27,6 +31,7 @@ import type {
 export type FireEquipment = FireEquipmentListResponse['items'][number];
 export type FireInstallation = FireInstallationListResponse['items'][number];
 export type FireMaintenanceItem = FireMaintenanceItemListResponse['items'][number];
+export type FireBuilding = FireBuildingListResponse['items'][number];
 
 export const equipmentAddId = (workplaceId: string) => `fire-equipment-add-${workplaceId}`;
 
@@ -298,3 +303,86 @@ export function toMaintenanceItemRequest(
     checkedBy: values.checkedBy,
   };
 }
+
+// Romanian writes the decimal comma; "412,5" and "412.5" are the same area.
+const decimalText = /^[0-9]{1,8}([.,][0-9]{1,2})?$/;
+const parsedDecimal = (value: string) => Number(value.replace(',', '.'));
+
+export const buildingFormSchema = z.object({
+  yearBuilt: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === '' ||
+        (/^[0-9]{4}$/.test(value) &&
+          Number(value) >= 1800 &&
+          Number(value) <= new Date().getFullYear()),
+      `Introdu un an între 1800 și ${new Date().getFullYear()}.`
+    ),
+  builtAreaM2: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || (decimalText.test(value) && parsedDecimal(value) > 0),
+      'Introdu suprafața în m², de exemplu 412,5.'
+    ),
+  levels: optionalText(2, 40, 'Regimul de înălțime'),
+  classification: z.string(),
+  structure: optionalText(2, 120, 'Structura'),
+  heatingFuel: optionalText(2, 80, 'Combustibilul'),
+  gasUse: optionalText(2, 120, 'Utilizarea gazelor'),
+  electricalMaintainer: optionalText(2, 160, 'Denumirea firmei'),
+  electricalLastCheckOn: isoDate,
+  waterReserveM3: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || decimalText.test(value),
+      'Introdu rezerva în m³, de exemplu 54 sau 0.'
+    ),
+  notes: optionalText(2, 1000, 'Observațiile'),
+});
+
+export type BuildingFormValues = z.infer<typeof buildingFormSchema>;
+
+export function toBuildingForm(building: FireBuilding | null): BuildingFormValues {
+  const decimal = (value: number | null | undefined) =>
+    value == null ? '' : String(value).replace('.', ',');
+  return {
+    yearBuilt: building?.yearBuilt?.toString() ?? '',
+    builtAreaM2: decimal(building?.builtAreaM2),
+    levels: building?.levels ?? '',
+    classification: building?.classification ?? '',
+    structure: building?.structure ?? '',
+    heatingFuel: building?.heatingFuel ?? '',
+    gasUse: building?.gasUse ?? '',
+    electricalMaintainer: building?.electricalMaintainer ?? '',
+    electricalLastCheckOn: building?.electricalLastCheckOn ?? '',
+    waterReserveM3: decimal(building?.waterReserveM3),
+    notes: building?.notes ?? '',
+  };
+}
+
+export function toBuildingRequest(values: BuildingFormValues): FireBuildingRequest {
+  return {
+    yearBuilt: values.yearBuilt ? Number(values.yearBuilt) : null,
+    builtAreaM2: values.builtAreaM2 ? parsedDecimal(values.builtAreaM2) : null,
+    levels: values.levels || null,
+    classification: (fireBuildingClassifications as readonly string[]).includes(
+      values.classification
+    )
+      ? (values.classification as FireBuildingClassification)
+      : null,
+    structure: values.structure || null,
+    heatingFuel: values.heatingFuel || null,
+    gasUse: values.gasUse || null,
+    electricalMaintainer: values.electricalMaintainer || null,
+    electricalLastCheckOn: values.electricalLastCheckOn || null,
+    waterReserveM3: values.waterReserveM3 ? parsedDecimal(values.waterReserveM3) : null,
+    notes: values.notes || null,
+  };
+}
+
+export const buildingIsEmpty = (building: FireBuildingRequest) =>
+  Object.values(building).every((value) => value === null || value === undefined);

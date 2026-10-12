@@ -234,6 +234,7 @@ const allBuilt = [
     'fire_extinguisher_register',
     'Registru de evidență a controlului stingătoarelor de incendiu'
   ),
+  fireDocument('ce7f8a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', 'fire_site_sheet', 'Fișa obiectivului'),
 ];
 
 beforeEach(() => {
@@ -304,9 +305,10 @@ describe('client fire-safety documents', () => {
       '4. Teste de verificare a cunoștințelornegenerat',
       '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
       '6. Registre și formulare PSInegenerat',
+      '7. Documente pentru inspectoratnegenerat',
     ]);
     expect(sections.map((section) => section.getAttribute('data-state'))).toEqual(
-      Array(6).fill('closed')
+      Array(7).fill('closed')
     );
     expect(screen.queryByTestId('document-row')).toBeNull();
   });
@@ -401,6 +403,7 @@ describe('client fire-safety documents', () => {
         'fire_decision_control',
         'fire_maintenance_schedules',
         'fire_installation_register',
+        'fire_site_sheet',
       ],
     });
     mount();
@@ -419,7 +422,7 @@ describe('client fire-safety documents', () => {
     );
     expect(control!.textContent).toContain('Decizia privind controlul propriu');
     expect(within(seasons!).getByText('Nu se aplică').getAttribute('title')).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați.'
     );
 
     await openSection(user, '5');
@@ -452,9 +455,14 @@ describe('client fire-safety documents', () => {
       'document-not-generated',
     ]);
 
+    await openSection(user, '7');
+    expect(within(sectionOf('7')).getByTestId('document-not-applicable').textContent).toBe(
+      'Fișa obiectivuluiNu se aplicăSub 10 angajați'
+    );
+
     await user.click(screen.getByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați.'
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați.'
     );
   });
 
@@ -471,6 +479,7 @@ describe('client fire-safety documents', () => {
         'fire_decision_seasons',
         'fire_maintenance_schedules',
         'fire_installation_register',
+        'fire_site_sheet',
       ],
     });
     mount();
@@ -478,7 +487,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
+      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
     );
   });
 
@@ -492,6 +501,7 @@ describe('client fire-safety documents', () => {
       'closed',
       'closed',
       'open',
+      'closed',
       'closed',
       'closed',
     ]);
@@ -549,6 +559,7 @@ describe('client fire-safety documents', () => {
     const sections = await screen.findAllByTestId('document-section-trigger');
     expect(sections.map((section) => section.textContent).slice(5)).toEqual([
       '6. Registre și formulare PSI3 ciorne · 2 negenerate',
+      '7. Documente pentru inspectoratnegenerat',
       'Alte documente PSI1 ciornă',
     ]);
     await user.click(sections[5]!);
@@ -648,7 +659,7 @@ describe('client fire-safety documents', () => {
     expect(number.value).toBe('1');
     expect(screen.getByText('Numărul primei decizii PSI')).toBeTruthy();
     expect(screen.getByTestId('generate-headcount').textContent).toBe(
-      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații.'
+      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului.'
     );
 
     await user.clear(number);
@@ -776,7 +787,7 @@ describe('client fire-safety documents', () => {
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
-    expect(await screen.findAllByTestId('document-section')).toHaveLength(6);
+    expect(await screen.findAllByTestId('document-section')).toHaveLength(7);
     expect(screen.queryByTestId('documents-empty')).toBeNull();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
   });
@@ -785,7 +796,7 @@ describe('client fire-safety documents', () => {
 describe('fireSafetyHeadcountRule', () => {
   it('speaks of the schedules in the plural, even when they are the only document kept', () => {
     expect(fireSafetyHeadcountRule(4, ['fire_maintenance_schedules'])).toBe(
-      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu și registrul de control pentru instalații nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
+      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, registrul de control pentru instalații și fișa obiectivului nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
     );
   });
 });

@@ -209,8 +209,10 @@ Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by t
 `20261011090100_fire_safety_waste_collectors` adds who collects the waste, both amending ADR 018;
 `20261011090200_fire_safety_third_parties` adds whether other firms work on the premises, amending
 ADR 019. `20261012090000_workplace_kind` and `20261012100000_fire_substances` add the workplace
-kind and the substances list of ADR 018's amendment of 2026-10-11, and
-`20261012110000_fire_maintenance_items` the free rows of its schedules.
+kind and the substances list of ADR 018's amendment of 2026-10-11,
+`20261012110000_fire_maintenance_items` the free rows of its schedules, and
+`20261012120000_fire_buildings` the building of a fixed-space workplace of
+[ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md).
 The documents of the fire-safety set's second and third stages print these facts; the
 occupational safety set reads none of them.
 
@@ -363,6 +365,32 @@ Rows are deleted, not archived, and guarded as the other fire-safety tables are.
 optional: no readiness code asks for them, and the schedules 5.4 print them below the rows they
 derive from the equipment and the installations.
 
+**Buildings.** `fire_buildings` holds the building of a fixed-space workplace (ADR 020), one row
+at most per workplace (`unique (workplace_id)`), for the site sheet 7.1. It has `id`,
+`organization_id`, `client_id` and `workplace_id` with the composite foreign keys of
+`fire_installations`; neither key is granted for update, so a building never moves. Every fact
+is nullable:
+
+| Column                     | Notes                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| `year_built`               | `smallint`, 1800 to 2100 in the database; the API refuses a year after the current one. |
+| `built_area_m2`            | `numeric(10, 2)`, above 0.                                                              |
+| `levels`                   | The height regime as written, "P+1E"; 2 to 40.                                          |
+| `classification`           | `fire_building_classification`: `civil`, `production`, `storage` or `mixed`.            |
+| `structure`                | The load-bearing structure, 2 to 120.                                                   |
+| `heating_fuel`             | 2 to 80.                                                                                |
+| `gas_use`                  | What natural gas or LPG is used for, or that none is; 2 to 120.                         |
+| `electrical_maintainer`    | The firm that maintains the electrical installation, 2 to 160.                          |
+| `electrical_last_check_on` | Its last check.                                                                         |
+| `water_reserve_m3`         | `numeric(10, 2)`, 0 or more; 0 says there is no reserve of its own.                     |
+| `notes`                    | Anything else the sheet should carry under the building, 2 to 1000.                     |
+
+The detection and alarm, the safety lighting, the hydrants and the lightning protection are not
+stored here: the sheet reads them from `fire_installations` by kind. A row is kept, and not
+printed, when its workplace becomes a mobile site; the API refuses to save one for a mobile site.
+Rows are deleted, not archived, and guarded as the other fire-safety tables are. No readiness code
+asks for any of it: an empty building is a sheet with more gaps.
+
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
@@ -386,12 +414,12 @@ seasons and 9 the own control (ADR 020). A fire-safety decision stores its print
 `decision_number`, and a document of the set is compared with its snapshot, and generated
 again, with the first number it was made with.
 
-**Documents from ten employees.** Decisions 8 and 9, the schedules (`fire_maintenance_schedules`)
-and the installation register (`fire_installation_register`) are part of a client's fire-safety
-set from 10 current employees,
+**Documents from ten employees.** Decisions 8 and 9, the schedules (`fire_maintenance_schedules`),
+the installation register (`fire_installation_register`) and the site sheet (`fire_site_sheet`)
+are part of a client's fire-safety set from 10 current employees,
 the same `current_employee_count(clients)` that decides decision 1.5 (ADR 010, ADR 020), or once
 the client has a revision of them, whatever the count is then. Nothing is stored for it: the
-facts read which of the four have a revision, and the merge data carries `seasonsDecision`,
+facts read which of the five have a revision, and the merge data carries `seasonsDecision`,
 `controlDecision` and `installationRegister` beside `fire`, so a draft of a cover is marked
 "Date modificate" when the client crosses ten, not when any other fact changes.
 

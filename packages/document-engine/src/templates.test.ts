@@ -203,6 +203,92 @@ describe('fire-safety set', () => {
       contractor: 'S.C. ECO S.R.L.',
       collectors: 'muncitorii necalificați și șeful de șantier',
     },
+    siteSheet: {
+      identity: [
+        {
+          title: 'Denumirea operatorului economic/instituției',
+          value: 'S.C. CLIENT DEMO S.R.L.',
+          hint: 'denumirea în clar',
+        },
+        {
+          title: 'Administrator/Conducător – telefon domiciliu',
+          value: null,
+          hint: 'telefonul de domiciliu',
+        },
+        {
+          title: 'Coordonatele filialelor/sucursalelor/punctelor de lucru (dacă este cazul)',
+          value: '– Magazin: Timișoara, Str. Lungă 5\n– Depozit: Timișoara, Str. Scurtă 2',
+          hint: 'adresa fiecărui punct de lucru',
+        },
+      ],
+      general: [
+        {
+          title: 'Anul de construire (punere în funcțiune)',
+          value: 'Clădirea 1 (Magazin): 1987\nClădirea 2 (Depozit): DE COMPLETAT',
+          hint: 'anul punerii în funcțiune',
+        },
+        { title: 'Utilizarea clădirii', value: null, hint: 'prezența oamenilor în clădire' },
+      ],
+      buildings: [
+        {
+          name: 'Magazin',
+          place: 'Magazin, Timișoara, Str. Lungă 5',
+          constructive: [
+            {
+              title: 'Compartimente de incendiu',
+              value: null,
+              hint: 'numărul compartimentelor de incendiu, suprafața și înălțimea fiecăruia',
+            },
+          ],
+          technical: [
+            {
+              title: 'Hidranți interiori/coloane uscate',
+              value: 'există: Unul pe nivel',
+              hint: 'dacă există',
+            },
+            { title: 'Sisteme de detectare a gazelor', value: 'nu există', hint: 'dacă există' },
+          ],
+        },
+        {
+          name: 'Depozit',
+          place: 'Depozit',
+          constructive: [{ title: 'Stabilitatea la foc', value: null, hint: 'din proiect' }],
+          technical: [
+            { title: 'Stingătoare', value: 'P6 – 2\u00a0buc.', hint: 'pe tipodimensiuni' },
+          ],
+        },
+      ],
+      noBuildings: false,
+      substances: {
+        none: false,
+        listed: true,
+        entries: [
+          {
+            name: 'Propan',
+            rows: [
+              {
+                title: 'Cantitatea existentă în unitate',
+                value: '2 butelii de 11 kg',
+                hint: 'pentru fiecare substanță',
+              },
+              { title: 'Mod de operare', value: null, hint: 'modul de manipulare și de utilizare' },
+            ],
+          },
+        ],
+      },
+      organization: [
+        {
+          title: 'Serviciu privat pentru situații de urgență',
+          value: 'nu există; nu este cazul',
+          hint: 'dacă există',
+        },
+        {
+          title: 'Planuri/exerciții de evacuare din clădire',
+          value: null,
+          hint: 'când s-a executat ultima oară exercițiul de evacuare',
+        },
+      ],
+    },
     schedules: [
       {
         name: 'Magazin',
@@ -353,6 +439,12 @@ describe('fire-safety set', () => {
     },
     waste: { kinds: ['deșeuri menajere'], contractor: null, collectors: null },
     substances: { state: 'none', none: true, listed: false, entries: [] },
+    siteSheet: {
+      ...fire.siteSheet,
+      buildings: [],
+      noBuildings: true,
+      substances: { none: true, listed: false, entries: [] },
+    },
     themes: fire.themes.slice(1),
   };
   const stageTwoData = {
@@ -719,6 +811,60 @@ describe('fire-safety set', () => {
         .asText()
         .match(/<w:tbl>/g)
     ).toHaveLength(1);
+  });
+
+  it("follows the site sheet row by row, a gap printing the mark and the model's instruction", () => {
+    const file = read('fire/7.1_fire_site_sheet.docx');
+    const text = documentText(renderDocument(file, stageTwoData));
+    expect(text).toContain('FIȘA OBIECTIVULUI\n(OPERATORUL ECONOMIC/INSTITUȚIA)');
+    expect(text).toContain(
+      'Fișa obiectivului S.C. CLIENT DEMO S.R.L., întocmită în baza prevederilor OMAI 163/2007 – art. 18 lit. b) și art. 19, după modelul în vigoare al fișei obiectivului.'
+    );
+    expect(text).toContain('Denumirea operatorului economic/instituției\nS.C. CLIENT DEMO S.R.L.');
+    expect(text).toContain(
+      'Administrator/Conducător – telefon domiciliu\nDE COMPLETAT(telefonul de domiciliu)'
+    );
+    expect(text).toContain('– Magazin: Timișoara, Str. Lungă 5– Depozit: Timișoara, Str. Scurtă 2');
+    expect(text).toContain(
+      '1. Date generale privind apărarea împotriva incendiilor și protecția civilă\n1.1. Aspecte generale'
+    );
+    expect(text).toContain('Clădirea 2 (Depozit): DE COMPLETAT');
+    expect(text).toContain(
+      '1.2.1. Clădirea 1: Magazin, Timișoara, Str. Lungă 5\nDate constructive'
+    );
+    expect(text).toContain(
+      'Date tehnice\nHidranți interiori/coloane uscate\nexistă: Unul pe nivel'
+    );
+    expect(text).toContain(
+      '1.2.2. Clădirea 2: Depozit\nDate constructive\nStabilitatea la foc\nDE COMPLETAT'
+    );
+    expect(text).toContain('Substanța 1: Propan');
+    expect(text).toContain('Mod de operare\nDE COMPLETAT(modul de manipulare și de utilizare)');
+    expect(text).toContain(
+      '3. Organizarea apărării împotriva incendiilor/activității de protecție civilă'
+    );
+    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu există; nu este cazul');
+    expect(text).not.toContain('nu utilizează substanțe periculoase');
+    expect(text).not.toContain('Operatorul nu are clădiri proprii');
+    expect(text).toContain('Data: 19.01.2026');
+    expect(text).toContain('Cadru tehnic PSI al S.C. SERVICIU EXTERN S.R.L.');
+    expect(text).toContain(
+      'Administrator/Conducător\nMaria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.'
+    );
+    const xml = new PizZip(renderDocument(file, stageTwoData)).file('word/document.xml')!.asText();
+    expect(xml.match(/<w:tbl>/g)).toHaveLength(7);
+
+    const sparseText = documentText(
+      renderDocument(file, { ...stageTwoData, fire: { ...fire, siteSheet: sparse.siteSheet } })
+    );
+    expect(sparseText).toContain(
+      'Operatorul nu are clădiri proprii: activitatea se desfășoară numai în puncte de lucru temporare sau mobile, enumerate mai sus.'
+    );
+    expect(sparseText).toContain(
+      'S.C. CLIENT DEMO S.R.L. declară că în activitatea sa nu utilizează substanțe periculoase.'
+    );
+    expect(sparseText).not.toContain('Date constructive');
+    expect(sparseText).not.toContain('Substanța 1');
   });
 
   it('schedules the checks of each workplace in one table, or says there is nothing to schedule', () => {

@@ -792,7 +792,17 @@ describe('the fire-safety templates', () => {
   const fewest: DocumentFacts = {
     ...facts,
     branding: false,
-    organization: { ...facts.organization, fireSafetyAuthorization: null },
+    organization: { ...facts.organization, fireSafetyAuthorization: null, phone: null },
+    client: {
+      ...facts.client,
+      tradeRegisterNumber: null,
+      countyCode: null,
+      locality: null,
+      addressLine: null,
+      contactName: null,
+      contactPhone: null,
+      contactEmail: null,
+    },
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, specificMeasures: null })),
     responsiblePersons: facts.responsiblePersons.map((person) => ({
       ...person,
@@ -809,6 +819,7 @@ describe('the fire-safety templates', () => {
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
       maintenanceItems: [],
+      buildings: [],
       generatedFromTenEmployees: [],
       substances: { state: 'none', entries: [] },
     },
@@ -935,6 +946,37 @@ describe('the fire-safety templates', () => {
     expect(none).not.toContain('Substanța 1');
   });
 
+  it('fill the site sheet from the client, its buildings, the inventory and the decisions, and mark the rest to fill in', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_site_sheet')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(
+      renderDocument(file, { ...buildFireSafetyContext({ ...facts, currentEmployeeCount: 12 }) })
+    );
+    expect(text).toContain('FIȘA OBIECTIVULUI');
+    expect(text).toContain(
+      'Număr de înregistrare din registrul comerțului\nJ35/1234/2008, CUI 14399840'
+    );
+    expect(text).toContain(
+      '1.2.1. Clădirea 1: Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4'
+    );
+    expect(text).toContain(
+      '1.2.2. Clădirea 2: Sediul social, București, Sector 1, Calea Victoriei 122A'
+    );
+    expect(text).toContain(
+      'Stabilitatea la foc\nDE COMPLETAT(din proiect sau din alte documente tehnice'
+    );
+    expect(text).toContain('Substanța 2: Diluant pentru vopsele');
+    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu există; nu este cazul');
+    expect(text).not.toContain('Operatorul nu are clădiri proprii');
+    const fewer = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
+    expect(fewer).toContain('declară că în activitatea sa nu utilizează substanțe periculoase');
+    expect(fewer).toContain('Coordonatele operatorului economic/instituției – adresa\nBucurești');
+  });
+
   it('schedule the checks of every workplace from its extinguishers, installations and free rows', () => {
     const file = readFileSync(
       new URL(
@@ -1051,6 +1093,7 @@ describe('the fire-safety templates', () => {
           equipment: [],
           installations: [],
           maintenanceItems: [],
+          buildings: [],
           generatedFromTenEmployees: [],
           substances: { state: 'undecided', entries: [] },
         },

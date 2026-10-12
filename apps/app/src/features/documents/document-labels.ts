@@ -19,6 +19,7 @@ export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>
   fire_maintenance_schedules: 'Graficele de întreținere și verificare',
   fire_installation_register:
     'Registru de control pentru instalațiile de apărare împotriva incendiilor',
+  fire_site_sheet: 'Fișa obiectivului',
 };
 
 // The template titles, held to the fire-safety manifest by a test.
@@ -52,6 +53,7 @@ export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>>
   fire_installation_register:
     'Registru de control pentru instalațiile de apărare împotriva incendiilor',
   fire_extinguisher_register: 'Registru de evidență a controlului stingătoarelor de incendiu',
+  fire_site_sheet: 'Fișa obiectivului',
 };
 
 /** What the employee count means for decision 1.5, said where documents are generated. */
@@ -76,6 +78,7 @@ const fromTenEmployeesNames: Record<FireSafetyTypeKeyFromTenEmployees, string> =
   fire_decision_control: 'decizia privind controlul propriu',
   fire_maintenance_schedules: 'graficele de întreținere și verificare',
   fire_installation_register: 'registrul de control pentru instalații',
+  fire_site_sheet: 'fișa obiectivului',
 };
 
 function named(typeKeys: readonly FireSafetyTypeKeyFromTenEmployees[]) {

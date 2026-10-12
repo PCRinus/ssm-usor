@@ -4,16 +4,19 @@ import {
   createFireInstallation,
   createFireMaintenanceItem,
   createFireSubstance,
+  deleteFireBuilding,
   deleteFireEquipment,
   deleteFireInstallation,
   deleteFireMaintenanceItem,
   deleteFireSubstance,
   getClientFireSafety,
+  listFireBuildings,
   listFireEquipment,
   listFireInstallations,
   listFireMaintenanceItems,
   listFireSubstances,
   updateClientFireSafety,
+  updateFireBuilding,
   updateFireEquipment,
   updateFireInstallation,
   updateFireMaintenanceItem,
@@ -25,16 +28,19 @@ import {
   createFireInstallationRoute,
   createFireMaintenanceItemRoute,
   createFireSubstanceRoute,
+  deleteFireBuildingRoute,
   deleteFireEquipmentRoute,
   deleteFireInstallationRoute,
   deleteFireMaintenanceItemRoute,
   deleteFireSubstanceRoute,
   getClientFireSafetyRoute,
+  listFireBuildingsRoute,
   listFireEquipmentRoute,
   listFireInstallationsRoute,
   listFireMaintenanceItemsRoute,
   listFireSubstancesRoute,
   updateClientFireSafetyRoute,
+  updateFireBuildingRoute,
   updateFireEquipmentRoute,
   updateFireInstallationRoute,
   updateFireMaintenanceItemRoute,
@@ -57,6 +63,9 @@ export const fireSafetyRouter = createRouter()
   .openapi(createFireMaintenanceItemRoute, createFireMaintenanceItem)
   .openapi(updateFireMaintenanceItemRoute, updateFireMaintenanceItem)
   .openapi(deleteFireMaintenanceItemRoute, deleteFireMaintenanceItem)
+  .openapi(listFireBuildingsRoute, listFireBuildings)
+  .openapi(updateFireBuildingRoute, updateFireBuilding)
+  .openapi(deleteFireBuildingRoute, deleteFireBuilding)
   .openapi(listFireSubstancesRoute, listFireSubstances)
   .openapi(updateFireSubstancesStateRoute, updateFireSubstancesState)
   .openapi(createFireSubstanceRoute, createFireSubstance)

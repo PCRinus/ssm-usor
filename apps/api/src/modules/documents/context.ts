@@ -51,6 +51,7 @@ export type DocumentFacts = {
     fireSafetyTechnicianName: string | null;
     fireSafetyTechnicianCertificate: string | null;
     fireSafetyAuthorization: string | null;
+    phone: string | null;
   };
   /** The member who prepares the documents, or null when there is none to name. */
   specialist: { fullName: string | null; professionalTitle: string | null } | null;
@@ -67,6 +68,15 @@ export type DocumentFacts = {
     trainingDayFrom: number | null;
     trainingDayTo: number | null;
     caenCode: string | null;
+    cui: string;
+    tradeRegisterNumber: string | null;
+    /** The registered office as the client's details hold it. */
+    countyCode: string | null;
+    locality: string | null;
+    addressLine: string | null;
+    contactName: string | null;
+    contactPhone: string | null;
+    contactEmail: string | null;
   };
   /** The active workplaces, by name. */
   workplaces: (WorkplaceFacts & FireWorkplaceFacts)[];

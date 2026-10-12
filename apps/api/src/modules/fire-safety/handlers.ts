@@ -1,6 +1,8 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type ClientFireSafety,
+  type FireBuilding,
+  type FireBuildingRequest,
   type FireEquipment,
   fireEquipmentKinds,
   type FireEquipmentRequest,
@@ -26,16 +28,19 @@ import type {
   createFireInstallationRoute,
   createFireMaintenanceItemRoute,
   createFireSubstanceRoute,
+  deleteFireBuildingRoute,
   deleteFireEquipmentRoute,
   deleteFireInstallationRoute,
   deleteFireMaintenanceItemRoute,
   deleteFireSubstanceRoute,
   getClientFireSafetyRoute,
+  listFireBuildingsRoute,
   listFireEquipmentRoute,
   listFireInstallationsRoute,
   listFireMaintenanceItemsRoute,
   listFireSubstancesRoute,
   updateClientFireSafetyRoute,
+  updateFireBuildingRoute,
   updateFireEquipmentRoute,
   updateFireInstallationRoute,
   updateFireMaintenanceItemRoute,
@@ -612,6 +617,155 @@ export const deleteFireMaintenanceItem: RouteHandler<
     .select('id');
   if (error) throw fromDatabaseError(error, 'delete fire maintenance item');
   if (data.length === 0) throw noSuchMaintenanceItem();
+  return c.body(null, 204);
+};
+
+const buildingColumns =
+  'client_id, workplace_id, year_built, built_area_m2, levels, classification, structure, heating_fuel, gas_use, electrical_maintainer, electrical_last_check_on, water_reserve_m3, notes, created_at, updated_at';
+
+type BuildingRow = Pick<
+  Tables['fire_buildings']['Row'],
+  | 'client_id'
+  | 'workplace_id'
+  | 'year_built'
+  | 'built_area_m2'
+  | 'levels'
+  | 'classification'
+  | 'structure'
+  | 'heating_fuel'
+  | 'gas_use'
+  | 'electrical_maintainer'
+  | 'electrical_last_check_on'
+  | 'water_reserve_m3'
+  | 'notes'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+const toBuilding = (row: BuildingRow): FireBuilding => ({
+  clientId: row.client_id,
+  workplaceId: row.workplace_id,
+  yearBuilt: row.year_built,
+  builtAreaM2: row.built_area_m2,
+  levels: row.levels,
+  classification: row.classification,
+  structure: row.structure,
+  heatingFuel: row.heating_fuel,
+  gasUse: row.gas_use,
+  electricalMaintainer: row.electrical_maintainer,
+  electricalLastCheckOn: row.electrical_last_check_on,
+  waterReserveM3: row.water_reserve_m3,
+  notes: row.notes,
+  createdAt: new Date(row.created_at).toISOString(),
+  updatedAt: new Date(row.updated_at).toISOString(),
+});
+
+const buildingFields = (body: FireBuildingRequest) => ({
+  year_built: body.yearBuilt ?? null,
+  built_area_m2: body.builtAreaM2 ?? null,
+  levels: body.levels ?? null,
+  classification: body.classification ?? null,
+  structure: body.structure ?? null,
+  heating_fuel: body.heatingFuel ?? null,
+  gas_use: body.gasUse ?? null,
+  electrical_maintainer: body.electricalMaintainer ?? null,
+  electrical_last_check_on: body.electricalLastCheckOn ?? null,
+  water_reserve_m3: body.waterReserveM3 ?? null,
+  notes: body.notes ?? null,
+});
+
+export const listFireBuildings: RouteHandler<typeof listFireBuildingsRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { data: workplaces, error: workplacesError } = await db
+    .from('client_workplaces')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('kind', 'fixed_space')
+    .is('archived_at', null)
+    .order('is_registered_office', { ascending: false })
+    .order('name')
+    .order('id');
+  if (workplacesError) throw fromDatabaseError(workplacesError, 'list workplaces');
+  const { data, error } = await db
+    .from('fire_buildings')
+    .select(buildingColumns)
+    .eq('client_id', clientId);
+  if (error) throw fromDatabaseError(error, 'list fire buildings');
+  const items = workplaces.flatMap((workplace) => {
+    const row = data.find((building) => building.workplace_id === workplace.id);
+    return row ? [toBuilding(row)] : [];
+  });
+  return c.json({ items }, 200);
+};
+
+// Not an upsert: PostgREST's would also set the keys, which members may not update.
+export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, workplaceId } = c.req.valid('param');
+  const fields = buildingFields(c.req.valid('json'));
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const workplace = await db
+    .from('client_workplaces')
+    .select('kind')
+    .eq('id', workplaceId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (workplace.error) throw fromDatabaseError(workplace.error, 'find workplace');
+  if (!workplace.data) {
+    throw new ApiError('not_found', 'This workplace is not an active workplace of this client.');
+  }
+  if (workplace.data.kind !== 'fixed_space') {
+    throw new ApiError('conflict', 'A temporary or mobile site has no building.');
+  }
+  const update = () =>
+    db
+      .from('fire_buildings')
+      .update(fields)
+      .eq('client_id', clientId)
+      .eq('workplace_id', workplaceId)
+      .select(buildingColumns)
+      .maybeSingle();
+  const updated = await update();
+  if (updated.error) throw fromDatabaseError(updated.error, 'update fire building');
+  if (updated.data) return c.json({ building: toBuilding(updated.data) }, 200);
+  const inserted = await db
+    .from('fire_buildings')
+    .insert({
+      ...fields,
+      client_id: clientId,
+      workplace_id: workplaceId,
+      organization_id: c.get('membership').organizationId,
+      created_by: c.get('user').id,
+    })
+    .select(buildingColumns)
+    .single();
+  if (inserted.error?.code === '23505') {
+    // Another first save got there in between.
+    const again = await update();
+    if (again.error) throw fromDatabaseError(again.error, 'update fire building');
+    if (again.data) return c.json({ building: toBuilding(again.data) }, 200);
+  }
+  if (inserted.error) throw fromDatabaseError(inserted.error, 'create fire building');
+  return c.json({ building: toBuilding(inserted.data) }, 200);
+};
+
+export const deleteFireBuilding: RouteHandler<typeof deleteFireBuildingRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, workplaceId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { error } = await db
+    .from('fire_buildings')
+    .delete()
+    .eq('client_id', clientId)
+    .eq('workplace_id', workplaceId);
+  if (error) throw fromDatabaseError(error, 'delete fire building');
   return c.body(null, 204);
 };
 

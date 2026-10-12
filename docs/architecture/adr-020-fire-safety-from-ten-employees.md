@@ -89,7 +89,7 @@ ADR 019 names the trainer by staff category: the technician for the technical-ad
 - A client that grows past ten gets decisions 8 and 9, the register, the schedules, the site sheet and the report at its next generation, with the numbers of 1 to 7 unchanged.
 - Four template files are renamed and their manifest numbers move; the type keys, and so every stored document, stay. The tab's planned rows gain a section 7.
 - The site sheet is the first document whose template prints gaps on purpose beside merged data, and the first that reads the substances list, the building block and the decisions' facts together; its snapshot marks it "Date modificate" on any change of them, as every fire-safety draft is marked.
-- The workplace dialog grows a building group, optional, below the fire-safety group of ADR 018; a specialist who skips it loses nothing but rows of the sheet.
+- The workplace dialog grows a building group, optional, below the fire-safety group of ADR 018; a specialist who skips it loses nothing but rows of the sheet. Note of 2026-10-12: the building was built as a section "Clădirea" with a dialog of its own in each fixed space's card on the _Mijloace PSI_ tab, beside the installations it leaves to the inventory, not inside the workplace dialog.
 - The documents table gains a period, the uniqueness of a type per client holds per period, and the listing, the generation request and the tab learn about years; the first set is untouched, since none of its types is dated.
 - The provider still has to confirm what the packs cannot: see the questions below. Until then the gate follows the norm, not the provider's habit of issuing nine decisions to everyone.
 

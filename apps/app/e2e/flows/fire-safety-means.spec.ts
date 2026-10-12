@@ -12,7 +12,7 @@ import {
 
 test.afterAll(cleanUp);
 
-test("a specialist records a client's fire-safety training, smoking rule, workplace data, means and other periodic checks, and the owner the technician's authorization", async ({
+test("a specialist records a client's fire-safety training, smoking rule, workplace data, means, other periodic checks and building, and the owner the technician's authorization", async ({
   page,
 }) => {
   const owner = await createAccount('fire-means-owner', 'Petra Stingător');
@@ -100,6 +100,18 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
     'Coșul de fum al centraleianual'
   );
 
+  await expect(means.getByTestId('fire-building-empty')).toBeVisible();
+  await means.getByTestId('fire-building-edit').click();
+  const building = page.getByTestId('fire-building-dialog');
+  await building.getByTestId('fire-building-year').fill('1987');
+  await building.getByTestId('fire-building-area').fill('412,5');
+  await building.getByTestId('fire-building-levels').fill('P+1E');
+  await building.getByTestId('fire-building-classification').selectOption('civil');
+  await building.getByTestId('fire-building-save').click();
+  await expect(page.getByText('Datele clădirii au fost salvate.')).toBeVisible();
+  await expect(means.getByTestId('fire-building-facts')).toContainText('412,5 m²');
+  await expect(means.getByTestId('fire-building-edit')).toHaveText('Modifică');
+
   const substances = page.getByTestId('fire-substances-card');
   await expect(substances.getByTestId('fire-substances-state')).toHaveText('Nedecis');
   await substances.getByTestId('fire-substances-choice-listed').click();
@@ -156,6 +168,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-equipment-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-installation-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-maintenance-row')).toHaveCount(1);
+  await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
   await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
   await page.goto(`/clients/${clientId}/training`);
   await expect(card.getByTestId('fire-smoking-place')).toHaveText(

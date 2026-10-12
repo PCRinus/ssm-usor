@@ -5294,6 +5294,258 @@
         },
         "required": ["workplaceId", "subject", "intervalLabel", "checkedBy"]
       },
+      "FireBuildingListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workplaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "yearBuilt": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "builtAreaM2": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "levels": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "classification": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["civil", "production", "storage", "mixed", null]
+                },
+                "structure": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "heatingFuel": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "gasUse": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "electricalMaintainer": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "electricalLastCheckOn": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "waterReserveM3": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "notes": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "clientId",
+                "workplaceId",
+                "yearBuilt",
+                "builtAreaM2",
+                "levels",
+                "classification",
+                "structure",
+                "heatingFuel",
+                "gasUse",
+                "electricalMaintainer",
+                "electricalLastCheckOn",
+                "waterReserveM3",
+                "notes",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "FireBuildingResponse": {
+        "type": "object",
+        "properties": {
+          "building": {
+            "type": "object",
+            "properties": {
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "workplaceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "yearBuilt": {
+                "type": "integer",
+                "nullable": true
+              },
+              "builtAreaM2": {
+                "type": "number",
+                "nullable": true
+              },
+              "levels": {
+                "type": "string",
+                "nullable": true
+              },
+              "classification": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["civil", "production", "storage", "mixed", null]
+              },
+              "structure": {
+                "type": "string",
+                "nullable": true
+              },
+              "heatingFuel": {
+                "type": "string",
+                "nullable": true
+              },
+              "gasUse": {
+                "type": "string",
+                "nullable": true
+              },
+              "electricalMaintainer": {
+                "type": "string",
+                "nullable": true
+              },
+              "electricalLastCheckOn": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "waterReserveM3": {
+                "type": "number",
+                "nullable": true
+              },
+              "notes": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "clientId",
+              "workplaceId",
+              "yearBuilt",
+              "builtAreaM2",
+              "levels",
+              "classification",
+              "structure",
+              "heatingFuel",
+              "gasUse",
+              "electricalMaintainer",
+              "electricalLastCheckOn",
+              "waterReserveM3",
+              "notes",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["building"]
+      },
+      "FireBuildingRequest": {
+        "type": "object",
+        "properties": {
+          "yearBuilt": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1800
+          },
+          "builtAreaM2": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 99999999
+          },
+          "levels": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 40
+          },
+          "classification": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["civil", "production", "storage", "mixed", null]
+          },
+          "structure": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "heatingFuel": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "gasUse": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "electricalMaintainer": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "electricalLastCheckOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "waterReserveM3": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 99999999
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 1000
+          }
+        }
+      },
       "FireSubstancesResponse": {
         "type": "object",
         "properties": {
@@ -5805,7 +6057,8 @@
               "fire_registers",
               "fire_work_permit",
               "fire_installation_register",
-              "fire_extinguisher_register"
+              "fire_extinguisher_register",
+              "fire_site_sheet"
             ]
           }
         },
@@ -6340,7 +6593,8 @@
                 "fire_registers",
                 "fire_work_permit",
                 "fire_installation_register",
-                "fire_extinguisher_register"
+                "fire_extinguisher_register",
+                "fire_site_sheet"
               ]
             }
           },
@@ -18193,6 +18447,330 @@
         }
       }
     },
+    "/clients/{clientId}/fire-buildings": {
+      "get": {
+        "operationId": "listFireBuildings",
+        "summary": "List the buildings of a client's fixed-space workplaces",
+        "description": "One per active fixed-space workplace that has any, in the order of the workplaces list. A mobile site has none; one kept from when the workplace was a fixed space is left out. The site sheet 7.1 prints them (ADR 020).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The buildings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireBuildingListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/fire-buildings/{workplaceId}": {
+      "put": {
+        "operationId": "updateFireBuilding",
+        "summary": "Replace the facts of a workplace's building",
+        "description": "Creates the building the first time. Every fact is optional, and a fact left out or null is cleared; readiness never asks for any of them.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workplaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FireBuildingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The building after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FireBuildingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist, or the workplace is not an active one of this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or the workplace is a mobile site, which has no building",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFireBuilding",
+        "summary": "Clear the facts of a workplace's building",
+        "description": "Answers 204 whether or not the workplace had a building.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workplaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cleared"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/fire-substances": {
       "get": {
         "operationId": "listFireSubstances",
@@ -20489,7 +21067,8 @@
                 "fire_registers",
                 "fire_work_permit",
                 "fire_installation_register",
-                "fire_extinguisher_register"
+                "fire_extinguisher_register",
+                "fire_site_sheet"
               ]
             },
             "required": true,

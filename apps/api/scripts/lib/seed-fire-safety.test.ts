@@ -1,5 +1,6 @@
 import {
   extinguisherCode,
+  fireBuildingRequestSchema,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
   fireMaintenanceItemRequestSchema,
@@ -11,6 +12,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildingFor,
   fireMeansFor,
   fireRolesToAdd,
   fireSafetyAuthorization,
@@ -157,6 +159,33 @@ describe('maintenanceItemsFor', () => {
           checkedBy: item.checked_by,
         }).success
       ).toBe(true);
+    }
+  });
+});
+
+describe('buildingFor', () => {
+  it('fills every fact of a complete building and half of the other, as the API accepts them', () => {
+    const toRequest = (building: ReturnType<typeof buildingFor>) => ({
+      yearBuilt: building.year_built,
+      builtAreaM2: building.built_area_m2,
+      levels: building.levels,
+      classification: building.classification,
+      structure: building.structure,
+      heatingFuel: building.heating_fuel,
+      gasUse: building.gas_use,
+      electricalMaintainer: building.electrical_maintainer,
+      electricalLastCheckOn: building.electrical_last_check_on,
+      waterReserveM3: building.water_reserve_m3,
+      notes: building.notes,
+    });
+    const complete = buildingFor({ id: workplaceId, client_id: clientId }, userId, true);
+    const half = buildingFor({ id: workplaceId, client_id: clientId }, userId, false);
+    expect(Object.values(toRequest(complete)).every((value) => value != null)).toBe(true);
+    expect(half.structure).toBeUndefined();
+    expect(half.year_built).toBe(1987);
+    for (const building of [complete, half]) {
+      expect(fireBuildingRequestSchema.safeParse(toRequest(building)).success).toBe(true);
+      expect(building.workplace_id).toBe(workplaceId);
     }
   });
 });

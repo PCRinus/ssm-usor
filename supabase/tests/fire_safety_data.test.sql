@@ -1,5 +1,5 @@
 begin;
-select plan(61);
+select plan(68);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -44,6 +44,8 @@ insert into public.fire_installations (id, organization_id, client_id, workplace
   ('f3f3f3f3-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'detection_alarm');
 insert into public.fire_maintenance_items (id, organization_id, client_id, workplace_id, subject, interval_label, checked_by) values
   ('a4a4a4a4-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'Coșul de fum', 'anual', 'Firmă autorizată');
+insert into public.fire_buildings (id, organization_id, client_id, workplace_id, year_built) values
+  ('a5a5a5a5-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 1975);
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000003';
 
 create or replace function pg_temp.act_as(user_id text)
@@ -324,6 +326,39 @@ select throws_ok(
 );
 
 select lives_ok(
+  $$ insert into public.fire_buildings (id, organization_id, client_id, workplace_id, year_built, built_area_m2, levels, classification, structure, water_reserve_m3)
+     values ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 1987, 412.5, 'P+1E', 'civil', 'Zidărie portantă', 0) $$,
+  'a workplace has the facts of its building'
+);
+
+select throws_ok(
+  $$ insert into public.fire_buildings (organization_id, client_id, workplace_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002') $$,
+  '23505', null, 'one building per workplace'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set year_built = 1700 where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '23514', null, 'built in a plausible year'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set built_area_m2 = 0 where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '23514', null, 'with a built area above zero'
+);
+
+select throws_ok(
+  $$ insert into public.fire_buildings (organization_id, client_id, workplace_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000003') $$,
+  '23503', null, 'a building cannot be on a workplace of another client'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set workplace_id = 'd1d1d1d1-0000-4000-8000-000000000001' where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '42501', null, 'nor move to another workplace'
+);
+
+select lives_ok(
   $$ insert into public.client_responsible_persons (organization_id, client_id, employee_id, workplace_id, full_name, job_title, roles)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Ion Popescu', 'Manager magazin',
              '{workplace_manager,first_aid,risk_evaluation_team,imminent_danger,workers_representative,fire_safety_coordinator,fire_intervention_leader}') $$,
@@ -380,6 +415,11 @@ select throws_ok(
   'CLA01', null, 'nor the free rows of its schedules'
 );
 
+select throws_ok(
+  $$ update public.fire_buildings set levels = 'P+2E' where id = 'a5a5a5a5-0000-4000-8000-000000000001' $$,
+  'CLA01', null, 'nor the facts of its buildings'
+);
+
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
 
 select is(
@@ -387,7 +427,8 @@ select is(
     + (select count(*)::int from public.fire_equipment)
     + (select count(*)::int from public.fire_installations)
     + (select count(*)::int from public.fire_substances)
-    + (select count(*)::int from public.fire_maintenance_items),
+    + (select count(*)::int from public.fire_maintenance_items)
+    + (select count(*)::int from public.fire_buildings),
   0,
   'a member of another organization reads none of it'
 );

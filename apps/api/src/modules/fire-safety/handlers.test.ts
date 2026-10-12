@@ -1,6 +1,8 @@
 import {
   apiErrorResponseSchema,
   clientFireSafetyResponseSchema,
+  fireBuildingListResponseSchema,
+  fireBuildingResponseSchema,
   fireEquipmentListResponseSchema,
   fireEquipmentResponseSchema,
   fireInstallationListResponseSchema,
@@ -160,6 +162,27 @@ const maintenanceItem = (id: string, workplaceId: string, fields: Record<string,
 
 const chimney = maintenanceItem('30000000-0000-4000-8000-000000000001', shopId, {});
 
+const building = (workplaceId: string, fields: Record<string, unknown>) => ({
+  client_id: clientId,
+  workplace_id: workplaceId,
+  year_built: null,
+  built_area_m2: null,
+  levels: null,
+  classification: null,
+  structure: null,
+  heating_fuel: null,
+  gas_use: null,
+  electrical_maintainer: null,
+  electrical_last_check_on: null,
+  water_reserve_m3: null,
+  notes: null,
+  created_at: '2026-10-12T10:00:00+00:00',
+  updated_at: '2026-10-12T10:00:00+00:00',
+  ...fields,
+});
+
+const shopBuilding = building(shopId, { year_built: 1987, built_area_m2: 412.5, levels: 'P+1E' });
+
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
 type Upstream =
   | 'clients'
@@ -168,7 +191,8 @@ type Upstream =
   | 'equipment'
   | 'installations'
   | 'substances'
-  | 'maintenanceItems';
+  | 'maintenanceItems'
+  | 'buildings';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -207,6 +231,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return custom('substances') ?? Response.json(propane);
       case '/rest/v1/fire_maintenance_items':
         return custom('maintenanceItems') ?? Response.json(chimney);
+      case '/rest/v1/fire_buildings':
+        return custom('buildings') ?? Response.json([shopBuilding]);
       default:
         throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
     }
@@ -1037,6 +1063,123 @@ describe('/clients/{clientId}/fire-maintenance-items', () => {
       await request(path, 'POST', body),
       await request(itemPath, 'PUT', body),
       await request(itemPath, 'DELETE'),
+    ]) {
+      expect(response.status).toBe(409);
+      expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+    }
+  });
+});
+
+describe('/clients/{clientId}/fire-buildings', () => {
+  const path = `/clients/${clientId}/fire-buildings`;
+  const shopPath = `${path}/${shopId}`;
+  const body = {
+    yearBuilt: 1987,
+    builtAreaM2: 412.5,
+    levels: ' P+1E ',
+    classification: 'civil',
+    electricalLastCheckOn: '2026-03-12',
+    waterReserveM3: 0,
+  };
+  const fixedSpace: Handler = () => Response.json([{ kind: 'fixed_space' }]);
+
+  it('lists the buildings of the active fixed spaces in the order of the workplaces', async () => {
+    const office = building(officeId, { classification: 'mixed' });
+    const archived = building(archivedWorkplaceId, {});
+    mockUpstream({ buildings: () => Response.json([shopBuilding, archived, office]) });
+    const response = await request(path);
+    expect(response.status).toBe(200);
+    const { items } = fireBuildingListResponseSchema.parse(await response.json());
+    expect(items.map((item) => item.workplaceId)).toEqual([officeId, shopId]);
+    expect(items[1]).toMatchObject({ yearBuilt: 1987, builtAreaM2: 412.5, levels: 'P+1E' });
+    const [workplaces] = calls('client_workplaces', 'GET').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(workplaces!.get('kind')).toBe('eq.fixed_space');
+    expect(workplaces!.get('archived_at')).toBe('is.null');
+  });
+
+  it('answers 404 for a client of another organization', async () => {
+    mockUpstream({ clients: noClient });
+    expect((await request(path)).status).toBe(404);
+    expect((await request(shopPath, 'PUT', body)).status).toBe(404);
+    expect((await request(shopPath, 'DELETE')).status).toBe(404);
+    expect(calls('fire_buildings', 'PATCH')).toHaveLength(0);
+  });
+
+  it('replaces the facts of a building it has, clearing what is left out', async () => {
+    mockUpstream({ workplaces: fixedSpace });
+    const response = await request(shopPath, 'PUT', body);
+    expect(response.status).toBe(200);
+    expect(fireBuildingResponseSchema.parse(await response.json()).building.levels).toBe('P+1E');
+    expect(sent('fire_buildings', 'PATCH')).toEqual({
+      year_built: 1987,
+      built_area_m2: 412.5,
+      levels: 'P+1E',
+      classification: 'civil',
+      structure: null,
+      heating_fuel: null,
+      gas_use: null,
+      electrical_maintainer: null,
+      electrical_last_check_on: '2026-03-12',
+      water_reserve_m3: 0,
+      notes: null,
+    });
+    const [update] = calls('fire_buildings', 'PATCH').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(update!.get('client_id')).toBe(`eq.${clientId}`);
+    expect(update!.get('workplace_id')).toBe(`eq.${shopId}`);
+    expect(calls('fire_buildings', 'POST')).toHaveLength(0);
+  });
+
+  it('creates the building the first time', async () => {
+    mockUpstream({
+      workplaces: fixedSpace,
+      buildings: (init) =>
+        init?.method === 'POST' ? Response.json(shopBuilding, { status: 201 }) : Response.json([]),
+    });
+    expect((await request(shopPath, 'PUT', { levels: 'P+1E' })).status).toBe(200);
+    expect(sent('fire_buildings', 'POST')).toMatchObject({
+      levels: 'P+1E',
+      year_built: null,
+      client_id: clientId,
+      workplace_id: shopId,
+      organization_id: organizationId,
+      created_by: user.id,
+    });
+  });
+
+  it('refuses a year to come, a workplace that is not an active one of this client, and a mobile site', async () => {
+    mockUpstream({ workplaces: fixedSpace });
+    const next = new Date().getFullYear() + 1;
+    expect((await request(shopPath, 'PUT', { yearBuilt: next })).status).toBe(400);
+    mockUpstream({ workplaces: () => Response.json([]) });
+    expect((await request(shopPath, 'PUT', body)).status).toBe(404);
+    mockUpstream({ workplaces: () => Response.json([{ kind: 'mobile_site' }]) });
+    expect((await request(shopPath, 'PUT', body)).status).toBe(409);
+    expect(calls('fire_buildings', 'PATCH')).toHaveLength(0);
+    expect(calls('fire_buildings', 'POST')).toHaveLength(0);
+  });
+
+  it('clears a building, and answers 204 also where there was none', async () => {
+    mockUpstream({ buildings: () => new Response(null, { status: 204 }) });
+    expect((await request(shopPath, 'DELETE')).status).toBe(204);
+    const [deleted] = calls('fire_buildings', 'DELETE').map(
+      ([input]) => new URL(String(input)).searchParams
+    );
+    expect(deleted!.get('client_id')).toBe(`eq.${clientId}`);
+    expect(deleted!.get('workplace_id')).toBe(`eq.${shopId}`);
+  });
+
+  it('refuses every change under an archived client', async () => {
+    mockUpstream({
+      workplaces: fixedSpace,
+      buildings: () => databaseError('CLA01', 400),
+    });
+    for (const response of [
+      await request(shopPath, 'PUT', body),
+      await request(shopPath, 'DELETE'),
     ]) {
       expect(response.status).toBe(409);
       expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');

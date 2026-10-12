@@ -501,6 +501,461 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
   };
 }
 
+// The long sample's operator has fourteen employees, a filled building, an empty one and a
+// mobile site; the short one four employees and a building half filled. Built as the API builds
+// `fire.siteSheet`, a gap a null value.
+function siteSheetSample({
+  legalName,
+  representativeName,
+  technician,
+  people,
+  long,
+}: {
+  legalName: string;
+  representativeName: string;
+  technician: string;
+  people: ReturnType<typeof person>[];
+  long: boolean;
+}) {
+  const gap = 'DE COMPLETAT';
+  const row = (title: string, value: string | null, hint: string) => ({ title, value, hint });
+  const technicianLabel =
+    'Cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor/Inspector de protecție civilă';
+  const decision = (number: number) => `Decizia nr.\u00a0${number} PSI`;
+  const building = (filled: boolean, name: string, place: string, extinguishers: string) => ({
+    name,
+    place,
+    constructive: [
+      row(
+        'Stabilitatea la foc',
+        null,
+        'din proiect sau din alte documente tehnice; în lipsa lor se precizează că conducerea nu poate prezenta documente privind stabilitatea la foc'
+      ),
+      row(
+        'Compartimente de incendiu',
+        null,
+        'numărul compartimentelor de incendiu, suprafața și înălțimea fiecăruia'
+      ),
+      row(
+        'Căi de acces, intervenție și evacuare',
+        null,
+        'numărul, gabaritul, marcarea și semnalizarea lor'
+      ),
+      row(
+        'Case de scări (închise/deschise)',
+        null,
+        'numărul, gabaritul și alcătuirea constructivă'
+      ),
+      row('Ascensoare de intervenție', null, 'dacă există, potrivit reglementării'),
+    ],
+    technical: [
+      row(
+        'Sisteme de ventilație/climatizare',
+        null,
+        'dacă există; contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat'
+      ),
+      row(
+        'Sisteme de încălzire',
+        filled ? `combustibil: gaze naturale; întreținerea și ultima verificare: ${gap}` : null,
+        'dacă există; tipul combustibilului; contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat'
+      ),
+      row(
+        'Instalații electrice',
+        filled ? 'întreținute de S.C. ELECTRO SERV S.R.L.; ultima verificare: 12.03.2026' : null,
+        'contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat'
+      ),
+      row(
+        'Instalație de alimentare cu gaze naturale/G.P.L.',
+        filled ? 'încălzire și prepararea hranei' : null,
+        'dacă există; scopul utilizării (prepararea hranei, încălzire, uz industrial)'
+      ),
+      row(
+        'Iluminat de siguranță',
+        filled
+          ? 'există: corpuri autonome pe căile de evacuare; firma de service: S.C. ELECTRO SERV S.R.L.'
+          : 'nu există',
+        'dacă există; tipul de alimentare, categoria (continuarea lucrului, evacuare, intervenție) și spațiile protejate'
+      ),
+      row(
+        'Sisteme și instalații tehnologice',
+        'Vitrine frigorifice, casa de marcat, aparate de cafea.',
+        'se enumeră sistemele și instalațiile tehnologice, dacă există'
+      ),
+      row(
+        'Sistem/dispozitiv de evacuare a fumului și gazelor fierbinți',
+        'nu există',
+        'dacă există; sistemul de acționare și spațiile protejate'
+      ),
+      row(
+        'Sisteme de detectare a incendiilor',
+        filled
+          ? 'nu există'
+          : 'există: firma de service: S.C. ALARM SERVICE S.R.L.; ultima verificare: 12.03.2026',
+        'dacă există; tipul, spațiile protejate, firma atestată care o întreține și ultima verificare'
+      ),
+      row(
+        'Sisteme de alarmare/avertizare',
+        filled
+          ? null
+          : `prin instalația de detectare, semnalizare și avertizare la incendiu; tipul avertizării: ${gap}`,
+        'dacă există; tipul: sonoră (bandă preînregistrată, megafon etc.) sau silențioasă'
+      ),
+      row(
+        'Sisteme de limitare a propagării incendiilor',
+        null,
+        'uși rezistente la foc, clapete antifoc, sisteme de obturare, oprirea automată a ventilării, protecții ale structurilor, cu compartimentul în care sunt prevăzute'
+      ),
+      row('Sisteme de detectare a gazelor', 'nu există', 'dacă există; spațiile protejate'),
+      row(
+        'Instalații speciale de stingere cu apă',
+        'nu există',
+        'tipul (sprinklere, apă pulverizată etc.), zonele protejate, numărul capetelor de refulare'
+      ),
+      row(
+        'Instalații de stingere cu gaze/aerosoli',
+        null,
+        'dacă există; tipul, zonele protejate, numărul capetelor de refulare'
+      ),
+      row(
+        'Alte instalații de stingere (pulbere, spumă etc.)',
+        null,
+        'dacă există; tipul instalației, spațiile protejate și numărul de sectoare'
+      ),
+      row(
+        'Instalație de protecție împotriva trăsnetului',
+        'nu există',
+        'dacă există; dacă este verificată de o firmă atestată'
+      ),
+      row(
+        'Stingătoare',
+        extinguishers,
+        'pe tipodimensiuni; dacă sunt verificate de o firmă atestată'
+      ),
+      row(
+        'Hidranți interiori/coloane uscate',
+        filled ? 'nu există' : 'există: câte doi pe fiecare nivel',
+        'dacă există; alimentarea de la rețeaua orașului sau din rezerva de apă (m³)'
+      ),
+      row(
+        'Hidranți exteriori',
+        filled ? 'nu există' : 'există',
+        'dacă există; numărul, distanța față de clădire și pe ce laturi, alimentarea'
+      ),
+      row(
+        'Alimentarea cu apă pentru stingerea incendiilor (rezerva de apă, pompe)',
+        filled ? 'nu există o rezervă proprie de apă pentru stingerea incendiilor' : null,
+        'rezerva de apă (m³); pompele (număr, m³/min)'
+      ),
+      row(
+        'Utilaje și autospeciale de intervenție din dotarea serviciului privat pentru situații de urgență',
+        'nu este cazul: operatorul nu are serviciu privat pentru situații de urgență',
+        'utilajele și autospecialele serviciului privat, dacă există'
+      ),
+      row(
+        'Stocuri de produse de stingere/neutralizatori',
+        null,
+        'stocurile de produse de stingere și de neutralizatori, dacă există'
+      ),
+      row(
+        'Echipament de protecție al personalului de intervenție în funcție de riscurile existente și de efectele negative ale incendiilor specifice',
+        null,
+        'echipamentul de protecție al echipei de primă intervenție, potrivit riscurilor'
+      ),
+      ...(filled
+        ? [
+            row(
+              'Alte precizări',
+              'Clădirea are o singură scară de evacuare, spre curtea interioară.',
+              ''
+            ),
+          ]
+        : []),
+    ],
+  });
+  const perBuilding = (first: string) =>
+    long
+      ? `Clădirea 1 (Punct de lucru Calea Aradului): ${first}\nClădirea 2 (Depozit central): ${gap}`
+      : first;
+  const documents = [
+    'Decizia nr.\u00a01 PSI privind organizarea apărării împotriva incendiilor',
+    'Decizia nr.\u00a02 PSI privind instruirea în domeniul situațiilor de urgență',
+    'Decizia nr.\u00a03 PSI privind lucrul cu foc deschis',
+    'Decizia nr.\u00a04 PSI privind fumatul',
+    'Decizia nr.\u00a05 PSI privind cadrul tehnic PSI',
+    'Decizia nr.\u00a06 PSI privind instrucțiunile de apărare împotriva incendiilor',
+    'Decizia nr.\u00a07 PSI privind colectarea deșeurilor',
+    ...(long
+      ? [
+          'Decizia nr.\u00a08 PSI privind perioadele caniculare și sezonul rece',
+          'Decizia nr.\u00a09 PSI privind controlul propriu',
+        ]
+      : []),
+    'Instrucțiunile proprii de apărare împotriva incendiilor',
+    'Tematica de instruire în domeniul situațiilor de urgență',
+    'Testele de verificare a cunoștințelor',
+    'Lista mijloacelor de apărare împotriva incendiilor',
+    'Organizarea apărării împotriva incendiilor la fiecare loc de muncă',
+    'Lista substanțelor periculoase',
+    ...(long ? ['Graficele de întreținere și verificare'] : []),
+    'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
+    'Permisul de lucru cu foc',
+    ...(long ? ['Registrul de control pentru instalațiile de apărare împotriva incendiilor'] : []),
+    'Registrul de evidență a controlului stingătoarelor de incendiu',
+  ];
+  const buildings = [
+    building(
+      true,
+      'Punct de lucru Calea Aradului',
+      'Punct de lucru Calea Aradului, Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+      'P6 – 2\u00a0buc., G5 – 1\u00a0buc.; verificate de S.C. FOC STOP S.R.L.'
+    ),
+    ...(long
+      ? [
+          building(
+            false,
+            'Depozit central',
+            'Depozit central, Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+            `P6 – 6\u00a0buc., P50 carosabil – 1\u00a0buc., SM9 – 2\u00a0buc.; firma atestată care le verifică: ${gap}`
+          ),
+        ]
+      : []),
+  ];
+  return {
+    identity: [
+      row('Denumirea operatorului economic/instituției', legalName, 'denumirea în clar'),
+      row(
+        'Administrator/Conducător – date de identificare',
+        `${representativeName}, administrator`,
+        'numele și prenumele, funcția'
+      ),
+      row(
+        'Administrator/Conducător – telefon serviciu',
+        long ? null : '0722 111 222',
+        'telefonul de serviciu și faxul administratorului'
+      ),
+      row(
+        'Administrator/Conducător – telefon domiciliu',
+        null,
+        'telefonul de domiciliu, faxul și adresa de e-mail ale administratorului'
+      ),
+      row(
+        'Coordonatele operatorului economic/instituției – adresa',
+        'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+        'adresa sediului unde se află operatorul economic/instituția'
+      ),
+      row(
+        'Coordonatele operatorului economic/instituției – telefon, fax, e-mail',
+        'telefon: 0722 111 222, e-mail: office@exemplu.ro',
+        'telefonul, faxul și adresa de e-mail ale operatorului'
+      ),
+      row(
+        'Coordonatele filialelor/sucursalelor/punctelor de lucru (dacă este cazul)',
+        [
+          '– Punct de lucru Calea Aradului (sediu social): Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+          ...(long
+            ? [
+                '– Depozit central: Timișoara, județul Timiș, Str. Gheorghe Lazăr 24',
+                '– Șantier Dumbrăvița (șantier temporar sau mobil): Dumbrăvița, județul Timiș, Str. Petőfi Sándor 50',
+              ]
+            : []),
+          `Telefon, fax, e-mail pentru fiecare: ${gap}`,
+        ].join('\n'),
+        'adresa, telefonul, faxul și adresa de e-mail ale fiecărui punct de lucru'
+      ),
+      row(
+        'Număr de înregistrare din registrul comerțului',
+        long ? 'J35/1234/2008, CUI 14399840' : 'CUI 14399840',
+        'numărul de ordine în registrul comerțului sau codul unic de înregistrare'
+      ),
+      row(
+        `${technicianLabel} – nume și prenume`,
+        `${technician}, reprezentant al S.C. SERVICIU EXTERN S.R.L.`,
+        'numele și prenumele cadrului tehnic'
+      ),
+      row(
+        `${technicianLabel} – telefon serviciu`,
+        '0256 123 456',
+        'telefonul de serviciu al cadrului tehnic'
+      ),
+      row(
+        `${technicianLabel} – telefon domiciliu`,
+        null,
+        'telefonul de domiciliu al cadrului tehnic'
+      ),
+      row(
+        `${technicianLabel} – certificat de competență, termen de valabilitate`,
+        `seria A nr. 1234/2024; termen de valabilitate: ${gap}`,
+        'numărul certificatului de competență și termenul lui de valabilitate'
+      ),
+    ],
+    general: [
+      row(
+        'Domeniul de activitate',
+        `Gelaterie și cofetărie cu laborator propriu${long ? '; Depozitare de materii prime și ambalaje; Lucrări de construcții și instalații' : ''} (cod CAEN 1052); domeniul din model: ${gap}`,
+        'se alege unul dintre domeniile modelului: administrativ; comercial; cult; cultură; educație; financiar-bancar; fond forestier; monumente istorice și de arhitectură; sănătate; sport; agrement; turism; transporturi; operatori economici cu risc mare și foarte mare de incendiu; alte domenii de activitate'
+      ),
+      row(
+        'Anul de construire (punere în funcțiune)',
+        perBuilding('1987'),
+        'anul punerii în funcțiune; modificările, modernizările sau extinderile, cu anul lor; numărul avizului sau al autorizației de securitate la incendiu, dacă există'
+      ),
+      row(
+        'Suprafața construită/desfășurată',
+        perBuilding('412,5\u00a0m²'),
+        'în m², pentru fiecare construcție'
+      ),
+      row(
+        'Număr niveluri (regim de înălțime)',
+        perBuilding('P+1E'),
+        'numărul de niveluri și înălțimea în m, pentru fiecare construcție'
+      ),
+      row(
+        'Clasificare construcție (civilă, de producție, de depozitare, cu funcțiuni mixte)',
+        perBuilding('cu funcțiuni mixte'),
+        'civilă, de producție, de depozitare sau cu funcțiuni mixte'
+      ),
+      row(
+        'Structura de rezistență a construcției (structură metalică, beton armat, zidărie, lemn, mixtă etc.)',
+        long ? perBuilding('Cadre din beton armat, închideri din zidărie de cărămidă') : null,
+        'structură metalică, beton armat, zidărie, lemn, mixtă etc.'
+      ),
+      row(
+        'Personal angajat',
+        `${long ? '14 angajați' : '4 angajați'} în total, după lista clientului; numărul estimativ pe fiecare clădire: ${gap}`,
+        'număr estimativ, pentru fiecare clădire'
+      ),
+      row(
+        'Utilizarea clădirii',
+        null,
+        'prezența oamenilor în clădire, permanent sau temporar, în timpul și în afara programului de lucru, în week-end și de sărbători, cu numărul maxim de persoane prezente simultan; pericolele din vecinătăți'
+      ),
+    ],
+    buildings,
+    noBuildings: false,
+    substances: long
+      ? {
+          none: false,
+          listed: true,
+          entries: [
+            {
+              name: 'Gaz petrolier lichefiat (propan) în butelii',
+              rows: [
+                row(
+                  'Denumirea substanțelor periculoase folosite, clasificare',
+                  'Gaz petrolier lichefiat (propan) în butelii – Flam. Gas 1, H220; Press. Gas (Liquefied gas), H280',
+                  'în conformitate cu sistemul internațional de clasificare a substanțelor periculoase, frazele de risc asociate'
+                ),
+                row(
+                  'Cantitatea existentă în unitate',
+                  '2 butelii de 11 kg',
+                  'pentru fiecare substanță'
+                ),
+                row(
+                  'Loc de depozitare',
+                  'Cușca metalică ventilată din curte, departe de surse de căldură',
+                  'instalație, echipament de proces, sistem de stocare, sistem de compresie, conducte etc.'
+                ),
+                row(
+                  'Mod de operare',
+                  'Butelia se transportă și se folosește în poziție verticală, cu robinetul închis când nu este folosită',
+                  'modul de manipulare și de utilizare'
+                ),
+              ],
+            },
+            {
+              name: 'Diluant pentru vopsele (white spirit)',
+              rows: [
+                row(
+                  'Denumirea substanțelor periculoase folosite, clasificare',
+                  'Diluant pentru vopsele (white spirit) – Flam. Liq. 3, H226; Asp. Tox. 1, H304; STOT RE 1, H372',
+                  'în conformitate cu sistemul internațional de clasificare a substanțelor periculoase, frazele de risc asociate'
+                ),
+                row(
+                  'Cantitatea existentă în unitate',
+                  '2 bidoane de 5 l',
+                  'pentru fiecare substanță'
+                ),
+                row(
+                  'Loc de depozitare',
+                  'Dulapul metalic pentru substanțe inflamabile din atelier',
+                  'instalație, echipament de proces, sistem de stocare, sistem de compresie, conducte etc.'
+                ),
+                row('Mod de operare', null, 'modul de manipulare și de utilizare'),
+              ],
+            },
+          ],
+        }
+      : { none: true, listed: false, entries: [] },
+    organization: [
+      row(
+        'Organizarea alarmării',
+        `da, prin ${decision(1)} privind organizarea apărării împotriva incendiilor: ${people[0]!.name} asigură observarea și anunțarea incendiului pe plan intern și prin apel la 112, iar șeful echipei de primă intervenție, ${people.at(-1)!.name}, anunță 112; fișa de organizare a apărării împotriva incendiilor este afișată la fiecare loc de muncă`,
+        'dacă este organizată și pe baza căror documente'
+      ),
+      row(
+        'Instruirea personalului',
+        `da, periodic, potrivit Deciziei nr.\u00a02 PSI: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instruire periodică; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
+        'dacă se face periodic (periodicitatea pe categorii de personal), de către cine, dacă este persoană atestată'
+      ),
+      row(
+        'Control intern de prevenire',
+        long
+          ? `da, potrivit Deciziei nr.\u00a09 PSI: coordonatorul privind apărarea împotriva incendiilor, ${people[0]!.name}, și cadrul tehnic – trimestrial, pe tot perimetrul și la persoanele juridice care desfășoară activități în spațiile operatorului; coordonatorul – lunar, fiecare stingător; șefii locurilor de muncă – zilnic sau pe schimb; personalul de execuție – zilnic, la terminarea programului; conducerea, cu coordonatorul și cadrul tehnic – anual, în ianuarie`
+          : `da, de persoanele desemnate prin ${decision(1)}: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, ${people[0]!.name} – lunar, controlul fiecărui stingător de incendiu`,
+        'dacă se execută, la ce interval și de către cine'
+      ),
+      row(
+        'Serviciu privat pentru situații de urgență',
+        'nu există; nu este cazul',
+        'dacă există sau dacă este încheiat un contract: obiectul contractului, datele firmei'
+      ),
+      row(
+        'Planuri/exerciții de evacuare din clădire',
+        null,
+        'când s-a executat ultima oară exercițiul de evacuare și ce probleme deosebite au fost constatate'
+      ),
+      row(
+        'Afișare instrucțiuni specifice',
+        `da: instrucțiunile de apărare împotriva incendiilor aprobate prin ${decision(6)} se afișează la fiecare loc de muncă`,
+        'dacă există'
+      ),
+      row(
+        'Obligațiile administratorului/conducerii',
+        `da: stabilite prin ${decision(1)} privind organizarea apărării împotriva incendiilor`,
+        'dacă există și ce documente sunt întocmite'
+      ),
+      row(
+        'Obligațiile cadrului tehnic/inspectorului/personalului din structura cu atribuții de apărare împotriva incendiilor/de protecție civilă',
+        `da: ${decision(5)} privind cadrul tehnic PSI, cu obligațiile din anexa ei, și ${decision(1)} privind organizarea apărării împotriva incendiilor, pentru coordonator și echipa de primă intervenție`,
+        'dacă există și ce documente sunt întocmite pentru reglementarea lor'
+      ),
+      row(
+        'Ordinea interioară',
+        `reglementată prin ${decision(3)} privind lucrul cu foc deschis, ${decision(4)} privind fumatul${long ? `, ${decision(7)} privind colectarea deșeurilor și ${decision(8)} privind perioadele caniculare și sezonul rece` : ` și ${decision(7)} privind colectarea deșeurilor`}; asigurarea căilor de acces, de evacuare și de intervenție: ${gap}`,
+        'reglementările pentru lucrul cu foc deschis, fumat, deșeuri, sezonul rece și perioadele caniculare; căile de acces, de evacuare și de intervenție'
+      ),
+      row(
+        'Documente specifice de apărare împotriva incendiilor',
+        documents.map((document) => `– ${document}`).join('\n'),
+        'potrivit reglementărilor în domeniu'
+      ),
+      row('Documente specifice de protecție civilă', null, 'potrivit reglementărilor în domeniu'),
+      row(
+        'Reglementarea modului de întreținere, verificare, reparare a mijloacelor tehnice de apărare împotriva incendiilor',
+        long
+          ? `– stingătoarele: S.C. FOC STOP S.R.L.\n– iluminat de siguranță: S.C. ELECTRO SERV S.R.L.\n– hidranți interiori: ${gap}\n– hidranți exteriori: ${gap}\n– instalație de detectare, semnalizare și avertizare la incendiu: S.C. ALARM SERVICE S.R.L.\nVerificările se fac după graficele de întreținere și verificare.`
+          : '– stingătoarele: S.C. FOC STOP S.R.L.',
+        'persoana juridică atestată care întreține, verifică și repară fiecare mijloc'
+      ),
+      row(
+        'Evidența incendiilor de la punerea în funcțiune a operatorului economic/instituției (pe fiecare clădire în parte)',
+        null,
+        'incendiile produse, pe fiecare clădire, cu cauzele lor'
+      ),
+    ],
+  };
+}
+
 function sample(
   label: string,
   legalName: string,
@@ -716,7 +1171,16 @@ function sample(
         certificate: 'seria A nr. 1234/2024',
         authorization: people.length > 1 ? null : 'nr. 12 din 15.09.2026, ISU Timiș',
       },
-      fire: fireSample(people, people.length > 1),
+      fire: {
+        ...fireSample(people, people.length > 1),
+        siteSheet: siteSheetSample({
+          legalName,
+          representativeName,
+          technician: fireSafetyTechnician,
+          people,
+          long: people.length > 1,
+        }),
+      },
       seasonsDecision: true,
       controlDecision: true,
       installationRegister: true,

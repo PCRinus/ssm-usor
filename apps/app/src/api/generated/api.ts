@@ -3675,6 +3675,173 @@ export interface FireMaintenanceItemRequest {
   checkedBy: string;
 }
 
+/**
+ * @nullable
+ */
+export type FireBuildingListResponseItemsItemClassification =
+  | (typeof FireBuildingListResponseItemsItemClassification)[keyof typeof FireBuildingListResponseItemsItemClassification]
+  | null;
+
+export const FireBuildingListResponseItemsItemClassification = {
+  civil: 'civil',
+  production: 'production',
+  storage: 'storage',
+  mixed: 'mixed',
+} as const;
+
+export type FireBuildingListResponseItemsItem = {
+  clientId: string;
+  workplaceId: string;
+  /** @nullable */
+  yearBuilt: number | null;
+  /** @nullable */
+  builtAreaM2: number | null;
+  /** @nullable */
+  levels: string | null;
+  /** @nullable */
+  classification: FireBuildingListResponseItemsItemClassification;
+  /** @nullable */
+  structure: string | null;
+  /** @nullable */
+  heatingFuel: string | null;
+  /** @nullable */
+  gasUse: string | null;
+  /** @nullable */
+  electricalMaintainer: string | null;
+  /** @nullable */
+  electricalLastCheckOn: string | null;
+  /** @nullable */
+  waterReserveM3: number | null;
+  /** @nullable */
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FireBuildingListResponse {
+  items: FireBuildingListResponseItemsItem[];
+}
+
+/**
+ * @nullable
+ */
+export type FireBuildingResponseBuildingClassification =
+  | (typeof FireBuildingResponseBuildingClassification)[keyof typeof FireBuildingResponseBuildingClassification]
+  | null;
+
+export const FireBuildingResponseBuildingClassification = {
+  civil: 'civil',
+  production: 'production',
+  storage: 'storage',
+  mixed: 'mixed',
+} as const;
+
+export type FireBuildingResponseBuilding = {
+  clientId: string;
+  workplaceId: string;
+  /** @nullable */
+  yearBuilt: number | null;
+  /** @nullable */
+  builtAreaM2: number | null;
+  /** @nullable */
+  levels: string | null;
+  /** @nullable */
+  classification: FireBuildingResponseBuildingClassification;
+  /** @nullable */
+  structure: string | null;
+  /** @nullable */
+  heatingFuel: string | null;
+  /** @nullable */
+  gasUse: string | null;
+  /** @nullable */
+  electricalMaintainer: string | null;
+  /** @nullable */
+  electricalLastCheckOn: string | null;
+  /** @nullable */
+  waterReserveM3: number | null;
+  /** @nullable */
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FireBuildingResponse {
+  building: FireBuildingResponseBuilding;
+}
+
+/**
+ * @nullable
+ */
+export type FireBuildingRequestClassification =
+  (typeof FireBuildingRequestClassification)[keyof typeof FireBuildingRequestClassification] | null;
+
+export const FireBuildingRequestClassification = {
+  civil: 'civil',
+  production: 'production',
+  storage: 'storage',
+  mixed: 'mixed',
+} as const;
+
+export interface FireBuildingRequest {
+  /**
+   * @minimum 1800
+   * @nullable
+   */
+  yearBuilt?: number | null;
+  /**
+   * @maximum 99999999
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  builtAreaM2?: number | null;
+  /**
+   * @minLength 2
+   * @maxLength 40
+   * @nullable
+   */
+  levels?: string | null;
+  /** @nullable */
+  classification?: FireBuildingRequestClassification;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   * @nullable
+   */
+  structure?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 80
+   * @nullable
+   */
+  heatingFuel?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 120
+   * @nullable
+   */
+  gasUse?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  electricalMaintainer?: string | null;
+  /** @nullable */
+  electricalLastCheckOn?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 99999999
+   * @nullable
+   */
+  waterReserveM3?: number | null;
+  /**
+   * @minLength 2
+   * @maxLength 1000
+   * @nullable
+   */
+  notes?: string | null;
+}
+
 export type FireSubstancesResponseState =
   (typeof FireSubstancesResponseState)[keyof typeof FireSubstancesResponseState];
 
@@ -4010,6 +4177,7 @@ export const StartRegenerationRequestTypeKey = {
   fire_work_permit: 'fire_work_permit',
   fire_installation_register: 'fire_installation_register',
   fire_extinguisher_register: 'fire_extinguisher_register',
+  fire_site_sheet: 'fire_site_sheet',
 } as const;
 
 export interface StartRegenerationRequest {
@@ -4373,6 +4541,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   fire_work_permit: 'fire_work_permit',
   fire_installation_register: 'fire_installation_register',
   fire_extinguisher_register: 'fire_extinguisher_register',
+  fire_site_sheet: 'fire_site_sheet',
 } as const;
 
 export interface ClientDocumentListResponse {
@@ -16962,6 +17131,333 @@ export const useDeleteFireMaintenanceItem = <
   return useMutation(getDeleteFireMaintenanceItemMutationOptions(options), queryClient);
 };
 
+export const getListFireBuildingsUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-buildings`;
+};
+
+/**
+ * One per active fixed-space workplace that has any, in the order of the workplaces list. A mobile site has none; one kept from when the workplace was a fixed space is left out. The site sheet 7.1 prints them (ADR 020).
+ * @summary List the buildings of a client's fixed-space workplaces
+ */
+export const listFireBuildings = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireBuildingListResponse> => {
+  return apiFetch<FireBuildingListResponse>(getListFireBuildingsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListFireBuildingsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/fire-buildings`] as const;
+};
+
+export const getListFireBuildingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFireBuildings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireBuildings>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFireBuildingsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFireBuildings>>> = ({ signal }) =>
+    listFireBuildings(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listFireBuildings>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListFireBuildingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFireBuildings>>
+>;
+export type ListFireBuildingsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListFireBuildings<
+  TData = Awaited<ReturnType<typeof listFireBuildings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireBuildings>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFireBuildings>>,
+          TError,
+          Awaited<ReturnType<typeof listFireBuildings>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFireBuildings<
+  TData = Awaited<ReturnType<typeof listFireBuildings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireBuildings>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFireBuildings>>,
+          TError,
+          Awaited<ReturnType<typeof listFireBuildings>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFireBuildings<
+  TData = Awaited<ReturnType<typeof listFireBuildings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireBuildings>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the buildings of a client's fixed-space workplaces
+ */
+
+export function useListFireBuildings<
+  TData = Awaited<ReturnType<typeof listFireBuildings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFireBuildings>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListFireBuildingsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateFireBuildingUrl = (clientId: string, workplaceId: string) => {
+  return `/clients/${clientId}/fire-buildings/${workplaceId}`;
+};
+
+/**
+ * Creates the building the first time. Every fact is optional, and a fact left out or null is cleared; readiness never asks for any of them.
+ * @summary Replace the facts of a workplace's building
+ */
+export const updateFireBuilding = async (
+  clientId: string,
+  workplaceId: string,
+  fireBuildingRequest: FireBuildingRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FireBuildingResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<FireBuildingResponse>(getUpdateFireBuildingUrl(clientId, workplaceId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(fireBuildingRequest),
+  });
+};
+
+export const getUpdateFireBuildingMutationKey = () => ['updateFireBuilding'] as const;
+
+export const getUpdateFireBuildingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFireBuilding>>,
+    TError,
+    UpdateFireBuildingMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFireBuilding>>,
+  TError,
+  UpdateFireBuildingMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateFireBuildingMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFireBuilding>>,
+    UpdateFireBuildingMutationVariables
+  > = (props) => {
+    const { clientId, workplaceId, data } = props ?? {};
+
+    return updateFireBuilding(clientId, workplaceId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFireBuildingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFireBuilding>>
+>;
+export type UpdateFireBuildingMutationBody = FireBuildingRequest;
+export type UpdateFireBuildingMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateFireBuildingMutationVariables = {
+  clientId: string;
+  workplaceId: string;
+  data: FireBuildingRequest;
+};
+
+/**
+ * @summary Replace the facts of a workplace's building
+ */
+export const useUpdateFireBuilding = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateFireBuilding>>,
+      TError,
+      UpdateFireBuildingMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateFireBuilding>>,
+  TError,
+  UpdateFireBuildingMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateFireBuildingMutationOptions(options), queryClient);
+};
+
+export const getDeleteFireBuildingUrl = (clientId: string, workplaceId: string) => {
+  return `/clients/${clientId}/fire-buildings/${workplaceId}`;
+};
+
+/**
+ * Answers 204 whether or not the workplace had a building.
+ * @summary Clear the facts of a workplace's building
+ */
+export const deleteFireBuilding = async (
+  clientId: string,
+  workplaceId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteFireBuildingUrl(clientId, workplaceId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteFireBuildingMutationKey = () => ['deleteFireBuilding'] as const;
+
+export const getDeleteFireBuildingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFireBuilding>>,
+    TError,
+    DeleteFireBuildingMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFireBuilding>>,
+  TError,
+  DeleteFireBuildingMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteFireBuildingMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFireBuilding>>,
+    DeleteFireBuildingMutationVariables
+  > = (props) => {
+    const { clientId, workplaceId } = props ?? {};
+
+    return deleteFireBuilding(clientId, workplaceId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteFireBuildingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteFireBuilding>>
+>;
+
+export type DeleteFireBuildingMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteFireBuildingMutationVariables = { clientId: string; workplaceId: string };
+
+/**
+ * @summary Clear the facts of a workplace's building
+ */
+export const useDeleteFireBuilding = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteFireBuilding>>,
+      TError,
+      DeleteFireBuildingMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFireBuilding>>,
+  TError,
+  DeleteFireBuildingMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteFireBuildingMutationOptions(options), queryClient);
+};
+
 export const getListFireSubstancesUrl = (clientId: string) => {
   return `/clients/${clientId}/fire-substances`;
 };
@@ -19455,6 +19951,7 @@ export const getUploadClientDocumentUrl = (
     | 'fire_work_permit'
     | 'fire_installation_register'
     | 'fire_extinguisher_register'
+    | 'fire_site_sheet'
 ) => {
   return `/clients/${clientId}/documents/${typeKey}/upload`;
 };
@@ -19515,7 +20012,8 @@ export const uploadClientDocument = async (
     | 'fire_registers'
     | 'fire_work_permit'
     | 'fire_installation_register'
-    | 'fire_extinguisher_register',
+    | 'fire_extinguisher_register'
+    | 'fire_site_sheet',
   uploadClientDocumentBody: Blob,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientDocumentResponse> => {
@@ -19644,7 +20142,8 @@ export type UploadClientDocumentMutationVariables = {
     | 'fire_registers'
     | 'fire_work_permit'
     | 'fire_installation_register'
-    | 'fire_extinguisher_register';
+    | 'fire_extinguisher_register'
+    | 'fire_site_sheet';
   data: Blob;
 };
 

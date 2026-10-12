@@ -527,3 +527,78 @@ export const fireMaintenanceItemListResponseSchema = z.object({
 });
 
 export type FireMaintenanceItemListResponse = z.infer<typeof fireMaintenanceItemListResponseSchema>;
+
+export const fireBuildingClassifications = ['civil', 'production', 'storage', 'mixed'] as const;
+
+export const fireBuildingClassificationSchema = z.enum(fireBuildingClassifications);
+
+export type FireBuildingClassification = z.infer<typeof fireBuildingClassificationSchema>;
+
+/** As OMAI 89/2013 annex 4 words them, inside a sentence. */
+export const fireBuildingClassificationLabels: Record<FireBuildingClassification, string> = {
+  civil: 'civilă',
+  production: 'de producție',
+  storage: 'de depozitare',
+  mixed: 'cu funcțiuni mixte',
+};
+
+// numeric(10, 2) in the database.
+const maxDecimal = 99_999_999;
+
+const yearBuilt = z
+  .int()
+  .min(1800)
+  .refine((year) => year <= new Date().getFullYear(), {
+    message: 'A building cannot be built in a later year.',
+  });
+
+/**
+ * The building of a fixed-space workplace, every fact optional, for the site sheet 7.1 (ADR 020).
+ * The detection and alarm, the safety lighting, the hydrants and the lightning protection are
+ * not here: the sheet reads them from the installations.
+ */
+export const fireBuildingRequestSchema = z.object({
+  yearBuilt: yearBuilt.nullish(),
+  builtAreaM2: z.number().positive().max(maxDecimal).nullish(),
+  // "P+1E", "S+P+4E".
+  levels: optionalText(2, 40),
+  classification: fireBuildingClassificationSchema.nullish(),
+  structure: optionalText(2, 120),
+  heatingFuel: optionalText(2, 80),
+  // What the gas is used for; null where the building uses none or nobody said.
+  gasUse: optionalText(2, 120),
+  electricalMaintainer: optionalText(2, 160),
+  electricalLastCheckOn: z.iso.date().nullish(),
+  waterReserveM3: z.number().min(0).max(maxDecimal).nullish(),
+  notes: optionalText(2, 1000),
+});
+
+export type FireBuildingRequest = z.infer<typeof fireBuildingRequestSchema>;
+
+export const fireBuildingSchema = z.object({
+  clientId: z.uuid(),
+  workplaceId: z.uuid(),
+  yearBuilt: z.int().nullable(),
+  builtAreaM2: z.number().nullable(),
+  levels: z.string().nullable(),
+  classification: fireBuildingClassificationSchema.nullable(),
+  structure: z.string().nullable(),
+  heatingFuel: z.string().nullable(),
+  gasUse: z.string().nullable(),
+  electricalMaintainer: z.string().nullable(),
+  electricalLastCheckOn: z.iso.date().nullable(),
+  waterReserveM3: z.number().nullable(),
+  notes: z.string().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+
+export type FireBuilding = z.infer<typeof fireBuildingSchema>;
+
+export const fireBuildingResponseSchema = z.object({ building: fireBuildingSchema });
+
+export type FireBuildingResponse = z.infer<typeof fireBuildingResponseSchema>;
+
+export const fireBuildingListResponseSchema = z.object({ items: z.array(fireBuildingSchema) });
+
+export type FireBuildingListResponse = z.infer<typeof fireBuildingListResponseSchema>;

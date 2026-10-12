@@ -16,6 +16,7 @@ import { MapPin } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+  getListFireBuildingsQueryKey,
   getListFireEquipmentQueryKey,
   getListFireInstallationsQueryKey,
   getListFireMaintenanceItemsQueryKey,
@@ -23,6 +24,7 @@ import {
   useDeleteFireEquipment,
   useDeleteFireInstallation,
   useDeleteFireMaintenanceItem,
+  useListFireBuildings,
   useListFireEquipment,
   useListFireInstallations,
   useListFireMaintenanceItems,
@@ -33,6 +35,7 @@ import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
 
+import { BuildingDialog, type BuildingEditing } from './building-dialog';
 import { EquipmentDialog, type EquipmentEditing } from './equipment-dialog';
 import {
   equipmentAddId,
@@ -80,16 +83,26 @@ export function FireSafetyMeansPage({
     request: apiRequest,
     query: { queryKey: [...getListFireMaintenanceItemsQueryKey(clientId), userId] },
   });
+  const buildings = useListFireBuildings(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListFireBuildingsQueryKey(clientId), userId] },
+  });
   const deleteEquipment = useDeleteFireEquipment({ request: apiRequest });
   const deleteInstallation = useDeleteFireInstallation({ request: apiRequest });
   const deleteMaintenanceItem = useDeleteFireMaintenanceItem({ request: apiRequest });
   const [equipmentEditing, setEquipmentEditing] = useState<EquipmentEditing>(null);
   const [installationEditing, setInstallationEditing] = useState<InstallationEditing>(null);
   const [maintenanceEditing, setMaintenanceEditing] = useState<MaintenanceItemEditing>(null);
+  const [buildingEditing, setBuildingEditing] = useState<BuildingEditing>(null);
   const [deleting, setDeleting] = useState<Deleting>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loaded = workplaces.data && equipment.data && installations.data && maintenanceItems.data;
+  const loaded =
+    workplaces.data &&
+    equipment.data &&
+    installations.data &&
+    maintenanceItems.data &&
+    buildings.data;
   const withoutExtinguisher = loaded
     ? workplaces.data.items.find(
         (workplace) =>
@@ -154,7 +167,8 @@ export function FireSafetyMeansPage({
     workplaces.isPending ||
     equipment.isPending ||
     installations.isPending ||
-    maintenanceItems.isPending
+    maintenanceItems.isPending ||
+    buildings.isPending
   ) {
     return (
       <div data-testid="fire-means-page" className="grid gap-6">
@@ -167,7 +181,8 @@ export function FireSafetyMeansPage({
     workplaces.isError ||
     equipment.isError ||
     installations.isError ||
-    maintenanceItems.isError
+    maintenanceItems.isError ||
+    buildings.isError
   ) {
     return (
       <Card data-testid="fire-means-page">
@@ -182,6 +197,7 @@ export function FireSafetyMeansPage({
                   void equipment.refetch();
                   void installations.refetch();
                   void maintenanceItems.refetch();
+                  void buildings.refetch();
                 }}
               >
                 Încearcă din nou
@@ -286,6 +302,9 @@ export function FireSafetyMeansPage({
           maintenanceItems={maintenanceItems.data.items.filter(
             (item) => item.workplaceId === workplace.id
           )}
+          building={
+            buildings.data.items.find((building) => building.workplaceId === workplace.id) ?? null
+          }
           readOnly={readOnly}
           onAddEquipment={() => setEquipmentEditing({ workplaceId: workplace.id, unit: null })}
           onEditEquipment={(unit) => setEquipmentEditing({ workplaceId: workplace.id, unit })}
@@ -306,6 +325,14 @@ export function FireSafetyMeansPage({
             setMaintenanceEditing({ workplaceId: workplace.id, item })
           }
           onDeleteMaintenanceItem={(item) => setDeleting({ what: 'maintenance', item })}
+          onEditBuilding={() =>
+            setBuildingEditing({
+              workplace,
+              building:
+                buildings.data.items.find((building) => building.workplaceId === workplace.id) ??
+                null,
+            })
+          }
         />
       ))}
       {substances}
@@ -326,6 +353,11 @@ export function FireSafetyMeansPage({
         workplaces={activeWorkplaces}
         editing={maintenanceEditing}
         onClose={() => setMaintenanceEditing(null)}
+      />
+      <BuildingDialog
+        clientId={clientId}
+        editing={buildingEditing}
+        onClose={() => setBuildingEditing(null)}
       />
       <Dialog
         open={deleting !== null}

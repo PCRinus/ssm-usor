@@ -50,19 +50,20 @@ export async function loadDocumentFacts(
     fireInstallations,
     fireSubstances,
     fireMaintenanceItems,
+    fireBuildings,
     ...employeeCounts
   ] = await Promise.all([
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, archived_at'
+        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at'
       )
       .eq('id', clientId)
       .maybeSingle(),
     db
       .from('organizations')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization'
+        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization, phone'
       )
       .eq('id', preparer.organizationId)
       .single(),
@@ -161,6 +162,12 @@ export async function loadDocumentFacts(
       .order('sort_order')
       .order('created_at')
       .order('id'),
+    db
+      .from('fire_buildings')
+      .select(
+        'workplace_id, year_built, built_area_m2, levels, classification, structure, heating_fuel, gas_use, electrical_maintainer, electrical_last_check_on, water_reserve_m3, notes'
+      )
+      .eq('client_id', clientId),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -200,6 +207,9 @@ export async function loadDocumentFacts(
   if (fireMaintenanceItems.error) {
     throw fromDatabaseError(fireMaintenanceItems.error, 'document facts: fire maintenance items');
   }
+  if (fireBuildings.error) {
+    throw fromDatabaseError(fireBuildings.error, 'document facts: fire buildings');
+  }
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
   }
@@ -215,6 +225,7 @@ export async function loadDocumentFacts(
       fireSafetyTechnicianName: organization.data.fire_safety_technician_name,
       fireSafetyTechnicianCertificate: organization.data.fire_safety_technician_certificate,
       fireSafetyAuthorization: organization.data.fire_safety_authorization,
+      phone: organization.data.phone,
     },
     specialist: membership.data
       ? {
@@ -235,6 +246,14 @@ export async function loadDocumentFacts(
       trainingDayFrom: client.data.training_day_from,
       trainingDayTo: client.data.training_day_to,
       caenCode: client.data.caen_code,
+      cui: client.data.cui,
+      tradeRegisterNumber: client.data.trade_register_number,
+      countyCode: client.data.county_code,
+      locality: client.data.locality,
+      addressLine: client.data.address_line,
+      contactName: client.data.contact_name,
+      contactPhone: client.data.contact_phone,
+      contactEmail: client.data.contact_email,
     },
     workplaces: workplaces.data.map((workplace) => ({
       id: workplace.id,
@@ -291,6 +310,20 @@ export async function loadDocumentFacts(
         subject: item.subject,
         intervalLabel: item.interval_label,
         checkedBy: item.checked_by,
+      })),
+      buildings: fireBuildings.data.map((building) => ({
+        workplaceId: building.workplace_id,
+        yearBuilt: building.year_built,
+        builtAreaM2: building.built_area_m2,
+        levels: building.levels,
+        classification: building.classification,
+        structure: building.structure,
+        heatingFuel: building.heating_fuel,
+        gasUse: building.gas_use,
+        electricalMaintainer: building.electrical_maintainer,
+        electricalLastCheckOn: building.electrical_last_check_on,
+        waterReserveM3: building.water_reserve_m3,
+        notes: building.notes,
       })),
       generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
         generated.has(typeKey)

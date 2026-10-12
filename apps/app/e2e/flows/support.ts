@@ -541,6 +541,9 @@ export async function cleanUp() {
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('fire_equipment').delete().eq('organization_id', id);
     await admin.from('fire_installations').delete().eq('organization_id', id);
+    await admin.from('fire_maintenance_items').delete().eq('organization_id', id);
+    await admin.from('fire_buildings').delete().eq('organization_id', id);
+    await admin.from('fire_substances').delete().eq('organization_id', id);
     await admin.from('client_fire_safety').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);

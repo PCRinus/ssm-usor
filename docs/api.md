@@ -118,6 +118,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                   |
 | `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                    |
 | `DELETE /clients/{clientId}/fire-maintenance-items/{itemId}`           | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-buildings`                               | Verified user with a membership       | `{ "items": [ … ] }`: the buildings of the active fixed spaces, in workplace order                                        |
+| `PUT /clients/{clientId}/fire-buildings/{workplaceId}`                 | Verified user with a membership       | `{ "building": { … } }`, created the first time; `409` for a mobile site                                                  |
+| `DELETE /clients/{clientId}/fire-buildings/{workplaceId}`              | Verified user with a membership       | `204`, the building cleared, whether or not there was one                                                                 |
 | `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                   |
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                            |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
@@ -661,6 +664,14 @@ The free rows of the maintenance and check schedules (`fire-maintenance-items`, 
 2026-10-11) sit on a workplace like the units, with the same `workplaceId` checks, and carry three
 required texts: `subject` (2 to 160), `intervalLabel` (2 to 60, printed as typed) and `checkedBy`
 (2 to 160). They are optional: no readiness code asks for them.
+The building of a fixed-space workplace (`fire-buildings`, ADR 020) is keyed by the workplace in
+the path: `PUT` replaces every fact, a fact left out or null is cleared, and creates the row the
+first time; a workplace that is not an active one of the client is `404`, a mobile site `409`
+with no reason. Every fact is optional (`yearBuilt` 1800 to the current year, `builtAreaM2` above
+0, `levels`, `classification` of `civil`, `production`, `storage`, `mixed`, `structure`,
+`heatingFuel`, `gasUse`, `electricalMaintainer`, `electricalLastCheckOn`, `waterReserveM3` 0 or
+more, `notes`), and no readiness code asks for any. The list leaves out a building kept from
+when its workplace was a fixed space.
 Under an archived client or a lead, every write is `409` with the reason `client_archived`
 or `client_is_lead`.
 
@@ -731,7 +742,7 @@ decision generated again keeps it. The two decisions required only from ten empl
 (ADR 020): 1 organization, 2 training, 3 open fire, 4 smoking, 5 technician, 6 instructions, 7
 waste, 8 seasons, 9 control. Under 10 current employees (`currentEmployeeCount`, the same count
 as decision 1.5's) `fire_decision_seasons`, `fire_decision_control`,
-`fire_maintenance_schedules` and `fire_installation_register`
+`fire_maintenance_schedules`, `fire_installation_register` and `fire_site_sheet`
 (`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
 list names them under `notApplicable`; one that exists stays in the list and in the set, and
 generating it again works as for any document. No readiness code belongs to them alone, so the

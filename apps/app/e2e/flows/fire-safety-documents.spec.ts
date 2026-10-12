@@ -42,7 +42,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
   await expect(page.getByTestId('documents-empty')).toHaveCount(0);
-  await expect(page.getByTestId('document-section')).toHaveCount(6);
+  await expect(page.getByTestId('document-section')).toHaveCount(7);
   await openDocumentSection(page, '1');
   await expect(page.getByTestId('document-not-generated')).toHaveCount(8);
   await expect(page.getByTestId('document-not-applicable')).toHaveText([
@@ -64,6 +64,9 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(page.getByTestId('document-not-generated')).toHaveCount(4);
   await expect(page.getByTestId('document-not-applicable')).toHaveCount(1);
   await expect(page.getByTestId('document-row')).toHaveCount(0);
+  await openDocumentSection(page, '7');
+  await expect(page.getByTestId('document-not-generated')).toHaveCount(0);
+  await expect(page.getByTestId('document-not-applicable')).toHaveText([/^Fișa obiectivului/]);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('2 date de completat');
   await expect(page.getByTestId('generate-missing-row')).toHaveText([
@@ -76,14 +79,14 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await page.reload();
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText(
-    'Niciun angajat în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații nu se generează.'
+    'Niciun angajat în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului nu se generează.'
   );
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('4');
   await page.getByTestId('generate-submit').click();
   await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible();
 
-  await expect(page.getByTestId('document-section')).toHaveCount(6);
+  await expect(page.getByTestId('document-section')).toHaveCount(7);
   await openDocumentSection(page, '1');
   const decisions = page.getByTestId('document-row');
   await expect(decisions).toHaveCount(8);
@@ -143,10 +146,10 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await page.reload();
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toHaveText(
-    '10 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare și registrul de control pentru instalații.'
+    '10 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații și fișa obiectivului.'
   );
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 4 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 5 documente.')).toBeVisible();
   await openDocumentSection(page, '1');
   await expect(decisions).toHaveCount(10);
   await expect(decisions.nth(8)).toContainText('Decizia nr. 11 PSI');
@@ -157,6 +160,9 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(rows.nth(3)).toContainText('Graficele de întreținere și verificare');
   await openDocumentSection(page, '6');
   await expect(rows).toHaveCount(5);
+  await openDocumentSection(page, '7');
+  await expect(rows).toHaveText([/^Fișa obiectivului/]);
+  await expect(page.getByTestId('document-not-applicable')).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Documente SSM' }).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents$`));

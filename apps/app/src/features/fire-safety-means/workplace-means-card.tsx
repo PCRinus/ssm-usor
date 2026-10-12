@@ -1,4 +1,8 @@
-import { extinguisherCode, fireInstallationKindLabels } from '@ssm-usor/contracts';
+import {
+  extinguisherCode,
+  fireBuildingClassificationLabels,
+  fireInstallationKindLabels,
+} from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -30,6 +34,7 @@ import {
   equipmentAddId,
   extinguisherContents,
   extinguisherHint,
+  type FireBuilding,
   type FireEquipment,
   type FireInstallation,
   type FireMaintenanceItem,
@@ -52,6 +57,7 @@ export function WorkplaceMeansCard({
   equipment,
   installations,
   maintenanceItems,
+  building,
   readOnly,
   onAddEquipment,
   onEditEquipment,
@@ -62,11 +68,13 @@ export function WorkplaceMeansCard({
   onAddMaintenanceItem,
   onEditMaintenanceItem,
   onDeleteMaintenanceItem,
+  onEditBuilding,
 }: {
   workplace: Workplace;
   equipment: readonly FireEquipment[];
   installations: readonly FireInstallation[];
   maintenanceItems: readonly FireMaintenanceItem[];
+  building: FireBuilding | null;
   readOnly: boolean;
   onAddEquipment: () => void;
   onEditEquipment: (unit: FireEquipment) => void;
@@ -77,6 +85,7 @@ export function WorkplaceMeansCard({
   onAddMaintenanceItem: () => void;
   onEditMaintenanceItem: (item: FireMaintenanceItem) => void;
   onDeleteMaintenanceItem: (item: FireMaintenanceItem) => void;
+  onEditBuilding: () => void;
 }) {
   const extinguishers = equipment.filter((unit) => unit.kind === 'extinguisher').length;
   const hint = extinguisherHint(extinguishers, workplace);
@@ -337,7 +346,78 @@ export function WorkplaceMeansCard({
           </Table>
         )}
       </section>
+
+      {workplace.kind === 'fixed_space' && (
+        <section className="grid gap-3 border-t pt-5" aria-label={`Clădirea, ${workplace.name}`}>
+          <BlockHeading
+            title="Clădirea"
+            action={
+              !readOnly && (
+                <Button
+                  variant="tonal"
+                  size="sm"
+                  data-testid="fire-building-edit"
+                  onClick={onEditBuilding}
+                >
+                  {building ? 'Modifică' : 'Completează'}
+                </Button>
+              )
+            }
+          />
+          {building ? (
+            <BuildingFacts building={building} />
+          ) : (
+            <p data-testid="fire-building-empty" className="text-sm text-muted-foreground">
+              Opțional: anul construirii, suprafața, structura, încălzirea, gazele, instalația
+              electrică și rezerva de apă. Apar în fișa obiectivului, cerută de la 10 angajați; ce
+              lipsește apare acolo ca de completat.
+            </p>
+          )}
+        </section>
+      )}
     </SectionCard>
+  );
+}
+
+function BuildingFacts({ building }: { building: FireBuilding }) {
+  const decimal = (value: number) => String(value).replace('.', ',');
+  const electrical = [
+    building.electricalMaintainer && `întreținută de ${building.electricalMaintainer}`,
+    building.electricalLastCheckOn &&
+      `verificată la ${formatRoDate(building.electricalLastCheckOn)}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const facts = [
+    ['Anul construirii', building.yearBuilt?.toString()],
+    [
+      'Suprafața construită',
+      building.builtAreaM2 !== null && `${decimal(building.builtAreaM2)} m²`,
+    ],
+    ['Regimul de înălțime', building.levels],
+    [
+      'Clasificarea',
+      building.classification && fireBuildingClassificationLabels[building.classification],
+    ],
+    ['Structura de rezistență', building.structure],
+    ['Încălzirea', building.heatingFuel],
+    ['Gaze naturale sau GPL', building.gasUse],
+    ['Instalația electrică', electrical],
+    [
+      'Rezerva de apă',
+      building.waterReserveM3 !== null && `${decimal(building.waterReserveM3)} m³`,
+    ],
+    ['Observații', building.notes],
+  ].filter((fact): fact is [string, string] => Boolean(fact[1]));
+  return (
+    <dl data-testid="fire-building-facts" className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+      {facts.map(([label, value]) => (
+        <div key={label} className={cn('grid gap-0.5', label === 'Observații' && 'sm:col-span-2')}>
+          <dt className="text-xs text-muted-foreground">{label}</dt>
+          <dd className="whitespace-pre-line">{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

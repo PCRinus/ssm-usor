@@ -120,6 +120,24 @@ const equipmentPath = `/clients/${clientId}/fire-equipment`;
 const installationsPath = `/clients/${clientId}/fire-installations`;
 const substancesPath = `/clients/${clientId}/fire-substances`;
 const maintenancePath = `/clients/${clientId}/fire-maintenance-items`;
+const buildingsPath = `/clients/${clientId}/fire-buildings`;
+
+const officeBuilding = {
+  ...stamp,
+  clientId,
+  workplaceId: office.id,
+  yearBuilt: 1987 as number | null,
+  builtAreaM2: 412.5 as number | null,
+  levels: 'P+1E' as string | null,
+  classification: 'mixed' as string | null,
+  structure: null as string | null,
+  heatingFuel: 'gaze naturale' as string | null,
+  gasUse: null as string | null,
+  electricalMaintainer: 'Electro Serv SRL' as string | null,
+  electricalLastCheckOn: '2026-03-12' as string | null,
+  waterReserveM3: 0 as number | null,
+  notes: null as string | null,
+};
 
 const chimney = {
   ...stamp,
@@ -158,6 +176,9 @@ function mockApi({
   equipment = [officeP6, officeG3, shopSand] as unknown[],
   installations = [alarm] as unknown[],
   maintenanceItems = [chimney] as unknown[],
+  buildings = [officeBuilding] as unknown[],
+  saveBuilding = ((init) =>
+    Response.json({ building: { ...officeBuilding, ...JSON.parse(String(init?.body)) } })) as Route,
   createEquipment = ((init) =>
     Response.json(
       { equipment: { ...unit, id: 'new', ...JSON.parse(String(init?.body)) } },
@@ -214,6 +235,10 @@ function mockApi({
       return method === 'DELETE'
         ? new Response(null, { status: 204 })
         : Response.json({ item: { ...chimney, ...JSON.parse(String(init?.body)) } });
+    }
+    if (pathname === buildingsPath) return Response.json({ items: buildings });
+    if (pathname.startsWith(`${buildingsPath}/`)) {
+      return method === 'DELETE' ? new Response(null, { status: 204 }) : saveBuilding(init);
     }
     if (pathname === substancesPath) {
       return method === 'POST'
@@ -588,6 +613,127 @@ describe('client fire-safety means', () => {
     expect(await screen.findByText('Verificarea a fost ștearsă.')).toBeTruthy();
   });
 
+  it("shows the facts of a fixed space's building, and invites to fill them in where there are none", async () => {
+    mockApi({
+      workplaces: [office, shop, { ...shop, id: 'site', name: 'Șantier', kind: 'mobile_site' }],
+    });
+    mount();
+
+    const officeCard = await cardOf('Sediu social');
+    const facts = within(officeCard).getByTestId('fire-building-facts');
+    expect(
+      within(facts)
+        .getAllByRole('definition')
+        .map((fact) => fact.textContent)
+    ).toEqual([
+      '1987',
+      '412,5 m²',
+      'P+1E',
+      'cu funcțiuni mixte',
+      'gaze naturale',
+      'întreținută de Electro Serv SRL, verificată la 12.03.2026',
+      '0 m³',
+    ]);
+    expect(within(officeCard).getByTestId('fire-building-edit').textContent).toBe('Modifică');
+    const shopCard = await cardOf('Gelaterie Timișoara');
+    expect(within(shopCard).getByTestId('fire-building-empty').textContent).toContain(
+      'fișa obiectivului, cerută de la 10 angajați'
+    );
+    expect(within(shopCard).getByTestId('fire-building-edit').textContent).toBe('Completează');
+    expect(within(await cardOf('Șantier')).queryByTestId('fire-building-edit')).toBeNull();
+  });
+
+  it("saves a building's facts, every one optional, with the decimal comma", async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await cardOf('Gelaterie Timișoara')).getByTestId('fire-building-edit'));
+    const dialog = await screen.findByTestId('fire-building-dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Construcția' })).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Utilități' })).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Apa pentru stingere' })).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Observații' })).toBeTruthy();
+    await user.type(within(dialog).getByTestId('fire-building-year'), '3000');
+    await user.click(within(dialog).getByTestId('fire-building-save'));
+    expect((await within(dialog).findByTestId('fire-building-year-error')).textContent).toContain(
+      'Introdu un an între 1800 și'
+    );
+    await user.clear(within(dialog).getByTestId('fire-building-year'));
+    await user.type(within(dialog).getByTestId('fire-building-year'), '1998');
+    await user.type(within(dialog).getByTestId('fire-building-area'), '85,5');
+    await user.selectOptions(within(dialog).getByTestId('fire-building-classification'), 'civil');
+    await user.type(within(dialog).getByTestId('fire-building-water-reserve'), '0');
+    await user.click(within(dialog).getByTestId('fire-building-save'));
+    await waitFor(() =>
+      expect(requests(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([
+        {
+          yearBuilt: 1998,
+          builtAreaM2: 85.5,
+          levels: null,
+          classification: 'civil',
+          structure: null,
+          heatingFuel: null,
+          gasUse: null,
+          electricalMaintainer: null,
+          electricalLastCheckOn: null,
+          waterReserveM3: 0,
+          notes: null,
+        },
+      ])
+    );
+    expect(await screen.findByText('Datele clădirii au fost salvate.')).toBeTruthy();
+  });
+
+  it('clears a building when every field is emptied, and saves nothing for a building never filled in', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await cardOf('Sediu social')).getByTestId('fire-building-edit'));
+    let dialog = await screen.findByTestId('fire-building-dialog');
+    expect(within(dialog).getByTestId<HTMLInputElement>('fire-building-area').value).toBe('412,5');
+    for (const id of [
+      'fire-building-year',
+      'fire-building-area',
+      'fire-building-levels',
+      'fire-building-heating-fuel',
+      'fire-building-electrical-maintainer',
+      'fire-building-water-reserve',
+      'fire-building-electrical-check',
+    ]) {
+      await user.clear(within(dialog).getByTestId(id));
+    }
+    await user.selectOptions(within(dialog).getByTestId('fire-building-classification'), '');
+    await user.click(within(dialog).getByTestId('fire-building-save'));
+    await waitFor(() =>
+      expect(requests(`${buildingsPath}/${office.id}`, 'DELETE')).toHaveLength(1)
+    );
+    expect(requests(`${buildingsPath}/${office.id}`, 'PUT')).toEqual([]);
+
+    await user.click(within(await cardOf('Gelaterie Timișoara')).getByTestId('fire-building-edit'));
+    dialog = await screen.findByTestId('fire-building-dialog');
+    await user.click(within(dialog).getByTestId('fire-building-save'));
+    await waitFor(() => expect(screen.queryByTestId('fire-building-dialog')).toBeNull());
+    expect(requests(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([]);
+    expect(requests(`${buildingsPath}/${shop.id}`, 'DELETE')).toEqual([]);
+  });
+
+  it('says so when the workplace became a mobile site meanwhile', async () => {
+    mockApi({
+      saveBuilding: () => Response.json({ error: 'conflict', message: 'x' }, { status: 409 }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await cardOf('Sediu social')).getByTestId('fire-building-edit'));
+    const dialog = await screen.findByTestId('fire-building-dialog');
+    await user.click(within(dialog).getByTestId('fire-building-save'));
+    expect((await within(dialog).findByTestId('fire-building-error')).textContent).toBe(
+      'Locul de muncă a devenit un șantier temporar sau mobil, care nu are clădire.'
+    );
+  });
+
   it('reports a workplace archived meanwhile on the workplace field', async () => {
     mockApi({
       createEquipment: () =>
@@ -626,7 +772,13 @@ describe('client fire-safety means', () => {
   });
 
   it('points to the details when the client has no workplace', async () => {
-    mockApi({ workplaces: [], equipment: [], installations: [], maintenanceItems: [] });
+    mockApi({
+      workplaces: [],
+      equipment: [],
+      installations: [],
+      maintenanceItems: [],
+      buildings: [],
+    });
     mount();
 
     const empty = await screen.findByTestId('fire-means-no-workplace');
@@ -643,6 +795,8 @@ describe('client fire-safety means', () => {
     expect(screen.queryByTestId('fire-equipment-add')).toBeNull();
     expect(screen.queryByTestId('fire-installation-add')).toBeNull();
     expect(screen.queryByTestId('fire-equipment-actions')).toBeNull();
+    expect(screen.queryByTestId('fire-building-edit')).toBeNull();
+    expect(screen.getByTestId('fire-building-facts')).toBeTruthy();
   });
 });
 

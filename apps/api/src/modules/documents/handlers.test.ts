@@ -95,6 +95,7 @@ const organizationRow = {
   fire_safety_technician_name: 'Radu STAN',
   fire_safety_technician_certificate: 'CT 1234/2024',
   fire_safety_authorization: null,
+  phone: null,
 };
 const clientRow = {
   legal_name: 'S.C. PIPETECH S.R.L.',
@@ -108,6 +109,15 @@ const clientRow = {
   training_first_month: 2,
   training_day_from: 2,
   training_day_to: 7,
+  caen_code: null,
+  cui: '14399840',
+  trade_register_number: null,
+  county_code: null,
+  locality: null,
+  address_line: null,
+  contact_name: null,
+  contact_phone: null,
+  contact_email: null,
   archived_at: null,
 };
 const profileRow = {
@@ -351,7 +361,8 @@ type Upstream =
   | 'fireEquipment'
   | 'fireInstallations'
   | 'fireSubstances'
-  | 'fireMaintenanceItems';
+  | 'fireMaintenanceItems'
+  | 'fireBuildings';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -419,6 +430,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.fireSubstances?.() ?? Response.json([]);
       case '/rest/v1/fire_maintenance_items':
         return handlers.fireMaintenanceItems?.() ?? Response.json([]);
+      case '/rest/v1/fire_buildings':
+        return handlers.fireBuildings?.() ?? Response.json([]);
       case '/rest/v1/client_documents':
         if (method === 'GET' && isConditionalDocumentsRead(url)) {
           return handlers.conditionalDocuments?.() ?? Response.json([]);
@@ -2655,6 +2668,7 @@ describe('the fire-safety set', () => {
       'fire_decision_control',
       'fire_maintenance_schedules',
       'fire_installation_register',
+      'fire_site_sheet',
     ]);
     expect(searchParam('/rest/v1/client_documents', 'document_group')).toBe('eq.fire_safety_set');
     expect(searchParam('/rest/v1/document_generations', 'document_group')).toBe(
@@ -2840,6 +2854,7 @@ describe('the fire-safety set', () => {
       'fire_decision_control',
       'fire_maintenance_schedules',
       'fire_installation_register',
+      'fire_site_sheet',
     ].map((typeKey) => ({
       type_key: typeKey,
       title: typeKey,
@@ -2881,6 +2896,7 @@ describe('the fire-safety set', () => {
         'fire_installation_register',
         'fire_maintenance_schedules',
         'fire_registers',
+        'fire_site_sheet',
       ],
       listed: true,
     });
@@ -2912,6 +2928,7 @@ describe('the fire-safety set', () => {
       'fire_decision_seasons',
       'fire_decision_control',
       'fire_maintenance_schedules',
+      'fire_site_sheet',
     ]);
     expect(body.items[0]!.draft!.dataChanged).toBe(true);
   });
@@ -3004,6 +3021,27 @@ describe('the fire-safety set', () => {
               subject: 'Coșul de fum',
               interval_label: 'anual',
               checked_by: 'Firmă autorizată de coșerit',
+            },
+          ]),
+      })
+    ).toBe(true);
+    expect(
+      await changed({
+        fireBuildings: () =>
+          Response.json([
+            {
+              workplace_id: workplaceRow.id,
+              year_built: 1987,
+              built_area_m2: null,
+              levels: null,
+              classification: null,
+              structure: null,
+              heating_fuel: null,
+              gas_use: null,
+              electrical_maintainer: null,
+              electrical_last_check_on: null,
+              water_reserve_m3: null,
+              notes: null,
             },
           ]),
       })

@@ -4,6 +4,7 @@ import { responsiblePersonRequestSchema, workplaceRequestSchema } from './docume
 import {
   extinguisherCode,
   fireAnnexNorms,
+  fireBuildingRequestSchema,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
   fireMaintenanceItemRequestSchema,
@@ -281,5 +282,45 @@ describe('a free row of the maintenance schedules', () => {
       fireMaintenanceItemRequestSchema.safeParse({ ...chimney, intervalLabel: 'a'.repeat(61) })
         .success
     ).toBe(false);
+  });
+});
+
+describe('the building of a workplace', () => {
+  it('takes every fact as optional, trimmed, and an empty building too', () => {
+    expect(fireBuildingRequestSchema.parse({})).toEqual({});
+    expect(
+      fireBuildingRequestSchema.parse({
+        yearBuilt: 1987,
+        builtAreaM2: 412.5,
+        levels: ' P+1E ',
+        classification: 'mixed',
+        waterReserveM3: 0,
+        electricalLastCheckOn: '2026-03-12',
+        notes: null,
+      })
+    ).toEqual({
+      yearBuilt: 1987,
+      builtAreaM2: 412.5,
+      levels: 'P+1E',
+      classification: 'mixed',
+      waterReserveM3: 0,
+      electricalLastCheckOn: '2026-03-12',
+      notes: null,
+    });
+  });
+
+  it('refuses a year before 1800 or after this one, and an area of nothing', () => {
+    const next = new Date().getFullYear() + 1;
+    for (const building of [
+      { yearBuilt: 1799 },
+      { yearBuilt: next },
+      { yearBuilt: 1987.5 },
+      { builtAreaM2: 0 },
+      { waterReserveM3: -1 },
+      { levels: 'P' },
+      { classification: 'industrial' },
+    ]) {
+      expect(fireBuildingRequestSchema.safeParse(building).success).toBe(false);
+    }
   });
 });

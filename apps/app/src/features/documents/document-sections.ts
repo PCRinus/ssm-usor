@@ -146,6 +146,12 @@ export const fireSafetyDocumentSections = [
       'fire_extinguisher_register',
     ],
   },
+  {
+    id: 'inspectorate',
+    number: '7',
+    title: 'Documente pentru inspectorat',
+    typeKeys: ['fire_site_sheet'],
+  },
 ] as const satisfies readonly {
   id: string;
   number: string;

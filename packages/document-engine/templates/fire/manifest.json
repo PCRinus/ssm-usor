@@ -317,6 +317,18 @@
         "kind": "layout",
         "note": "Legenda a)–h) are mai mult spațiu față de tabel."
       }
+    },
+    {
+      "number": "7.1",
+      "originals": [],
+      "stage": 2,
+      "typeKey": "fire_site_sheet",
+      "title": "Fișa obiectivului",
+      "file": "7.1_fire_site_sheet.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială, după modelul din anexa 4 la regulamentul aprobat prin OMAI 89/2013."
+      }
     }
   ]
 }

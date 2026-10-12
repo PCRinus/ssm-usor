@@ -12,6 +12,7 @@ type EquipmentInsert = Tables['fire_equipment']['Insert'];
 type InstallationInsert = Tables['fire_installations']['Insert'];
 type SubstanceInsert = Tables['fire_substances']['Insert'];
 type MaintenanceItemInsert = Tables['fire_maintenance_items']['Insert'];
+type BuildingInsert = Tables['fire_buildings']['Insert'];
 
 interface ClientCalendar {
   id: string;
@@ -163,6 +164,36 @@ export function maintenanceItemsFor(
   ];
 }
 
+// A complete building and one with half its facts, so the site sheet 7.1 shows both data and gaps.
+export function buildingFor(
+  workplace: { id: string; client_id: string },
+  createdBy: string,
+  complete: boolean
+): BuildingInsert {
+  const base = {
+    organization_id: seedOrganizationId,
+    client_id: workplace.client_id,
+    workplace_id: workplace.id,
+    created_by: createdBy,
+    year_built: 1987,
+    built_area_m2: 412.5,
+    levels: 'P+1E',
+    classification: 'mixed' as const,
+  };
+  return complete
+    ? {
+        ...base,
+        structure: 'Cadre din beton armat, închideri din zidărie de cărămidă',
+        heating_fuel: 'gaze naturale',
+        gas_use: 'încălzire și prepararea hranei',
+        electrical_maintainer: 'Electro Serv Demo S.R.L.',
+        electrical_last_check_on: '2026-03-12',
+        water_reserve_m3: 0,
+        notes: 'Clădirea are o singură scară de evacuare, spre curtea interioară.',
+      }
+    : base;
+}
+
 // A cleaning agent, a gas cylinder and a solvent, each with some texts of its data sheet left
 // out, so the list 5.3 prints its gaps (ADR 018).
 export function substancesFor(clientId: string, createdBy: string): SubstanceInsert[] {
@@ -279,6 +310,7 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     equipment: 0,
     installations: 0,
     maintenanceItems: 0,
+    buildings: 0,
     substancesDeclared: 0,
     substances: 0,
   };
@@ -365,7 +397,7 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   const workplaces = await db
     .from('client_workplaces')
     .select(
-      'id, client_id, kind, fire_equipment(count), fire_installations(count), fire_maintenance_items(count)'
+      'id, client_id, kind, fire_equipment(count), fire_installations(count), fire_maintenance_items(count), fire_buildings(count)'
     )
     .in('client_id', clientIds)
     .is('archived_at', null);
@@ -373,6 +405,12 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   const equipment: EquipmentInsert[] = [];
   const installations: InstallationInsert[] = [];
   const maintenanceItems: MaintenanceItemInsert[] = [];
+  const buildings: BuildingInsert[] = [];
+  const buildingKinds = new Map([
+    [clientIds[0], true],
+    [clientIds[1], false],
+    [clientIds[2], true],
+  ]);
   for (const workplace of workplaces.data) {
     const means = fireMeansFor(workplace, createdBy);
     if (workplace.fire_equipment[0]?.count === 0) equipment.push(...means.equipment);
@@ -381,6 +419,14 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     }
     if (workplace.kind === 'fixed_space' && workplace.fire_maintenance_items[0]?.count === 0) {
       maintenanceItems.push(...maintenanceItemsFor(workplace, createdBy));
+    }
+    const complete = buildingKinds.get(workplace.client_id);
+    if (
+      complete !== undefined &&
+      workplace.kind === 'fixed_space' &&
+      workplace.fire_buildings[0]?.count === 0
+    ) {
+      buildings.push(buildingFor(workplace, createdBy, complete));
     }
   }
   if (equipment.length > 0) {
@@ -397,7 +443,12 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   }
   counts.equipment = equipment.length;
   counts.installations = installations.length;
+  if (buildings.length > 0) {
+    const { error } = await db.from('fire_buildings').insert(buildings);
+    if (error) throw new Error(`Could not seed buildings: ${error.message}`);
+  }
   counts.maintenanceItems = maintenanceItems.length;
+  counts.buildings = buildings.length;
 
   // Every other client declares none and the rest list theirs, so both forms of 5.3 are seen.
   for (const [state, ids] of [

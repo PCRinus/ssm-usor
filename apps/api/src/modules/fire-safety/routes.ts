@@ -1,6 +1,9 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientFireSafetyResponseSchema,
+  fireBuildingListResponseSchema,
+  fireBuildingRequestSchema,
+  fireBuildingResponseSchema,
   fireEquipmentListResponseSchema,
   fireEquipmentRequestSchema,
   fireEquipmentResponseSchema,
@@ -27,6 +30,7 @@ const equipmentParams = clientParams.extend({ equipmentId: z.uuid() });
 const installationParams = clientParams.extend({ installationId: z.uuid() });
 const substanceParams = clientParams.extend({ substanceId: z.uuid() });
 const maintenanceItemParams = clientParams.extend({ itemId: z.uuid() });
+const buildingParams = clientParams.extend({ workplaceId: z.uuid() });
 
 const noSuchClient = {
   description: 'The client does not exist in the organization',
@@ -531,6 +535,94 @@ export const deleteFireMaintenanceItemRoute = createRoute({
     204: { description: 'Deleted' },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchMaintenanceItem,
+    409: refusedClient,
+    ...membershipErrors,
+  },
+});
+
+const noSuchBuildingWorkplace = {
+  description: 'The client does not exist, or the workplace is not an active one of this client',
+  content: errorContent,
+};
+
+export const listFireBuildingsRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/fire-buildings',
+  operationId: 'listFireBuildings',
+  summary: "List the buildings of a client's fixed-space workplaces",
+  description:
+    'One per active fixed-space workplace that has any, in the order of the workplaces list. A mobile site has none; one kept from when the workplace was a fixed space is left out. The site sheet 7.1 prints them (ADR 020).',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams },
+  responses: {
+    200: {
+      description: 'The buildings',
+      content: {
+        'application/json': {
+          schema: fireBuildingListResponseSchema.meta({ id: 'FireBuildingListResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const updateFireBuildingRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/fire-buildings/{workplaceId}',
+  operationId: 'updateFireBuilding',
+  summary: "Replace the facts of a workplace's building",
+  description:
+    'Creates the building the first time. Every fact is optional, and a fact left out or null is cleared; readiness never asks for any of them.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: buildingParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: fireBuildingRequestSchema.meta({ id: 'FireBuildingRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The building after the change',
+      content: {
+        'application/json': {
+          schema: fireBuildingResponseSchema.meta({ id: 'FireBuildingResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: noSuchBuildingWorkplace,
+    409: {
+      description:
+        'The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or the workplace is a mobile site, which has no building',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const deleteFireBuildingRoute = createRoute({
+  method: 'delete',
+  path: '/clients/{clientId}/fire-buildings/{workplaceId}',
+  operationId: 'deleteFireBuilding',
+  summary: "Clear the facts of a workplace's building",
+  description: 'Answers 204 whether or not the workplace had a building.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: buildingParams },
+  responses: {
+    204: { description: 'Cleared' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
     409: refusedClient,
     ...membershipErrors,
   },
