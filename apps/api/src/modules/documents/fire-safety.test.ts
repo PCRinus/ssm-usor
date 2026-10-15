@@ -898,6 +898,23 @@ describe('the fire-safety context', () => {
     ]);
   });
 
+  it('names the posts that apply a module when others in their category do not', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const [execution] = buildFireSafetyContext({
+      ...facts,
+      jobPositions: [{ ...accountant!, staffCategory: 'execution' }, welder!],
+    }).fireThemes!.categories;
+    expect(execution!.sessions[0]!.content.split('; ')[1]).toBe(
+      'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7 (Sudor)'
+    );
+  });
+
+  it('names the workplaces of the themes, the registered office first', () => {
+    expect(buildFireSafetyContext(facts).fireThemes!.workplaceNames).toBe(
+      'Sediul social, Atelier Ghiroda'
+    );
+  });
+
   it('cites a module without numbered articles by its title alone', () => {
     const sessions = buildFireSafetyContext({
       ...facts,

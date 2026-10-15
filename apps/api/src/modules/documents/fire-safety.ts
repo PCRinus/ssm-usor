@@ -229,6 +229,8 @@ type FireThemesCategoryContext = {
 type FireThemesContext = {
   /** Never printed: what makes the themes out of date when the IPSU changes. */
   ownInstructionsRevision: { id: string; number: number; versionIds: string[] };
+  /** "Sediul social, Atelierul mecanic": the active workplaces, the registered office first. */
+  workplaceNames: string;
   /** One per staff category with current posts, technical-administrative first. */
   categories: FireThemesCategoryContext[];
 };
@@ -994,8 +996,9 @@ const fireModuleCitation = ({ title, articleCount }: { title: string; articleCou
 
 /**
  * A staff category's sessions cite the fire-safety modules its posts apply, each whole, as the
- * newest IPSU revision annexes them; a module the revision does not annex waits for the IPSU to
- * be generated again (ADR 014, ADR 012 amendment of 2026-10-11).
+ * newest IPSU revision annexes them, naming the posts that apply a module when others in the
+ * category do not; a module the revision does not annex waits for the IPSU to be generated again
+ * (ADR 014, ADR 012 amendment of 2026-10-11).
  */
 function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
   const ipsu = facts.fireOwnInstructions;
@@ -1027,22 +1030,36 @@ function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
       // A draft generated again keeps its id; new module versions still date the themes.
       versionIds: ipsu.annexes.map((annex) => annex.versionId),
     },
+    workplaceNames: [...facts.workplaces]
+      .sort(
+        (a, b) =>
+          Number(b.registeredOffice) - Number(a.registeredOffice) ||
+          collator.compare(a.name, b.name)
+      )
+      .map((workplace) => workplace.name.trim())
+      .join(', '),
     categories: (['technical_administrative', 'execution'] as const).flatMap((category) => {
       const positions = facts.jobPositions.filter(
         (position) => position.staffCategory === category
       );
       if (positions.length === 0) return [];
       const posts = positions.map((position) => position.name.trim());
-      const applied = new Set(
-        positions.flatMap((position) =>
-          position.instructions
-            .filter((module) => module.domain === 'psi')
-            .map((module) => module.moduleId)
-        )
-      );
-      const modules = ipsu.annexes
-        .filter((annex) => applied.has(annex.moduleId))
-        .map((annex) => fireModuleCitation({ ...annex, title: annex.title.trim() }));
+      const applying = (moduleId: string) =>
+        positions.filter((position) =>
+          position.instructions.some(
+            (module) => module.domain === 'psi' && module.moduleId === moduleId
+          )
+        );
+      const modules = ipsu.annexes.flatMap((annex) => {
+        const appliedBy = applying(annex.moduleId);
+        if (appliedBy.length === 0) return [];
+        const citation = fireModuleCitation({ ...annex, title: annex.title.trim() });
+        return [
+          appliedBy.length === positions.length
+            ? citation
+            : `${citation} (${appliedBy.map((position) => position.name.trim()).join(', ')})`,
+        ];
+      });
       const execution = category === 'execution';
       const sessionMonths = trainingMonths(firstMonth, intervalMonths[category]);
       const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);

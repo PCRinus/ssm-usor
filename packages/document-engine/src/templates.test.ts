@@ -495,6 +495,7 @@ describe('fire-safety set', () => {
   };
   const fireThemes = {
     ownInstructionsRevision: { id: 'r-1', number: 1, versionIds: ['v-1', 'v-2'] },
+    workplaceNames: 'Magazin, Depozit',
     categories: [
       {
         staffCategory: 'technical_administrative',
@@ -1202,6 +1203,24 @@ describe('fire-safety set', () => {
     );
     expect(sparseText).not.toContain('Personal administrativ');
     expect(sparseText.match(/^FUNCȚIA: Personal de execuție \(Barman\)$/gm)).toHaveLength(2);
+  });
+
+  it("names the workplaces in every chapter of the themes, and keeps each plan's last rows with its total", () => {
+    const themes = 'fire/3.1_fire_training_themes.docx';
+    const text = documentText(renderDocument(read(themes), stageTwoData));
+    expect(text.match(/^LOCUL DE MUNCĂ: Magazin, Depozit$/gm)).toHaveLength(5);
+    expect(text).not.toContain('--');
+    const plans = (bodyOf(themes).match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? []).filter((table) =>
+      table.includes('TIMP TOTAL DE INSTRUIRE')
+    );
+    expect(plans).toHaveLength(2);
+    for (const plan of plans) {
+      const rows = plan.match(/<w:tr>[\s\S]*?<\/w:tr>/g)!;
+      for (const row of rows.slice(-3, -1)) {
+        expect(row).not.toMatch(/<w:keepNext w:val="false"\/>/);
+        expect(row).toMatch(/<w:keepNext w:val="true"\/>/);
+      }
+    }
   });
 
   // OMAI 712/2005 art. 13 and 18 ask eight hours of training, which the breaks are not.
